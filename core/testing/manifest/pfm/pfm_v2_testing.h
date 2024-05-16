@@ -4,8 +4,8 @@
 #ifndef PFM_V2_TESTING_H_
 #define PFM_V2_TESTING_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "testing/manifest/manifest_v2_testing.h"
 
 
@@ -24,17 +24,17 @@
  * Describe a single read/write region defined for a firmware version.
  */
 struct pfm_v2_testing_data_rw {
-	uint32_t start_addr;								/**< The start address of the region. */
-	uint32_t end_addr;									/**< The end address of the region. */
-	uint8_t flags;										/**< Flags defined for the region. */
+	uint32_t start_addr;	/**< The start address of the region. */
+	uint32_t end_addr;		/**< The end address of the region. */
+	uint8_t flags;			/**< Flags defined for the region. */
 };
 
 /**
  * Describe a single flash region defined for a firmware image.
  */
 struct pfm_v2_testing_data_region {
-	uint32_t start_addr;								/**< The start address of the region. */
-	uint32_t end_addr;									/**< The end address of the region. */
+	uint32_t start_addr;	/**< The start address of the region. */
+	uint32_t end_addr;		/**< The end address of the region. */
 };
 
 /**
@@ -58,25 +58,26 @@ struct pfm_v2_testing_data_image {
 /**
  * Determine the length of a PFM image definition.
  */
-#define	PFM_V2_TESTING_IMG_LENGTH(x)		(PFM_V2_IMG_HDR_SIZE + ((x)->hash_len) + ((x)->region_count * PFM_V2_IMG_REGION_SIZE))
+#define	PFM_V2_TESTING_IMG_LENGTH(\
+	x)		  (PFM_V2_IMG_HDR_SIZE + ((x)->hash_len) + ((x)->region_count * PFM_V2_IMG_REGION_SIZE))
 
 /**
  * Describe a single firmware version element in a PFM.
  */
 struct pfm_v2_testing_data_fw_ver {
-	const uint8_t *fw_version;							/**< Firmware Version element data. */
-	size_t fw_version_len;								/**< Firmware Version element length. */
-	const char *version_str;							/**< Version string in the element.  Not the raw manifest data. */
-	size_t version_str_len;								/**< Length of the version string. */
-	size_t version_str_pad;								/**< Padding added to the version string. */
-	uint32_t fw_version_offset;							/**< Offset of the firmware version element. */
-	int fw_version_entry;								/**< TOC entry for the firmware version element. */
-	int fw_version_hash;								/**< TOC hash for the firmware version element. */
-	uint32_t version_addr;								/**< Host address of the version string. */
-	int rw_count;										/**< The number of R/W regions for this version. */
-	const struct pfm_v2_testing_data_rw *rw;			/**< List of R/W regions. */
-	int img_count;										/**< The number of images for this version. */
-	const struct pfm_v2_testing_data_image *img;		/**< List of firmware images. */
+	const uint8_t *fw_version;						/**< Firmware Version element data. */
+	size_t fw_version_len;							/**< Firmware Version element length. */
+	const char *version_str;						/**< Version string in the element.  Not the raw manifest data. */
+	size_t version_str_len;							/**< Length of the version string. */
+	size_t version_str_pad;							/**< Padding added to the version string. */
+	uint32_t fw_version_offset;						/**< Offset of the firmware version element. */
+	int fw_version_entry;							/**< TOC entry for the firmware version element. */
+	int fw_version_hash;							/**< TOC hash for the firmware version element. */
+	uint32_t version_addr;							/**< Host address of the version string. */
+	int rw_count;									/**< The number of R/W regions for this version. */
+	const struct pfm_v2_testing_data_rw *rw;		/**< List of R/W regions. */
+	int img_count;									/**< The number of images for this version. */
+	const struct pfm_v2_testing_data_image *img;	/**< List of firmware images. */
 };
 
 /**
@@ -99,16 +100,16 @@ struct pfm_v2_testing_data_fw {
  * Describe a test PFM structure.
  */
 struct pfm_v2_testing_data {
-	struct manifest_v2_testing_data manifest;			/**< Common manifest components. */
-	const uint8_t *flash_dev;							/**< Flash Device element data. */
-	size_t flash_dev_len;								/**< Flash Device element data length. */
-	uint32_t flash_dev_offset;							/**< Offset of the flash device element. */
-	int flash_dev_entry;								/**< TOC entry for the flash device element. */
-	int flash_dev_hash;									/**< TOC hash for the flash device element. */
-	int blank_byte;										/**< Blank byte specified in the PFM. */
-	int fw_count;										/**< The number of FW elements in the manifest. */
-	const struct pfm_v2_testing_data_fw *fw;			/**< List of FW elements. */
+	struct manifest_v2_testing_data manifest;	/**< Common manifest components. */
+	const uint8_t *flash_dev;					/**< Flash Device element data. */
+	size_t flash_dev_len;						/**< Flash Device element data length. */
+	uint32_t flash_dev_offset;					/**< Offset of the flash device element. */
+	int flash_dev_entry;						/**< TOC entry for the flash device element. */
+	int flash_dev_hash;							/**< TOC hash for the flash device element. */
+	int blank_byte;								/**< Blank byte specified in the PFM. */
+	int fw_count;								/**< The number of FW elements in the manifest. */
+	const struct pfm_v2_testing_data_fw *fw;	/**< List of FW elements. */
 };
 
 
-#endif /* PFM_V2_TESTING_H_ */
+#endif	/* PFM_V2_TESTING_H_ */

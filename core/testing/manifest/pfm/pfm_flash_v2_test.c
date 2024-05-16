@@ -12458,6 +12458,7 @@ static void pfm_flash_v2_test_is_empty_verify_never_run (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (pfm_flash_v2);
 
 TEST (pfm_flash_v2_test_verify);
@@ -12618,3 +12619,4 @@ TEST (pfm_flash_v2_test_is_empty_null);
 TEST (pfm_flash_v2_test_is_empty_verify_never_run);
 
 TEST_SUITE_END;
+// *INDENT-ON*

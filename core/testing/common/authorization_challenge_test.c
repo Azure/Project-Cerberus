@@ -1,22 +1,22 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
 #include "common/authorization_challenge.h"
-#include "testing/mock/crypto/signature_verification_mock.h"
-#include "testing/mock/crypto/ecc_mock.h"
-#include "testing/mock/crypto/rng_mock.h"
-#include "testing/mock/crypto/hash_mock.h"
-#include "testing/engines/rng_testing_engine.h"
-#include "testing/engines/hash_testing_engine.h"
-#include "testing/engines/ecc_testing_engine.h"
 #include "testing/crypto/ecc_testing.h"
 #include "testing/crypto/rsa_testing.h"
 #include "testing/crypto/signature_testing.h"
+#include "testing/engines/ecc_testing_engine.h"
+#include "testing/engines/hash_testing_engine.h"
+#include "testing/engines/rng_testing_engine.h"
+#include "testing/mock/crypto/ecc_mock.h"
+#include "testing/mock/crypto/hash_mock.h"
+#include "testing/mock/crypto/rng_mock.h"
+#include "testing/mock/crypto/signature_verification_mock.h"
 
 
 TEST_SUITE_LABEL ("authorization_challenge");
@@ -290,8 +290,8 @@ static void authorization_challenge_test_init_with_tag_null (CuTest *test)
 		ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &verification.base, 1);
 	CuAssertIntEquals (test, AUTHORIZATION_INVALID_ARGUMENT, status);
 
-	status = authorization_challenge_init_with_tag (&auth, &rng.base, &hash.base, &ecc.base,
-		NULL, ECC_PRIVKEY_DER_LEN, &verification.base, 1);
+	status = authorization_challenge_init_with_tag (&auth, &rng.base, &hash.base, &ecc.base, NULL,
+		ECC_PRIVKEY_DER_LEN, &verification.base, 1);
 	CuAssertIntEquals (test, AUTHORIZATION_INVALID_ARGUMENT, status);
 
 	status = authorization_challenge_init_with_tag (&auth, &rng.base, &hash.base, &ecc.base,
@@ -445,8 +445,8 @@ static void authorization_challenge_test_authorize_no_nonce (CuTest *test)
 	CuAssertIntEquals (test, AUTHORIZATION_CHALLENGE, status);
 	CuAssertPtrNotNull (test, nonce);
 
-	status = hash.base.calculate_sha256 (&hash.base, nonce, AUTH_CHALLENGE_NONCE_LENGTH,
-		nonce_hash, sizeof (nonce_hash));
+	status = hash.base.calculate_sha256 (&hash.base, nonce, AUTH_CHALLENGE_NONCE_LENGTH, nonce_hash,
+		sizeof (nonce_hash));
 	CuAssertIntEquals (test, 0, status);
 
 	status = ecc.base.verify (&ecc.base, &nonce_key, nonce_hash, SHA256_HASH_LENGTH,
@@ -1877,9 +1877,8 @@ static void authorization_challenge_test_authorize_regenerate_nonce_sign_error (
 	status = mock_validate (&ecc.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&ecc.mock, ecc.base.sign, &ecc, ECC_SIG_TEST_LEN,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (73));
+	status = mock_expect (&ecc.mock, ecc.base.sign, &ecc, ECC_SIG_TEST_LEN,	MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_NOT_NULL, MOCK_ARG (73));
 	status |= mock_expect_output (&ecc.mock, 3, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN, 4);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2223,6 +2222,7 @@ static void authorization_challenge_test_authorize_use_nonce_after_verify_error 
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (authorization_challenge);
 
 TEST (authorization_challenge_test_init);
@@ -2264,3 +2264,4 @@ TEST (authorization_challenge_test_authorize_use_nonce_after_hash_error);
 TEST (authorization_challenge_test_authorize_use_nonce_after_verify_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

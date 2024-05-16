@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
 #include "crypto/kat/kdf_kat.h"
 #include "crypto/kat/kdf_kat_vectors.h"
 #include "testing/crypto/kdf_testing.h"
-#include "testing/mock/crypto/hash_mock.h"
 #include "testing/engines/hash_testing_engine.h"
+#include "testing/mock/crypto/hash_mock.h"
 
 
 TEST_SUITE_LABEL ("kdf_kat");

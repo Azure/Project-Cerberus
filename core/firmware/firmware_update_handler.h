@@ -4,9 +4,9 @@
 #ifndef FIRMWARE_UPDATE_HANDLER_H_
 #define FIRMWARE_UPDATE_HANDLER_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "firmware_update_control.h"
 #include "cmd_interface/cerberus_protocol.h"
 #include "system/event_task.h"
@@ -26,8 +26,8 @@ enum {
  * Variable context for the firmware update handler.
  */
 struct firmware_update_handler_state {
-	int update_status;									/**< The last firmware update status. */
-	bool recovery_boot;									/**< Flag indicating the system has booted the recovery image. */
+	int update_status;	/**< The last firmware update status. */
+	bool recovery_boot;	/**< Flag indicating the system has booted the recovery image. */
 };
 
 /**
@@ -84,4 +84,4 @@ void firmware_update_handler_execute (const struct event_task_handler *handler,
  * error codes. */
 
 
-#endif /* FIRMWARE_UPDATE_HANDLER_H_ */
+#endif	/* FIRMWARE_UPDATE_HANDLER_H_ */

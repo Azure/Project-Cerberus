@@ -2,14 +2,14 @@
 // Licensed under the MIT license.
 
 #include <stddef.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include "testing.h"
 #include "crypto/ecc_thread_safe.h"
-#include "testing/mock/crypto/ecc_mock.h"
 #include "testing/crypto/ecc_testing.h"
 #include "testing/crypto/signature_testing.h"
+#include "testing/mock/crypto/ecc_mock.h"
 
 
 TEST_SUITE_LABEL ("ecc_thread_safe");
@@ -168,8 +168,8 @@ static void ecc_thread_safe_test_init_key_pair_null (CuTest *test)
 	status = ecc_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_key_pair (NULL, (const uint8_t*) ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, &priv_key, &pub_key);
+	status = engine.base.init_key_pair (NULL, (const uint8_t*) ECC_PRIVKEY_DER,	ECC_PRIVKEY_DER_LEN,
+		&priv_key, &pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);
@@ -267,8 +267,8 @@ static void ecc_thread_safe_test_init_public_key_null (CuTest *test)
 	status = ecc_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_public_key (NULL, (const uint8_t*) ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, &pub_key);
+	status = engine.base.init_public_key (NULL, (const uint8_t*) ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);
@@ -370,8 +370,8 @@ static void ecc_thread_safe_test_generate_derived_key_pair_null (CuTest *test)
 	status = ecc_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_derived_key_pair (NULL, ECC_PRIVKEY, ECC_PRIVKEY_LEN,
-		&priv_key, &pub_key);
+	status = engine.base.generate_derived_key_pair (NULL, ECC_PRIVKEY, ECC_PRIVKEY_LEN,	&priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);
@@ -942,8 +942,7 @@ static void ecc_thread_safe_test_sign_null (CuTest *test)
 	status = ecc_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.sign (NULL, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
-		sizeof (out));
+	status = engine.base.sign (NULL, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);
@@ -1042,8 +1041,8 @@ static void ecc_thread_safe_test_verify_null (CuTest *test)
 	status = ecc_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.verify (NULL, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
-		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+	status = engine.base.verify (NULL, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);
@@ -1246,8 +1245,7 @@ static void ecc_thread_safe_test_compute_shared_secret_null (CuTest *test)
 	status = ecc_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.compute_shared_secret (NULL, &priv_key, &pub_key, out,
-		sizeof (out));
+	status = engine.base.compute_shared_secret (NULL, &priv_key, &pub_key, out,	sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);
@@ -1262,6 +1260,7 @@ static void ecc_thread_safe_test_compute_shared_secret_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (ecc_thread_safe);
 
 TEST (ecc_thread_safe_test_init);
@@ -1304,3 +1303,4 @@ TEST (ecc_thread_safe_test_compute_shared_secret_error);
 TEST (ecc_thread_safe_test_compute_shared_secret_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

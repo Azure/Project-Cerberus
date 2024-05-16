@@ -148,7 +148,8 @@ static int attestation_requester_send_request_and_get_response (
 			request_len =
 				spdm_generate_respond_if_ready_request (attestation->state->spdm_msg_buffer,
 				ATTESTATION_REQUESTER_MAX_SPDM_REQUEST,	attestation->state->txn.requested_command,
-				attestation->state->txn.respond_if_ready_token, attestation->state->txn.spdm_minor_version);
+				attestation->state->txn.respond_if_ready_token,
+				attestation->state->txn.spdm_minor_version);
 			if (ROT_IS_ERROR ((int) request_len)) {
 				return request_len;
 			}
@@ -436,9 +437,9 @@ release_cert_buffer:
  *
  * @return 0 if completed successfully, or an error code
  */
-static int attestation_requester_verify_ecdsa_signature (const struct attestation_requester *attestation,
-	uint8_t* signature,	size_t signature_len, uint8_t *digest, size_t transcript_hash_len,
-	const struct device_manager_key *alias_key)
+static int attestation_requester_verify_ecdsa_signature (
+	const struct attestation_requester *attestation, uint8_t *signature, size_t signature_len,
+	uint8_t *digest, size_t transcript_hash_len, const struct device_manager_key *alias_key)
 {
 	struct ecc_public_key ecc_key;
 	int signature_der_len;
@@ -469,7 +470,7 @@ static int attestation_requester_verify_ecdsa_signature (const struct attestatio
 		signature_der, signature_der_len);
 
 	attestation->ecc->release_key_pair (attestation->ecc, NULL, &ecc_key);
-	
+
 	return status;
 }
 
@@ -510,7 +511,7 @@ static int attestation_requester_verify_signature (const struct attestation_requ
 	}
 
 #ifdef ATTESTATION_SUPPORT_SPDM
-	if ((attestation->state->txn.protocol != ATTESTATION_PROTOCOL_CERBERUS) && 
+	if ((attestation->state->txn.protocol != ATTESTATION_PROTOCOL_CERBERUS) &&
 		(attestation->state->txn.spdm_minor_version >= ATTESTATION_PROTOCOL_DMTF_SPDM_1_2)) {
 		status = spdm_format_signature_digest (hash, attestation->state->txn.transcript_hash_type,
 			attestation->state->txn.spdm_minor_version, spdm_context, digest);
@@ -526,8 +527,8 @@ static int attestation_requester_verify_signature (const struct attestation_requ
 	}
 
 	if (alias_key->key_type == X509_PUBLIC_KEY_ECC) {
-		status = attestation_requester_verify_ecdsa_signature (attestation,
-			signature, signature_len, digest, transcript_hash_len, alias_key);
+		status = attestation_requester_verify_ecdsa_signature (attestation,	signature,
+			signature_len, digest, transcript_hash_len, alias_key);
 
 		/* The endianess of the signature is not clearly declared in the SPDM 1.0 and 1.1
 		 * specification. It's not possible to programatically identify the endianess used.
@@ -536,12 +537,11 @@ static int attestation_requester_verify_signature (const struct attestation_requ
 		if ((status == ECC_ENGINE_BAD_SIGNATURE) &&
 			(attestation->state->txn.spdm_minor_version < ATTESTATION_PROTOCOL_DMTF_SPDM_1_2) &&
 			(attestation->state->txn.protocol != ATTESTATION_PROTOCOL_CERBERUS)) {
-			
 			buffer_reverse (signature, signature_len / 2);
 			buffer_reverse (signature + (signature_len / 2), signature_len / 2);
 
-			status = attestation_requester_verify_ecdsa_signature (attestation,
-				signature, signature_len, digest, transcript_hash_len, alias_key);
+			status = attestation_requester_verify_ecdsa_signature (attestation,	signature,
+				signature_len, digest, transcript_hash_len, alias_key);
 		}
 	}
 #ifdef ATTESTATION_SUPPORT_RSA_CHALLENGE
@@ -601,8 +601,10 @@ static int attestation_requester_get_version_rsp_post_processing (
 	}
 
 	if (found) {
-		attestation->state->txn.spdm_minor_version = (enum attestation_spdm_minor_version) minor_version;
-		attestation->state->txn.protocol = (enum attestation_protocol) ATTESTATION_PROTOCOL_DMTF_SPDM;
+		attestation->state->txn.spdm_minor_version =
+			(enum attestation_spdm_minor_version) minor_version;
+		attestation->state->txn.protocol =
+			(enum attestation_protocol) ATTESTATION_PROTOCOL_DMTF_SPDM;
 
 		return 0;
 	}
@@ -697,7 +699,7 @@ static int attestation_requester_get_capabilities_rsp_post_processing (
 	 * than that, we will fail attestation at 25.5s even if device thinks it has more time to
 	 * respond. */
 	ct_exponent = (rsp->base_capabilities.ct_exponent > 24) ? 24 :
-		rsp->base_capabilities.ct_exponent;
+			rsp->base_capabilities.ct_exponent;
 
 	capabilities.max_timeout = device_manager_set_timeout_ms (SPDM_MAX_RESPONSE_TIMEOUT_MS);
 	capabilities.max_sig =
@@ -1189,8 +1191,8 @@ static void attestation_requester_copy_spdm_response (const struct spdm_protocol
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
 			((attestation->state->txn.protocol << 24) |
-				(attestation->state->txn.requested_command << 16) |
-				(ATTESTATION_PROTOCOL_DMTF_SPDM << 8) |	command));
+						(attestation->state->txn.requested_command << 16) |
+						(ATTESTATION_PROTOCOL_DMTF_SPDM << 8) |	command));
 
 		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
 
@@ -2194,7 +2196,7 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
 
 	/* In 1.2+, every Get Measurement transaction with a signature requested in response requires a
 	 * a transcript that includes VDM. */
-	if (((attestation->state->txn.protocol != ATTESTATION_PROTOCOL_CERBERUS) && 
+	if (((attestation->state->txn.protocol != ATTESTATION_PROTOCOL_CERBERUS) &&
 		(attestation->state->txn.spdm_minor_version > ATTESTATION_PROTOCOL_DMTF_SPDM_1_1)) ||
 		attestation->state->txn.device_discovery) {
 		status = attestation_requester_setup_spdm_device (attestation, eid, device_addr);
@@ -2230,7 +2232,7 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
 		 * the last measurement block on the device.  Starting from SPDM 1.2.x, measurement blocks
 		 * no longer have the contiguity requirement so instead use index 0xEF which is dedicated to
 		 * device IDs. */
-		if ((attestation->state->txn.protocol != ATTESTATION_PROTOCOL_CERBERUS) && 
+		if ((attestation->state->txn.protocol != ATTESTATION_PROTOCOL_CERBERUS) &&
 			(attestation->state->txn.spdm_minor_version <= ATTESTATION_PROTOCOL_DMTF_SPDM_1_1)) {
 			rq_len = spdm_generate_get_measurements_request (attestation->state->spdm_msg_buffer,
 				ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.slot_num,
@@ -2796,8 +2798,7 @@ static int attestation_requester_attest_device_spdm (
 
 		rq_len = spdm_generate_challenge_request (attestation->state->spdm_msg_buffer,
 			ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.slot_num,
-			SPDM_MEASUREMENT_SUMMARY_HASH_ALL, nonce,
-			attestation->state->txn.spdm_minor_version);
+			SPDM_MEASUREMENT_SUMMARY_HASH_ALL, nonce, attestation->state->txn.spdm_minor_version);
 		if (ROT_IS_ERROR (rq_len)) {
 			status = rq_len;
 			goto hash_cancel;
@@ -3036,7 +3037,7 @@ static int attestation_requester_discover_device_spdm_protocol (
 	// Only PCI descriptors are supported, so ensure the 4 PCI descriptors are included in response
 	if ((block->descriptor_count < 4) ||
 		(block->device_id_len <
-			((sizeof (struct spdm_discovery_device_id_descriptor) + sizeof (uint16_t)) * 4))) {
+		((sizeof (struct spdm_discovery_device_id_descriptor) + sizeof (uint16_t)) * 4))) {
 		return 0;
 	}
 

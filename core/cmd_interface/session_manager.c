@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 #include "cmd_interface.h"
 #include "session_manager.h"
 #include "common/buffer_util.h"
@@ -163,8 +163,7 @@ int session_manager_get_pairing_state (struct session_manager *session, uint8_t 
 		return SESSION_PAIRING_STATE_NOT_SUPPORTED;
 	}
 
-	status = session->store->load_key (session->store, key_id, &pairing_key_buf,
-		&pairing_key_len);
+	status = session->store->load_key (session->store, key_id, &pairing_key_buf, &pairing_key_len);
 	if (status == KEYSTORE_NO_KEY) {
 		return SESSION_PAIRING_STATE_NOT_INITIALIZED;
 	}
@@ -210,7 +209,7 @@ int session_manager_decrypt_message (struct session_manager *session,
 
 	if ((request->max_response < (request->length - SESSION_MANAGER_TRAILER_LEN)) ||
 		(request->max_response <=
-			(sizeof (struct cerberus_protocol_header) + SESSION_MANAGER_TRAILER_LEN))) {
+		(sizeof (struct cerberus_protocol_header) + SESSION_MANAGER_TRAILER_LEN))) {
 		return SESSION_MANAGER_BUF_TOO_SMALL;
 	}
 
@@ -282,8 +281,7 @@ int session_manager_encrypt_message (struct session_manager *session,
 
 	status = session->aes->encrypt_data (session->aes, payload, payload_len, aes_iv,
 		CERBERUS_PROTOCOL_AES_IV_LEN, payload, buffer_len - SESSION_MANAGER_TRAILER_LEN,
-		&payload[payload_len],
-		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN);
+		&payload[payload_len], CERBERUS_PROTOCOL_AES_GCM_TAG_LEN);
 	if (status != 0) {
 		return status;
 	}
@@ -444,18 +442,21 @@ int session_manager_generate_keys_digest (struct session_manager *session,
 	status = session->hash->update (session->hash, device_key, device_key_len);
 	if (status != 0) {
 		session->hash->cancel (session->hash);
+
 		return status;
 	}
 
 	status = session->hash->update (session->hash, session_pub_key, session_pub_key_len);
 	if (status != 0) {
 		session->hash->cancel (session->hash);
+
 		return status;
 	}
 
 	status = session->hash->finish (session->hash, digest, digest_len);
 	if (status != 0) {
 		session->hash->cancel (session->hash);
+
 		return status;
 	}
 
@@ -556,6 +557,7 @@ int session_manager_setup_paired_session (struct session_manager *session, uint8
 
 exit:
 	riot_core_clear (pairing_key, sizeof (pairing_key));
+
 	return status;
 }
 

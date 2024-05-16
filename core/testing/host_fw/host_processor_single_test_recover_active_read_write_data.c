@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include "testing.h"
 #include "host_processor_single_testing.h"
+#include "testing.h"
 
 
 TEST_SUITE_LABEL ("host_processor_single");
@@ -277,6 +277,7 @@ static void host_processor_single_test_recover_active_read_write_data_null (CuTe
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_processor_single_recover_active_read_write_data);
 
 TEST (host_processor_single_test_recover_active_read_write_data_not_dirty);
@@ -290,3 +291,4 @@ TEST (host_processor_single_test_recover_active_read_write_data_dirty_checked_by
 TEST (host_processor_single_test_recover_active_read_write_data_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

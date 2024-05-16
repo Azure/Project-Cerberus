@@ -45,4 +45,4 @@ int secure_device_unlock_rma_clear_unlock_policy (const struct secure_device_unl
 	}
 
 
-#endif /* SECURE_DEVICE_UNLOCK_RMA_STATIC_H_ */
+#endif	/* SECURE_DEVICE_UNLOCK_RMA_STATIC_H_ */

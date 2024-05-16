@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "session_manager_mock.h"
 
@@ -194,15 +194,15 @@ static const char* session_manager_mock_arg_name_map (void *func, int arg)
 		}
 	}
 	else if ((func == session_manager_mock_decrypt_message) ||
-			(func == session_manager_mock_encrypt_message) ||
-			(func == session_manager_mock_establish_session))  {
+		(func == session_manager_mock_encrypt_message) ||
+		(func == session_manager_mock_establish_session)) {
 		switch (arg) {
 			case 0:
 				return "request";
 		}
 	}
 	else if ((func == session_manager_mock_is_session_established) ||
-			 (func == session_manager_mock_get_pairing_state)) {
+		(func == session_manager_mock_get_pairing_state)) {
 		switch (arg) {
 			case 0:
 				return "eid";
@@ -212,8 +212,10 @@ static const char* session_manager_mock_arg_name_map (void *func, int arg)
 		switch (arg) {
 			case 0:
 				return "eid";
+
 			case 1:
 				return "hmac";
+
 			case 2:
 				return "hmac_len";
 		}
@@ -222,10 +224,13 @@ static const char* session_manager_mock_arg_name_map (void *func, int arg)
 		switch (arg) {
 			case 0:
 				return "eid";
+
 			case 1:
 				return "pairing_key_len";
+
 			case 2:
 				return "pairing_key_hmac";
+
 			case 3:
 				return "pairing_key_hmac_len";
 		}
@@ -234,10 +239,13 @@ static const char* session_manager_mock_arg_name_map (void *func, int arg)
 		switch (arg) {
 			case 0:
 				return "eid";
+
 			case 1:
 				return "rn_req";
+
 			case 2:
 				return "hmac";
+
 			case 3:
 				return "hmac_len";
 		}

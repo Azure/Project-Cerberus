@@ -23,4 +23,4 @@ int ecc_mbedtls_init (struct ecc_engine_mbedtls *engine);
 void ecc_mbedtls_release (struct ecc_engine_mbedtls *engine);
 
 
-#endif /* ECC_MBEDTLS_H_ */
+#endif	/* ECC_MBEDTLS_H_ */

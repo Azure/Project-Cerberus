@@ -2,8 +2,8 @@
 // Licensed under the MIT license.
 
 #include <stddef.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include "testing.h"
 #include "crypto/hash_thread_safe.h"
@@ -1212,6 +1212,7 @@ static void hash_thread_safe_test_get_hash_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (hash_thread_safe);
 
 TEST (hash_thread_safe_test_init);
@@ -1253,3 +1254,4 @@ TEST (hash_thread_safe_test_get_hash_error);
 TEST (hash_thread_safe_test_get_hash_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

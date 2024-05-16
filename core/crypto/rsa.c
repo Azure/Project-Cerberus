@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "common/buffer_util.h"
 #include "rsa.h"
+#include "common/buffer_util.h"
 
 
 /**

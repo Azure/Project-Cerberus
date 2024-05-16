@@ -57,4 +57,4 @@ void recovery_image_cmd_handler_execute (const struct event_task_handler *handle
 	}
 
 
-#endif /* RECOVERY_IMAGE_CMD_HANDLER_STATIC_H_ */
+#endif	/* RECOVERY_IMAGE_CMD_HANDLER_STATIC_H_ */

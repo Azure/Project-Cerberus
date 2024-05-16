@@ -4,16 +4,16 @@
 #ifndef PCD_OBSERVER_MOCK_H_
 #define PCD_OBSERVER_MOCK_H_
 
-#include "manifest/pcd/pcd_observer.h"
 #include "mock.h"
+#include "manifest/pcd/pcd_observer.h"
 
 
 /**
  * A mock for PCD management notifications.
  */
 struct pcd_observer_mock {
-	struct pcd_observer base;		/**< The base observer instance. */
-	struct mock mock;				/**< The base mock interface. */
+	struct pcd_observer base;	/**< The base observer instance. */
+	struct mock mock;			/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void pcd_observer_mock_release (struct pcd_observer_mock *mock);
 int pcd_observer_mock_validate_and_release (struct pcd_observer_mock *mock);
 
 
-#endif /* PCD_OBSERVER_MOCK_H_ */
+#endif	/* PCD_OBSERVER_MOCK_H_ */

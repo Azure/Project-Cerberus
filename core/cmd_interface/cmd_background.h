@@ -4,8 +4,8 @@
 #ifndef CMD_BACKGROUND_H_
 #define CMD_BACKGROUND_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 
 
@@ -21,9 +21,9 @@
  * States that will be reported for the stored RIoT certificates.
  */
 enum riot_cert_state {
-	RIOT_CERT_STATE_CHAIN_VALID = 0,		/**< A valid certificate chain has been authenticated. */
-	RIOT_CERT_STATE_CHAIN_INVALID,			/**< An incomplete or invalid certificate chain is stored. */
-	RIOT_CERT_STATE_VALIDATING				/**< The stored certificates are being authenticated. */
+	RIOT_CERT_STATE_CHAIN_VALID = 0,	/**< A valid certificate chain has been authenticated. */
+	RIOT_CERT_STATE_CHAIN_INVALID,		/**< An incomplete or invalid certificate chain is stored. */
+	RIOT_CERT_STATE_VALIDATING,			/**< The stored certificates are being authenticated. */
 };
 
 
@@ -204,4 +204,4 @@ enum {
 };
 
 
-#endif /* CMD_BACKGROUND_H_ */
+#endif	/* CMD_BACKGROUND_H_ */

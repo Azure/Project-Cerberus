@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
 #include "x509_extension_builder_dme.h"
@@ -60,7 +60,7 @@ int x509_extension_builder_mbedtls_dme_create_extension (const struct dme_struct
 	if (dme->renewal_counter != NULL) {
 		MBEDTLS_ASN1_CHK_ADD (enc_length,
 			mbedtls_asn1_write_bitstring (&pos, buffer, dme->renewal_counter,
-				dme->counter_length * 8));
+			dme->counter_length * 8));
 
 		*pos = (MBEDTLS_ASN1_CONTEXT_SPECIFIC | 1);
 	}

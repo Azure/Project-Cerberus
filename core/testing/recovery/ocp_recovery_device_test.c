@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
 #include "recovery/ocp_recovery_device.h"
+#include "testing/crypto/hash_testing.h"
 #include "testing/mock/recovery/ocp_recovery_device_hw_mock.h"
 #include "testing/mock/recovery/ocp_recovery_device_variable_cms_mock.h"
-#include "testing/crypto/hash_testing.h"
 
 
 TEST_SUITE_LABEL ("ocp_recovery_device");
@@ -36,14 +36,14 @@ TEST_SUITE_LABEL ("ocp_recovery_device");
  * Dependencies for testing OCP Recovery handling.
  */
 struct ocp_recovery_device_testing {
-	struct ocp_recovery_device_hw_mock hw;						/**< Mock for the recovery HW interface. */
-	struct ocp_recovery_device_variable_cms_mock log;			/**< Mock for a log-backed CMS. */
-	struct ocp_recovery_device_state state;						/**< Variable state of the recovery handler. */
-	struct ocp_recovery_device test;							/**< Recovery handler under test. */
-	uint8_t cms_0[OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN];		/**< Buffer for CMS code R/W region (type 0). */
-	uint8_t cms_1[OCP_RECOVERY_DEVICE_TESTING_CMS_1_LEN];		/**< Buffer for CMS log RO region (type 1). */
-	uint8_t cms_5[OCP_RECOVERY_DEVICE_TESTING_CMS_5_LEN];		/**< Buffer for CMS vendor R/W region (type 5). */
-	uint8_t cms_6[OCP_RECOVERY_DEVICE_TESTING_CMS_6_LEN];		/**< Buffer for CMS vendor RO region (type 6). */
+	struct ocp_recovery_device_hw_mock hw;										/**< Mock for the recovery HW interface. */
+	struct ocp_recovery_device_variable_cms_mock log;							/**< Mock for a log-backed CMS. */
+	struct ocp_recovery_device_state state;										/**< Variable state of the recovery handler. */
+	struct ocp_recovery_device test;											/**< Recovery handler under test. */
+	uint8_t cms_0[OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN];						/**< Buffer for CMS code R/W region (type 0). */
+	uint8_t cms_1[OCP_RECOVERY_DEVICE_TESTING_CMS_1_LEN];						/**< Buffer for CMS log RO region (type 1). */
+	uint8_t cms_5[OCP_RECOVERY_DEVICE_TESTING_CMS_5_LEN];						/**< Buffer for CMS vendor R/W region (type 5). */
+	uint8_t cms_6[OCP_RECOVERY_DEVICE_TESTING_CMS_6_LEN];						/**< Buffer for CMS vendor RO region (type 6). */
 	struct ocp_recovery_device_cms cms[OCP_RECOVERY_DEVICE_TESTING_MAX_CMS];	/**< List of CMS regions. */
 };
 
@@ -123,9 +123,9 @@ static void ocp_recovery_device_testing_release_dependencies (CuTest *test,
  * @param force_recovery True to support forced recovery in the HW interface.
  */
 static void ocp_recovery_device_testing_init_config_hw_interface (CuTest *test,
-	struct ocp_recovery_device_testing *recovery,
-	struct ocp_recovery_device_cms *cms_list, size_t cms_count, bool reset_device,
-	bool reset_management, bool activate_recovery, bool force_recovery)
+	struct ocp_recovery_device_testing *recovery, struct ocp_recovery_device_cms *cms_list,
+	size_t cms_count, bool reset_device, bool reset_management, bool activate_recovery,
+	bool force_recovery)
 {
 	ocp_recovery_device_testing_init_dependencies (test, recovery);
 
@@ -154,12 +154,12 @@ static void ocp_recovery_device_testing_init_config_hw_interface (CuTest *test,
  * @param cms_count The number of memory regions in the list.
  */
 static void ocp_recovery_device_testing_init (CuTest *test,
-	struct ocp_recovery_device_testing *recovery,
-	struct ocp_recovery_device_cms *cms_list, size_t cms_count)
+	struct ocp_recovery_device_testing *recovery, struct ocp_recovery_device_cms *cms_list,
+	size_t cms_count)
 {
 	ocp_recovery_device_testing_init_dependencies (test, recovery);
-	ocp_recovery_device_testing_init_config_hw_interface (test, recovery, cms_list, cms_count,
-		true, true, true, false);
+	ocp_recovery_device_testing_init_config_hw_interface (test, recovery, cms_list, cms_count, true,
+		true, true, false);
 }
 
 /**
@@ -187,7 +187,7 @@ static void ocp_recovery_device_testing_check_protocol_status (CuTest *test,
 {
 	int status;
 	uint8_t expected[] = {
-		0x00,protocol_status,0x00,0x00,0x00,0x00,0x05,0x00,0x00,0x00,0x00,0x00
+		0x00, protocol_status, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00
 	};
 	enum ocp_recovery_device_status_code status_code = 0;
 	enum ocp_recovery_recovery_reason_code reason_code = 0;
@@ -231,7 +231,7 @@ static void ocp_recovery_device_testing_check_recovery_status (CuTest *test,
 {
 	int status;
 	uint8_t expected[] = {
-		recovery_status,0x00
+		recovery_status, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -263,7 +263,7 @@ static void ocp_recovery_device_testing_check_indirect_status (CuTest *test,
 	uint8_t expected[] = {
 		indirect_status, region_type, indirect_size & 0xff, (indirect_size >> 8) & 0xff,
 		(indirect_size >> 16) & 0xff, (indirect_size >> 24) & 0xff
-	};
+		};
 	union ocp_recovery_device_cmd_buffer output;
 
 	status = ocp_recovery_device_start_new_command (&recovery->test,
@@ -293,7 +293,7 @@ static void ocp_recovery_device_testing_set_indirect_ctrl (CuTest *test,
 		.bytes = {
 			cms, 0x00, offset & 0xff, (offset >> 8) & 0xff, (offset >> 16) & 0xff,
 			(offset >> 24) & 0xff
-		}
+			}
 	};
 	size_t msg_length = 6;
 
@@ -320,7 +320,7 @@ static void ocp_recovery_device_testing_check_indirect_ctrl (CuTest *test,
 	uint8_t expected[] = {
 		cms, 0x00, offset & 0xff, (offset >> 8) & 0xff, (offset >> 16) & 0xff,
 		(offset >> 24) & 0xff
-	};
+		};
 	union ocp_recovery_device_cmd_buffer output;
 
 	status = ocp_recovery_device_start_new_command (&recovery->test,
@@ -662,7 +662,7 @@ static void ocp_recovery_device_test_prot_cap_no_optional_support (CuTest *test)
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[] = {
-		'O','C','P',' ','R','E','C','V',0x01,0x00,0x11,0x00,0x00,0x10,0x00
+		'O', 'C', 'P', ' ', 'R', 'E', 'C', 'V', 0x01, 0x00, 0x11, 0x00, 0x00, 0x10, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -693,7 +693,7 @@ static void ocp_recovery_device_test_prot_cap_supports_device_reset (CuTest *tes
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[] = {
-		'O','C','P',' ','R','E','C','V',0x01,0x00,0x19,0x00,0x00,0x10,0x00
+		'O', 'C', 'P', ' ', 'R', 'E', 'C', 'V', 0x01, 0x00, 0x19, 0x00, 0x00, 0x10, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -723,7 +723,7 @@ static void ocp_recovery_device_test_prot_cap_management_reset (CuTest *test)
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[] = {
-		'O','C','P',' ','R','E','C','V',0x01,0x00,0x15,0x00,0x00,0x10,0x00
+		'O', 'C', 'P', ' ', 'R', 'E', 'C', 'V', 0x01, 0x00, 0x15, 0x00, 0x00, 0x10, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -753,7 +753,7 @@ static void ocp_recovery_device_test_prot_cap_all_resets_forced_recovery (CuTest
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[] = {
-		'O','C','P',' ','R','E','C','V',0x01,0x00,0x1f,0x00,0x00,0x10,0x00
+		'O', 'C', 'P', ' ', 'R', 'E', 'C', 'V', 0x01, 0x00, 0x1f, 0x00, 0x00, 0x10, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -783,7 +783,7 @@ static void ocp_recovery_device_test_prot_cap_cms_regions (CuTest *test)
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[] = {
-		'O','C','P',' ','R','E','C','V',0x01,0x00,0x31,0x00,0x01,0x10,0x00
+		'O', 'C', 'P', ' ', 'R', 'E', 'C', 'V', 0x01, 0x00, 0x31, 0x00, 0x01, 0x10, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -814,7 +814,7 @@ static void ocp_recovery_device_test_prot_cap_activate_recovery_image (CuTest *t
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[] = {
-		'O','C','P',' ','R','E','C','V',0x01,0x00,0xb1,0x00,0x01,0x10,0x00
+		'O', 'C', 'P', ' ', 'R', 'E', 'C', 'V', 0x01, 0x00, 0xb1, 0x00, 0x01, 0x10, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -844,7 +844,7 @@ static void ocp_recovery_device_test_prot_cap_activate_recovery_image_no_cms_reg
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[] = {
-		'O','C','P',' ','R','E','C','V',0x01,0x00,0x11,0x00,0x00,0x10,0x00
+		'O', 'C', 'P', ' ', 'R', 'E', 'C', 'V', 0x01, 0x00, 0x11, 0x00, 0x00, 0x10, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -874,7 +874,7 @@ static void ocp_recovery_device_test_prot_cap_all_optional_support (CuTest *test
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[] = {
-		'O','C','P',' ','R','E','C','V',0x01,0x00,0xbf,0x00,0x02,0x10,0x00
+		'O', 'C', 'P', ' ', 'R', 'E', 'C', 'V', 0x01, 0x00, 0xbf, 0x00, 0x02, 0x10, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -905,7 +905,7 @@ static void ocp_recovery_device_test_prot_cap_static_init (CuTest *test)
 		&recovery.hw.base, recovery.cms, 3);
 	int status;
 	uint8_t expected[] = {
-		'O','C','P',' ','R','E','C','V',0x01,0x00,0xbf,0x00,0x03,0x10,0x00
+		'O', 'C', 'P', ' ', 'R', 'E', 'C', 'V', 0x01, 0x00, 0xbf, 0x00, 0x03, 0x10, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -936,7 +936,7 @@ static void ocp_recovery_device_test_prot_cap_write_request (CuTest *test)
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t message[] = {
-		'O','C','P',' ','R','E','C','V',0x01,0x00,0x11,0x00,0x00,0x10,0x00
+		'O', 'C', 'P', ' ', 'R', 'E', 'C', 'V', 0x01, 0x00, 0x11, 0x00, 0x00, 0x10, 0x00
 	};
 
 	TEST_START;
@@ -960,8 +960,9 @@ static void ocp_recovery_device_test_device_id_no_vendor_string (CuTest *test)
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[] = {
-		0x00,0x00,0x22,0x11,0x44,0x33,0x66,0x55,0x88,0x77,0x05,0x00,0x00,0x00,0x00,0x00,
-		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+		0x00, 0x00, 0x22, 0x11, 0x44, 0x33, 0x66, 0x55, 0x88, 0x77, 0x05, 0x00, 0x00, 0x00, 0x00,
+		0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 	};
 	struct ocp_recovery_device_id hw_id = {
 		.base = {
@@ -1009,8 +1010,9 @@ static void ocp_recovery_device_test_device_id_with_vendor_string (CuTest *test)
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[] = {
-		0x02,0x04,0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,
-		0xee,0xff,0x00,0x00,0x00,0x00,0x00,0x00,'T','e','s','t'
+		0x02, 0x04, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc,
+		0xdd,
+		0xee, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 'T', 'e', 's', 't'
 	};
 	struct ocp_recovery_device_id hw_id = {
 		.base = {
@@ -1018,7 +1020,8 @@ static void ocp_recovery_device_test_device_id_with_vendor_string (CuTest *test)
 			.vendor_length = 4,
 			.uuid = {
 				.uuid = {
-					0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff
+					0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc,
+					0xdd, 0xee, 0xff
 				}
 			},
 		},
@@ -1085,8 +1088,9 @@ static void ocp_recovery_device_test_device_id_static_init (CuTest *test)
 		&recovery.hw.base, recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
 	int status;
 	uint8_t expected[] = {
-		0x00,0x00,0x22,0x11,0x44,0x33,0x66,0x55,0x88,0x77,0x05,0x00,0x00,0x00,0x00,0x00,
-		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+		0x00, 0x00, 0x22, 0x11, 0x44, 0x33, 0x66, 0x55, 0x88, 0x77, 0x05, 0x00, 0x00, 0x00, 0x00,
+		0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 	};
 	struct ocp_recovery_device_id hw_id = {
 		.base = {
@@ -1134,8 +1138,9 @@ static void ocp_recovery_device_test_device_id_write_request (CuTest *test)
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t message[] = {
-		0x00,0x00,0x22,0x11,0x44,0x33,0x66,0x55,0x88,0x77,0x05,0x00,0x00,0x00,0x00,0x00,
-		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+		0x00, 0x00, 0x22, 0x11, 0x44, 0x33, 0x66, 0x55, 0x88, 0x77, 0x05, 0x00, 0x00, 0x00, 0x00,
+		0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 	};
 
 	TEST_START;
@@ -1159,7 +1164,7 @@ static void ocp_recovery_device_test_device_status (CuTest *test)
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[] = {
-		0x06,0x00,0x0f,0x00,0x00,0x00,0x05,0x01,0x33,0x22,0x11,0x7f
+		0x06, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x05, 0x01, 0x33, 0x22, 0x11, 0x7f
 	};
 	enum ocp_recovery_device_status_code status_code = 0x06;
 	enum ocp_recovery_recovery_reason_code reason_code = 0x0f;
@@ -1202,7 +1207,7 @@ static void ocp_recovery_device_test_device_status_static_init (CuTest *test)
 		&recovery.hw.base, recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
 	int status;
 	uint8_t expected[] = {
-		0x0e,0x00,0x05,0x00,0x00,0x00,0x05,0x10,0x56,0x34,0x12,0x7f
+		0x0e, 0x00, 0x05, 0x00, 0x00, 0x00, 0x05, 0x10, 0x56, 0x34, 0x12, 0x7f
 	};
 	enum ocp_recovery_device_status_code status_code = 0x0e;
 	enum ocp_recovery_recovery_reason_code reason_code = 0x05;
@@ -1245,7 +1250,7 @@ static void ocp_recovery_device_test_device_status_write_request (CuTest *test)
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t message[] = {
-		0x06,0x00,0x0f,0x00,0x00,0x00,0x05,0x01,0x33,0x22,0x11,0x7f
+		0x06, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x05, 0x01, 0x33, 0x22, 0x11, 0x7f
 	};
 
 	TEST_START;
@@ -1269,7 +1274,7 @@ static void ocp_recovery_device_test_reset_read_request (CuTest *test)
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[] = {
-		0x00,0x00,0x00
+		0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -1297,12 +1302,12 @@ static void ocp_recovery_device_test_reset_device (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x01,0x00,0x00
+			0x01, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x00,0x00
+		0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -1342,12 +1347,12 @@ static void ocp_recovery_device_test_reset_management (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x02,0x00,0x00
+			0x02, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x00,0x00
+		0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -1387,12 +1392,12 @@ static void ocp_recovery_device_test_reset_device_with_forced_recovery (CuTest *
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x01,0x0f,0x00
+			0x01, 0x0f, 0x00
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x0f,0x00
+		0x00, 0x0f, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -1434,12 +1439,12 @@ static void ocp_recovery_device_test_reset_management_with_forced_recovery (CuTe
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x02,0x0f,0x00
+			0x02, 0x0f, 0x00
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x0f,0x00
+		0x00, 0x0f, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -1481,12 +1486,12 @@ static void ocp_recovery_device_test_reset_device_no_reset_forced_recovery (CuTe
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x0f,0x00
+			0x00, 0x0f, 0x00
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x0f,0x00
+		0x00, 0x0f, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -1524,12 +1529,12 @@ static void ocp_recovery_device_test_reset_device_unsupported (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x01,0x00,0x00
+			0x01, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x00,0x00
+		0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -1567,12 +1572,12 @@ static void ocp_recovery_device_test_reset_management_unsupported (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x02,0x00,0x00
+			0x02, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x00,0x00
+		0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -1610,12 +1615,12 @@ static void ocp_recovery_device_test_reset_forced_recovery_unsupported (CuTest *
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x02,0x0f,0x00
+			0x02, 0x0f, 0x00
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x00,0x00
+		0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -1651,12 +1656,12 @@ static void ocp_recovery_device_test_reset_enable_bus_mastering (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x00,0x01
+			0x00, 0x00, 0x01
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x00,0x00
+		0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -1692,7 +1697,7 @@ static void ocp_recovery_device_test_reset_incomplete_command (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x01,0x00
+			0x01, 0x00
 		}
 	};
 	size_t msg_length = 2;
@@ -1718,7 +1723,7 @@ static void ocp_recovery_device_test_reset_extra_bytes (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x02,0x00,0x00,0x00
+			0x02, 0x00, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 4;
@@ -1746,12 +1751,12 @@ static void ocp_recovery_device_test_reset_static_init (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x02,0x0f,0x00
+			0x02, 0x0f, 0x00
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x0f,0x00
+		0x00, 0x0f, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -1792,7 +1797,7 @@ static void ocp_recovery_device_test_recovery_status_no_cms_regions (CuTest *tes
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[] = {
-		0x00,0x00
+		0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -1820,7 +1825,7 @@ static void ocp_recovery_device_test_recovery_status_no_activate_support (CuTest
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[] = {
-		0x00,0x00
+		0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -1849,7 +1854,7 @@ static void ocp_recovery_device_test_recovery_status_recovery_supported (CuTest 
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[] = {
-		0x01,0x00
+		0x01, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -1880,7 +1885,7 @@ static void ocp_recovery_device_test_recovery_status_static_init (CuTest *test)
 		&recovery.hw.base, recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
 	int status;
 	uint8_t expected[] = {
-		0x01,0x00
+		0x01, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -1909,7 +1914,7 @@ static void ocp_recovery_device_test_recovery_status_write_request (CuTest *test
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t message[] = {
-		0x00,0x00
+		0x00, 0x00
 	};
 
 	TEST_START;
@@ -1934,7 +1939,7 @@ static void ocp_recovery_device_test_recovery_ctrl_read_request (CuTest *test)
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[] = {
-		0x00,0x00,0x00
+		0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -1962,7 +1967,7 @@ static void ocp_recovery_device_test_recovery_ctrl_read_request_no_cms_regions (
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[] = {
-		0x00,0x00,0x00
+		0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -1990,12 +1995,12 @@ static void ocp_recovery_device_test_recovery_ctrl_activate_image (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x01,0x0f
+			0x00, 0x01, 0x0f
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x01,0x00
+		0x00, 0x01, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -2037,12 +2042,12 @@ static void ocp_recovery_device_test_recovery_ctrl_no_activate_image (CuTest *te
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x01,0x00
+			0x00, 0x01, 0x00
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x01,0x00
+		0x00, 0x01, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -2080,12 +2085,12 @@ static void ocp_recovery_device_test_recovery_ctrl_only_cms (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x01,0x00,0x00
+			0x01, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x01,0x00,0x00
+		0x01, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -2125,12 +2130,12 @@ static void ocp_recovery_device_test_recovery_ctrl_only_activate_image (CuTest *
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x00,0x0f
+			0x00, 0x00, 0x0f
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x00,0x00
+		0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -2168,12 +2173,12 @@ static void ocp_recovery_device_test_recovery_ctrl_activate_image_failure (CuTes
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x01,0x0f
+			0x00, 0x01, 0x0f
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x01,0x00
+		0x00, 0x01, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 	bool auth_error = false;
@@ -2219,12 +2224,12 @@ static void ocp_recovery_device_test_recovery_ctrl_activate_image_auth_failure (
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x01,0x0f
+			0x00, 0x01, 0x0f
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x01,0x00
+		0x00, 0x01, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 	bool auth_error = true;
@@ -2270,12 +2275,12 @@ static void ocp_recovery_device_test_recovery_ctrl_activate_image_non_code_cms (
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x01,0x01,0x0f
+			0x01, 0x01, 0x0f
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x01,0x01,0x00
+		0x01, 0x01, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -2313,12 +2318,12 @@ static void ocp_recovery_device_test_recovery_ctrl_no_activate_image_non_code_cm
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x01,0x01,0x00
+			0x01, 0x01, 0x00
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x01,0x01,0x00
+		0x01, 0x01, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -2356,12 +2361,12 @@ static void ocp_recovery_device_test_recovery_ctrl_activate_image_non_zero_cms_i
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			OCP_RECOVERY_DEVICE_TESTING_MAX_CMS - 1,0x01,0x0f
+			OCP_RECOVERY_DEVICE_TESTING_MAX_CMS - 1, 0x01, 0x0f
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		OCP_RECOVERY_DEVICE_TESTING_MAX_CMS - 1,0x01,0x00
+		OCP_RECOVERY_DEVICE_TESTING_MAX_CMS - 1, 0x01, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -2377,8 +2382,7 @@ static void ocp_recovery_device_test_recovery_ctrl_activate_image_non_zero_cms_i
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&recovery.hw.mock, recovery.hw.base.activate_recovery, &recovery.hw, 0,
-		MOCK_ARG_PTR (&recovery.cms[OCP_RECOVERY_DEVICE_TESTING_MAX_CMS - 1]),
-		MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&recovery.cms[OCP_RECOVERY_DEVICE_TESTING_MAX_CMS - 1]), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = ocp_recovery_device_write_request (&recovery.test, &message, msg_length);
@@ -2407,12 +2411,12 @@ static void ocp_recovery_device_test_recovery_ctrl_activate_image_cms_out_of_ran
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			OCP_RECOVERY_DEVICE_TESTING_MAX_CMS,0x01,0x0f
+			OCP_RECOVERY_DEVICE_TESTING_MAX_CMS, 0x01, 0x0f
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x00,0x00
+		0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -2450,12 +2454,12 @@ static void ocp_recovery_device_test_recovery_ctrl_no_activate_image_cms_out_of_
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			OCP_RECOVERY_DEVICE_TESTING_MAX_CMS,0x01,0x00
+			OCP_RECOVERY_DEVICE_TESTING_MAX_CMS, 0x01, 0x00
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x00,0x00
+		0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -2493,12 +2497,12 @@ static void ocp_recovery_device_test_recovery_ctrl_activate_recovery_unsupported
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x01,0x0f
+			0x00, 0x01, 0x0f
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x00,0x00
+		0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -2537,12 +2541,12 @@ static void ocp_recovery_device_test_recovery_ctrl_activate_recovery_unsupported
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x01,0x00
+			0x00, 0x01, 0x00
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x00,0x00
+		0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -2581,12 +2585,12 @@ static void ocp_recovery_device_test_recovery_ctrl_activate_recovery_unsupported
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x00,0x0f
+			0x00, 0x00, 0x0f
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x00,0x00
+		0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -2625,12 +2629,12 @@ static void ocp_recovery_device_test_recovery_ctrl_activate_recovery_unsupported
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x01,0x00,0x00
+			0x01, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x01,0x00,0x00
+		0x01, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -2670,12 +2674,12 @@ static void ocp_recovery_device_test_recovery_ctrl_only_non_code_cms (CuTest *te
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x01,0x00,0x00
+			0x01, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x01,0x00,0x00
+		0x01, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -2713,12 +2717,12 @@ static void ocp_recovery_device_test_recovery_ctrl_only_out_of_range_cms (CuTest
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			OCP_RECOVERY_DEVICE_TESTING_MAX_CMS,0x00,0x00
+			OCP_RECOVERY_DEVICE_TESTING_MAX_CMS, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x00,0x00
+		0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -2758,12 +2762,12 @@ static void ocp_recovery_device_test_recovery_ctrl_activate_image_stored_image (
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x02,0x0f
+			0x00, 0x02, 0x0f
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x00,0x00
+		0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -2801,12 +2805,12 @@ static void ocp_recovery_device_test_recovery_ctrl_no_activate_image_stored_imag
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x02,0x00
+			0x00, 0x02, 0x00
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x00,0x00
+		0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -2844,7 +2848,7 @@ static void ocp_recovery_device_test_recovery_ctrl_incomplete_command (CuTest *t
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x01,0x0f
+			0x00, 0x01, 0x0f
 		}
 	};
 	size_t msg_length = 2;
@@ -2871,7 +2875,7 @@ static void ocp_recovery_device_test_recovery_ctrl_extra_bytes (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x01,0x0f,0x00
+			0x00, 0x01, 0x0f, 0x00
 		}
 	};
 	size_t msg_length = 4;
@@ -2900,12 +2904,12 @@ static void ocp_recovery_device_test_recovery_ctrl_static_init (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x01,0x0f
+			0x00, 0x01, 0x0f
 		}
 	};
 	size_t msg_length = 3;
 	uint8_t expected[] = {
-		0x00,0x01,0x00
+		0x00, 0x01, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -2990,7 +2994,7 @@ static void ocp_recovery_device_test_hw_status_write_request (CuTest *test)
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t message[] = {
-		0x02,0x00,0x40,0x00,0x00
+		0x02, 0x00, 0x40, 0x00, 0x00
 	};
 
 	TEST_START;
@@ -3014,7 +3018,7 @@ static void ocp_recovery_device_test_indirect_status_default_cms_0 (CuTest *test
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[6] = {
-		0x00,0x00,0x00,0x01,0x00,0x00
+		0x00, 0x00, 0x00, 0x01, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -3043,7 +3047,7 @@ static void ocp_recovery_device_test_indirect_status_unaligned_region_length (Cu
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[6] = {
-		0x00,0x00,0x00,0x01,0x00,0x00
+		0x00, 0x00, 0x00, 0x01, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -3098,7 +3102,7 @@ static void ocp_recovery_device_test_indirect_status_static_init (CuTest *test)
 		&recovery.hw.base, recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
 	int status;
 	uint8_t expected[6] = {
-		0x00,0x00,0x00,0x01,0x00,0x00
+		0x00, 0x00, 0x00, 0x01, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -3127,7 +3131,7 @@ static void ocp_recovery_device_test_indirect_status_write_request (CuTest *test
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t message[] = {
-		0x00,0x00,0x00,0x01,0x00,0x00
+		0x00, 0x00, 0x00, 0x01, 0x00, 0x00
 	};
 
 	TEST_START;
@@ -3152,7 +3156,7 @@ static void ocp_recovery_device_test_indirect_ctrl_read_request (CuTest *test)
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[] = {
-		0x00,0x00,0x00,0x00,0x00,0x00
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -3202,12 +3206,12 @@ static void ocp_recovery_device_test_indirect_ctrl_cms_0 (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x00,0x00,0x00,0x00,0x00
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 6;
 	uint8_t expected[] = {
-		0x00,0x00,0x00,0x00,0x00,0x00
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -3246,12 +3250,12 @@ static void ocp_recovery_device_test_indirect_ctrl_set_offset (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x00,0x10,0x20,0x30,0x00
+			0x00, 0x00, 0x10, 0x20, 0x30, 0x00
 		}
 	};
 	size_t msg_length = 6;
 	uint8_t expected[] = {
-		0x00,0x00,0x10,0x20,0x30,0x00
+		0x00, 0x00, 0x10, 0x20, 0x30, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -3290,12 +3294,12 @@ static void ocp_recovery_device_test_indirect_ctrl_non_zero_cms (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			OCP_RECOVERY_DEVICE_TESTING_MAX_CMS - 1,0x00,0x00,0x00,0x00,0x00
+			OCP_RECOVERY_DEVICE_TESTING_MAX_CMS - 1, 0x00, 0x00, 0x00, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 6;
 	uint8_t expected[] = {
-		OCP_RECOVERY_DEVICE_TESTING_MAX_CMS - 1,0x00,0x00,0x00,0x00,0x00
+		OCP_RECOVERY_DEVICE_TESTING_MAX_CMS - 1, 0x00, 0x00, 0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -3334,12 +3338,12 @@ static void ocp_recovery_device_test_indirect_ctrl_out_of_range_cms (CuTest *tes
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			OCP_RECOVERY_DEVICE_TESTING_MAX_CMS,0x00,0x00,0x00,0x00,0x00
+			OCP_RECOVERY_DEVICE_TESTING_MAX_CMS, 0x00, 0x00, 0x00, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 6;
 	uint8_t expected[] = {
-		OCP_RECOVERY_DEVICE_TESTING_MAX_CMS,0x00,0x00,0x00,0x00,0x00
+		OCP_RECOVERY_DEVICE_TESTING_MAX_CMS, 0x00, 0x00, 0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -3377,12 +3381,12 @@ static void ocp_recovery_device_test_indirect_ctrl_offset_not_4byte_aligned (CuT
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x01,0x00,0x21,0x00,0x00,0x00
+			0x01, 0x00, 0x21, 0x00, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 6;
 	uint8_t expected[] = {
-		0x01,0x00,0x24,0x00,0x00,0x00
+		0x01, 0x00, 0x24, 0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -3421,12 +3425,12 @@ static void ocp_recovery_device_test_indirect_ctrl_cms_log (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x02,0x00,0x00,0x00,0x00,0x00
+			0x02, 0x00, 0x00, 0x00, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 6;
 	uint8_t expected[] = {
-		0x02,0x00,0x00,0x00,0x00,0x00
+		0x02, 0x00, 0x00, 0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -3445,8 +3449,7 @@ static void ocp_recovery_device_test_indirect_ctrl_cms_log (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
-	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 1,
-		256 / 4);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 1, 256 / 4);
 
 	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_CTRL);
 	CuAssertIntEquals (test, 0, status);
@@ -3468,12 +3471,12 @@ static void ocp_recovery_device_test_indirect_ctrl_cms_log_size_unaligned (CuTes
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x02,0x00,0x00,0x00,0x00,0x00
+			0x02, 0x00, 0x00, 0x00, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 6;
 	uint8_t expected[] = {
-		0x02,0x00,0x00,0x00,0x00,0x00
+		0x02, 0x00, 0x00, 0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -3492,8 +3495,7 @@ static void ocp_recovery_device_test_indirect_ctrl_cms_log_size_unaligned (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
-	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 1,
-		260 / 4);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 1, 260 / 4);
 
 	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_CTRL);
 	CuAssertIntEquals (test, 0, status);
@@ -3515,12 +3517,12 @@ static void ocp_recovery_device_test_indirect_ctrl_cms_log_size_error (CuTest *t
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x02,0x00,0x00,0x00,0x00,0x00
+			0x02, 0x00, 0x00, 0x00, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 6;
 	uint8_t expected[] = {
-		0x02,0x00,0x00,0x00,0x00,0x00
+		0x02, 0x00, 0x00, 0x00, 0x00, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -3568,7 +3570,7 @@ static void ocp_recovery_device_test_indirect_ctrl_unsupported (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x00,0x00,0x00,0x00,0x00
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 6;
@@ -3594,7 +3596,7 @@ static void ocp_recovery_device_test_indirect_ctrl_incomplete_command (CuTest *t
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x00,0x00,0x00,0x00,0x00
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 5;
@@ -3621,7 +3623,7 @@ static void ocp_recovery_device_test_indirect_ctrl_extra_bytes (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x00,0x00,0x00,0x00,0x00,0x00
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 7;
@@ -3650,12 +3652,12 @@ static void ocp_recovery_device_test_indirect_ctrl_static_init (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x02,0x00,0x04,0x03,0x02,0x00
+			0x02, 0x00, 0x04, 0x03, 0x02, 0x00
 		}
 	};
 	size_t msg_length = 6;
 	uint8_t expected[] = {
-		0x02,0x00,0x04,0x03,0x02,0x00
+		0x02, 0x00, 0x04, 0x03, 0x02, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -4415,8 +4417,7 @@ static void ocp_recovery_device_test_indirect_data_read_from_log_at_offset_out_o
 		offset - 4);
 
 	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
-	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0x01, 1,
-		(offset - 4) / 4);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0x01, 1, (offset - 4) / 4);
 	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 2, sizeof (expected));
 
 	ocp_recovery_device_testing_release (test, &recovery);
@@ -4460,7 +4461,7 @@ static void ocp_recovery_device_test_indirect_data_read_from_log_at_offset_unali
 	status = mock_expect (&recovery.log.mock, recovery.log.base.get_size, &recovery.log, length);
 
 	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
-	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 1, length/ 4);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 1, length / 4);
 	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 2, length);
 
 	ocp_recovery_device_testing_release (test, &recovery);
@@ -5023,7 +5024,8 @@ static void ocp_recovery_device_test_indirect_data_write_sequential_with_wrap (C
 	ocp_recovery_device_testing_release (test, &recovery);
 }
 
-static void ocp_recovery_device_test_indirect_data_write_sequential_with_wrap_status_sticky_on_write (
+static void ocp_recovery_device_test_indirect_data_write_sequential_with_wrap_status_sticky_on_write
+(
 	CuTest *test)
 {
 	struct ocp_recovery_device_testing recovery;
@@ -5886,7 +5888,7 @@ static void ocp_recovery_device_test_vendor_write_request (CuTest *test)
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t message[] = {
-		0x02,0x00,0x40,0x00,0x00
+		0x02, 0x00, 0x40, 0x00, 0x00
 	};
 
 	TEST_START;
@@ -6001,7 +6003,7 @@ static void ocp_recovery_device_test_read_request_repeated_call (CuTest *test)
 	struct ocp_recovery_device_testing recovery;
 	int status;
 	uint8_t expected[] = {
-		'O','C','P',' ','R','E','C','V',0x01,0x00,0x11,0x00,0x00,0x10,0x00
+		'O', 'C', 'P', ' ', 'R', 'E', 'C', 'V', 0x01, 0x00, 0x11, 0x00, 0x00, 0x10, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -6034,7 +6036,7 @@ static void ocp_recovery_device_test_write_request_null (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x01,0x00
+			0x01, 0x00
 		}
 	};
 	size_t msg_length = 2;
@@ -6061,7 +6063,7 @@ static void ocp_recovery_device_test_write_request_no_active_command (CuTest *te
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x01,0x00
+			0x01, 0x00
 		}
 	};
 	size_t msg_length = 2;
@@ -6082,7 +6084,7 @@ static void ocp_recovery_device_test_write_request_repeated_call (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x01,0x00,0x00
+			0x01, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 3;
@@ -6113,7 +6115,7 @@ static void ocp_recovery_device_test_clear_protocol_error (CuTest *test)
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x01,0x00,0x00
+			0x01, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 3;
@@ -6144,12 +6146,12 @@ static void ocp_recovery_device_test_clear_protocol_error_sticky_after_successfu
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x01,0x00
+			0x01, 0x00
 		}
 	};
 	size_t msg_length = 2;
 	uint8_t expected[] = {
-		'O','C','P',' ','R','E','C','V',0x01,0x00,0x17,0x00,0x00,0x10,0x00
+		'O', 'C', 'P', ' ', 'R', 'E', 'C', 'V', 0x01, 0x00, 0x17, 0x00, 0x00, 0x10, 0x00
 	};
 	union ocp_recovery_device_cmd_buffer output;
 
@@ -6191,7 +6193,7 @@ static void ocp_recovery_device_test_clear_protocol_error_sticky_after_successfu
 	int status;
 	union ocp_recovery_device_cmd_buffer message = {
 		.bytes = {
-			0x00,0x00,0x00,0x00,0x00,0x00
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 		}
 	};
 	size_t msg_length = 6;
@@ -6469,6 +6471,7 @@ static void ocp_recovery_device_test_write_incomplete_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (ocp_recovery_device);
 
 TEST (ocp_recovery_device_test_init);
@@ -6645,3 +6648,4 @@ TEST (ocp_recovery_device_test_write_incomplete_static_init);
 TEST (ocp_recovery_device_test_write_incomplete_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

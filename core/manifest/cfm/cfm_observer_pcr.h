@@ -4,8 +4,8 @@
 #ifndef CFM_OBSERVER_PCR_H_
 #define CFM_OBSERVER_PCR_H_
 
-#include "cfm_observer.h"
 #include "cfm_manager.h"
+#include "cfm_observer.h"
 #include "manifest/manifest_pcr.h"
 
 
@@ -13,8 +13,8 @@
  * CFM observer to handle PCR updates when CFMs change.
  */
 struct cfm_observer_pcr {
-	struct cfm_observer base;				/**< The base observer interface. */
-	struct manifest_pcr pcr;				/**< The PCR manager for the CFM. */
+	struct cfm_observer base;	/**< The base observer interface. */
+	struct manifest_pcr pcr;	/**< The PCR manager for the CFM. */
 };
 
 
@@ -27,4 +27,4 @@ void cfm_observer_pcr_record_measurement (const struct cfm_observer_pcr *observe
 	struct cfm_manager *manager);
 
 
-#endif /* CFM_OBSERVER_PCR_H_ */
+#endif	/* CFM_OBSERVER_PCR_H_ */

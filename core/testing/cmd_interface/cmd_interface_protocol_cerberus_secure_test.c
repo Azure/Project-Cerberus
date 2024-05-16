@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
 #include "cmd_interface/cerberus_protocol.h"
@@ -397,8 +397,8 @@ static void cmd_interface_protocol_cerberus_secure_test_parse_message_encrypted 
 	status = mock_expect (&cerberus.session.mock, cerberus.session.base.decrypt_message,
 		&cerberus.session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &message,
-			sizeof (message), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (message), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cerberus.session.mock, 0, &decrypted,
 		sizeof (decrypted), cmd_interface_mock_copy_request);
 
@@ -465,7 +465,7 @@ static void cmd_interface_protocol_cerberus_secure_test_parse_message_encrypted_
 	message.channel_id = 7;
 
 	/* Decrypted message. */
-	header = (struct cerberus_protocol_header*) &decrypted_data[payload_offset];;
+	header = (struct cerberus_protocol_header*) &decrypted_data[payload_offset];
 
 	header->msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	header->integrity_check = 0;
@@ -491,8 +491,8 @@ static void cmd_interface_protocol_cerberus_secure_test_parse_message_encrypted_
 	status = mock_expect (&cerberus.session.mock, cerberus.session.base.decrypt_message,
 		&cerberus.session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &message,
-			sizeof (message), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (message), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cerberus.session.mock, 0, &decrypted,
 		sizeof (decrypted), cmd_interface_mock_copy_request);
 
@@ -643,8 +643,8 @@ static void cmd_interface_protocol_cerberus_secure_test_parse_message_static_ini
 	status = mock_expect (&cerberus.session.mock, cerberus.session.base.decrypt_message,
 		&cerberus.session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &message,
-			sizeof (message), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (message), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cerberus.session.mock, 0, &decrypted,
 		sizeof (decrypted), cmd_interface_mock_copy_request);
 
@@ -713,8 +713,7 @@ static void cmd_interface_protocol_cerberus_secure_test_parse_message_null (CuTe
 
 	message.crypto_timeout = true;
 
-	status = cerberus.test.base.base.parse_message (&cerberus.test.base.base, NULL,
-		&message_type);
+	status = cerberus.test.base.base.parse_message (&cerberus.test.base.base, NULL,	&message_type);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 	CuAssertIntEquals (test, true, message.is_encrypted);
 	CuAssertIntEquals (test, true, message.crypto_timeout);
@@ -973,8 +972,8 @@ static void cmd_interface_protocol_cerberus_secure_test_parse_message_decrypt_fa
 	status = mock_expect (&cerberus.session.mock, cerberus.session.base.decrypt_message,
 		&cerberus.session, SESSION_MANAGER_DECRYPT_MSG_FAILED,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &message,
-			sizeof (message), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (message), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1181,8 +1180,8 @@ static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_en
 	status = mock_expect (&cerberus.session.mock, cerberus.session.base.encrypt_message,
 		&cerberus.session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &message,
-			sizeof (message), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (message), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cerberus.session.mock, 0, &encrypted,
 		sizeof (encrypted), cmd_interface_mock_copy_request);
 
@@ -1241,7 +1240,8 @@ static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_en
 	cmd_interface_protocol_cerberus_secure_testing_release (test, &cerberus);
 }
 
-static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_encrypted_payload_offset (
+static void
+cmd_interface_protocol_cerberus_secure_test_handle_request_result_encrypted_payload_offset (
 	CuTest *test)
 {
 	struct cmd_interface_protocol_cerberus_secure_testing cerberus;
@@ -1308,8 +1308,8 @@ static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_en
 	status = mock_expect (&cerberus.session.mock, cerberus.session.base.encrypt_message,
 		&cerberus.session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &message,
-			sizeof (message), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (message), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cerberus.session.mock, 0, &encrypted,
 		sizeof (encrypted), cmd_interface_mock_copy_request);
 
@@ -1435,7 +1435,8 @@ static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_su
 	cmd_interface_protocol_cerberus_secure_testing_release (test, &cerberus);
 }
 
-static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_success_no_payload_encrypted (
+static void
+cmd_interface_protocol_cerberus_secure_test_handle_request_result_success_no_payload_encrypted (
 	CuTest *test)
 {
 	struct cmd_interface_protocol_cerberus_secure_testing cerberus;
@@ -1504,8 +1505,8 @@ static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_su
 	status = mock_expect (&cerberus.session.mock, cerberus.session.base.encrypt_message,
 		&cerberus.session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &message,
-			sizeof (message), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (message), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cerberus.session.mock, 0, &encrypted,
 		sizeof (encrypted), cmd_interface_mock_copy_request);
 
@@ -1568,7 +1569,8 @@ static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_su
 	cmd_interface_protocol_cerberus_secure_testing_release (test, &cerberus);
 }
 
-static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_success_zero_data_length (
+static void
+cmd_interface_protocol_cerberus_secure_test_handle_request_result_success_zero_data_length (
 	CuTest *test)
 {
 	struct cmd_interface_protocol_cerberus_secure_testing cerberus;
@@ -1713,7 +1715,8 @@ static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_re
 	cmd_interface_protocol_cerberus_secure_testing_release (test, &cerberus);
 }
 
-static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_encrypted_request_failure (
+static void
+cmd_interface_protocol_cerberus_secure_test_handle_request_result_encrypted_request_failure (
 	CuTest *test)
 {
 	struct cmd_interface_protocol_cerberus_secure_testing cerberus;
@@ -1812,8 +1815,8 @@ static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_en
 	status = mock_expect (&cerberus.session.mock, cerberus.session.base.encrypt_message,
 		&cerberus.session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &error_msg,
-			sizeof (error_msg), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (error_msg), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cerberus.session.mock, 0, &encrypted,
 		sizeof (encrypted), cmd_interface_mock_copy_request);
 
@@ -1918,7 +1921,8 @@ static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_st
 	cmd_interface_protocol_cerberus_secure_testing_release (test, &cerberus);
 }
 
-static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_static_init_encrypted (
+static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_static_init_encrypted
+(
 	CuTest *test)
 {
 	struct cmd_interface_protocol_cerberus_secure_testing cerberus = {
@@ -1985,8 +1989,8 @@ static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_st
 	status = mock_expect (&cerberus.session.mock, cerberus.session.base.encrypt_message,
 		&cerberus.session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &message,
-			sizeof (message), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (message), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cerberus.session.mock, 0, &encrypted,
 		sizeof (encrypted), cmd_interface_mock_copy_request);
 
@@ -2139,8 +2143,8 @@ static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_en
 	status = mock_expect (&cerberus.session.mock, cerberus.session.base.encrypt_message,
 		&cerberus.session, SESSION_MANAGER_ENCRYPT_MSG_FAILED,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &message,
-			sizeof (message), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (message), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2189,6 +2193,7 @@ static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_en
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_protocol_cerberus_secure);
 
 TEST (cmd_interface_protocol_cerberus_secure_test_init);
@@ -2223,3 +2228,4 @@ TEST (cmd_interface_protocol_cerberus_secure_test_handle_request_result_null);
 TEST (cmd_interface_protocol_cerberus_secure_test_handle_request_result_encrypt_fail);
 
 TEST_SUITE_END;
+// *INDENT-ON*

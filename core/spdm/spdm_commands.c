@@ -3,22 +3,26 @@
 
 #include <stdint.h>
 #include <string.h>
+#include "cmd_interface_spdm.h"
+#include "cmd_interface_spdm.h"
+#include "cmd_interface_spdm_responder.h"
+#include "cmd_interface_spdm_responder.h"
+#include "spdm_commands.h"
+#include "spdm_commands.h"
+#include "spdm_logging.h"
+#include "spdm_logging.h"
+#include "spdm_secure_session_manager.h"
 #include "attestation/attestation_responder.h"
 #include "cmd_interface/device_manager.h"
 #include "common/array_size.h"
+#include "common/buffer_util.h"
 #include "common/common_math.h"
 #include "common/unused.h"
-#include "common/buffer_util.h"
-#include "crypto/hash.h"
 #include "crypto/ecc.h"
+#include "crypto/hash.h"
 #include "crypto/kdf.h"
 #include "mctp/mctp_base_protocol.h"
 #include "riot/riot_key_manager.h"
-#include "cmd_interface_spdm.h"
-#include "spdm_logging.h"
-#include "spdm_commands.h"
-#include "cmd_interface_spdm_responder.h"
-#include "spdm_secure_session_manager.h"
 
 
 /**
@@ -158,7 +162,7 @@ static void spdm_handle_response_state (struct spdm_state *state, struct cmd_int
 			break;
 
 		case SPDM_RESPONSE_STATE_NOT_READY:
-		/* [TODO] Implement this case in later messages. */
+			/* [TODO] Implement this case in later messages. */
 			break;
 
 		default:
@@ -289,10 +293,11 @@ static bool spdm_check_request_version_compatibility (struct spdm_state *state,
 	const struct spdm_version_num_entry *version_num, const uint8_t version_num_count,
 	uint8_t peer_version)
 {
-	if (spdm_is_version_supported (peer_version, version_num, version_num_count)
-		== true) {
+	if (spdm_is_version_supported (peer_version, version_num, version_num_count) ==
+		true) {
 		state->connection_info.version.major_version = SPDM_GET_MAJOR_VERSION (peer_version);
 		state->connection_info.version.minor_version = SPDM_GET_MINOR_VERSION (peer_version);
+
 		return true;
 	}
 
@@ -340,8 +345,9 @@ static uint32_t spdm_prioritize_algorithm (const uint32_t *priority_table,
 	}
 	else {
 		/* If a priority table was not provided, use the first common lowest numbered algorithm. */
-		 mask = common_algos & -common_algos;
-		 return (common_algos & mask);
+		mask = common_algos & -common_algos;
+
+		return (common_algos & mask);
 	}
 
 	return 0;
@@ -477,7 +483,7 @@ uint32_t spdm_get_aead_tag_size (uint16_t aead_cipher_suite)
  * @param  opaque_data_format Opaque data format.
  * @param  data_in Opaque data pointer.
  * @param  data_in_size Size of opaque data.
- * 
+ *
  * @retval 0 if the general opaque data is valid, error code otherwise.
  */
 static int spdm_validate_general_opaque_data (uint8_t spdm_version, uint8_t opaque_data_format,
@@ -510,7 +516,7 @@ static int spdm_validate_general_opaque_data (uint8_t spdm_version, uint8_t opaq
 		if (general_opaque_data_table_header->total_elements == 0) {
 			goto exit;
 		}
-		opaque_element_table_header = (const void *)(general_opaque_data_table_header + 1);
+		opaque_element_table_header = (const void*) (general_opaque_data_table_header + 1);
 		element_num = general_opaque_data_table_header->total_elements;
 		data_element_size = data_in_size - sizeof (struct spdm_general_opaque_data_table_header);
 
@@ -526,7 +532,7 @@ static int spdm_validate_general_opaque_data (uint8_t spdm_version, uint8_t opaq
 				goto exit;
 			}
 
-			opaque_element_data_len = *(uint16_t*)((size_t)(opaque_element_table_header + 1)) +
+			opaque_element_data_len = *(uint16_t*) ((size_t) (opaque_element_table_header + 1)) +
 				opaque_element_table_header->vendor_len;
 
 			current_element_len = sizeof (struct spdm_opaque_element_table_header) +
@@ -534,8 +540,8 @@ static int spdm_validate_general_opaque_data (uint8_t spdm_version, uint8_t opaq
 				opaque_element_data_len;
 
 			if ((current_element_len & 3) != 0) {
-				if (memcmp (zero_padding, 
-					(uint8_t *)(size_t) (opaque_element_table_header) + current_element_len,
+				if (memcmp (zero_padding,
+					(uint8_t*) (size_t) (opaque_element_table_header) + current_element_len,
 					4 - (current_element_len & 3)) != 0) {
 					goto exit;
 				}
@@ -551,14 +557,15 @@ static int spdm_validate_general_opaque_data (uint8_t spdm_version, uint8_t opaq
 			}
 
 			/* Move to next the element. */
-			opaque_element_table_header =(const struct spdm_opaque_element_table_header*)
-				((const uint8_t*)opaque_element_table_header + current_element_len);
+			opaque_element_table_header = (const struct spdm_opaque_element_table_header*)
+				((const uint8_t*) opaque_element_table_header + current_element_len);
 		}
 	}
 
 	status = 0;
 
 exit:
+
 	return status;
 }
 
@@ -576,15 +583,16 @@ static size_t spdm_get_untrusted_opaque_data_supported_version_data_size (
 	size_t size;
 
 	if (negotiated_version >= SPDM_VERSION_1_2) {
-		size = sizeof(struct spdm_general_opaque_data_table_header) +
-			sizeof(struct spdm_secured_message_opaque_element_table_header) +
-			sizeof(struct spdm_secured_message_opaque_element_supported_version) +
-			sizeof(struct spdm_version_number) * version_count;
-	} else {
-		size = sizeof(struct spdm_secured_message_general_opaque_data_table_header) +
-			sizeof(struct spdm_secured_message_opaque_element_table_header) +
-			sizeof(struct spdm_secured_message_opaque_element_supported_version) +
-			sizeof(struct spdm_version_number) * version_count;
+		size = sizeof (struct spdm_general_opaque_data_table_header) +
+			sizeof (struct spdm_secured_message_opaque_element_table_header) +
+			sizeof (struct spdm_secured_message_opaque_element_supported_version) +
+			sizeof (struct spdm_version_number) * version_count;
+	}
+	else {
+		size = sizeof (struct spdm_secured_message_general_opaque_data_table_header) +
+			sizeof (struct spdm_secured_message_opaque_element_table_header) +
+			sizeof (struct spdm_secured_message_opaque_element_supported_version) +
+			sizeof (struct spdm_version_number) * version_count;
 	}
 
 	/* Add Padding. */
@@ -593,11 +601,11 @@ static size_t spdm_get_untrusted_opaque_data_supported_version_data_size (
 
 /**
  * Get the size of opaque data version selection.
- * 
+ *
  * @param negotiated_version Negotiated connection version.
  * @param secure_message_version_count Number of secure message versions supported.
  *
- * @return Size in bytes of opaque data version selection. 
+ * @return Size in bytes of opaque data version selection.
  */
 static size_t spdm_get_opaque_data_version_selection_data_size (uint8_t negotiated_version,
 	uint8_t secure_message_version_count)
@@ -611,13 +619,15 @@ static size_t spdm_get_opaque_data_version_selection_data_size (uint8_t negotiat
 
 	if (negotiated_version >= SPDM_VERSION_1_2) {
 		size = sizeof (struct spdm_general_opaque_data_table_header) +
-			   sizeof (struct spdm_secured_message_opaque_element_table_header) +
-			   sizeof (struct spdm_secured_message_opaque_element_version_selection);
-	} else {
-		size = sizeof (struct spdm_secured_message_general_opaque_data_table_header) +
-			   sizeof (struct spdm_secured_message_opaque_element_table_header) +
-			   sizeof (struct spdm_secured_message_opaque_element_version_selection);
+			sizeof (struct spdm_secured_message_opaque_element_table_header) +
+			sizeof (struct spdm_secured_message_opaque_element_version_selection);
 	}
+	else {
+		size = sizeof (struct spdm_secured_message_general_opaque_data_table_header) +
+			sizeof (struct spdm_secured_message_opaque_element_table_header) +
+			sizeof (struct spdm_secured_message_opaque_element_version_selection);
+	}
+
 	/* Add Padding*/
 	return (size + 3) & ~3;
 }
@@ -641,7 +651,7 @@ static int spdm_get_element_from_opaque_data (struct spdm_state *state, size_t d
 {
 	int status = CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT;
 	const struct spdm_secured_message_general_opaque_data_table_header
-		*general_opaque_data_table_header;
+	*general_opaque_data_table_header;
 	const struct spdm_general_opaque_data_table_header *spdm_general_opaque_data_table_header;
 	const struct spdm_secured_message_opaque_element_table_header *opaque_element_table_header;
 	const struct spdm_secured_message_opaque_element_header *secured_message_element_header;
@@ -659,33 +669,36 @@ static int spdm_get_element_from_opaque_data (struct spdm_state *state, size_t d
 
 	if (spdm_get_connection_version (state) >= SPDM_VERSION_1_2) {
 		spdm_general_opaque_data_table_header = data_in;
-		if (data_in_size < sizeof(struct spdm_general_opaque_data_table_header)) {
+		if (data_in_size < sizeof (struct spdm_general_opaque_data_table_header)) {
 			goto exit;
 		}
 		if (spdm_general_opaque_data_table_header->total_elements < 1) {
 			goto exit;
 		}
-		opaque_element_table_header = (const void *)(spdm_general_opaque_data_table_header + 1);
+		opaque_element_table_header = (const void*) (spdm_general_opaque_data_table_header + 1);
 
 		element_num = spdm_general_opaque_data_table_header->total_elements;
 
 		data_element_size = data_in_size - sizeof (struct spdm_general_opaque_data_table_header);
-	} else {
+	}
+	else {
 		general_opaque_data_table_header = data_in;
 		if (data_in_size < sizeof (struct spdm_secured_message_general_opaque_data_table_header)) {
 			goto exit;
 		}
-		if ((general_opaque_data_table_header->spec_id != SPDM_SECURED_MESSAGE_OPAQUE_DATA_SPEC_ID) ||
-			(general_opaque_data_table_header->opaque_version != SPDM_SECURED_MESSAGE_OPAQUE_VERSION) ||
+		if ((general_opaque_data_table_header->spec_id !=
+			SPDM_SECURED_MESSAGE_OPAQUE_DATA_SPEC_ID) ||
+			(general_opaque_data_table_header->opaque_version !=
+			SPDM_SECURED_MESSAGE_OPAQUE_VERSION) ||
 			(general_opaque_data_table_header->total_elements < 1)) {
 			goto exit;
 		}
-		opaque_element_table_header = (const void *)(general_opaque_data_table_header + 1);
+		opaque_element_table_header = (const void*) (general_opaque_data_table_header + 1);
 
 		element_num = general_opaque_data_table_header->total_elements;
 
 		data_element_size = data_in_size -
-							sizeof (struct spdm_secured_message_general_opaque_data_table_header);
+			sizeof (struct spdm_secured_message_general_opaque_data_table_header);
 	}
 
 	for (element_index = 0; element_index < element_num; element_index++) {
@@ -713,7 +726,7 @@ static int spdm_get_element_from_opaque_data (struct spdm_state *state, size_t d
 		}
 
 		if (opaque_element_table_header->id == element_id) {
-			secured_message_element_header = (const void *)(opaque_element_table_header + 1);
+			secured_message_element_header = (const void*) (opaque_element_table_header + 1);
 			if (((const uint8_t*) secured_message_element_header +
 				sizeof (struct spdm_secured_message_opaque_element_header)) >
 				((const uint8_t*) data_in + data_in_size)) {
@@ -722,7 +735,7 @@ static int spdm_get_element_from_opaque_data (struct spdm_state *state, size_t d
 
 			if ((secured_message_element_header->sm_data_id == sm_data_id) &&
 				(secured_message_element_header->sm_data_version ==
-				 SPDM_SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_DATA_VERSION)) {
+				SPDM_SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_DATA_VERSION)) {
 				/* Get the element by element id. */
 				*get_element_ptr = opaque_element_table_header;
 				*get_element_len = current_element_len;
@@ -730,7 +743,7 @@ static int spdm_get_element_from_opaque_data (struct spdm_state *state, size_t d
 		}
 
 		/* Move to the next element. */
-		opaque_element_table_header = 
+		opaque_element_table_header =
 			(const struct spdm_secured_message_opaque_element_table_header*)
 			((const uint8_t*) opaque_element_table_header + current_element_len);
 	}
@@ -743,6 +756,7 @@ static int spdm_get_element_from_opaque_data (struct spdm_state *state, size_t d
 	status = 0;
 
 exit:
+
 	return status;
 }
 
@@ -764,7 +778,7 @@ static int spdm_process_opaque_data_supported_version_data (struct spdm_state *s
 	int status;
 	const struct spdm_secured_message_opaque_element_table_header *opaque_element_table_header;
 	const struct spdm_secured_message_opaque_element_supported_version
-		*opaque_element_support_version;
+	*opaque_element_support_version;
 	const struct spdm_version_number *versions_list;
 	struct spdm_version_number common_version = {0};
 	uint8_t version_count;
@@ -779,8 +793,9 @@ static int spdm_process_opaque_data_supported_version_data (struct spdm_state *s
 		return 0;
 	}
 
-	if (data_in_size < spdm_get_untrusted_opaque_data_supported_version_data_size(
-			spdm_get_connection_version (state), 1)) {
+	if (data_in_size <
+		spdm_get_untrusted_opaque_data_supported_version_data_size (spdm_get_connection_version (
+			state), 1)) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
 		goto exit;
 	}
@@ -793,7 +808,7 @@ static int spdm_process_opaque_data_supported_version_data (struct spdm_state *s
 	}
 
 	if (get_element_ptr == NULL) {
-		status =  CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT;
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT;
 		goto exit;
 	}
 
@@ -801,17 +816,17 @@ static int spdm_process_opaque_data_supported_version_data (struct spdm_state *s
 		get_element_ptr;
 
 	/* Check for supported version data. */
-	opaque_element_support_version = (const void *)(opaque_element_table_header + 1);
+	opaque_element_support_version = (const void*) (opaque_element_table_header + 1);
 
-	if ((const uint8_t*)opaque_element_support_version +
+	if ((const uint8_t*) opaque_element_support_version +
 		sizeof (struct spdm_secured_message_opaque_element_supported_version) >
-		(const uint8_t*)opaque_element_table_header + get_element_len) {
-		status =  CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT;
+		(const uint8_t*) opaque_element_table_header + get_element_len) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT;
 		goto exit;
 	}
 
 	if (opaque_element_support_version->version_count == 0) {
-		status =  CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT;
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT;
 		goto exit;
 	}
 
@@ -819,24 +834,24 @@ static int spdm_process_opaque_data_supported_version_data (struct spdm_state *s
 
 	if ((opaque_element_table_header->vendor_len != 0) ||
 		(opaque_element_table_header->opaque_element_data_len !=
-		 sizeof (struct spdm_secured_message_opaque_element_supported_version) +
-		 sizeof (struct spdm_version_number) * version_count)) {
-		status =  CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT;
+		sizeof (struct spdm_secured_message_opaque_element_supported_version) +
+		sizeof (struct spdm_version_number) * version_count)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT;
 		goto exit;
 	}
 
-	versions_list = (const void*)(opaque_element_support_version + 1);
+	versions_list = (const void*) (opaque_element_support_version + 1);
 
-	if (((const uint8_t*)versions_list + (sizeof (struct spdm_version_number) * version_count)) >
-		((const uint8_t*)opaque_element_table_header + get_element_len)) {
-		status =  CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT;
+	if (((const uint8_t*) versions_list + (sizeof (struct spdm_version_number) * version_count)) >
+		((const uint8_t*) opaque_element_table_header + get_element_len)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT;
 		goto exit;
 	}
 
 	/* Find a common secure message version. */
 	for (local_ver_idx = 0; local_ver_idx < secure_message_version_num_count; local_ver_idx++) {
 		local_ver = SPDM_MAKE_VERSION (secure_message_version_num[local_ver_idx].major_version,
-				secure_message_version_num[local_ver_idx].minor_version);
+			secure_message_version_num[local_ver_idx].minor_version);
 
 		for (peer_ver_idx = 0; peer_ver_idx < version_count; peer_ver_idx++) {
 			peer_ver = SPDM_MAKE_VERSION (versions_list[peer_ver_idx].major_version,
@@ -856,6 +871,7 @@ static int spdm_process_opaque_data_supported_version_data (struct spdm_state *s
 	state->connection_info.secure_message_version = common_version;
 
 exit:
+
 	return status;
 }
 
@@ -869,7 +885,8 @@ static void spdm_build_opaque_data_version_selection_data (
 	const struct cmd_interface_spdm_responder *spdm_responder, void *data_out)
 {
 	size_t final_data_size;
-	struct spdm_secured_message_general_opaque_data_table_header *secured_general_opaque_data_table_header;
+	struct spdm_secured_message_general_opaque_data_table_header*
+		secured_general_opaque_data_table_header;
 	struct spdm_general_opaque_data_table_header *general_opaque_data_table_header;
 	struct spdm_secured_message_opaque_element_table_header *opaque_element_table_header;
 	struct spdm_secured_message_opaque_element_version_selection *opaque_element_version_section;
@@ -880,16 +897,18 @@ static void spdm_build_opaque_data_version_selection_data (
 		return;
 	}
 
-	final_data_size = spdm_get_opaque_data_version_selection_data_size (
-		spdm_get_connection_version (state), spdm_responder->secure_message_version_num_count);
+	final_data_size =
+		spdm_get_opaque_data_version_selection_data_size (spdm_get_connection_version (state),
+		spdm_responder->secure_message_version_num_count);
 
 	if (spdm_get_connection_version (state) >= SPDM_VERSION_1_2) {
 		general_opaque_data_table_header = data_out;
 		general_opaque_data_table_header->total_elements = 1;
 		buffer_unaligned_write24 (general_opaque_data_table_header->reserved, 0);
 
-		opaque_element_table_header = (void *)(general_opaque_data_table_header + 1);
-	} else {
+		opaque_element_table_header = (void*) (general_opaque_data_table_header + 1);
+	}
+	else {
 		secured_general_opaque_data_table_header = data_out;
 		secured_general_opaque_data_table_header->spec_id =
 			SPDM_SECURED_MESSAGE_OPAQUE_DATA_SPEC_ID;
@@ -898,14 +917,14 @@ static void spdm_build_opaque_data_version_selection_data (
 		secured_general_opaque_data_table_header->total_elements = 1;
 		secured_general_opaque_data_table_header->reserved = 0;
 
-		opaque_element_table_header = (void *)(secured_general_opaque_data_table_header + 1);
+		opaque_element_table_header = (void*) (secured_general_opaque_data_table_header + 1);
 	}
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
 		sizeof (struct spdm_secured_message_opaque_element_version_selection);
 
-	opaque_element_version_section = (void *)(opaque_element_table_header + 1);
+	opaque_element_version_section = (void*) (opaque_element_table_header + 1);
 	opaque_element_version_section->sm_data_version =
 		SPDM_SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_DATA_VERSION;
 	opaque_element_version_section->sm_data_id =
@@ -976,8 +995,8 @@ static void spdm_reset_transcript_via_request_code (struct spdm_state *state,
  *
  * @return 0 if certificate list was retrieved successfully or an error code.
  */
-static int spdm_get_certificate_list (struct riot_key_manager *key_manager,
-	uint8_t *cert_count_out, struct der_cert *cert, const struct riot_keys **keys_out)
+static int spdm_get_certificate_list (struct riot_key_manager *key_manager,	uint8_t *cert_count_out,
+	struct der_cert *cert, const struct riot_keys **keys_out)
 {
 	int status = 0;
 	const struct der_cert *int_ca;
@@ -1086,7 +1105,7 @@ static int spdm_get_certificate_chain_digest (struct riot_key_manager *key_manag
 
 	/* Hash the header of the cert chain and the root cert digest. */
 	status = hash_engine->update (hash_engine, (uint8_t*) &cert_chain,
-			offsetof (struct spdm_cert_chain, root_hash) + hash_size);
+		offsetof (struct spdm_cert_chain, root_hash) + hash_size);
 	if (status != 0) {
 		goto exit;
 	}
@@ -1158,6 +1177,7 @@ static const struct spdm_signing_context_str spdm_signing_context_str_table[] = 
 	},
 };
 
+
 /**
  * Create a SPDM signing context, which is required since SPDM 1.2.
  *
@@ -1178,20 +1198,21 @@ static void spdm_create_signing_context (struct spdm_state *state, uint8_t op_co
 
 		/* Patch the version. */
 		spdm_signing_context[SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT_MAJOR_VERSION_OFFSET] =
-			(char)('0' + (version.major_version));
+			(char) ('0' + (version.major_version));
 		spdm_signing_context[SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT_MINOR_VERSION_OFFSET] =
-			(char)('0' + (version.minor_version));
-		spdm_signing_context[SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT_ASTERIX_OFFSET] = (char)('*');
+			(char) ('0' + (version.minor_version));
+		spdm_signing_context[SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT_ASTERIX_OFFSET] = (char) ('*');
 		spdm_signing_context += SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT_SIZE;
 	}
 
 	for (index = 0; index < ARRAY_SIZE (spdm_signing_context_str_table); index++) {
-		if (spdm_signing_context_str_table[index].is_requester == is_requester &&
-			spdm_signing_context_str_table[index].op_code == op_code) {
+		if ((spdm_signing_context_str_table[index].is_requester == is_requester) &&
+			(spdm_signing_context_str_table[index].op_code == op_code)) {
 			memset (spdm_signing_context, 0, spdm_signing_context_str_table[index].zero_pad_size);
 			memcpy (spdm_signing_context + spdm_signing_context_str_table[index].zero_pad_size,
 				spdm_signing_context_str_table[index].context,
 				spdm_signing_context_str_table[index].context_size);
+
 			return;
 		}
 	}
@@ -1213,7 +1234,7 @@ static void spdm_create_signing_context (struct spdm_state *state, uint8_t op_co
  * @return 0 if signature is generated successfully, error code otherwise.
  */
 static int spdm_responder_data_sign (struct spdm_state *state, struct riot_key_manager *key_manager,
-	struct ecc_engine *ecc_engine,  struct hash_engine *hash_engine, uint8_t op_code,
+	struct ecc_engine *ecc_engine, struct hash_engine *hash_engine, uint8_t op_code,
 	const uint8_t *message_hash, size_t hash_size, uint8_t *signature, size_t sig_size)
 {
 	int status;
@@ -1274,7 +1295,7 @@ static int spdm_responder_data_sign (struct spdm_state *state, struct riot_key_m
 
 		/* Sign the full message hash. */
 		sig_size_der = ecc_engine->sign (ecc_engine, &alias_priv_key, full_message_hash, hash_size,
-				sig_der, sig_size_der);
+			sig_der, sig_size_der);
 	}
 	else {
 		sig_size_der = ecc_engine->sign (ecc_engine, &alias_priv_key, message_hash, hash_size,
@@ -1300,6 +1321,7 @@ exit:
 	if (keys != NULL) {
 		riot_key_manager_release_riot_keys (key_manager, keys);
 	}
+
 	return status;
 }
 
@@ -1320,15 +1342,16 @@ exit:
 static int spdm_generate_measurement_signature (
 	const struct spdm_transcript_manager *transcript_manager, struct spdm_state *state,
 	struct riot_key_manager *key_manager, struct ecc_engine *ecc_engine,
-	struct hash_engine *hash_engine, void* session_info, uint8_t *signature, size_t sig_size)
+	struct hash_engine *hash_engine, void *session_info, uint8_t *signature, size_t sig_size)
 {
 	int status;
 	uint8_t l1l2_hash[HASH_MAX_HASH_LEN];
 	int l1l2_hash_size;
 	uint8_t session_idx = SPDM_MAX_SESSION_COUNT;
 
-	l1l2_hash_size = hash_get_hash_length (
-		spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo));
+	l1l2_hash_size =
+		hash_get_hash_length (spdm_get_hash_type (
+		state->connection_info.peer_algorithms.base_hash_algo));
 
 	/* Get the L1L2 hash. */
 	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,
@@ -1350,6 +1373,7 @@ static int spdm_generate_measurement_signature (
 	}
 
 exit:
+
 	return status;
 }
 
@@ -1377,8 +1401,9 @@ static int spdm_generate_key_exchange_rsp_signature (
 	uint8_t th_hash[HASH_MAX_HASH_LEN];
 	int th_hash_size;
 
-	th_hash_size = hash_get_hash_length (
-		spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo));
+	th_hash_size =
+		hash_get_hash_length (spdm_get_hash_type (
+		state->connection_info.peer_algorithms.base_hash_algo));
 
 	/* Get the TH hash; do not complete the hash context as it is needed later. */
 	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, false,
@@ -1395,6 +1420,7 @@ static int spdm_generate_key_exchange_rsp_signature (
 	}
 
 exit:
+
 	return status;
 }
 
@@ -1426,8 +1452,8 @@ static int spdm_calculate_th_hmac_for_key_exchange_rsp (
 	hash_size = hash_get_hash_length (hash_type);
 
 	/* Get the TH hash; do not complete the hash as it is needed later. */
-	status = transcript_manager->get_hash (transcript_manager,
-		TRANSCRIPT_CONTEXT_TYPE_TH, false, true, session->session_index, th_hash, hash_size);
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, false,
+		true, session->session_index, th_hash, hash_size);
 	if (status != 0) {
 		goto exit;
 	}
@@ -1440,6 +1466,7 @@ static int spdm_calculate_th_hmac_for_key_exchange_rsp (
 	}
 
 exit:
+
 	return status;
 }
 
@@ -1463,18 +1490,16 @@ static int spdm_verify_finish_req_hmac (const struct spdm_transcript_manager *tr
 	uint8_t hmac_computed[HASH_MAX_HASH_LEN];
 
 	/* Get the TH hash; do not complete the hash as it is needed later. */
-	status = transcript_manager->get_hash (transcript_manager,
-		TRANSCRIPT_CONTEXT_TYPE_TH, false, true, session->session_index, th_hash,
-		session->hash_size);
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, false,
+		true, session->session_index, th_hash, session->hash_size);
 	if (status != 0) {
 		goto exit;
 	}
 
 	/* Generate the HMAC with the Requester Finished key. */
-	status = hash_generate_hmac (hash_engine,
-		session->handshake_secret.request_finished_key, session->hash_size, th_hash,
-		session->hash_size, (enum hmac_hash) spdm_get_hash_type (session->base_hash_algo), hmac_computed,
-		hmac_size);
+	status = hash_generate_hmac (hash_engine, session->handshake_secret.request_finished_key,
+		session->hash_size, th_hash, session->hash_size,
+		(enum hmac_hash) spdm_get_hash_type (session->base_hash_algo), hmac_computed, hmac_size);
 	if (status != 0) {
 		goto exit;
 	}
@@ -1486,6 +1511,7 @@ static int spdm_verify_finish_req_hmac (const struct spdm_transcript_manager *tr
 	}
 
 exit:
+
 	return status;
 }
 
@@ -1529,9 +1555,8 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 	 * must be 1.0, regardless of what the negotiated version is. */
 	if (SPDM_MAKE_VERSION (rq->header.spdm_major_version, rq->header.spdm_minor_version) !=
 		SPDM_VERSION_1_0) {
-		spdm_generate_error_response (request, 0,
-			SPDM_ERROR_VERSION_MISMATCH, 0x00, NULL, 0, SPDM_REQUEST_GET_VERSION,
-			CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH);
+		spdm_generate_error_response (request, 0, SPDM_ERROR_VERSION_MISMATCH, 0x00, NULL, 0,
+			SPDM_REQUEST_GET_VERSION, CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH);
 		goto exit;
 	}
 
@@ -1552,9 +1577,9 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 	transcript_manager->reset (transcript_manager);
 
 	/* Append request to VCA buffer. */
-	status = transcript_manager->update (transcript_manager,
-		TRANSCRIPT_CONTEXT_TYPE_VCA, (const uint8_t*) rq, sizeof (struct spdm_get_version_request),
-		false, SPDM_MAX_SESSION_COUNT);
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_VCA,
+		(const uint8_t*) rq, sizeof (struct spdm_get_version_request), false,
+		SPDM_MAX_SESSION_COUNT);
 	if (status != 0) {
 		spdm_generate_error_response (request, state->connection_info.version.minor_version,
 			SPDM_ERROR_UNSPECIFIED, 0x00, NULL, 0, SPDM_REQUEST_GET_VERSION, status);
@@ -1578,16 +1603,14 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 
 	/* Copy the supported version(s) to the response buffer. */
 	rsp->version_num_entry_count = spdm_responder->version_num_count;
-	memcpy ((void *) spdm_get_version_resp_version_table (rsp),
-		(void *) spdm_responder->version_num,
+	memcpy ((void*) spdm_get_version_resp_version_table (rsp), (void*) spdm_responder->version_num,
 		spdm_responder->version_num_count * sizeof (struct spdm_version_num_entry));
 
 	cmd_interface_msg_set_message_payload_length (request, spdm_get_version_resp_length (rsp));
 
 	/* Append response to the VCA buffer. */
-	status = transcript_manager->update (transcript_manager,
-		TRANSCRIPT_CONTEXT_TYPE_VCA, (const uint8_t*) rsp, request->payload_length, false,
-		SPDM_MAX_SESSION_COUNT);
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_VCA,
+		(const uint8_t*) rsp, request->payload_length, false, SPDM_MAX_SESSION_COUNT);
 	if (status != 0) {
 		spdm_generate_error_response (request, state->connection_info.version.minor_version,
 			SPDM_ERROR_UNSPECIFIED, 0x00, NULL, 0, SPDM_REQUEST_GET_VERSION, status);
@@ -1598,6 +1621,7 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 	spdm_set_connection_state (state, SPDM_CONNECTION_STATE_AFTER_VERSION);
 
 exit:
+
 	return 0;
 }
 
@@ -1699,10 +1723,9 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 	header = (struct spdm_protocol_header*) request->payload;
 	spdm_version = SPDM_MAKE_VERSION (header->spdm_major_version, header->spdm_minor_version);
 	if (spdm_check_request_version_compatibility (state, spdm_responder->version_num,
-			spdm_responder->version_num_count, spdm_version) == false) {
-		spdm_generate_error_response (request, 0,
-			SPDM_ERROR_VERSION_MISMATCH, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES,
-			CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH);
+		spdm_responder->version_num_count, spdm_version) == false) {
+		spdm_generate_error_response (request, 0, SPDM_ERROR_VERSION_MISMATCH, 0x00, NULL, 0,
+			SPDM_REQUEST_GET_CAPABILITIES, CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH);
 		goto exit;
 	}
 
@@ -1712,8 +1735,8 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 		req_resp_size = sizeof (struct spdm_get_capabilities);
 	}
 	else if ((spdm_version == SPDM_VERSION_1_1) &&
-			(request->payload_length >= sizeof (struct spdm_get_capabilities_1_1))) {
-			req_resp_size = sizeof (struct spdm_get_capabilities_1_1);
+		(request->payload_length >= sizeof (struct spdm_get_capabilities_1_1))) {
+		req_resp_size = sizeof (struct spdm_get_capabilities_1_1);
 	}
 	else {
 		spdm_generate_error_response (request, state->connection_info.version.minor_version,
@@ -1726,8 +1749,8 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 	req_resp = (struct spdm_get_capabilities*) request->payload;
 
 	/* Check for request flag compatibility. */
-	if (spdm_check_request_flag_compatibility (req_resp->base_capabilities.flags, spdm_version)
-		 == false) {
+	if (spdm_check_request_flag_compatibility (req_resp->base_capabilities.flags, spdm_version) ==
+		false) {
 		spdm_generate_error_response (request, state->connection_info.version.minor_version,
 			SPDM_ERROR_INVALID_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES,
 			CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST);
@@ -1824,6 +1847,7 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 	spdm_set_connection_state (state, SPDM_CONNECTION_STATE_AFTER_CAPABILITIES);
 
 exit:
+
 	return 0;
 }
 
@@ -1890,7 +1914,7 @@ int spdm_generate_get_capabilities_request (uint8_t *buf, size_t buf_len,
 		rq->base_capabilities.flags.chunk_cap = SPDM_REQUESTER_CHUNK_CAP;
 		rq->base_capabilities.flags.alias_cert_cap = SPDM_REQUESTER_ALIAS_CERT_CAP;
 	}
-	
+
 	if (spdm_minor_version < 1) {
 		return sizeof (struct spdm_get_capabilities_1_0);
 	}
@@ -2010,10 +2034,9 @@ static int spdm_negotiate_algorithms_construct_response (struct spdm_state *stat
 				resp_no_ext_alg->algstruct_table[i_algstruct].ext_alg_count = 0;
 				resp_no_ext_alg->algstruct_table[i_algstruct].alg_supported =
 					(uint16_t) spdm_prioritize_algorithm (
-						local_algo_priority_table->dhe_priority_table,
-						local_algo_priority_table->dhe_priority_table_count,
-						local_algorithms->dhe_named_group,
-						algstruct_table->alg_supported);
+					local_algo_priority_table->dhe_priority_table,
+					local_algo_priority_table->dhe_priority_table_count,
+					local_algorithms->dhe_named_group, algstruct_table->alg_supported);
 
 				state->connection_info.peer_algorithms.dhe_named_group =
 					resp_no_ext_alg->algstruct_table[i_algstruct].alg_supported;
@@ -2029,10 +2052,9 @@ static int spdm_negotiate_algorithms_construct_response (struct spdm_state *stat
 				resp_no_ext_alg->algstruct_table[i_algstruct].ext_alg_count = 0;
 				resp_no_ext_alg->algstruct_table[i_algstruct].alg_supported =
 					(uint16_t) spdm_prioritize_algorithm (
-						local_algo_priority_table->aead_priority_table,
-						local_algo_priority_table->aead_priority_table_count,
-						local_algorithms->aead_cipher_suite,
-						algstruct_table->alg_supported);
+					local_algo_priority_table->aead_priority_table,
+					local_algo_priority_table->aead_priority_table_count,
+					local_algorithms->aead_cipher_suite, algstruct_table->alg_supported);
 
 				state->connection_info.peer_algorithms.aead_cipher_suite =
 					resp_no_ext_alg->algstruct_table[i_algstruct].alg_supported;
@@ -2048,10 +2070,9 @@ static int spdm_negotiate_algorithms_construct_response (struct spdm_state *stat
 				resp_no_ext_alg->algstruct_table[i_algstruct].ext_alg_count = 0;
 				resp_no_ext_alg->algstruct_table[i_algstruct].alg_supported =
 					(uint16_t) spdm_prioritize_algorithm (
-						local_algo_priority_table->req_asym_priority_table,
-						local_algo_priority_table->req_asym_priority_table_count,
-						local_algorithms->req_base_asym_alg,
-						algstruct_table->alg_supported);
+					local_algo_priority_table->req_asym_priority_table,
+					local_algo_priority_table->req_asym_priority_table_count,
+					local_algorithms->req_base_asym_alg, algstruct_table->alg_supported);
 
 				state->connection_info.peer_algorithms.req_base_asym_alg =
 					resp_no_ext_alg->algstruct_table[i_algstruct].alg_supported;
@@ -2062,29 +2083,29 @@ static int spdm_negotiate_algorithms_construct_response (struct spdm_state *stat
 					goto exit;
 				}
 
-				resp_no_ext_alg->algstruct_table[i_algstruct].alg_type = algstruct_table->alg_type;;
+				resp_no_ext_alg->algstruct_table[i_algstruct].alg_type = algstruct_table->alg_type;
 				resp_no_ext_alg->algstruct_table[i_algstruct].fixed_alg_count = 2;
 				resp_no_ext_alg->algstruct_table[i_algstruct].ext_alg_count = 0;
 				resp_no_ext_alg->algstruct_table[i_algstruct].alg_supported =
 					(uint16_t) spdm_prioritize_algorithm (
-						local_algo_priority_table->key_schedule_priority_table,
-						local_algo_priority_table->key_schedule_priority_table_count,
-						local_algorithms->key_schedule,
-						algstruct_table->alg_supported);
+					local_algo_priority_table->key_schedule_priority_table,
+					local_algo_priority_table->key_schedule_priority_table_count,
+					local_algorithms->key_schedule,	algstruct_table->alg_supported);
 
 				state->connection_info.peer_algorithms.key_schedule =
 					resp_no_ext_alg->algstruct_table[i_algstruct].alg_supported;
 				break;
-			}
+		}
 
 		/* Go to the next algstruct_table entry. */
 		algstruct_table =
 			spdm_negotiate_algorithms_get_next_alg_struct_table_entry (algstruct_table);
 	}
 
-	if (local_capabilities->flags.meas_cap == SPDM_MEASUREMENT_RSP_CAP_MEASUREMENTS_WITHOUT_SIG ||
-		local_capabilities->flags.meas_cap == SPDM_MEASUREMENT_RSP_CAP_MEASUREMENTS_WITH_SIG) {
-		resp->measurement_specification = (uint8_t) spdm_prioritize_algorithm (
+	if ((local_capabilities->flags.meas_cap == SPDM_MEASUREMENT_RSP_CAP_MEASUREMENTS_WITHOUT_SIG) ||
+		(local_capabilities->flags.meas_cap == SPDM_MEASUREMENT_RSP_CAP_MEASUREMENTS_WITH_SIG)) {
+		resp->measurement_specification =
+			(uint8_t) spdm_prioritize_algorithm (
 			local_algo_priority_table->measurement_spec_priority_table,
 			local_algo_priority_table->measurement_spec_priority_table_count,
 			local_algorithms->measurement_spec,
@@ -2103,35 +2124,33 @@ static int spdm_negotiate_algorithms_construct_response (struct spdm_state *stat
 	state->connection_info.peer_algorithms.measurement_spec = resp->measurement_specification;
 	state->connection_info.peer_algorithms.measurement_hash_algo = resp->measurement_hash_algo;
 
-	resp->base_asym_sel = spdm_prioritize_algorithm (
-		local_algo_priority_table->asym_priority_table,
-		local_algo_priority_table->asym_priority_table_count,
-		local_algorithms->base_asym_algo,
+	resp->base_asym_sel = spdm_prioritize_algorithm (local_algo_priority_table->asym_priority_table,
+		local_algo_priority_table->asym_priority_table_count, local_algorithms->base_asym_algo,
 		state->connection_info.peer_algorithms.base_asym_algo);
 	state->connection_info.peer_algorithms.base_asym_algo = resp->base_asym_sel;
 
-	resp->base_hash_sel = spdm_prioritize_algorithm (
-		local_algo_priority_table->hash_priority_table,
-		local_algo_priority_table->hash_priority_table_count,
-		local_algorithms->base_hash_algo,
+	resp->base_hash_sel = spdm_prioritize_algorithm (local_algo_priority_table->hash_priority_table,
+		local_algo_priority_table->hash_priority_table_count, local_algorithms->base_hash_algo,
 		state->connection_info.peer_algorithms.base_hash_algo);
 	state->connection_info.peer_algorithms.base_hash_algo = resp->base_hash_sel;
 
 	if (spdm_version >= SPDM_VERSION_1_2) {
-		resp->other_params_selection.opaque_data_format = (uint8_t) spdm_prioritize_algorithm (
+		resp->other_params_selection.opaque_data_format =
+			(uint8_t) spdm_prioritize_algorithm (
 			local_algo_priority_table->other_params_support_priority_table,
 			local_algo_priority_table->other_params_support_priority_table_count,
 			local_algorithms->other_params_support.opaque_data_format,
 			rq->other_params_support.opaque_data_format);
 
-			state->connection_info.peer_algorithms.other_params_support.opaque_data_format =
-				resp->other_params_selection.opaque_data_format;
+		state->connection_info.peer_algorithms.other_params_support.opaque_data_format =
+			resp->other_params_selection.opaque_data_format;
 	}
 
 	status = 0;
 	*spdm_error = SPDM_ERROR_RESERVED;
 
 exit:
+
 	return status;
 }
 
@@ -2209,10 +2228,9 @@ int spdm_negotiate_algorithms (const struct cmd_interface_spdm_responder *spdm_r
 	/* Validate the algorithm structs. */
 	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
 	for (i_algstruct = 0; i_algstruct < rq->num_alg_structure_tables; i_algstruct++) {
-
 		/* Check if alg_type is valid. */
-		 if ((algstruct_table->alg_type < SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE) ||
-			 (algstruct_table->alg_type > SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE)) {
+		if ((algstruct_table->alg_type < SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE) ||
+			(algstruct_table->alg_type > SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE)) {
 			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
 			spdm_error = SPDM_ERROR_INVALID_REQUEST;
 			goto exit;
@@ -2241,15 +2259,15 @@ int spdm_negotiate_algorithms (const struct cmd_interface_spdm_responder *spdm_r
 		}
 
 		/* Go to the next algstruct_table entry. */
-		algstruct_table = spdm_negotiate_algorithms_get_next_alg_struct_table_entry (
-			algstruct_table);
+		algstruct_table =
+			spdm_negotiate_algorithms_get_next_alg_struct_table_entry (algstruct_table);
 	}
 	ext_alg_total_count += (rq->ext_asym_count + rq->ext_hash_count);
 
 	/* Check the algorithm count and message size. */
 	if (ext_alg_total_count > SPDM_NEGOTIATE_ALGORITHMS_REQUEST_MAX_EXT_ALG_COUNT_VERSION) {
-			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
-			spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
 		goto exit;
 	}
 
@@ -2325,6 +2343,7 @@ exit:
 		spdm_generate_error_response (request, state->connection_info.version.minor_version,
 			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_NEGOTIATE_ALGORITHMS, status);
 	}
+
 	return 0;
 }
 
@@ -2487,7 +2506,7 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 	}
 
 	/* Check if a session is ongoing. */
-	if ((session_manager != NULL) && 
+	if ((session_manager != NULL) &&
 		(session_manager->is_last_session_id_valid (session_manager) == true)) {
 		session = session_manager->get_session (session_manager,
 			session_manager->get_last_session_id (session_manager));
@@ -2543,7 +2562,7 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 
 	/* Get the digest of the certificate chain. */
 	status = spdm_get_certificate_chain_digest (key_manager, hash_engine, hash_type,
-		(uint8_t *)(spdm_response + 1));
+		(uint8_t*) (spdm_response + 1));
 	if (status != 0) {
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
@@ -2571,8 +2590,8 @@ exit:
 	if (status != 0) {
 		spdm_generate_error_response (request, state->connection_info.version.minor_version,
 			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_GET_DIGESTS, status);
-
 	}
+
 	return 0;
 }
 
@@ -2649,7 +2668,7 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 	struct der_cert cert[SPDM_MAX_CERT_COUNT_IN_CHAIN];
 	uint8_t cert_count = ARRAY_SIZE (cert);
 	uint32_t hash_size;
-	uint8_t* cert_chain = NULL;
+	uint8_t *cert_chain = NULL;
 	uint32_t cert_chain_length;
 	uint32_t cert_chain_offset;
 	uint8_t i_cert;
@@ -2711,7 +2730,7 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 	}
 
 	/* Check if a session is ongoing. */
-	if ((session_manager != NULL) && 
+	if ((session_manager != NULL) &&
 		(session_manager->is_last_session_id_valid (session_manager) == true)) {
 		session = session_manager->get_session (session_manager,
 			session_manager->get_last_session_id (session_manager));
@@ -2797,14 +2816,15 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 	}
 
 	/* Adjust the requested length. */
-	if ((size_t)(requested_offset + requested_length) > cert_chain_length) {
-		requested_length = (uint16_t)(cert_chain_length - requested_offset);
+	if ((size_t) (requested_offset + requested_length) > cert_chain_length) {
+		requested_length = (uint16_t) (cert_chain_length - requested_offset);
 	}
 	remainder_length = cert_chain_length - (requested_length + requested_offset);
 	response_size = sizeof (struct spdm_get_certificate_response) + requested_length;
 
 	/* Reset transcript manager state as per request code. */
-	spdm_reset_transcript_via_request_code (state, transcript_manager, SPDM_REQUEST_GET_CERTIFICATE);
+	spdm_reset_transcript_via_request_code (state, transcript_manager,
+		SPDM_REQUEST_GET_CERTIFICATE);
 
 	/* Add request to M1M2 hash context. */
 	if (session == NULL) {
@@ -2839,7 +2859,7 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 	}
 
 	/* Copy cert_chain portion to response. */
-	memcpy (spdm_get_certificate_resp_cert_chain(spdm_response), cert_chain + requested_offset,
+	memcpy (spdm_get_certificate_resp_cert_chain (spdm_response), cert_chain + requested_offset,
 		requested_length);
 
 	/* Add response to M1M2 hash context. */
@@ -2951,7 +2971,7 @@ int spdm_process_get_certificate_response (struct cmd_interface_msg *response)
  * error code.
  */
 int spdm_generate_challenge_request (uint8_t *buf, size_t buf_len, uint8_t slot_num,
-	uint8_t req_measurement_summary_hash_type, uint8_t* nonce, uint8_t spdm_minor_version)
+	uint8_t req_measurement_summary_hash_type, uint8_t *nonce, uint8_t spdm_minor_version)
 {
 	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
 
@@ -3052,7 +3072,9 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 			/* Don't reset the L1L2 hash context in this failure case as the correct session context
 			 * is not known. This behavior is per libSPDM. */
 			spdm_generate_error_response (request, state->connection_info.version.minor_version,
-				SPDM_ERROR_UNEXPECTED_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_MEASUREMENTS, status);
+				SPDM_ERROR_UNEXPECTED_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_MEASUREMENTS,
+				status);
+
 			return 0;
 		}
 
@@ -3090,8 +3112,8 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 		spdm_handle_response_state (state, request, SPDM_REQUEST_GET_MEASUREMENTS);
 
 		/* Reset L1L2 hash context. */
-		transcript_manager->reset_transcript (transcript_manager,
-			TRANSCRIPT_CONTEXT_TYPE_L1L2, (session != NULL), session_idx);
+		transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,
+			(session != NULL), session_idx);
 		goto exit;
 	}
 	if (state->connection_info.connection_state < SPDM_CONNECTION_STATE_NEGOTIATED) {
@@ -3137,8 +3159,8 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 			goto exit;
 		}
 
-		signature_size = spdm_get_asym_signature_size (
-			state->connection_info.peer_algorithms.base_asym_algo);
+		signature_size =
+			spdm_get_asym_signature_size (state->connection_info.peer_algorithms.base_asym_algo);
 	}
 	else {
 		signature_size = 0;
@@ -3147,8 +3169,8 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 	/* Check if sufficient buffer is available for the response including the optional signature. */
 	response_size = SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + signature_size;
 	if (cmd_interface_msg_get_max_response (request) < response_size) {
-			status = CMD_HANDLER_SPDM_RESPONDER_RESPONSE_TOO_LARGE;
-			spdm_error = SPDM_ERROR_UNSPECIFIED;
+		status = CMD_HANDLER_SPDM_RESPONDER_RESPONSE_TOO_LARGE;
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
 	}
 
@@ -3202,7 +3224,7 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 			response_size += measurement_length;
 
 			spdm_response->number_of_blocks = (uint8_t) measurement_count;
-			buffer_unaligned_write24 (spdm_response->measurement_record_len, 
+			buffer_unaligned_write24 (spdm_response->measurement_record_len,
 				(uint32_t) measurement_length);
 			break;
 
@@ -3222,7 +3244,7 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 
 			spdm_response->number_of_blocks = 1;
 
-			buffer_unaligned_write24 (spdm_response->measurement_record_len, 
+			buffer_unaligned_write24 (spdm_response->measurement_record_len,
 				(uint32_t) measurement_length);
 			break;
 	}
@@ -3247,8 +3269,8 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 	/* Generate the signature, if requested. */
 	if (signature_requested == true) {
 		status = spdm_generate_measurement_signature (transcript_manager, state,
-			spdm_responder->key_manager, spdm_responder->ecc_engine, hash_engine,
-			session, spdm_get_measurements_resp_signature (spdm_response), signature_size);
+			spdm_responder->key_manager, spdm_responder->ecc_engine, hash_engine, session,
+			spdm_get_measurements_resp_signature (spdm_response), signature_size);
 		if (status != 0) {
 			spdm_error = SPDM_ERROR_UNSPECIFIED;
 			goto exit;
@@ -3261,12 +3283,13 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 exit:
 	if (status != 0) {
 		/* Reset L1L2 hash context on error. */
-		transcript_manager->reset_transcript (transcript_manager,
-			TRANSCRIPT_CONTEXT_TYPE_L1L2, (session != NULL), session_idx);
+		transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,
+			(session != NULL), session_idx);
 
 		spdm_generate_error_response (request, state->connection_info.version.minor_version,
 			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_GET_MEASUREMENTS, status);
 	}
+
 	return 0;
 }
 
@@ -3292,7 +3315,7 @@ int spdm_generate_get_measurements_request (uint8_t *buf, size_t buf_len, uint8_
 {
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf;
 	size_t rq_length = sizeof (struct spdm_get_measurements_request) +
-		((SPDM_NONCE_LEN) * sig_required);
+		((SPDM_NONCE_LEN) *sig_required);
 	uint8_t *slot_id;
 
 	if ((buf == NULL) || ((nonce == NULL) && sig_required)) {
@@ -3302,7 +3325,7 @@ int spdm_generate_get_measurements_request (uint8_t *buf, size_t buf_len, uint8_
 	if ((spdm_minor_version == 0) && (slot_num != 0)) {
 		return CMD_HANDLER_SPDM_UNSUPPORTED_SLOT_ID;
 	}
-	
+
 	if (spdm_minor_version > 0) {
 		rq_length += sig_required;
 	}
@@ -3351,9 +3374,9 @@ int spdm_process_get_measurements_response (struct cmd_interface_msg *response)
 
 	resp = (struct spdm_get_measurements_response*) response->payload;
 
-	if ((response->payload_length < sizeof (struct spdm_get_measurements_response) ||
+	if (((response->payload_length < sizeof (struct spdm_get_measurements_response)) ||
 		(response->payload_length < (sizeof (struct spdm_get_measurements_response) +
-			spdm_get_measurements_resp_measurement_record_len (resp) + SPDM_NONCE_LEN))) ||
+		spdm_get_measurements_resp_measurement_record_len (resp) + SPDM_NONCE_LEN))) ||
 		(response->payload_length < spdm_get_measurements_resp_length (resp))) {
 		return CMD_HANDLER_SPDM_BAD_LENGTH;
 	}
@@ -3440,7 +3463,7 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 	struct spdm_secure_session_manager *session_manager;
 	struct ecc_point_public_key peer_pub_key_point;
 	enum hash_type hash_type;
-	const struct spdm_measurements* measurements;
+	const struct spdm_measurements *measurements;
 	uint8_t meas_summary_hash_type;
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
@@ -3509,7 +3532,7 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 
 	/* Check the type of measurement summary hash. */
 	meas_summary_hash_type = spdm_request->measurement_summary_hash_type;
-	if ((meas_summary_hash_type > SPDM_MEASUREMENT_SUMMARY_HASH_NONE) && 
+	if ((meas_summary_hash_type > SPDM_MEASUREMENT_SUMMARY_HASH_NONE) &&
 		((local_capabilities->flags.meas_cap == 0) ||
 		(state->connection_info.peer_algorithms.measurement_spec == 0) ||
 		(state->connection_info.peer_algorithms.measurement_hash_algo == 0))) {
@@ -3529,10 +3552,11 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 	/* Get the crypto parameter sizes. */
 	hash_size = hash_get_hash_length (hash_type);
 	sig_size = spdm_get_asym_signature_size (state->connection_info.peer_algorithms.base_asym_algo);
-	dhe_key_size = spdm_get_dhe_pub_key_size (state->connection_info.peer_algorithms.dhe_named_group);
-	meas_summary_hash_size = 
+	dhe_key_size =
+		spdm_get_dhe_pub_key_size (state->connection_info.peer_algorithms.dhe_named_group);
+	meas_summary_hash_size =
 		(spdm_request->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_NONE) ?
-		0 : hash_size;
+			0 : hash_size;
 
 	/* Check if the request contains the DHE public key and the opaque data length. */
 	if (request->payload_length < (sizeof (struct spdm_key_exchange_request) + dhe_key_size +
@@ -3560,7 +3584,7 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 		spdm_error = SPDM_ERROR_INVALID_REQUEST;
 		goto exit;
 	}
-	request_size = sizeof (struct spdm_key_exchange_request) + dhe_key_size + sizeof (uint16_t) + 
+	request_size = sizeof (struct spdm_key_exchange_request) + dhe_key_size + sizeof (uint16_t) +
 		opaque_data_length;
 
 	ptr += sizeof (uint16_t);
@@ -3592,7 +3616,7 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 	spdm_reset_transcript_via_request_code (state, transcript_manager, SPDM_REQUEST_KEY_EXCHANGE);
 
 	/* Construct the session Id from the requester and responder session Ids. */
-	req_session_id = spdm_request->req_session_id;	
+	req_session_id = spdm_request->req_session_id;
 	rsp_session_id = (state->current_local_session_id + 1);
 	session_id = MAKE_SESSION_ID (req_session_id, rsp_session_id);
 
@@ -3605,7 +3629,7 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 		goto exit;
 	}
 	release_session = true;
-	
+
 	/* Obtain the cert chain hash. */
 	status = spdm_get_certificate_chain_digest (key_manager, hash_engine, hash_type,
 		cert_chain_hash);
@@ -3624,7 +3648,7 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 
 	/* Add the request to the TH session hash context. */
 	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH,
-			(uint8_t*) spdm_request, request_size, true, session->session_index);
+		(uint8_t*) spdm_request, request_size, true, session->session_index);
 	if (status != 0) {
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
@@ -3656,8 +3680,8 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 	spdm_response->req_slot_id_param = 0;
 
 	/* Generate random data for the response. */
-	status = rng_engine->generate_random_buffer (rng_engine,
-		sizeof (spdm_response->random_data), spdm_response->random_data);
+	status = rng_engine->generate_random_buffer (rng_engine, sizeof (spdm_response->random_data),
+		spdm_response->random_data);
 	if (status != 0) {
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
@@ -3665,8 +3689,8 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 
 	/* Generate the shared secret. Also, copy the generated local public key to the response buffer. */
 	ptr = spdm_key_exchange_resp_exchange_data (spdm_response);
-	status = session_manager->generate_shared_secret (session_manager, session,
-		&peer_pub_key_point, ptr);
+	status = session_manager->generate_shared_secret (session_manager, session,	&peer_pub_key_point,
+		ptr);
 	if (status != 0) {
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
@@ -3696,8 +3720,8 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 
 	/* Add the response to the TH session hash context. */
 	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH,
-			(uint8_t*) spdm_response, ((size_t) ptr - (size_t) spdm_response), true,
-			session->session_index);
+		(uint8_t*) spdm_response, ((size_t) ptr - (size_t) spdm_response), true,
+		session->session_index);
 	if (status != 0) {
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
@@ -3731,7 +3755,6 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 	/* Generate the responder verification data. */
 	if ((state->connection_info.peer_capabilities.flags.handshake_in_the_clear_cap == 0) &&
 		(local_capabilities->flags.handshake_in_the_clear_cap == 0)) {
-
 		status = spdm_calculate_th_hmac_for_key_exchange_rsp (transcript_manager, state,
 			spdm_responder->ecc_engine, hash_engine, session, ptr);
 		if (status != 0) {
@@ -3774,6 +3797,7 @@ exit:
 		spdm_generate_error_response (request, state->connection_info.version.minor_version,
 			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_KEY_EXCHANGE, status);
 	}
+
 	return 0;
 }
 
@@ -3848,7 +3872,6 @@ int spdm_finish (const struct cmd_interface_spdm_responder *spdm_responder,
 	/* Confirm that we are in a session.*/
 	if ((local_capabilities->flags.handshake_in_the_clear_cap == 0) &&
 		(state->connection_info.peer_capabilities.flags.handshake_in_the_clear_cap == 0)) {
-
 		if (session_manager->is_last_session_id_valid (session_manager) == false) {
 			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_CONNECTION_STATE;
 			spdm_error = SPDM_ERROR_SESSION_REQUIRED;
@@ -3914,7 +3937,7 @@ int spdm_finish (const struct cmd_interface_spdm_responder *spdm_responder,
 	status = spdm_verify_finish_req_hmac (transcript_manager, spdm_responder->hash_engine[0],
 		session, hmac_ptr, hmac_size);
 	if (status != 0) {
-		if((state->handle_error_return_policy &
+		if ((state->handle_error_return_policy &
 			SPDM_DATA_HANDLE_ERROR_RETURN_POLICY_DROP_ON_DECRYPT_ERROR) == 0) {
 			spdm_error = SPDM_ERROR_DECRYPT_ERROR;
 			goto exit;
@@ -4065,7 +4088,7 @@ int spdm_end_session (const struct cmd_interface_spdm_responder *spdm_responder,
 
 	session->end_session_attributes = spdm_request->end_session_attributes;
 	if ((spdm_request->end_session_attributes.negotiated_state_preservation_indicator ==
-		 SPDM_END_SESSION_REQUEST_ATTRIBUTES_PRESERVE_NEGOTIATED_STATE_CLEAR)) {
+		SPDM_END_SESSION_REQUEST_ATTRIBUTES_PRESERVE_NEGOTIATED_STATE_CLEAR)) {
 		state->connection_info.end_session_attributes.negotiated_state_preservation_indicator =
 			SPDM_END_SESSION_REQUEST_ATTRIBUTES_PRESERVE_NEGOTIATED_STATE_CLEAR;
 	}
@@ -4170,5 +4193,6 @@ int spdm_init_state (struct spdm_state *state)
 	state->response_state = SPDM_RESPONSE_STATE_NORMAL;
 
 exit:
+
 	return status;
 }

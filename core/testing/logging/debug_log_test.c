@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
@@ -321,6 +321,7 @@ static void debug_log_test_read_contents_no_log (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (debug_log);
 
 TEST (debug_log_test_create_entry);
@@ -341,3 +342,4 @@ TEST (debug_log_test_read_contents_no_log);
 TEST (debug_log_testing_suite_tear_down);
 
 TEST_SUITE_END;
+// *INDENT-ON*

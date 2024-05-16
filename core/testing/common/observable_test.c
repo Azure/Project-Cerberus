@@ -831,6 +831,7 @@ static void observable_test_remove_observer_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (observable);
 
 TEST (observable_test_init);
@@ -858,3 +859,4 @@ TEST (observable_test_remove_observer_not_registered);
 TEST (observable_test_remove_observer_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

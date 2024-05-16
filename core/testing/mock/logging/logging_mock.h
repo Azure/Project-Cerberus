@@ -4,16 +4,16 @@
 #ifndef LOGGING_MOCK_H_
 #define LOGGING_MOCK_H_
 
-#include "logging/logging.h"
 #include "mock.h"
+#include "logging/logging.h"
 
 
 /**
  * A mock for a log.
  */
 struct logging_mock {
-	struct logging base;		/**< The base log instance. */
-	struct mock mock;			/**< The base mock instance. */
+	struct logging base;	/**< The base log instance. */
+	struct mock mock;		/**< The base mock instance. */
 };
 
 
@@ -23,4 +23,4 @@ void logging_mock_release (struct logging_mock *mock);
 int logging_mock_validate_and_release (struct logging_mock *mock);
 
 
-#endif /* LOGGING_MOCK_H_ */
+#endif	/* LOGGING_MOCK_H_ */

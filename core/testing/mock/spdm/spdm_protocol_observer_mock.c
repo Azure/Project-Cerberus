@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "cmd_interface/cmd_interface.h"
 #include "spdm_protocol_observer_mock.h"
+#include "cmd_interface/cmd_interface.h"
 
 
 static void spdm_protocol_observer_mock_on_get_version_response (
@@ -60,8 +60,8 @@ static void spdm_protocol_observer_mock_on_get_digests_response (
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, spdm_protocol_observer_mock_on_get_digests_response,
-		observer, MOCK_ARG_PTR_CALL (response));
+	MOCK_VOID_RETURN (&mock->mock, spdm_protocol_observer_mock_on_get_digests_response,	observer,
+		MOCK_ARG_PTR_CALL (response));
 }
 
 static void spdm_protocol_observer_mock_on_get_certificate_response (
@@ -88,8 +88,8 @@ static void spdm_protocol_observer_mock_on_challenge_response (
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, spdm_protocol_observer_mock_on_challenge_response,
-		observer, MOCK_ARG_PTR_CALL (response));
+	MOCK_VOID_RETURN (&mock->mock, spdm_protocol_observer_mock_on_challenge_response, observer,
+		MOCK_ARG_PTR_CALL (response));
 }
 
 static void spdm_protocol_observer_mock_on_get_measurements_response (
@@ -116,8 +116,8 @@ static void spdm_protocol_observer_mock_on_response_not_ready (
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, spdm_protocol_observer_mock_on_response_not_ready,
-		observer, MOCK_ARG_PTR_CALL (response));
+	MOCK_VOID_RETURN (&mock->mock, spdm_protocol_observer_mock_on_response_not_ready, observer,
+		MOCK_ARG_PTR_CALL (response));
 }
 
 static int spdm_protocol_observer_mock_func_arg_count (void *func)
@@ -132,6 +132,7 @@ static int spdm_protocol_observer_mock_func_arg_count (void *func)
 		(func == spdm_protocol_observer_mock_on_response_not_ready)) {
 		return 1;
 	}
+
 	return 0;
 }
 

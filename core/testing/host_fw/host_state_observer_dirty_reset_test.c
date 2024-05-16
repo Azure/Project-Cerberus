@@ -5,8 +5,8 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "host_fw/host_state_observer_dirty_reset.h"
 #include "host_fw/host_state_manager.h"
+#include "host_fw/host_state_observer_dirty_reset.h"
 #include "testing/mock/flash/flash_mock.h"
 #include "testing/mock/host_fw/host_control_mock.h"
 
@@ -219,6 +219,7 @@ static void host_state_observer_dirty_reset_test_on_inactive_dirty_control_error
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_state_observer_dirty_reset);
 
 TEST (host_state_observer_dirty_reset_test_init);
@@ -229,3 +230,4 @@ TEST (host_state_observer_dirty_reset_test_on_inactive_dirty_not_dirty);
 TEST (host_state_observer_dirty_reset_test_on_inactive_dirty_control_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

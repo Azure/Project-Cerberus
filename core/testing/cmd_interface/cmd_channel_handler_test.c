@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include "testing.h"
 #include "platform_api.h"
+#include "testing.h"
 #include "cmd_interface/cmd_channel_handler.h"
 #include "cmd_interface/cmd_channel_handler_static.h"
 #include "crypto/checksum.h"
@@ -32,6 +32,7 @@ struct cmd_channel_handler_testing {
 	struct mctp_interface mctp;								/**< MCTP message handler. */
 	struct cmd_channel_handler test;						/**< Command processor for testing. */
 };
+
 
 /**
  * Initialize testing dependencies.
@@ -166,7 +167,7 @@ static void cmd_channel_handler_test_init_null (CuTest *test)
 	status = cmd_channel_handler_init (&handler.test, &handler.channel.base, NULL);
 	CuAssertIntEquals (test, CMD_CHANNEL_INVALID_ARGUMENT, status);
 
-	cmd_channel_handler_testing_release_dependencies(test, &handler);
+	cmd_channel_handler_testing_release_dependencies (test, &handler);
 }
 
 static void cmd_channel_handler_test_static_init (CuTest *test)
@@ -447,7 +448,7 @@ static void cmd_channel_handler_test_execute (CuTest *test)
 	status |= mock_expect (&handler.req_handler.mock, handler.req_handler.base.base.process_request,
 		&handler.req_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
 	status |= mock_expect_output_deep_copy (&handler.req_handler.mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request);
 
@@ -578,7 +579,7 @@ static void cmd_channel_handler_test_execute_static_init (CuTest *test)
 	status |= mock_expect (&handler.req_handler.mock, handler.req_handler.base.base.process_request,
 		&handler.req_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
 	status |= mock_expect_output_deep_copy (&handler.req_handler.mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request);
 
@@ -594,6 +595,7 @@ static void cmd_channel_handler_test_execute_static_init (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cmd_channel_handler);
 
 TEST (cmd_channel_handler_test_init);
@@ -610,3 +612,4 @@ TEST (cmd_channel_handler_test_execute);
 TEST (cmd_channel_handler_test_execute_static_init);
 
 TEST_SUITE_END;
+// *INDENT-ON*

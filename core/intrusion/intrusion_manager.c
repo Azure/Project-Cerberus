@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "intrusion_manager.h"
 #include "intrusion_logging.h"
+#include "intrusion_manager.h"
 
 
 /**
@@ -17,7 +17,7 @@
  * update.
  * @param msg_index Identifier code for the log entry message. If msg_index is set to -1,
  * the debug log will not be created by the function.
- * 
+ *
  * @return 0 if the measurement was successfully updated or an error code.
  */
 int intrusion_manager_update_measurement (struct intrusion_manager *manager, uint8_t value,
@@ -25,15 +25,15 @@ int intrusion_manager_update_measurement (struct intrusion_manager *manager, uin
 {
 	int status;
 
-	status = pcr_store_update_versioned_buffer (manager->pcr, manager->hash,
-		manager->measurement, &value, sizeof (value), true, INTRUSION_MANAGER_MEASUREMENT_VERSION);
+	status = pcr_store_update_versioned_buffer (manager->pcr, manager->hash, manager->measurement,
+		&value, sizeof (value), true, INTRUSION_MANAGER_MEASUREMENT_VERSION);
 	if ((status == 0) || force_data) {
 		manager->event_data.data.value_1byte = value;
 	}
 
 	if (msg_index != -1) {
 		debug_log_create_entry ((status == 0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_ERROR,
-			DEBUG_LOG_COMPONENT_INTRUSION, msg_index, status, 0);		
+			DEBUG_LOG_COMPONENT_INTRUSION, msg_index, status, 0);
 	}
 
 	return status;
@@ -52,12 +52,13 @@ int intrusion_manager_handle_intrusion (struct intrusion_manager *manager)
 
 	/* On error, the data won't match the measurement, but we want to be sure we aren't falsely
 	 * reporting a healthy state. */
-	pcr_status = intrusion_manager_update_measurement (manager, INTRUSION_MANAGER_INTRUSION,
-		true, INTRUSION_LOGGING_INTRUSION_NOTIFICATION);
+	pcr_status = intrusion_manager_update_measurement (manager, INTRUSION_MANAGER_INTRUSION, true,
+		INTRUSION_LOGGING_INTRUSION_NOTIFICATION);
 
 	state_status = manager->state->set (manager->state);
 
 	platform_mutex_unlock (&manager->lock);
+
 	return (pcr_status == 0) ? state_status : pcr_status;
 }
 
@@ -78,6 +79,7 @@ static int intrusion_manager_reset_intrusion (struct intrusion_manager *manager)
 	}
 
 	platform_mutex_unlock (&manager->lock);
+
 	return status;
 }
 
@@ -142,6 +144,7 @@ int intrusion_manager_update_intrusion_state (struct intrusion_manager *manager,
 
 exit:
 	platform_mutex_unlock (&manager->lock);
+
 	return (check_status == 0) ? pcr_status : check_status;
 }
 
@@ -162,7 +165,7 @@ static int intrusion_manager_check_state (struct intrusion_manager *manager)
  * @return 0 if the intrusion manager was successfully initialized or an error code.
  */
 int intrusion_manager_init (struct intrusion_manager *manager, struct intrusion_state *state,
-    struct hash_engine *hash, struct pcr_store *pcr, uint16_t measurement)
+	struct hash_engine *hash, struct pcr_store *pcr, uint16_t measurement)
 {
 	int status;
 
@@ -204,6 +207,7 @@ unregister:
 	pcr_store_set_measurement_data (pcr, measurement, NULL);
 error:
 	platform_mutex_free (&manager->lock);
+
 	return status;
 }
 

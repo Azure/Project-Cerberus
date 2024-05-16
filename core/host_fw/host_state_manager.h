@@ -4,11 +4,11 @@
 #ifndef HOST_STATE_MANAGER_H_
 #define HOST_STATE_MANAGER_H_
 
-#include <stdint.h>
 #include <stdbool.h>
-#include "state_manager/state_manager.h"
+#include <stdint.h>
 #include "common/observable.h"
 #include "spi_filter/spi_filter_interface.h"
+#include "state_manager/state_manager.h"
 
 
 struct host_state_observer;
@@ -40,14 +40,16 @@ bool host_state_manager_is_inactive_dirty (struct host_state_manager *manager);
  * Definitions to indicate which region of flash holds the active recovery image.
  */
 enum recovery_image_region {
-	RECOVERY_IMAGE_REGION_1,			/**< The primary recovery image region contains the active image. */
-	RECOVERY_IMAGE_REGION_2,			/**< The secondary recovery image region contains the active image. */
+	RECOVERY_IMAGE_REGION_1,	/**< The primary recovery image region contains the active image. */
+	RECOVERY_IMAGE_REGION_2,	/**< The secondary recovery image region contains the active image. */
 };
+
 
 int host_state_manager_save_active_recovery_image (struct host_state_manager *manager,
 	enum recovery_image_region active);
 enum recovery_image_region host_state_manager_get_active_recovery_image (
 	struct host_state_manager *manager);
+
 
 /* Volatile state */
 
@@ -63,10 +65,12 @@ enum host_state_prevalidated {
 	HOST_STATE_PREVALIDATED_FLASH_AND_PFM = 6,	/**< The R/W flash has been validated against the pending PFM. */
 };
 
+
 void host_state_manager_set_run_time_validation (struct host_state_manager *manager,
 	enum host_state_prevalidated state);
 enum host_state_prevalidated host_state_manager_get_run_time_validation (
 	struct host_state_manager *manager);
+
 
 void host_state_manager_set_bypass_mode (struct host_state_manager *manager, bool bypass);
 bool host_state_manager_is_bypass_mode (struct host_state_manager *manager);
@@ -76,4 +80,4 @@ void host_state_manager_set_unsupported_flash (struct host_state_manager *manage
 bool host_state_manager_is_flash_supported (struct host_state_manager *manager);
 
 
-#endif /* HOST_STATE_MANAGER_H_ */
+#endif	/* HOST_STATE_MANAGER_H_ */

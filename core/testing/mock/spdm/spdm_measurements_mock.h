@@ -4,16 +4,16 @@
 #ifndef SPDM_MEASUREMENTS_MOCK_H_
 #define SPDM_MEASUREMENTS_MOCK_H_
 
-#include "spdm/spdm_measurements.h"
 #include "mock.h"
+#include "spdm/spdm_measurements.h"
 
 
 /**
  * A mock for handling SPDM measurements.
  */
 struct spdm_measurements_mock {
-	struct spdm_measurements base;		/**< The base SPDM measurement handler instance. */
-	struct mock mock;					/**< The base mock interface. */
+	struct spdm_measurements base;	/**< The base SPDM measurement handler instance. */
+	struct mock mock;				/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void spdm_measurements_mock_release (struct spdm_measurements_mock *mock);
 int spdm_measurements_mock_validate_and_release (struct spdm_measurements_mock *mock);
 
 
-#endif /* SPDM_MEASUREMENTS_MOCK_H_ */
+#endif	/* SPDM_MEASUREMENTS_MOCK_H_ */

@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "cfm_mock.h"
 
@@ -113,8 +113,8 @@ static int cfm_mock_get_component_pmr_digest (struct cfm *cfm, uint32_t componen
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cfm_mock_get_component_pmr_digest, cfm,
-		MOCK_ARG_CALL (component_id), MOCK_ARG_CALL (pmr_id), MOCK_ARG_PTR_CALL (pmr_digest));
+	MOCK_RETURN (&mock->mock, cfm_mock_get_component_pmr_digest, cfm, MOCK_ARG_CALL (component_id),
+		MOCK_ARG_CALL (pmr_id), MOCK_ARG_PTR_CALL (pmr_digest));
 }
 
 static void cfm_mock_free_component_pmr_digest (struct cfm *cfm, struct cfm_pmr_digest *pmr_digest)

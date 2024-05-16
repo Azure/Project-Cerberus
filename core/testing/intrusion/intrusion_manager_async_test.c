@@ -5,16 +5,16 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "intrusion/intrusion_manager_async.h"
-#include "intrusion/intrusion_logging.h"
 #include "attestation/pcr_store.h"
 #include "common/array_size.h"
-#include "testing/mock/crypto/hash_mock.h"
-#include "testing/mock/intrusion/intrusion_state_mock.h"
-#include "testing/mock/logging/logging_mock.h"
+#include "intrusion/intrusion_logging.h"
+#include "intrusion/intrusion_manager_async.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/intrusion/intrusion_manager_testing.h"
 #include "testing/logging/debug_log_testing.h"
+#include "testing/mock/crypto/hash_mock.h"
+#include "testing/mock/intrusion/intrusion_state_mock.h"
+#include "testing/mock/logging/logging_mock.h"
 
 
 TEST_SUITE_LABEL ("intrusion_manager_async");
@@ -305,12 +305,12 @@ static void intrusion_manager_async_test_init_null (CuTest *test)
 		&manager.store, manager.pcr_id);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_INVALID_ARGUMENT, status);
 
-	status = intrusion_manager_async_init (&manager.test, NULL, &manager.hash.base,
-		&manager.store, manager.pcr_id);
+	status = intrusion_manager_async_init (&manager.test, NULL, &manager.hash.base,	&manager.store,
+		manager.pcr_id);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_INVALID_ARGUMENT, status);
 
-	status = intrusion_manager_async_init (&manager.test, &manager.state.base, NULL,
-		&manager.store, manager.pcr_id);
+	status = intrusion_manager_async_init (&manager.test, &manager.state.base, NULL, &manager.store,
+		manager.pcr_id);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_INVALID_ARGUMENT, status);
 
 	status = intrusion_manager_async_init (&manager.test, &manager.state.base, &manager.hash.base,
@@ -1249,6 +1249,7 @@ static void intrusion_manager_async_test_on_error_hash_error (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (intrusion_manager_async);
 
 TEST (intrusion_manager_async_test_init);
@@ -1276,3 +1277,4 @@ TEST (intrusion_manager_async_test_on_error);
 TEST (intrusion_manager_async_test_on_error_hash_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

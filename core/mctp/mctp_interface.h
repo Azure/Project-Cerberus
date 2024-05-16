@@ -4,8 +4,8 @@
 #ifndef MCTP_INTERFACE_H_
 #define MCTP_INTERFACE_H_
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "mctp_base_protocol.h"
 #include "platform_api.h"
 #include "cmd_interface/cmd_channel.h"
@@ -18,11 +18,11 @@
  * MCTP interface state for transactions started by device
  */
 enum mctp_interface_response_state {
-	MCTP_INTERFACE_RESPONSE_IDLE,			/**< No active transaction started by device. */
-	MCTP_INTERFACE_RESPONSE_WAITING,		/**< Request sent, waiting for a response. */
-	MCTP_INTERFACE_RESPONSE_PENDING,		/**< Request sent, not waiting for a response. */
-	MCTP_INTERFACE_RESPONSE_TOO_BIG,		/**< Received response was too large for the buffer. */
-	MCTP_INTERFACE_RESPONSE_SUCCESS,		/**< Successfully received response from the target. */
+	MCTP_INTERFACE_RESPONSE_IDLE,				/**< No active transaction started by device. */
+	MCTP_INTERFACE_RESPONSE_WAITING,			/**< Request sent, waiting for a response. */
+	MCTP_INTERFACE_RESPONSE_PENDING,			/**< Request sent, not waiting for a response. */
+	MCTP_INTERFACE_RESPONSE_TOO_BIG,			/**< Received response was too large for the buffer. */
+	MCTP_INTERFACE_RESPONSE_SUCCESS,			/**< Successfully received response from the target. */
 	MCTP_INTERFACE_RESPONSE_WAITING_DEPRECATED,	/**< Using the deprecated workflow to wait for a response. */
 	MCTP_INTERFACE_RESPONSE_ERROR_DEPRECATED,	/**< Deprecated indication of an error response. */
 	MCTP_INTERFACE_RESPONSE_FAIL_DEPRECATED,	/**< Deprecated indication of a response processing failure. */
@@ -97,4 +97,4 @@ int mctp_interface_send_discovery_notify (const struct mctp_interface *mctp, uin
 #endif
 
 
-#endif /* MCTP_INTERFACE_H_ */
+#endif	/* MCTP_INTERFACE_H_ */

@@ -4,14 +4,14 @@
 #ifndef RECOVERY_IMAGE_H_
 #define RECOVERY_IMAGE_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "status/rot_status.h"
+#include <stdint.h>
 #include "crypto/hash.h"
 #include "crypto/signature_verification.h"
 #include "flash/flash.h"
-#include "manifest/pfm/pfm_manager.h"
 #include "flash/spi_flash.h"
+#include "manifest/pfm/pfm_manager.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -70,11 +70,12 @@ struct recovery_image {
 	 */
 	int (*apply_to_flash) (struct recovery_image *image, const struct spi_flash *flash);
 
-	const struct flash *flash;						/**< The flash device that contains the recovery image. */
- 	uint32_t addr;									/**< The starting address in flash of the recovery image. */
-	uint8_t hash_cache[SHA256_HASH_LENGTH];			/**< Cache for the recovery image hash. */
-	bool cache_valid;								/**< Flag indicating if the cached hash is valid. */
+	const struct flash *flash;				/**< The flash device that contains the recovery image. */
+	uint32_t addr;							/**< The starting address in flash of the recovery image. */
+	uint8_t hash_cache[SHA256_HASH_LENGTH];	/**< Cache for the recovery image hash. */
+	bool cache_valid;						/**< Flag indicating if the cached hash is valid. */
 };
+
 
 int recovery_image_init (struct recovery_image *image, const struct flash *flash,
 	uint32_t base_addr);
@@ -99,4 +100,4 @@ enum {
 };
 
 
-#endif /* RECOVERY_IMAGE_H_ */
+#endif	/* RECOVERY_IMAGE_H_ */

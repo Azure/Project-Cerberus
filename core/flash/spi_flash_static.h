@@ -70,4 +70,4 @@ int spi_flash_chip_erase_read_only (const struct flash *flash);
 	}
 
 
-#endif /* SPI_FLASH_STATIC_H_ */
+#endif	/* SPI_FLASH_STATIC_H_ */

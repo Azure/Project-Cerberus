@@ -39,4 +39,4 @@ int manifest_cmd_handler_pfm_activation (const struct manifest_cmd_handler *hand
 	}
 
 
-#endif /* MANIFEST_CMD_HANDLER_PFM_STATIC_H_ */
+#endif	/* MANIFEST_CMD_HANDLER_PFM_STATIC_H_ */

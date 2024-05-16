@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
+
 #ifndef SECURITY_MANAGER_NO_UNLOCK_STATIC_H_
 #define SECURITY_MANAGER_NO_UNLOCK_STATIC_H_
 
@@ -45,4 +46,4 @@ int security_manager_no_unlock_get_security_policy (const struct security_manage
 	}
 
 
-#endif /* SECURITY_MANAGER_NO_UNLOCK_STATIC_H_ */
+#endif	/* SECURITY_MANAGER_NO_UNLOCK_STATIC_H_ */

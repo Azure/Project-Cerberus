@@ -4,8 +4,8 @@
 #ifndef AES_TESTING_H_
 #define AES_TESTING_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 
 /* Test data for AES-GCM operations. */
@@ -59,4 +59,4 @@ extern const uint8_t AES_TESTING_CBC_LONG_DATA_CIPHERTEXT[];
 extern const size_t AES_TESTING_CBC_LONG_DATA_LEN;
 
 
-#endif /* AES_TESTING_H_ */
+#endif	/* AES_TESTING_H_ */

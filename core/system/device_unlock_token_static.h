@@ -35,4 +35,4 @@
 	}
 
 
-#endif /* DEVICE_UNLOCK_TOKEN_STATIC_H_ */
+#endif	/* DEVICE_UNLOCK_TOKEN_STATIC_H_ */

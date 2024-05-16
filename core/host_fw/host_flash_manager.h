@@ -5,16 +5,16 @@
 #define HOST_FLASH_MANAGER_H_
 
 #include <stdbool.h>
-#include "status/rot_status.h"
 #include "host_control.h"
 #include "host_flash_initialization.h"
-#include "flash/spi_flash.h"
-#include "spi_filter/spi_filter_interface.h"
-#include "spi_filter/flash_mfg_filter_handler.h"
-#include "manifest/pfm/pfm.h"
-#include "manifest/pfm/pfm_manager.h"
 #include "crypto/hash.h"
 #include "crypto/rsa.h"
+#include "flash/spi_flash.h"
+#include "manifest/pfm/pfm.h"
+#include "manifest/pfm/pfm_manager.h"
+#include "spi_filter/flash_mfg_filter_handler.h"
+#include "spi_filter/spi_filter_interface.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -30,9 +30,9 @@ struct host_flash_manager_rw_regions {
  * Container for the list of images to authenticate for the current firmware on flash.
  */
 struct host_flash_manager_images {
-	struct pfm *pfm;							/**< PFM instance providing the image list. */
-	struct pfm_image_list *fw_images;			/**< List of firmware images from PFM entries. */
-	size_t count;								/**< The number of PFM entries in the list. */
+	struct pfm *pfm;					/**< PFM instance providing the image list. */
+	struct pfm_image_list *fw_images;	/**< List of firmware images from PFM entries. */
+	size_t count;						/**< The number of PFM entries in the list. */
 };
 
 /**
@@ -234,8 +234,8 @@ struct host_flash_manager {
 
 
 /* Internal functions for use by derived types. */
-int host_flash_manager_get_image_entry (struct pfm *pfm, const struct spi_flash *flash, uint32_t offset,
-	const char *fw_id, struct pfm_firmware_versions *versions,
+int host_flash_manager_get_image_entry (struct pfm *pfm, const struct spi_flash *flash,
+	uint32_t offset, const char *fw_id, struct pfm_firmware_versions *versions,
 	const struct pfm_firmware_version **version, struct pfm_image_list *fw_images,
 	struct pfm_read_write_regions *writable);
 int host_flash_manager_get_firmware_types (struct pfm *pfm, struct pfm_firmware *host_fw,
@@ -302,4 +302,4 @@ enum {
 };
 
 
-#endif /* HOST_FLASH_MANAGER_H_ */
+#endif	/* HOST_FLASH_MANAGER_H_ */

@@ -1,16 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
 #include "spi_filter/spi_filter_logging.h"
+#include "testing/logging/debug_log_testing.h"
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/spi_filter/spi_filter_interface_mock.h"
-#include "testing/logging/debug_log_testing.h"
 
 
 TEST_SUITE_LABEL ("spi_filter");
@@ -2199,6 +2199,7 @@ static void spi_filter_test_log_filter_config_single_flash_cs1 (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (spi_filter);
 
 TEST (spi_filter_test_log_configuration_port0);
@@ -2221,3 +2222,4 @@ TEST (spi_filter_test_log_filter_config_single_flash_cs1);
 TEST (spi_filter_testing_suite_tear_down);
 
 TEST_SUITE_END;
+// *INDENT-ON*

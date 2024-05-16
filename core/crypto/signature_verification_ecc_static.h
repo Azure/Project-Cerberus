@@ -41,4 +41,4 @@ int signature_verification_ecc_is_key_valid (const struct signature_verification
 	}
 
 
-#endif /* SIGNATURE_VERIFICATION_ECC_STATIC_H_ */
+#endif	/* SIGNATURE_VERIFICATION_ECC_STATIC_H_ */

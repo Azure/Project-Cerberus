@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <string.h>
-#include "mctp/mctp_base_protocol.h"
 #include "cerberus_protocol.h"
 #include "cmd_interface.h"
+#include "mctp/mctp_base_protocol.h"
 
 
 /**
@@ -70,8 +70,7 @@ void cmd_interface_msg_add_payload_data (struct cmd_interface_msg *message, cons
  * @param message The message to update.
  * @param length Length of the message.
  */
-void cmd_interface_msg_set_message_payload_length (struct cmd_interface_msg *message,
-	size_t length)
+void cmd_interface_msg_set_message_payload_length (struct cmd_interface_msg *message, size_t length)
 {
 	if (message != NULL) {
 		message->length = length;
@@ -110,8 +109,7 @@ void cmd_interface_msg_remove_protocol_header (struct cmd_interface_msg *message
  * @param message The message to update.
  * @param header_length Size of the protocol header.
  */
-void cmd_interface_msg_add_protocol_header (struct cmd_interface_msg *message,
-	size_t header_length)
+void cmd_interface_msg_add_protocol_header (struct cmd_interface_msg *message, size_t header_length)
 {
 	size_t hdr_space;
 
@@ -129,7 +127,6 @@ void cmd_interface_msg_add_protocol_header (struct cmd_interface_msg *message,
 			message->length += header_length;
 		}
 		message->payload_length += header_length;
-
 	}
 }
 
@@ -294,6 +291,7 @@ int cmd_interface_process_cerberus_protocol_message (const struct cmd_interface 
 #ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 		if (intf->session) {
 			int status = intf->session->decrypt_message (intf->session, message);
+
 			if (status != 0) {
 				return status;
 			}
@@ -395,6 +393,7 @@ int cmd_interface_generate_error_packet (const struct cmd_interface *intf,
 #ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 	if (request->is_encrypted) {
 		int status = intf->session->encrypt_message (intf->session, request);
+
 		if (status != 0) {
 			return status;
 		}

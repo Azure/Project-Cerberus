@@ -15540,6 +15540,7 @@ static void mctp_interface_test_issue_request_spdm_then_process_packet_response_
 #endif
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (mctp_interface);
 
 TEST (mctp_interface_test_init);
@@ -15704,3 +15705,4 @@ TEST (mctp_interface_test_issue_request_spdm_then_process_packet_response_spdm_u
 #endif
 
 TEST_SUITE_END;
+// *INDENT-ON*

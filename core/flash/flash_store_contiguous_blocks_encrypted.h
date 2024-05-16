@@ -19,6 +19,7 @@ struct flash_store_contiguous_blocks_encrypted {
 	struct rng_engine *rng;						/**< Random number generator for encryption IVs. */
 };
 
+
 int flash_store_contiguous_blocks_encrypted_init_fixed_storage (
 	struct flash_store_contiguous_blocks_encrypted *store,
 	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,
@@ -49,4 +50,4 @@ void flash_store_contiguous_blocks_encrypted_release (
 	const struct flash_store_contiguous_blocks_encrypted *store);
 
 
-#endif /* FLASH_STORE_CONTIGUOUS_BLOCKS_ENCRYPTED_H_ */
+#endif	/* FLASH_STORE_CONTIGUOUS_BLOCKS_ENCRYPTED_H_ */

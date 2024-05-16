@@ -4,18 +4,18 @@
 #ifndef ATTESTATION_RESPONDER_H_
 #define ATTESTATION_RESPONDER_H_
 
-#include <stdint.h>
 #include <stdbool.h>
-#include "status/rot_status.h"
+#include <stdint.h>
+#include "attestation.h"
+#include "aux_attestation.h"
+#include "pcr_store.h"
 #include "platform_api.h"
+#include "common/certificate.h"
 #include "crypto/ecc.h"
 #include "crypto/hash.h"
 #include "crypto/rng.h"
-#include "common/certificate.h"
 #include "riot/riot_key_manager.h"
-#include "pcr_store.h"
-#include "aux_attestation.h"
-#include "attestation.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -152,4 +152,4 @@ int attestation_responder_init_no_aux (struct attestation_responder *attestation
 void attestation_responder_release (struct attestation_responder *attestation);
 
 
-#endif /* ATTESTATION_RESPONDER_H_ */
+#endif	/* ATTESTATION_RESPONDER_H_ */

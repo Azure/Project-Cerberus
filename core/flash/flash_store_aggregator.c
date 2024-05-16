@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
 #include <limits.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+#include "flash_store_aggregator.h"
 #include "common/common_math.h"
 #include "common/unused.h"
-#include "flash_store_aggregator.h"
 
 
 /**
@@ -36,7 +36,7 @@ static int flash_store_aggregator_get_flash_store_and_block_index (
 		}
 
 		num_blocks = flash_store_array[iterator]->get_num_blocks (flash_store_array[iterator]);
-		if (ROT_IS_ERROR(num_blocks)) {
+		if (ROT_IS_ERROR (num_blocks)) {
 			status = num_blocks;
 			break;
 		}
@@ -77,6 +77,7 @@ int flash_store_aggregtor_write (const struct flash_store *flash_store, int id, 
 	}
 
 	status = flash->write (flash, index, data, length);
+
 	return status;
 }
 
@@ -100,6 +101,7 @@ int flash_store_aggregtor_read (const struct flash_store *flash_store, int id, u
 	}
 
 	status = flash->read (flash, index, data, length);
+
 	return status;
 }
 
@@ -122,6 +124,7 @@ int flash_store_aggregtor_erase (const struct flash_store *flash_store, int id)
 	}
 
 	status = flash->erase (flash, index);
+
 	return status;
 }
 
@@ -137,9 +140,10 @@ int flash_store_aggregtor_erase_all (const struct flash_store *flash_store)
 	}
 
 	for (loop = 0; loop < flash_aggregator->flash_store_cnt; loop++) {
-		status = flash_aggregator->flash_store_array[loop]->erase_all (
+		status =
+			flash_aggregator->flash_store_array[loop]->erase_all (
 			flash_aggregator->flash_store_array[loop]);
-		if (ROT_IS_ERROR(status)) {
+		if (ROT_IS_ERROR (status)) {
 			break;
 		}
 	}
@@ -166,6 +170,7 @@ int flash_store_aggregtor_get_data_length (const struct flash_store *flash_store
 	}
 
 	status = flash->get_data_length (flash, index);
+
 	return status;
 }
 
@@ -188,6 +193,7 @@ int flash_store_aggregtor_has_data_stored (const struct flash_store *flash_store
 	}
 
 	status = flash->has_data_stored (flash, index);
+
 	return status;
 }
 
@@ -204,7 +210,8 @@ int flash_store_aggregtor_get_max_data_length (const struct flash_store *flash_s
 	}
 
 	for (loop = 0; loop < flash_aggregator->flash_store_cnt; loop++) {
-		status = flash_aggregator->flash_store_array[loop]->get_max_data_length (
+		status =
+			flash_aggregator->flash_store_array[loop]->get_max_data_length (
 			flash_aggregator->flash_store_array[loop]);
 		if (ROT_IS_ERROR (status)) {
 			return status;
@@ -229,7 +236,8 @@ int flash_store_aggregtor_get_flash_size (const struct flash_store *flash_store)
 	}
 
 	for (loop = 0; loop < flash_aggregator->flash_store_cnt; loop++) {
-		status = flash_aggregator->flash_store_array[loop]->get_flash_size (
+		status =
+			flash_aggregator->flash_store_array[loop]->get_flash_size (
 			flash_aggregator->flash_store_array[loop]);
 		if (ROT_IS_ERROR (status)) {
 			return status;
@@ -254,7 +262,8 @@ int flash_store_aggregtor_get_num_blocks (const struct flash_store *flash_store)
 	}
 
 	for (loop = 0; loop < flash_aggregator->flash_store_cnt; loop++) {
-		status = flash_aggregator->flash_store_array[loop]->get_num_blocks (
+		status =
+			flash_aggregator->flash_store_array[loop]->get_num_blocks (
 			flash_aggregator->flash_store_array[loop]);
 		if (ROT_IS_ERROR (status)) {
 			return status;

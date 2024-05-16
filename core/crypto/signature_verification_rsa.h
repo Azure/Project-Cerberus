@@ -12,7 +12,7 @@
  * Variable context for verifying RSA signatures.
  */
 struct signature_verification_rsa_state {
-	const struct rsa_public_key *key;		/**< Public key for signature verification. */
+	const struct rsa_public_key *key;	/**< Public key for signature verification. */
 };
 
 /**
@@ -35,4 +35,4 @@ int signature_verification_rsa_init_state (const struct signature_verification_r
 void signature_verification_rsa_release (const struct signature_verification_rsa *verification);
 
 
-#endif /* SIGNATURE_VERIFICATION_RSA_H_ */
+#endif	/* SIGNATURE_VERIFICATION_RSA_H_ */

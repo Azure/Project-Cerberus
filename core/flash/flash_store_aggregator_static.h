@@ -8,10 +8,10 @@
 
 
 /* Internal functions declared to allow for static initialization. */
-int flash_store_aggregtor_write (const struct flash_store *flash_store, int id,
-	const uint8_t *data, size_t length);
-int flash_store_aggregtor_read (const struct flash_store *flash_store, int id,
-	uint8_t *data, size_t length);
+int flash_store_aggregtor_write (const struct flash_store *flash_store, int id,	const uint8_t *data,
+	size_t length);
+int flash_store_aggregtor_read (const struct flash_store *flash_store, int id, uint8_t *data,
+	size_t length);
 int flash_store_aggregtor_erase (const struct flash_store *flash_store, int id);
 int flash_store_aggregtor_erase_all (const struct flash_store *flash_store);
 int flash_store_aggregtor_get_data_length (const struct flash_store *flash_store, int id);
@@ -52,4 +52,4 @@ int flash_store_aggregtor_get_num_blocks (const struct flash_store *flash_store)
 	}
 
 
-#endif /* FLASH_STORE_AGGREGATOR_STATIC_H_*/
+#endif	/* FLASH_STORE_AGGREGATOR_STATIC_H_*/

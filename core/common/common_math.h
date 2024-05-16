@@ -18,7 +18,7 @@
 /**
  * Reverse the byte order for a 32-bit integer.
  */
-#define	SWAP_BYTES_UINT32(x)	\
+#define	SWAP_BYTES_UINT32(x)    \
 	((((x) >> 24) & 0xff) | (((x) >> 8) & 0xff00) | (((x) & 0xff00) << 8) | (((x) & 0xff) << 24))
 
 /**
@@ -59,4 +59,4 @@ enum {
 };
 
 
-#endif //COMMON_MATH_H_
+#endif	//COMMON_MATH_H_

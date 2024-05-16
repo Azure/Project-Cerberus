@@ -7,8 +7,8 @@
 #include <stdint.h>
 #include "pfm.h"
 #include "pfm_format.h"
-#include "manifest/manifest_flash.h"
 #include "flash/flash.h"
+#include "manifest/manifest_flash.h"
 
 
 /**
@@ -28,4 +28,4 @@ int pfm_flash_init (struct pfm_flash *pfm, const struct flash *flash, struct has
 void pfm_flash_release (struct pfm_flash *pfm);
 
 
-#endif //PFM_FLASH_H
+#endif	//PFM_FLASH_H

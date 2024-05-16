@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "host_processor_single.h"
 #include "common/unused.h"
@@ -126,7 +126,7 @@ static int host_processor_single_full_read_write_flash (struct host_processor_fi
  * @param recovery The manager for recovery of the host processor.
  * @param reset_pulse The length of the reset pulse to apply to the processor, in milliseconds.  Set
  * this to 0 to hold the processor instead of using a pulse.
- * @param reset_flash The flag to indicate that host flash should be reset based on every 
+ * @param reset_flash The flag to indicate that host flash should be reset based on every
  * host processor reset.
  *
  * @return 0 if the host processor interface was successfully initialized or an error code.
@@ -153,7 +153,8 @@ int host_processor_single_init_internal (struct host_processor_filtered *host,
 	host->base.soft_reset = host_processor_single_soft_reset;
 	host->base.run_time_verification = host_processor_single_run_time_verification;
 	host->base.flash_rollback = host_processor_single_flash_rollback;
-	host->base.recover_active_read_write_data = host_processor_single_recover_active_read_write_data;
+	host->base.recover_active_read_write_data =
+		host_processor_single_recover_active_read_write_data;
 	host->base.get_next_reset_verification_actions =
 		host_processor_filtered_get_next_reset_verification_actions;
 	host->base.needs_config_recovery = host_processor_filtered_needs_config_recovery;
@@ -237,8 +238,8 @@ int host_processor_single_init_reset_flash (struct host_processor_filtered *host
 	struct host_state_manager *state, const struct spi_filter_interface *filter,
 	struct pfm_manager *pfm, struct recovery_image_manager *recovery)
 {
-	return host_processor_single_init_internal (host, control, flash, state, filter, pfm,
-		recovery, 0, true);
+	return host_processor_single_init_internal (host, control, flash, state, filter, pfm, recovery,
+		0, true);
 }
 
 /**
@@ -246,7 +247,7 @@ int host_processor_single_init_reset_flash (struct host_processor_filtered *host
  *
  * While host flash is being accessed, the host processor will not be held in reset.  After the host
  * flash accesses have been completed, the host processor reset will be pulsed.
- * 
+ *
  * Host flash will reset on host resets.
  *
  * @param host The host processor instance to initialize.
@@ -269,8 +270,8 @@ int host_processor_single_init_reset_flash_pulse_reset (struct host_processor_fi
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
 	}
 
-	return host_processor_single_init_internal (host, control, flash, state, filter, pfm,
-		recovery, pulse_width, true);
+	return host_processor_single_init_internal (host, control, flash, state, filter, pfm, recovery,
+		pulse_width, true);
 }
 
 /**

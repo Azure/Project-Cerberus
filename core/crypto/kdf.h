@@ -4,8 +4,8 @@
 #ifndef KDF_H_
 #define KDF_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "hash.h"
 #include "status/rot_status.h"
 
@@ -42,4 +42,4 @@ enum {
 };
 
 
-#endif /* KDF_H_ */
+#endif	/* KDF_H_ */

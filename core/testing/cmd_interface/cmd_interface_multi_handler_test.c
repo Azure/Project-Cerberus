@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
 #include "cmd_interface/cmd_interface.h"
@@ -131,12 +131,10 @@ static void cmd_interface_multi_handler_test_msg_type_init_null (CuTest *test)
 
 	TEST_START;
 
-	status = cmd_interface_multi_handler_msg_type_init (NULL, 0x1234,
-		&cmd.msg_handler[0].base);
+	status = cmd_interface_multi_handler_msg_type_init (NULL, 0x1234, &cmd.msg_handler[0].base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	status = cmd_interface_multi_handler_msg_type_init (&cmd.msg_type[0], 0x1234,
-		NULL);
+	status = cmd_interface_multi_handler_msg_type_init (&cmd.msg_type[0], 0x1234, NULL);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 }
 
@@ -282,23 +280,22 @@ static void cmd_interface_multi_handler_test_process_request_no_protocol_header 
 
 	status = mock_expect (&cmd.protocol.mock, cmd.protocol.base.parse_message, &cmd.protocol, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request),
-		MOCK_ARG_NOT_NULL);
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cmd.protocol.mock, 1, &message_type, sizeof (message_type), -1);
 
 	status |= mock_expect (&cmd.msg_handler[0].mock, cmd.msg_handler[0].base.process_request,
 		&cmd.msg_handler[0], 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cmd.msg_handler[0].mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&cmd.protocol.mock, cmd.protocol.base.handle_request_result,
 		&cmd.protocol, 0, MOCK_ARG (0), MOCK_ARG (message_type),
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -379,24 +376,23 @@ static void cmd_interface_multi_handler_test_process_request_with_protocol_heade
 	/* Get the message type, no payload offset. */
 	status = mock_expect (&cmd.protocol.mock, cmd.protocol.base.parse_message, &cmd.protocol, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request),
-		MOCK_ARG_NOT_NULL);
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cmd.protocol.mock, 1, &message_type, sizeof (message_type), -1);
 
 	/* Return the request with a protocol header offset. */
 	request.payload = &data[protocol_header];
 	request.payload_length = sizeof (data) - protocol_header;
-	status |= mock_expect_output_deep_copy_tmp (&cmd.protocol.mock, 0, &request,
-		sizeof (request), cmd_interface_mock_copy_request, cmd_interface_mock_duplicate_request,
+	status |= mock_expect_output_deep_copy_tmp (&cmd.protocol.mock, 0, &request, sizeof (request),
+		cmd_interface_mock_copy_request, cmd_interface_mock_duplicate_request,
 		cmd_interface_mock_free_request);
 
 	/* Process the request and generate a response with a protocol header offset. */
 	status |= mock_expect (&cmd.msg_handler[0].mock, cmd.msg_handler[0].base.process_request,
 		&cmd.msg_handler[0], 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy_tmp (&cmd.msg_handler[0].mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request, cmd_interface_mock_duplicate_request,
 		cmd_interface_mock_free_request);
@@ -405,8 +401,8 @@ static void cmd_interface_multi_handler_test_process_request_with_protocol_heade
 	status |= mock_expect (&cmd.protocol.mock, cmd.protocol.base.handle_request_result,
 		&cmd.protocol, 0, MOCK_ARG (0), MOCK_ARG (message_type),
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	/* Return the response with no protocol header offset. */
 	response.data = response_data;
@@ -497,23 +493,22 @@ static void cmd_interface_multi_handler_test_process_request_last_message_type (
 
 	status = mock_expect (&cmd.protocol.mock, cmd.protocol.base.parse_message, &cmd.protocol, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request),
-		MOCK_ARG_NOT_NULL);
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cmd.protocol.mock, 1, &message_type, sizeof (message_type), -1);
 
 	status |= mock_expect (&cmd.msg_handler[2].mock, cmd.msg_handler[2].base.process_request,
 		&cmd.msg_handler[2], 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cmd.msg_handler[2].mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&cmd.protocol.mock, cmd.protocol.base.handle_request_result,
 		&cmd.protocol, 0, MOCK_ARG (0), MOCK_ARG (message_type),
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -594,23 +589,22 @@ static void cmd_interface_multi_handler_test_process_request_encrypt_flag_set (C
 
 	status = mock_expect (&cmd.protocol.mock, cmd.protocol.base.parse_message, &cmd.protocol, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request),
-		MOCK_ARG_NOT_NULL);
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cmd.protocol.mock, 1, &message_type, sizeof (message_type), -1);
 
 	status |= mock_expect (&cmd.msg_handler[1].mock, cmd.msg_handler[1].base.process_request,
 		&cmd.msg_handler[1], 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cmd.msg_handler[1].mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&cmd.protocol.mock, cmd.protocol.base.handle_request_result,
 		&cmd.protocol, 0, MOCK_ARG (0), MOCK_ARG (message_type),
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -692,16 +686,15 @@ static void cmd_interface_multi_handler_test_process_request_no_response_handlin
 
 	status = mock_expect (&cmd.protocol.mock, cmd.protocol.base.parse_message, &cmd.protocol, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request),
-		MOCK_ARG_NOT_NULL);
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cmd.protocol.mock, 1, &message_type, sizeof (message_type), -1);
 
 	status |= mock_expect (&cmd.msg_handler[0].mock, cmd.msg_handler[0].base.process_request,
 		&cmd.msg_handler[0], 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cmd.msg_handler[0].mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request);
 
@@ -791,23 +784,22 @@ static void cmd_interface_multi_handler_test_process_request_static_init (CuTest
 
 	status = mock_expect (&cmd.protocol.mock, cmd.protocol.base.parse_message, &cmd.protocol, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request),
-		MOCK_ARG_NOT_NULL);
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cmd.protocol.mock, 1, &message_type, sizeof (message_type), -1);
 
 	status |= mock_expect (&cmd.msg_handler[2].mock, cmd.msg_handler[2].base.process_request,
 		&cmd.msg_handler[2], 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cmd.msg_handler[2].mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&cmd.protocol.mock, cmd.protocol.base.handle_request_result,
 		&cmd.protocol, 0, MOCK_ARG (0), MOCK_ARG (message_type),
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -884,9 +876,8 @@ static void cmd_interface_multi_handler_test_process_request_message_type_failed
 	status = mock_expect (&cmd.protocol.mock, cmd.protocol.base.parse_message, &cmd.protocol,
 		CMD_HANDLER_PROTO_PARSE_FAILED,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request),
-		MOCK_ARG_NOT_NULL);
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -951,9 +942,8 @@ static void cmd_interface_multi_handler_test_process_request_message_type_error_
 	status = mock_expect (&cmd.protocol.mock, cmd.protocol.base.parse_message, &cmd.protocol,
 		CMD_HANDLER_PROTO_ERROR_RESPONSE,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request),
-		MOCK_ARG_NOT_NULL);
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_deep_copy (&cmd.protocol.mock, 0, &response, sizeof (response),
 		cmd_interface_mock_copy_request);
 
@@ -1034,22 +1024,21 @@ static void cmd_interface_multi_handler_test_process_request_fail_with_error_res
 
 	status = mock_expect (&cmd.protocol.mock, cmd.protocol.base.parse_message, &cmd.protocol, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request),
-		MOCK_ARG_NOT_NULL);
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cmd.protocol.mock, 1, &message_type, sizeof (message_type), -1);
 
 	status |= mock_expect (&cmd.msg_handler[0].mock, cmd.msg_handler[0].base.process_request,
 		&cmd.msg_handler[0], CMD_HANDLER_PROCESS_FAILED,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	status |= mock_expect (&cmd.protocol.mock, cmd.protocol.base.handle_request_result,
 		&cmd.protocol, 0, MOCK_ARG (CMD_HANDLER_PROCESS_FAILED), MOCK_ARG (message_type),
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cmd.protocol.mock, 2, &response, sizeof (response),
 		cmd_interface_mock_copy_request);
 
@@ -1110,23 +1099,22 @@ static void cmd_interface_multi_handler_test_process_request_fail_without_error_
 
 	status = mock_expect (&cmd.protocol.mock, cmd.protocol.base.parse_message, &cmd.protocol, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request),
-		MOCK_ARG_NOT_NULL);
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cmd.protocol.mock, 1, &message_type, sizeof (message_type), -1);
 
 	status |= mock_expect (&cmd.msg_handler[0].mock, cmd.msg_handler[0].base.process_request,
 		&cmd.msg_handler[0], CMD_HANDLER_PROCESS_FAILED,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	status |= mock_expect (&cmd.protocol.mock, cmd.protocol.base.handle_request_result,
 		&cmd.protocol, CMD_HANDLER_PROTO_HANDLE_FAILED, MOCK_ARG (CMD_HANDLER_PROCESS_FAILED),
 		MOCK_ARG (message_type),
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1173,16 +1161,15 @@ static void cmd_interface_multi_handler_test_process_request_fail_no_response_ha
 
 	status = mock_expect (&cmd.protocol.mock, cmd.protocol.base.parse_message, &cmd.protocol, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request),
-		MOCK_ARG_NOT_NULL);
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cmd.protocol.mock, 1, &message_type, sizeof (message_type), -1);
 
 	status |= mock_expect (&cmd.msg_handler[0].mock, cmd.msg_handler[0].base.process_request,
 		&cmd.msg_handler[0], CMD_HANDLER_PROCESS_FAILED,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1192,7 +1179,8 @@ static void cmd_interface_multi_handler_test_process_request_fail_no_response_ha
 	cmd_interface_multi_handler_testing_release (test, &cmd);
 }
 
-static void cmd_interface_multi_handler_test_process_request_unknown_message_type_with_error_response (
+static void
+cmd_interface_multi_handler_test_process_request_unknown_message_type_with_error_response (
 	CuTest *test)
 {
 	struct cmd_interface_multi_handler_testing cmd;
@@ -1247,16 +1235,15 @@ static void cmd_interface_multi_handler_test_process_request_unknown_message_typ
 
 	status = mock_expect (&cmd.protocol.mock, cmd.protocol.base.parse_message, &cmd.protocol, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request),
-		MOCK_ARG_NOT_NULL);
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cmd.protocol.mock, 1, &message_type, sizeof (message_type), -1);
 
 	status |= mock_expect (&cmd.protocol.mock, cmd.protocol.base.handle_request_result,
 		&cmd.protocol, 0, MOCK_ARG (CMD_HANDLER_UNKNOWN_MESSAGE_TYPE), MOCK_ARG (message_type),
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cmd.protocol.mock, 2, &response, sizeof (response),
 		cmd_interface_mock_copy_request);
 
@@ -1283,7 +1270,8 @@ static void cmd_interface_multi_handler_test_process_request_unknown_message_typ
 	cmd_interface_multi_handler_testing_release (test, &cmd);
 }
 
-static void cmd_interface_multi_handler_test_process_request_unknown_message_type_without_error_response (
+static void
+cmd_interface_multi_handler_test_process_request_unknown_message_type_without_error_response (
 	CuTest *test)
 {
 	struct cmd_interface_multi_handler_testing cmd;
@@ -1317,17 +1305,16 @@ static void cmd_interface_multi_handler_test_process_request_unknown_message_typ
 
 	status = mock_expect (&cmd.protocol.mock, cmd.protocol.base.parse_message, &cmd.protocol, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request),
-		MOCK_ARG_NOT_NULL);
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cmd.protocol.mock, 1, &message_type, sizeof (message_type), -1);
 
 	status |= mock_expect (&cmd.protocol.mock, cmd.protocol.base.handle_request_result,
 		&cmd.protocol, CMD_HANDLER_BUF_TOO_SMALL, MOCK_ARG (CMD_HANDLER_UNKNOWN_MESSAGE_TYPE),
 		MOCK_ARG (message_type),
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1337,7 +1324,8 @@ static void cmd_interface_multi_handler_test_process_request_unknown_message_typ
 	cmd_interface_multi_handler_testing_release (test, &cmd);
 }
 
-static void cmd_interface_multi_handler_test_process_request_unknown_message_type_no_response_handling (
+static void
+cmd_interface_multi_handler_test_process_request_unknown_message_type_no_response_handling (
 	CuTest *test)
 {
 	struct cmd_interface_multi_handler_testing cmd;
@@ -1374,9 +1362,8 @@ static void cmd_interface_multi_handler_test_process_request_unknown_message_typ
 
 	status = mock_expect (&cmd.protocol.mock, cmd.protocol.base.parse_message, &cmd.protocol, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request),
-		MOCK_ARG_NOT_NULL);
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cmd.protocol.mock, 1, &message_type, sizeof (message_type), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1489,6 +1476,7 @@ static void cmd_interface_multi_handler_test_is_message_type_supported (CuTest *
 {
 	struct cmd_interface_multi_handler_testing cmd;
 	int status;
+
 	TEST_START;
 
 	cmd_interface_multi_handler_testing_init (test, &cmd);
@@ -1511,6 +1499,7 @@ static void cmd_interface_multi_handler_test_is_message_type_supported_static_in
 		.test = cmd_interface_multi_handler_static_init (&cmd.protocol.base, cmd.msg_type, 3)
 	};
 	int status;
+
 	TEST_START;
 
 	cmd_interface_multi_handler_testing_init (test, &cmd);
@@ -1538,6 +1527,7 @@ static void cmd_interface_multi_handler_test_is_message_type_supported_null (CuT
 {
 	struct cmd_interface_multi_handler_testing cmd;
 	int status;
+
 	TEST_START;
 
 	cmd_interface_multi_handler_testing_init (test, &cmd);
@@ -1553,6 +1543,7 @@ static void cmd_interface_multi_handler_test_is_message_type_supported_unknown_m
 {
 	struct cmd_interface_multi_handler_testing cmd;
 	int status;
+
 	TEST_START;
 
 	cmd_interface_multi_handler_testing_init (test, &cmd);
@@ -1564,6 +1555,7 @@ static void cmd_interface_multi_handler_test_is_message_type_supported_unknown_m
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_multi_handler);
 
 TEST (cmd_interface_multi_handler_test_msg_type_init);
@@ -1598,3 +1590,4 @@ TEST (cmd_interface_multi_handler_test_is_message_type_supported_null);
 TEST (cmd_interface_multi_handler_test_is_message_type_supported_unknown_message_type);
 
 TEST_SUITE_END;
+// *INDENT-ON*

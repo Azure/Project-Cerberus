@@ -2,14 +2,14 @@
 // Licensed under the MIT license.
 
 #include "testing.h"
-#include "recovery/recovery_image_observer_pcr.h"
 #include "attestation/pcr_store.h"
 #include "common/array_size.h"
+#include "recovery/recovery_image_observer_pcr.h"
 #include "state_manager/state_manager.h"
-#include "testing/mock/recovery/recovery_image_mock.h"
-#include "testing/mock/recovery/recovery_image_manager_mock.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/manifest/manifest_observer_pcr_testing.h"
+#include "testing/mock/recovery/recovery_image_manager_mock.h"
+#include "testing/mock/recovery/recovery_image_mock.h"
 #include "testing/recovery/recovery_image_testing.h"
 
 
@@ -434,6 +434,7 @@ static void recovery_image_observer_pcr_test_record_measurement_null (CuTest *te
 	struct pcr_measurement measurement;
 	struct recovery_image_manager_mock manager;
 	uint8_t invalid_measurement[SHA256_HASH_LENGTH] = {0};
+
 	TEST_START;
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
@@ -628,6 +629,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_deactivated (CuTe
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
+// *INDENT-OFF*
 TEST_SUITE_START (recovery_image_observer_pcr);
 
 TEST (recovery_image_observer_pcr_test_init);
@@ -643,4 +645,4 @@ TEST (recovery_image_observer_pcr_test_record_measurement_hash_error);
 TEST (recovery_image_observer_pcr_test_on_recovery_image_deactivated);
 
 TEST_SUITE_END;
-
+// *INDENT-ON*

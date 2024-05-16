@@ -5,8 +5,8 @@
 #define FIRMWARE_UPDATE_NOTIFICATION_MOCK_H_
 
 #include <stdint.h>
-#include "firmware/firmware_update.h"
 #include "mock.h"
+#include "firmware/firmware_update.h"
 
 
 /**
@@ -25,4 +25,4 @@ int firmware_update_notification_mock_validate_and_release (
 	struct firmware_update_notification_mock *mock);
 
 
-#endif /* FIRMWARE_UPDATE_NOTIFICATION_MOCK_H_ */
+#endif	/* FIRMWARE_UPDATE_NOTIFICATION_MOCK_H_ */

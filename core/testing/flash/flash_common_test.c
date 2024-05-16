@@ -202,6 +202,7 @@ static void flash_common_test_int_to_address_bad_length (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (flash_common);
 
 TEST (flash_common_test_address_to_int);
@@ -214,3 +215,4 @@ TEST (flash_common_test_int_to_address_null);
 TEST (flash_common_test_int_to_address_bad_length);
 
 TEST_SUITE_END;
+// *INDENT-ON*

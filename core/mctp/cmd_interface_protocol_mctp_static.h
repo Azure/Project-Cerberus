@@ -32,4 +32,4 @@ int cmd_interface_protocol_mctp_handle_request_result (
 	}
 
 
-#endif /* CMD_INTERFACE_PROTOCOL_MCTP_STATIC_H_ */
+#endif	/* CMD_INTERFACE_PROTOCOL_MCTP_STATIC_H_ */

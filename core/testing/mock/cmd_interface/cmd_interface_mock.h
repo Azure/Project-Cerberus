@@ -4,19 +4,20 @@
 #ifndef CMD_INTERFACE_MOCK_H_
 #define CMD_INTERFACE_MOCK_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "cmd_interface/cmd_interface.h"
+#include <stdint.h>
 #include "mock.h"
+#include "cmd_interface/cmd_interface.h"
 
 
 /**
  * Command Interface API mock
  */
 struct cmd_interface_mock {
-	struct cmd_interface base;		/**< Command interface instance */
-	struct mock mock;				/**< Mock instance */
+	struct cmd_interface base;	/**< Command interface instance */
+	struct mock mock;			/**< Mock instance */
 };
+
 
 int cmd_interface_mock_init (struct cmd_interface_mock *mock);
 void cmd_interface_mock_release (struct cmd_interface_mock *mock);
@@ -31,4 +32,4 @@ void cmd_interface_mock_copy_request (const struct mock_arg *expected, struct mo
 int cmd_interface_mock_duplicate_request (const void *arg_data, size_t arg_length, void **arg_save);
 
 
-#endif /* CMD_INTERFACE_MOCK_H_ */
+#endif	/* CMD_INTERFACE_MOCK_H_ */

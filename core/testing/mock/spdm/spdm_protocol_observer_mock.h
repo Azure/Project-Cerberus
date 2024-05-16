@@ -4,16 +4,16 @@
 #ifndef SPDM_PROTOCOL_OBSERVER_MOCK_H_
 #define SPDM_PROTOCOL_OBSERVER_MOCK_H_
 
-#include "spdm/spdm_protocol_observer.h"
 #include "mock.h"
+#include "spdm/spdm_protocol_observer.h"
 
 
 /**
  * A mock for system notifications.
  */
 struct spdm_protocol_observer_mock {
-	struct spdm_protocol_observer base;				/**< The base observer instance. */
-	struct mock mock;								/**< The base mock interface. */
+	struct spdm_protocol_observer base;	/**< The base observer instance. */
+	struct mock mock;					/**< The base mock interface. */
 };
 
 
@@ -24,4 +24,4 @@ int spdm_protocol_observer_mock_validate_and_release (
 	struct spdm_protocol_observer_mock *mock);
 
 
-#endif /* SPDM_PROTOCOL_OBSERVER_MOCK_H_ */
+#endif	/* SPDM_PROTOCOL_OBSERVER_MOCK_H_ */

@@ -6,11 +6,11 @@
 #include <string.h>
 #include "testing.h"
 #include "manifest/manifest_manager.h"
+#include "testing/crypto/hash_testing.h"
+#include "testing/engines/hash_testing_engine.h"
+#include "testing/manifest/pfm/pfm_testing.h"
 #include "testing/mock/crypto/hash_mock.h"
 #include "testing/mock/manifest/manifest_mock.h"
-#include "testing/engines/hash_testing_engine.h"
-#include "testing/crypto/hash_testing.h"
-#include "testing/manifest/pfm/pfm_testing.h"
 
 
 TEST_SUITE_LABEL ("manifest_manager");
@@ -1028,8 +1028,7 @@ static void manifest_manager_test_get_manifest_id_measured_data_0_bytes_read (Cu
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_get_id_measured_data (&manifest.base, 5, buffer, length,
-		&total_len);
+	status = manifest_manager_get_id_measured_data (&manifest.base, 5, buffer, length, &total_len);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 5, total_len);
 
@@ -2012,6 +2011,7 @@ static void manifest_manager_test_hash_manifest_platform_id_measured_data_hash_u
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (manifest_manager);
 
 TEST (manifest_manager_test_init);
@@ -2080,3 +2080,4 @@ TEST (manifest_manager_test_hash_manifest_platform_id_measured_data_fail);
 TEST (manifest_manager_test_hash_manifest_platform_id_measured_data_hash_update_fail);
 
 TEST_SUITE_END;
+// *INDENT-ON*

@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "recovery_image_observer_pcr.h"
 #include "recovery_logging.h"
@@ -22,6 +22,7 @@ static void recovery_image_observer_pcr_on_recovery_image_activated (
 		if (status != 0) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY,
 				RECOVERY_LOGGING_GET_MEASUREMENT_FAIL, pcr->measurement_id, status);
+
 			return;
 		}
 	}
@@ -102,6 +103,7 @@ void recovery_image_observer_pcr_record_measurement (struct recovery_image_obser
 	if ((observer == NULL) || (manager == NULL)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY,
 			RECOVERY_LOGGING_RECORD_INVALID, RECOVERY_IMAGE_OBSERVER_INVALID_ARGUMENT, 0);
+
 		return;
 	}
 

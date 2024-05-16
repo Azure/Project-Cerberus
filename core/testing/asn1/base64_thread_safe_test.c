@@ -2,13 +2,13 @@
 // Licensed under the MIT license.
 
 #include <stddef.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include "testing.h"
 #include "asn1/base64_thread_safe.h"
-#include "testing/mock/asn1/base64_mock.h"
 #include "testing/asn1/base64_testing.h"
+#include "testing/mock/asn1/base64_mock.h"
 
 
 TEST_SUITE_LABEL ("base64_thread_safe");
@@ -150,8 +150,7 @@ static void base64_thread_safe_test_encode_null (CuTest *test)
 	status = base64_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encode (NULL, BASE64_DATA_BLOCK, BASE64_DATA_BLOCK_LEN, out,
-		sizeof (out));
+	status = engine.base.encode (NULL, BASE64_DATA_BLOCK, BASE64_DATA_BLOCK_LEN, out, sizeof (out));
 	CuAssertIntEquals (test, BASE64_ENGINE_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);
@@ -165,6 +164,7 @@ static void base64_thread_safe_test_encode_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (base64_thread_safe);
 
 TEST (base64_thread_safe_test_init);
@@ -175,3 +175,4 @@ TEST (base64_thread_safe_test_encode_error);
 TEST (base64_thread_safe_test_encode_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

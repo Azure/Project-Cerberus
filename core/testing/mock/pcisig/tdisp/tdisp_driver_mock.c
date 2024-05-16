@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <string.h>
-#include <stdint.h>
 #include <stdbool.h>
-#include "status/rot_status.h"
+#include <stdint.h>
+#include <string.h>
 #include "platform_io.h"
-#include "pcisig/tdisp/tdisp_driver.h"
 #include "tdisp_driver_mock.h"
+#include "pcisig/tdisp/tdisp_driver.h"
+#include "status/rot_status.h"
 
 
 static int tdisp_driver_mock_get_tdisp_capabilities (const struct tdisp_driver *tdisp_driver,
@@ -38,8 +38,8 @@ static int tdisp_driver_mock_lock_interface_request (const struct tdisp_driver *
 }
 
 static int tdisp_driver_mock_get_device_interface_report (const struct tdisp_driver *tdisp_driver,
-	uint32_t function_id, uint16_t request_offset, uint16_t request_length, 
-	uint16_t *report_length, uint8_t *interface_report, uint16_t *remainder_length)
+	uint32_t function_id, uint16_t request_offset, uint16_t request_length,	uint16_t *report_length,
+	uint8_t *interface_report, uint16_t *remainder_length)
 {
 	struct tdisp_driver_interface_mock *mock = (struct tdisp_driver_interface_mock*) tdisp_driver;
 
@@ -54,7 +54,7 @@ static int tdisp_driver_mock_get_device_interface_report (const struct tdisp_dri
 }
 
 static int tdisp_driver_mock_get_device_interface_state (const struct tdisp_driver *tdisp_driver,
-		uint32_t function_id, uint8_t *tdi_state)
+	uint32_t function_id, uint8_t *tdi_state)
 {
 	struct tdisp_driver_interface_mock *mock = (struct tdisp_driver_interface_mock*) tdisp_driver;
 
@@ -102,7 +102,7 @@ static int tdisp_driver_mock_get_mmio_ranges (const struct tdisp_driver *tdisp_d
 	}
 
 	MOCK_RETURN (&mock->mock, tdisp_driver_mock_get_mmio_ranges, tdisp_driver,
-		MOCK_ARG_CALL (function_id), MOCK_ARG_CALL(mmio_range_count),
+		MOCK_ARG_CALL (function_id), MOCK_ARG_CALL (mmio_range_count),
 		MOCK_ARG_PTR_CALL (mmio_ranges));
 }
 
@@ -140,6 +140,7 @@ static const char* tdisp_driver_mock_arg_name_map (void *func, int arg)
 		switch (arg) {
 			case 0:
 				return "req_caps";
+
 			case 1:
 				return "rsp_caps";
 		}
@@ -148,6 +149,7 @@ static const char* tdisp_driver_mock_arg_name_map (void *func, int arg)
 		switch (arg) {
 			case 0:
 				return "function_id";
+
 			case 1:
 				return "lock_interface_param";
 		}
@@ -156,14 +158,19 @@ static const char* tdisp_driver_mock_arg_name_map (void *func, int arg)
 		switch (arg) {
 			case 0:
 				return "function_id";
+
 			case 1:
 				return "request_offset";
+
 			case 2:
 				return "request_length";
+
 			case 3:
 				return "report_length";
+
 			case 4:
 				return "interface_report";
+
 			case 5:
 				return "remainder_length";
 		}
@@ -172,6 +179,7 @@ static const char* tdisp_driver_mock_arg_name_map (void *func, int arg)
 		switch (arg) {
 			case 0:
 				return "function_id";
+
 			case 1:
 				return "tdi_state";
 		}
@@ -192,8 +200,10 @@ static const char* tdisp_driver_mock_arg_name_map (void *func, int arg)
 		switch (arg) {
 			case 0:
 				return "function_id";
+
 			case 1:
 				return "mmio_range_count";
+
 			case 2:
 				return "mmio_ranges";
 		}

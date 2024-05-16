@@ -71,4 +71,4 @@ int riot_core_common_get_alias_key_cert (const struct riot_core *riot, uint8_t *
 	}
 
 
-#endif /* RIOT_CORE_COMMON_STATIC_H_ */
+#endif	/* RIOT_CORE_COMMON_STATIC_H_ */

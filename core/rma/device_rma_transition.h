@@ -26,16 +26,17 @@ struct device_rma_transition {
 };
 
 
-#define	ROT_MODULE_DEVICE_RMA_TRANSITION_ERROR(code)		ROT_ERROR (ROT_MODULE_DEVICE_RMA_TRANSITION, code)
+#define	ROT_MODULE_DEVICE_RMA_TRANSITION_ERROR(\
+	code)		 ROT_ERROR (ROT_MODULE_DEVICE_RMA_TRANSITION, code)
 
 /**
  * Error codes that can be generated when configuring a device for RMA.
  */
 enum {
-	DEVICE_RMA_TRANSITION_INVALID_ARGUMENT = ROT_MODULE_DEVICE_RMA_TRANSITION_ERROR (0x00),		/**< Input parameter is null or not valid. */
-	DEVICE_RMA_TRANSITION_NO_MEMORY = ROT_MODULE_DEVICE_RMA_TRANSITION_ERROR (0x01),			/**< Memory allocation failed. */
-	DEVICE_RMA_TRANSITION_CONFIG_FAIL = ROT_MODULE_DEVICE_RMA_TRANSITION_ERROR (0x02),			/**< Failed to configure the device for RMA. */
+	DEVICE_RMA_TRANSITION_INVALID_ARGUMENT = ROT_MODULE_DEVICE_RMA_TRANSITION_ERROR (0x00),	/**< Input parameter is null or not valid. */
+	DEVICE_RMA_TRANSITION_NO_MEMORY = ROT_MODULE_DEVICE_RMA_TRANSITION_ERROR (0x01),		/**< Memory allocation failed. */
+	DEVICE_RMA_TRANSITION_CONFIG_FAIL = ROT_MODULE_DEVICE_RMA_TRANSITION_ERROR (0x02),		/**< Failed to configure the device for RMA. */
 };
 
 
-#endif /* DEVICE_RMA_TRANSITION_H_ */
+#endif	/* DEVICE_RMA_TRANSITION_H_ */

@@ -4,16 +4,16 @@
 #ifndef MCTP_CONTROL_PROTOCOL_OBSERVER_MOCK_H_
 #define MCTP_CONTROL_PROTOCOL_OBSERVER_MOCK_H_
 
-#include "mctp/mctp_control_protocol_observer.h"
 #include "mock.h"
+#include "mctp/mctp_control_protocol_observer.h"
 
 
 /**
  * A mock for MCTP protocol notifications.
  */
 struct mctp_control_protocol_observer_mock {
-	struct mctp_control_protocol_observer base;				/**< The base observer instance. */
-	struct mock mock;								/**< The base mock interface. */
+	struct mctp_control_protocol_observer base;	/**< The base observer instance. */
+	struct mock mock;							/**< The base mock interface. */
 };
 
 
@@ -24,4 +24,4 @@ int mctp_control_protocol_observer_mock_validate_and_release (
 	struct mctp_control_protocol_observer_mock *mock);
 
 
-#endif /* MCTP_CONTROL_PROTOCOL_OBSERVER_MOCK_H_ */
+#endif	/* MCTP_CONTROL_PROTOCOL_OBSERVER_MOCK_H_ */

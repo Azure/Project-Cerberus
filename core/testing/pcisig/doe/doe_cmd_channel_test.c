@@ -3,15 +3,15 @@
 
 #include <string.h>
 #include "testing.h"
-#include "common/unused.h"
 #include "cmd_interface/cmd_interface.h"
-#include "pcisig/doe/doe_cmd_channel_static.h"
+#include "common/array_size.h"
+#include "common/unused.h"
 #include "pcisig/doe/doe_cmd_channel.h"
+#include "pcisig/doe/doe_cmd_channel_static.h"
 #include "pcisig/doe/doe_interface.h"
 #include "pcisig/doe/doe_interface_static.h"
-#include "testing/mock/pcisig/doe/doe_channel_mock.h"
 #include "testing/mock/cmd_interface/cmd_interface_mock.h"
-#include "common/array_size.h"
+#include "testing/mock/pcisig/doe/doe_channel_mock.h"
 
 
 TEST_SUITE_LABEL ("doe_cmd_channel");
@@ -22,9 +22,9 @@ TEST_SUITE_LABEL ("doe_cmd_channel");
  * Dependencies for testing.
  */
 struct doe_cmd_channel_testing {
-	struct doe_interface doe_interface;			/**< DOE interface. */
-	struct doe_cmd_channel_mock cmd_channel;	/**< Mock for the DOE command channel. */
-	struct cmd_interface_mock spdm_responder;	/**< Mock for the SPDM responder. */
+	struct doe_interface doe_interface;															/**< DOE interface. */
+	struct doe_cmd_channel_mock cmd_channel;													/**< Mock for the DOE command channel. */
+	struct cmd_interface_mock spdm_responder;													/**< Mock for the SPDM responder. */
 	struct doe_data_object_protocol data_object_protocol[DOE_DATA_OBJECT_PROTOCOLS_MAX_COUNT];	/**< Supported DOE data object protocols. */
 };
 
@@ -44,7 +44,9 @@ static void doe_cmd_channel_testing_init_dependencies (CuTest *test,
 		{DOE_VENDOR_ID_PCISIG, DOE_DATA_OBJECT_TYPE_SPDM},
 		{DOE_VENDOR_ID_PCISIG, DOE_DATA_OBJECT_TYPE_SECURED_SPDM},
 	};
-	memcpy (channel_testing->data_object_protocol, data_object_protocol, sizeof (data_object_protocol));
+
+	memcpy (channel_testing->data_object_protocol, data_object_protocol,
+		sizeof (data_object_protocol));
 
 	status = doe_cmd_channel_mock_init (&channel_testing->cmd_channel);
 	CuAssertIntEquals (test, 0, status);
@@ -121,8 +123,9 @@ static int doe_cmd_channel_testing_empty_send_message (const struct doe_cmd_chan
 
 static void doe_cmd_channel_test_init_static (CuTest *test)
 {
-	const struct doe_cmd_channel channel = doe_cmd_channel_static_init (
-		doe_cmd_channel_testing_empty_receive_message, doe_cmd_channel_testing_empty_send_message);
+	const struct doe_cmd_channel channel =
+		doe_cmd_channel_static_init (doe_cmd_channel_testing_empty_receive_message,
+		doe_cmd_channel_testing_empty_send_message);
 
 	TEST_START;
 
@@ -204,9 +207,8 @@ static void doe_cmd_channel_test_receive_and_process_receive_fail (CuTest *test)
 	doe_cmd_channel_testing_init_dependencies (test, &channel_testing);
 
 	status = mock_expect (&channel_testing.cmd_channel.mock,
-		channel_testing.cmd_channel.base.receive_message,
-		&channel_testing.cmd_channel.base, DOE_CMD_CHANNEL_RX_FAILED, MOCK_ARG_NOT_NULL,
-		MOCK_ARG (50));
+		channel_testing.cmd_channel.base.receive_message, &channel_testing.cmd_channel.base,
+		DOE_CMD_CHANNEL_RX_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG (50));
 	CuAssertIntEquals (test, 0, status);
 
 	status = doe_cmd_channel_receive_and_process (&channel_testing.cmd_channel.base,
@@ -216,8 +218,8 @@ static void doe_cmd_channel_test_receive_and_process_receive_fail (CuTest *test)
 	doe_cmd_channel_testing_release_dependencies (test, &channel_testing);
 }
 
-static void doe_cmd_channel_test_receive_and_process_doe_interface_process_message_decode_fail
-	(CuTest *test)
+static void doe_cmd_channel_test_receive_and_process_doe_interface_process_message_decode_fail (
+	CuTest *test)
 {
 	struct doe_cmd_message doe_message = {0};
 	struct doe_cmd_message *doe_message_ptr = &doe_message;
@@ -291,6 +293,7 @@ static void doe_cmd_channel_test_receive_and_process_send_fail (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (doe_cmd_channel);
 
 TEST (doe_cmd_channel_test_init_static);
@@ -301,3 +304,4 @@ TEST (doe_cmd_channel_test_receive_and_process_doe_interface_process_message_dec
 TEST (doe_cmd_channel_test_receive_and_process_send_fail);
 
 TEST_SUITE_END;
+// *INDENT-ON*

@@ -41,4 +41,4 @@ int signature_verification_rsa_is_key_valid (const struct signature_verification
 	}
 
 
-#endif /* SIGNATURE_VERIFICATION_RSA_STATIC_H_ */
+#endif	/* SIGNATURE_VERIFICATION_RSA_STATIC_H_ */

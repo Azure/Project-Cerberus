@@ -4,8 +4,8 @@
 #ifndef CFM_MANAGER_MOCK_H_
 #define CFM_MANAGER_MOCK_H_
 
-#include "manifest/cfm/cfm_manager.h"
 #include "mock.h"
+#include "manifest/cfm/cfm_manager.h"
 
 
 /**
@@ -13,7 +13,7 @@
  */
 struct cfm_manager_mock {
 	struct cfm_manager base;	/**< The base manager instance. */
-	struct mock mock;				/**< The base mock interface. */
+	struct mock mock;			/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void cfm_manager_mock_release (struct cfm_manager_mock *mock);
 int cfm_manager_mock_validate_and_release (struct cfm_manager_mock *mock);
 
 
-#endif /* CFM_MANAGER_MOCK_H_ */
+#endif	/* CFM_MANAGER_MOCK_H_ */

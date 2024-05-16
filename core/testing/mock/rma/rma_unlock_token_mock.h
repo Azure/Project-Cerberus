@@ -4,8 +4,8 @@
 #ifndef RMA_UNLOCK_TOKEN_MOCK_H_
 #define RMA_UNLOCK_TOKEN_MOCK_H_
 
-#include "rma/rma_unlock_token.h"
 #include "mock.h"
+#include "rma/rma_unlock_token.h"
 
 
 /**
@@ -23,4 +23,4 @@ void rma_unlock_token_mock_release (struct rma_unlock_token_mock *mock);
 int rma_unlock_token_mock_validate_and_release (struct rma_unlock_token_mock *mock);
 
 
-#endif /* RMA_UNLOCK_TOKEN_MOCK_H_ */
+#endif	/* RMA_UNLOCK_TOKEN_MOCK_H_ */

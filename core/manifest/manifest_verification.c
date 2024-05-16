@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "manifest_verification.h"
 #include "manifest_logging.h"
+#include "manifest_verification.h"
 #include "common/type_cast.h"
 #include "common/unused.h"
 
@@ -26,8 +26,7 @@ int manifest_verification_verify_signature (const struct signature_verification 
 
 	if (manifest->state->stored_key.key_data) {
 		status = manifest->manifest_verify->set_verification_key (manifest->manifest_verify,
-			&manifest->state->stored_key.key->pub_key,
-			manifest->state->stored_key.pub_key_length);
+			&manifest->state->stored_key.key->pub_key, manifest->state->stored_key.pub_key_length);
 		if (status != 0) {
 			goto exit;
 		}
@@ -54,6 +53,7 @@ int manifest_verification_verify_signature (const struct signature_verification 
 
 exit:
 	platform_mutex_unlock (&manifest->state->lock);
+
 	return status;
 }
 
@@ -114,8 +114,8 @@ void manifest_verification_on_manifest_activated (const struct pfm_observer *obs
 			goto error;
 		}
 
-		status = manifest->manifest_verify->verify_signature (manifest->manifest_verify,
-			digest, digest_length, signature, sig_length);
+		status = manifest->manifest_verify->verify_signature (manifest->manifest_verify, digest,
+			digest_length, signature, sig_length);
 		if (status == 0) {
 			status = manifest->keystore->save_key (manifest->keystore, manifest->key_id,
 				manifest->default_key->key_data, manifest->default_key->key_data_length);
@@ -143,6 +143,7 @@ void manifest_verification_on_manifest_activated (const struct pfm_observer *obs
 	}
 
 	platform_mutex_unlock (&manifest->state->lock);
+
 	return;
 
 error:
@@ -165,14 +166,14 @@ void manifest_verification_on_update_start (const struct firmware_update_observe
 	platform_mutex_lock (&manifest->state->lock);
 
 	if (manifest->state->save_failed) {
-		 status = manifest->keystore->save_key (manifest->keystore, manifest->key_id,
+		status = manifest->keystore->save_key (manifest->keystore, manifest->key_id,
 			manifest->default_key->key_data, manifest->default_key->key_data_length);
-		 if (status == 0) {
-			 manifest->state->save_failed = false;
-		 }
-		 else if (*update_allowed == 0) {
-			 *update_allowed = status;
-		 }
+		if (status == 0) {
+			manifest->state->save_failed = false;
+		}
+		else if (*update_allowed == 0) {
+			*update_allowed = status;
+		}
 	}
 
 	platform_mutex_unlock (&manifest->state->lock);
@@ -245,7 +246,8 @@ int manifest_verification_init (struct manifest_verification *verification,
 	/* PFM, CFM, and PCD observers have the same structure and this module only depends on common
 	 * manifest APIs, so save memory by using the same observer instance and handler function. */
 	verification->base_observer.on_pfm_activated =
-		(void (*) (const struct pfm_observer*, struct pfm*)) manifest_verification_on_manifest_activated;
+		(void (*) (const struct pfm_observer*,
+		struct pfm*)) manifest_verification_on_manifest_activated;
 
 	verification->base_update.on_update_start = manifest_verification_on_update_start;
 
@@ -276,7 +278,7 @@ int manifest_verification_init_state (const struct manifest_verification *verifi
 {
 	int status;
 
-	if ((verification == NULL) || (root_key == NULL) || (root_key_length == 0)  ||
+	if ((verification == NULL) || (root_key == NULL) || (root_key_length == 0) ||
 		(verification->state == NULL) || (verification->hash == NULL) ||
 		(verification->manifest_verify == NULL) || (verification->default_key == NULL) ||
 		(verification->keystore == NULL)) {
@@ -360,6 +362,7 @@ int manifest_verification_init_state (const struct manifest_verification *verifi
 	status = platform_mutex_init (&verification->state->lock);
 	if (status != 0) {
 		platform_free ((void*) verification->state->stored_key.key_data);
+
 		return status;
 	}
 

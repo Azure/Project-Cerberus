@@ -4,8 +4,8 @@
 #ifndef AUTHORIZATION_MOCK_H_
 #define AUTHORIZATION_MOCK_H_
 
-#include "common/authorization.h"
 #include "mock.h"
+#include "common/authorization.h"
 
 
 /**
@@ -23,4 +23,4 @@ void authorization_mock_release (struct authorization_mock *mock);
 int authorization_mock_validate_and_release (struct authorization_mock *mock);
 
 
-#endif /* AUTHORIZATION_MOCK_H_ */
+#endif	/* AUTHORIZATION_MOCK_H_ */

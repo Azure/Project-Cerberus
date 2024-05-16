@@ -4,16 +4,16 @@
 #ifndef X509_MOCK_H_
 #define X509_MOCK_H_
 
-#include "asn1/x509.h"
 #include "mock.h"
+#include "asn1/x509.h"
 
 
 /**
  * A mock for the X.509 API.
  */
 struct x509_engine_mock {
-	struct x509_engine base;		/**< The base X.509 API instance. */
-	struct mock mock;				/**< The base mock interface. */
+	struct x509_engine base;	/**< The base X.509 API instance. */
+	struct mock mock;			/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void x509_mock_release (struct x509_engine_mock *mock);
 int x509_mock_validate_and_release (struct x509_engine_mock *mock);
 
 
-#endif /* X509_MOCK_H_ */
+#endif	/* X509_MOCK_H_ */

@@ -4,14 +4,14 @@
 #ifndef FIRMWARE_COMPONENT_H_
 #define FIRMWARE_COMPONENT_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "status/rot_status.h"
+#include <stdint.h>
 #include "common/image_header.h"
 #include "crypto/hash.h"
 #include "crypto/signature_verification.h"
 #include "firmware/firmware_loader.h"
 #include "flash/flash.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -24,10 +24,10 @@
  * Handler for a single application component within a firmware image.
  */
 struct firmware_component {
-	const struct flash *flash;		/**< Flash device containing the component. */
-	uint32_t start_addr;			/**< Base address on flash of the component. */
-	size_t offset;					/**< Offset to the start of the component image. */
-	struct image_header header;		/**< Header for the component. */
+	const struct flash *flash;	/**< Flash device containing the component. */
+	uint32_t start_addr;		/**< Base address on flash of the component. */
+	size_t offset;				/**< Offset to the start of the component image. */
+	struct image_header header;	/**< Header for the component. */
 };
 
 
@@ -78,6 +78,8 @@ int firmware_component_get_signature (const struct firmware_component *image, ui
 	size_t sig_length);
 
 enum hash_type firmware_component_get_hash_type (const struct firmware_component *image);
+
+
 int firmware_component_get_hash (const struct firmware_component *image, struct hash_engine *hash,
 	uint8_t *hash_out, size_t hash_length, enum hash_type *hash_type);
 
@@ -107,4 +109,4 @@ enum {
 };
 
 
-#endif /* FIRMWARE_COMPONENT_H_ */
+#endif	/* FIRMWARE_COMPONENT_H_ */

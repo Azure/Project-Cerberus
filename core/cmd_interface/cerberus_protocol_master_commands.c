@@ -1,19 +1,19 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
+#include "attestation_cmd_interface.h"
+#include "cerberus_protocol_master_commands.h"
+#include "cerberus_protocol_optional_commands.h"
+#include "cerberus_protocol_required_commands.h"
 #include "common/certificate.h"
 #include "common/common_math.h"
 #include "common/unused.h"
 #include "manifest/cfm/cfm_manager.h"
 #include "manifest/pcd/pcd_manager.h"
-#include "attestation_cmd_interface.h"
-#include "cerberus_protocol_required_commands.h"
-#include "cerberus_protocol_master_commands.h"
-#include "cerberus_protocol_optional_commands.h"
 
 
 /**
@@ -277,6 +277,7 @@ static int cerberus_protocol_manifest_update_init (
 	}
 
 	request->length = 0;
+
 	return manifest_interface->prepare_manifest (manifest_interface, rq->total_size);
 }
 
@@ -307,6 +308,7 @@ static int cerberus_protocol_manifest_update (
 		cerberus_protocol_cfm_update_length (request));
 
 	request->length = 0;
+
 	return status;
 }
 
@@ -468,8 +470,7 @@ int cerberus_protocol_get_manifest_id_platform (struct manifest *manifest,
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-static int cerberus_protocol_get_cfm_id_version (struct cfm *cfm,
-	struct cmd_interface_msg *request)
+static int cerberus_protocol_get_cfm_id_version (struct cfm *cfm, struct cmd_interface_msg *request)
 {
 	return cerberus_protocol_get_manifest_id_version (&cfm->base, request);
 }
@@ -531,6 +532,7 @@ int cerberus_protocol_get_cfm_id (const struct cfm_manager *cfm_mgr,
 	}
 
 	cerberus_protocol_free_cfm (cfm_mgr, curr_cfm);
+
 	return status;
 }
 
@@ -562,6 +564,7 @@ int cerberus_protocol_get_cfm_component_ids (const struct cfm_manager *cfm_mgr,
 		rsp->valid = 0;
 		rsp->version = 0;
 		request->length = cerberus_protocol_get_cfm_component_ids_response_length (0);
+
 		return status;
 	}
 
@@ -667,8 +670,7 @@ static int cerberus_protocol_get_pcd_platform_id (struct pcd *pcd,
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-static int cerberus_protocol_get_pcd_version_id (struct pcd *pcd,
-	struct cmd_interface_msg *request)
+static int cerberus_protocol_get_pcd_version_id (struct pcd *pcd, struct cmd_interface_msg *request)
 {
 	return cerberus_protocol_get_manifest_id_version (&pcd->base, request);
 }
@@ -713,6 +715,7 @@ int cerberus_protocol_get_pcd_id (const struct pcd_manager *pcd_mgr,
 	}
 
 	cerberus_protocol_free_pcd (pcd_mgr, curr_pcd);
+
 	return status;
 }
 
@@ -744,6 +747,7 @@ int cerberus_protocol_get_pcd_component_ids (const struct pcd_manager *pcd_mgr,
 		rsp->valid = 0;
 		rsp->version = 0;
 		request->length = cerberus_protocol_get_pcd_component_ids_response_length (0);
+
 		return status;
 	}
 
@@ -799,6 +803,7 @@ int cerberus_protocol_get_fw_update_status (const struct firmware_update_control
 	}
 
 	rsp->update_status = control->get_status (control);
+
 	return 0;
 }
 
@@ -828,6 +833,7 @@ int cerberus_protocol_get_pfm_update_status (const struct manifest_cmd_interface
 	}
 
 	rsp->update_status = pfm_cmd[rq->port_id]->get_status (pfm_cmd[rq->port_id]);
+
 	return 0;
 }
 
@@ -850,6 +856,7 @@ static int cerberus_protocol_get_manifest_update_status (
 	}
 
 	rsp->update_status = manifest_interface->get_status (manifest_interface);
+
 	return 0;
 }
 
@@ -903,7 +910,7 @@ int cerberus_protocol_get_host_next_verification_status (struct host_processor *
 		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
-	if ((host == NULL) || host[rq->port_id] == NULL) {
+	if ((host == NULL) || (host[rq->port_id] == NULL)) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
@@ -913,6 +920,7 @@ int cerberus_protocol_get_host_next_verification_status (struct host_processor *
 	}
 
 	rsp->update_status = (uint32_t) status;
+
 	return 0;
 }
 
@@ -946,6 +954,7 @@ int cerberus_protocol_get_recovery_image_update_status (
 	}
 
 	rsp->update_status = curr_recovery_interface->get_status (curr_recovery_interface);
+
 	return 0;
 }
 
@@ -966,10 +975,12 @@ int cerberus_protocol_get_reset_config_status (const struct cmd_background *back
 	}
 
 	rsp->update_status = background->get_config_reset_status (background);
+
 	return 0;
 #else
 	UNUSED (background);
 	UNUSED (rsp);
+
 	return CMD_HANDLER_UNSUPPORTED_COMMAND;
 #endif
 }
@@ -1045,6 +1056,7 @@ int cerberus_protocol_get_update_status (const struct firmware_update_control *c
 		cmd_interface_msg_set_message_payload_length (request,
 			sizeof (struct cerberus_protocol_update_status_response));
 	}
+
 	return status;
 }
 
@@ -1097,8 +1109,7 @@ int cerberus_protocol_get_extended_recovery_image_update_status (
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
-	cmd_interface = cerberus_protocol_get_recovery_image_cmd_interface (cmd_0, cmd_1,
-		port);
+	cmd_interface = cerberus_protocol_get_recovery_image_cmd_interface (cmd_0, cmd_1, port);
 
 	if (cmd_interface == NULL) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
@@ -1106,7 +1117,7 @@ int cerberus_protocol_get_extended_recovery_image_update_status (
 
 	*update_status = cmd_interface->get_status (cmd_interface);
 	updating = recovery_manager->get_flash_update_manager (recovery_manager);
-	*rem_len = 	flash_updater_get_remaining_bytes (updating);
+	*rem_len = flash_updater_get_remaining_bytes (updating);
 
 	return 0;
 }
@@ -1145,8 +1156,9 @@ int cerberus_protocol_get_extended_update_status (const struct firmware_update_c
 			break;
 
 		case CERBERUS_PROTOCOL_RECOVERY_IMAGE_UPDATE_STATUS:
-			status = cerberus_protocol_get_extended_recovery_image_update_status (
-				recovery_manager_0,	recovery_manager_1, recovery_cmd_0, recovery_cmd_1, rq->port_id,
+			status =
+				cerberus_protocol_get_extended_recovery_image_update_status (recovery_manager_0,
+				recovery_manager_1, recovery_cmd_0, recovery_cmd_1, rq->port_id,
 				&rsp->update_status, &rsp->remaining_len);
 			break;
 
@@ -1157,6 +1169,7 @@ int cerberus_protocol_get_extended_update_status (const struct firmware_update_c
 	if (status == 0) {
 		request->length = sizeof (struct cerberus_protocol_extended_update_status_response);
 	}
+
 	return status;
 }
 

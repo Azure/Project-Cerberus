@@ -5,8 +5,8 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "system/system_state_manager.h"
 #include "flash/flash_common.h"
+#include "system/system_state_manager.h"
 #include "testing/mock/flash/flash_mock.h"
 
 
@@ -34,11 +34,11 @@ static void system_state_manager_test_init (CuTest *test)
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= flash_mock_expect_erase_flash_sector_verify (&flash, 0x10000, 0x1000);
@@ -125,19 +125,19 @@ static void system_state_manager_test_get_active_manifest_region1_cfm (CuTest *t
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -173,19 +173,19 @@ static void system_state_manager_test_get_active_manifest_region2_cfm (CuTest *t
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -220,11 +220,11 @@ static void system_state_manager_test_get_active_manifest_no_state_cfm (CuTest *
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= flash_mock_expect_erase_flash_sector_verify (&flash, 0x10000, 0x1000);
@@ -262,19 +262,19 @@ static void system_state_manager_test_get_active_manifest_region1_pcd (CuTest *t
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -310,19 +310,19 @@ static void system_state_manager_test_get_active_manifest_region2_pcd (CuTest *t
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -357,11 +357,11 @@ static void system_state_manager_test_get_active_manifest_no_state_pcd (CuTest *
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= flash_mock_expect_erase_flash_sector_verify (&flash, 0x10000, 0x1000);
@@ -398,11 +398,11 @@ static void system_state_manager_test_get_active_manifest_invalid (CuTest *test)
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= flash_mock_expect_erase_flash_sector_verify (&flash, 0x10000, 0x1000);
@@ -439,11 +439,11 @@ static void system_state_manager_test_get_active_manifest_null (CuTest *test)
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= flash_mock_expect_erase_flash_sector_verify (&flash, 0x10000, 0x1000);
@@ -481,19 +481,19 @@ static void system_state_manager_test_save_active_manifest_region1_cfm (CuTest *
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -541,19 +541,19 @@ static void system_state_manager_test_save_active_manifest_region2_cfm (CuTest *
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -601,19 +601,19 @@ static void system_state_manager_test_save_active_manifest_unknown_region_cfm (C
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -662,19 +662,19 @@ static void system_state_manager_test_save_active_manifest_same_region_cfm (CuTe
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -722,19 +722,19 @@ static void system_state_manager_test_save_active_manifest_region1_pcd (CuTest *
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -782,19 +782,19 @@ static void system_state_manager_test_save_active_manifest_region2_pcd (CuTest *
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -842,19 +842,19 @@ static void system_state_manager_test_save_active_manifest_unknown_region_pcd (C
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -903,19 +903,19 @@ static void system_state_manager_test_save_active_manifest_same_region_pcd (CuTe
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -962,19 +962,19 @@ static void system_state_manager_test_save_active_manifest_invalid_index (CuTest
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1009,19 +1009,19 @@ static void system_state_manager_test_save_active_manifest_null (CuTest *test)
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1056,19 +1056,19 @@ static void system_state_manager_test_restore_default_state (CuTest *test)
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1107,19 +1107,19 @@ static void system_state_manager_test_restore_default_state_null (CuTest *test)
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1157,11 +1157,11 @@ static void system_state_manager_test_is_manifest_valid_cfm (CuTest *test)
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= flash_mock_expect_erase_flash_sector_verify (&flash, 0x10000, 0x1000);
@@ -1197,11 +1197,11 @@ static void system_state_manager_test_is_manifest_valid_pcd (CuTest *test)
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= flash_mock_expect_erase_flash_sector_verify (&flash, 0x10000, 0x1000);
@@ -1237,11 +1237,11 @@ static void system_state_manager_test_is_manifest_valid_invalid (CuTest *test)
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= flash_mock_expect_erase_flash_sector_verify (&flash, 0x10000, 0x1000);
@@ -1277,11 +1277,11 @@ static void system_state_manager_test_is_manifest_valid_null (CuTest *test)
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
 
 	status |= flash_mock_expect_erase_flash_sector_verify (&flash, 0x10000, 0x1000);
@@ -1300,6 +1300,7 @@ static void system_state_manager_test_is_manifest_valid_null (CuTest *test)
 	system_state_manager_release (&manager);
 }
 
+// *INDENT-OFF*
 TEST_SUITE_START (system_state_manager);
 
 TEST (system_state_manager_test_init);
@@ -1331,3 +1332,4 @@ TEST (system_state_manager_test_is_manifest_valid_invalid);
 TEST (system_state_manager_test_is_manifest_valid_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

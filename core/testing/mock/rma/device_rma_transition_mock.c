@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "device_rma_transition_mock.h"
 
@@ -62,7 +62,7 @@ int device_rma_transition_mock_init (struct device_rma_transition_mock *mock)
 
 	mock_set_name (&mock->mock, "device_rma_transition");
 
-	mock->base.config_rma= device_rma_transition_mock_config_rma;
+	mock->base.config_rma = device_rma_transition_mock_config_rma;
 
 	mock->mock.func_arg_count = device_rma_transition_mock_func_arg_count;
 	mock->mock.func_name_map = device_rma_transition_mock_func_name_map;

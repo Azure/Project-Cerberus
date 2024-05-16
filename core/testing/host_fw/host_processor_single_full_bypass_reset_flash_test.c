@@ -50,7 +50,7 @@ static void host_processor_single_full_bypass_test_init_reset_flash (CuTest *tes
 		&flash_state, &flash_context);
 
 	status = host_processor_single_full_bypass_init_reset_flash (&host, &control.base,
-	&flash_mgr.base, &host_state, &filter.base, &pfm_mgr.base, NULL);
+		&flash_mgr.base, &host_state, &filter.base, &pfm_mgr.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, host_processor_get_port (&host.base));
 
@@ -297,7 +297,8 @@ static void host_processor_single_full_bypass_test_init_reset_flash_pulse_reset_
 	spi_flash_release (&flash_state);
 }
 
-static void host_processor_single_full_bypass_test_init_reset_flash_pulse_reset_invalid_pulse_width (
+static void host_processor_single_full_bypass_test_init_reset_flash_pulse_reset_invalid_pulse_width
+(
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock_state;
@@ -524,7 +525,8 @@ static void host_processor_single_full_bypass_test_soft_reset_null_reset_flash (
 	host_processor_single_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_single_full_bypass_test_soft_reset_no_pfm_reset_not_supported_reset_flash (
+static void host_processor_single_full_bypass_test_soft_reset_no_pfm_reset_not_supported_reset_flash
+(
 	CuTest *test)
 {
 	struct host_processor_single_full_bypass_testing host;
@@ -680,7 +682,8 @@ static void host_processor_single_full_bypass_test_soft_reset_no_pfm_reset_error
 	host_processor_single_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_single_full_bypass_test_soft_reset_no_pfm_reset_error_succeed_on_retry_reset_flash (
+static void
+host_processor_single_full_bypass_test_soft_reset_no_pfm_reset_error_succeed_on_retry_reset_flash (
 	CuTest *test)
 {
 	struct host_processor_single_full_bypass_testing host;
@@ -766,7 +769,8 @@ static void host_processor_single_full_bypass_test_soft_reset_no_pfm_reset_error
 	host_processor_single_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_single_full_bypass_test_soft_reset_rot_access_error_pulse_reset_reset_flash (
+static void
+host_processor_single_full_bypass_test_soft_reset_rot_access_error_pulse_reset_reset_flash (
 	CuTest *test)
 {
 	struct host_processor_single_full_bypass_testing host;
@@ -924,7 +928,9 @@ static void host_processor_single_full_bypass_test_soft_reset_no_pfm_filter_erro
 	host_processor_single_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_single_full_bypass_test_soft_reset_pending_pfm_no_active_not_dirty_empty_manifest_reset_flash (
+static void
+host_processor_single_full_bypass_test_soft_reset_pending_pfm_no_active_not_dirty_empty_manifest_reset_flash
+(
 	CuTest *test)
 {
 	struct host_processor_single_full_bypass_testing host;
@@ -1018,7 +1024,9 @@ static void host_processor_single_full_bypass_test_soft_reset_pending_pfm_no_act
 	host_processor_single_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_single_full_bypass_test_soft_reset_pending_pfm_with_active_not_dirty_empty_manifest_reset_flash (
+static void
+host_processor_single_full_bypass_test_soft_reset_pending_pfm_with_active_not_dirty_empty_manifest_reset_flash
+(
 	CuTest *test)
 {
 	struct host_processor_single_full_bypass_testing host;
@@ -1116,6 +1124,7 @@ static void host_processor_single_full_bypass_test_soft_reset_pending_pfm_with_a
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_processor_single_full_bypass_reset_flash);
 
 TEST (host_processor_single_full_bypass_test_init_reset_flash);
@@ -1137,3 +1146,4 @@ TEST (host_processor_single_full_bypass_test_soft_reset_pending_pfm_with_active_
 
 
 TEST_SUITE_END;
+// *INDENT-ON*

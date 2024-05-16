@@ -6,11 +6,11 @@
 #include <string.h>
 #include "testing.h"
 #include "manifest/pcd/pcd_manager.h"
-#include "testing/mock/crypto/hash_mock.h"
-#include "testing/mock/manifest/pcd/pcd_mock.h"
-#include "testing/mock/manifest/pcd/pcd_manager_mock.h"
-#include "testing/mock/manifest/pcd/pcd_observer_mock.h"
 #include "testing/manifest/pcd/pcd_testing.h"
+#include "testing/mock/crypto/hash_mock.h"
+#include "testing/mock/manifest/pcd/pcd_manager_mock.h"
+#include "testing/mock/manifest/pcd/pcd_mock.h"
+#include "testing/mock/manifest/pcd/pcd_observer_mock.h"
 
 
 TEST_SUITE_LABEL ("pcd_manager");
@@ -556,8 +556,8 @@ static void pcd_manager_test_get_id_measured_data (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_id, &pcd, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pcd.mock, 0, &id[1], sizeof (id) - 1, -1);
@@ -598,8 +598,8 @@ static void pcd_manager_test_get_id_measured_data_offset (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_id, &pcd, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pcd.mock, 0, &id[1], sizeof (id) - 1, -1);
@@ -640,8 +640,8 @@ static void pcd_manager_test_get_id_measured_data_small_buffer (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_id, &pcd, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pcd.mock, 0, &id[1], sizeof (id) - 1, -1);
@@ -718,8 +718,8 @@ static void pcd_manager_test_get_id_measured_data_0_bytes_read (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -781,8 +781,8 @@ static void pcd_manager_test_get_id_measured_data_fail (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_id, &pcd, MANIFEST_GET_ID_FAILED,
 		MOCK_ARG_NOT_NULL);
@@ -820,8 +820,8 @@ static void pcd_manager_test_get_platform_id_measured_data (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_platform_id, &pcd, 0,
 		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
@@ -868,8 +868,8 @@ static void pcd_manager_test_get_platform_id_measured_data_offset (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_platform_id, &pcd, 0,
 		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
@@ -915,8 +915,8 @@ static void pcd_manager_test_get_platform_id_measured_data_small_buffer (CuTest 
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_platform_id, &pcd, 0,
 		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
@@ -997,8 +997,8 @@ static void pcd_manager_test_get_platform_id_measured_data_0_bytes_read (CuTest 
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_platform_id, &pcd, 0,
 		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
@@ -1066,8 +1066,8 @@ static void pcd_manager_test_get_platform_id_measured_data_fail (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_platform_id, &pcd, MANIFEST_GET_ID_FAILED,
 		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
@@ -1104,8 +1104,8 @@ static void pcd_manager_test_get_pcd_measured_data (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
@@ -1151,8 +1151,8 @@ static void pcd_manager_test_get_pcd_measured_data_sha384 (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, sizeof (hash),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
@@ -1196,8 +1196,8 @@ static void pcd_manager_test_get_pcd_measured_data_sha512 (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, sizeof (hash),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
@@ -1239,8 +1239,8 @@ static void pcd_manager_test_get_pcd_measured_data_offset (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
@@ -1282,8 +1282,8 @@ static void pcd_manager_test_get_pcd_measured_data_small_buffer (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
@@ -1292,8 +1292,8 @@ static void pcd_manager_test_get_pcd_measured_data_small_buffer (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_get_pcd_measured_data (&manager.base, 0, buffer,
-		SHA256_HASH_LENGTH - 2, &total_len);
+	status = pcd_manager_get_pcd_measured_data (&manager.base, 0, buffer, SHA256_HASH_LENGTH - 2,
+		&total_len);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH - 2, status);
 	CuAssertIntEquals (test, PCD_TESTING.manifest.hash_len, total_len);
 
@@ -1369,8 +1369,8 @@ static void pcd_manager_test_get_pcd_measured_data_0_bytes_read (CuTest *test)
 	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash,
 		PCD_TESTING.manifest.hash_len, 2);
 
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1433,8 +1433,8 @@ static void pcd_manager_test_get_pcd_measured_data_fail (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, MANIFEST_GET_HASH_FAILED,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
@@ -1472,8 +1472,8 @@ static void pcd_manager_test_hash_id_measured_data (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_id, &pcd, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pcd.mock, 0, &id[1], sizeof (id) - 1, -1);
@@ -1588,8 +1588,8 @@ static void pcd_manager_test_hash_id_measured_data_fail (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_id, &pcd, MANIFEST_GET_ID_FAILED,
 		MOCK_ARG_NOT_NULL);
@@ -1630,8 +1630,8 @@ static void pcd_manager_test_hash_platform_id_measured_data (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_platform_id, &pcd, 0,
 		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
@@ -1639,7 +1639,7 @@ static void pcd_manager_test_hash_platform_id_measured_data (CuTest *test)
 
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (PCD_TESTING.manifest.plat_id_str,
-			PCD_TESTING.manifest.plat_id_str_len + 1),
+		PCD_TESTING.manifest.plat_id_str_len + 1),
 		MOCK_ARG (PCD_TESTING.manifest.plat_id_str_len + 1));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.free_platform_id, &pcd, 0, MOCK_ARG_PTR (id));
@@ -1751,8 +1751,8 @@ static void pcd_manager_test_hash_platform_id_measured_data_fail (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_platform_id, &pcd, MANIFEST_GET_ID_FAILED,
 		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
@@ -1792,8 +1792,8 @@ static void pcd_manager_test_hash_pcd_measured_data (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
@@ -1911,8 +1911,8 @@ static void pcd_manager_test_hash_pcd_measured_data_fail (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		MOCK_RETURN_PTR (&pcd.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
-		0, MOCK_ARG_PTR (&pcd.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
+		MOCK_ARG_PTR (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, MANIFEST_GET_HASH_FAILED,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
@@ -1933,6 +1933,7 @@ static void pcd_manager_test_hash_pcd_measured_data_fail (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (pcd_manager);
 
 TEST (pcd_manager_test_on_pcd_verified_no_observers);
@@ -1992,3 +1993,4 @@ TEST (pcd_manager_test_hash_pcd_measured_data_null);
 TEST (pcd_manager_test_hash_pcd_measured_data_fail);
 
 TEST_SUITE_END;
+// *INDENT-ON*

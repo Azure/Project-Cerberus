@@ -4,8 +4,8 @@
 #ifndef SECURE_DEVICE_UNLOCK_POLICY_H_
 #define SECURE_DEVICE_UNLOCK_POLICY_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 #include "system/device_unlock_token.h"
 #include "system/secure_device_unlock.h"
@@ -28,4 +28,4 @@ int secure_device_unlock_policy_init (struct secure_device_unlock_policy *unlock
 void secure_device_unlock_policy_release (const struct secure_device_unlock_policy *unlock);
 
 
-#endif /* SECURE_DEVICE_UNLOCK_POLICY_H_ */
+#endif	/* SECURE_DEVICE_UNLOCK_POLICY_H_ */

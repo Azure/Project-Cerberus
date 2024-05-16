@@ -23,7 +23,7 @@ int cmd_interface_multi_handler_is_message_type_supported (
  * Constant initializer for response handling.
  */
 #ifdef CMD_ENABLE_ISSUE_REQUEST
-#define	CMD_INTERFACE_MULTI_HANDLER_RESPONSE_API	\
+#define	CMD_INTERFACE_MULTI_HANDLER_RESPONSE_API    \
 	.process_response = cmd_interface_multi_handler_process_response,
 #else
 #define	CMD_INTERFACE_MULTI_HANDLER_RESPONSE_API
@@ -73,4 +73,4 @@ int cmd_interface_multi_handler_is_message_type_supported (
 	}
 
 
-#endif /* CMD_INTERFACE_MULTI_HANDLER_STATIC_H_ */
+#endif	/* CMD_INTERFACE_MULTI_HANDLER_STATIC_H_ */

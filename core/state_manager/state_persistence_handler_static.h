@@ -44,4 +44,4 @@ void state_persistence_handler_execute (const struct periodic_task_handler *hand
 	}
 
 
-#endif /* STATE_PERSISTENCE_HANDLER_STATIC_H_ */
+#endif	/* STATE_PERSISTENCE_HANDLER_STATIC_H_ */

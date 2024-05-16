@@ -4,8 +4,8 @@
 #ifndef RIOT_CORE_TESTING_H_
 #define RIOT_CORE_TESTING_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "asn1/x509_extension_builder.h"
 
 
@@ -196,4 +196,4 @@ extern const uint8_t RIOT_CORE_ALIAS_CERT_521[];
 extern const size_t RIOT_CORE_ALIAS_CERT_521_LEN;
 
 
-#endif /* RIOT_CORE_TESTING_H_ */
+#endif	/* RIOT_CORE_TESTING_H_ */

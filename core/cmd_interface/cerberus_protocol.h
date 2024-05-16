@@ -8,12 +8,15 @@
 #include "mctp/mctp_base_protocol.h"
 
 
-#define CERBERUS_PROTOCOL_MIN_MSG_LEN						(sizeof (struct cerberus_protocol_header))
-#define CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG				(MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - CERBERUS_PROTOCOL_MIN_MSG_LEN)
+#define CERBERUS_PROTOCOL_MIN_MSG_LEN                       \
+		(sizeof (struct cerberus_protocol_header))
+#define CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG               \
+		(MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - CERBERUS_PROTOCOL_MIN_MSG_LEN)
 
 #define CERBERUS_PROTOCOL_MSFT_PCI_VID						0x1414
 #define CERBERUS_PROTOCOL_PROTOCOL_VERSION					4
-#define CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID					(sizeof (struct cerberus_protocol_header) - 1)
+#define CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID                 \
+		(sizeof (struct cerberus_protocol_header) - 1)
 
 /**
  * AES IV and GCM tag lengths defined by protocol.
@@ -101,16 +104,16 @@ enum {
  * Cerberus error codes
  */
 enum {
-	CERBERUS_PROTOCOL_NO_ERROR = 0x00,						/**< Success */
-	CERBERUS_PROTOCOL_ERROR_INVALID_REQ,					/**< Invalid request */
-	CERBERUS_PROTOCOL_ERROR_BUSY = 0x03,					/**< Device busy */
-	CERBERUS_PROTOCOL_ERROR_UNSPECIFIED,					/**< Unspecified error */
-	CERBERUS_PROTOCOL_ERROR_INVALID_CHECKSUM = 0xF0,		/**< Invalid checksum */
-	CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG,				/**< EOM before SOM */
-	CERBERUS_PROTOCOL_ERROR_AUTHENTICATION,					/**< Authentication not established */
-	CERBERUS_PROTOCOL_ERROR_OUT_OF_SEQ_WINDOW,				/**< Message received out of sequence window */
-	CERBERUS_PROTOCOL_ERROR_INVALID_PACKET_LEN,				/**< Invalid message size */
-	CERBERUS_PROTOCOL_ERROR_MSG_OVERFLOW					/**< MCTP message too large */
+	CERBERUS_PROTOCOL_NO_ERROR = 0x00,					/**< Success */
+	CERBERUS_PROTOCOL_ERROR_INVALID_REQ,				/**< Invalid request */
+	CERBERUS_PROTOCOL_ERROR_BUSY = 0x03,				/**< Device busy */
+	CERBERUS_PROTOCOL_ERROR_UNSPECIFIED,				/**< Unspecified error */
+	CERBERUS_PROTOCOL_ERROR_INVALID_CHECKSUM = 0xF0,	/**< Invalid checksum */
+	CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG,			/**< EOM before SOM */
+	CERBERUS_PROTOCOL_ERROR_AUTHENTICATION,				/**< Authentication not established */
+	CERBERUS_PROTOCOL_ERROR_OUT_OF_SEQ_WINDOW,			/**< Message received out of sequence window */
+	CERBERUS_PROTOCOL_ERROR_INVALID_PACKET_LEN,			/**< Invalid message size */
+	CERBERUS_PROTOCOL_ERROR_MSG_OVERFLOW,				/**< MCTP message too large */
 };
 
 
@@ -119,36 +122,37 @@ enum {
  * Additional header added to Microsoft vendor defined messages to identify Cerberus messages.
  */
 struct cerberus_protocol_msft_header {
-	uint8_t reserved1:5;		/**< Reserved */
-	uint8_t crypt:1;			/**< Indication that the message payload is encrypted. */
-	uint8_t reserved2:1;		/**< Reserved */
-	uint8_t rq:1;				/**< Indication of a Cerberus protocol request. */
-	uint8_t command;			/**< Identifier for the command type contained in the message. */
+	uint8_t reserved1:5;	/**< Reserved */
+	uint8_t crypt:1;		/**< Indication that the message payload is encrypted. */
+	uint8_t reserved2:1;	/**< Reserved */
+	uint8_t rq:1;			/**< Indication of a Cerberus protocol request. */
+	uint8_t command;		/**< Identifier for the command type contained in the message. */
 };
 
 /**
  * Cerberus portion of packet header
  */
 struct cerberus_protocol_header {
-	uint8_t msg_type:7;										/**< MCTP message type */
-	uint8_t integrity_check:1;								/**< MCTP message integrity check */
-	uint16_t pci_vendor_id;									/**< PCI vendor ID */
-	uint8_t reserved1:5;									/**< Reserved */
-	uint8_t crypt:1;										/**< Message Encryption Bit */
-	uint8_t reserved2:1;									/**< Reserved */
-	uint8_t rq:1;											/**< Request bit */
-	uint8_t command;										/**< Command ID */
+	uint8_t msg_type:7;			/**< MCTP message type */
+	uint8_t integrity_check:1;	/**< MCTP message integrity check */
+	uint16_t pci_vendor_id;		/**< PCI vendor ID */
+	uint8_t reserved1:5;		/**< Reserved */
+	uint8_t crypt:1;			/**< Message Encryption Bit */
+	uint8_t reserved2:1;		/**< Reserved */
+	uint8_t rq:1;				/**< Request bit */
+	uint8_t command;			/**< Command ID */
 };
 
 /**
  * Structure of a Cerberus error message.
  */
 struct cerberus_protocol_error {
-	struct cerberus_protocol_header header;					/**< The message header. */
-	uint8_t error_code;										/**< Overall error code. */
-	uint32_t error_data;									/**< Detailed error information. */
+	struct cerberus_protocol_header header;	/**< The message header. */
+	uint8_t error_code;						/**< Overall error code. */
+	uint32_t error_data;					/**< Detailed error information. */
 };
+
 #pragma pack(pop)
 
 
-#endif /* CERBERUS_PROTOCOL_H_ */
+#endif	/* CERBERUS_PROTOCOL_H_ */

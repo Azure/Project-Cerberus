@@ -4,9 +4,9 @@
 #ifndef X509_EXTENSION_BUILDER_H_
 #define X509_EXTENSION_BUILDER_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 
 
@@ -14,21 +14,21 @@
  * Descriptor for an X.509 extension to add to a certificate or CSR.
  */
 struct x509_extension {
-	bool critical;				/**< Indication that the extension should be marked as critical. */
+	bool critical;	/**< Indication that the extension should be marked as critical. */
 
 	/**
 	 * The OID identifying the extension type. The OID is an encoded value.  It is not wrapped with
 	 * ASN.1 tags, but will be properly encoded data for an ASN.1 OBJECT type.
 	 */
 	const uint8_t *const oid;
-	size_t oid_length;			/**< Length of the encoded OID. */
+	size_t oid_length;	/**< Length of the encoded OID. */
 
 	/**
 	 * The data contained in the extension.  This is the raw data to be wrapped as an ASN.1 OCTET
 	 * STRING in the extension.
 	 */
 	const uint8_t *const data;
-	size_t data_length;			/**< Length of the extension data. */
+	size_t data_length;	/**< Length of the extension data. */
 };
 
 /**
@@ -68,10 +68,10 @@ void x509_extension_builder_init_extension_descriptor (struct x509_extension *ex
  * likely to define additional error modules for extension-specific error codes.
  */
 enum {
-	X509_EXTENSION_INVALID_ARGUMENT = X509_EXTENSION_ERROR (0x00),		/**< Input parameter is null or not valid. */
-	X509_EXTENSION_NO_MEMORY = X509_EXTENSION_ERROR (0x01),				/**< Memory allocation failed. */
-	X509_EXTENSION_BUILD_FAILED = X509_EXTENSION_ERROR (0x02),			/**< Failed to build the extension data. */
+	X509_EXTENSION_INVALID_ARGUMENT = X509_EXTENSION_ERROR (0x00),	/**< Input parameter is null or not valid. */
+	X509_EXTENSION_NO_MEMORY = X509_EXTENSION_ERROR (0x01),			/**< Memory allocation failed. */
+	X509_EXTENSION_BUILD_FAILED = X509_EXTENSION_ERROR (0x02),		/**< Failed to build the extension data. */
 };
 
 
-#endif /* X509_EXTENSION_BUILDER_H_ */
+#endif	/* X509_EXTENSION_BUILDER_H_ */

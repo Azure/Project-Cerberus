@@ -1,16 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "platform_api.h"
-#include "common/buffer_util.h"
 #include "pcd_flash.h"
 #include "pcd_format.h"
-#include "flash/flash_util.h"
+#include "platform_api.h"
 #include "cmd_interface/device_manager.h"
+#include "common/buffer_util.h"
 #include "common/unused.h"
+#include "flash/flash_util.h"
 #include "manifest/manifest_flash.h"
 
 
@@ -119,8 +119,8 @@ static int pcd_flash_get_rot_element_ptr (struct pcd *pcd, uint8_t *rot_element_
 		return status;
 	}
 
-	if (((*format == 1) && (status < (int) (sizeof (struct pcd_rot_element_v1))))
-		|| ((*format >= 2) && (status < (int) (sizeof (struct pcd_rot_element_v2))))) {
+	if (((*format == 1) && (status < (int) (sizeof (struct pcd_rot_element_v1)))) ||
+		((*format >= 2) && (status < (int) (sizeof (struct pcd_rot_element_v2))))) {
 		return PCD_MALFORMED_ROT_ELEMENT;
 	}
 
@@ -216,8 +216,8 @@ static int pcd_flash_get_port_info (struct pcd *pcd, uint8_t port_id, struct pcd
 
 	for (i_port = 0; i_port < rot_element.v1.port_count; ++i_port) {
 		status = manifest_flash_read_element_data (&pcd_flash->base_flash,
-			pcd_flash->base_flash.hash, PCD_SPI_FLASH_PORT, start, PCD_ROT, 0, &found,
-			NULL, NULL, &port_element_ptr, sizeof (struct pcd_port_element));
+			pcd_flash->base_flash.hash, PCD_SPI_FLASH_PORT, start, PCD_ROT, 0, &found, NULL, NULL,
+			&port_element_ptr, sizeof (struct pcd_port_element));
 		if (status == MANIFEST_CHILD_NOT_FOUND) {
 			return PCD_INVALID_PORT;
 		}
@@ -303,9 +303,9 @@ static int pcd_flash_get_next_mctp_bridge_component (struct pcd *pcd,
 		*start_ptr = 0;
 	}
 
-	status = manifest_flash_read_element_data (&pcd_flash->base_flash,
-		pcd_flash->base_flash.hash, PCD_COMPONENT_MCTP_BRIDGE, *start_ptr, MANIFEST_NO_PARENT, 0,
-		start_ptr, NULL, NULL, &element_ptr, sizeof (struct pcd_mctp_bridge_component_element));
+	status = manifest_flash_read_element_data (&pcd_flash->base_flash, pcd_flash->base_flash.hash,
+		PCD_COMPONENT_MCTP_BRIDGE, *start_ptr, MANIFEST_NO_PARENT, 0, start_ptr, NULL, NULL,
+		&element_ptr, sizeof (struct pcd_mctp_bridge_component_element));
 	if (ROT_IS_ERROR (status)) {
 		return status;
 	}
@@ -352,8 +352,7 @@ static int pcd_flash_buffer_supported_components (struct pcd *pcd, size_t offset
 	}
 
 	while ((i_components < rot_info.components_count) && (length > 0)) {
-		status = pcd_flash_get_next_mctp_bridge_component (pcd, &component,
-			(i_components == 0));
+		status = pcd_flash_get_next_mctp_bridge_component (pcd, &component,	(i_components == 0));
 		if (status != 0) {
 			return status;
 		}

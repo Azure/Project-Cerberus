@@ -6,11 +6,11 @@
 #include <string.h>
 #include "testing.h"
 #include "manifest/pfm/pfm_manager.h"
-#include "testing/mock/crypto/hash_mock.h"
-#include "testing/mock/manifest/pfm/pfm_mock.h"
-#include "testing/mock/manifest/pfm/pfm_manager_mock.h"
-#include "testing/mock/manifest/pfm/pfm_observer_mock.h"
 #include "testing/manifest/pfm/pfm_testing.h"
+#include "testing/mock/crypto/hash_mock.h"
+#include "testing/mock/manifest/pfm/pfm_manager_mock.h"
+#include "testing/mock/manifest/pfm/pfm_mock.h"
+#include "testing/mock/manifest/pfm/pfm_observer_mock.h"
 
 
 TEST_SUITE_LABEL ("pfm_manager");
@@ -568,8 +568,8 @@ static void pfm_manager_test_get_id_measured_data (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &id[1], sizeof (id) - 1, -1);
@@ -610,8 +610,8 @@ static void pfm_manager_test_get_id_measured_data_offset (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &id[1], sizeof (id) - 1, -1);
@@ -652,8 +652,8 @@ static void pfm_manager_test_get_id_measured_data_small_buffer (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &id[1], sizeof (id) - 1, -1);
@@ -730,8 +730,8 @@ static void pfm_manager_test_get_id_measured_data_0_bytes_read (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -794,8 +794,8 @@ static void pfm_manager_test_get_id_measured_data_fail (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_id, &pfm, MANIFEST_GET_ID_FAILED,
 		MOCK_ARG_NOT_NULL);
@@ -833,8 +833,8 @@ static void pfm_manager_test_get_platform_id_measured_data (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
 		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
@@ -880,8 +880,8 @@ static void pfm_manager_test_get_platform_id_measured_data_offset (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
 		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
@@ -927,8 +927,8 @@ static void pfm_manager_test_get_platform_id_measured_data_small_buffer (CuTest 
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
 		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
@@ -1009,8 +1009,8 @@ static void pfm_manager_test_get_platform_id_measured_data_0_bytes_read (CuTest 
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
 		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
@@ -1079,8 +1079,8 @@ static void pfm_manager_test_get_platform_id_measured_data_fail (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, MANIFEST_GET_ID_FAILED,
 		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
@@ -1117,11 +1117,11 @@ static void pfm_manager_test_get_pfm_measured_data (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, PFM_HASH_LEN,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, PFM_HASH_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&pfm.mock, 1, PFM_HASH, PFM_HASH_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1162,8 +1162,8 @@ static void pfm_manager_test_get_pfm_measured_data_sha384 (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, sizeof (hash),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
@@ -1207,8 +1207,8 @@ static void pfm_manager_test_get_pfm_measured_data_sha512 (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, sizeof (hash),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
@@ -1250,11 +1250,11 @@ static void pfm_manager_test_get_pfm_measured_data_offset (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, PFM_HASH_LEN,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, PFM_HASH_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&pfm.mock, 1, PFM_HASH, PFM_HASH_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1291,17 +1291,17 @@ static void pfm_manager_test_get_pfm_measured_data_small_buffer (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, PFM_HASH_LEN,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, PFM_HASH_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&pfm.mock, 1, PFM_HASH, PFM_HASH_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_get_pfm_measured_data (&manager.base, 0, buffer,
-		SHA256_HASH_LENGTH - 2, &total_len);
+	status = pfm_manager_get_pfm_measured_data (&manager.base, 0, buffer, SHA256_HASH_LENGTH - 2,
+		&total_len);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH - 2, status);
 	CuAssertIntEquals (test, PFM_HASH_LEN, total_len);
 
@@ -1371,12 +1371,12 @@ static void pfm_manager_test_get_pfm_measured_data_0_bytes_read (CuTest *test)
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, PFM_HASH_LEN,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, PFM_HASH_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&pfm.mock, 1, PFM_HASH, PFM_HASH_LEN, 2);
 
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1439,8 +1439,8 @@ static void pfm_manager_test_get_pfm_measured_data_fail (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, MANIFEST_GET_HASH_FAILED,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
@@ -1478,8 +1478,8 @@ static void pfm_manager_test_hash_id_measured_data (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &id[1], sizeof (id) - 1, -1);
@@ -1594,8 +1594,8 @@ static void pfm_manager_test_hash_id_measured_data_fail (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_id, &pfm, MANIFEST_GET_ID_FAILED,
 		MOCK_ARG_NOT_NULL);
@@ -1636,8 +1636,8 @@ static void pfm_manager_test_hash_platform_id_measured_data (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
 		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
@@ -1756,8 +1756,8 @@ static void pfm_manager_test_hash_platform_id_measured_data_fail (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, MANIFEST_GET_ID_FAILED,
 		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
@@ -1797,11 +1797,11 @@ static void pfm_manager_test_hash_pfm_measured_data (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, PFM_HASH_LEN,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, PFM_HASH_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&pfm.mock, 1, PFM_HASH, PFM_HASH_LEN, 2);
 
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
@@ -1914,8 +1914,8 @@ static void pfm_manager_test_hash_pfm_measured_data_fail (CuTest *test)
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
 		MOCK_RETURN_PTR (&pfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
-		0, MOCK_ARG_PTR (&pfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
+		MOCK_ARG_PTR (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, MANIFEST_GET_HASH_FAILED,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
@@ -1936,6 +1936,7 @@ static void pfm_manager_test_hash_pfm_measured_data_fail (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (pfm_manager);
 
 TEST (pfm_manager_test_on_pfm_verified_no_observers);
@@ -1995,3 +1996,4 @@ TEST (pfm_manager_test_hash_pfm_measured_data_null);
 TEST (pfm_manager_test_hash_pfm_measured_data_fail);
 
 TEST_SUITE_END;
+// *INDENT-ON*

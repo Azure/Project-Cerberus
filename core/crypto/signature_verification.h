@@ -4,8 +4,8 @@
 #ifndef SIGNATURE_VERIFICATION_H_
 #define SIGNATURE_VERIFICATION_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 
 
@@ -87,4 +87,4 @@ enum {
 };
 
 
-#endif /* SIGNATURE_VERIFICATION_H_ */
+#endif	/* SIGNATURE_VERIFICATION_H_ */

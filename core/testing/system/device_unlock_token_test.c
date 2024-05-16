@@ -8,9 +8,9 @@
 #include "asn1/asn1_util.h"
 #include "system/device_unlock_token.h"
 #include "system/device_unlock_token_static.h"
+#include "testing/crypto/ecc_testing.h"
 #include "testing/mock/cmd_interface/cmd_device_mock.h"
 #include "testing/mock/common/auth_token_mock.h"
-#include "testing/crypto/ecc_testing.h"
 #include "testing/riot/riot_core_testing.h"
 
 
@@ -21,7 +21,7 @@ TEST_SUITE_LABEL ("device_unlock_token");
  * A device UUID value for use in test tokens.
  */
 const uint8_t DEVICE_UNLOCK_TOKEN_TESTING_UUID[16] = {
-	0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,0x1a,0x1b,0x1c,0x1d,0x1e,0x1f
+	0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f
 };
 
 const size_t DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN = sizeof (DEVICE_UNLOCK_TOKEN_TESTING_UUID);
@@ -30,7 +30,7 @@ const size_t DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN = sizeof (DEVICE_UNLOCK_TOKEN_
  * A device UUID value padding with zeros for use in test tokens.
  */
 const uint8_t DEVICE_UNLOCK_TOKEN_TESTING_UUID_PADDED[16] = {
-	0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+	0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
 const size_t DEVICE_UNLOCK_TOKEN_TESTING_UUID_PADDED_LEN = 8;	/* Only represent the valid data. */
@@ -39,7 +39,7 @@ const size_t DEVICE_UNLOCK_TOKEN_TESTING_UUID_PADDED_LEN = 8;	/* Only represent 
  * An unlock counter value for use in test tokens.  The counter represents an unlocked state.
  */
 const uint8_t DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED[] = {
-	0xff,0xff,0x1f,0x00,0x00,0x00,0x00,0x00
+	0xff, 0xff, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
 /**
@@ -47,7 +47,7 @@ const uint8_t DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED[] = {
  * corresponding to DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED.
  */
 const uint8_t DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LOCKED[] = {
-	0xff,0xff,0x3f,0x00,0x00,0x00,0x00,0x00
+	0xff, 0xff, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
 /**
@@ -55,7 +55,7 @@ const uint8_t DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LOCKED[] = {
  * corresponding to DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LOCKED.
  */
 const uint8_t DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LOCKED_UNLOCKED[] = {
-	0xff,0xff,0x7f,0x00,0x00,0x00,0x00,0x00
+	0xff, 0xff, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
 const size_t DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN =
@@ -65,7 +65,7 @@ const size_t DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN =
  * An unlock counter value for use in test tokens.  The counter represents a locked state.
  */
 const uint8_t DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED[] = {
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0x03,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
 /**
@@ -73,7 +73,7 @@ const uint8_t DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED[] = {
  * corresponding to DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED.
  */
 const uint8_t DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_UNLOCKED[] = {
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0x07,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
 const size_t DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN =
@@ -83,8 +83,8 @@ const size_t DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN =
  * A nonce for use in test tokens.
  */
 const uint8_t DEVICE_UNLOCK_TOKEN_TESTING_NONCE[32] = {
-	0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,
-	0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xef,0xfe,0xdc,0xba,0x98,0x76,0x54,0x32,0x10
+	0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+	0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10
 };
 
 const size_t DEVICE_UNLOCK_TOKEN_TESTING_NONCE_LEN = sizeof (DEVICE_UNLOCK_TOKEN_TESTING_NONCE);
@@ -93,9 +93,9 @@ const size_t DEVICE_UNLOCK_TOKEN_TESTING_NONCE_LEN = sizeof (DEVICE_UNLOCK_TOKEN
  * An unlock policy to use for test authorized data.
  */
 const uint8_t DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY[] = {
-	0x6d,0x91,0x51,0xb9,0xf8,0x84,0xf5,0x95,0x51,0xf4,0x76,0xe5,0x25,0x69,0x86,0xa6,
-	0x53,0xd4,0xa4,0x68,0xf2,0x81,0x41,0xed,0x95,0x47,0x21,0xf2,0xcd,0x02,0x05,0x4d,
-	0xf0,0x43,0x87,0x38,0x19,0x45,0x45,0xed,0x70,0x23,0x41,0x73,0xac,0x49,0x88,0xb7
+	0x6d, 0x91, 0x51, 0xb9, 0xf8, 0x84, 0xf5, 0x95, 0x51, 0xf4, 0x76, 0xe5, 0x25, 0x69, 0x86, 0xa6,
+	0x53, 0xd4, 0xa4, 0x68, 0xf2, 0x81, 0x41, 0xed, 0x95, 0x47, 0x21, 0xf2, 0xcd, 0x02, 0x05, 0x4d,
+	0xf0, 0x43, 0x87, 0x38, 0x19, 0x45, 0x45, 0xed, 0x70, 0x23, 0x41, 0x73, 0xac, 0x49, 0x88, 0xb7
 };
 
 const size_t DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN =
@@ -106,9 +106,9 @@ const size_t DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN =
  * Dependencies for testing the device unlock token handler.
  */
 struct device_unlock_token_testing {
-	struct auth_token_mock auth;			/**< Mock for authorization token handling. */
-	struct cmd_device_mock uuid;			/**< Mock for UUID retrieval. */
-	struct device_unlock_token test;		/**< Unlock token handler under test. */
+	struct auth_token_mock auth;		/**< Mock for authorization token handling. */
+	struct cmd_device_mock uuid;		/**< Mock for UUID retrieval. */
+	struct device_unlock_token test;	/**< Unlock token handler under test. */
 };
 
 
@@ -393,29 +393,28 @@ static void device_unlock_token_test_init_null (CuTest *test)
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DEVICE_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
 
-	status = device_unlock_token_init (&token.test, NULL, &token.uuid.base,
-		RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
-		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, HASH_TYPE_SHA256);
+	status = device_unlock_token_init (&token.test, NULL, &token.uuid.base,	RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN,
+		HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DEVICE_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
 
-	status = device_unlock_token_init (&token.test, &token.auth.base, NULL,
-		RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
-		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, HASH_TYPE_SHA256);
+	status = device_unlock_token_init (&token.test, &token.auth.base, NULL,	RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN,
+		HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DEVICE_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
 
-	status = device_unlock_token_init (&token.test, &token.auth.base, &token.uuid.base,
-		NULL, RIOT_CORE_DEVICE_ID_OID_LEN,
-		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, HASH_TYPE_SHA256);
-	CuAssertIntEquals (test, DEVICE_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
-
-	status = device_unlock_token_init (&token.test, &token.auth.base, &token.uuid.base,
-		RIOT_CORE_DEVICE_ID_OID, 0,
-		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, HASH_TYPE_SHA256);
+	status = device_unlock_token_init (&token.test, &token.auth.base, &token.uuid.base,	NULL,
+		RIOT_CORE_DEVICE_ID_OID_LEN, DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN,
+		HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DEVICE_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
 
 	status = device_unlock_token_init (&token.test, &token.auth.base, &token.uuid.base,
-		RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
-		0, HASH_TYPE_SHA256);
+		RIOT_CORE_DEVICE_ID_OID, 0,	DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN,
+		HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, DEVICE_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
+
+	status = device_unlock_token_init (&token.test, &token.auth.base, &token.uuid.base,
+		RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN, 0, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DEVICE_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
 
 	device_unlock_token_testing_release_dependencies (test, &token);
@@ -780,13 +779,11 @@ static void device_unlock_token_test_generate_null (CuTest *test)
 		RIOT_CORE_DEVICE_ID_OID_LEN, DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN,
 		HASH_TYPE_SHA256);
 
-	status = device_unlock_token_generate (NULL,
-		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED,
+	status = device_unlock_token_generate (NULL, DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, out, sizeof (out));
 	CuAssertIntEquals (test, DEVICE_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
 
-	status = device_unlock_token_generate (&token.test,
-		NULL,
+	status = device_unlock_token_generate (&token.test,	NULL,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, out, sizeof (out));
 	CuAssertIntEquals (test, DEVICE_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
 
@@ -1989,7 +1986,7 @@ static void device_unlock_token_test_get_unlock_counter_short_data_counter (CuTe
 
 	auth_length = device_unlock_token_testing_build_authorized_data (token,
 		2 + 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 +
-			DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN - 1,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN - 1,
 		DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY, DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN,
 		ECC384_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN, auth_data);
 
@@ -2410,7 +2407,7 @@ static void device_unlock_token_test_get_nonce_short_data_counter (CuTest *test)
 
 	auth_length = device_unlock_token_testing_build_authorized_data (token,
 		2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 +
-			DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN - 1,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN - 1,
 		DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY, DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN,
 		ECC384_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN, auth_data);
 
@@ -2439,9 +2436,9 @@ static void device_unlock_token_test_get_nonce_short_data_no_nonce (CuTest *test
 
 	auth_length = device_unlock_token_testing_build_authorized_data (token,
 		2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 +
-			DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN,
-		DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY, DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN,
-		ECC384_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN, auth_data);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY,
+		DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN, ECC384_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN,
+		auth_data);
 
 	status = device_unlock_token_get_nonce (auth_data, auth_length, &nonce, &length);
 	CuAssertIntEquals (test, DEVICE_UNLOCK_TOKEN_BAD_AUTH_DATA, status);
@@ -2468,10 +2465,10 @@ static void device_unlock_token_test_get_nonce_short_data_nonce (CuTest *test)
 
 	auth_length = device_unlock_token_testing_build_authorized_data (token,
 		2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 +
-			DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN +
-			DEVICE_UNLOCK_TOKEN_TESTING_NONCE_LEN - 1,
-		DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY, DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN,
-		ECC384_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN, auth_data);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN +
+		DEVICE_UNLOCK_TOKEN_TESTING_NONCE_LEN - 1, DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY,
+		DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN, ECC384_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN,
+		auth_data);
 
 	status = device_unlock_token_get_nonce (auth_data, auth_length, &nonce, &length);
 	CuAssertIntEquals (test, DEVICE_UNLOCK_TOKEN_BAD_AUTH_DATA, status);
@@ -2606,16 +2603,13 @@ static void device_unlock_token_test_get_unlock_policy_null (CuTest *test)
 		DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY, DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN,
 		ECC384_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN, auth_data);
 
-	status = device_unlock_token_get_unlock_policy (NULL, sizeof (auth_data), &policy,
-		&length);
+	status = device_unlock_token_get_unlock_policy (NULL, sizeof (auth_data), &policy, &length);
 	CuAssertIntEquals (test, DEVICE_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
 
-	status = device_unlock_token_get_unlock_policy (auth_data, sizeof (auth_data), NULL,
-		&length);
+	status = device_unlock_token_get_unlock_policy (auth_data, sizeof (auth_data), NULL, &length);
 	CuAssertIntEquals (test, DEVICE_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
 
-	status = device_unlock_token_get_unlock_policy (auth_data, sizeof (auth_data), &policy,
-		NULL);
+	status = device_unlock_token_get_unlock_policy (auth_data, sizeof (auth_data), &policy,	NULL);
 	CuAssertIntEquals (test, DEVICE_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
 }
 
@@ -2753,11 +2747,12 @@ static void device_unlock_token_test_get_unlock_policy_short_data_policy (CuTest
 
 	status = device_unlock_token_get_unlock_policy (auth_data,
 		2 + sizeof (token) + 2 + DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN - 1, &policy,
-			&length);
+		&length);
 	CuAssertIntEquals (test, DEVICE_UNLOCK_TOKEN_BAD_AUTH_DATA, status);
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (device_unlock_token);
 
 TEST (device_unlock_token_test_init);
@@ -2838,3 +2833,4 @@ TEST (device_unlock_token_test_get_unlock_policy_short_data_no_policy);
 TEST (device_unlock_token_test_get_unlock_policy_short_data_policy);
 
 TEST_SUITE_END;
+// *INDENT-ON*

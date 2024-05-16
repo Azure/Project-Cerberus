@@ -12,7 +12,7 @@
  * base specification (DSP0236).
  */
 struct cmd_interface_protocol_mctp_vdm_pci {
-	struct cmd_interface_protocol base;			/**< Base protocol handling API. */
+	struct cmd_interface_protocol base;	/**< Base protocol handling API. */
 };
 
 
@@ -21,4 +21,4 @@ void cmd_interface_protocol_mctp_vdm_pci_release (
 	const struct cmd_interface_protocol_mctp_vdm_pci *mctp);
 
 
-#endif /* CMD_INTERFACE_PROTOCOL_MCTP_VDM_PCI_H_ */
+#endif	/* CMD_INTERFACE_PROTOCOL_MCTP_VDM_PCI_H_ */

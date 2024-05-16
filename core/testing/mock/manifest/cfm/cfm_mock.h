@@ -4,16 +4,16 @@
 #ifndef CFM_MOCK_H_
 #define CFM_MOCK_H_
 
-#include "manifest/cfm/cfm.h"
 #include "mock.h"
+#include "manifest/cfm/cfm.h"
 
 
 /**
  * A mock for a cfm.
  */
 struct cfm_mock {
-	struct cfm base;			/**< The base cfm instance. */
-	struct mock mock;			/**< The base mock interface. */
+	struct cfm base;	/**< The base cfm instance. */
+	struct mock mock;	/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void cfm_mock_release (struct cfm_mock *mock);
 int cfm_mock_validate_and_release (struct cfm_mock *mock);
 
 
-#endif /* CFM_MOCK_H_ */
+#endif	/* CFM_MOCK_H_ */

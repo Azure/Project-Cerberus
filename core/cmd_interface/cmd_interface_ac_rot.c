@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 #include "cerberus_protocol.h"
 #include "cerberus_protocol_required_commands.h"
@@ -45,8 +45,7 @@ int cmd_interface_ac_rot_process_request (const struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES:
-			status = cerberus_protocol_get_device_capabilities (ac_rot->device_manager,
-				request);
+			status = cerberus_protocol_get_device_capabilities (ac_rot->device_manager,	request);
 			break;
 
 		case CERBERUS_PROTOCOL_EXPORT_CSR:
@@ -54,8 +53,8 @@ int cmd_interface_ac_rot_process_request (const struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_IMPORT_CA_SIGNED_CERT:
-			status = cerberus_protocol_import_ca_signed_cert (ac_rot->riot,
-				ac_rot->background, request);
+			status = cerberus_protocol_import_ca_signed_cert (ac_rot->riot,	ac_rot->background,
+				request);
 			break;
 
 		case CERBERUS_PROTOCOL_GET_SIGNED_CERT_STATE:

@@ -7,15 +7,15 @@
 #include "testing.h"
 #include "host_fw/host_processor_single.h"
 #include "host_fw/host_state_manager.h"
+#include "testing/crypto/rsa_testing.h"
+#include "testing/engines/hash_testing_engine.h"
+#include "testing/engines/rsa_testing_engine.h"
+#include "testing/host_fw/host_processor_single_testing.h"
 #include "testing/mock/flash/flash_master_mock.h"
 #include "testing/mock/host_fw/host_control_mock.h"
 #include "testing/mock/host_fw/host_flash_manager_single_mock.h"
 #include "testing/mock/manifest/pfm/pfm_manager_mock.h"
 #include "testing/mock/spi_filter/spi_filter_interface_mock.h"
-#include "testing/engines/hash_testing_engine.h"
-#include "testing/engines/rsa_testing_engine.h"
-#include "testing/crypto/rsa_testing.h"
-#include "testing/host_fw/host_processor_single_testing.h"
 
 
 TEST_SUITE_LABEL ("host_processor_single");
@@ -34,8 +34,8 @@ static void host_processor_single_test_bypass_mode_ro_flash (CuTest *test)
 
 	host_processor_single_testing_init (test, &host);
 
-	status = mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
-		&host.filter, 0);
+	status = mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions, &host.filter,
+		0);
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
 		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
@@ -77,8 +77,8 @@ static void host_processor_single_test_bypass_mode_ro_flash_cs1 (CuTest *test)
 	status = host_state_manager_save_read_only_flash (&host.host_state, SPI_FILTER_CS_1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
-		&host.filter, 0);
+	status = mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions, &host.filter,
+		0);
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
 		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
@@ -117,8 +117,8 @@ static void host_processor_single_test_bypass_mode_rw_flash (CuTest *test)
 
 	host_processor_single_testing_init (test, &host);
 
-	status = mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
-		&host.filter, 0);
+	status = mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions, &host.filter,
+		0);
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
 		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
@@ -160,8 +160,8 @@ static void host_processor_single_test_bypass_mode_rw_flash_cs0 (CuTest *test)
 	status = host_state_manager_save_read_only_flash (&host.host_state, SPI_FILTER_CS_1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
-		&host.filter, 0);
+	status = mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions, &host.filter,
+		0);
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
 		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
@@ -203,8 +203,8 @@ static void host_processor_single_test_bypass_mode_no_observer (CuTest *test)
 	status = host_processor_remove_observer (&host.test.base, &host.observer.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
-		&host.filter, 0);
+	status = mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions, &host.filter,
+		0);
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
 		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
@@ -242,8 +242,8 @@ static void host_processor_single_test_bypass_mode_unsupported_flash (CuTest *te
 
 	host_state_manager_set_unsupported_flash (&host.host_state, true);
 
-	status = mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
-		&host.filter, 0);
+	status = mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions, &host.filter,
+		0);
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
 		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
@@ -303,8 +303,8 @@ static void host_processor_single_test_bypass_mode_filter_error (CuTest *test)
 
 	host_processor_single_testing_init (test, &host);
 
-	status = mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
-		&host.filter, SPI_FILTER_CLEAR_RW_FAILED);
+	status = mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions, &host.filter,
+		SPI_FILTER_CLEAR_RW_FAILED);
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, SPI_FILTER_CLEAR_RW_FAILED);
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
@@ -348,8 +348,8 @@ static void host_processor_single_test_bypass_mode_host_access_error (CuTest *te
 
 	host_processor_single_testing_init (test, &host);
 
-	status = mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
-		&host.filter, 0);
+	status = mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions, &host.filter,
+		0);
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
 		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
@@ -385,6 +385,7 @@ static void host_processor_single_test_bypass_mode_host_access_error (CuTest *te
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_processor_single_bypass_mode);
 
 TEST (host_processor_single_test_bypass_mode_ro_flash);
@@ -398,3 +399,4 @@ TEST (host_processor_single_test_bypass_mode_filter_error);
 TEST (host_processor_single_test_bypass_mode_host_access_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

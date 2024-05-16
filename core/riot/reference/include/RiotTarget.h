@@ -23,48 +23,48 @@
 //
 // 4-MAY-2015; RIoT adaptation (DennisMa;MSFT).
 //
-#include <stdlib.h>
-#include <stdio.h>
-#include <stddef.h>
-#include <string.h>
 #include <assert.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #ifndef _MSC_VER
 #include <stdint.h>
 #else
-#if _MSC_VER >= 1600   /* MSVC 2010 or higher */
+#if _MSC_VER >= 1600					/* MSVC 2010 or higher */
 #include <stdint.h>
 #else
-typedef signed char int8_t;           // 8-bit signed integer
-typedef unsigned char uint8_t;        // 8-bit unsigned integer
-typedef signed short int16_t;         // 16-bit signed integer
-typedef unsigned short uint16_t;      // 16-bit unsigned integer
-typedef signed int int32_t;           // 32-bit signed integer
-typedef unsigned int uint32_t;        // 32-bit unsigned integer
-typedef signed long long int64_t;     // 64-bit signed integer
-typedef unsigned long long uint64_t;  // 64-bit unsigned integer
+typedef signed char int8_t;				// 8-bit signed integer
+typedef unsigned char uint8_t;			// 8-bit unsigned integer
+typedef signed short int16_t;			// 16-bit signed integer
+typedef unsigned short uint16_t;		// 16-bit unsigned integer
+typedef signed int int32_t;				// 32-bit signed integer
+typedef unsigned int uint32_t;			// 32-bit unsigned integer
+typedef signed long long int64_t;		// 64-bit signed integer
+typedef unsigned long long uint64_t;	// 64-bit unsigned integer
 #endif
 #endif
 
 #ifndef MIN
-#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MIN(a, b) (((a)<(b))?(a):(b))
 #endif
 
 #ifndef MAX
-#define MAX(a,b) (((a)>(b))?(a):(b))
+#define MAX(a, b) (((a)>(b))?(a):(b))
 #endif
 
 #ifdef  _MSC_VER
 // This macro is used to handle LIB_EXPORT of function and variable names in lieu
 // of a .def file. Visual Studio requires that functions be explicity exported and
 // imported.
-#   define LIB_EXPORT __declspec(dllexport) // VS compatible version
+#   define LIB_EXPORT __declspec(dllexport)	// VS compatible version
 #   define LIB_IMPORT __declspec(dllimport)
 // This is defined to indicate a function that does not return. Microsoft compilers
 // do not support the _Noretrun function parameter.
 #   define NORETURN  __declspec(noreturn)
 #   define INLINE  __inline
-#endif // _MSC_VER
+#endif	// _MSC_VER
 
 #ifndef true
 #define true (1)
@@ -105,4 +105,6 @@ extern uint8_t dbgTARGET_UTIL;
 #ifdef ALL_SYMBOLS
 # define    static
 #endif
+
+
 #endif

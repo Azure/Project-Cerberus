@@ -35,12 +35,13 @@ int rng_mbedtls_init (struct rng_engine_mbedtls *engine)
 	mbedtls_ctr_drbg_init (&engine->ctr_drbg);
 	mbedtls_entropy_init (&engine->entropy);
 
-    status = mbedtls_ctr_drbg_seed (&engine->ctr_drbg, mbedtls_entropy_func, &engine->entropy, NULL,
+	status = mbedtls_ctr_drbg_seed (&engine->ctr_drbg, mbedtls_entropy_func, &engine->entropy, NULL,
 		0);
 	if (status != 0) {
 		rng_mbedtls_release (engine);
+
 		return status;
-    }
+	}
 
 	engine->base.generate_random_buffer = rng_mbedtls_generate_random_buffer;
 

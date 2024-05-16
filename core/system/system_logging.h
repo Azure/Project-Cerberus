@@ -34,9 +34,9 @@ enum {
  * Identifiers for types of unlock policies that can be applied.
  */
 enum {
-	SYSTEM_LOGGING_UNLOCK_PERSISTENT,		/**< Identifier for a persistent unlock policy. */
-	SYSTEM_LOGGING_UNLOCK_ONE_TIME,			/**< Identifier for a one-time unlock policy. */
+	SYSTEM_LOGGING_UNLOCK_PERSISTENT,	/**< Identifier for a persistent unlock policy. */
+	SYSTEM_LOGGING_UNLOCK_ONE_TIME,		/**< Identifier for a one-time unlock policy. */
 };
 
 
-#endif /* SYSTEM_LOGGING_H_ */
+#endif	/* SYSTEM_LOGGING_H_ */

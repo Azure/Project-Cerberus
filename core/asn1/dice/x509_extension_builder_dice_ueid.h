@@ -20,7 +20,7 @@
  *
  * @param ueid_len Length of the UEID that will be encoded in the extension.
  */
-#define	X509_EXTENSION_BUILDER_DICE_UEID_DATA_LENGTH(ueid_len)		\
+#define	X509_EXTENSION_BUILDER_DICE_UEID_DATA_LENGTH(ueid_len)      \
 	((ueid_len) + 4 + X509_EXTENSION_BUILDER_DICE_UEID_BUFFER_PADDING)
 
 
@@ -29,11 +29,11 @@
  * components or libraries.
  */
 struct x509_extension_builder_dice_ueid {
-	struct x509_extension_builder base;		/**< Base extension builder API. */
-	const uint8_t *ueid;					/**< The UEID to encode in the extension. */
-	size_t ueid_length;						/**< Length of the UEID. */
-	uint8_t *ext_buffer;					/**< Buffer to use for building the extension data. */
-	size_t ext_length;						/**< Length of the extension data duffer. */
+	struct x509_extension_builder base;	/**< Base extension builder API. */
+	const uint8_t *ueid;				/**< The UEID to encode in the extension. */
+	size_t ueid_length;					/**< Length of the UEID. */
+	uint8_t *ext_buffer;				/**< Buffer to use for building the extension data. */
+	size_t ext_length;					/**< Length of the extension data duffer. */
 };
 
 
@@ -63,4 +63,4 @@ enum {
 };
 
 
-#endif /* X509_EXTENSION_BUILDER_DICE_UEID_H_ */
+#endif	/* X509_EXTENSION_BUILDER_DICE_UEID_H_ */

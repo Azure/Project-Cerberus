@@ -24,4 +24,4 @@ void cmd_interface_protocol_cerberus_secure_release (
 	const struct cmd_interface_protocol_cerberus_secure *cerberus);
 
 
-#endif /* CMD_INTERFACE_PROTOCOL_CERBERUS_SECURE_H_ */
+#endif	/* CMD_INTERFACE_PROTOCOL_CERBERUS_SECURE_H_ */

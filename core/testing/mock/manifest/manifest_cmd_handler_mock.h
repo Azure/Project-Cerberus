@@ -4,8 +4,8 @@
 #ifndef MANIFEST_CMD_HANDLER_MOCK_H_
 #define MANIFEST_CMD_HANDLER_MOCK_H_
 
-#include "manifest/manifest_cmd_handler.h"
 #include "mock.h"
+#include "manifest/manifest_cmd_handler.h"
 
 
 /**
@@ -28,4 +28,4 @@ int manifest_cmd_handler_mock_activation (const struct manifest_cmd_handler *han
 void manifest_cmd_handler_mock_enable_activation (struct manifest_cmd_handler_mock *mock);
 
 
-#endif /* MANIFEST_CMD_HANDLER_MOCK_H_ */
+#endif	/* MANIFEST_CMD_HANDLER_MOCK_H_ */

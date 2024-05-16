@@ -4,8 +4,8 @@
 #ifndef MANIFEST_V2_TESTING_H_
 #define MANIFEST_V2_TESTING_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "crypto/hash.h"
 
 
@@ -47,9 +47,10 @@ struct manifest_v2_testing_data {
 #define	MANIFEST_V2_HEADER_SIZE				12
 #define	MANIFEST_V2_TOC_HDR_OFFSET			MANIFEST_V2_HEADER_SIZE
 #define	MANIFEST_V2_TOC_HEADER_SIZE			4
-#define	MANIFEST_V2_TOC_ENTRY_OFFSET		(MANIFEST_V2_TOC_HDR_OFFSET + MANIFEST_V2_TOC_HEADER_SIZE)
+#define	MANIFEST_V2_TOC_ENTRY_OFFSET        \
+		(MANIFEST_V2_TOC_HDR_OFFSET + MANIFEST_V2_TOC_HEADER_SIZE)
 #define	MANIFEST_V2_TOC_ENTRY_SIZE			8
 #define	MANIFEST_V2_PLATFORM_HEADER_SIZE	4
 
 
-#endif /* MANIFEST_V2_TESTING_H_ */
+#endif	/* MANIFEST_V2_TESTING_H_ */

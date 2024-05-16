@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
 #include "cmd_interface/cerberus_protocol_required_commands.h"
@@ -297,6 +297,7 @@ static void cmd_interface_null_test_init_generate_error_packet_null (CuTest *tes
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_null);
 
 TEST (cmd_interface_null_test_init);
@@ -314,3 +315,4 @@ TEST (cmd_interface_null_test_init_generate_error_packet_static_init);
 TEST (cmd_interface_null_test_init_generate_error_packet_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

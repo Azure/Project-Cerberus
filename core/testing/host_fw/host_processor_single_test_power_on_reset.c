@@ -13438,6 +13438,7 @@ static void host_processor_single_test_power_on_reset_pending_pfm_with_active_di
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_processor_single_power_on_reset);
 
 TEST (host_processor_single_test_power_on_reset_no_pfm);
@@ -13612,3 +13613,4 @@ TEST (host_processor_single_test_power_on_reset_pending_pfm_with_active_dirty_em
 TEST (host_processor_single_test_power_on_reset_pending_pfm_with_active_dirty_empty_manifest_cs_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

@@ -11,8 +11,8 @@
  * Logging messages for SPDM stack operations.
  */
 enum {
-	SPDM_LOGGING_ERR_MSG,						/**< Failed while processing SPDM request. */
+	SPDM_LOGGING_ERR_MSG,	/**< Failed while processing SPDM request. */
 };
 
 
-#endif /* SPDM_LOGGING_H_ */
+#endif	/* SPDM_LOGGING_H_ */

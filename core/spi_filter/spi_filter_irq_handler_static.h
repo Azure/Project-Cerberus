@@ -13,7 +13,7 @@
 /**
  * Constant initializer for the task API.
  */
-#define	SPI_FILTER_IRQ_HANDLER_API_INIT	\
+#define	SPI_FILTER_IRQ_HANDLER_API_INIT \
 	.ro_flash_dirty = spi_filter_irq_handler_ro_flash_dirty,
 
 
@@ -30,4 +30,4 @@
 	}
 
 
-#endif /* SPI_FILTER_IRQ_HANDLER_STATIC_H_ */
+#endif	/* SPI_FILTER_IRQ_HANDLER_STATIC_H_ */

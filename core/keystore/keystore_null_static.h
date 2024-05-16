@@ -36,4 +36,4 @@ int keystore_null_erase_all_keys (const struct keystore *store);
 	}
 
 
-#endif /* KEYSTORE_NULL_STATIC_H_ */
+#endif	/* KEYSTORE_NULL_STATIC_H_ */

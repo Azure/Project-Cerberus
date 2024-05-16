@@ -4,8 +4,8 @@
 #ifndef SPDM_PROTOCOL_OBSERVER_H_
 #define SPDM_PROTOCOL_OBSERVER_H_
 
-#include "status/rot_status.h"
 #include "cmd_interface/cmd_interface.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -114,4 +114,4 @@ enum {
 };
 
 
-#endif /* SPDM_PROTOCOL_OBSERVER_H_ */
+#endif	/* SPDM_PROTOCOL_OBSERVER_H_ */

@@ -4,8 +4,8 @@
 #ifndef LOGGING_FLASH_H_
 #define LOGGING_FLASH_H_
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "logging.h"
 #include "platform_api.h"
 #include "flash/flash_common.h"
@@ -16,7 +16,7 @@
  * The number of flash sectors available to the log for storing entries.
  */
 #define LOGGING_FLASH_AREA_LEN		FLASH_BLOCK_SIZE
-#define LOGGING_FLASH_SECTORS 		(LOGGING_FLASH_AREA_LEN / FLASH_SECTOR_SIZE)
+#define LOGGING_FLASH_SECTORS		(LOGGING_FLASH_AREA_LEN / FLASH_SECTOR_SIZE)
 
 
 /**
@@ -38,10 +38,10 @@ struct logging_flash_state {
  * A log that will persistently store entries in SPI flash.
  */
 struct logging_flash {
-	struct logging base;						/**< The base logging instance. */
-	struct logging_flash_state *state;			/**< Variable context for the log instance. */
-	const struct spi_flash *flash;				/**< The flash where log entries are stored. */
-	uint32_t base_addr;							/**< The base address of the log data on flash. */
+	struct logging base;				/**< The base logging instance. */
+	struct logging_flash_state *state;	/**< Variable context for the log instance. */
+	const struct spi_flash *flash;		/**< The flash where log entries are stored. */
+	uint32_t base_addr;					/**< The base address of the log data on flash. */
 };
 
 
@@ -51,4 +51,4 @@ int logging_flash_init_state (const struct logging_flash *logging);
 void logging_flash_release (const struct logging_flash *logging);
 
 
-#endif /* LOGGING_FLASH_H_ */
+#endif	/* LOGGING_FLASH_H_ */

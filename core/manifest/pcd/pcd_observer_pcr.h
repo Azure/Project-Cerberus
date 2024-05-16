@@ -4,8 +4,8 @@
 #ifndef PCD_OBSERVER_PCR_H_
 #define PCD_OBSERVER_PCR_H_
 
-#include "pcd_observer.h"
 #include "pcd_manager.h"
+#include "pcd_observer.h"
 #include "manifest/manifest_pcr.h"
 
 
@@ -13,8 +13,8 @@
  * PCD observer to handle PCR updates when PCDs change.
  */
 struct pcd_observer_pcr {
-	struct pcd_observer base;		/**< The base observer interface. */
-	struct manifest_pcr pcr;		/**< The PCR manager for the PCD. */
+	struct pcd_observer base;	/**< The base observer interface. */
+	struct manifest_pcr pcr;	/**< The PCR manager for the PCD. */
 };
 
 
@@ -27,4 +27,4 @@ void pcd_observer_pcr_record_measurement (const struct pcd_observer_pcr *observe
 	struct pcd_manager *manager);
 
 
-#endif /* PCD_OBSERVER_PCR_H_ */
+#endif	/* PCD_OBSERVER_PCR_H_ */

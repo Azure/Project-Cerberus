@@ -1,29 +1,29 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
 #include "x509_mbedtls.h"
-#include "mbedtls/pk.h"
-#include "mbedtls/x509_csr.h"
-#include "mbedtls/x509_crt.h"
-#include "mbedtls/asn1write.h"
-#include "mbedtls/oid.h"
-#include "mbedtls/bignum.h"
-#include "logging/debug_log.h"
-#include "crypto/crypto_logging.h"
 #include "common/unused.h"
+#include "crypto/crypto_logging.h"
+#include "logging/debug_log.h"
+#include "mbedtls/asn1write.h"
+#include "mbedtls/bignum.h"
+#include "mbedtls/oid.h"
+#include "mbedtls/pk.h"
+#include "mbedtls/x509_crt.h"
+#include "mbedtls/x509_csr.h"
 
 
 /**
  * mbedTLS data for managing CA certificates.
  */
 struct x509_mbedtls_ca_store_context {
-	mbedtls_x509_crt *root_ca;			/**< The chain of trusted root certificates. */
-	mbedtls_x509_crt *intermediate;		/**< The chain of intermediate CAs. */
+	mbedtls_x509_crt *root_ca;		/**< The chain of trusted root certificates. */
+	mbedtls_x509_crt *intermediate;	/**< The chain of intermediate CAs. */
 };
 
 
@@ -89,6 +89,7 @@ exit:
 	if (status != 0) {
 		mbedtls_pk_free (key);
 	}
+
 	return status;
 }
 
@@ -127,8 +128,7 @@ static int x509_mbedtls_add_key_usage_extension (mbedtls_asn1_named_data **exten
 	int length;
 
 	pos = ext + sizeof (ext);
-	length = mbedtls_asn1_write_bitstring (&pos, ext, (uint8_t*) &usage,
-		(usage & 0x04) ? 6 : 5);
+	length = mbedtls_asn1_write_bitstring (&pos, ext, (uint8_t*) &usage, (usage & 0x04) ? 6 : 5);
 	if (length < 0) {
 		return length;
 	}
@@ -413,6 +413,7 @@ err_free_key:
 	mbedtls_pk_free (&key);
 err_free_csr:
 	mbedtls_x509write_csr_free (&x509);
+
 	return status;
 }
 
@@ -635,6 +636,7 @@ err_free_subject:
 	platform_free (subject);
 err_free_crt:
 	mbedtls_x509write_crt_free (&x509_build);
+
 	return status;
 }
 
@@ -668,12 +670,13 @@ static int x509_mbedtls_create_self_signed_certificate (struct x509_engine *engi
 
 	mbedtls_pk_free (&cert_key);
 err_exit:
+
 	return status;
 }
 
 static int x509_mbedtls_create_ca_signed_certificate (struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *key, size_t key_length, const uint8_t *serial_num,
-	size_t serial_length, const char *name, int type, const uint8_t* ca_priv_key,
+	size_t serial_length, const char *name, int type, const uint8_t *ca_priv_key,
 	size_t ca_key_length, enum hash_type sig_hash, const struct x509_certificate *ca_cert,
 	const struct x509_extension_builder *const *extra_extensions, size_t ext_count)
 {
@@ -715,6 +718,7 @@ static int x509_mbedtls_create_ca_signed_certificate (struct x509_engine *engine
 err_free_key:
 	mbedtls_pk_free (&cert_key);
 err_exit:
+
 	return status;
 }
 #endif
@@ -907,7 +911,7 @@ static int x509_mbedtls_verify_cert_signature (mbedtls_x509_crt *cert, mbedtls_p
 	mbedtls_md (md_info, cert->tbs.p, cert->tbs.len, hash);
 
 	status = mbedtls_pk_verify_ext (cert->sig_pk, cert->sig_opts, key, cert->sig_md, hash,
-	mbedtls_md_get_size (md_info), cert->sig.p, cert->sig.len);
+		mbedtls_md_get_size (md_info), cert->sig.p, cert->sig.len);
 
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
@@ -1017,6 +1021,7 @@ static int x509_mbedtls_add_root_ca (struct x509_engine *engine, struct x509_ca_
 err_free_cert:
 	x509_mbedtls_release_certificate (engine, &cert);
 err_exit:
+
 	return status;
 }
 
@@ -1058,6 +1063,7 @@ static int x509_mbedtls_add_intermediate_ca (struct x509_engine *engine,
 err_free_cert:
 	x509_mbedtls_release_certificate (engine, &cert);
 err_exit:
+
 	return status;
 }
 
@@ -1090,6 +1096,7 @@ static int x509_mbedtls_authenticate (struct x509_engine *engine,
 	}
 
 	x509->next = NULL;
+
 	return status;
 }
 #endif
@@ -1151,6 +1158,7 @@ int x509_mbedtls_init (struct x509_engine_mbedtls *engine)
 exit:
 	mbedtls_entropy_free (&engine->entropy);
 	mbedtls_ctr_drbg_free (&engine->ctr_drbg);
+
 	return status;
 }
 

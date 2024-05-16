@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "spi_filter_interface_mock.h"
 
@@ -220,8 +220,8 @@ static int spi_filter_interface_mock_require_addr_byte_mode_write_enable (
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_require_addr_byte_mode_write_enable,
-		filter, MOCK_ARG_CALL (require));
+	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_require_addr_byte_mode_write_enable, filter,
+		MOCK_ARG_CALL (require));
 }
 
 static int spi_filter_interface_mock_get_reset_addr_byte_mode (

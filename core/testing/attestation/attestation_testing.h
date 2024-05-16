@@ -17,4 +17,4 @@ void attestation_testing_add_root_ca_to_riot_key_manager (CuTest *test,
 void attestation_testing_add_aux_certificate (CuTest *test, struct aux_attestation *aux);
 
 
-#endif /* ATTESTATION_TESTING_H_ */
+#endif	/* ATTESTATION_TESTING_H_ */

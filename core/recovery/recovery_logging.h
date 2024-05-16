@@ -30,4 +30,4 @@ enum {
 };
 
 
-#endif /* RECOVERY_LOGGING_H_ */
+#endif	/* RECOVERY_LOGGING_H_ */

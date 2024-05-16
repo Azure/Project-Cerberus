@@ -4,10 +4,10 @@
 #ifndef DME_STRUCTURE_H_
 #define DME_STRUCTURE_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "status/rot_status.h"
+#include <stdint.h>
 #include "crypto/hash.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -23,48 +23,48 @@ struct dme_structure {
 	 * The OID specifying the type of DME structure contained in the data.
 	 */
 	const uint8_t *data_oid;
-	size_t data_oid_length;				/**< Length of the DME structure type OID. */
+	size_t data_oid_length;	/**< Length of the DME structure type OID. */
 
 	/**
 	 * The raw DME structure data that was signed with the DME private key.  This is only the signed
 	 * data and must not contain the signature.
 	 */
 	const uint8_t *data;
-	size_t data_length;					/**< Length of the DME structure data. */
+	size_t data_length;	/**< Length of the DME structure data. */
 
 	/**
 	 * The OID specifying the type of signature that was generated for the DME structure.
 	 */
 	const uint8_t *sig_oid;
-	size_t sig_oid_length;				/**< Length of the DME signature type OID. */
+	size_t sig_oid_length;	/**< Length of the DME signature type OID. */
 
 	/**
 	 * The signature for the DME structure using the DME private key.  This must be a DER encoded
 	 * signature.
 	 */
 	const uint8_t *signature;
-	size_t signature_length;			/**< Length of the DER encoded DME signature. */
+	size_t signature_length;	/**< Length of the DER encoded DME signature. */
 
 	/**
 	 * The DME public key that can be used to verify the signature.  This must be a DER encoded
 	 * public key.
 	 */
 	const uint8_t *dme_pub_key;
-	size_t key_length;					/**< Length of the DER encoded DME public key. */
+	size_t key_length;	/**< Length of the DER encoded DME public key. */
 
 	/**
 	 * An optional OID specifying the type of device that generated the DME structure.  If no device
 	 * type OID is necessary, this will be null.
 	 */
 	const uint8_t *device_oid;
-	size_t dev_oid_length;				/**< Length of the device type OID. */
+	size_t dev_oid_length;	/**< Length of the device type OID. */
 
 	/**
 	 * An optional value specifying the current value used to renew the DME key for the device.  If
 	 * the device does not support a renewal counter, this will be null.
 	 */
 	const uint8_t *renewal_counter;
-	size_t counter_length;				/**< Length of the DME key renewal counter. */
+	size_t counter_length;	/**< Length of the DME key renewal counter. */
 };
 
 
@@ -78,9 +78,9 @@ int dme_structure_init_sha384_with_challenge (struct dme_structure *dme,
 int dme_structure_init_sha256 (struct dme_structure *dme, const uint8_t *dme_struct_data,
 	size_t dme_struct_length, const uint8_t *dme_key_der, size_t key_length,
 	const uint8_t *signature_der, size_t sig_length, enum hash_type sig_hash);
-int dme_structure_init_sha256_with_challenge (struct dme_structure *dme,
-	const uint8_t *v, size_t dme_struct_length, const uint8_t *dme_key_der,
-	size_t key_length, const uint8_t *signature_der, size_t sig_length, enum hash_type sig_hash);
+int dme_structure_init_sha256_with_challenge (struct dme_structure *dme, const uint8_t *v,
+	size_t dme_struct_length, const uint8_t *dme_key_der, size_t key_length,
+	const uint8_t *signature_der, size_t sig_length, enum hash_type sig_hash);
 
 int dme_structure_init_sha512 (struct dme_structure *dme, const uint8_t *dme_struct_data,
 	size_t dme_struct_length, const uint8_t *dme_key_der, size_t key_length,
@@ -108,4 +108,4 @@ enum {
 };
 
 
-#endif /* DME_STRUCTURE_H_ */
+#endif	/* DME_STRUCTURE_H_ */

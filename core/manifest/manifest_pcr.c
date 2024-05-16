@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "platform_api.h"
-#include "manifest_pcr.h"
 #include "manifest_logging.h"
+#include "manifest_pcr.h"
+#include "platform_api.h"
 #include "common/unused.h"
 
 
@@ -25,8 +25,8 @@
  *
  * @return 0 if the PCR manager was successfully initialized or an error code.
  */
-int manifest_pcr_init (struct manifest_pcr *pcr, struct hash_engine *hash,
-	struct pcr_store *store, uint16_t manifest_measurement, uint16_t manifest_id_measurement,
+int manifest_pcr_init (struct manifest_pcr *pcr, struct hash_engine *hash, struct pcr_store *store,
+	uint16_t manifest_measurement, uint16_t manifest_id_measurement,
 	uint16_t manifest_platform_id_measurement, int error)
 {
 	int status;
@@ -94,6 +94,7 @@ void manifest_pcr_record_manifest_measurement (const struct manifest_pcr *pcr,
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 				MANIFEST_LOGGING_GET_MEASUREMENT_FAIL, pcr->manifest_measurement,
 				measurement_length);
+
 			return;
 		}
 	}
@@ -103,6 +104,7 @@ void manifest_pcr_record_manifest_measurement (const struct manifest_pcr *pcr,
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 			MANIFEST_LOGGING_RECORD_MEASUREMENT_FAIL, pcr->manifest_measurement, status);
+
 		return;
 	}
 
@@ -115,6 +117,7 @@ void manifest_pcr_record_manifest_measurement (const struct manifest_pcr *pcr,
 		if (status != 0) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 				MANIFEST_LOGGING_GET_ID_FAIL, pcr->manifest_id_measurement, status);
+
 			return;
 		}
 	}
@@ -124,6 +127,7 @@ void manifest_pcr_record_manifest_measurement (const struct manifest_pcr *pcr,
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 			MANIFEST_LOGGING_RECORD_MEASUREMENT_FAIL, pcr->manifest_id_measurement, status);
+
 		return;
 	}
 
@@ -136,6 +140,7 @@ void manifest_pcr_record_manifest_measurement (const struct manifest_pcr *pcr,
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 				MANIFEST_LOGGING_GET_PLATFORM_ID_FAIL, pcr->manifest_platform_id_measurement,
 				status);
+
 			return;
 		}
 	}

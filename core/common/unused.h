@@ -9,4 +9,4 @@
 #define	UNUSED(x)	(void) x
 
 
-#endif /* UNUSED_H_ */
+#endif	/* UNUSED_H_ */

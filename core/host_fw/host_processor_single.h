@@ -4,10 +4,10 @@
 #ifndef HOST_PROCESSOR_SINGLE_H_
 #define HOST_PROCESSOR_SINGLE_H_
 
-#include "platform_api.h"
+#include "host_flash_manager_single.h"
 #include "host_processor.h"
 #include "host_processor_filtered.h"
-#include "host_flash_manager_single.h"
+#include "platform_api.h"
 
 
 /**
@@ -44,4 +44,4 @@ int host_processor_single_init_internal (struct host_processor_filtered *host,
 	bool reset_flash);
 
 
-#endif /* HOST_PROCESSOR_SINGLE_H_ */
+#endif	/* HOST_PROCESSOR_SINGLE_H_ */

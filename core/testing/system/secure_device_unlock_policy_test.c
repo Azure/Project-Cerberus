@@ -8,11 +8,11 @@
 #include "system/secure_device_unlock_policy.h"
 #include "system/secure_device_unlock_policy_static.h"
 #include "system/system_logging.h"
+#include "testing/logging/debug_log_testing.h"
 #include "testing/mock/cmd_interface/cmd_device_mock.h"
 #include "testing/mock/common/auth_token_mock.h"
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/system/security_manager_mock.h"
-#include "testing/logging/debug_log_testing.h"
 #include "testing/riot/riot_core_testing.h"
 #include "testing/system/device_unlock_token_testing.h"
 
@@ -30,7 +30,7 @@ TEST_SUITE_LABEL ("secure_device_unlock_policy");
  * An unlock counter value that has used all the counter bits.
  */
 const uint8_t SECURE_DEVICE_UNLOCK_POLICY_TESTING_COUNTER_EXHAUSTED[] = {
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 };
 
 const size_t SECURE_DEVICE_UNLOCK_POLICY_TESTING_COUNTER_EXHAUSTED_LEN =
@@ -755,8 +755,8 @@ static void secure_device_unlock_policy_test_apply_unlock_policy_invalidate_erro
 	status |= mock_expect (&unlock.auth.mock, unlock.auth.base.invalidate, &unlock.auth,
 		AUTH_TOKEN_INVALIDATE_FAILED);
 
-	status |= mock_expect (&unlock.log.mock, unlock.log.base.create_entry, &unlock.log,
-		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+	status |= mock_expect (&unlock.log.mock, unlock.log.base.create_entry, &unlock.log,	0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -875,6 +875,7 @@ static void secure_device_unlock_policy_test_clear_unlock_policy_lock_error (CuT
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (secure_device_unlock_policy);
 
 TEST (secure_device_unlock_policy_test_init);
@@ -903,3 +904,4 @@ TEST (secure_device_unlock_policy_test_clear_unlock_policy_invalidate_error);
 TEST (secure_device_unlock_policy_test_clear_unlock_policy_lock_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

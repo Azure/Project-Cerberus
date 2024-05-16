@@ -4,16 +4,16 @@
 #ifndef CMD_BACKGROUND_MOCK_H_
 #define CMD_BACKGROUND_MOCK_H_
 
-#include "cmd_interface/cmd_background.h"
 #include "mock.h"
+#include "cmd_interface/cmd_background.h"
 
 
 /**
  * A mock for a background command context.
  */
 struct cmd_background_mock {
-	struct cmd_background base;		/**< The base control instance. */
-	struct mock mock;				/**< The base mock instance. */
+	struct cmd_background base;	/**< The base control instance. */
+	struct mock mock;			/**< The base mock instance. */
 };
 
 
@@ -23,4 +23,4 @@ void cmd_background_mock_release (struct cmd_background_mock *mock);
 int cmd_background_mock_validate_and_release (struct cmd_background_mock *mock);
 
 
-#endif /* CMD_BACKGROUND_MOCK_H_ */
+#endif	/* CMD_BACKGROUND_MOCK_H_ */

@@ -36,15 +36,9 @@ extern "C" {
 // @param contextSize
 // @param numberOfBits the number of bits to be produced
 //
-size_t RIOT_KDF_FIXED(
-    uint8_t         *fixed,
-    size_t          fixedSize,
-    const uint8_t   *label,
-    size_t          labelSize,
-    const uint8_t   *context,
-    size_t          contextSize,
-    uint32_t        numberOfBits
-);
+size_t RIOT_KDF_FIXED (
+	uint8_t *fixed, size_t fixedSize, const uint8_t *label, size_t labelSize,
+	const uint8_t *context, size_t contextSize, uint32_t numberOfBits);
 
 //
 // Do KDF from SP800-108 -- HMAC based counter mode. This function does a single
@@ -56,16 +50,13 @@ size_t RIOT_KDF_FIXED(
 // @param fixed the label parameter (optional)
 // @param fixedSize
 //
-void RIOT_KDF_SHA256(
-    uint8_t         *out,
-    const uint8_t   *key,
-    size_t          keySize,
-    uint32_t        *counter,
-    const uint8_t   *fixed,
-    size_t          fixedSize
-);
+void RIOT_KDF_SHA256 (
+	uint8_t *out, const uint8_t *key, size_t keySize, uint32_t *counter, const uint8_t *fixed,
+	size_t fixedSize);
 
 #ifdef __cplusplus
 }
 #endif
+
+
 #endif

@@ -16847,6 +16847,7 @@ static void recovery_image_manager_test_hash_measured_data_hash_update_fail (CuT
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (recovery_image_manager);
 
 TEST (recovery_image_manager_test_init);
@@ -17059,3 +17060,4 @@ TEST (recovery_image_manager_test_hash_measured_data_fail);
 TEST (recovery_image_manager_test_hash_measured_data_hash_update_fail);
 
 TEST_SUITE_END;
+// *INDENT-ON*

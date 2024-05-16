@@ -11,7 +11,7 @@
  * Protocol handler for Cerberus messages.  Encrypted messages are not supported by this handler.
  */
 struct cmd_interface_protocol_cerberus {
-	struct cmd_interface_protocol base;			/**< Base protocol handling API. */
+	struct cmd_interface_protocol base;	/**< Base protocol handling API. */
 };
 
 
@@ -27,4 +27,4 @@ int cmd_interface_protocol_cerberus_handle_request_result (
 	struct cmd_interface_msg *message);
 
 
-#endif /* CMD_INTERFACE_PROTOCOL_CERBERUS_H_ */
+#endif	/* CMD_INTERFACE_PROTOCOL_CERBERUS_H_ */

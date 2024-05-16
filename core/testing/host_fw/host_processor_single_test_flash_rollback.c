@@ -25,8 +25,8 @@ static void host_processor_single_test_flash_rollback_not_dirty (CuTest *test)
 
 	host_processor_single_testing_init (test, &host);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_PROCESSOR_NO_ROLLBACK, status);
 
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
@@ -55,8 +55,8 @@ static void host_processor_single_test_flash_rollback_not_dirty_bypass (CuTest *
 
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_PROCESSOR_NO_ROLLBACK, status);
 
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
@@ -85,8 +85,8 @@ static void host_processor_single_test_flash_rollback_not_dirty_checked (CuTest 
 
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_PROCESSOR_NO_ROLLBACK, status);
 
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
@@ -116,8 +116,8 @@ static void host_processor_single_test_flash_rollback_not_dirty_checked_bypass (
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_PROCESSOR_NO_ROLLBACK, status);
 
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
@@ -147,8 +147,8 @@ static void host_processor_single_test_flash_rollback_dirty (CuTest *test)
 	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_PROCESSOR_NO_ROLLBACK, status);
 
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
@@ -180,8 +180,8 @@ static void host_processor_single_test_flash_rollback_dirty_bypass (CuTest *test
 
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_PROCESSOR_NO_ROLLBACK, status);
 
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
@@ -213,8 +213,8 @@ static void host_processor_single_test_flash_rollback_dirty_checked (CuTest *tes
 
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_PROCESSOR_NO_ROLLBACK, status);
 
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
@@ -247,8 +247,8 @@ static void host_processor_single_test_flash_rollback_dirty_checked_bypass (CuTe
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_PROCESSOR_NO_ROLLBACK, status);
 
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
@@ -294,6 +294,7 @@ static void host_processor_single_test_flash_rollback_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_processor_single_flash_rollback);
 
 TEST (host_processor_single_test_flash_rollback_not_dirty);
@@ -307,3 +308,4 @@ TEST (host_processor_single_test_flash_rollback_dirty_checked_bypass);
 TEST (host_processor_single_test_flash_rollback_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

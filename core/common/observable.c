@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "observable.h"
 
@@ -44,6 +44,7 @@ void observable_release (struct observable *observable)
 
 		while (observable->observer_head) {
 			struct observable_observer *temp = observable->observer_head;
+
 			observable->observer_head = observable->observer_head->next;
 			platform_free (temp);
 		}
@@ -166,13 +167,13 @@ int observable_remove_observer (struct observable *observable, void *observer)
 #define	FOR_EACH_OBSERVER(observable, type, notify, ...) \
 	do { \
 		struct observable_observer *pos; \
-		\
+        \
 		if (observable == NULL) { \
 			return OBSERVABLE_INVALID_ARGUMENT; \
 		} \
-		\
+        \
 		platform_mutex_lock (&observable->lock); \
-		\
+        \
 		pos = observable->observer_head; \
 		while (pos) { \
 			notify = (type) (*((uintptr_t*) ((uintptr_t) pos->observer + callback_offset))); \
@@ -181,9 +182,9 @@ int observable_remove_observer (struct observable *observable, void *observer)
 			} \
 			pos = pos->next; \
 		} \
-		\
+        \
 		platform_mutex_unlock (&observable->lock); \
-		\
+        \
 		return 0; \
 	} while (0)
 

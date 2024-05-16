@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "authorization_mock.h"
 
@@ -49,7 +49,6 @@ static const char* authorization_mock_arg_name_map (void *func, int arg)
 
 			case 1:
 				return "length";
-
 		}
 	}
 

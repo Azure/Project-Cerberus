@@ -5,14 +5,14 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "manifest/cfm/cfm_observer_pcr.h"
 #include "attestation/pcr_store.h"
 #include "common/array_size.h"
-#include "testing/mock/manifest/cfm/cfm_mock.h"
-#include "testing/mock/manifest/cfm/cfm_manager_mock.h"
+#include "manifest/cfm/cfm_observer_pcr.h"
 #include "testing/engines/hash_testing_engine.h"
-#include "testing/manifest/manifest_observer_pcr_testing.h"
 #include "testing/manifest/cfm/cfm_testing.h"
+#include "testing/manifest/manifest_observer_pcr_testing.h"
+#include "testing/mock/manifest/cfm/cfm_manager_mock.h"
+#include "testing/mock/manifest/cfm/cfm_mock.h"
 
 
 TEST_SUITE_LABEL ("cfm_observer_pcr");
@@ -22,8 +22,8 @@ TEST_SUITE_LABEL ("cfm_observer_pcr");
  * Hash for CFM platform ID "CFM Test1", event type 0xaabbccdd, and version 0x0 for testing.
  */
 static const uint8_t CFM_PLATFORM_ID_HASH[] = {
-	0xe8,0xe0,0xf5,0x96,0x6a,0x87,0x44,0xf0,0x74,0x24,0xaa,0xec,0x0d,0xcb,0xac,0xc6,
-	0x32,0xce,0x3f,0xe3,0x6b,0x55,0xe8,0xd7,0x19,0x6f,0x15,0xb3,0x69,0x53,0x87,0xbb
+	0xe8, 0xe0, 0xf5, 0x96, 0x6a, 0x87, 0x44, 0xf0, 0x74, 0x24, 0xaa, 0xec, 0x0d, 0xcb, 0xac, 0xc6,
+	0x32, 0xce, 0x3f, 0xe3, 0x6b, 0x55, 0xe8, 0xd7, 0x19, 0x6f, 0x15, 0xb3, 0x69, 0x53, 0x87, 0xbb
 };
 
 /**
@@ -37,8 +37,8 @@ static const uint32_t CFM_PLATFORM_ID_HASH_LEN = sizeof (CFM_PLATFORM_ID_HASH);
  * (printf "\xdd\xcc\xbb\xaa\x00"; cat cfm_hash.bin) | openssl dgst -sha256 -binary | to_array.sh -
  */
 const uint8_t CFM_HASH_DIGEST[] = {
-	0x3e,0xbd,0x59,0x71,0x6f,0xc3,0x6c,0x2c,0xde,0x5d,0xc9,0x28,0x11,0x4e,0xa7,0x06,
-	0x88,0x30,0x1d,0xac,0xaa,0x85,0x30,0xbc,0xf1,0x29,0x2b,0xf6,0x71,0x99,0xdd,0xdb
+	0x3e, 0xbd, 0x59, 0x71, 0x6f, 0xc3, 0x6c, 0x2c, 0xde, 0x5d, 0xc9, 0x28, 0x11, 0x4e, 0xa7, 0x06,
+	0x88, 0x30, 0x1d, 0xac, 0xaa, 0x85, 0x30, 0xbc, 0xf1, 0x29, 0x2b, 0xf6, 0x71, 0x99, 0xdd, 0xdb
 };
 
 
@@ -310,8 +310,7 @@ static void cfm_observer_pcr_test_on_cfm_activated (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest,
-		SHA256_HASH_LENGTH);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
@@ -399,7 +398,7 @@ static void cfm_observer_pcr_test_on_cfm_activated_sha384 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, SHA384_HASH_LENGTH,
-		MOCK_ARG_PTR (&hash),  MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&cfm.mock, 1, &hash_out[5], SHA384_HASH_LENGTH, 2);
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, 0, MOCK_ARG_NOT_NULL);
@@ -430,8 +429,7 @@ static void cfm_observer_pcr_test_on_cfm_activated_sha384 (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest,
-		SHA256_HASH_LENGTH);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
@@ -519,7 +517,7 @@ static void cfm_observer_pcr_test_on_cfm_activated_sha512 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, SHA512_HASH_LENGTH,
-		MOCK_ARG_PTR (&hash),  MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&cfm.mock, 1, &hash_out[5], SHA512_HASH_LENGTH, 2);
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, 0, MOCK_ARG_NOT_NULL);
@@ -550,8 +548,7 @@ static void cfm_observer_pcr_test_on_cfm_activated_sha512 (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest,
-		SHA256_HASH_LENGTH);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
@@ -834,8 +831,7 @@ static void cfm_observer_pcr_test_on_cfm_activated_get_platform_id_error (CuTest
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest,
-		MANIFEST_ID_HASH_LEN);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, MANIFEST_ID_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
@@ -960,8 +956,7 @@ static void cfm_observer_pcr_test_record_measurement (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest,
-		MANIFEST_ID_HASH_LEN);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, MANIFEST_ID_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
@@ -1098,8 +1093,7 @@ static void cfm_observer_pcr_test_record_measurement_sha384 (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest,
-		MANIFEST_ID_HASH_LEN);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, MANIFEST_ID_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
@@ -1236,8 +1230,7 @@ static void cfm_observer_pcr_test_record_measurement_sha512 (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest,
-		MANIFEST_ID_HASH_LEN);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, MANIFEST_ID_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
@@ -1720,8 +1713,7 @@ static void cfm_observer_pcr_test_record_measurement_get_platform_id_error (CuTe
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest,
-		MANIFEST_ID_HASH_LEN);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, MANIFEST_ID_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_mock_validate_and_release (&cfm);
@@ -1835,6 +1827,7 @@ static void cfm_observer_pcr_test_on_clear_active (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cfm_observer_pcr);
 
 TEST (cfm_observer_pcr_test_init);
@@ -1859,3 +1852,4 @@ TEST (cfm_observer_pcr_test_record_measurement_get_platform_id_error);
 TEST (cfm_observer_pcr_test_on_clear_active);
 
 TEST_SUITE_END;
+// *INDENT-ON*

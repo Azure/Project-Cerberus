@@ -4,10 +4,10 @@
 #ifndef PERIODIC_TASK_H_
 #define PERIODIC_TASK_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "status/rot_status.h"
+#include <stdint.h>
 #include "platform_api.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -62,4 +62,4 @@ enum {
 };
 
 
-#endif /* PERIODIC_TASK_H_ */
+#endif	/* PERIODIC_TASK_H_ */

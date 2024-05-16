@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
@@ -11,11 +11,11 @@
 #include "spdm/spdm_discovery.h"
 #include "spdm/spdm_measurements_discovery.h"
 #include "spdm/spdm_measurements_discovery_static.h"
-#include "testing/mock/crypto/hash_mock.h"
-#include "testing/mock/flash/flash_mock.h"
-#include "testing/engines/hash_testing_engine.h"
 #include "testing/attestation/pcr_testing.h"
 #include "testing/crypto/hash_testing.h"
+#include "testing/engines/hash_testing_engine.h"
+#include "testing/mock/crypto/hash_mock.h"
+#include "testing/mock/flash/flash_mock.h"
 
 
 TEST_SUITE_LABEL ("spdm_measurements_discovery");
@@ -25,27 +25,27 @@ TEST_SUITE_LABEL ("spdm_measurements_discovery");
  * SHA-256 hash of the device ID measurement data.
  */
 const uint8_t SPDM_MEASUREMENTS_DISCOVERY_TESTING_DEVICE_ID_SHA256[] = {
-	0x3c,0xd8,0x1b,0x49,0x95,0xa8,0x16,0x45,0x82,0xd1,0x08,0x68,0xc3,0x2f,0xca,0x38,
-	0x1f,0xfc,0x8f,0xf2,0x99,0xf4,0xbe,0x32,0x04,0x28,0xbd,0x29,0x95,0xe5,0x8f,0x8c
+	0x3c, 0xd8, 0x1b, 0x49, 0x95, 0xa8, 0x16, 0x45, 0x82, 0xd1, 0x08, 0x68, 0xc3, 0x2f, 0xca, 0x38,
+	0x1f, 0xfc, 0x8f, 0xf2, 0x99, 0xf4, 0xbe, 0x32, 0x04, 0x28, 0xbd, 0x29, 0x95, 0xe5, 0x8f, 0x8c
 };
 
 /**
  * SHA-384 hash of the device ID measurement data.
  */
 const uint8_t SPDM_MEASUREMENTS_DISCOVERY_TESTING_DEVICE_ID_SHA384[] = {
-	0x22,0xcf,0xac,0xa3,0xd9,0x5f,0xb5,0x46,0x9c,0xfc,0x44,0xe5,0x0f,0x01,0x44,0x98,
-	0xf7,0x57,0x5d,0x06,0xec,0xe0,0xe0,0xa3,0x0f,0x78,0x84,0x63,0x48,0xa4,0xfe,0x59,
-	0x0e,0x5c,0xfd,0x60,0x04,0x3f,0xaa,0x4f,0x40,0x6f,0xb3,0x8c,0xe5,0xd4,0xa4,0xf4
+	0x22, 0xcf, 0xac, 0xa3, 0xd9, 0x5f, 0xb5, 0x46, 0x9c, 0xfc, 0x44, 0xe5, 0x0f, 0x01, 0x44, 0x98,
+	0xf7, 0x57, 0x5d, 0x06, 0xec, 0xe0, 0xe0, 0xa3, 0x0f, 0x78, 0x84, 0x63, 0x48, 0xa4, 0xfe, 0x59,
+	0x0e, 0x5c, 0xfd, 0x60, 0x04, 0x3f, 0xaa, 0x4f, 0x40, 0x6f, 0xb3, 0x8c, 0xe5, 0xd4, 0xa4, 0xf4
 };
 
 /**
  * SHA-512 hash of the device ID measurement data.
  */
 const uint8_t SPDM_MEASUREMENTS_DISCOVERY_TESTING_DEVICE_ID_SHA512[] = {
-	0x2f,0xfe,0x09,0x66,0xf8,0xaf,0x53,0x14,0x5e,0x21,0x32,0x8f,0xdc,0xe5,0xf6,0x6a,
-	0xf0,0x4e,0x16,0x23,0x51,0x3e,0x8e,0xa6,0x93,0x12,0x63,0x87,0x85,0xb8,0x0c,0x21,
-	0x95,0x27,0x40,0x0b,0xb5,0x4c,0x47,0x55,0xd1,0x85,0xba,0xb8,0x47,0x7d,0x12,0x8f,
-	0xb2,0x01,0x44,0xfe,0xb7,0x51,0xb1,0xbd,0x95,0x32,0xc5,0x96,0xf2,0xa8,0x80,0x3e
+	0x2f, 0xfe, 0x09, 0x66, 0xf8, 0xaf, 0x53, 0x14, 0x5e, 0x21, 0x32, 0x8f, 0xdc, 0xe5, 0xf6, 0x6a,
+	0xf0, 0x4e, 0x16, 0x23, 0x51, 0x3e, 0x8e, 0xa6, 0x93, 0x12, 0x63, 0x87, 0x85, 0xb8, 0x0c, 0x21,
+	0x95, 0x27, 0x40, 0x0b, 0xb5, 0x4c, 0x47, 0x55, 0xd1, 0x85, 0xba, 0xb8, 0x47, 0x7d, 0x12, 0x8f,
+	0xb2, 0x01, 0x44, 0xfe, 0xb7, 0x51, 0xb1, 0xbd, 0x95, 0x32, 0xc5, 0x96, 0xf2, 0xa8, 0x80, 0x3e
 };
 
 
@@ -495,7 +495,8 @@ static void spdm_measurements_discovery_test_get_measurement_block_device_id_raw
 	spdm_measurements_discovery_testing_release (test, &handler);
 }
 
-static void spdm_measurements_discovery_test_get_measurement_block_device_id_raw_bit_stream_no_hash (
+static void spdm_measurements_discovery_test_get_measurement_block_device_id_raw_bit_stream_no_hash
+(
 	CuTest *test)
 {
 	struct spdm_measurements_discovery_testing handler;
@@ -541,7 +542,8 @@ static void spdm_measurements_discovery_test_get_measurement_block_device_id_raw
 	spdm_measurements_discovery_testing_release (test, &handler);
 }
 
-static void spdm_measurements_discovery_test_get_measurement_block_device_id_raw_bit_stream_full_buffer (
+static void
+spdm_measurements_discovery_test_get_measurement_block_device_id_raw_bit_stream_full_buffer (
 	CuTest *test)
 {
 	struct spdm_measurements_discovery_testing handler;
@@ -947,7 +949,8 @@ static void spdm_measurements_discovery_test_get_measurement_block_invalid_block
 	spdm_measurements_discovery_testing_release (test, &handler);
 }
 
-static void spdm_measurements_discovery_test_get_measurement_block_device_id_raw_bit_stream_small_buffer (
+static void
+spdm_measurements_discovery_test_get_measurement_block_device_id_raw_bit_stream_small_buffer (
 	CuTest *test)
 {
 	struct spdm_measurements_discovery_testing handler;
@@ -1947,7 +1950,8 @@ static void spdm_measurements_discovery_test_get_all_measurement_blocks_null (Cu
 	spdm_measurements_discovery_testing_release (test, &handler);
 }
 
-static void spdm_measurements_discovery_test_get_all_measurement_blocks_device_id_buffer_less_than_min (
+static void
+spdm_measurements_discovery_test_get_all_measurement_blocks_device_id_buffer_less_than_min (
 	CuTest *test)
 {
 	struct spdm_measurements_discovery_testing handler;
@@ -2175,7 +2179,8 @@ static void spdm_measurements_discovery_test_get_all_measurement_blocks_digest_e
 	spdm_measurements_discovery_testing_release (test, &handler);
 }
 
-static void spdm_measurements_discovery_test_get_all_measurement_blocks_raw_bit_stream_small_buffer (
+static void spdm_measurements_discovery_test_get_all_measurement_blocks_raw_bit_stream_small_buffer
+(
 	CuTest *test)
 {
 	struct spdm_measurements_discovery_testing handler;
@@ -2443,8 +2448,7 @@ static void spdm_measurements_discovery_test_get_all_measurement_blocks_length_n
 
 	spdm_measurements_discovery_testing_init (test, &handler, pcr_config, ARRAY_SIZE (pcr_config));
 
-	status = handler.test.base.get_all_measurement_blocks_length (NULL, false,
-		HASH_TYPE_SHA256);
+	status = handler.test.base.get_all_measurement_blocks_length (NULL, false, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, SPDM_MEASUREMENTS_INVALID_ARGUMENT, status);
 
 	spdm_measurements_discovery_testing_release (test, &handler);
@@ -2477,7 +2481,9 @@ static void spdm_measurements_discovery_test_get_all_measurement_blocks_length_u
 	spdm_measurements_discovery_testing_release (test, &handler);
 }
 
-static void spdm_measurements_discovery_test_get_measurement_summary_hash_summary_sha256_meas_sha256_all_blocks (
+static void
+spdm_measurements_discovery_test_get_measurement_summary_hash_summary_sha256_meas_sha256_all_blocks
+(
 	CuTest *test)
 {
 	struct spdm_measurements_discovery_testing handler;
@@ -2584,7 +2590,8 @@ static void spdm_measurements_discovery_test_get_measurement_summary_hash_summar
 	spdm_measurements_discovery_testing_release (test, &handler);
 }
 
-static void spdm_measurements_discovery_test_get_measurement_summary_hash_summary_sha384_meas_sha256_only_tcb (
+static void
+spdm_measurements_discovery_test_get_measurement_summary_hash_summary_sha384_meas_sha256_only_tcb (
 	CuTest *test)
 {
 	struct spdm_measurements_discovery_testing handler;
@@ -2676,7 +2683,8 @@ static void spdm_measurements_discovery_test_get_measurement_summary_hash_summar
 	spdm_measurements_discovery_testing_release (test, &handler);
 }
 
-static void spdm_measurements_discovery_test_get_measurement_summary_hash_summary_sha512_meas_sha256 (
+static void spdm_measurements_discovery_test_get_measurement_summary_hash_summary_sha512_meas_sha256
+(
 	CuTest *test)
 {
 	struct spdm_measurements_discovery_testing handler;
@@ -2783,7 +2791,9 @@ static void spdm_measurements_discovery_test_get_measurement_summary_hash_summar
 	spdm_measurements_discovery_testing_release (test, &handler);
 }
 
-static void spdm_measurements_discovery_test_get_measurement_summary_hash_summary_sha256_meas_sha384_all_blocks (
+static void
+spdm_measurements_discovery_test_get_measurement_summary_hash_summary_sha256_meas_sha384_all_blocks
+(
 	CuTest *test)
 {
 	struct spdm_measurements_discovery_testing handler;
@@ -3098,7 +3108,8 @@ static void spdm_measurements_discovery_test_get_measurement_summary_hash_summar
 	spdm_measurements_discovery_testing_release (test, &handler);
 }
 
-static void spdm_measurements_discovery_test_get_measurement_summary_hash_summary_hash_update_error (
+static void spdm_measurements_discovery_test_get_measurement_summary_hash_summary_hash_update_error
+(
 	CuTest *test)
 {
 	struct spdm_measurements_discovery_testing handler;
@@ -3200,7 +3211,8 @@ static void spdm_measurements_discovery_test_get_measurement_summary_hash_summar
 	spdm_measurements_discovery_testing_release (test, &handler);
 }
 
-static void spdm_measurements_discovery_test_get_measurement_summary_hash_summary_hash_device_id_update_error (
+static void
+spdm_measurements_discovery_test_get_measurement_summary_hash_summary_hash_device_id_update_error (
 	CuTest *test)
 {
 	struct spdm_measurements_discovery_testing handler;
@@ -3327,7 +3339,8 @@ static void spdm_measurements_discovery_test_get_measurement_summary_hash_summar
 	spdm_measurements_discovery_testing_release (test, &handler);
 }
 
-static void spdm_measurements_discovery_test_get_measurement_summary_hash_summary_hash_finish_error (
+static void spdm_measurements_discovery_test_get_measurement_summary_hash_summary_hash_finish_error
+(
 	CuTest *test)
 {
 	struct spdm_measurements_discovery_testing handler;
@@ -3458,7 +3471,8 @@ static void spdm_measurements_discovery_test_get_measurement_summary_hash_summar
 	spdm_measurements_discovery_testing_release (test, &handler);
 }
 
-static void spdm_measurements_discovery_test_get_measurement_summary_hash_small_buffer (CuTest *test)
+static void spdm_measurements_discovery_test_get_measurement_summary_hash_small_buffer (
+	CuTest *test)
 {
 	struct spdm_measurements_discovery_testing handler;
 	const struct pcr_config pcr_config[] = {
@@ -3560,6 +3574,7 @@ static void spdm_measurements_discovery_test_get_measurement_summary_hash_device
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (spdm_measurements_discovery);
 
 TEST (spdm_measurements_discovery_test_init);
@@ -3625,3 +3640,4 @@ TEST (spdm_measurements_discovery_test_get_measurement_summary_hash_small_buffer
 TEST (spdm_measurements_discovery_test_get_measurement_summary_hash_device_id_hash_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

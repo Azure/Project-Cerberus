@@ -4,16 +4,16 @@
 #ifndef MANIFEST_CMD_INTERFACE_MOCK_H_
 #define MANIFEST_CMD_INTERFACE_MOCK_H_
 
-#include "manifest/manifest_cmd_interface.h"
 #include "mock.h"
+#include "manifest/manifest_cmd_interface.h"
 
 
 /**
  * A mock for the manifest command handler API.
  */
 struct manifest_cmd_interface_mock {
-	struct manifest_cmd_interface base;		/**< The base command handler instance. */
-	struct mock mock;						/**< The base mock interface. */
+	struct manifest_cmd_interface base;	/**< The base command handler instance. */
+	struct mock mock;					/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void manifest_cmd_interface_mock_release (struct manifest_cmd_interface_mock *mo
 int manifest_cmd_interface_mock_validate_and_release (struct manifest_cmd_interface_mock *mock);
 
 
-#endif /* MANIFEST_CMD_INTERFACE_MOCK_H_ */
+#endif	/* MANIFEST_CMD_INTERFACE_MOCK_H_ */

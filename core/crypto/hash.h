@@ -4,9 +4,9 @@
 #ifndef HASH_H_
 #define HASH_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include "status/rot_status.h"
 
 
@@ -35,12 +35,13 @@
  * The types of hashes supported by the hashing API.
  */
 enum hash_type {
-	HASH_TYPE_SHA1,						/**< SHA-1 hash */
-	HASH_TYPE_SHA256,					/**< SHA2-256 hash */
-	HASH_TYPE_SHA384,					/**< SHA2-384 hash */
-	HASH_TYPE_SHA512,					/**< SHA2-512 hash */
-	HASH_TYPE_INVALID,					/**< Invalid hash type. */
+	HASH_TYPE_SHA1,		/**< SHA-1 hash */
+	HASH_TYPE_SHA256,	/**< SHA2-256 hash */
+	HASH_TYPE_SHA384,	/**< SHA2-384 hash */
+	HASH_TYPE_SHA512,	/**< SHA2-512 hash */
+	HASH_TYPE_INVALID,	/**< Invalid hash type. */
 };
+
 
 /* Definitions of hash engine state for internal implementation use, as necessary.  These map to
  * enum hash_type, except there is the added value indicating there is no active context. */
@@ -249,11 +250,11 @@ enum hmac_hash {
  * A context for generating an HMAC using partial sets of data.
  */
 struct hmac_engine {
-	struct hash_engine *hash;			/**< The hash engine to use when generating the HMAC. */
-	enum hmac_hash type;				/**< The type of hash being used for the HMAC. */
-	uint8_t key[SHA512_BLOCK_SIZE];		/**< The key for the HMAC operation. */
-	size_t block_size;					/**< The block size for the hash algorithm. */
-	size_t hash_length;					/**< The digest length for the hash algorithm. */
+	struct hash_engine *hash;		/**< The hash engine to use when generating the HMAC. */
+	enum hmac_hash type;			/**< The type of hash being used for the HMAC. */
+	uint8_t key[SHA512_BLOCK_SIZE];	/**< The key for the HMAC operation. */
+	size_t block_size;				/**< The block size for the hash algorithm. */
+	size_t hash_length;				/**< The digest length for the hash algorithm. */
 };
 
 
@@ -314,4 +315,4 @@ enum {
 };
 
 
-#endif /* HASH_H_ */
+#endif	/* HASH_H_ */

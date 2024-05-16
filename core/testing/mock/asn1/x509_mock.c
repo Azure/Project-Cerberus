@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "x509_mock.h"
 
@@ -38,7 +38,7 @@ static int x509_mock_create_self_signed_certificate (struct x509_engine *engine,
 
 	MOCK_RETURN (&mock->mock, x509_mock_create_self_signed_certificate, engine,
 		MOCK_ARG_PTR_CALL (cert), MOCK_ARG_PTR_CALL (priv_key), MOCK_ARG_CALL (key_length),
-		MOCK_ARG_CALL (sig_hash), MOCK_ARG_PTR_CALL (serial_num),  MOCK_ARG_CALL (serial_length),
+		MOCK_ARG_CALL (sig_hash), MOCK_ARG_PTR_CALL (serial_num), MOCK_ARG_CALL (serial_length),
 		MOCK_ARG_PTR_CALL (name), MOCK_ARG_CALL (type), MOCK_ARG_PTR_CALL (extra_extensions),
 		MOCK_ARG_CALL (ext_count));
 }
@@ -57,7 +57,7 @@ static int x509_mock_create_ca_signed_certificate (struct x509_engine *engine,
 
 	MOCK_RETURN (&mock->mock, x509_mock_create_ca_signed_certificate, engine,
 		MOCK_ARG_PTR_CALL (cert), MOCK_ARG_PTR_CALL (key), MOCK_ARG_CALL (key_length),
-		MOCK_ARG_PTR_CALL (serial_num),  MOCK_ARG_CALL (serial_length), MOCK_ARG_PTR_CALL (name),
+		MOCK_ARG_PTR_CALL (serial_num), MOCK_ARG_CALL (serial_length), MOCK_ARG_PTR_CALL (name),
 		MOCK_ARG_CALL (type), MOCK_ARG_PTR_CALL (ca_priv_key), MOCK_ARG_CALL (ca_key_length),
 		MOCK_ARG_CALL (sig_hash), MOCK_ARG_PTR_CALL (ca_cert), MOCK_ARG_PTR_CALL (extra_extensions),
 		MOCK_ARG_CALL (ext_count));
@@ -171,8 +171,7 @@ static int x509_mock_init_ca_cert_store (struct x509_engine *engine, struct x509
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, x509_mock_init_ca_cert_store, engine,
-		MOCK_ARG_PTR_CALL (store));
+	MOCK_RETURN (&mock->mock, x509_mock_init_ca_cert_store, engine,	MOCK_ARG_PTR_CALL (store));
 }
 
 static void x509_mock_release_ca_cert_store (struct x509_engine *engine,
@@ -201,8 +200,8 @@ static int x509_mock_add_root_ca (struct x509_engine *engine, struct x509_ca_cer
 		MOCK_ARG_PTR_CALL (der), MOCK_ARG_CALL (length));
 }
 
-static int x509_mock_add_intermediate_ca (struct x509_engine *engine,
-	struct x509_ca_certs *store, const uint8_t *der, size_t length)
+static int x509_mock_add_intermediate_ca (struct x509_engine *engine, struct x509_ca_certs *store,
+	const uint8_t *der, size_t length)
 {
 	struct x509_engine_mock *mock = (struct x509_engine_mock*) engine;
 
@@ -533,8 +532,7 @@ static const char* x509_mock_arg_name_map (void *func, int arg)
 				return "length";
 		}
 	}
-	else if (func == x509_mock_authenticate)
-	{
+	else if (func == x509_mock_authenticate) {
 		switch (arg) {
 			case 0:
 				return "cert";

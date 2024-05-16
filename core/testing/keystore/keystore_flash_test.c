@@ -6,18 +6,18 @@
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
-#include "keystore/keystore_flash.h"
-#include "keystore/keystore_flash_static.h"
 #include "flash/flash_store.h"
 #include "flash/flash_store_contiguous_blocks_encrypted.h"
 #include "flash/spi_flash.h"
-#include "testing/mock/crypto/aes_mock.h"
-#include "testing/mock/crypto/rng_mock.h"
-#include "testing/mock/flash/flash_store_mock.h"
-#include "testing/mock/flash/flash_master_mock.h"
-#include "testing/engines/hash_testing_engine.h"
+#include "keystore/keystore_flash.h"
+#include "keystore/keystore_flash_static.h"
 #include "testing/crypto/aes_testing.h"
 #include "testing/crypto/rsa_testing.h"
+#include "testing/engines/hash_testing_engine.h"
+#include "testing/mock/crypto/aes_mock.h"
+#include "testing/mock/crypto/rng_mock.h"
+#include "testing/mock/flash/flash_master_mock.h"
+#include "testing/mock/flash/flash_store_mock.h"
 
 
 TEST_SUITE_LABEL ("keystore_flash");
@@ -656,8 +656,8 @@ static void keystore_flash_test_load_key_no_key_during_read (CuTest *test)
 	status = mock_expect (&flash.mock, flash.base.get_data_length, &flash, RSA_PRIVKEY_DER_LEN,
 		MOCK_ARG (0));
 
-	status |= mock_expect (&flash.mock, flash.base.read, &flash, FLASH_STORE_NO_DATA,
-		MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG (RSA_PRIVKEY_DER_LEN));
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, FLASH_STORE_NO_DATA, MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (RSA_PRIVKEY_DER_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -963,6 +963,7 @@ static void keystore_flash_test_erase_all_keys_erase_error (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (keystore_flash);
 
 TEST (keystore_flash_test_init);
@@ -996,3 +997,4 @@ TEST (keystore_flash_test_erase_all_keys_null);
 TEST (keystore_flash_test_erase_all_keys_erase_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

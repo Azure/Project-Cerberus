@@ -1,20 +1,20 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <math.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
-#include <math.h>
-#include "cmd_logging.h"
-#include "cmd_interface.h"
 #include "cerberus_protocol.h"
-#include "cerberus_protocol_required_commands.h"
-#include "cerberus_protocol_master_commands.h"
-#include "cerberus_protocol_optional_commands.h"
 #include "cerberus_protocol_debug_commands.h"
 #include "cerberus_protocol_diagnostic_commands.h"
+#include "cerberus_protocol_master_commands.h"
+#include "cerberus_protocol_optional_commands.h"
+#include "cerberus_protocol_required_commands.h"
+#include "cmd_interface.h"
 #include "cmd_interface_system.h"
+#include "cmd_logging.h"
 #include "common/unused.h"
 
 
@@ -63,8 +63,8 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 			status = cerberus_protocol_log_clear (interface->background, request);
 			break;
 
-		case CERBERUS_PROTOCOL_GET_PFM_ID:{
-			const struct pfm_manager* pfm_mgr[2] = {
+		case CERBERUS_PROTOCOL_GET_PFM_ID: {
+			const struct pfm_manager *pfm_mgr[2] = {
 				interface->pfm_manager_0, interface->pfm_manager_1
 			};
 
@@ -73,7 +73,7 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 		}
 
 		case CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW: {
-			const struct pfm_manager* pfm_mgr[2] = {
+			const struct pfm_manager *pfm_mgr[2] = {
 				interface->pfm_manager_0, interface->pfm_manager_1
 			};
 
@@ -82,21 +82,21 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 		}
 
 		case CERBERUS_PROTOCOL_INIT_PFM_UPDATE: {
-			const struct manifest_cmd_interface* pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+			const struct manifest_cmd_interface *pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
 
 			status = cerberus_protocol_pfm_update_init (pfm_cmd, 2, request);
 			break;
 		}
 
 		case CERBERUS_PROTOCOL_PFM_UPDATE: {
-			const struct manifest_cmd_interface* pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+			const struct manifest_cmd_interface *pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
 
 			status = cerberus_protocol_pfm_update (pfm_cmd, 2, request);
 			break;
 		}
 
 		case CERBERUS_PROTOCOL_COMPLETE_PFM_UPDATE: {
-			const struct manifest_cmd_interface* pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+			const struct manifest_cmd_interface *pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
 
 			status = cerberus_protocol_pfm_update_complete (pfm_cmd, 2,	request);
 			break;
@@ -155,8 +155,8 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_GET_UPDATE_STATUS: {
-			const struct manifest_cmd_interface* pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
-			struct host_processor* host[2] = {interface->host_0, interface->host_1};
+			const struct manifest_cmd_interface *pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+			struct host_processor *host[2] = {interface->host_0, interface->host_1};
 
 			status = cerberus_protocol_get_update_status (interface->control, 2, pfm_cmd,
 				interface->cfm, interface->pcd, host, interface->recovery_cmd_0,
@@ -171,8 +171,7 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES:
-			status = cerberus_protocol_get_device_capabilities (interface->device_manager,
-				request);
+			status = cerberus_protocol_get_device_capabilities (interface->device_manager, request);
 			break;
 
 		case CERBERUS_PROTOCOL_RESET_COUNTER:
@@ -303,8 +302,7 @@ int cmd_interface_system_process_response (const struct cmd_interface *intf,
 			}
 			else {
 				return observable_notify_observers_with_ptr (&interface->observable,
-					offsetof (struct cerberus_protocol_observer, on_get_digest_response),
-					response);
+					offsetof (struct cerberus_protocol_observer, on_get_digest_response), response);
 			}
 
 		case CERBERUS_PROTOCOL_GET_CERTIFICATE:
@@ -325,20 +323,19 @@ int cmd_interface_system_process_response (const struct cmd_interface *intf,
 			}
 			else {
 				return observable_notify_observers_with_ptr (&interface->observable,
-					offsetof (struct cerberus_protocol_observer, on_challenge_response),
-					response);
+					offsetof (struct cerberus_protocol_observer, on_challenge_response), response);
 			}
 
 		case CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES:
-			status = cerberus_protocol_process_device_capabilities_response (
-				interface->device_manager, response);
+			status =
+				cerberus_protocol_process_device_capabilities_response (interface->device_manager,
+				response);
 			if (status != 0) {
 				return status;
 			}
 			else {
 				return observable_notify_observers_with_ptr (&interface->observable,
-					offsetof (struct cerberus_protocol_observer, on_device_capabilities),
-					response);
+					offsetof (struct cerberus_protocol_observer, on_device_capabilities), response);
 			}
 #endif
 
@@ -393,7 +390,7 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	const struct manifest_cmd_interface *pfm_1, const struct manifest_cmd_interface *cfm,
 	const struct manifest_cmd_interface *pcd, const struct pfm_manager *pfm_manager_0,
 	const struct pfm_manager *pfm_manager_1, const struct cfm_manager *cfm_manager,
-	const struct pcd_manager *pcd_manager,  struct attestation_responder *attestation,
+	const struct pcd_manager *pcd_manager, struct attestation_responder *attestation,
 	struct device_manager *device_manager, struct pcr_store *store, struct hash_engine *hash,
 	const struct cmd_background *background, struct host_processor *host_0,
 	struct host_processor *host_1, const struct cmd_interface_fw_version *fw_version,

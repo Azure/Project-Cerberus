@@ -72,4 +72,4 @@ void x509_extension_builder_dice_tcbinfo_free_static (const struct x509_extensio
 	}
 
 
-#endif /* X509_EXTENSION_BUILDER_DICE_TCBINFO_STATIC_H_ */
+#endif	/* X509_EXTENSION_BUILDER_DICE_TCBINFO_STATIC_H_ */

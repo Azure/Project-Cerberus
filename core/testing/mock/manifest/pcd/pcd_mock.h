@@ -4,16 +4,16 @@
 #ifndef PCD_MOCK_H_
 #define PCD_MOCK_H_
 
-#include "manifest/pcd/pcd.h"
 #include "mock.h"
+#include "manifest/pcd/pcd.h"
 
 
 /**
  * A mock for a pcd.
  */
 struct pcd_mock {
-	struct pcd base;			/**< The base pcd instance. */
-	struct mock mock;			/**< The base mock interface. */
+	struct pcd base;	/**< The base pcd instance. */
+	struct mock mock;	/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void pcd_mock_release (struct pcd_mock *mock);
 int pcd_mock_validate_and_release (struct pcd_mock *mock);
 
 
-#endif /* PCD_MOCK_H_ */
+#endif	/* PCD_MOCK_H_ */

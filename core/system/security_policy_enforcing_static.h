@@ -38,4 +38,4 @@ int security_policy_enforcing_parse_unlock_policy (const struct security_policy 
 	}
 
 
-#endif /* SECURITY_POLICY_ENFORCING_STATIC_H_ */
+#endif	/* SECURITY_POLICY_ENFORCING_STATIC_H_ */

@@ -4,21 +4,21 @@
 #ifndef PFM_MANAGER_H_
 #define PFM_MANAGER_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "platform_api.h"
+#include "common/observable.h"
 #include "manifest/manifest_manager.h"
 #include "manifest/pfm/pfm.h"
 #include "manifest/pfm/pfm_observer.h"
-#include "common/observable.h"
 
 
 /**
  * API for managing the PFM for a single set of protected flash.
  */
 struct pfm_manager {
-	struct manifest_manager base;					/**< Manifest manager interface */
-	struct observable observable;					/**< The manager for PFM observers. */
+	struct manifest_manager base;	/**< Manifest manager interface */
+	struct observable observable;	/**< The manager for PFM observers. */
 
 	/**
 	 * Get the active PFM for the protected flash.  The PFM instance must be released with the
@@ -77,4 +77,4 @@ void pfm_manager_on_clear_active (struct pfm_manager *manager);
 void pfm_manager_on_pfm_activation_request (struct pfm_manager *manager);
 
 
-#endif /* PFM_MANAGER_H_ */
+#endif	/* PFM_MANAGER_H_ */

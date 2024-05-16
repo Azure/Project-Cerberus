@@ -4,10 +4,10 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "recovery/recovery_image_header.h"
 #include "cmd_interface/cerberus_protocol.h"
-#include "testing/mock/flash/flash_mock.h"
+#include "recovery/recovery_image_header.h"
 #include "testing/common/image_header_testing.h"
+#include "testing/mock/flash/flash_mock.h"
 #include "testing/recovery/recovery_image_header_testing.h"
 #include "testing/recovery/recovery_image_testing.h"
 
@@ -19,10 +19,10 @@ TEST_SUITE_LABEL ("recovery_image_header");
  * Example header using format 0.
  */
 const uint8_t RECOVERY_IMAGE_HEADER_FORMAT_0[] = {
-	0x40,0x00,0x00,0x00,0x29,0x7c,0x14,0x8a,0x56,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,
-	0x54,0x65,0x73,0x74,0x31,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x90,0x04,0x00,0x00,0x00,0x01,0x00,0x00,
-	0x0f,0x50,0x6c,0x61,0x74,0x66,0x6f,0x72,0x6d,0x20,0x54,0x65,0x73,0x74,0x31,0x00
+	0x40, 0x00, 0x00, 0x00, 0x29, 0x7c, 0x14, 0x8a, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x20,
+	0x54, 0x65, 0x73, 0x74, 0x31, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x90, 0x04, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+	0x0f, 0x50, 0x6c, 0x61, 0x74, 0x66, 0x6f, 0x72, 0x6d, 0x20, 0x54, 0x65, 0x73, 0x74, 0x31, 0x00
 };
 
 const size_t RECOVERY_IMAGE_HEADER_FORMAT_0_TOTAL_LEN = sizeof (RECOVERY_IMAGE_HEADER_FORMAT_0);
@@ -328,7 +328,7 @@ static void recovery_image_header_test_init_unknown_format_too_short (CuTest *te
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (sizeof (bad_header) - IMAGE_HEADER_BASE_LEN -
-			(RECOVERY_IMAGE_HEADER_PLATFORM_ID_LEN + 2)));
+		(RECOVERY_IMAGE_HEADER_PLATFORM_ID_LEN + 2)));
 	status |= mock_expect_output (&flash.mock, 1, bad_header +
 		IMAGE_HEADER_BASE_LEN, sizeof (bad_header) - IMAGE_HEADER_BASE_LEN -
 		(RECOVERY_IMAGE_HEADER_PLATFORM_ID_LEN + 2), 2);
@@ -449,7 +449,7 @@ static void recovery_image_header_test_init_format0_platform_id_no_null (CuTest 
 	TEST_START;
 
 	memcpy (bad_header, RECOVERY_IMAGE_HEADER_FORMAT_0, RECOVERY_IMAGE_HEADER_FORMAT_0_TOTAL_LEN);
-	bad_header[RECOVERY_IMAGE_HEADER_FORMAT_0_TOTAL_LEN-1] = 'x';
+	bad_header[RECOVERY_IMAGE_HEADER_FORMAT_0_TOTAL_LEN - 1] = 'x';
 
 	status = flash_mock_init (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -828,7 +828,7 @@ static void recovery_image_header_test_get_version_id_unknown_format (CuTest *te
 	memcpy (max_header, RECOVERY_IMAGE_HEADER_FORMAT_0, IMAGE_HEADER_BASE_LEN);
 	*((uint16_t*) max_header) = 1024;
 	*((uint16_t*) &max_header[2]) = 0xffff;
-	strcpy((char*) &max_header[8], "test1");
+	strcpy ((char*) &max_header[8], "test1");
 
 	status = flash_mock_init (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -962,7 +962,7 @@ static void recovery_image_header_test_get_platform_id_unknown_format (CuTest *t
 	*((uint16_t*) &max_header[2]) = 0xffff;
 	*((uint8_t*) &max_header[IMAGE_HEADER_BASE_LEN + CERBERUS_PROTOCOL_FW_VERSION_LEN + 8]) =
 		strlen ("test1") + 1;
-	strcpy((char*) &max_header[IMAGE_HEADER_BASE_LEN + CERBERUS_PROTOCOL_FW_VERSION_LEN + 9],
+	strcpy ((char*) &max_header[IMAGE_HEADER_BASE_LEN + CERBERUS_PROTOCOL_FW_VERSION_LEN + 9],
 		"test1");
 
 	status = flash_mock_init (&flash);
@@ -1385,6 +1385,7 @@ static void recovery_image_header_test_get_length_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (recovery_image_header);
 
 TEST (recovery_image_header_test_init_format0);
@@ -1426,3 +1427,4 @@ TEST (recovery_image_header_test_get_length);
 TEST (recovery_image_header_test_get_length_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

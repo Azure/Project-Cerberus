@@ -75,4 +75,4 @@ void manifest_cmd_handler_execute (const struct event_task_handler *handler,
 	}
 
 
-#endif /* MANIFEST_CMD_HANDLER_STATIC_H_ */
+#endif	/* MANIFEST_CMD_HANDLER_STATIC_H_ */

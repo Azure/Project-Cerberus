@@ -27,4 +27,4 @@ extern const uint8_t SHA_KAT_VECTORS_UPDATE_SHA384_DIGEST[];
 extern const uint8_t SHA_KAT_VECTORS_UPDATE_SHA512_DIGEST[];
 
 
-#endif /* HASH_KAT_VECTORS_H_ */
+#endif	/* HASH_KAT_VECTORS_H_ */

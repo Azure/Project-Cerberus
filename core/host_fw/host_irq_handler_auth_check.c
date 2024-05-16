@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "host_irq_handler_auth_check.h"
 
@@ -68,7 +68,7 @@ int host_irq_handler_auth_check_init (struct host_irq_handler_auth_check *handle
  *
  * @param handler The handler instance to initialize.
  * @param control The host control instance.
- * 
+ *
  * @return 0 if the host interrupts ware successfully configured or an error code.
  */
 int host_irq_handler_auth_check_config_interrupts (const struct host_irq_handler *handler,

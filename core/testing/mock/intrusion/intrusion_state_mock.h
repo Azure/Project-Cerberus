@@ -4,8 +4,8 @@
 #ifndef INTRUSION_STATE_MOCK_H_
 #define INTRUSION_STATE_MOCK_H_
 
-#include "intrusion/intrusion_state.h"
 #include "mock.h"
+#include "intrusion/intrusion_state.h"
 
 
 /**
@@ -23,4 +23,4 @@ void intrusion_state_mock_release (struct intrusion_state_mock *mock);
 int intrusion_state_mock_validate_and_release (struct intrusion_state_mock *mock);
 
 
-#endif /* INTRUSION_STATE_MOCK_H_ */
+#endif	/* INTRUSION_STATE_MOCK_H_ */

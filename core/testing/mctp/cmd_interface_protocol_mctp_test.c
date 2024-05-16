@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
 #include "mctp/cmd_interface_protocol_mctp.h"
@@ -825,7 +825,8 @@ static void cmd_interface_protocol_mctp_test_parse_message_response_length_too_s
 	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
-static void cmd_interface_protocol_mctp_test_parse_message_response_length_too_small_payload_offset (
+static void cmd_interface_protocol_mctp_test_parse_message_response_length_too_small_payload_offset
+(
 	CuTest *test)
 {
 	struct cmd_interface_protocol_mctp_testing mctp;
@@ -1179,7 +1180,8 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_vendor_define
 	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
-static void cmd_interface_protocol_mctp_test_handle_request_result_vendor_defined_pci_request_failure (
+static void
+cmd_interface_protocol_mctp_test_handle_request_result_vendor_defined_pci_request_failure (
 	CuTest *test)
 {
 	struct cmd_interface_protocol_mctp_testing mctp;
@@ -1431,6 +1433,7 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_null (CuTest 
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_protocol_mctp);
 
 TEST (cmd_interface_protocol_mctp_test_init);
@@ -1466,3 +1469,4 @@ TEST (cmd_interface_protocol_mctp_test_handle_request_result_static_init);
 TEST (cmd_interface_protocol_mctp_test_handle_request_result_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

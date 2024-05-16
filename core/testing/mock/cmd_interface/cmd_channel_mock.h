@@ -4,17 +4,17 @@
 #ifndef CMD_CHANNEL_MOCK_H_
 #define CMD_CHANNEL_MOCK_H_
 
-#include "cmd_interface/cmd_channel_static.h"
 #include "mock.h"
+#include "cmd_interface/cmd_channel_static.h"
 
 
 /**
  * A mock for a command communication channel.
  */
 struct cmd_channel_mock {
-	struct cmd_channel base;			/**< The base channel instance. */
-	struct cmd_channel_state state;		/**< Variable context for the command channel. */
-	struct mock mock;					/**< The base mock interface. */
+	struct cmd_channel base;		/**< The base channel instance. */
+	struct cmd_channel_state state;	/**< Variable context for the command channel. */
+	struct mock mock;				/**< The base mock interface. */
 };
 
 
@@ -26,4 +26,4 @@ int cmd_channel_mock_validate_and_release (struct cmd_channel_mock *mock);
 int cmd_channel_mock_validate_packet (const char *arg_info, void *expected, void *actual);
 
 
-#endif /* CMD_CHANNEL_MOCK_H_ */
+#endif	/* CMD_CHANNEL_MOCK_H_ */

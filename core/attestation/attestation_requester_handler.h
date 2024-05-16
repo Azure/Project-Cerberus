@@ -34,4 +34,4 @@ void attestation_requester_handler_release (const struct attestation_requester_h
  * error codes. */
 
 
-#endif /* ATTESTATION_REQUESTER_HANDLER_H_ */
+#endif	/* ATTESTATION_REQUESTER_HANDLER_H_ */

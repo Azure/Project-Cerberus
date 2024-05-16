@@ -2,14 +2,14 @@
 // Licensed under the MIT license.
 
 #include <stddef.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include "testing.h"
 #include "asn1/x509_thread_safe.h"
+#include "testing/asn1/x509_testing.h"
 #include "testing/mock/asn1/x509_extension_builder_mock.h"
 #include "testing/mock/asn1/x509_mock.h"
-#include "testing/asn1/x509_testing.h"
 
 
 TEST_SUITE_LABEL ("x509_thread_safe");
@@ -180,9 +180,8 @@ static void x509_thread_safe_test_create_csr_null (CuTest *test)
 	status = x509_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.create_csr (NULL, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, X509_EKU_OID, X509_EKU_OID_LEN, NULL, 0,
-		&csr, &length);
+	status = engine.base.create_csr (NULL, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256,
+		X509_SUBJECT_NAME, X509_CERT_CA, X509_EKU_OID, X509_EKU_OID_LEN, NULL, 0, &csr, &length);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);
@@ -216,8 +215,8 @@ static void x509_thread_safe_test_create_self_signed_certificate (CuTest *test)
 
 	status = mock_expect (&mock.mock, mock.base.create_self_signed_certificate, &mock, 0,
 		MOCK_ARG_PTR (&cert), MOCK_ARG_PTR (ECC_PRIVKEY_DER), MOCK_ARG (ECC_PRIVKEY_DER_LEN),
-		MOCK_ARG ( HASH_TYPE_SHA256), MOCK_ARG_PTR (X509_SERIAL_NUM),
-		MOCK_ARG (X509_SERIAL_NUM_LEN), MOCK_ARG_PTR (X509_SUBJECT_NAME), MOCK_ARG (X509_CERT_CA),
+		MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_PTR (X509_SERIAL_NUM), MOCK_ARG (X509_SERIAL_NUM_LEN),
+		MOCK_ARG_PTR (X509_SUBJECT_NAME), MOCK_ARG (X509_CERT_CA),
 		MOCK_ARG_PTR_CONTAINS (extensions, sizeof (extensions)), MOCK_ARG (3));
 	CuAssertIntEquals (test, 0, status);
 
@@ -253,10 +252,9 @@ static void x509_thread_safe_test_create_self_signed_certificate_error (CuTest *
 
 	status = mock_expect (&mock.mock, mock.base.create_self_signed_certificate, &mock,
 		X509_ENGINE_SELF_SIGNED_FAILED, MOCK_ARG_PTR (&cert), MOCK_ARG_PTR (ECC_PRIVKEY_DER),
-		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG ( HASH_TYPE_SHA384),
-		MOCK_ARG_PTR (X509_SERIAL_NUM), MOCK_ARG (X509_SERIAL_NUM_LEN),
-		MOCK_ARG_PTR (X509_SUBJECT_NAME), MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL),
-		MOCK_ARG (0));
+		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG (HASH_TYPE_SHA384), MOCK_ARG_PTR (X509_SERIAL_NUM),
+		MOCK_ARG (X509_SERIAL_NUM_LEN),	MOCK_ARG_PTR (X509_SUBJECT_NAME), MOCK_ARG (X509_CERT_CA),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
@@ -1581,6 +1579,7 @@ static void x509_thread_safe_test_authenticate_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (x509_thread_safe);
 
 TEST (x509_thread_safe_test_init);
@@ -1634,3 +1633,4 @@ TEST (x509_thread_safe_test_authenticate_error);
 TEST (x509_thread_safe_test_authenticate_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

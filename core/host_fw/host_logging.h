@@ -76,4 +76,4 @@ enum {
 };
 
 
-#endif /* HOST_LOGGING_H_ */
+#endif	/* HOST_LOGGING_H_ */

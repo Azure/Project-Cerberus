@@ -84,4 +84,4 @@ void firmware_update_handler_prepare (const struct event_task_handler *handler);
 	}
 
 
-#endif /* FIRMWARE_UPDATE_HANDLER_STATIC_H_ */
+#endif	/* FIRMWARE_UPDATE_HANDLER_STATIC_H_ */

@@ -4,8 +4,8 @@
 #ifndef MANIFEST_MANAGER_MOCK_H_
 #define MANIFEST_MANAGER_MOCK_H_
 
-#include "manifest/manifest_manager.h"
 #include "mock.h"
+#include "manifest/manifest_manager.h"
 
 
 /**
@@ -23,4 +23,4 @@ void manifest_manager_mock_release (struct manifest_manager_mock *mock);
 int manifest_manager_mock_validate_and_release (struct manifest_manager_mock *mock);
 
 
-#endif /* MANIFEST_MANAGER_MOCK_H_ */
+#endif	/* MANIFEST_MANAGER_MOCK_H_ */

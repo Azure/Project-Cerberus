@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "authorization_challenge.h"
 #include "common/buffer_util.h"
@@ -78,6 +78,7 @@ static int authorization_challenge_authorize (struct authorization *auth, uint8_
 
 exit:
 	platform_mutex_unlock (&challenge->lock);
+
 	return status;
 }
 
@@ -150,6 +151,7 @@ exit_key:
 	ecc->release_key_pair (ecc, &auth->key, NULL);
 exit_lock:
 	platform_mutex_free (&auth->lock);
+
 	return status;
 }
 

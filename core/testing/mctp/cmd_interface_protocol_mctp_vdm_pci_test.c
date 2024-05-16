@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
 #include "cmd_interface/cerberus_protocol.h"
@@ -441,6 +441,7 @@ static void cmd_interface_protocol_mctp_vdm_pci_test_parse_message_wrong_mctp_me
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_protocol_mctp_vdm_pci);
 
 TEST (cmd_interface_protocol_mctp_vdm_pci_test_init);
@@ -457,3 +458,4 @@ TEST (cmd_interface_protocol_mctp_vdm_pci_test_parse_message_short_message);
 TEST (cmd_interface_protocol_mctp_vdm_pci_test_parse_message_wrong_mctp_message_type);
 
 TEST_SUITE_END;
+// *INDENT-ON*

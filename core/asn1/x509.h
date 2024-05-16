@@ -4,11 +4,11 @@
 #ifndef X509_H_
 #define X509_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "status/rot_status.h"
+#include <stdint.h>
 #include "asn1/x509_extension_builder.h"
 #include "crypto/hash.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -20,9 +20,9 @@
  * The types of certificates that can be created.  This will dictate the different types of
  * extensions that are present.
  */
-#define	X509_CERT_END_ENTITY		0	/* An end entity certificate. */
-#define	X509_CERT_CA				1	/* A certificate that can be used to sign other certificates. */
-#define	X509_CERT_CA_PATHLEN(x)		((x & X509_CERT_MAX_PATHLEN) + X509_CERT_CA)	/* A CA certificate with a specified path length constraint. */
+#define	X509_CERT_END_ENTITY		0													/* An end entity certificate. */
+#define	X509_CERT_CA				1													/* A certificate that can be used to sign other certificates. */
+#define	X509_CERT_CA_PATHLEN(x)		((x & X509_CERT_MAX_PATHLEN) + X509_CERT_CA)		/* A CA certificate with a specified path length constraint. */
 #define	X509_CERT_CA_NO_PATHLEN		(X509_CERT_CA_PATHLEN (X509_CERT_MAX_PATHLEN) + 1)	/* A certificate with no path length constraint specified. */
 
 
@@ -36,8 +36,8 @@
  * The possible types of public keys in a certificate.
  */
 enum {
-	X509_PUBLIC_KEY_ECC,		/**< An ECC public key. */
-	X509_PUBLIC_KEY_RSA			/**< An RSA public key. */
+	X509_PUBLIC_KEY_ECC,	/**< An ECC public key. */
+	X509_PUBLIC_KEY_RSA,	/**< An RSA public key. */
 };
 
 
@@ -56,9 +56,9 @@ enum {
  * The possible version numbers for X.509 certificates.
  */
 enum {
-	X509_VERSION_1 = 1,			/**< A version 1 certificate. */
-	X509_VERSION_2 = 2,			/**< A version 2 certificate. */
-	X509_VERSION_3 = 3,			/**< A version 3 certificate. */
+	X509_VERSION_1 = 1,	/**< A version 1 certificate. */
+	X509_VERSION_2 = 2,	/**< A version 2 certificate. */
+	X509_VERSION_3 = 3,	/**< A version 3 certificate. */
 };
 
 
@@ -66,7 +66,7 @@ enum {
  * An X.509 certificate.  A certificate instance is only usable by the engine that initialized it.
  */
 struct x509_certificate {
-	void *context;		/**< The implementation context for the certificate. */
+	void *context;	/**< The implementation context for the certificate. */
 };
 
 /**
@@ -76,7 +76,7 @@ struct x509_certificate {
  * engine that initialized it.
  */
 struct x509_ca_certs {
-	void *context;		/**< The implementation context for an intermediate certificate store. */
+	void *context;	/**< The implementation context for an intermediate certificate store. */
 };
 
 /**
@@ -176,7 +176,7 @@ struct x509_engine {
 	 */
 	int (*create_ca_signed_certificate) (struct x509_engine *engine, struct x509_certificate *cert,
 		const uint8_t *key, size_t key_length, const uint8_t *serial_num, size_t serial_length,
-		const char *name, int type, const uint8_t* ca_priv_key, size_t ca_key_length,
+		const char *name, int type, const uint8_t *ca_priv_key, size_t ca_key_length,
 		enum hash_type sig_hash, const struct x509_certificate *ca_cert,
 		const struct x509_extension_builder *const *extra_extensions, size_t ext_count);
 #endif
@@ -361,44 +361,44 @@ struct x509_engine {
  * Note: Commented error codes have been deprecated.
  */
 enum {
-	X509_ENGINE_INVALID_ARGUMENT = X509_ENGINE_ERROR (0x00),			/**< Input parameter is null or not valid. */
-	X509_ENGINE_NO_MEMORY = X509_ENGINE_ERROR (0x01),					/**< Memory allocation failed. */
-	X509_ENGINE_CSR_FAILED = X509_ENGINE_ERROR (0x02),					/**< The CSR was not created. */
-	X509_ENGINE_SELF_SIGNED_FAILED = X509_ENGINE_ERROR (0x03),			/**< The self-signed certificate was not created. */
-	X509_ENGINE_CA_SIGNED_FAILED = X509_ENGINE_ERROR (0x04),			/**< The CA-signed certificate was not created. */
-	X509_ENGINE_LOAD_FAILED = X509_ENGINE_ERROR (0x05),					/**< The certificate DER was not loaded. */
-	X509_ENGINE_CERT_DER_FAILED = X509_ENGINE_ERROR (0x06),				/**< The certificate was not encoded to DER. */
-	X509_ENGINE_KEY_TYPE_FAILED = X509_ENGINE_ERROR (0x07),				/**< Failed to get the key type from the certificate. */
-	X509_ENGINE_KEY_FAILED = X509_ENGINE_ERROR (0x08),					/**< Failed to get the key from the certificate. */
-	X509_ENGINE_ROOT_CA_FAILED = X509_ENGINE_ERROR (0x09),				/**< The root CA was not added for path validation. */
-	X509_ENGINE_INIT_STORE_FAILED = X509_ENGINE_ERROR (0x0a),			/**< The intermediate CA certificate store was not initialized. */
-	X509_ENGINE_INTER_CA_FAILED = X509_ENGINE_ERROR (0x0b),				/**< The intermediate CA was not added for path validation. */
-	X509_ENGINE_AUTH_FAILED = X509_ENGINE_ERROR (0x0c),					/**< An error unrelated to path validation caused authentication to fail. */
+	X509_ENGINE_INVALID_ARGUMENT = X509_ENGINE_ERROR (0x00),		/**< Input parameter is null or not valid. */
+	X509_ENGINE_NO_MEMORY = X509_ENGINE_ERROR (0x01),				/**< Memory allocation failed. */
+	X509_ENGINE_CSR_FAILED = X509_ENGINE_ERROR (0x02),				/**< The CSR was not created. */
+	X509_ENGINE_SELF_SIGNED_FAILED = X509_ENGINE_ERROR (0x03),		/**< The self-signed certificate was not created. */
+	X509_ENGINE_CA_SIGNED_FAILED = X509_ENGINE_ERROR (0x04),		/**< The CA-signed certificate was not created. */
+	X509_ENGINE_LOAD_FAILED = X509_ENGINE_ERROR (0x05),				/**< The certificate DER was not loaded. */
+	X509_ENGINE_CERT_DER_FAILED = X509_ENGINE_ERROR (0x06),			/**< The certificate was not encoded to DER. */
+	X509_ENGINE_KEY_TYPE_FAILED = X509_ENGINE_ERROR (0x07),			/**< Failed to get the key type from the certificate. */
+	X509_ENGINE_KEY_FAILED = X509_ENGINE_ERROR (0x08),				/**< Failed to get the key from the certificate. */
+	X509_ENGINE_ROOT_CA_FAILED = X509_ENGINE_ERROR (0x09),			/**< The root CA was not added for path validation. */
+	X509_ENGINE_INIT_STORE_FAILED = X509_ENGINE_ERROR (0x0a),		/**< The intermediate CA certificate store was not initialized. */
+	X509_ENGINE_INTER_CA_FAILED = X509_ENGINE_ERROR (0x0b),			/**< The intermediate CA was not added for path validation. */
+	X509_ENGINE_AUTH_FAILED = X509_ENGINE_ERROR (0x0c),				/**< An error unrelated to path validation caused authentication to fail. */
 	// X509_ENGINE_RIOT_NO_FWID = X509_ENGINE_ERROR (0x0d),				/**< No FWID provided for the RIoT extension. */
 	// X509_ENGINE_RIOT_UNSUPPORTED_HASH = X509_ENGINE_ERROR (0x0e),	/**< The RIoT FWID uses an unsupported hash algorithm. */
-	X509_ENGINE_UNSUPPORTED_KEY_TYPE = X509_ENGINE_ERROR (0x0f),		/**< A certificate contains a key for an unsupported algorithm. */
-	X509_ENGINE_UNKNOWN_KEY_TYPE = X509_ENGINE_ERROR (0x10),			/**< The type of key in a certificate could not be determined. */
-	X509_ENGINE_UNSUPPORTED_SIG_TYPE = X509_ENGINE_ERROR (0x11),		/**< The certificate signature uses an unsupported algorithm. */
-	X509_ENGINE_NOT_CA_CERT = X509_ENGINE_ERROR (0x12),					/**< The certificate is not a CA. */
-	X509_ENGINE_NOT_SELF_SIGNED = X509_ENGINE_ERROR (0x13),				/**< The certificate is not self-signed. */
-	X509_ENGINE_IS_SELF_SIGNED = X509_ENGINE_ERROR (0x14),				/**< The certificate is self-signed. */
-	X509_ENGINE_BAD_SIGNATURE = X509_ENGINE_ERROR (0x15),				/**< The certificate failed signature verification. */
-	X509_ENGINE_CERT_NOT_VALID = X509_ENGINE_ERROR (0x16),				/**< Path validation for the certificate failed. */
+	X509_ENGINE_UNSUPPORTED_KEY_TYPE = X509_ENGINE_ERROR (0x0f),	/**< A certificate contains a key for an unsupported algorithm. */
+	X509_ENGINE_UNKNOWN_KEY_TYPE = X509_ENGINE_ERROR (0x10),		/**< The type of key in a certificate could not be determined. */
+	X509_ENGINE_UNSUPPORTED_SIG_TYPE = X509_ENGINE_ERROR (0x11),	/**< The certificate signature uses an unsupported algorithm. */
+	X509_ENGINE_NOT_CA_CERT = X509_ENGINE_ERROR (0x12),				/**< The certificate is not a CA. */
+	X509_ENGINE_NOT_SELF_SIGNED = X509_ENGINE_ERROR (0x13),			/**< The certificate is not self-signed. */
+	X509_ENGINE_IS_SELF_SIGNED = X509_ENGINE_ERROR (0x14),			/**< The certificate is self-signed. */
+	X509_ENGINE_BAD_SIGNATURE = X509_ENGINE_ERROR (0x15),			/**< The certificate failed signature verification. */
+	X509_ENGINE_CERT_NOT_VALID = X509_ENGINE_ERROR (0x16),			/**< Path validation for the certificate failed. */
 	// X509_ENGINE_RIOT_AUTH_FAILED = X509_ENGINE_ERROR (0x17),			/**< Path validation for the certificate succeeded, but the RIoT extension was not valid. */
-	X509_ENGINE_HW_NOT_INIT = X509_ENGINE_ERROR (0x18),					/**< The X.509 hardware has not been initialized. */
-	X509_ENGINE_CERT_SIGN_FAILED = X509_ENGINE_ERROR (0x19),			/**< Failure related to signing the certificate. */
-	X509_ENGINE_LONG_SERIAL_NUM = X509_ENGINE_ERROR (0x1a),				/**< The certificate serial number exceeds the length supported by the engine. */
-	X509_ENGINE_BIG_CERT_SIZE = X509_ENGINE_ERROR (0x1b),				/**< The certificate length exceeds the size supported by the engine. */
-	X509_ENGINE_VERSION_FAILED = X509_ENGINE_ERROR (0x1c),				/**< Failed to get the version number from the certificate. */
-	X509_ENGINE_SERIAL_NUM_FAILED = X509_ENGINE_ERROR (0x1d),			/**< Failed to get the serial number from the certificate. */
-	X509_ENGINE_KEY_LENGTH_FAILED = X509_ENGINE_ERROR (0x1e),			/**< Failed to get the key length from the certificate. */
-	X509_ENGINE_SMALL_SERIAL_BUFFER = X509_ENGINE_ERROR (0x1f),			/**< Insufficient buffer space for the serial number. */
-	X509_ENGINE_LONG_OID = X509_ENGINE_ERROR (0x20),					/**< An OID is too long to be processed. */
+	X509_ENGINE_HW_NOT_INIT = X509_ENGINE_ERROR (0x18),				/**< The X.509 hardware has not been initialized. */
+	X509_ENGINE_CERT_SIGN_FAILED = X509_ENGINE_ERROR (0x19),		/**< Failure related to signing the certificate. */
+	X509_ENGINE_LONG_SERIAL_NUM = X509_ENGINE_ERROR (0x1a),			/**< The certificate serial number exceeds the length supported by the engine. */
+	X509_ENGINE_BIG_CERT_SIZE = X509_ENGINE_ERROR (0x1b),			/**< The certificate length exceeds the size supported by the engine. */
+	X509_ENGINE_VERSION_FAILED = X509_ENGINE_ERROR (0x1c),			/**< Failed to get the version number from the certificate. */
+	X509_ENGINE_SERIAL_NUM_FAILED = X509_ENGINE_ERROR (0x1d),		/**< Failed to get the serial number from the certificate. */
+	X509_ENGINE_KEY_LENGTH_FAILED = X509_ENGINE_ERROR (0x1e),		/**< Failed to get the key length from the certificate. */
+	X509_ENGINE_SMALL_SERIAL_BUFFER = X509_ENGINE_ERROR (0x1f),		/**< Insufficient buffer space for the serial number. */
+	X509_ENGINE_LONG_OID = X509_ENGINE_ERROR (0x20),				/**< An OID is too long to be processed. */
 	// X509_ENGINE_DICE_NO_VERSION = X509_ENGINE_ERROR (0x21),			/**< No version information for the DICE extension. */
 	// X509_ENGINE_DICE_NO_UEID = X509_ENGINE_ERROR (0x22),				/**< No UEID information for the DICE extension. */
-	X509_ENGINE_INVALID_SERIAL_NUM = X509_ENGINE_ERROR (0x23),			/**< Provided serial number is an invalid value. */
-	X509_ENGINE_UNSUPPORTED_SIG_HASH = X509_ENGINE_ERROR (0x24),		/**< The certificate signature uses an unsupported digest. */
+	X509_ENGINE_INVALID_SERIAL_NUM = X509_ENGINE_ERROR (0x23),		/**< Provided serial number is an invalid value. */
+	X509_ENGINE_UNSUPPORTED_SIG_HASH = X509_ENGINE_ERROR (0x24),	/**< The certificate signature uses an unsupported digest. */
 };
 
 
-#endif /* X509_H_ */
+#endif	/* X509_H_ */

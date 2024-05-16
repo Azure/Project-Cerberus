@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include "testing.h"
 #include "platform_api.h"
+#include "testing.h"
 #include "status/rot_status.h"
 
 
@@ -274,6 +274,7 @@ static void platform_semaphore_test_reset_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (platform_semaphore);
 
 TEST (platform_semaphore_test_init);
@@ -292,3 +293,4 @@ TEST (platform_semaphore_test_reset_multiple_post);
 TEST (platform_semaphore_test_reset_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

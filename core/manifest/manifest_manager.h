@@ -4,11 +4,11 @@
 #ifndef MANIFEST_MANAGER_H_
 #define MANIFEST_MANAGER_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "status/rot_status.h"
+#include <stdint.h>
 #include "manifest.h"
 #include "crypto/hash.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -67,8 +67,8 @@ struct manifest_manager {
 	 */
 	int (*clear_all_manifests) (const struct manifest_manager *manager);
 
-	int port;						/**< Port identifier for the manager. */
-	struct hash_engine *hash;		/**< The hash engine for generating measurement data. */
+	int port;					/**< Port identifier for the manager. */
+	struct hash_engine *hash;	/**< The hash engine for generating measurement data. */
 };
 
 
@@ -77,8 +77,8 @@ int manifest_manager_init (struct manifest_manager *manager, struct hash_engine 
 void manifest_manager_set_port (struct manifest_manager *manager, int port);
 int manifest_manager_get_port (const struct manifest_manager *manager);
 
-int manifest_manager_get_id_measured_data (struct manifest *active, size_t offset,
-	uint8_t *buffer, size_t length, uint32_t *total_len);
+int manifest_manager_get_id_measured_data (struct manifest *active, size_t offset, uint8_t *buffer,
+	size_t length, uint32_t *total_len);
 int manifest_manager_hash_id_measured_data (struct manifest *active, struct hash_engine *hash);
 
 int manifest_manager_get_platform_id_measured_data (struct manifest *active, size_t offset,
@@ -125,4 +125,4 @@ enum {
 };
 
 
-#endif /* MANIFEST_MANAGER_H_ */
+#endif	/* MANIFEST_MANAGER_H_ */

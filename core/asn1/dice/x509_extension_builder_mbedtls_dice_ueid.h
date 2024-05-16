@@ -21,11 +21,11 @@
  * functions.
  */
 struct x509_extension_builder_mbedtls_dice_ueid {
-	struct x509_extension_builder base;		/**< Base extension builder API. */
-	const uint8_t *ueid;					/**< The UEID to encode in the extension. */
-	size_t ueid_length;						/**< Length of the UEID. */
-	uint8_t *ext_buffer;					/**< Buffer to use for building the extension data. */
-	size_t ext_length;						/**< Length of the extension data duffer. */
+	struct x509_extension_builder base;	/**< Base extension builder API. */
+	const uint8_t *ueid;				/**< The UEID to encode in the extension. */
+	size_t ueid_length;					/**< Length of the UEID. */
+	uint8_t *ext_buffer;				/**< Buffer to use for building the extension data. */
+	size_t ext_length;					/**< Length of the extension data duffer. */
 };
 
 
@@ -38,4 +38,4 @@ void x509_extension_builder_mbedtls_dice_ueid_release (
 	const struct x509_extension_builder_mbedtls_dice_ueid *builder);
 
 
-#endif /* X509_EXTENSION_BUILDER_MBEDTLS_DICE_UEID_H_ */
+#endif	/* X509_EXTENSION_BUILDER_MBEDTLS_DICE_UEID_H_ */

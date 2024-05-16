@@ -7,9 +7,9 @@
 #include "testing.h"
 #include "system/security_policy.h"
 #include "system/system_logging.h"
+#include "testing/logging/debug_log_testing.h"
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/system/security_policy_mock.h"
-#include "testing/logging/debug_log_testing.h"
 
 
 TEST_SUITE_LABEL ("security_policy");
@@ -19,8 +19,8 @@ TEST_SUITE_LABEL ("security_policy");
  * Dependencies for testing.
  */
 struct security_policy_testing {
-	struct logging_mock logger;				/**< Mock for debug logging. */
-	struct security_policy_mock test;		/**< Mock for the security policy to use for testing. */
+	struct logging_mock logger;			/**< Mock for debug logging. */
+	struct security_policy_mock test;	/**< Mock for the security policy to use for testing. */
 };
 
 
@@ -180,8 +180,8 @@ static void security_policy_test_enforce_anti_rollback (CuTest *test)
 
 	security_policy_testing_init_dependencies (test, &policy);
 
-	status = mock_expect (&policy.test.mock, policy.test.base.enforce_anti_rollback,
-		&policy.test, 1);
+	status = mock_expect (&policy.test.mock, policy.test.base.enforce_anti_rollback, &policy.test,
+		1);
 	CuAssertIntEquals (test, 0, status);
 
 	enforce = security_policy_enforce_anti_rollback (&policy.test.base);
@@ -200,8 +200,8 @@ static void security_policy_test_enforce_anti_rollback_not_enforcing (CuTest *te
 
 	security_policy_testing_init_dependencies (test, &policy);
 
-	status = mock_expect (&policy.test.mock, policy.test.base.enforce_anti_rollback,
-		&policy.test, 0);
+	status = mock_expect (&policy.test.mock, policy.test.base.enforce_anti_rollback, &policy.test,
+		0);
 	CuAssertIntEquals (test, 0, status);
 
 	enforce = security_policy_enforce_anti_rollback (&policy.test.base);
@@ -257,8 +257,8 @@ static void security_policy_test_enforce_anti_rollback_check_error (CuTest *test
 
 	security_policy_testing_init_dependencies (test, &policy);
 
-	status = mock_expect (&policy.test.mock, policy.test.base.enforce_anti_rollback,
-		&policy.test, SECURITY_POLICY_ANTI_ROLLBACK_CHECK_FAILED);
+	status = mock_expect (&policy.test.mock, policy.test.base.enforce_anti_rollback, &policy.test,
+		SECURITY_POLICY_ANTI_ROLLBACK_CHECK_FAILED);
 
 	status |= mock_expect (&policy.logger.mock, policy.logger.base.create_entry, &policy.logger, 0,
 		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -273,6 +273,7 @@ static void security_policy_test_enforce_anti_rollback_check_error (CuTest *test
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (security_policy);
 
 TEST (security_policy_test_enforce_firmware_signing);
@@ -285,3 +286,4 @@ TEST (security_policy_test_enforce_anti_rollback_null);
 TEST (security_policy_test_enforce_anti_rollback_check_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

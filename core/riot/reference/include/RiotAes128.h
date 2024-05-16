@@ -23,8 +23,8 @@
 //
 // 4-MAY-2015; RIoT adaptation (DennisMa;MSFT)
 //
-#include "RiotTarget.h"
 #include "RiotStatus.h"
+#include "RiotTarget.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,12 +45,12 @@ typedef uint32_t aes128EncryptKey_t[AES128_ENCRYPT_SCHEDULE_LEN];
 //
 // @param key  The key in case this is required
 //
-void RIOT_AES128_Enable(const uint8_t *key, aes128EncryptKey_t *aes128EncryptKey);
+void RIOT_AES128_Enable (const uint8_t *key, aes128EncryptKey_t *aes128EncryptKey);
 
 //
 // Disable AES freeing any resources that were allocated
 //
-void RIOT_AES128_Disable(aes128EncryptKey_t *aes128EncryptKey);
+void RIOT_AES128_Disable (aes128EncryptKey_t *aes128EncryptKey);
 
 //
 // AES counter mode encryption/decryption. Note that in
@@ -62,18 +62,19 @@ void RIOT_AES128_Disable(aes128EncryptKey_t *aes128EncryptKey);
 // @param len  The length of the input data, must be multiple of 16
 // @param ctr  Pointer to a 16 uint8_t counter block
 //
-void RIOT_AES_CTR_128(const aes128EncryptKey_t *aes128EncryptKey, const uint8_t *in,
-                      uint8_t *out, uint32_t len, uint8_t *ctr);
+void RIOT_AES_CTR_128 (const aes128EncryptKey_t *aes128EncryptKey, const uint8_t *in, uint8_t *out,
+	uint32_t len, uint8_t *ctr);
 
-void RIOT_AES_CBC_128_ENCRYPT(const aes128EncryptKey_t *aes128EncryptKey,
-                              const uint8_t *in, uint8_t *out, uint32_t len,
-                              uint8_t *iv);
+void RIOT_AES_CBC_128_ENCRYPT (const aes128EncryptKey_t *aes128EncryptKey, const uint8_t *in,
+	uint8_t *out, uint32_t len, uint8_t *iv);
 
-void RIOT_AES_ECB_128_ENCRYPT(const aes128EncryptKey_t *aes128EncryptKey,
-                              const uint8_t *in, uint8_t *out, size_t size);
+void RIOT_AES_ECB_128_ENCRYPT (const aes128EncryptKey_t *aes128EncryptKey, const uint8_t *in,
+	uint8_t *out, size_t size);
 
 
 #ifdef __cplusplus
 }
 #endif
+
+
 #endif

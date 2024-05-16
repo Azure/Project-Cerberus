@@ -4,13 +4,13 @@
 #ifndef SPI_FILTER_IRQ_HANDLER_MOCK_H_
 #define SPI_FILTER_IRQ_HANDLER_MOCK_H_
 
-#include "spi_filter/spi_filter_irq_handler.h"
 #include "mock.h"
+#include "spi_filter/spi_filter_irq_handler.h"
 
 
 struct spi_filter_irq_handler_mock {
-	struct spi_filter_irq_handler base;		/**< The base IRQ handler. */
-	struct mock mock;						/**< The bas mock interface. */
+	struct spi_filter_irq_handler base;	/**< The base IRQ handler. */
+	struct mock mock;					/**< The bas mock interface. */
 };
 
 
@@ -20,4 +20,4 @@ void spi_filter_irq_handler_mock_release (struct spi_filter_irq_handler_mock *mo
 int spi_filter_irq_handler_mock_validate_and_release (struct spi_filter_irq_handler_mock *mock);
 
 
-#endif /* SPI_FILTER_IRQ_HANDLER_MOCK_H_ */
+#endif	/* SPI_FILTER_IRQ_HANDLER_MOCK_H_ */

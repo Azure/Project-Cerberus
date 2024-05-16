@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <string.h>
 #include <stdint.h>
+#include <string.h>
 #include "cmd_interface_multi_handler_mock.h"
 #include "testing.h"
 
@@ -190,7 +190,8 @@ void cmd_interface_multi_handler_mock_release (struct cmd_interface_multi_handle
  *
  * @return 0 if all expectations were met or 1 if not.
  */
-int cmd_interface_multi_handler_mock_validate_and_release (struct cmd_interface_multi_handler_mock *mock)
+int cmd_interface_multi_handler_mock_validate_and_release (
+	struct cmd_interface_multi_handler_mock *mock)
 {
 	int status = 1;
 

@@ -5,10 +5,10 @@
 #define PFM_MANAGER_FLASH_H_
 
 #include <stdbool.h>
-#include "pfm_manager.h"
 #include "pfm_flash.h"
-#include "manifest/manifest_manager_flash.h"
+#include "pfm_manager.h"
 #include "host_fw/host_state_manager.h"
+#include "manifest/manifest_manager_flash.h"
 
 
 /**
@@ -33,4 +33,4 @@ void pfm_manager_flash_release (struct pfm_manager_flash *manager);
 int pfm_manager_flash_verify_pending_manifest (const struct manifest_manager *manager);
 
 
-#endif /* PFM_MANAGER_FLASH_H_ */
+#endif	/* PFM_MANAGER_FLASH_H_ */

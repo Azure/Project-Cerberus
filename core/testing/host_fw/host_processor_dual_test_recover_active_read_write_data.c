@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include "testing.h"
 #include "host_processor_dual_testing.h"
+#include "testing.h"
 
 
 TEST_SUITE_LABEL ("host_processor_dual");
@@ -209,7 +209,8 @@ static void host_processor_dual_test_recover_active_read_write_data_active_pfm_n
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_recover_active_read_write_data_active_pfm_not_dirty_checked_bypass (
+static void
+host_processor_dual_test_recover_active_read_write_data_active_pfm_not_dirty_checked_bypass (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -234,7 +235,8 @@ static void host_processor_dual_test_recover_active_read_write_data_active_pfm_n
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_recover_active_read_write_data_active_pfm_not_dirty_pulse_reset (
+static void host_processor_dual_test_recover_active_read_write_data_active_pfm_not_dirty_pulse_reset
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -412,7 +414,8 @@ static void host_processor_dual_test_recover_active_read_write_data_active_pfm_d
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_prevalidated_flash (
+static void
+host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_prevalidated_flash (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -494,7 +497,8 @@ static void host_processor_dual_test_recover_active_read_write_data_active_pfm_d
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_prevalidated_flash_bypass (
+static void
+host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_prevalidated_flash_bypass (
 	CuTest *test)
 {
 	/* This scenario should not be possible.  In order to have already validated the flash, the
@@ -533,7 +537,9 @@ static void host_processor_dual_test_recover_active_read_write_data_active_pfm_d
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_prevalidated_flash_and_pfm (
+static void
+host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_prevalidated_flash_and_pfm
+(
 	CuTest *test)
 {
 	/* This scenario should not be possible.  In order to have already validated the R/W flash and
@@ -622,7 +628,9 @@ static void host_processor_dual_test_recover_active_read_write_data_active_pfm_d
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_prevalidated_flash_and_pfm_bypass (
+static void
+host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_prevalidated_flash_and_pfm_bypass
+(
 	CuTest *test)
 {
 	/* This scenario should not be possible.  In order to have already validated the flash, the
@@ -741,7 +749,8 @@ static void host_processor_dual_test_recover_active_read_write_data_active_pfm_d
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_checked_bypass (
+static void host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_checked_bypass
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -772,7 +781,9 @@ static void host_processor_dual_test_recover_active_read_write_data_active_pfm_d
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_checked_prevalidated_flash (
+static void
+host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_checked_prevalidated_flash
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -855,7 +866,9 @@ static void host_processor_dual_test_recover_active_read_write_data_active_pfm_d
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_checked_prevalidated_flash_bypass (
+static void
+host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_checked_prevalidated_flash_bypass
+(
 	CuTest *test)
 {
 	/* This scenario should not be possible.  In order to have already validated the flash, the
@@ -895,7 +908,9 @@ static void host_processor_dual_test_recover_active_read_write_data_active_pfm_d
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_checked_prevalidated_flash_and_pfm (
+static void
+host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_checked_prevalidated_flash_and_pfm
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -979,7 +994,9 @@ static void host_processor_dual_test_recover_active_read_write_data_active_pfm_d
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_checked_prevalidated_flash_and_pfm_bypass (
+static void
+host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_checked_prevalidated_flash_and_pfm_bypass
+(
 	CuTest *test)
 {
 	/* This scenario should not be possible.  In order to have already validated the flash, the
@@ -1511,7 +1528,9 @@ static void host_processor_dual_test_recover_active_read_write_data_active_pfm_d
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_prevalidated_flash_get_rw_error (
+static void
+host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_prevalidated_flash_get_rw_error
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1568,7 +1587,9 @@ static void host_processor_dual_test_recover_active_read_write_data_active_pfm_d
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_prevalidated_flash_restore_error (
+static void
+host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_prevalidated_flash_restore_error
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1656,7 +1677,9 @@ static void host_processor_dual_test_recover_active_read_write_data_active_pfm_d
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_checked_prevalidated_flash_get_rw_error (
+static void
+host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_checked_prevalidated_flash_get_rw_error
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1714,7 +1737,9 @@ static void host_processor_dual_test_recover_active_read_write_data_active_pfm_d
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_checked_prevalidated_flash_restore_error (
+static void
+host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_checked_prevalidated_flash_restore_error
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1803,7 +1828,9 @@ static void host_processor_dual_test_recover_active_read_write_data_active_pfm_d
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_checked_prevalidated_flash_and_pfm_get_rw_error (
+static void
+host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_checked_prevalidated_flash_and_pfm_get_rw_error
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1862,7 +1889,9 @@ static void host_processor_dual_test_recover_active_read_write_data_active_pfm_d
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_checked_prevalidated_flash_and_pfm_restore_error (
+static void
+host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_checked_prevalidated_flash_and_pfm_restore_error
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1953,6 +1982,7 @@ static void host_processor_dual_test_recover_active_read_write_data_active_pfm_d
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_processor_dual_recover_active_read_write_data);
 
 TEST (host_processor_dual_test_recover_active_read_write_data_no_pfm);
@@ -1989,3 +2019,4 @@ TEST (host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_c
 TEST (host_processor_dual_test_recover_active_read_write_data_active_pfm_dirty_checked_prevalidated_flash_and_pfm_restore_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include "testing.h"
 #include "platform_api.h"
+#include "testing.h"
 #include "status/rot_status.h"
 
 
@@ -20,6 +20,7 @@ struct timer_context {
 	int sleep;
 	platform_timer *timer;
 };
+
 
 /**
  * Test timer notification function.
@@ -402,6 +403,7 @@ static void platform_timer_test_delete_callback_active (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (platform_timer);
 
 TEST (platform_timer_test_create);
@@ -422,3 +424,4 @@ TEST (platform_timer_test_delete_active_timer);
 TEST (platform_timer_test_delete_callback_active);
 
 TEST_SUITE_END;
+// *INDENT-ON*

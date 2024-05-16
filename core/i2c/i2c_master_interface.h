@@ -4,8 +4,8 @@
 #ifndef I2C_MASTER_INTERFACE_H_
 #define I2C_MASTER_INTERFACE_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 
 
@@ -40,7 +40,7 @@ struct i2c_master_interface {
 	 *
 	 * @return Transfer status, 0 if success or an error code.
 	 */
-	int (*read_reg) (struct i2c_master_interface *i2c, uint16_t slave_addr, uint32_t reg_addr, 
+	int (*read_reg) (struct i2c_master_interface *i2c, uint16_t slave_addr, uint32_t reg_addr,
 		size_t reg_addr_len, uint8_t *data, size_t len);
 
 	/**
@@ -72,4 +72,4 @@ enum {
 };
 
 
-#endif /* I2C_MASTER_INTERFACE_H_ */
+#endif	/* I2C_MASTER_INTERFACE_H_ */

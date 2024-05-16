@@ -4,11 +4,11 @@
 #ifndef TPM_H_
 #define TPM_H_
 
-#include <stdint.h>
 #include <stdbool.h>
-#include "status/rot_status.h"
+#include <stdint.h>
 #include "flash/flash_store.h"
 #include "host_fw/host_processor_observer.h"
+#include "status/rot_status.h"
 
 
 #define TPM_STORAGE_SEGMENT_SIZE					512
@@ -17,9 +17,9 @@
  * Flash storage for TPM data.
  */
 struct tpm {
-	struct host_processor_observer observer;		/**< The base observer interface. */
-	const struct flash_store *flash;				/**< The flash used for TPM storage. */
-	uint8_t buffer[TPM_STORAGE_SEGMENT_SIZE];		/**< Buffer for TPM flash storage. */
+	struct host_processor_observer observer;	/**< The base observer interface. */
+	const struct flash_store *flash;			/**< The flash used for TPM storage. */
+	uint8_t buffer[TPM_STORAGE_SEGMENT_SIZE];	/**< Buffer for TPM flash storage. */
 };
 
 #define TPM_MAGIC									0xACFE
@@ -30,11 +30,12 @@ struct tpm {
  */
 #pragma pack(push, 1)
 struct tpm_header {
-	uint16_t magic;									/**< Value indicating header is valid. */
-	uint16_t format_id;								/**< Header format ID. */
-	uint64_t nv_counter;							/**< Non-volatile counter. */
-	uint8_t clear;									/**< Flag indicating a pending TPM clear. */
+	uint16_t magic;			/**< Value indicating header is valid. */
+	uint16_t format_id;		/**< Header format ID. */
+	uint64_t nv_counter;	/**< Non-volatile counter. */
+	uint8_t clear;			/**< Flag indicating a pending TPM clear. */
 };
+
 #pragma pack(pop)
 
 
@@ -70,4 +71,4 @@ enum {
 };
 
 
-#endif /* TPM_H_ */
+#endif	/* TPM_H_ */

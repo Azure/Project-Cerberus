@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "platform_api.h"
 #include "app_image.h"
+#include "platform_api.h"
 #include "flash/flash_util.h"
 
 
@@ -26,8 +26,8 @@ int app_image_verification (const struct flash *flash, uint32_t start_addr,
 	struct hash_engine *hash, struct rsa_engine *rsa, const struct rsa_public_key *pub_key,
 	uint8_t *hash_out, size_t hash_length)
 {
-	return app_image_verification_with_header (flash, start_addr, 0, hash, rsa, pub_key,
-		hash_out, hash_length);
+	return app_image_verification_with_header (flash, start_addr, 0, hash, rsa, pub_key, hash_out,
+		hash_length);
 }
 
 /**
@@ -115,6 +115,7 @@ int app_image_load (const struct flash *flash, uint32_t start_addr, uint8_t *loa
 	if (load_length != NULL) {
 		*load_length = length;
 	}
+
 	return 0;
 }
 
@@ -141,8 +142,8 @@ int app_image_load_and_verify (const struct flash *flash, uint32_t start_addr, u
 	const struct rsa_public_key *pub_key, uint8_t *hash_out, size_t hash_length,
 	size_t *load_length)
 {
-	return app_image_load_and_verify_with_header (flash, start_addr, 0, load_addr, max_length,
-		hash, rsa, pub_key, hash_out, hash_length, load_length);
+	return app_image_load_and_verify_with_header (flash, start_addr, 0, load_addr, max_length, hash,
+		rsa, pub_key, hash_out, hash_length, load_length);
 }
 
 /**
@@ -251,6 +252,7 @@ int app_image_load_and_verify_with_header (const struct flash *flash, uint32_t s
 
 hash_fail:
 	hash->cancel (hash);
+
 	return status;
 }
 

@@ -4,9 +4,9 @@
 #ifndef STATE_PERSISTENCE_HANDLER_H_
 #define STATE_PERSISTENCE_HANDLER_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "platform_api.h"
 #include "state_manager.h"
 #include "system/periodic_task.h"
@@ -16,8 +16,8 @@
  * Variable context for the handler for persisting state to flash.
  */
 struct state_persistence_handler_state {
-	platform_clock next;				/**< Time at which the next execution should run. */
-	bool next_valid;					/**< Indicate if the next timeout has been initialized. */
+	platform_clock next;	/**< Time at which the next execution should run. */
+	bool next_valid;		/**< Indicate if the next timeout has been initialized. */
 };
 
 /**
@@ -43,4 +43,4 @@ void state_persistence_handler_release (const struct state_persistence_handler *
  * error codes. */
 
 
-#endif /* STATE_PERSISTENCE_HANDLER_H_ */
+#endif	/* STATE_PERSISTENCE_HANDLER_H_ */

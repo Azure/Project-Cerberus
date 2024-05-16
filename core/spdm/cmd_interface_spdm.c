@@ -5,11 +5,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include "cmd_interface_spdm.h"
+#include "spdm_commands.h"
 #include "spdm_protocol.h"
 #include "spdm_protocol_observer.h"
-#include "spdm_commands.h"
-#include "common/unused.h"
 #include "cmd_interface/cmd_logging.h"
+#include "common/unused.h"
 #include "logging/debug_log.h"
 
 
@@ -102,8 +102,7 @@ static int cmd_interface_spdm_process_response (const struct cmd_interface *intf
 			}
 			else {
 				return observable_notify_observers_with_ptr (&interface->observable,
-					offsetof (struct spdm_protocol_observer, on_spdm_challenge_response),
-					response);
+					offsetof (struct spdm_protocol_observer, on_spdm_challenge_response), response);
 			}
 
 		case SPDM_RESPONSE_GET_MEASUREMENTS:
@@ -131,8 +130,7 @@ static int cmd_interface_spdm_process_response (const struct cmd_interface *intf
 					debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR,
 						DEBUG_LOG_COMPONENT_CMD_INTERFACE, CMD_LOGGING_ERROR_MESSAGE,
 						((error_msg->error_code << 24) | (response->source_eid << 16) |
-							(response->target_eid << 8)),
-						error_msg->error_data);
+									(response->target_eid << 8)), error_msg->error_data);
 				}
 			}
 

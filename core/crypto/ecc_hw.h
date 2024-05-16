@@ -4,11 +4,11 @@
 #ifndef ECC_HW_H_
 #define ECC_HW_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "platform_api.h"
-#include "status/rot_status.h"
 #include "crypto/ecc.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -126,7 +126,7 @@ enum {
 	ECC_HW_SELF_TEST_FAILED = ECC_HW_ERROR (0x13),			/**< A self-test of the ECC HW failed. */
 	ECC_HW_FREE_CHECK_FAILED = ECC_HW_ERROR (0x14),			/**< An error occurred while checking if ECC HW is free. */
 	ECC_HW_MEM_WIPE_FAILED = ECC_HW_ERROR (0x15),			/**< An error occurred while attempting to wipe internal memory for the ECC hardware. */
-	ECC_HW_UNSUPPORTED_OP = ECC_HW_ERROR (0x16),		    /**< The ECC HW does not support this command. */
+	ECC_HW_UNSUPPORTED_OP = ECC_HW_ERROR (0x16),			/**< The ECC HW does not support this command. */
 	ECC_HW_INT_TO_MONT_FAILED = ECC_HW_ERROR (0x17),		/**< Failed to convert to Montgomery representation. */
 	ECC_HW_MONT_TO_INT_FAILED = ECC_HW_ERROR (0x18),		/**< Failed to convert from Montgomery representation. */
 	ECC_HW_MOD_INVERSE_FAILED = ECC_HW_ERROR (0x19),		/**< Failed a modular inversion calculation. */
@@ -139,4 +139,4 @@ enum {
 };
 
 
-#endif /* ECC_HW_H_ */
+#endif	/* ECC_HW_H_ */

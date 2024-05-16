@@ -47,4 +47,4 @@ extern const uint8_t HMAC_KAT_VECTORS_UPDATE_SHA384_MAC[];
 extern const uint8_t HMAC_KAT_VECTORS_UPDATE_SHA512_MAC[];
 
 
-#endif /* HMAC_KAT_VECTORS_H_ */
+#endif	/* HMAC_KAT_VECTORS_H_ */

@@ -4,9 +4,9 @@
 #ifndef SECURITY_POLICY_H_
 #define SECURITY_POLICY_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 
 
@@ -105,4 +105,4 @@ enum {
 };
 
 
-#endif /* SECURITY_POLICY_H_ */
+#endif	/* SECURITY_POLICY_H_ */

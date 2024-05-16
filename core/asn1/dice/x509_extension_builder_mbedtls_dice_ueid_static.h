@@ -78,4 +78,4 @@ void x509_extension_builder_mbedtls_dice_ueid_free_static (
 	}
 
 
-#endif /* X509_EXTENSION_BUILDER_MBEDTLS_DICE_UEID_STATIC_H_ */
+#endif	/* X509_EXTENSION_BUILDER_MBEDTLS_DICE_UEID_STATIC_H_ */

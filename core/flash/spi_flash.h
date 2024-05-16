@@ -4,33 +4,33 @@
 #ifndef SPI_FLASH_H_
 #define SPI_FLASH_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
-#include "status/rot_status.h"
 #include "flash.h"
 #include "flash_master.h"
-#include "spi_flash_sfdp.h"
 #include "platform_api.h"
+#include "spi_flash_sfdp.h"
+#include "status/rot_status.h"
 
 
 /**
  * Flash command codes to use for different operations.
  */
 struct spi_flash_commands {
-	uint8_t read;						/**< The command code to read data from flash. */
-	uint8_t read_dummy;					/**< The number of read dummy bytes. */
-	uint8_t read_mode;					/**< The number of read mode bytes. */
-	uint16_t read_flags;				/**< Transfer flags for read requests. */
-	uint8_t write;						/**< The command code to write data to flash. */
-	uint16_t write_flags;				/**< Transfer flags for write requests. */
-	uint8_t erase_sector;				/**< The command to erase a 4kB sector. */
-	uint16_t sector_flags;				/**< Transfer flags for sector erase requests. */
-	uint8_t erase_block;				/**< The command to erase a 64kB block. */
-	uint16_t block_flags;				/**< Transfer flags for block erase requests. */
-	uint8_t reset;						/**< The command to soft reset the device. */
-	uint8_t enter_pwrdown;				/**< The command to enter deep power down. */
-	uint8_t release_pwrdown;			/**< The command to release deep power down. */
+	uint8_t read;				/**< The command code to read data from flash. */
+	uint8_t read_dummy;			/**< The number of read dummy bytes. */
+	uint8_t read_mode;			/**< The number of read mode bytes. */
+	uint16_t read_flags;		/**< Transfer flags for read requests. */
+	uint8_t write;				/**< The command code to write data to flash. */
+	uint16_t write_flags;		/**< Transfer flags for write requests. */
+	uint8_t erase_sector;		/**< The command to erase a 4kB sector. */
+	uint16_t sector_flags;		/**< Transfer flags for sector erase requests. */
+	uint8_t erase_block;		/**< The command to erase a 64kB block. */
+	uint16_t block_flags;		/**< Transfer flags for block erase requests. */
+	uint8_t reset;				/**< The command to soft reset the device. */
+	uint8_t enter_pwrdown;		/**< The command to enter deep power down. */
+	uint8_t release_pwrdown;	/**< The command to release deep power down. */
 };
 
 /**
@@ -55,9 +55,9 @@ struct spi_flash_state {
  * Interface to a single SPI flash.
  */
 struct spi_flash {
-	struct flash base;									/**< Base flash instance. */
-	struct spi_flash_state *state;						/**< Variable context for the flash instance. */
-	const struct flash_master *spi;						/**< The SPI master connected to the flash device. */
+	struct flash base;				/**< Base flash instance. */
+	struct spi_flash_state *state;	/**< Variable context for the flash instance. */
+	const struct flash_master *spi;	/**< The SPI master connected to the flash device. */
 };
 
 /**
@@ -70,22 +70,23 @@ struct spi_flash {
  * Context for saving and restoring a SPI flash device interface.
  */
 struct spi_flash_device_info {
-	uint8_t version;					/**< Version of the context structure. */
-	uint8_t device_id[3];				/**< The device and vendor identifiers. */
-	uint32_t device_size;				/**< The total capacity of the flash device. */
-	uint32_t capabilities;				/**< Negotiated capabilities of the device. */
-	uint8_t use_fast_read;				/**< Setting for FAST_READ for SPI reads. */
-	uint8_t read_opcode;				/**< Opcode to use for SPI reads. */
-	uint8_t read_dummy;					/**< Number of dummy bytes for SPI reads. */
-	uint8_t read_mode;					/**< Number of mode bytes for SPI reads. */
-	uint16_t read_flags;				/**< Transfer flags for SPI reads. */
-	uint8_t reset_opcode;				/**< Opcode for soft resetting the device. */
-	uint8_t enter_pwrdown;				/**< Opcode for entering deep power down. */
-	uint8_t release_pwrdown;			/**< Opcode for releasing deep power down. */
-	uint8_t switch_4byte;				/**< Method for switching to 4-byte addressing. */
-	uint8_t quad_enable;				/**< Method to enable QSPI. */
-	uint8_t flags;						/**< Misc behavior flags. */
+	uint8_t version;			/**< Version of the context structure. */
+	uint8_t device_id[3];		/**< The device and vendor identifiers. */
+	uint32_t device_size;		/**< The total capacity of the flash device. */
+	uint32_t capabilities;		/**< Negotiated capabilities of the device. */
+	uint8_t use_fast_read;		/**< Setting for FAST_READ for SPI reads. */
+	uint8_t read_opcode;		/**< Opcode to use for SPI reads. */
+	uint8_t read_dummy;			/**< Number of dummy bytes for SPI reads. */
+	uint8_t read_mode;			/**< Number of mode bytes for SPI reads. */
+	uint16_t read_flags;		/**< Transfer flags for SPI reads. */
+	uint8_t reset_opcode;		/**< Opcode for soft resetting the device. */
+	uint8_t enter_pwrdown;		/**< Opcode for entering deep power down. */
+	uint8_t release_pwrdown;	/**< Opcode for releasing deep power down. */
+	uint8_t switch_4byte;		/**< Method for switching to 4-byte addressing. */
+	uint8_t quad_enable;		/**< Method to enable QSPI. */
+	uint8_t flags;				/**< Misc behavior flags. */
 };
+
 #pragma pack(pop)
 
 /* Flags in the device info structure. */
@@ -196,4 +197,4 @@ enum {
 };
 
 
-#endif /* SPI_FLASH_H_ */
+#endif	/* SPI_FLASH_H_ */

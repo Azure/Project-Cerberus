@@ -40,4 +40,4 @@ int host_processor_observer_pcr_init (struct host_processor_observer_pcr *host,
 void host_processor_observer_pcr_release (struct host_processor_observer_pcr *host);
 
 
-#endif /* HOST_PROCESSOR_OBSERVER_PCR_H_ */
+#endif	/* HOST_PROCESSOR_OBSERVER_PCR_H_ */

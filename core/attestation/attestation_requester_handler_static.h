@@ -46,4 +46,4 @@ void attestation_requester_handler_execute (const struct periodic_task_handler *
 	}
 
 
-#endif /* ATTESTATION_REQUESTER_HANDLER_STATIC_H_ */
+#endif	/* ATTESTATION_REQUESTER_HANDLER_STATIC_H_ */

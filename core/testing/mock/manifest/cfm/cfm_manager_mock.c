@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "cfm_manager_mock.h"
 #include "testing/engines/hash_testing_engine.h"
@@ -198,12 +198,14 @@ int cfm_manager_mock_init (struct cfm_manager_mock *mock)
 	status = HASH_TESTING_ENGINE_INIT (hash);
 	if (status != 0) {
 		platform_free (hash);
+
 		return status;
 	}
 
 	status = cfm_manager_init (&mock->base, &hash->base);
 	if (status != 0) {
 		platform_free (hash);
+
 		return status;
 	}
 
@@ -211,6 +213,7 @@ int cfm_manager_mock_init (struct cfm_manager_mock *mock)
 	if (status != 0) {
 		platform_free (hash);
 		cfm_manager_release (&mock->base);
+
 		return status;
 	}
 

@@ -26,4 +26,4 @@ struct firmware_update_observer {
 };
 
 
-#endif /* FIRMWARE_UPDATE_OBSERVER_H_ */
+#endif	/* FIRMWARE_UPDATE_OBSERVER_H_ */

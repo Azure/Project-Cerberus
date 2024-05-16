@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "host_irq_handler.h"
 #include "host_logging.h"
@@ -60,10 +60,9 @@ int host_irq_handler_power_on (const struct host_irq_handler *handler, bool allo
 			status = handler->host->bypass_mode (handler->host, false);
 		}
 
-		debug_log_create_entry (
-			(status == 0) ? DEBUG_LOG_SEVERITY_WARNING : DEBUG_LOG_SEVERITY_ERROR,
-			DEBUG_LOG_COMPONENT_HOST_FW, HOST_LOGGING_BYPASS_MODE,
-			host_processor_get_port (handler->host), status);
+		debug_log_create_entry ((status ==
+			0) ? DEBUG_LOG_SEVERITY_WARNING : DEBUG_LOG_SEVERITY_ERROR,	DEBUG_LOG_COMPONENT_HOST_FW,
+			HOST_LOGGING_BYPASS_MODE, host_processor_get_port (handler->host), status);
 	}
 
 	return status;
@@ -260,7 +259,7 @@ int host_irq_handler_init_enable_exit_reset (struct host_irq_handler *handler,
  * Configure host interrupts.
  *
  * @param handler The handler instance to initialize.
- * 
+ *
  * @return 0 if the host interrupts ware successfully configured or an error code.
  */
 int host_irq_handler_config_interrupts (const struct host_irq_handler *handler)
@@ -310,5 +309,6 @@ int host_irq_handler_set_host (struct host_irq_handler *handler, struct host_pro
 	}
 
 	handler->host = host;
+
 	return 0;
 }

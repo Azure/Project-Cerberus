@@ -5,11 +5,11 @@
 #define FIRMWARE_IMAGE_H_
 
 #include <stdint.h>
-#include "status/rot_status.h"
-#include "flash/flash.h"
 #include "crypto/hash.h"
-#include "firmware/key_manifest.h"
 #include "firmware/firmware_header.h"
+#include "firmware/key_manifest.h"
+#include "flash/flash.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -107,4 +107,4 @@ enum {
 };
 
 
-#endif /* FIRMWARE_IMAGE_H_ */
+#endif	/* FIRMWARE_IMAGE_H_ */

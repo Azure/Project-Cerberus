@@ -59,4 +59,4 @@ enum {
 };
 
 
-#endif /* DOE_INTERFACE_H_ */
+#endif	/* DOE_INTERFACE_H_ */

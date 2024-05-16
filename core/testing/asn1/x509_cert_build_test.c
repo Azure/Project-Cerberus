@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
@@ -10,14 +10,14 @@
 #include "asn1/x509_cert_build_static.h"
 #include "common/array_size.h"
 #include "riot/reference/include/RiotX509Bldr.h"
-#include "testing/mock/asn1/x509_extension_builder_mock.h"
-#include "testing/engines/ecc_testing_engine.h"
-#include "testing/engines/hash_testing_engine.h"
-#include "testing/asn1/x509_testing.h"
 #include "testing/asn1/dice/x509_extension_builder_dice_tcbinfo_testing.h"
 #include "testing/asn1/dice/x509_extension_builder_dice_ueid_testing.h"
+#include "testing/asn1/x509_testing.h"
 #include "testing/crypto/ecc_testing.h"
 #include "testing/crypto/rsa_testing.h"
+#include "testing/engines/ecc_testing_engine.h"
+#include "testing/engines/hash_testing_engine.h"
+#include "testing/mock/asn1/x509_extension_builder_mock.h"
 
 
 TEST_SUITE_LABEL ("x509_cert_build");
@@ -1354,20 +1354,20 @@ static void x509_cert_build_test_create_csr_null (CuTest *test)
 	status = x509_cert_build_init (&engine, &ecc.base, &hash.base, 1024);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.create_csr (NULL, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, 0, NULL, 0, &csr, &length);
+	status = engine.base.create_csr (NULL, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256,
+		X509_SUBJECT_NAME, X509_CERT_CA, NULL, 0, NULL, 0, &csr, &length);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 	CuAssertPtrEquals (test, NULL, csr);
 
 	csr = (uint8_t*) &status;
-	status = engine.base.create_csr (&engine.base, NULL, ECC_PRIVKEY_DER_LEN,
-		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, 0, NULL, 0, &csr, &length);
+	status = engine.base.create_csr (&engine.base, NULL, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256,
+		X509_SUBJECT_NAME, X509_CERT_CA, NULL, 0, NULL, 0, &csr, &length);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 	CuAssertPtrEquals (test, NULL, csr);
 
 	csr = (uint8_t*) &status;
-	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, 0,
-		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, 0, NULL, 0, &csr, &length);
+	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, 0, HASH_TYPE_SHA256,
+		X509_SUBJECT_NAME, X509_CERT_CA, NULL, 0, NULL, 0, &csr, &length);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 	CuAssertPtrEquals (test, NULL, csr);
 
@@ -2040,8 +2040,7 @@ static void x509_cert_build_test_create_self_signed_certificate_ca_non_zero_path
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
-	x509_testing_start_cert_verification (test, ECC_CA_PL1, CERTSS, UTF8STRING,
-		ECDSA_NO_NULL);
+	x509_testing_start_cert_verification (test, ECC_CA_PL1, CERTSS, UTF8STRING,	ECDSA_NO_NULL);
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2088,8 +2087,7 @@ static void x509_cert_build_test_create_self_signed_certificate_ca_no_path_lengt
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
-	x509_testing_start_cert_verification (test, ECC_CA_NOPL, CERTSS, UTF8STRING,
-		ECDSA_NO_NULL);
+	x509_testing_start_cert_verification (test, ECC_CA_NOPL, CERTSS, UTF8STRING, ECDSA_NO_NULL);
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2184,7 +2182,8 @@ static void x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_a
 	x509_cert_build_release (&engine);
 }
 
-static void x509_cert_build_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_and_ueid_extension (
+static void
+x509_cert_build_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_and_ueid_extension (
 	CuTest *test)
 {
 	struct x509_engine_cert_build engine;
@@ -2264,7 +2263,8 @@ static void x509_cert_build_test_create_self_signed_certificate_ecc_end_entity_t
 	x509_cert_build_release (&engine);
 }
 
-static void x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_sha1 (
+static void
+x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_sha1 (
 	CuTest *test)
 {
 	struct x509_engine_cert_build engine;
@@ -2345,7 +2345,8 @@ static void x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_a
 	x509_cert_build_release (&engine);
 }
 
-static void x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_sha384 (
+static void
+x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_sha384 (
 	CuTest *test)
 {
 	struct x509_engine_cert_build engine;
@@ -2426,7 +2427,8 @@ static void x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_a
 	x509_cert_build_release (&engine);
 }
 
-static void x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_sha512 (
+static void
+x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_sha512 (
 	CuTest *test)
 {
 	struct x509_engine_cert_build engine;
@@ -2507,7 +2509,8 @@ static void x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_a
 	x509_cert_build_release (&engine);
 }
 
-static void x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_svn_zero (
+static void
+x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_svn_zero (
 	CuTest *test)
 {
 	struct x509_engine_cert_build engine;
@@ -2572,8 +2575,7 @@ static void x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_a
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
-	x509_testing_start_cert_verification (test, ECC_CA_UEID_SVN, CERTSS, UTF8STRING,
-		ECDSA_NO_NULL);
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SVN, CERTSS, UTF8STRING, ECDSA_NO_NULL);
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2654,7 +2656,8 @@ static void x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_e
 	x509_cert_build_release (&engine);
 }
 
-static void x509_cert_build_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_extension_no_ueid (
+static void
+x509_cert_build_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_extension_no_ueid (
 	CuTest *test)
 {
 	struct x509_engine_cert_build engine;
@@ -2946,24 +2949,24 @@ static void x509_cert_build_test_create_self_signed_certificate_null (CuTest *te
 		X509_SUBJECT_NAME, X509_CERT_CA, NULL, 0);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		0, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, 0);
+	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER, 0,
+		HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,	X509_SUBJECT_NAME, X509_CERT_CA,
+		NULL, 0);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, NULL, X509_SERIAL_NUM_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, 0);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, NULL, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME,
+		X509_CERT_CA, NULL, 0);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, 0,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, 0);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, 0, X509_SUBJECT_NAME, X509_CERT_CA,
+		NULL, 0);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
-		NULL, X509_CERT_CA, NULL, 0);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, NULL,
+		X509_CERT_CA, NULL, 0);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	HASH_TESTING_ENGINE_RELEASE (&hash);
@@ -3351,8 +3354,7 @@ static void x509_cert_build_test_load_certificate_null (CuTest *test)
 		X509_CERTSS_ECC_CA_DER_LEN);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.load_certificate (&engine.base, &cert, NULL,
-		X509_CERTSS_ECC_CA_DER_LEN);
+	status = engine.base.load_certificate (&engine.base, &cert, NULL, X509_CERTSS_ECC_CA_DER_LEN);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,	0);
@@ -3636,7 +3638,8 @@ static void x509_cert_build_test_create_ca_signed_certificate_ecc384_ca_private_
 	x509_cert_build_release (&engine);
 }
 
-static void x509_cert_build_test_create_ca_signed_certificate_intermediate_ca_ecc384_ca_private_key (
+static void x509_cert_build_test_create_ca_signed_certificate_intermediate_ca_ecc384_ca_private_key
+(
 	CuTest *test)
 {
 	struct x509_engine_cert_build engine;
@@ -3747,7 +3750,9 @@ static void x509_cert_build_test_create_ca_signed_certificate_ecc384_end_entity_
 }
 #endif
 
-static void x509_cert_build_test_create_ca_signed_certificate_intermediate_ca_ecc384_ca_private_key_sha256_digest (
+static void
+x509_cert_build_test_create_ca_signed_certificate_intermediate_ca_ecc384_ca_private_key_sha256_digest
+(
 	CuTest *test)
 {
 	struct x509_engine_cert_build engine;
@@ -3802,7 +3807,8 @@ static void x509_cert_build_test_create_ca_signed_certificate_intermediate_ca_ec
 	x509_cert_build_release (&engine);
 }
 
-static void x509_cert_build_test_create_ca_signed_certificate_ecc384_end_entity_private_key_sha256_digest (
+static void
+x509_cert_build_test_create_ca_signed_certificate_ecc384_end_entity_private_key_sha256_digest (
 	CuTest *test)
 {
 	struct x509_engine_cert_build engine;
@@ -3913,7 +3919,8 @@ static void x509_cert_build_test_create_ca_signed_certificate_ecc521_ca_private_
 	x509_cert_build_release (&engine);
 }
 
-static void x509_cert_build_test_create_ca_signed_certificate_intermediate_ca_ecc521_ca_private_key (
+static void x509_cert_build_test_create_ca_signed_certificate_intermediate_ca_ecc521_ca_private_key
+(
 	CuTest *test)
 {
 	struct x509_engine_cert_build engine;
@@ -4966,7 +4973,8 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_and_uei
 	x509_cert_build_release (&engine);
 }
 
-static void x509_cert_build_test_create_ca_signed_certificate_end_entity_tcbinfo_and_ueid_extension (
+static void x509_cert_build_test_create_ca_signed_certificate_end_entity_tcbinfo_and_ueid_extension
+(
 	CuTest *test)
 {
 	struct x509_engine_cert_build engine;
@@ -5317,7 +5325,8 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_and_uei
 	x509_cert_build_release (&engine);
 }
 
-static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_extension_svn_zero (
+static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_extension_svn_zero
+(
 	CuTest *test)
 {
 	struct x509_engine_cert_build engine;
@@ -5801,24 +5810,24 @@ static void x509_cert_build_test_create_ca_signed_certificate_null (CuTest *test
 		X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL, 0);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, RSA_PUBKEY_DER,
-		0, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL, 0);
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, RSA_PUBKEY_DER,	0,
+		X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME, X509_CERT_CA,
+		ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL, 0);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, RSA_PUBKEY_DER,
-		RSA_PUBKEY_DER_LEN, NULL, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL, 0);
+		RSA_PUBKEY_DER_LEN, NULL, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME, X509_CERT_CA,
+		ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL, 0);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, RSA_PUBKEY_DER,
-		RSA_PUBKEY_DER_LEN, X509_CA2_SERIAL_NUM, 0, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL, 0);
+		RSA_PUBKEY_DER_LEN, X509_CA2_SERIAL_NUM, 0, X509_CA2_SUBJECT_NAME, X509_CERT_CA,
+		ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL, 0);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, RSA_PUBKEY_DER,
-		RSA_PUBKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, NULL,
-		X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL, 0);
+		RSA_PUBKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, NULL,	X509_CERT_CA,
+		ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL, 0);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, RSA_PUBKEY_DER,
@@ -6199,6 +6208,7 @@ static void x509_cert_build_test_get_certificate_der_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (x509_cert_build);
 
 /* TODO:  Add CSR and cert build test cases that manipulate the max cert length to test small buffer
@@ -6348,3 +6358,4 @@ TEST (x509_cert_build_test_release_certificate_null);
 TEST (x509_cert_build_test_get_certificate_der_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

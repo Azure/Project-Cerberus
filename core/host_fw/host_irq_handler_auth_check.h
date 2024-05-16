@@ -4,9 +4,9 @@
 #ifndef HOST_IRQ_HANDLER_AUTH_CHECK_H_
 #define HOST_IRQ_HANDLER_AUTH_CHECK_H_
 
-#include "host_irq_handler.h"
 #include "host_control.h"
 #include "host_irq_control.h"
+#include "host_irq_handler.h"
 
 
 /**
@@ -14,8 +14,8 @@
  * authentication is required on the next host reset.
  */
 struct host_irq_handler_auth_check {
-	struct host_irq_handler base;			/**< The base IRQ handler. */
-	const struct host_control *control;		/**< The interface for host control signals. */
+	struct host_irq_handler base;		/**< The base IRQ handler. */
+	const struct host_control *control;	/**< The interface for host control signals. */
 };
 
 
@@ -28,4 +28,4 @@ int host_irq_handler_auth_check_config_interrupts (const struct host_irq_handler
 void host_irq_handler_auth_check_release (const struct host_irq_handler_auth_check *handler);
 
 
-#endif /* HOST_IRQ_HANDLER_AUTH_CHECK_H_ */
+#endif	/* HOST_IRQ_HANDLER_AUTH_CHECK_H_ */

@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <math.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
-#include <math.h>
-#include "testing.h"
 #include "platform_api.h"
+#include "testing.h"
 #include "cmd_interface/cmd_interface_dual_cmd_set.h"
 #include "cmd_interface/cmd_interface_dual_cmd_set_static.h"
 #include "testing/mock/cmd_interface/cmd_interface_mock.h"
@@ -20,9 +20,9 @@ TEST_SUITE_LABEL ("cmd_interface_dual_cmd_set");
  * Dependencies for testing the dual command set interface.
  */
 struct cmd_interface_dual_cmd_set_testing {
-	struct cmd_interface_mock primary_handler;			/**< Primary command handler instance. */
-	struct cmd_interface_mock secondary_handler;		/**< Secondary command handler instance. */
-	struct cmd_interface_dual_cmd_set interface;		/**< Dual command set handler instance. */
+	struct cmd_interface_mock primary_handler;		/**< Primary command handler instance. */
+	struct cmd_interface_mock secondary_handler;	/**< Secondary command handler instance. */
+	struct cmd_interface_dual_cmd_set interface;	/**< Dual command set handler instance. */
 };
 
 
@@ -141,8 +141,9 @@ static void cmd_interface_dual_cmd_set_test_init_null (CuTest *test)
 static void cmd_interface_dual_cmd_set_test_static_init (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
-	struct cmd_interface_dual_cmd_set test_static = cmd_interface_dual_cmd_set_static_init (
-		&cmd.primary_handler.base, &cmd.secondary_handler.base);
+	struct cmd_interface_dual_cmd_set test_static =
+		cmd_interface_dual_cmd_set_static_init (&cmd.primary_handler.base,
+		&cmd.secondary_handler.base);
 
 	TEST_START;
 
@@ -267,7 +268,7 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0 (CuTest *t
 	struct cmd_interface_msg request;
 	uint8_t response_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg response;
-	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
@@ -319,8 +320,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0 (CuTest *t
 	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.process_request,
 		&cmd.primary_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cmd.primary_handler.mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request);
 
@@ -353,7 +354,7 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_encrypted 
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg response;
 	uint8_t response_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
@@ -405,8 +406,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_encrypted 
 	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.process_request,
 		&cmd.primary_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cmd.primary_handler.mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request);
 
@@ -435,13 +436,14 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_encrypted 
 static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_static_init (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
-	struct cmd_interface_dual_cmd_set test_static = cmd_interface_dual_cmd_set_static_init (
-		&cmd.primary_handler.base, &cmd.secondary_handler.base);
+	struct cmd_interface_dual_cmd_set test_static =
+		cmd_interface_dual_cmd_set_static_init (&cmd.primary_handler.base,
+		&cmd.secondary_handler.base);
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	uint8_t response_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg response;
-	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
@@ -493,8 +495,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_static_ini
 	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.process_request,
 		&cmd.primary_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cmd.primary_handler.mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request);
 
@@ -528,7 +530,7 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1 (CuTest *t
 	struct cmd_interface_msg request;
 	uint8_t response_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg response;
-	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
@@ -580,8 +582,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1 (CuTest *t
 	status = mock_expect (&cmd.secondary_handler.mock, cmd.secondary_handler.base.process_request,
 		&cmd.secondary_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cmd.secondary_handler.mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request);
 
@@ -614,7 +616,7 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_encrypted 
 	struct cmd_interface_msg request;
 	uint8_t response_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg response;
-	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
@@ -666,8 +668,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_encrypted 
 	status = mock_expect (&cmd.secondary_handler.mock, cmd.secondary_handler.base.process_request,
 		&cmd.secondary_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cmd.secondary_handler.mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request);
 
@@ -696,13 +698,14 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_encrypted 
 static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_static_init (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
-	struct cmd_interface_dual_cmd_set test_static = cmd_interface_dual_cmd_set_static_init (
-		&cmd.primary_handler.base, &cmd.secondary_handler.base);
+	struct cmd_interface_dual_cmd_set test_static =
+		cmd_interface_dual_cmd_set_static_init (&cmd.primary_handler.base,
+		&cmd.secondary_handler.base);
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	uint8_t response_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg response;
-	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
@@ -754,8 +757,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_static_ini
 	status = mock_expect (&cmd.secondary_handler.mock, cmd.secondary_handler.base.process_request,
 		&cmd.secondary_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cmd.secondary_handler.mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request);
 
@@ -790,7 +793,7 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_reserved_f
 	struct cmd_interface_msg request;
 	uint8_t response_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg response;
-	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
@@ -842,8 +845,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_reserved_f
 	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.process_request,
 		&cmd.primary_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cmd.primary_handler.mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request);
 
@@ -877,7 +880,7 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_reserved_f
 	struct cmd_interface_msg request;
 	uint8_t response_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg response;
-	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
@@ -929,8 +932,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_reserved_f
 	status = mock_expect (&cmd.secondary_handler.mock, cmd.secondary_handler.base.process_request,
 		&cmd.secondary_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cmd.secondary_handler.mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request);
 
@@ -961,7 +964,7 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_fail (CuTe
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
-	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
@@ -991,8 +994,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_fail (CuTe
 	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.process_request,
 		&cmd.primary_handler, CMD_HANDLER_NO_MEMORY,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1009,7 +1012,7 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_fail (CuTe
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
-	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
@@ -1039,8 +1042,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_fail (CuTe
 	status = mock_expect (&cmd.secondary_handler.mock, cmd.secondary_handler.base.process_request,
 		&cmd.secondary_handler, CMD_HANDLER_NO_MEMORY,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1153,8 +1156,8 @@ static void cmd_interface_dual_cmd_set_test_process_response_error_packet (CuTes
 	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.process_response,
 		&cmd.primary_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	response.crypto_timeout = true;
 	status = cmd.interface.base.process_response (&cmd.interface.base, &response);
@@ -1199,7 +1202,7 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_0 (CuTest *
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg response;
-	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
@@ -1229,8 +1232,8 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_0 (CuTest *
 	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.process_response,
 		&cmd.primary_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1249,7 +1252,7 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_0_encrypted
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	struct cmd_interface_msg response;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
@@ -1279,8 +1282,8 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_0_encrypted
 	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.process_response,
 		&cmd.primary_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1299,7 +1302,7 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_1 (CuTest *
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg response;
-	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
@@ -1329,8 +1332,8 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_1 (CuTest *
 	status = mock_expect (&cmd.secondary_handler.mock, cmd.secondary_handler.base.process_response,
 		&cmd.secondary_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1349,7 +1352,7 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_1_encrypted
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg response;
-	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
@@ -1379,8 +1382,8 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_1_encrypted
 	status = mock_expect (&cmd.secondary_handler.mock, cmd.secondary_handler.base.process_response,
 		&cmd.secondary_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1397,11 +1400,12 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_1_encrypted
 static void cmd_interface_dual_cmd_set_test_process_response_static_init (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
-	struct cmd_interface_dual_cmd_set test_static = cmd_interface_dual_cmd_set_static_init (
-		&cmd.primary_handler.base, &cmd.secondary_handler.base);
+	struct cmd_interface_dual_cmd_set test_static =
+		cmd_interface_dual_cmd_set_static_init (&cmd.primary_handler.base,
+		&cmd.secondary_handler.base);
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg response;
-	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
@@ -1431,8 +1435,8 @@ static void cmd_interface_dual_cmd_set_test_process_response_static_init (CuTest
 	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.process_response,
 		&cmd.primary_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1453,7 +1457,7 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_0_reserved_
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg response;
-	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
@@ -1483,8 +1487,8 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_0_reserved_
 	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.process_response,
 		&cmd.primary_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1504,7 +1508,7 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_1_reserved_
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg response;
-	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
@@ -1534,8 +1538,8 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_1_reserved_
 	status = mock_expect (&cmd.secondary_handler.mock, cmd.secondary_handler.base.process_response,
 		&cmd.secondary_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1554,7 +1558,7 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_0_fail (CuT
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg response;
-	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
@@ -1584,8 +1588,8 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_0_fail (CuT
 	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.process_response,
 		&cmd.primary_handler, CMD_HANDLER_NO_MEMORY,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1602,7 +1606,7 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_1_fail (CuT
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg response;
-	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
@@ -1632,8 +1636,8 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_1_fail (CuT
 	status = mock_expect (&cmd.secondary_handler.mock, cmd.secondary_handler.base.process_response,
 		&cmd.secondary_handler, CMD_HANDLER_NO_MEMORY,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1761,8 +1765,9 @@ static void cmd_interface_dual_cmd_set_test_generate_error_packet_set_1 (CuTest 
 static void cmd_interface_dual_cmd_set_test_generate_error_packet_static_init (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
-	struct cmd_interface_dual_cmd_set test_static = cmd_interface_dual_cmd_set_static_init (
-		&cmd.primary_handler.base, &cmd.secondary_handler.base);
+	struct cmd_interface_dual_cmd_set test_static =
+		cmd_interface_dual_cmd_set_static_init (&cmd.primary_handler.base,
+		&cmd.secondary_handler.base);
 	uint8_t error_data[sizeof (struct cerberus_protocol_error)];
 	struct cmd_interface_msg error_packet;
 	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_data;
@@ -1882,6 +1887,7 @@ static void cmd_interface_dual_cmd_set_test_generate_error_packet_set_1_fail (Cu
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_dual_cmd_set);
 
 TEST (cmd_interface_dual_cmd_set_test_init);
@@ -1922,3 +1928,4 @@ TEST (cmd_interface_dual_cmd_set_test_generate_error_packet_set_0_fail);
 TEST (cmd_interface_dual_cmd_set_test_generate_error_packet_set_1_fail);
 
 TEST_SUITE_END;
+// *INDENT-ON*

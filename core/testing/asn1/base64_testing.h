@@ -4,8 +4,8 @@
 #ifndef BASE64_TESTING_H_
 #define BASE64_TESTING_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 
 extern const uint8_t BASE64_DATA_BLOCK[];
@@ -24,4 +24,4 @@ extern const uint8_t BASE64_ENCODED_THREE_LESS[];
 extern const size_t BASE64_ENCODED_THREE_LESS_LEN;
 
 
-#endif /* BASE64_TESTING_H_ */
+#endif	/* BASE64_TESTING_H_ */

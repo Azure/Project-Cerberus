@@ -56,10 +56,8 @@ static void heap_with_defrag_testing_check_stats_constant_size_alloc (CuTest *te
 		stats.total_allocated_size + num_allocation * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 }
@@ -88,13 +86,14 @@ static void heap_with_defrag_testing_check_value (CuTest *test, uint8_t value, u
 static void heap_with_defrag_test_macros (CuTest *test)
 {
 	uint8_t block_with_ctrl_header[] = {
-		0xAA,0x92,0x02,0x21,
-		0xAA,0xBB,0xCC,0xDD,0xEE,0xFF,0x11,0x22,
-		0xA1,0xB1,0xC1,0xD1,0xE1,0xF1,0x12,0x21,
-		0xA4,0xB4,0xC4,0xD4,0xE4,0xF4,0x14,0x24,
-		0x19,0x92
+		0xAA, 0x92, 0x02, 0x21,
+		0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22,
+		0xA1, 0xB1, 0xC1, 0xD1, 0xE1, 0xF1, 0x12, 0x21,
+		0xA4, 0xB4, 0xC4, 0xD4, 0xE4, 0xF4, 0x14, 0x24,
+		0x19, 0x92
 	};
-	struct heap_with_defrag_ctrl_block *hdr = heap_with_defrag_get_ctrl_block_header (
+	struct heap_with_defrag_ctrl_block *hdr =
+		heap_with_defrag_get_ctrl_block_header (
 		&block_with_ctrl_header[sizeof (struct heap_with_defrag_ctrl_block)]);
 
 	TEST_START;
@@ -129,7 +128,7 @@ static void heap_with_defrag_test_init_null (CuTest *test)
 
 static void heap_with_defrag_test_allocate (CuTest *test)
 {
-	void* block;
+	void *block;
 	int status;
 
 	TEST_START;
@@ -145,7 +144,7 @@ static void heap_with_defrag_test_allocate (CuTest *test)
 
 static void heap_with_defrag_test_allocate_unaligned_size (CuTest *test)
 {
-	void* block;
+	void *block;
 	int status;
 
 	TEST_START;
@@ -162,7 +161,7 @@ static void heap_with_defrag_test_allocate_unaligned_size (CuTest *test)
 static void heap_with_defrag_test_allocate_min_num_allocations (CuTest *test)
 {
 	size_t max_allocation_size = sizeof (heap) - HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN;
-	void* block;
+	void *block;
 	int status;
 
 	TEST_START;
@@ -191,8 +190,8 @@ static void heap_with_defrag_test_allocate_min_num_allocations (CuTest *test)
 
 static void heap_with_defrag_test_allocate_max_allocations_two_blocks (CuTest *test)
 {
-	void* block1;
-	void* block2;
+	void *block1;
+	void *block2;
 	size_t remaining_size = sizeof (heap) - 1000 - 2 * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN;
 	int status;
 
@@ -237,11 +236,11 @@ static void heap_with_defrag_test_allocate_max_allocations_two_blocks (CuTest *t
 
 static void heap_with_defrag_test_allocate_multiple_large_blocks (CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
-	void* block5;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
+	void *block5;
 	int status;
 
 	TEST_START;
@@ -282,8 +281,7 @@ static void heap_with_defrag_test_allocate_multiple_large_blocks (CuTest *test)
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -303,11 +301,11 @@ static void heap_with_defrag_test_allocate_multiple_large_blocks (CuTest *test)
 
 static void heap_with_defrag_test_allocate_multiple_large_blocks_free_different_order (CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
-	void* block5;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
+	void *block5;
 	int status;
 
 	TEST_START;
@@ -348,8 +346,7 @@ static void heap_with_defrag_test_allocate_multiple_large_blocks_free_different_
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -369,16 +366,16 @@ static void heap_with_defrag_test_allocate_multiple_large_blocks_free_different_
 
 static void heap_with_defrag_test_allocate_multiple_large_and_small_blocks (CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
-	void* block5;
-	void* block6;
-	void* block7;
-	void* block8;
-	void* block9;
-	void* block10;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
+	void *block5;
+	void *block6;
+	void *block7;
+	void *block8;
+	void *block9;
+	void *block10;
 	int status;
 
 	TEST_START;
@@ -444,8 +441,7 @@ static void heap_with_defrag_test_allocate_multiple_large_and_small_blocks (CuTe
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -476,16 +472,16 @@ static void heap_with_defrag_test_allocate_multiple_large_and_small_blocks (CuTe
 static void heap_with_defrag_test_allocate_multiple_large_and_small_blocks_free_different_order (
 	CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
-	void* block5;
-	void* block6;
-	void* block7;
-	void* block8;
-	void* block9;
-	void* block10;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
+	void *block5;
+	void *block6;
+	void *block7;
+	void *block8;
+	void *block9;
+	void *block10;
 	int status;
 
 	TEST_START;
@@ -551,8 +547,7 @@ static void heap_with_defrag_test_allocate_multiple_large_and_small_blocks_free_
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -582,16 +577,16 @@ static void heap_with_defrag_test_allocate_multiple_large_and_small_blocks_free_
 
 static void heap_with_defrag_test_allocate_multiple_blocks_large_first (CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
-	void* block5;
-	void* block6;
-	void* block7;
-	void* block8;
-	void* block9;
-	void* block10;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
+	void *block5;
+	void *block6;
+	void *block7;
+	void *block8;
+	void *block9;
+	void *block10;
 	int status;
 
 	TEST_START;
@@ -657,8 +652,7 @@ static void heap_with_defrag_test_allocate_multiple_blocks_large_first (CuTest *
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -689,16 +683,16 @@ static void heap_with_defrag_test_allocate_multiple_blocks_large_first (CuTest *
 static void heap_with_defrag_test_allocate_multiple_blocks_large_first_free_different_order (
 	CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
-	void* block5;
-	void* block6;
-	void* block7;
-	void* block8;
-	void* block9;
-	void* block10;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
+	void *block5;
+	void *block6;
+	void *block7;
+	void *block8;
+	void *block9;
+	void *block10;
 	int status;
 
 	TEST_START;
@@ -764,8 +758,7 @@ static void heap_with_defrag_test_allocate_multiple_blocks_large_first_free_diff
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -795,16 +788,16 @@ static void heap_with_defrag_test_allocate_multiple_blocks_large_first_free_diff
 
 static void heap_with_defrag_test_allocate_multiple_blocks_small_first (CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
-	void* block5;
-	void* block6;
-	void* block7;
-	void* block8;
-	void* block9;
-	void* block10;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
+	void *block5;
+	void *block6;
+	void *block7;
+	void *block8;
+	void *block9;
+	void *block10;
 	int status;
 
 	TEST_START;
@@ -870,8 +863,7 @@ static void heap_with_defrag_test_allocate_multiple_blocks_small_first (CuTest *
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -902,16 +894,16 @@ static void heap_with_defrag_test_allocate_multiple_blocks_small_first (CuTest *
 static void heap_with_defrag_test_allocate_multiple_blocks_small_first_free_different_order (
 	CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
-	void* block5;
-	void* block6;
-	void* block7;
-	void* block8;
-	void* block9;
-	void* block10;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
+	void *block5;
+	void *block6;
+	void *block7;
+	void *block8;
+	void *block9;
+	void *block10;
 	int status;
 
 	TEST_START;
@@ -977,8 +969,7 @@ static void heap_with_defrag_test_allocate_multiple_blocks_small_first_free_diff
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -1008,12 +999,12 @@ static void heap_with_defrag_test_allocate_multiple_blocks_small_first_free_diff
 
 static void heap_with_defrag_test_allocate_multiple_free_blocks (CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
-	void* block5;
-	void* block6;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
+	void *block5;
+	void *block6;
 	int status;
 
 	TEST_START;
@@ -1062,15 +1053,11 @@ static void heap_with_defrag_test_allocate_multiple_free_blocks (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 4, stats.num_allocated_blocks);
 	CuAssertIntEquals (test, 768 * stats.num_allocated_blocks, stats.total_allocated_size);
-	CuAssertIntEquals (test,
-		stats.total_allocated_size + stats.num_allocated_blocks *
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_allocated_size_w_overhead);
+	CuAssertIntEquals (test, stats.total_allocated_size + stats.num_allocated_blocks *
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 2, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -1080,15 +1067,11 @@ static void heap_with_defrag_test_allocate_multiple_free_blocks (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 3, stats.num_allocated_blocks);
 	CuAssertIntEquals (test, 768 * stats.num_allocated_blocks, stats.total_allocated_size);
-	CuAssertIntEquals (test,
-		stats.total_allocated_size + stats.num_allocated_blocks *
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_allocated_size_w_overhead);
+	CuAssertIntEquals (test, stats.total_allocated_size + stats.num_allocated_blocks *
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 3, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -1101,15 +1084,11 @@ static void heap_with_defrag_test_allocate_multiple_free_blocks (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 4, stats.num_allocated_blocks);
 	CuAssertIntEquals (test, 768 * stats.num_allocated_blocks, stats.total_allocated_size);
-	CuAssertIntEquals (test,
-		stats.total_allocated_size + stats.num_allocated_blocks *
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_allocated_size_w_overhead);
+	CuAssertIntEquals (test, stats.total_allocated_size + stats.num_allocated_blocks *
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 2, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -1122,15 +1101,11 @@ static void heap_with_defrag_test_allocate_multiple_free_blocks (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 5, stats.num_allocated_blocks);
 	CuAssertIntEquals (test, 768 * 4 + 64, stats.total_allocated_size);
-	CuAssertIntEquals (test,
-		stats.total_allocated_size + stats.num_allocated_blocks *
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_allocated_size_w_overhead);
+	CuAssertIntEquals (test, stats.total_allocated_size + stats.num_allocated_blocks *
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -1143,10 +1118,8 @@ static void heap_with_defrag_test_allocate_multiple_free_blocks (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 6, stats.num_allocated_blocks);
 	CuAssertIntEquals (test, 768 * 5 + 64, stats.total_allocated_size);
-	CuAssertIntEquals (test,
-		stats.total_allocated_size + stats.num_allocated_blocks *
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_allocated_size_w_overhead);
+	CuAssertIntEquals (test, stats.total_allocated_size + stats.num_allocated_blocks *
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 0, stats.num_free_blocks);
 	CuAssertIntEquals (test, 0, stats.total_free_size);
 	CuAssertIntEquals (test, 0, stats.total_free_size_w_overhead);
@@ -1169,7 +1142,7 @@ static void heap_with_defrag_test_allocate_multiple_free_blocks (CuTest *test)
 
 static void heap_with_defrag_test_allocate_max_num_allocations_zero (CuTest *test)
 {
-	void* block[200];
+	void *block[200];
 	int i_block = 0;
 	int status;
 
@@ -1203,7 +1176,7 @@ static void heap_with_defrag_test_allocate_max_num_allocations_zero (CuTest *tes
 
 static void heap_with_defrag_test_allocate_max_num_allocations_non_zero (CuTest *test)
 {
-	void* block[200];
+	void *block[200];
 	int i_block = 0;
 	int status;
 
@@ -1243,7 +1216,7 @@ static void heap_with_defrag_test_allocate_max_num_allocations_non_zero (CuTest 
 
 static void heap_with_defrag_test_allocate_max_num_allocations_zero_limited_heap (CuTest *test)
 {
-	void* block[200];
+	void *block[200];
 	int i_block = 0;
 	int status;
 
@@ -1277,7 +1250,7 @@ static void heap_with_defrag_test_allocate_max_num_allocations_zero_limited_heap
 
 static void heap_with_defrag_test_allocate_max_num_allocations_non_zero_limited_heap (CuTest *test)
 {
-	void* block[200];
+	void *block[200];
 	int i_block = 0;
 	int status;
 
@@ -1317,10 +1290,10 @@ static void heap_with_defrag_test_allocate_max_num_allocations_non_zero_limited_
 
 static void heap_with_defrag_test_allocate_combine_free_blocks (CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
 	int status;
 
 	TEST_START;
@@ -1363,15 +1336,11 @@ static void heap_with_defrag_test_allocate_combine_free_blocks (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 3, stats.num_allocated_blocks);
 	CuAssertIntEquals (test, 4 * stats.num_allocated_blocks, stats.total_allocated_size);
-	CuAssertIntEquals (test,
-		stats.total_allocated_size + stats.num_allocated_blocks *
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_allocated_size_w_overhead);
+	CuAssertIntEquals (test, stats.total_allocated_size + stats.num_allocated_blocks *
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 2, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -1386,15 +1355,11 @@ static void heap_with_defrag_test_allocate_combine_free_blocks (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, stats.num_allocated_blocks);
 	CuAssertIntEquals (test, 4 * stats.num_allocated_blocks, stats.total_allocated_size);
-	CuAssertIntEquals (test,
-		stats.total_allocated_size + stats.num_allocated_blocks *
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_allocated_size_w_overhead);
+	CuAssertIntEquals (test, stats.total_allocated_size + stats.num_allocated_blocks *
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 2, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -1404,21 +1369,17 @@ static void heap_with_defrag_test_allocate_combine_free_blocks (CuTest *test)
 	 * 2: free_list head and block 2+3+4, where block 2+3+4 address > free_list head address
 	 */
 	heap_with_defrag_testing_check_value (test, 0xDD, block4, 1);
-	heap_with_defrag_free(block4);
+	heap_with_defrag_free (block4);
 
 	status = heap_with_defrag_get_stats (&stats);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, stats.num_allocated_blocks);
 	CuAssertIntEquals (test, 4 * stats.num_allocated_blocks, stats.total_allocated_size);
-	CuAssertIntEquals (test,
-		stats.total_allocated_size + stats.num_allocated_blocks *
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_allocated_size_w_overhead);
+	CuAssertIntEquals (test, stats.total_allocated_size + stats.num_allocated_blocks *
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -1427,14 +1388,14 @@ static void heap_with_defrag_test_allocate_combine_free_blocks (CuTest *test)
 	 * 2: free_list head and block 1, where block 1 address > free_list head address
 	 */
 	heap_with_defrag_testing_check_value (test, 0xAA, block1, 1);
-	heap_with_defrag_free(block1);
+	heap_with_defrag_free (block1);
 
 	heap_with_defrag_testing_check_stats_empty (test, sizeof (heap));
 }
 
 static void heap_with_defrag_test_allocate_then_free_in_same_order (CuTest *test)
 {
-	void* block[200];
+	void *block[200];
 	size_t allocated_size = 0;
 	int i_block = 0;
 	int num_blocks;
@@ -1478,7 +1439,7 @@ static void heap_with_defrag_test_allocate_then_free_in_same_order (CuTest *test
 
 static void heap_with_defrag_test_allocate_then_free_in_different_order (CuTest *test)
 {
-	void* block[200];
+	void *block[200];
 	size_t allocated_size = 0;
 	int i_block = 0;
 	int n_block;
@@ -1529,7 +1490,7 @@ static void heap_with_defrag_test_allocate_then_free_in_different_order (CuTest 
 
 static void heap_with_defrag_test_allocate_random_pattern (CuTest *test)
 {
-	void* block[10];
+	void *block[10];
 	int status;
 
 	TEST_START;
@@ -1659,7 +1620,7 @@ static void heap_with_defrag_test_allocate_random_pattern (CuTest *test)
 
 static void heap_with_defrag_test_allocate_zero (CuTest *test)
 {
-	void* block;
+	void *block;
 	int status;
 
 	TEST_START;
@@ -1690,7 +1651,7 @@ static void heap_with_defrag_test_allocate_no_memory (CuTest *test)
 
 static void heap_with_defrag_test_allocate_zeroize (CuTest *test)
 {
-	void* block;
+	void *block;
 	int status;
 
 	TEST_START;
@@ -1708,7 +1669,7 @@ static void heap_with_defrag_test_allocate_zeroize (CuTest *test)
 
 static void heap_with_defrag_test_allocate_zeroize_unaligned_size (CuTest *test)
 {
-	void* block;
+	void *block;
 	int status;
 
 	TEST_START;
@@ -1727,7 +1688,7 @@ static void heap_with_defrag_test_allocate_zeroize_unaligned_size (CuTest *test)
 static void heap_with_defrag_test_allocate_zeroize_min_num_allocations (CuTest *test)
 {
 	size_t max_allocation_size = sizeof (heap) - HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN;
-	void* block;
+	void *block;
 	int status;
 
 	TEST_START;
@@ -1759,8 +1720,8 @@ static void heap_with_defrag_test_allocate_zeroize_min_num_allocations (CuTest *
 static void heap_with_defrag_test_allocate_zeroize_max_allocations_two_blocks (CuTest *test)
 {
 	size_t remaining_size = sizeof (heap) - 1000 - 2 * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN;
-	void* block1;
-	void* block2;
+	void *block1;
+	void *block2;
 	int status;
 
 	TEST_START;
@@ -1800,11 +1761,11 @@ static void heap_with_defrag_test_allocate_zeroize_max_allocations_two_blocks (C
 
 static void heap_with_defrag_test_allocate_zeroize_multiple_large_blocks (CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
-	void* block5;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
+	void *block5;
 	int status;
 
 	TEST_START;
@@ -1855,8 +1816,7 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_large_blocks (CuTest
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -1877,11 +1837,11 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_large_blocks (CuTest
 static void heap_with_defrag_test_allocate_zeroize_multiple_large_blocks_free_different_order (
 	CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
-	void* block5;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
+	void *block5;
 	int status;
 
 	TEST_START;
@@ -1932,8 +1892,7 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_large_blocks_free_di
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -1953,16 +1912,16 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_large_blocks_free_di
 
 static void heap_with_defrag_test_allocate_zeroize_multiple_large_and_small_blocks (CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
-	void* block5;
-	void* block6;
-	void* block7;
-	void* block8;
-	void* block9;
-	void* block10;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
+	void *block5;
+	void *block6;
+	void *block7;
+	void *block8;
+	void *block9;
+	void *block10;
 	int status;
 
 	TEST_START;
@@ -2048,8 +2007,7 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_large_and_small_bloc
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -2077,19 +2035,20 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_large_and_small_bloc
 	heap_with_defrag_testing_check_stats_empty (test, sizeof (heap));
 }
 
-static void heap_with_defrag_test_allocate_zeroize_multiple_large_and_small_blocks_free_different_order (
+static void
+heap_with_defrag_test_allocate_zeroize_multiple_large_and_small_blocks_free_different_order (
 	CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
-	void* block5;
-	void* block6;
-	void* block7;
-	void* block8;
-	void* block9;
-	void* block10;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
+	void *block5;
+	void *block6;
+	void *block7;
+	void *block8;
+	void *block9;
+	void *block10;
 	int status;
 
 	TEST_START;
@@ -2175,8 +2134,7 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_large_and_small_bloc
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -2206,16 +2164,16 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_large_and_small_bloc
 
 static void heap_with_defrag_test_allocate_zeroize_multiple_blocks_large_first (CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
-	void* block5;
-	void* block6;
-	void* block7;
-	void* block8;
-	void* block9;
-	void* block10;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
+	void *block5;
+	void *block6;
+	void *block7;
+	void *block8;
+	void *block9;
+	void *block10;
 	int status;
 
 	TEST_START;
@@ -2301,8 +2259,7 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_blocks_large_first (
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -2330,19 +2287,20 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_blocks_large_first (
 	heap_with_defrag_testing_check_stats_empty (test, sizeof (heap));
 }
 
-static void heap_with_defrag_test_allocate_zeroize_multiple_blocks_large_first_free_different_order (
+static void heap_with_defrag_test_allocate_zeroize_multiple_blocks_large_first_free_different_order
+(
 	CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
-	void* block5;
-	void* block6;
-	void* block7;
-	void* block8;
-	void* block9;
-	void* block10;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
+	void *block5;
+	void *block6;
+	void *block7;
+	void *block8;
+	void *block9;
+	void *block10;
 	int status;
 
 	TEST_START;
@@ -2428,8 +2386,7 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_blocks_large_first_f
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -2459,16 +2416,16 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_blocks_large_first_f
 
 static void heap_with_defrag_test_allocate_zeroize_multiple_blocks_small_first (CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
-	void* block5;
-	void* block6;
-	void* block7;
-	void* block8;
-	void* block9;
-	void* block10;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
+	void *block5;
+	void *block6;
+	void *block7;
+	void *block8;
+	void *block9;
+	void *block10;
 	int status;
 
 	TEST_START;
@@ -2554,8 +2511,7 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_blocks_small_first (
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -2583,19 +2539,20 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_blocks_small_first (
 	heap_with_defrag_testing_check_stats_empty (test, sizeof (heap));
 }
 
-static void heap_with_defrag_test_allocate_zeroize_multiple_blocks_small_first_free_different_order (
+static void heap_with_defrag_test_allocate_zeroize_multiple_blocks_small_first_free_different_order
+(
 	CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
-	void* block5;
-	void* block6;
-	void* block7;
-	void* block8;
-	void* block9;
-	void* block10;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
+	void *block5;
+	void *block6;
+	void *block7;
+	void *block8;
+	void *block9;
+	void *block10;
 	int status;
 
 	TEST_START;
@@ -2681,8 +2638,7 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_blocks_small_first_f
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -2712,12 +2668,12 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_blocks_small_first_f
 
 static void heap_with_defrag_test_allocate_zeroize_multiple_free_blocks (CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
-	void* block5;
-	void* block6;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
+	void *block5;
+	void *block6;
 	int status;
 
 	TEST_START;
@@ -2766,15 +2722,11 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_free_blocks (CuTest 
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 4, stats.num_allocated_blocks);
 	CuAssertIntEquals (test, 768 * stats.num_allocated_blocks, stats.total_allocated_size);
-	CuAssertIntEquals (test,
-		stats.total_allocated_size + stats.num_allocated_blocks *
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_allocated_size_w_overhead);
+	CuAssertIntEquals (test, stats.total_allocated_size + stats.num_allocated_blocks *
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 2, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -2784,15 +2736,11 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_free_blocks (CuTest 
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 3, stats.num_allocated_blocks);
 	CuAssertIntEquals (test, 768 * stats.num_allocated_blocks, stats.total_allocated_size);
-	CuAssertIntEquals (test,
-		stats.total_allocated_size + stats.num_allocated_blocks *
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_allocated_size_w_overhead);
+	CuAssertIntEquals (test, stats.total_allocated_size + stats.num_allocated_blocks *
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 3, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -2805,15 +2753,11 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_free_blocks (CuTest 
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 4, stats.num_allocated_blocks);
 	CuAssertIntEquals (test, 768 * stats.num_allocated_blocks, stats.total_allocated_size);
-	CuAssertIntEquals (test,
-		stats.total_allocated_size + stats.num_allocated_blocks *
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_allocated_size_w_overhead);
+	CuAssertIntEquals (test, stats.total_allocated_size + stats.num_allocated_blocks *
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 2, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -2826,15 +2770,11 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_free_blocks (CuTest 
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 5, stats.num_allocated_blocks);
 	CuAssertIntEquals (test, 768 * 4 + 64, stats.total_allocated_size);
-	CuAssertIntEquals (test,
-		stats.total_allocated_size + stats.num_allocated_blocks *
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_allocated_size_w_overhead);
+	CuAssertIntEquals (test, stats.total_allocated_size + stats.num_allocated_blocks *
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -2847,10 +2787,8 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_free_blocks (CuTest 
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 6, stats.num_allocated_blocks);
 	CuAssertIntEquals (test, 768 * 5 + 64, stats.total_allocated_size);
-	CuAssertIntEquals (test,
-		stats.total_allocated_size + stats.num_allocated_blocks *
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_allocated_size_w_overhead);
+	CuAssertIntEquals (test, stats.total_allocated_size + stats.num_allocated_blocks *
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 0, stats.num_free_blocks);
 	CuAssertIntEquals (test, 0, stats.total_free_size);
 	CuAssertIntEquals (test, 0, stats.total_free_size_w_overhead);
@@ -2867,7 +2805,7 @@ static void heap_with_defrag_test_allocate_zeroize_multiple_free_blocks (CuTest 
 
 static void heap_with_defrag_test_allocate_zeroize_max_num_allocations (CuTest *test)
 {
-	void* block[200];
+	void *block[200];
 	int i_block = 0;
 	int status;
 
@@ -2905,7 +2843,7 @@ static void heap_with_defrag_test_allocate_zeroize_max_num_allocations (CuTest *
 
 static void heap_with_defrag_test_allocate_zeroize_max_num_allocations_limited_heap (CuTest *test)
 {
-	void* block[200];
+	void *block[200];
 	int i_block = 0;
 	int status;
 
@@ -2943,10 +2881,10 @@ static void heap_with_defrag_test_allocate_zeroize_max_num_allocations_limited_h
 
 static void heap_with_defrag_test_allocate_zeroize_combine_free_blocks (CuTest *test)
 {
-	void* block1;
-	void* block2;
-	void* block3;
-	void* block4;
+	void *block1;
+	void *block2;
+	void *block3;
+	void *block4;
 	int status;
 
 	TEST_START;
@@ -2988,15 +2926,11 @@ static void heap_with_defrag_test_allocate_zeroize_combine_free_blocks (CuTest *
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 3, stats.num_allocated_blocks);
 	CuAssertIntEquals (test, 4 * stats.num_allocated_blocks, stats.total_allocated_size);
-	CuAssertIntEquals (test,
-		stats.total_allocated_size + stats.num_allocated_blocks *
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_allocated_size_w_overhead);
+	CuAssertIntEquals (test, stats.total_allocated_size + stats.num_allocated_blocks *
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 2, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -3010,15 +2944,11 @@ static void heap_with_defrag_test_allocate_zeroize_combine_free_blocks (CuTest *
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, stats.num_allocated_blocks);
 	CuAssertIntEquals (test, 4 * stats.num_allocated_blocks, stats.total_allocated_size);
-	CuAssertIntEquals (test,
-		stats.total_allocated_size + stats.num_allocated_blocks *
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_allocated_size_w_overhead);
+	CuAssertIntEquals (test, stats.total_allocated_size + stats.num_allocated_blocks *
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 2, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -3027,21 +2957,17 @@ static void heap_with_defrag_test_allocate_zeroize_combine_free_blocks (CuTest *
 	 * 1: block 4 and block 2+3, where block 4 address < block 2+3 address
 	 * 2: free_list head and block 2+3+4, where block 2+3+4 address > free_list head address
 	 */
-	heap_with_defrag_free(block4);
+	heap_with_defrag_free (block4);
 
 	status = heap_with_defrag_get_stats (&stats);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, stats.num_allocated_blocks);
 	CuAssertIntEquals (test, 4 * stats.num_allocated_blocks, stats.total_allocated_size);
-	CuAssertIntEquals (test,
-		stats.total_allocated_size + stats.num_allocated_blocks *
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_allocated_size_w_overhead);
+	CuAssertIntEquals (test, stats.total_allocated_size + stats.num_allocated_blocks *
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		stats.num_free_blocks * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -3049,14 +2975,14 @@ static void heap_with_defrag_test_allocate_zeroize_combine_free_blocks (CuTest *
 	 * Test combining with previous block
 	 * 2: free_list head and block 1, where block 1 address > free_list head address
 	 */
-	heap_with_defrag_free(block1);
+	heap_with_defrag_free (block1);
 
 	heap_with_defrag_testing_check_stats_empty (test, sizeof (heap));
 }
 
 static void heap_with_defrag_test_allocate_zeroize_random_pattern (CuTest *test)
 {
-	void* block[10];
+	void *block[10];
 	int status;
 
 	TEST_START;
@@ -3154,7 +3080,7 @@ static void heap_with_defrag_test_allocate_zeroize_random_pattern (CuTest *test)
 
 static void heap_with_defrag_test_allocate_zeroize_then_free_in_same_order (CuTest *test)
 {
-	void* block[200];
+	void *block[200];
 	size_t allocated_size = 0;
 	int i_block = 0;
 	int num_blocks;
@@ -3199,7 +3125,7 @@ static void heap_with_defrag_test_allocate_zeroize_then_free_in_same_order (CuTe
 
 static void heap_with_defrag_test_allocate_zeroize_then_free_in_different_order (CuTest *test)
 {
-	void* block[200];
+	void *block[200];
 	size_t allocated_size = 0;
 	int i_block = 0;
 	int n_block;
@@ -3250,7 +3176,7 @@ static void heap_with_defrag_test_allocate_zeroize_then_free_in_different_order 
 
 static void heap_with_defrag_test_allocate_zeroize_zero (CuTest *test)
 {
-	void* block;
+	void *block;
 	int status;
 
 	TEST_START;
@@ -3273,16 +3199,15 @@ static void heap_with_defrag_test_allocate_zeroize_no_memory (CuTest *test)
 	status = heap_with_defrag_init (heap, sizeof (heap));
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL,
-		heap_with_defrag_allocate_zeroize (1, sizeof (heap) -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN + 1));
+	CuAssertPtrEquals (test, NULL, heap_with_defrag_allocate_zeroize (1, sizeof (heap) -
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN + 1));
 
 	heap_with_defrag_testing_check_stats_empty (test, sizeof (heap));
 }
 
 static void heap_with_defrag_test_reallocate (CuTest *test)
 {
-	void* block;
+	void *block;
 	int status;
 
 	TEST_START;
@@ -3307,10 +3232,8 @@ static void heap_with_defrag_test_reallocate (CuTest *test)
 	CuAssertIntEquals (test, stats.total_allocated_size + HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 2, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			2 * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		2 * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -3323,7 +3246,7 @@ static void heap_with_defrag_test_reallocate (CuTest *test)
 
 static void heap_with_defrag_test_reallocate_new_size_same (CuTest *test)
 {
-	void* block;
+	void *block;
 	int status;
 
 	TEST_START;
@@ -3348,10 +3271,8 @@ static void heap_with_defrag_test_reallocate_new_size_same (CuTest *test)
 	CuAssertIntEquals (test, stats.total_allocated_size + HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -3364,7 +3285,7 @@ static void heap_with_defrag_test_reallocate_new_size_same (CuTest *test)
 
 static void heap_with_defrag_test_reallocate_new_size_same_after_rounding_up (CuTest *test)
 {
-	void* block;
+	void *block;
 	int status;
 
 	TEST_START;
@@ -3389,10 +3310,8 @@ static void heap_with_defrag_test_reallocate_new_size_same_after_rounding_up (Cu
 	CuAssertIntEquals (test, stats.total_allocated_size + HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -3405,7 +3324,7 @@ static void heap_with_defrag_test_reallocate_new_size_same_after_rounding_up (Cu
 
 static void heap_with_defrag_test_reallocate_new_size_smaller (CuTest *test)
 {
-	void* block;
+	void *block;
 	int status;
 
 	TEST_START;
@@ -3430,10 +3349,8 @@ static void heap_with_defrag_test_reallocate_new_size_smaller (CuTest *test)
 	CuAssertIntEquals (test, stats.total_allocated_size + HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 2, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			2 * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		2 * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -3446,7 +3363,7 @@ static void heap_with_defrag_test_reallocate_new_size_smaller (CuTest *test)
 
 static void heap_with_defrag_test_reallocate_new_size_too_large (CuTest *test)
 {
-	void* block;
+	void *block;
 	int status;
 
 	TEST_START;
@@ -3470,7 +3387,7 @@ static void heap_with_defrag_test_reallocate_new_size_too_large (CuTest *test)
 
 static void heap_with_defrag_test_reallocate_zero_new_size (CuTest *test)
 {
-	void* block;
+	void *block;
 	int status;
 
 	TEST_START;
@@ -3495,10 +3412,8 @@ static void heap_with_defrag_test_reallocate_zero_new_size (CuTest *test)
 	CuAssertIntEquals (test, stats.total_allocated_size + HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 2, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			2 * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		2 * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -3509,7 +3424,7 @@ static void heap_with_defrag_test_reallocate_zero_new_size (CuTest *test)
 
 static void heap_with_defrag_test_reallocate_zero_old_size (CuTest *test)
 {
-	void* block;
+	void *block;
 	int status;
 
 	TEST_START;
@@ -3532,10 +3447,8 @@ static void heap_with_defrag_test_reallocate_zero_old_size (CuTest *test)
 	CuAssertIntEquals (test, stats.total_allocated_size + HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 2, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			2 * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		2 * HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -3546,7 +3459,7 @@ static void heap_with_defrag_test_reallocate_zero_old_size (CuTest *test)
 
 static void heap_with_defrag_test_reallocate_zero_new_and_old_size (CuTest *test)
 {
-	void* block;
+	void *block;
 	int status;
 
 	TEST_START;
@@ -3569,10 +3482,8 @@ static void heap_with_defrag_test_reallocate_zero_new_and_old_size (CuTest *test
 	CuAssertIntEquals (test, stats.total_allocated_size + HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
 		stats.total_allocated_size_w_overhead);
 	CuAssertIntEquals (test, 1, stats.num_free_blocks);
-	CuAssertIntEquals (test,
-		sizeof (heap) - stats.total_allocated_size_w_overhead -
-			HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,
-		stats.total_free_size);
+	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead -
+		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN,	stats.total_free_size);
 	CuAssertIntEquals (test, sizeof (heap) - stats.total_allocated_size_w_overhead,
 		stats.total_free_size_w_overhead);
 
@@ -3583,7 +3494,7 @@ static void heap_with_defrag_test_reallocate_zero_new_and_old_size (CuTest *test
 
 static void heap_with_defrag_test_reallocate_null_ptr (CuTest *test)
 {
-	void* block;
+	void *block;
 	int status;
 
 	TEST_START;
@@ -3603,7 +3514,7 @@ static void heap_with_defrag_test_reallocate_null_ptr (CuTest *test)
 
 static void heap_with_defrag_test_free (CuTest *test)
 {
-	void* block;
+	void *block;
 	int status;
 
 	TEST_START;
@@ -3624,7 +3535,7 @@ static void heap_with_defrag_test_free (CuTest *test)
 static void heap_with_defrag_test_free_null (CuTest *test)
 {
 	struct heap_with_defrag_ctrl_block *cb;
-	void* block;
+	void *block;
 	int status;
 
 	TEST_START;
@@ -3661,6 +3572,7 @@ static void heap_with_defrag_test_get_stats_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (heap_with_defrag);
 
 TEST (heap_with_defrag_test_macros);
@@ -3724,3 +3636,4 @@ TEST (heap_with_defrag_test_free_null);
 TEST (heap_with_defrag_test_get_stats_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

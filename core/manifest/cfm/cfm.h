@@ -4,168 +4,168 @@
 #ifndef CFM_H_
 #define CFM_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
-#include "status/rot_status.h"
-#include "manifest/manifest.h"
+#include <stddef.h>
+#include <stdint.h>
 #include "manifest/cfm/cfm_format.h"
+#include "manifest/manifest.h"
+#include "status/rot_status.h"
 
 
 /**
  * CFM attestation protocols.
  */
 enum cfm_attestation_type {
-	CFM_ATTESTATION_CERBERUS_PROTOCOL = 0x00,					/**< Cerberus challenge protocol. */
-	CFM_ATTESTATION_DMTF_SPDM = 0x01,							/**< DMTF SPDM protocol. */
+	CFM_ATTESTATION_CERBERUS_PROTOCOL = 0x00,	/**< Cerberus challenge protocol. */
+	CFM_ATTESTATION_DMTF_SPDM = 0x01,			/**< DMTF SPDM protocol. */
 };
 
 /**
  * CFM data check types.
  */
 enum cfm_check {
-	CFM_CHECK_EQUAL = 0x00,										/**< Measurement equal to CFM value. */
-	CFM_CHECK_NOT_EQUAL = 0x01,									/**< Measurement not equal to CFM value. */
-	CFM_CHECK_LESS_THAN = 0x02,									/**< Measurement less than CFM value. */
-	CFM_CHECK_LESS_THAN_OR_EQUAL = 0x03,						/**< Measurement less than or equal to CFM value. */
-	CFM_CHECK_GREATER_THAN = 0x04,								/**< Measurement greater than CFM value. */
-	CFM_CHECK_GREATER_THAN_OR_EQUAL = 0x05,						/**< Measurement greater than or equal to CFM value. */
+	CFM_CHECK_EQUAL = 0x00,					/**< Measurement equal to CFM value. */
+	CFM_CHECK_NOT_EQUAL = 0x01,				/**< Measurement not equal to CFM value. */
+	CFM_CHECK_LESS_THAN = 0x02,				/**< Measurement less than CFM value. */
+	CFM_CHECK_LESS_THAN_OR_EQUAL = 0x03,	/**< Measurement less than or equal to CFM value. */
+	CFM_CHECK_GREATER_THAN = 0x04,			/**< Measurement greater than CFM value. */
+	CFM_CHECK_GREATER_THAN_OR_EQUAL = 0x05,	/**< Measurement greater than or equal to CFM value. */
 };
 
 /**
  * CFM measurement entry types.
  */
 enum cfm_measurement_type {
-	CFM_MEASUREMENT_TYPE_DIGEST = 0x00,							/**< Measurement entry. */
-	CFM_MEASUREMENT_TYPE_DATA = 0x01,							/**< Measurement data entry. */
+	CFM_MEASUREMENT_TYPE_DIGEST = 0x00,	/**< Measurement entry. */
+	CFM_MEASUREMENT_TYPE_DATA = 0x01,	/**< Measurement data entry. */
 };
 
 /**
  * Information necessary to attest a component device.
  */
 struct cfm_component_device {
-	uint8_t cert_slot;											/**< Slot number of certificate chain to use for attestation challenges. */
-	enum cfm_attestation_type attestation_protocol;				/**< Protocol to use for attestation requests to the component. */
-	enum hash_type transcript_hash_type;						/**< Hash type used for SPDM transcript hashing. */
-	enum hash_type measurement_hash_type;						/**< Hash type used to generate measurement, PMR, and root CA digests. */
-	uint32_t component_id;										/**< Unique identifier for component type. */
-	const uint8_t *pmr_id_list;									/**< List of PMR IDs of all PMR digest entries in CFM. */
-	size_t num_pmr_ids;											/**< Number of PMR IDs in PMR digest list. */
+	uint8_t cert_slot;								/**< Slot number of certificate chain to use for attestation challenges. */
+	enum cfm_attestation_type attestation_protocol;	/**< Protocol to use for attestation requests to the component. */
+	enum hash_type transcript_hash_type;			/**< Hash type used for SPDM transcript hashing. */
+	enum hash_type measurement_hash_type;			/**< Hash type used to generate measurement, PMR, and root CA digests. */
+	uint32_t component_id;							/**< Unique identifier for component type. */
+	const uint8_t *pmr_id_list;						/**< List of PMR IDs of all PMR digest entries in CFM. */
+	size_t num_pmr_ids;								/**< Number of PMR IDs in PMR digest list. */
 };
 
 /**
  * Common container for digests lists.
  */
 struct cfm_digests {
-	enum hash_type hash_type;									/**< Hash algorithm type. */
-	size_t digest_count;										/**< Number of digests in digests list. */
-	const uint8_t *digests;										/**< Buffer holding list of digests. */
+	enum hash_type hash_type;	/**< Hash algorithm type. */
+	size_t digest_count;		/**< Number of digests in digests list. */
+	const uint8_t *digests;		/**< Buffer holding list of digests. */
 };
 
 /**
  * Container for allowable digests lists.
  */
 struct cfm_allowable_digests {
-	uint16_t version_set;										/**< Identifier for set of measurements associated with the same device firmware version. 0 if set applies to all versions. */
-	struct cfm_digests digests;									/**< Container holding allowable digests. */
+	uint16_t version_set;		/**< Identifier for set of measurements associated with the same device firmware version. 0 if set applies to all versions. */
+	struct cfm_digests digests;	/**< Container holding allowable digests. */
 };
 
 /**
  * Allowable digests for PMR ID.
  */
 struct cfm_pmr_digest {
-	uint8_t pmr_id;												/**< PMR ID. */
-	struct cfm_digests digests;									/**< PMR allowable digests. */
+	uint8_t pmr_id;				/**< PMR ID. */
+	struct cfm_digests digests;	/**< PMR allowable digests. */
 };
 
 /**
  * Allowable digests for a PMR measurement.
  */
 struct cfm_measurement_digest {
-	uint8_t pmr_id;												/**< PMR ID. */
-	uint8_t measurement_id;										/**< PMR entry ID if Cerberus protocol, or measurement block index if SPDM. */
-	size_t allowable_digests_count;								/**< Number of allowable digests in allowable digests list. */
-	struct cfm_allowable_digests *allowable_digests;			/**< List of allowable digest containers for PMR measurement. */
+	uint8_t pmr_id;										/**< PMR ID. */
+	uint8_t measurement_id;								/**< PMR entry ID if Cerberus protocol, or measurement block index if SPDM. */
+	size_t allowable_digests_count;						/**< Number of allowable digests in allowable digests list. */
+	struct cfm_allowable_digests *allowable_digests;	/**< List of allowable digest containers for PMR measurement. */
 };
 
 /**
  * An individual data entry within an allowable data container.
  */
 struct cfm_allowable_data_entry {
-	uint16_t version_set;										/**< Identifier for set of measurements associated with the same device firmware version. 0 if set applies to all versions. */
-	uint16_t data_len;											/**< Length of the data. */
-	const uint8_t *data;										/**< Data to use for comparison. */
+	uint16_t version_set;	/**< Identifier for set of measurements associated with the same device firmware version. 0 if set applies to all versions. */
+	uint16_t data_len;		/**< Length of the data. */
+	const uint8_t *data;	/**< Data to use for comparison. */
 };
 
 /**
  * A list of allowable data for a single PMR measurement check.
  */
 struct cfm_allowable_data {
-	enum cfm_check check;										/**< Type of check to perform. */
-	bool big_endian;											/**< Flag indicating if data is in big endian. */
-	size_t data_count;											/**< Number of allowable data. */
-	size_t bitmask_length;										/**< Length of bitmask. */
-	const uint8_t *bitmask;										/**< Buffer holding bitmask, if present. */
-	struct cfm_allowable_data_entry *allowable_data;			/**< List of allowable data entry containers. */
+	enum cfm_check check;								/**< Type of check to perform. */
+	bool big_endian;									/**< Flag indicating if data is in big endian. */
+	size_t data_count;									/**< Number of allowable data. */
+	size_t bitmask_length;								/**< Length of bitmask. */
+	const uint8_t *bitmask;								/**< Buffer holding bitmask, if present. */
+	struct cfm_allowable_data_entry *allowable_data;	/**< List of allowable data entry containers. */
 };
 
 /**
  * Rules for performing attestation checks for a PMR measurement.
  */
 struct cfm_measurement_data {
-	uint8_t pmr_id;												/**< PMR ID. */
-	uint8_t measurement_id;										/**< Measurement ID. */
-	size_t data_checks_count;									/**< Number of allowable data checks. */
-	struct cfm_allowable_data *data_checks;						/**< List of allowable data check containers. */
+	uint8_t pmr_id;							/**< PMR ID. */
+	uint8_t measurement_id;					/**< Measurement ID. */
+	size_t data_checks_count;				/**< Number of allowable data checks. */
+	struct cfm_allowable_data *data_checks;	/**< List of allowable data check containers. */
 };
 
 /**
  * Combined measurement and measurement data container.
  */
 struct cfm_measurement_container {
-	void *context;												/**< Implementation context.*/
+	void *context;								/**< Implementation context.*/
 	union {
-		struct cfm_measurement_digest digest;					/**< Measurement digest container. */
-		struct cfm_measurement_data data;						/**< Measurement data container. */
+		struct cfm_measurement_digest digest;	/**< Measurement digest container. */
+		struct cfm_measurement_data data;		/**< Measurement data container. */
 	} measurement;
-	enum cfm_measurement_type measurement_type;					/**< Measurement entry retrieved. */
+	enum cfm_measurement_type measurement_type;	/**< Measurement entry retrieved. */
 };
 
 /**
  * Allowable root CA digest list.
  */
 struct cfm_root_ca_digests {
-	struct cfm_digests digests;									/**< Allowable root CA digests. */
+	struct cfm_digests digests;	/**< Allowable root CA digests. */
 };
 
 /**
  * Information necessary to recompute PMR digest using PMR measurements.
  */
 struct cfm_pmr {
-	uint8_t pmr_id;												/**< PMR ID. */
-	size_t initial_value_len;									/**< Initial value length. */
-	enum hash_type hash_type;									/**< Hash algorithm type. */
-	const uint8_t initial_value[SHA512_HASH_LENGTH];			/**< Buffer with initial PMR value. */
+	uint8_t pmr_id;										/**< PMR ID. */
+	size_t initial_value_len;							/**< Initial value length. */
+	enum hash_type hash_type;							/**< Hash algorithm type. */
+	const uint8_t initial_value[SHA512_HASH_LENGTH];	/**< Buffer with initial PMR value. */
 };
 
 /**
  * A list of allowable IDs for a single manifest check.
  */
 struct cfm_allowable_id {
-	enum cfm_check check;										/**< Type of check to perform. */
-	size_t id_count;											/**< Number of allowable IDs. */
-	const uint32_t *allowable_id;								/**< Buffer holding list of allowable IDs. */
+	enum cfm_check check;			/**< Type of check to perform. */
+	size_t id_count;				/**< Number of allowable IDs. */
+	const uint32_t *allowable_id;	/**< Buffer holding list of allowable IDs. */
 };
 
 /**
  * Rules for performing attestation checks for a manifest.
  */
 struct cfm_manifest {
-	void *context;												/**< Implementation context. */
-	uint8_t manifest_index;										/**< Port ID for PFMs and CFM index for CFMs. Not utilized for PCDs. */
-	size_t check_count;											/**< Number of manifest checks. */
-	const char *platform_id;									/**< Buffer holding the platform ID. */
-	struct cfm_allowable_id *check;								/**< List of allowable ID check containers. */
+	void *context;					/**< Implementation context. */
+	uint8_t manifest_index;			/**< Port ID for PFMs and CFM index for CFMs. Not utilized for PCDs. */
+	size_t check_count;				/**< Number of manifest checks. */
+	const char *platform_id;		/**< Buffer holding the platform ID. */
+	struct cfm_allowable_id *check;	/**< List of allowable ID check containers. */
 };
 
 
@@ -173,7 +173,7 @@ struct cfm_manifest {
  * The API for interfacing with a cfm file.
  */
 struct cfm {
-	struct manifest base;										/**< Manifest interface */
+	struct manifest base;	/**< Manifest interface */
 
 	/**
 	 * Find component device for the specified component ID.
@@ -400,4 +400,4 @@ enum {
 };
 
 
-#endif /* CFM_H_ */
+#endif	/* CFM_H_ */

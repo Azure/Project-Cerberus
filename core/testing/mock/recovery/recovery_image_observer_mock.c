@@ -90,8 +90,10 @@ int recovery_image_observer_mock_init (struct recovery_image_observer_mock *mock
 
 	mock_set_name (&mock->mock, "recovery_image_observer");
 
-	mock->base.on_recovery_image_activated = recovery_image_observer_mock_on_recovery_image_activated;
-	mock->base.on_recovery_image_deactivated = recovery_image_observer_mock_on_recovery_image_deactivated;
+	mock->base.on_recovery_image_activated =
+		recovery_image_observer_mock_on_recovery_image_activated;
+	mock->base.on_recovery_image_deactivated =
+		recovery_image_observer_mock_on_recovery_image_deactivated;
 
 	mock->mock.func_arg_count = recovery_image_observer_mock_func_arg_count;
 	mock->mock.func_name_map = recovery_image_observer_mock_func_name_map;

@@ -4,8 +4,8 @@
 #ifndef INTRUSION_MANAGER_MOCK_H_
 #define INTRUSION_MANAGER_MOCK_H_
 
-#include "intrusion/intrusion_manager.h"
 #include "mock.h"
+#include "intrusion/intrusion_manager.h"
 
 
 /**
@@ -23,4 +23,4 @@ void intrusion_manager_mock_release (struct intrusion_manager_mock *mock);
 int intrusion_manager_mock_validate_and_release (struct intrusion_manager_mock *mock);
 
 
-#endif /* INTRUSION_MANAGER_MOCK_H_ */
+#endif	/* INTRUSION_MANAGER_MOCK_H_ */

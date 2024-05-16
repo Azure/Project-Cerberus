@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
@@ -21,8 +21,8 @@ TEST_SUITE_LABEL ("mctp_base_protocol");
 static void mctp_base_protocol_test_smbus_transport_header_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0x0f,0x11,0x22,
-		0x34,0x56,0x78,0x9a,
+		0x0f, 0x11, 0x22,
+		0x34, 0x56, 0x78, 0x9a,
 	};
 	struct mctp_base_protocol_transport_header *header =
 		(struct mctp_base_protocol_transport_header*) raw_buffer;
@@ -118,7 +118,7 @@ static void mctp_base_protocol_test_vdm_pci_header_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
 		0x7e,
-		0x11,0x22
+		0x11, 0x22
 	};
 	struct mctp_base_protocol_vdm_pci_header *header =
 		(struct mctp_base_protocol_vdm_pci_header*) raw_buffer;
@@ -1313,7 +1313,9 @@ static void mctp_base_protocol_test_interpret_vendor_defined_request_multi_packe
 	CuAssertIntEquals (test, 6, payload_len);
 }
 
-static void mctp_base_protocol_test_interpret_vendor_defined_request_multi_packets_last_packet_with_1byte_payload (
+static void
+mctp_base_protocol_test_interpret_vendor_defined_request_multi_packets_last_packet_with_1byte_payload
+(
 	CuTest *test)
 {
 	int status;
@@ -1449,7 +1451,9 @@ static void mctp_base_protocol_test_interpret_vendor_defined_request_multi_packe
 	CuAssertIntEquals (test, 2, payload_len);
 }
 
-static void mctp_base_protocol_test_interpret_vendor_defined_request_multi_packets_last_packet_with_2bytes_payload (
+static void
+mctp_base_protocol_test_interpret_vendor_defined_request_multi_packets_last_packet_with_2bytes_payload
+(
 	CuTest *test)
 {
 	int status;
@@ -2500,7 +2504,6 @@ static void mctp_base_protocol_test_interpret_failed_crc_check (CuTest *test)
 
 	TEST_START;
 
-
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 11;
 	header->source_addr = 0xAA;
@@ -2725,7 +2728,8 @@ static void mctp_base_protocol_test_construct_vendor_defined_message_overlapping
 	CuAssertIntEquals (test, 0, status);
 }
 
-static void mctp_base_protocol_test_construct_vendor_defined_message_overlapping_buffer_at_beginning (
+static void mctp_base_protocol_test_construct_vendor_defined_message_overlapping_buffer_at_beginning
+(
 	CuTest *test)
 {
 	int status;
@@ -2843,8 +2847,8 @@ static void mctp_base_protocol_test_construct_spdm_response_overlapping_buffer (
 
 	memcpy (&out_buf[8], buf, sizeof (buf));
 
-	status = mctp_base_protocol_construct (&out_buf[8], sizeof (buf), out_buf, sizeof (out_buf), 0x55,
-		0x0A, 0x0B, true, false, 1, 2, MCTP_BASE_PROTOCOL_TO_RESPONSE, 0x5D);
+	status = mctp_base_protocol_construct (&out_buf[8], sizeof (buf), out_buf, sizeof (out_buf),
+		0x55, 0x0A, 0x0B, true, false, 1, 2, MCTP_BASE_PROTOCOL_TO_RESPONSE, 0x5D);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PACKET_OVERHEAD + sizeof (buf), status);
 	CuAssertIntEquals (test, SMBUS_CMD_CODE_MCTP, out_buf[0]);
 	CuAssertIntEquals (test, sizeof (struct mctp_base_protocol_transport_header) + sizeof (buf) - 2,
@@ -2880,8 +2884,8 @@ static void mctp_base_protocol_test_construct_spdm_response_overlapping_buffer_a
 
 	memcpy (out_buf, buf, sizeof (buf));
 
-	status = mctp_base_protocol_construct (out_buf, sizeof (buf), out_buf, sizeof (out_buf), 0x55, 0x0A,
-		0x0B, true, false, 1, 2, MCTP_BASE_PROTOCOL_TO_RESPONSE, 0x5D);
+	status = mctp_base_protocol_construct (out_buf, sizeof (buf), out_buf, sizeof (out_buf), 0x55,
+		0x0A, 0x0B, true, false, 1, 2, MCTP_BASE_PROTOCOL_TO_RESPONSE, 0x5D);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PACKET_OVERHEAD + sizeof (buf), status);
 	CuAssertIntEquals (test, SMBUS_CMD_CODE_MCTP, out_buf[0]);
 	CuAssertIntEquals (test, sizeof (struct mctp_base_protocol_transport_header) + sizeof (buf) - 2,
@@ -3058,7 +3062,7 @@ static void mctp_base_protocol_test_construct_null (CuTest *test)
 	uint8_t buf[6];
 	uint8_t out_buf[MCTP_BASE_PROTOCOL_MAX_PACKET_LEN];
 
- 	TEST_START;
+	TEST_START;
 
 	status = mctp_base_protocol_construct (NULL, sizeof (buf), out_buf, sizeof (out_buf), 0x55,
 		0x0A, 0x0B, true, false, 1, 2, MCTP_BASE_PROTOCOL_TO_RESPONSE, 0x5D);
@@ -3075,18 +3079,20 @@ static void mctp_base_protocol_test_construct_invalid_buf_len (CuTest *test)
 	uint8_t buf[6];
 	uint8_t out_buf[MCTP_BASE_PROTOCOL_MAX_PACKET_LEN];
 
- 	TEST_START;
+	TEST_START;
 
 	status = mctp_base_protocol_construct (buf, 0, out_buf, sizeof (out_buf), 0xAA, 0x0A, 0x0B,
 		true, false, 1, 2, MCTP_BASE_PROTOCOL_TO_RESPONSE, 0x5D);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_BAD_BUFFER_LENGTH, status);
 
-	status = mctp_base_protocol_construct (buf, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT + 1, out_buf,
-		sizeof (out_buf), 0xAA, 0x0A, 0x0B, true, false, 1, 2, MCTP_BASE_PROTOCOL_TO_RESPONSE, 0x5D);
+	status = mctp_base_protocol_construct (buf, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT + 1,
+		out_buf, sizeof (out_buf), 0xAA, 0x0A, 0x0B, true, false, 1, 2,
+		MCTP_BASE_PROTOCOL_TO_RESPONSE, 0x5D);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_BAD_BUFFER_LENGTH, status);
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (mctp_base_protocol);
 
 TEST (mctp_base_protocol_test_smbus_transport_header_format);
@@ -3151,3 +3157,4 @@ TEST (mctp_base_protocol_test_construct_null);
 TEST (mctp_base_protocol_test_construct_invalid_buf_len);
 
 TEST_SUITE_END;
+// *INDENT-ON*

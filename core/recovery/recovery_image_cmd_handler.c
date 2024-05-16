@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "recovery_image_cmd_handler.h"
 #include "recovery_logging.h"
@@ -138,8 +138,9 @@ void recovery_image_cmd_handler_execute (const struct event_task_handler *handle
 			recovery_image_cmd_handler_set_status (recovery_handler,
 				RECOVERY_IMAGE_CMD_STATUS_PREPARE);
 
-			status = recovery_handler->manager->clear_recovery_image_region (
-				recovery_handler->manager, *((uint32_t*) context->event_buffer));
+			status =
+				recovery_handler->manager->clear_recovery_image_region (recovery_handler->manager,
+				*((uint32_t*) context->event_buffer));
 			if (status != 0) {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY,
 					RECOVERY_LOGGING_ERASE_FAIL,
@@ -153,8 +154,9 @@ void recovery_image_cmd_handler_execute (const struct event_task_handler *handle
 			recovery_image_cmd_handler_set_status (recovery_handler,
 				RECOVERY_IMAGE_CMD_STATUS_UPDATE_DATA);
 
-			status = recovery_handler->manager->write_recovery_image_data (
-				recovery_handler->manager, context->event_buffer, context->buffer_length);
+			status =
+				recovery_handler->manager->write_recovery_image_data (recovery_handler->manager,
+				context->event_buffer, context->buffer_length);
 			if (status != 0) {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY,
 					RECOVERY_LOGGING_WRITE_FAIL,

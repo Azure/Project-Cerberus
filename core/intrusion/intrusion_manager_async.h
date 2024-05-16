@@ -23,4 +23,4 @@ int intrusion_manager_async_init (struct intrusion_manager_async *manager,
 void intrusion_manager_async_release (struct intrusion_manager_async *manager);
 
 
-#endif /* INTRUSION_MANAGER_ASYNC_H_ */
+#endif	/* INTRUSION_MANAGER_ASYNC_H_ */

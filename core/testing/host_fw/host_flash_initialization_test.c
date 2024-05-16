@@ -79,8 +79,8 @@ static void host_flash_initialization_test_init_null (CuTest *test)
 		&state1, &flash_mock1.base, false, false);
 	CuAssertIntEquals (test, HOST_FLASH_INIT_INVALID_ARGUMENT, status);
 
-	status = host_flash_initialization_init (&init, &flash0, &state0, NULL, &flash1,
-		&state1, &flash_mock1.base, false, false);
+	status = host_flash_initialization_init (&init, &flash0, &state0, NULL, &flash1, &state1,
+		&flash_mock1.base, false, false);
 	CuAssertIntEquals (test, HOST_FLASH_INIT_INVALID_ARGUMENT, status);
 
 	status = host_flash_initialization_init (&init, &flash0, &state0, &flash_mock0.base, NULL,
@@ -1198,6 +1198,7 @@ static void host_flash_initialization_test_initialize_flash_cs1_error (CuTest *t
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_flash_initialization);
 
 TEST (host_flash_initialization_test_init);
@@ -1215,3 +1216,4 @@ TEST (host_flash_initialization_test_initialize_flash_cs0_error);
 TEST (host_flash_initialization_test_initialize_flash_cs1_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

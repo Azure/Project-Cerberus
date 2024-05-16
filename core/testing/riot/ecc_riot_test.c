@@ -1,16 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
 #include "riot/ecc_riot.h"
-#include "testing/engines/rng_testing_engine.h"
 #include "testing/crypto/ecc_testing.h"
 #include "testing/crypto/rsa_testing.h"
 #include "testing/crypto/signature_testing.h"
+#include "testing/engines/rng_testing_engine.h"
 
 
 TEST_SUITE_LABEL ("ecc_riot");
@@ -449,16 +449,15 @@ static void ecc_riot_test_init_key_pair_null (CuTest *test)
 	status = ecc_riot_init (&engine, &rng.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_key_pair (NULL, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		&priv_key, &pub_key);
+	status = engine.base.init_key_pair (NULL, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,	&priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_key_pair (&engine.base, NULL, ECC_PRIVKEY_DER_LEN,
-		&priv_key, &pub_key);
+	status = engine.base.init_key_pair (&engine.base, NULL, ECC_PRIVKEY_DER_LEN, &priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, 0,
-		&priv_key, &pub_key);
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, 0, &priv_key, &pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	RNG_TESTING_ENGINE_RELEASE (&rng);
@@ -820,16 +819,16 @@ static void ecc_riot_test_generate_derived_key_pair_null (CuTest *test)
 	status = ecc_riot_init (&engine, &rng.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_derived_key_pair (NULL, ECC_PRIVKEY, ECC_PRIVKEY_LEN,
-		&priv_key, &pub_key);
+	status = engine.base.generate_derived_key_pair (NULL, ECC_PRIVKEY, ECC_PRIVKEY_LEN,	&priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.generate_derived_key_pair (&engine.base, NULL, ECC_PRIVKEY_LEN,
-		&priv_key, &pub_key);
+	status = engine.base.generate_derived_key_pair (&engine.base, NULL, ECC_PRIVKEY_LEN, &priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.generate_derived_key_pair (&engine.base, ECC_PRIVKEY, 0,
-		&priv_key, &pub_key);
+	status = engine.base.generate_derived_key_pair (&engine.base, ECC_PRIVKEY, 0, &priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	RNG_TESTING_ENGINE_RELEASE (&rng);
@@ -877,20 +876,16 @@ static void ecc_riot_test_sign_null (CuTest *test)
 		&priv_key, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.sign (NULL, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
-		sizeof (out));
+	status = engine.base.sign (NULL, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sign (&engine.base, NULL, SIG_HASH_TEST, SIG_HASH_LEN, out,
-		sizeof (out));
+	status = engine.base.sign (&engine.base, NULL, SIG_HASH_TEST, SIG_HASH_LEN, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sign (&engine.base, &priv_key, NULL, SIG_HASH_LEN, out,
-		sizeof (out));
+	status = engine.base.sign (&engine.base, &priv_key, NULL, SIG_HASH_LEN, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, 0, out,
-		sizeof (out));
+	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, 0, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL,
@@ -985,24 +980,24 @@ static void ecc_riot_test_verify_null (CuTest *test)
 		&priv_key, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.verify (NULL, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
-		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+	status = engine.base.verify (NULL, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.verify (&engine.base, NULL, SIG_HASH_TEST, SIG_HASH_LEN,
 		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.verify (&engine.base, &pub_key, NULL, SIG_HASH_LEN,
-		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+	status = engine.base.verify (&engine.base, &pub_key, NULL, SIG_HASH_LEN, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, 0,
-		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, 0, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
-		NULL, ECC_SIG_TEST_LEN);
+	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
@@ -1039,8 +1034,8 @@ static void ecc_riot_test_verify_corrupt_signature (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
-		bad_sig, sizeof (bad_sig));
+	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, bad_sig,
+		sizeof (bad_sig));
 	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
 
 	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
@@ -1336,7 +1331,7 @@ static void ecc_riot_test_get_public_key_der_private_key (CuTest *test)
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	int status;
-	uint8_t *der = (uint8_t*) &status;;
+	uint8_t *der = (uint8_t*) &status;
 	size_t length;
 	RNG_TESTING_ENGINE rng;
 
@@ -1364,6 +1359,7 @@ static void ecc_riot_test_get_public_key_der_private_key (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (ecc_riot);
 
 TEST (ecc_riot_test_init);
@@ -1421,3 +1417,4 @@ TEST (ecc_riot_test_get_public_key_der_null);
 TEST (ecc_riot_test_get_public_key_der_private_key);
 
 TEST_SUITE_END;
+// *INDENT-ON*

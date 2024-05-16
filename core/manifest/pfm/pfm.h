@@ -4,30 +4,30 @@
 #ifndef PFM_H_
 #define PFM_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "status/rot_status.h"
+#include <stdint.h>
 #include "crypto/hash.h"
 #include "crypto/rsa.h"
 #include "flash/flash_util.h"
 #include "manifest/manifest.h"
+#include "status/rot_status.h"
 
 
 /**
  * A list of firmware components present in the manifest.
  */
 struct pfm_firmware {
-	const char **ids;								/**< The list of IDs for each firmware. */
-	size_t count;									/**< The number of firmware IDs in the list. */
+	const char **ids;	/**< The list of IDs for each firmware. */
+	size_t count;		/**< The number of firmware IDs in the list. */
 };
 
 /**
  * The information for a single firmware version.
  */
 struct pfm_firmware_version {
-	const char *fw_version_id;						/**< Version identifier for the firmware. */
-	uint32_t version_addr;							/**< The flash address containing the version identifier. */
-	uint8_t blank_byte;								/**< The value to be used with this version for blank checking. */
+	const char *fw_version_id;	/**< Version identifier for the firmware. */
+	uint32_t version_addr;		/**< The flash address containing the version identifier. */
+	uint8_t blank_byte;			/**< The value to be used with this version for blank checking. */
 };
 
 /**
@@ -42,50 +42,50 @@ struct pfm_firmware_versions {
  * Options for how to manage read/write regions during authentication failures.
  */
 enum pfm_read_write_management {
-	PFM_RW_DO_NOTHING = 0,							/**< Do nothing with the existing R/W data. */
-	PFM_RW_RESTORE = 1,								/**< Restore the region from the RO flash. */
-	PFM_RW_ERASE = 2,								/**< Erase the region. */
-	PFM_RW_RESERVED = 3								/**< Reserved.  Same as option 0. */
+	PFM_RW_DO_NOTHING = 0,	/**< Do nothing with the existing R/W data. */
+	PFM_RW_RESTORE = 1,		/**< Restore the region from the RO flash. */
+	PFM_RW_ERASE = 2,		/**< Erase the region. */
+	PFM_RW_RESERVED = 3,	/**< Reserved.  Same as option 0. */
 };
 
 /**
  * Additional information about a single read/write flash region.
  */
 struct pfm_read_write {
-	enum pfm_read_write_management on_failure;		/**< The operation to execute on this region after authentication failure. */
+	enum pfm_read_write_management on_failure;	/**< The operation to execute on this region after authentication failure. */
 };
 
 /**
  * A list of read/write flash regions.
  */
 struct pfm_read_write_regions {
-	const struct flash_region *regions;				/**< The list of read/write regions. */
-	const struct pfm_read_write *properties;		/**< A list of properties for the read/write regions. */
-	size_t count;									/**< The number of regions defined. */
+	const struct flash_region *regions;			/**< The list of read/write regions. */
+	const struct pfm_read_write *properties;	/**< A list of properties for the read/write regions. */
+	size_t count;								/**< The number of regions defined. */
 };
 
 /**
  * Defines a complete firmware image that is signed.
  */
 struct pfm_image_signature {
-	const struct flash_region *regions;				/**< The flash regions that make up the signed image. */
-	size_t count;									/**< The number of regions in the image. */
-	struct rsa_public_key key;						/**< The RSA key used to sign the image. */
-	uint8_t signature[RSA_MAX_KEY_LENGTH];			/**< The image signature. */
-	size_t sig_length;								/**< The length of the image signature. */
-	uint8_t always_validate;						/**< Flag indicating if this image should be validated on every system boot. */
+	const struct flash_region *regions;		/**< The flash regions that make up the signed image. */
+	size_t count;							/**< The number of regions in the image. */
+	struct rsa_public_key key;				/**< The RSA key used to sign the image. */
+	uint8_t signature[RSA_MAX_KEY_LENGTH];	/**< The image signature. */
+	size_t sig_length;						/**< The length of the image signature. */
+	uint8_t always_validate;				/**< Flag indicating if this image should be validated on every system boot. */
 };
 
 /**
  * Defines a complete firmware image that must be validated.
  */
 struct pfm_image_hash {
-	const struct flash_region *regions;				/**< The flash regions that make up the signed image. */
-	size_t count;									/**< The number of regions in the image. */
-	uint8_t hash[SHA512_HASH_LENGTH];				/**< The image hash. */
-	size_t hash_length;								/**< The length of the image hash. */
-	enum hash_type hash_type;						/**< The algorithm used to generate the image hash. */
-	uint8_t always_validate;						/**< Flag indicating if this image should be validated on every system boot. */
+	const struct flash_region *regions;	/**< The flash regions that make up the signed image. */
+	size_t count;						/**< The number of regions in the image. */
+	uint8_t hash[SHA512_HASH_LENGTH];	/**< The image hash. */
+	size_t hash_length;					/**< The length of the image hash. */
+	enum hash_type hash_type;			/**< The algorithm used to generate the image hash. */
+	uint8_t always_validate;			/**< Flag indicating if this image should be validated on every system boot. */
 };
 
 /**
@@ -105,7 +105,7 @@ struct pfm_image_list {
  * The API for interfacing with the Platform Firmware Manifest for a single device.
  */
 struct pfm {
-	struct manifest base;							/**< Manifest interface */
+	struct manifest base;	/**< Manifest interface */
 
 	/**
 	 * Get the list of firmware components contained in the PFM.
@@ -237,4 +237,4 @@ enum {
 };
 
 
-#endif /* PFM_H_ */
+#endif	/* PFM_H_ */

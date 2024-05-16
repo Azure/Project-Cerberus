@@ -20,7 +20,7 @@ int cmd_interface_dual_cmd_set_generate_error_packet (const struct cmd_interface
  * Constant initializer for response handling.
  */
 #ifdef CMD_ENABLE_ISSUE_REQUEST
-#define	CMD_INTERFACE_DUAL_CMD_SET_RESPONSE_API	\
+#define	CMD_INTERFACE_DUAL_CMD_SET_RESPONSE_API \
 	.process_response = cmd_interface_dual_cmd_set_process_response,
 #else
 #define	CMD_INTERFACE_DUAL_CMD_SET_RESPONSE_API
@@ -54,4 +54,4 @@ int cmd_interface_dual_cmd_set_generate_error_packet (const struct cmd_interface
 	}
 
 
-#endif /* CMD_INTERFACE_DUAL_CMD_SET_STATIC_H_ */
+#endif	/* CMD_INTERFACE_DUAL_CMD_SET_STATIC_H_ */

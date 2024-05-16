@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "host_processor_dual_full_bypass.h"
 #include "host_state_manager.h"
@@ -36,6 +36,7 @@ int host_processor_dual_full_bypass_init (struct host_processor_filtered *host,
 {
 	int status = host_processor_dual_init_internal (host, control, flash, state, filter, pfm,
 		recovery, 0, false);
+
 	if (status != 0) {
 		return status;
 	}
@@ -74,8 +75,8 @@ int host_processor_dual_full_bypass_init_pulse_reset (struct host_processor_filt
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
 	}
 
-	status = host_processor_dual_init_internal (host, control, flash, state, filter, pfm,
-		recovery, pulse_width, false);
+	status = host_processor_dual_init_internal (host, control, flash, state, filter, pfm, recovery,
+		pulse_width, false);
 	if (status != 0) {
 		return status;
 	}
@@ -106,6 +107,7 @@ int host_processor_dual_full_bypass_init_reset_flash (struct host_processor_filt
 {
 	int status = host_processor_dual_init_internal (host, control, flash, state, filter, pfm,
 		recovery, 0, true);
+
 	if (status != 0) {
 		return status;
 	}
@@ -145,8 +147,8 @@ int host_processor_dual_full_bypass_init_reset_flash_pulse_reset (
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
 	}
 
-	status = host_processor_dual_init_internal (host, control, flash, state, filter, pfm,
-		recovery, pulse_width, true);
+	status = host_processor_dual_init_internal (host, control, flash, state, filter, pfm, recovery,
+		pulse_width, true);
 	if (status != 0) {
 		return status;
 	}

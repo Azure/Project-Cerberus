@@ -4,10 +4,10 @@
 #ifndef AUTHORIZATION_CHALLENGE_H_
 #define AUTHORIZATION_CHALLENGE_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "platform_api.h"
+#include <stdint.h>
 #include "authorization.h"
+#include "platform_api.h"
 #include "crypto/ecc.h"
 #include "crypto/hash.h"
 #include "crypto/rng.h"
@@ -49,4 +49,4 @@ int authorization_challenge_init_with_tag (struct authorization_challenge *auth,
 void authorization_challenge_release (struct authorization_challenge *auth);
 
 
-#endif /* AUTHORIZATION_CHALLENGE_H_ */
+#endif	/* AUTHORIZATION_CHALLENGE_H_ */

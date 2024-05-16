@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "intrusion_state_mock.h"
 
@@ -40,8 +40,7 @@ static int intrusion_state_mock_set (struct intrusion_state *state)
 	MOCK_RETURN_NO_ARGS (&mock->mock, intrusion_state_mock_set, state);
 }
 
-static int intrusion_state_mock_get_intrusion_count (struct intrusion_state *state,
-	uint32_t *count)
+static int intrusion_state_mock_get_intrusion_count (struct intrusion_state *state,	uint32_t *count)
 {
 	struct intrusion_state_mock *mock = (struct intrusion_state_mock*) state;
 
@@ -53,8 +52,7 @@ static int intrusion_state_mock_get_intrusion_count (struct intrusion_state *sta
 		MOCK_ARG_PTR_CALL (count));
 }
 
-static int intrusion_state_mock_is_active (struct intrusion_state *state,
-	uint32_t *active_state)
+static int intrusion_state_mock_is_active (struct intrusion_state *state, uint32_t *active_state)
 {
 	struct intrusion_state_mock *mock = (struct intrusion_state_mock*) state;
 

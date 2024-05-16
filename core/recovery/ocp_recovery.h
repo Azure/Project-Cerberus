@@ -34,7 +34,7 @@ enum {
 	OCP_RECOVERY_CMD_INDIRECT_STATUS = 0x2a,	/**< Indirect Memory Access Status command */
 	OCP_RECOVERY_CMD_INDIRECT_DATA = 0x2b,		/**< Indirect Memory Access command */
 	OCP_RECOVERY_CMD_VENDOR = 0x2c,				/**< Vendor Defined command */
-	OCP_RECOVERY_CMD_MAX_VALID = 0x2c			/**< Maximum valid command code for OCP recovery. */
+	OCP_RECOVERY_CMD_MAX_VALID = 0x2c,			/**< Maximum valid command code for OCP recovery. */
 };
 
 
@@ -59,17 +59,17 @@ enum {
  * Capability bits that can be reported by a device in the PROT_CAP command.
  */
 enum {
-	OCP_RECOVERY_PROT_CAP_SUPPORTS_IDENTIFICATION = (1U << 0),		/**< Supports the DEVICE_ID command. */
-	OCP_RECOVERY_PROT_CAP_SUPPORTS_FORCED_RECOVERY = (1U << 1),		/**< Supports the forced recovery option in the RESET command. */
-	OCP_RECOVERY_PROT_CAP_SUPPORTS_MGMT_RESET = (1U << 2),			/**< Supports a management-only reset option in the RESET command. */
-	OCP_RECOVERY_PROT_CAP_SUPPORTS_DEVICE_RESET = (1U << 3),		/**< Supports a full device reset option in the RESET command. */
-	OCP_RECOVERY_PROT_CAP_SUPPORTS_DEVICE_STATUS = (1U << 4),		/**< Supports the DEVICE_STATUS command. */
-	OCP_RECOVERY_PROT_CAP_SUPPORTS_MEMORY_ACCESS = (1U << 5),		/**< Supports INDIRECT commands to access device memory. */
-	OCP_RECOVERY_PROT_CAP_SUPPORTS_LOCAL_IMAGE = (1U << 6),			/**< Supports a locally stored for recovery. */
-	OCP_RECOVERY_PROT_CAP_SUPPORTS_PUSH_IMAGE = (1U << 7),			/**< Supports pushing an image over the recovery interface. */
-	OCP_RECOVERY_PROT_CAP_SUPPORTS_INTF_ISOLATION = (1U << 8),		/**< Supports control over bus mastering of the recovery interface. */
-	OCP_RECOVERY_PROT_CAP_SUPPORTS_HW_STATUS = (1U << 9),			/**< Supports the HW_STATUS command. */
-	OCP_RECOVERY_PROT_CAP_SUPPORTS_VENDOR_COMMAND = (1U << 10),		/**< Supports the VENDOR command. */
+	OCP_RECOVERY_PROT_CAP_SUPPORTS_IDENTIFICATION = (1U << 0),	/**< Supports the DEVICE_ID command. */
+	OCP_RECOVERY_PROT_CAP_SUPPORTS_FORCED_RECOVERY = (1U << 1),	/**< Supports the forced recovery option in the RESET command. */
+	OCP_RECOVERY_PROT_CAP_SUPPORTS_MGMT_RESET = (1U << 2),		/**< Supports a management-only reset option in the RESET command. */
+	OCP_RECOVERY_PROT_CAP_SUPPORTS_DEVICE_RESET = (1U << 3),	/**< Supports a full device reset option in the RESET command. */
+	OCP_RECOVERY_PROT_CAP_SUPPORTS_DEVICE_STATUS = (1U << 4),	/**< Supports the DEVICE_STATUS command. */
+	OCP_RECOVERY_PROT_CAP_SUPPORTS_MEMORY_ACCESS = (1U << 5),	/**< Supports INDIRECT commands to access device memory. */
+	OCP_RECOVERY_PROT_CAP_SUPPORTS_LOCAL_IMAGE = (1U << 6),		/**< Supports a locally stored for recovery. */
+	OCP_RECOVERY_PROT_CAP_SUPPORTS_PUSH_IMAGE = (1U << 7),		/**< Supports pushing an image over the recovery interface. */
+	OCP_RECOVERY_PROT_CAP_SUPPORTS_INTF_ISOLATION = (1U << 8),	/**< Supports control over bus mastering of the recovery interface. */
+	OCP_RECOVERY_PROT_CAP_SUPPORTS_HW_STATUS = (1U << 9),		/**< Supports the HW_STATUS command. */
+	OCP_RECOVERY_PROT_CAP_SUPPORTS_VENDOR_COMMAND = (1U << 10),	/**< Supports the VENDOR command. */
 };
 
 /**
@@ -86,13 +86,13 @@ enum {
  * OCP Recovery Capabilities (PROT_CAP) command format.
  */
 struct ocp_recovery_prot_cap {
-	uint8_t magic_string[8];			/**< Magic value indicating an OCP recovery structure. */
-	uint8_t major_version;				/**< Major version number of the recovery protocol. */
-	uint8_t minor_version;				/**< Minor version number of the recovery protocol. */
-	uint16_t capabilities;				/**< Bitmask of device capabilities. */
-	uint8_t cms_regions;				/**< Total number CMS regions supported by the device. */
-	uint8_t max_response_time;			/**< Maximum time it takes the device to generate a response. */
-	uint8_t heartbeat_period;			/**< Period between heartbeat status updates. */
+	uint8_t magic_string[8];	/**< Magic value indicating an OCP recovery structure. */
+	uint8_t major_version;		/**< Major version number of the recovery protocol. */
+	uint8_t minor_version;		/**< Minor version number of the recovery protocol. */
+	uint16_t capabilities;		/**< Bitmask of device capabilities. */
+	uint8_t cms_regions;		/**< Total number CMS regions supported by the device. */
+	uint8_t max_response_time;	/**< Maximum time it takes the device to generate a response. */
+	uint8_t heartbeat_period;	/**< Period between heartbeat status updates. */
 };
 
 
@@ -113,8 +113,8 @@ enum {
  */
 struct ocp_recovery_device_id {
 	struct {
-		uint8_t id_type;						/**< Type of ID used by the device. */
-		uint8_t vendor_length;					/**< Length of the vendor-specific string. */
+		uint8_t id_type;		/**< Type of ID used by the device. */
+		uint8_t vendor_length;	/**< Length of the vendor-specific string. */
 		union {
 			/**
 			 * PCI vendor/device ID format.
@@ -132,47 +132,47 @@ struct ocp_recovery_device_id {
 			 * IANA vender/product ID format.
 			 */
 			struct ocp_recovery_device_id_iana {
-				uint8_t enterprise_id[4];		/**< IANA enterprise ID. */
-				uint8_t product_id[12];			/**< ACPI product ID. */
-				uint8_t pad[6];					/**< Zero padding. */
+				uint8_t enterprise_id[4];	/**< IANA enterprise ID. */
+				uint8_t product_id[12];		/**< ACPI product ID. */
+				uint8_t pad[6];				/**< Zero padding. */
 			} iana;
 
 			/**
 			 * Device UUID format.
 			 */
 			struct ocp_recovery_device_id_uuid {
-				uint8_t uuid[16];				/**< Device UUID. */
-				uint8_t pad[6];					/**< Zero padding. */
+				uint8_t uuid[16];	/**< Device UUID. */
+				uint8_t pad[6];		/**< Zero padding. */
 			} uuid;
 
 			/**
 			 * PnP vendor/product ID format.
 			 */
 			struct ocp_recovery_device_id_pnp {
-				uint8_t vendor_id[3];			/**< PnP vendor ID. */
-				uint8_t product_id[4];			/**< PnP product ID. */
-				uint8_t pad[15];				/**< Zero padding. */
+				uint8_t vendor_id[3];	/**< PnP vendor ID. */
+				uint8_t product_id[4];	/**< PnP product ID. */
+				uint8_t pad[15];		/**< Zero padding. */
 			} pnp;
 
 			/**
 			 * ACPI vendor/product ID format.
 			 */
 			struct ocp_recovery_device_id_acpi {
-				uint8_t vendor_id[4];			/**< ACPI vendor ID. */
-				uint8_t product_id[3];			/**< ACPI product ID. */
-				uint8_t pad[15];				/**< Zero padding. */
+				uint8_t vendor_id[4];	/**< ACPI vendor ID. */
+				uint8_t product_id[3];	/**< ACPI product ID. */
+				uint8_t pad[15];		/**< Zero padding. */
 			} acpi;
 
 			/**
 			 * NVMe-MI vendor ID format.
 			 */
 			struct ocp_recovery_device_id_nvme_mi {
-				uint16_t vendor_id;				/**< NVMe vendor ID. */
-				uint8_t serial_num[20];			/**< Device serial number. */
+				uint16_t vendor_id;		/**< NVMe vendor ID. */
+				uint8_t serial_num[20];	/**< Device serial number. */
 			} nvme;
 		};
-	} base;										/**< The minimum required portion of the ID_CAP command. */
-	uint8_t vendor_string[231];					/**< Vendor-specific ID string. */
+	} base;								/**< The minimum required portion of the ID_CAP command. */
+	uint8_t vendor_string[231];			/**< Vendor-specific ID string. */
 };
 
 
@@ -189,6 +189,7 @@ enum ocp_recovery_device_status_code {
 	OCP_RECOVERY_DEVICE_STATUS_BOOT_FAILURE = 0x0e,		/**< Device boot has halted due to some error condition. */
 	OCP_RECOVERY_DEVICE_STATUS_FATAL_ERROR = 0x0f,		/**< The device has encountered a fatal error. */
 };
+
 
 /**
  * Status codes for recovery protocol errors that can be reported.
@@ -216,7 +217,7 @@ enum ocp_recovery_recovery_reason_code {
 	OCP_RECOVERY_DEVICE_STATUS_REC_NO_BOOT_LOADER = 0x08,		/**< The FW boot loader was not found or was corrupt. */
 	OCP_RECOVERY_DEVICE_STATUS_REC_BOOT_AUTH_FAIL = 0x09,		/**< The FW boot loader failed authentication. */
 	OCP_RECOVERY_DEVICE_STATUS_REC_BOOT_REVOKED = 0x0a,			/**< The FW boot loader failed anti-rollback checks. */
-	OCP_RECOVERY_DEVICE_STATUS_REC_NO_FW_IMAGE  = 0x0b,			/**< The main FW image was not found or was corrupt. */
+	OCP_RECOVERY_DEVICE_STATUS_REC_NO_FW_IMAGE = 0x0b,			/**< The main FW image was not found or was corrupt. */
 	OCP_RECOVERY_DEVICE_STATUS_REC_FW_AUTH_FAIL = 0x0c,			/**< The main FW image failed authentication. */
 	OCP_RECOVERY_DEVICE_STATUS_REC_FW_REVOKED = 0x0d,			/**< The main FW image failed anti-rollback checks. */
 	OCP_RECOVERY_DEVICE_STATUS_REC_NO_RECOVERY_FW = 0x0e,		/**< The recovery FW was not found or was corrupt. */
@@ -244,9 +245,9 @@ struct ocp_recovery_device_status {
  * Types of device reset that can be performed.
  */
 enum {
-	OCP_RECOVERY_RESET_NO_RESET = 0x00,			/**< Do not reset the device. */
-	OCP_RECOVERY_RESET_DEVICE_RESET = 0x01,		/**< Full device reset.  Likely disruptive to any bus activity. */
-	OCP_RECOVERY_RESET_MGMT_RESET = 0x02,		/**< Only reset the management subsystem.  This must not impact any bus activity. */
+	OCP_RECOVERY_RESET_NO_RESET = 0x00,		/**< Do not reset the device. */
+	OCP_RECOVERY_RESET_DEVICE_RESET = 0x01,	/**< Full device reset.  Likely disruptive to any bus activity. */
+	OCP_RECOVERY_RESET_MGMT_RESET = 0x02,	/**< Only reset the management subsystem.  This must not impact any bus activity. */
 };
 
 /**
@@ -269,9 +270,9 @@ enum {
  * OCP Recovery Reset (RESET) command format.
  */
 struct ocp_recovery_reset {
-	uint8_t reset_ctrl;				/**< Control resets triggered through the recovery interface. */
-	uint8_t forced_recovery;		/**< Control recovery mode execution on the next reset. */
-	uint8_t intf_control;			/**< Control for interface bus mastering. */
+	uint8_t reset_ctrl;			/**< Control resets triggered through the recovery interface. */
+	uint8_t forced_recovery;	/**< Control recovery mode execution on the next reset. */
+	uint8_t intf_control;		/**< Control for interface bus mastering. */
 };
 
 
@@ -296,9 +297,9 @@ enum {
  * OCP Recovery Control (RECOVERY_CTRL) command format.
  */
 struct ocp_recovery_recovery_ctrl {
-	uint8_t cms;					/**< Memory region to use for loading a recovery image. */
-	uint8_t recovery_image;			/**< The type of recovery image to use. */
-	uint8_t activate;				/**< Control recovery image activation. */
+	uint8_t cms;			/**< Memory region to use for loading a recovery image. */
+	uint8_t recovery_image;	/**< The type of recovery image to use. */
+	uint8_t activate;		/**< Control recovery image activation. */
 };
 
 
@@ -320,8 +321,8 @@ enum {
  * OCP Recovery Status (RECOVERY_STATUS) command format.
  */
 struct ocp_recovery_recovery_status {
-	uint8_t status;					/**< Status of the most recent recovery operation. */
-	uint8_t vendor_status;			/**< Vendor-defined status code. */
+	uint8_t status;			/**< Status of the most recent recovery operation. */
+	uint8_t vendor_status;	/**< Vendor-defined status code. */
 };
 
 
@@ -329,9 +330,9 @@ struct ocp_recovery_recovery_status {
  * Error bits for HW failures.
  */
 enum {
-	OCP_RECOVERY_HW_STATUS_TEMP_ERROR = (1U << 0),			/**< The device temperature is critical. */
-	OCP_RECOVERY_HW_STATUS_SOFT_ERROR = (1U << 1),			/**< A non-fatal error, which may need a reset to clear. */
-	OCP_RECOVERY_HW_STATUS_FATAL_ERROR = (1U << 2),			/**< A fatal HW error. */
+	OCP_RECOVERY_HW_STATUS_TEMP_ERROR = (1U << 0),	/**< The device temperature is critical. */
+	OCP_RECOVERY_HW_STATUS_SOFT_ERROR = (1U << 1),	/**< A non-fatal error, which may need a reset to clear. */
+	OCP_RECOVERY_HW_STATUS_FATAL_ERROR = (1U << 2),	/**< A fatal HW error. */
 };
 
 /**
@@ -352,9 +353,9 @@ struct ocp_recovery_hw_status {
  * OCP Recovery Indirect Control (INDIRECT_CTRL) command format.
  */
 struct ocp_recovery_indirect_ctrl {
-	uint8_t cms;					/**< Index for the memory region to access. */
-	uint8_t reserved;				/**< Unused. */
-	uint32_t offset;				/**< The offset within the memory region to start accessing data from. */
+	uint8_t cms;		/**< Index for the memory region to access. */
+	uint8_t reserved;	/**< Unused. */
+	uint32_t offset;	/**< The offset within the memory region to start accessing data from. */
 };
 
 
@@ -392,9 +393,9 @@ enum ocp_recovery_region_type {
  * OCP Recovery Indirect Status (INDIRECT_STATUS) command format.
  */
 struct ocp_recovery_indirect_status {
-	uint8_t status;					/**< Status of the last indirect operation. */
-	uint8_t type;					/**< The type of region currently being accessed. */
-	uint32_t size;					/**< Total size of the memory region, in 4-byte units. */
+	uint8_t status;	/**< Status of the last indirect operation. */
+	uint8_t type;	/**< The type of region currently being accessed. */
+	uint32_t size;	/**< Total size of the memory region, in 4-byte units. */
 };
 
 
@@ -402,7 +403,7 @@ struct ocp_recovery_indirect_status {
  * OCP Recovery Indirect Data (INDIRECT_DATA) command format.
  */
 struct ocp_recovery_indirect_data {
-	uint8_t data[255];				/**< Data to or from the active memory region at the current offset. */
+	uint8_t data[255];	/**< Data to or from the active memory region at the current offset. */
 };
 
 
@@ -410,9 +411,10 @@ struct ocp_recovery_indirect_data {
  * OCP Recovery Vendor (VENDOR) command format.
  */
 struct ocp_recovery_vendor {
-	uint8_t vendor[255];			/**< Vendor-defined data. */
+	uint8_t vendor[255];	/**< Vendor-defined data. */
 };
+
 #pragma pack(pop)
 
 
-#endif /* OCP_RECOVERY_H_ */
+#endif	/* OCP_RECOVERY_H_ */

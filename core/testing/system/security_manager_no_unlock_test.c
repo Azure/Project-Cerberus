@@ -451,6 +451,7 @@ static void security_manager_no_unlock_test_get_security_policy_null (CuTest *te
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (security_manager_no_unlock);
 
 TEST (security_manager_no_unlock_test_init);
@@ -482,3 +483,4 @@ TEST (security_manager_no_unlock_test_get_security_policy_static_init);
 TEST (security_manager_no_unlock_test_get_security_policy_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

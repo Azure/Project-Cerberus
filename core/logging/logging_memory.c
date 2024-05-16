@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "logging_memory.h"
 #include "common/buffer_util.h"
@@ -431,5 +431,6 @@ int logging_memory_copy_entries (const struct logging_memory *logging, const str
 
 exit:
 	platform_mutex_unlock (&logging->state->lock);
+
 	return status;
 }

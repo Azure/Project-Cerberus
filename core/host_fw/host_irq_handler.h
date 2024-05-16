@@ -5,8 +5,8 @@
 #define HOST_IRQ_HANDLER_H_
 
 #include <stdbool.h>
-#include "host_processor.h"
 #include "bmc_recovery.h"
+#include "host_processor.h"
 #include "crypto/hash.h"
 #include "crypto/rsa.h"
 
@@ -71,12 +71,12 @@ struct host_irq_handler {
 	*/
 	int (*force_recovery) (const struct host_irq_handler *handler);
 
-	struct host_processor *host;				/**< The host generating the IRQs. */
-	struct bmc_recovery *recovery;				/**< The recovery manager for BMC watchdog failover. */
-	struct hash_engine *hash;					/**< Hash engine to use for reset validation. */
-	struct rsa_engine *rsa;						/**< RSA engine to use for reset validation. */
-	const struct host_irq_control *control;		/**< Interface for enabling host interrupts. */
-	bool notify_exit_reset;						/**< Flag to enable host reset exit interrupts. */
+	struct host_processor *host;			/**< The host generating the IRQs. */
+	struct bmc_recovery *recovery;			/**< The recovery manager for BMC watchdog failover. */
+	struct hash_engine *hash;				/**< Hash engine to use for reset validation. */
+	struct rsa_engine *rsa;					/**< RSA engine to use for reset validation. */
+	const struct host_irq_control *control;	/**< Interface for enabling host interrupts. */
+	bool notify_exit_reset;					/**< Flag to enable host reset exit interrupts. */
 };
 
 
@@ -119,4 +119,4 @@ enum {
 };
 
 
-#endif /* HOST_IRQ_HANDLER_H_ */
+#endif	/* HOST_IRQ_HANDLER_H_ */

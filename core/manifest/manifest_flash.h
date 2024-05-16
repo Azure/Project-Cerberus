@@ -4,13 +4,13 @@
 #ifndef MANIFEST_FLASH_H
 #define MANIFEST_FLASH_H
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "manifest_format.h"
-#include "flash/flash.h"
 #include "crypto/hash.h"
 #include "crypto/signature_verification.h"
+#include "flash/flash.h"
 
 
 /**
@@ -20,25 +20,25 @@
  * as a component within a complete manifest implementation.
  */
 struct manifest_flash {
-	const struct flash *flash;					/**< The flash device that contains the manifest. */
-	struct hash_engine *hash;					/**, Hash engine to use for element verification. */
-	uint32_t addr;								/**< The starting address in flash of the manifest. */
-	uint16_t magic_num_v1;						/**< The magic number identifying a v1 manifest. */
-	uint16_t magic_num_v2;						/**< The magic number identifying a v2 manifest. */
-	struct manifest_header header;				/**< The manifest header data. */
-	uint8_t *signature;							/**< Buffer to hold the manifest signature. */
-	size_t max_signature;						/**< Maximum supported signature length. */
-	struct manifest_toc_header toc_header;		/**< The table of contents header data. */
-	uint8_t toc_hash[SHA512_HASH_LENGTH];		/**< Hash of the manifest table of contents. */
-	enum hash_type toc_hash_type;				/**< The type of hash used in the table of contents. */
-	size_t toc_hash_length;						/**< Length of the table of contents hash. */
-	char *platform_id;							/**< Buffer to hold the platform ID. */
-	size_t max_platform_id;						/**< Maximum supported platform ID length. */
-	uint8_t hash_cache[SHA512_HASH_LENGTH];		/**< Cache for the manifest hash. */
-	size_t hash_length;							/**< Length of the manifest hash. */
-	bool cache_valid;							/**< Flag indicating if the cached hash is valid. */
-	bool free_signature;						/**< Flag indicating the signature buffer should be freed. */
-	bool manifest_valid;						/**< Flag indicating there is a validated manifest. */
+	const struct flash *flash;				/**< The flash device that contains the manifest. */
+	struct hash_engine *hash;				/**, Hash engine to use for element verification. */
+	uint32_t addr;							/**< The starting address in flash of the manifest. */
+	uint16_t magic_num_v1;					/**< The magic number identifying a v1 manifest. */
+	uint16_t magic_num_v2;					/**< The magic number identifying a v2 manifest. */
+	struct manifest_header header;			/**< The manifest header data. */
+	uint8_t *signature;						/**< Buffer to hold the manifest signature. */
+	size_t max_signature;					/**< Maximum supported signature length. */
+	struct manifest_toc_header toc_header;	/**< The table of contents header data. */
+	uint8_t toc_hash[SHA512_HASH_LENGTH];	/**< Hash of the manifest table of contents. */
+	enum hash_type toc_hash_type;			/**< The type of hash used in the table of contents. */
+	size_t toc_hash_length;					/**< Length of the table of contents hash. */
+	char *platform_id;						/**< Buffer to hold the platform ID. */
+	size_t max_platform_id;					/**< Maximum supported platform ID length. */
+	uint8_t hash_cache[SHA512_HASH_LENGTH];	/**< Cache for the manifest hash. */
+	size_t hash_length;						/**< Length of the manifest hash. */
+	bool cache_valid;						/**< Flag indicating if the cached hash is valid. */
+	bool free_signature;					/**< Flag indicating the signature buffer should be freed. */
+	bool manifest_valid;					/**< Flag indicating there is a validated manifest. */
 };
 
 
@@ -72,9 +72,10 @@ int manifest_flash_get_child_elements_info (struct manifest_flash *manifest,
 uint32_t manifest_flash_get_addr (struct manifest_flash *manifest);
 const struct flash* manifest_flash_get_flash (struct manifest_flash *manifest);
 
+
 int manifest_flash_compare_id (struct manifest_flash *manifest1, struct manifest_flash *manifest2);
 int manifest_flash_compare_platform_id (struct manifest_flash *manifest1,
 	struct manifest_flash *manifest2, bool sku_upgrade_permitted);
 
 
-#endif //MANIFEST_FLASH_H
+#endif	//MANIFEST_FLASH_H

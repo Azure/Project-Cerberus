@@ -8,10 +8,10 @@
 #include "recovery/recovery_image_cmd_handler.h"
 #include "recovery/recovery_image_cmd_handler_static.h"
 #include "recovery/recovery_logging.h"
+#include "testing/logging/debug_log_testing.h"
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/recovery/recovery_image_manager_mock.h"
 #include "testing/mock/system/event_task_mock.h"
-#include "testing/logging/debug_log_testing.h"
 
 
 TEST_SUITE_LABEL ("recovery_image_cmd_handler");
@@ -185,8 +185,9 @@ static void recovery_image_cmd_handler_test_init_null (CuTest *test)
 static void recovery_image_cmd_handler_test_static_init (CuTest *test)
 {
 	struct recovery_image_cmd_handler_testing handler;
-	struct recovery_image_cmd_handler test_static = recovery_image_cmd_handler_static_init (
-		&handler.state, &handler.recovery.base, &handler.task.base);
+	struct recovery_image_cmd_handler test_static =
+		recovery_image_cmd_handler_static_init (&handler.state, &handler.recovery.base,
+		&handler.task.base);
 	int status;
 
 	TEST_START;
@@ -211,8 +212,9 @@ static void recovery_image_cmd_handler_test_static_init (CuTest *test)
 static void recovery_image_cmd_handler_test_static_init_null (CuTest *test)
 {
 	struct recovery_image_cmd_handler_testing handler;
-	struct recovery_image_cmd_handler test_static = recovery_image_cmd_handler_static_init (
-		&handler.state, &handler.recovery.base, &handler.task.base);
+	struct recovery_image_cmd_handler test_static =
+		recovery_image_cmd_handler_static_init (&handler.state, &handler.recovery.base,
+		&handler.task.base);
 	int status;
 
 	TEST_START;
@@ -270,8 +272,9 @@ static void recovery_image_cmd_handler_test_get_status (CuTest *test)
 static void recovery_image_cmd_handler_test_get_status_static_init (CuTest *test)
 {
 	struct recovery_image_cmd_handler_testing handler;
-	struct recovery_image_cmd_handler test_static = recovery_image_cmd_handler_static_init (
-		&handler.state, &handler.recovery.base, &handler.task.base);
+	struct recovery_image_cmd_handler test_static =
+		recovery_image_cmd_handler_static_init (&handler.state, &handler.recovery.base,
+		&handler.task.base);
 	int status;
 
 	TEST_START;
@@ -315,8 +318,8 @@ static void recovery_image_cmd_handler_test_prepare_recovery_image (CuTest *test
 
 	recovery_image_cmd_handler_testing_init (test, &handler);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -348,8 +351,9 @@ static void recovery_image_cmd_handler_test_prepare_recovery_image (CuTest *test
 static void recovery_image_cmd_handler_test_prepare_recovery_image_static_init (CuTest *test)
 {
 	struct recovery_image_cmd_handler_testing handler;
-	struct recovery_image_cmd_handler test_static = recovery_image_cmd_handler_static_init (
-		&handler.state, &handler.recovery.base, &handler.task.base);
+	struct recovery_image_cmd_handler test_static =
+		recovery_image_cmd_handler_static_init (&handler.state, &handler.recovery.base,
+		&handler.task.base);
 	int status;
 	uint32_t bytes = 5000;
 
@@ -357,8 +361,8 @@ static void recovery_image_cmd_handler_test_prepare_recovery_image_static_init (
 
 	recovery_image_cmd_handler_testing_init_static (test, &handler, &test_static);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -514,8 +518,8 @@ static void recovery_image_cmd_handler_test_prepare_recovery_image_notify_error 
 
 	recovery_image_cmd_handler_testing_init (test, &handler);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -552,8 +556,8 @@ static void recovery_image_cmd_handler_test_update_recovery_image (CuTest *test)
 
 	recovery_image_cmd_handler_testing_init (test, &handler);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -597,8 +601,8 @@ static void recovery_image_cmd_handler_test_update_recovery_image_max_payload (C
 
 	recovery_image_cmd_handler_testing_init (test, &handler);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -630,8 +634,9 @@ static void recovery_image_cmd_handler_test_update_recovery_image_max_payload (C
 static void recovery_image_cmd_handler_test_update_recovery_image_static_init (CuTest *test)
 {
 	struct recovery_image_cmd_handler_testing handler;
-	struct recovery_image_cmd_handler test_static = recovery_image_cmd_handler_static_init (
-		&handler.state, &handler.recovery.base, &handler.task.base);
+	struct recovery_image_cmd_handler test_static =
+		recovery_image_cmd_handler_static_init (&handler.state, &handler.recovery.base,
+		&handler.task.base);
 	int status;
 	uint8_t image_data[] = {0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18};
 
@@ -639,8 +644,8 @@ static void recovery_image_cmd_handler_test_update_recovery_image_static_init (C
 
 	recovery_image_cmd_handler_testing_init_static (test, &handler, &test_static);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -680,8 +685,7 @@ static void recovery_image_cmd_handler_test_update_recovery_image_null (CuTest *
 
 	recovery_image_cmd_handler_testing_init (test, &handler);
 
-	status = handler.test.base_cmd.update_recovery_image (NULL, image_data,
-		sizeof (image_data));
+	status = handler.test.base_cmd.update_recovery_image (NULL, image_data,	sizeof (image_data));
 	CuAssertIntEquals (test, RECOVERY_IMAGE_MANAGER_INVALID_ARGUMENT, status);
 
 	status = handler.test.base_cmd.update_recovery_image (&handler.test.base_cmd, NULL,
@@ -821,8 +825,8 @@ static void recovery_image_cmd_handler_test_update_recovery_image_notify_error (
 
 	recovery_image_cmd_handler_testing_init (test, &handler);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -859,8 +863,8 @@ static void recovery_image_cmd_handler_test_activate_recovery_image (CuTest *tes
 
 	recovery_image_cmd_handler_testing_init (test, &handler);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -887,16 +891,17 @@ static void recovery_image_cmd_handler_test_activate_recovery_image (CuTest *tes
 static void recovery_image_cmd_handler_test_activate_recovery_image_static_init (CuTest *test)
 {
 	struct recovery_image_cmd_handler_testing handler;
-	struct recovery_image_cmd_handler test_static = recovery_image_cmd_handler_static_init (
-		&handler.state, &handler.recovery.base, &handler.task.base);
+	struct recovery_image_cmd_handler test_static =
+		recovery_image_cmd_handler_static_init (&handler.state, &handler.recovery.base,
+		&handler.task.base);
 	int status;
 
 	TEST_START;
 
 	recovery_image_cmd_handler_testing_init_static (test, &handler, &test_static);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -1042,8 +1047,8 @@ static void recovery_image_cmd_handler_test_activate_recovery_image_notify_error
 
 	recovery_image_cmd_handler_testing_init (test, &handler);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -1165,10 +1170,8 @@ static void recovery_image_cmd_handler_test_execute_prepare_recovery_image_failu
 	CuAssertIntEquals (test, 0, status);
 
 	status = handler.test.base_cmd.get_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((RECOVERY_IMAGE_MANAGER_CLEAR_FAILED & 0x00ffffff) << 8) |
-			RECOVERY_IMAGE_CMD_STATUS_PREPARE_FAIL),
-		status);
+	CuAssertIntEquals (test, (((RECOVERY_IMAGE_MANAGER_CLEAR_FAILED & 0x00ffffff) << 8) |
+			RECOVERY_IMAGE_CMD_STATUS_PREPARE_FAIL), status);
 
 	recovery_image_cmd_handler_testing_validate_and_release (test, &handler);
 }
@@ -1177,8 +1180,9 @@ static void recovery_image_cmd_handler_test_execute_prepare_recovery_image_stati
 	CuTest *test)
 {
 	struct recovery_image_cmd_handler_testing handler;
-	struct recovery_image_cmd_handler test_static = recovery_image_cmd_handler_static_init (
-		&handler.state, &handler.recovery.base, &handler.task.base);
+	struct recovery_image_cmd_handler test_static =
+		recovery_image_cmd_handler_static_init (&handler.state, &handler.recovery.base,
+		&handler.task.base);
 	int status;
 	uint32_t bytes = 50;
 	bool reset = false;
@@ -1315,10 +1319,8 @@ static void recovery_image_cmd_handler_test_execute_update_recovery_image_failur
 	CuAssertIntEquals (test, 0, status);
 
 	status = handler.test.base_cmd.get_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((RECOVERY_IMAGE_MANAGER_WRITE_FAILED & 0x00ffffff) << 8) |
-			RECOVERY_IMAGE_CMD_STATUS_UPDATE_FAIL),
-		status);
+	CuAssertIntEquals (test, (((RECOVERY_IMAGE_MANAGER_WRITE_FAILED & 0x00ffffff) << 8) |
+			RECOVERY_IMAGE_CMD_STATUS_UPDATE_FAIL),	status);
 
 	recovery_image_cmd_handler_testing_validate_and_release (test, &handler);
 }
@@ -1326,8 +1328,9 @@ static void recovery_image_cmd_handler_test_execute_update_recovery_image_failur
 static void recovery_image_cmd_handler_test_execute_update_recovery_image_static_init (CuTest *test)
 {
 	struct recovery_image_cmd_handler_testing handler;
-	struct recovery_image_cmd_handler test_static = recovery_image_cmd_handler_static_init (
-		&handler.state, &handler.recovery.base, &handler.task.base);
+	struct recovery_image_cmd_handler test_static =
+		recovery_image_cmd_handler_static_init (&handler.state, &handler.recovery.base,
+		&handler.task.base);
 	int status;
 	uint8_t image_data[] = {0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18};
 	bool reset = false;
@@ -1456,10 +1459,8 @@ static void recovery_image_cmd_handler_test_execute_activate_recovery_image_fail
 	CuAssertIntEquals (test, 0, status);
 
 	status = handler.test.base_cmd.get_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((RECOVERY_IMAGE_MANAGER_ACTIVATE_FAILED & 0x00ffffff) << 8) |
-			RECOVERY_IMAGE_CMD_STATUS_ACTIVATION_FAIL),
-		status);
+	CuAssertIntEquals (test, (((RECOVERY_IMAGE_MANAGER_ACTIVATE_FAILED & 0x00ffffff) << 8) |
+			RECOVERY_IMAGE_CMD_STATUS_ACTIVATION_FAIL),	status);
 
 	recovery_image_cmd_handler_testing_validate_and_release (test, &handler);
 }
@@ -1468,8 +1469,9 @@ static void recovery_image_cmd_handler_test_execute_activate_recovery_image_stat
 	CuTest *test)
 {
 	struct recovery_image_cmd_handler_testing handler;
-	struct recovery_image_cmd_handler test_static = recovery_image_cmd_handler_static_init (
-		&handler.state, &handler.recovery.base, &handler.task.base);
+	struct recovery_image_cmd_handler test_static =
+		recovery_image_cmd_handler_static_init (&handler.state, &handler.recovery.base,
+		&handler.task.base);
 	int status;
 	bool reset = false;
 
@@ -1548,10 +1550,8 @@ static void recovery_image_cmd_handler_test_execute_unknown_action (CuTest *test
 	CuAssertIntEquals (test, 0, status);
 
 	status = handler.test.base_cmd.get_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((RECOVERY_IMAGE_MANAGER_UNSUPPORTED_OP & 0x00ffffff) << 8) |
-			RECOVERY_IMAGE_CMD_STATUS_INTERNAL_ERROR),
-		status);
+	CuAssertIntEquals (test, (((RECOVERY_IMAGE_MANAGER_UNSUPPORTED_OP & 0x00ffffff) << 8) |
+			RECOVERY_IMAGE_CMD_STATUS_INTERNAL_ERROR), status);
 
 	recovery_image_cmd_handler_testing_validate_and_release (test, &handler);
 }
@@ -1559,8 +1559,9 @@ static void recovery_image_cmd_handler_test_execute_unknown_action (CuTest *test
 static void recovery_image_cmd_handler_test_execute_unknown_action_static_init (CuTest *test)
 {
 	struct recovery_image_cmd_handler_testing handler;
-	struct recovery_image_cmd_handler test_static = recovery_image_cmd_handler_static_init (
-		&handler.state, &handler.recovery.base, &handler.task.base);
+	struct recovery_image_cmd_handler test_static =
+		recovery_image_cmd_handler_static_init (&handler.state, &handler.recovery.base,
+		&handler.task.base);
 	int status;
 	bool reset = false;
 	struct debug_log_entry_info entry = {
@@ -1599,16 +1600,15 @@ static void recovery_image_cmd_handler_test_execute_unknown_action_static_init (
 	CuAssertIntEquals (test, 0, status);
 
 	status = test_static.base_cmd.get_status (&test_static.base_cmd);
-	CuAssertIntEquals (test,
-		(((RECOVERY_IMAGE_MANAGER_UNSUPPORTED_OP & 0x00ffffff) << 8) |
-			RECOVERY_IMAGE_CMD_STATUS_INTERNAL_ERROR),
-		status);
+	CuAssertIntEquals (test, (((RECOVERY_IMAGE_MANAGER_UNSUPPORTED_OP & 0x00ffffff) << 8) |
+			RECOVERY_IMAGE_CMD_STATUS_INTERNAL_ERROR), status);
 
 	recovery_image_cmd_handler_testing_release_dependencies (test, &handler);
 	recovery_image_cmd_handler_release (&test_static);
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (recovery_image_cmd_handler);
 
 TEST (recovery_image_cmd_handler_test_init);
@@ -1655,3 +1655,4 @@ TEST (recovery_image_cmd_handler_test_execute_unknown_action);
 TEST (recovery_image_cmd_handler_test_execute_unknown_action_static_init);
 
 TEST_SUITE_END;
+// *INDENT-ON*

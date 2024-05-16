@@ -51,6 +51,7 @@ static void host_processor_test_get_port_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_processor);
 
 TEST (host_processor_test_set_port);
@@ -58,3 +59,4 @@ TEST (host_processor_test_set_port_null);
 TEST (host_processor_test_get_port_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

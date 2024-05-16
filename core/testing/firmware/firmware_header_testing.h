@@ -4,8 +4,8 @@
 #ifndef FIRMWARE_HEADER_TESTING_H_
 #define FIRMWARE_HEADER_TESTING_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 
 /**
@@ -42,4 +42,4 @@ extern const uint8_t FIRMWARE_HEADER_FORMAT_3[];
 extern const size_t FIRMWARE_HEADER_FORMAT_3_TOTAL_LEN;
 
 
-#endif /* FIRMWARE_HEADER_TESTING_H_ */
+#endif	/* FIRMWARE_HEADER_TESTING_H_ */

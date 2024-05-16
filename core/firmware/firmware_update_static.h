@@ -72,4 +72,4 @@
 	}
 
 
-#endif /* FIRMWARE_UPDATE_STATIC_H_ */
+#endif	/* FIRMWARE_UPDATE_STATIC_H_ */

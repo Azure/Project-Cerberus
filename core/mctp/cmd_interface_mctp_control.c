@@ -3,13 +3,13 @@
 
 #include <stdint.h>
 #include <string.h>
-#include "common/unused.h"
-#include "cmd_interface/cmd_interface.h"
+#include "cmd_interface_mctp_control.h"
 #include "mctp_base_protocol.h"
 #include "mctp_control_protocol.h"
 #include "mctp_control_protocol_commands.h"
 #include "mctp_logging.h"
-#include "cmd_interface_mctp_control.h"
+#include "cmd_interface/cmd_interface.h"
+#include "common/unused.h"
 
 
 /**
@@ -144,7 +144,7 @@ static int cmd_interface_mctp_control_process_response (const struct cmd_interfa
 			else {
 				return observable_notify_observers_with_ptr (&interface->observable,
 					offsetof (struct mctp_control_protocol_observer, on_get_message_type_response),
-						response);
+					response);
 			}
 
 		case MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT:
@@ -155,7 +155,7 @@ static int cmd_interface_mctp_control_process_response (const struct cmd_interfa
 			else {
 				return observable_notify_observers_with_ptr (&interface->observable,
 					offsetof (struct mctp_control_protocol_observer,
-						on_get_vendor_def_msg_response), response);
+					on_get_vendor_def_msg_response), response);
 			}
 
 		case MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES:
@@ -166,7 +166,7 @@ static int cmd_interface_mctp_control_process_response (const struct cmd_interfa
 			else {
 				return observable_notify_observers_with_ptr (&interface->observable,
 					offsetof (struct mctp_control_protocol_observer,
-						on_get_routing_table_entries_response), response);
+					on_get_routing_table_entries_response), response);
 			}
 
 		case MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY:
@@ -195,7 +195,7 @@ static int cmd_interface_mctp_control_generate_error_packet (const struct cmd_in
 	UNUSED (error_data);
 	UNUSED (cmd_set);
 
-    return CMD_HANDLER_MCTP_CTRL_UNSUPPORTED_OPERATION;
+	return CMD_HANDLER_MCTP_CTRL_UNSUPPORTED_OPERATION;
 }
 
 /**

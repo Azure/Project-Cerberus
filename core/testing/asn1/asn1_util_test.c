@@ -670,12 +670,11 @@ static void asn1_encode_base128_oid_test_null (CuTest *test)
 
 	TEST_START;
 
-	der_length = asn1_encode_base128_oid (NULL,
-		ASN1_OID_ECDSA_WITH_SHA256_LENGTH, der, sizeof (der));
+	der_length = asn1_encode_base128_oid (NULL,	ASN1_OID_ECDSA_WITH_SHA256_LENGTH, der,
+		sizeof (der));
 	CuAssertIntEquals (test, ASN1_UTIL_INVALID_ARGUMENT, der_length);
 
-	der_length = asn1_encode_base128_oid (ASN1_OID_ECDSA_WITH_SHA256,
-		0, der, sizeof (der));
+	der_length = asn1_encode_base128_oid (ASN1_OID_ECDSA_WITH_SHA256, 0, der, sizeof (der));
 	CuAssertIntEquals (test, ASN1_UTIL_INVALID_ARGUMENT, der_length);
 
 	der_length = asn1_encode_base128_oid (ASN1_OID_ECDSA_WITH_SHA256,
@@ -900,6 +899,7 @@ static void asn1_decode_base128_oid_test_not_object_identifier_tag (CuTest *test
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (asn1_util);
 
 TEST (asn1_get_der_item_len_test_single_byte_length);
@@ -963,3 +963,4 @@ TEST (asn1_decode_base128_oid_test_buffer_too_small);
 TEST (asn1_decode_base128_oid_test_not_object_identifier_tag);
 
 TEST_SUITE_END;
+// *INDENT-ON*

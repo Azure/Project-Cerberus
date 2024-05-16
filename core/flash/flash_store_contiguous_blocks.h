@@ -4,22 +4,22 @@
 #ifndef FLASH_STORE_CONTIGUOUS_BLOCKS_H_
 #define FLASH_STORE_CONTIGUOUS_BLOCKS_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
-#include "platform_api.h"
-#include "flash/flash.h"
-#include "crypto/hash.h"
+#include <stddef.h>
+#include <stdint.h>
 #include "flash_store.h"
+#include "platform_api.h"
+#include "crypto/hash.h"
+#include "flash/flash.h"
 
 
 /**
  * Header on each block of variable length data.
  */
 struct flash_store_header {
-	uint8_t header_len;				/**< Total length of the header. */
-	uint8_t marker;					/**< Marker byte indicating valid data. */
-	uint16_t length;				/**< Length of the variable data. */
+	uint8_t header_len;	/**< Total length of the header. */
+	uint8_t marker;		/**< Marker byte indicating valid data. */
+	uint16_t length;	/**< Length of the variable data. */
 } __attribute__((__packed__));
 
 #define	FLASH_STORE_HEADER_MARKER		0xa5
@@ -30,15 +30,15 @@ struct flash_store_header {
  * Variable context for a flash store instance.
  */
 struct flash_store_contiguous_blocks_state {
-	uint32_t max_size;			/**< Maximum amount of data per storage block. */
-	uint32_t block_size;		/**< Flash size of each data block. */
-	uint32_t blocks;			/**< The number of managed data blocks. */
+	uint32_t max_size;		/**< Maximum amount of data per storage block. */
+	uint32_t block_size;	/**< Flash size of each data block. */
+	uint32_t blocks;		/**< The number of managed data blocks. */
 #ifdef FLASH_STORE_SUPPORT_NO_PARTIAL_PAGE_WRITE
-	uint32_t page_size;			/**< Page programming size for the flash device. */
-	uint8_t *page_buffer;		/**< Buffer for ensuring full page programming. */
-	platform_mutex lock;		/**< Page buffer synchronization. */
+	uint32_t page_size;		/**< Page programming size for the flash device. */
+	uint8_t *page_buffer;	/**< Buffer for ensuring full page programming. */
+	platform_mutex lock;	/**< Page buffer synchronization. */
 #endif
-	bool old_header;			/**< Flag indicating variable storage header only saves the length. */
+	bool old_header;		/**< Flag indicating variable storage header only saves the length. */
 };
 
 /**
@@ -100,4 +100,4 @@ int flash_store_contiguous_blocks_read_common (const struct flash_store_contiguo
 	size_t *out_length);
 
 
-#endif /* FLASH_STORE_CONTIGUOUS_BLOCKS_H_ */
+#endif	/* FLASH_STORE_CONTIGUOUS_BLOCKS_H_ */

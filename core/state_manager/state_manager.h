@@ -4,19 +4,19 @@
 #ifndef STATE_MANAGER_H_
 #define STATE_MANAGER_H_
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "platform_api.h"
-#include "status/rot_status.h"
 #include "flash/flash.h"
+#include "status/rot_status.h"
 
 
 /**
  * Definitions to indicate which region of flash holds the active manifest.
  */
 enum manifest_region {
-	MANIFEST_REGION_1,			/**< The primary manifest region contains the active manifest. */
-	MANIFEST_REGION_2,			/**< The secondary manifest region contains the active manifest. */
+	MANIFEST_REGION_1,	/**< The primary manifest region contains the active manifest. */
+	MANIFEST_REGION_2,	/**< The secondary manifest region contains the active manifest. */
 };
 
 
@@ -107,4 +107,4 @@ enum {
 };
 
 
-#endif /* STATE_MANAGER_H_ */
+#endif	/* STATE_MANAGER_H_ */

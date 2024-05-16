@@ -35,7 +35,7 @@ static void spdm_transcript_manager_mock_set_spdm_version (
 }
 
 static int spdm_transcript_manager_mock_update (
-	const struct spdm_transcript_manager *transcript_manager, 
+	const struct spdm_transcript_manager *transcript_manager,
 	enum spdm_transcript_manager_context_type context_type, const uint8_t *message,
 	size_t message_size, bool use_session_context, uint8_t session_idx)
 {
@@ -53,7 +53,7 @@ static int spdm_transcript_manager_mock_update (
 
 static int spdm_transcript_manager_mock_get_hash (
 	const struct spdm_transcript_manager *transcript_manager,
-	enum spdm_transcript_manager_context_type context_type, bool finish_hash, 
+	enum spdm_transcript_manager_context_type context_type, bool finish_hash,
 	bool use_session_context, uint8_t session_idx, uint8_t *hash, size_t hash_size)
 {
 	struct spdm_transcript_manager_mock *mock =
@@ -81,8 +81,8 @@ static void spdm_transcript_manager_mock_reset_context (
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, spdm_transcript_manager_mock_reset_context,
-		transcript_manager, MOCK_ARG_CALL (context_type), MOCK_ARG_CALL (use_session_context),
+	MOCK_VOID_RETURN (&mock->mock, spdm_transcript_manager_mock_reset_context, transcript_manager,
+		MOCK_ARG_CALL (context_type), MOCK_ARG_CALL (use_session_context),
 		MOCK_ARG_CALL (session_idx));
 }
 
@@ -280,7 +280,7 @@ int spdm_transcript_manager_mock_init (struct spdm_transcript_manager_mock *mock
 	mock->base.get_hash = spdm_transcript_manager_mock_get_hash;
 	mock->base.reset_transcript = spdm_transcript_manager_mock_reset_context;
 	mock->base.reset = spdm_transcript_manager_mock_reset;
-	mock->base.reset_session_transcript = spdm_transcript_manager_mock_reset_session_transcript;	
+	mock->base.reset_session_transcript = spdm_transcript_manager_mock_reset_session_transcript;
 
 	mock->mock.func_arg_count = spdm_transcript_manager_mock_func_arg_count;
 	mock->mock.func_name_map = spdm_transcript_manager_mock_func_name_map;

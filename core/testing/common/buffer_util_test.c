@@ -1264,7 +1264,7 @@ static void buffer_unaligned_test_copy16_unaligned_src (CuTest *test)
 
 static void buffer_unaligned_test_copy16_unaligned_dst (CuTest *test)
 {
-	uint8_t value[3] = { 0, };
+	uint8_t value[3] = {0, };
 
 	TEST_START;
 
@@ -1294,7 +1294,7 @@ static void buffer_unaligned_test_copy24_unaligned_src (CuTest *test)
 
 static void buffer_unaligned_test_copy24_unaligned_dst (CuTest *test)
 {
-	uint8_t value[4] = { 0, };
+	uint8_t value[4] = {0, };
 
 	TEST_START;
 
@@ -1330,7 +1330,7 @@ static void buffer_unaligned_test_copy32_unaligned_src (CuTest *test)
 
 static void buffer_unaligned_test_copy32_unaligned_dst (CuTest *test)
 {
-	uint8_t value[7] = { 0, };
+	uint8_t value[7] = {0, };
 
 	TEST_START;
 
@@ -1567,7 +1567,7 @@ static void buffer_unaligned_test_read64 (CuTest *test)
 
 static void buffer_unaligned_test_write16 (CuTest *test)
 {
-	uint8_t value[3] = { 0, };
+	uint8_t value[3] = {0, };
 
 	TEST_START;
 
@@ -1582,7 +1582,7 @@ static void buffer_unaligned_test_write16 (CuTest *test)
 
 static void buffer_unaligned_test_write24 (CuTest *test)
 {
-	uint8_t value[4] = { 0, };
+	uint8_t value[4] = {0, };
 
 	TEST_START;
 
@@ -1599,7 +1599,7 @@ static void buffer_unaligned_test_write24 (CuTest *test)
 
 static void buffer_unaligned_test_write32 (CuTest *test)
 {
-	uint8_t value[7] = { 0, };
+	uint8_t value[7] = {0, };
 
 	TEST_START;
 
@@ -1716,6 +1716,7 @@ static void buffer_unaligned_test_write64 (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (buffer_util);
 
 TEST (buffer_copy_test_full_buffer);
@@ -1794,3 +1795,4 @@ TEST (buffer_unaligned_test_write32);
 TEST (buffer_unaligned_test_write64);
 
 TEST_SUITE_END;
+// *INDENT-ON*

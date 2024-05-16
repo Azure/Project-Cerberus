@@ -4,16 +4,16 @@
 #ifndef SECURE_DEVICE_UNLOCK_MOCK_H_
 #define SECURE_DEVICE_UNLOCK_MOCK_H_
 
-#include "system/secure_device_unlock.h"
 #include "mock.h"
+#include "system/secure_device_unlock.h"
 
 
 /**
  * A mock for a secure unlock handler.
  */
 struct secure_device_unlock_mock {
-	struct secure_device_unlock base;		/**< The base handler instance. */
-	struct mock mock;						/**< The base mock interface. */
+	struct secure_device_unlock base;	/**< The base handler instance. */
+	struct mock mock;					/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void secure_device_unlock_mock_release (struct secure_device_unlock_mock *mock);
 int secure_device_unlock_mock_validate_and_release (struct secure_device_unlock_mock *mock);
 
 
-#endif /* SECURE_DEVICE_UNLOCK_MOCK_H_ */
+#endif	/* SECURE_DEVICE_UNLOCK_MOCK_H_ */

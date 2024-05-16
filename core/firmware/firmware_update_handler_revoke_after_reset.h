@@ -13,7 +13,7 @@
  * the device has been reset with the updated firmware.
  */
 struct firmware_update_handler_revoke_after_reset {
-	struct firmware_update_handler base;			/**< Base update handler. */
+	struct firmware_update_handler base;	/**< Base update handler. */
 };
 
 
@@ -29,4 +29,4 @@ void firmware_update_handler_revoke_after_reset_release (
 	const struct firmware_update_handler_revoke_after_reset *handler);
 
 
-#endif /* FIRMWARE_UPDATE_HANDLER_REVOKE_AFTER_RESET_H_ */
+#endif	/* FIRMWARE_UPDATE_HANDLER_REVOKE_AFTER_RESET_H_ */

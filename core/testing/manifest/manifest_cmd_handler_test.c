@@ -8,11 +8,11 @@
 #include "manifest/manifest_cmd_handler.h"
 #include "manifest/manifest_cmd_handler_static.h"
 #include "manifest/manifest_logging.h"
+#include "testing/logging/debug_log_testing.h"
+#include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/manifest/manifest_cmd_handler_mock.h"
 #include "testing/mock/manifest/manifest_manager_mock.h"
-#include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/system/event_task_mock.h"
-#include "testing/logging/debug_log_testing.h"
 
 
 TEST_SUITE_LABEL ("manifest_cmd_handler");
@@ -209,8 +209,7 @@ static void manifest_cmd_handler_test_init_null (CuTest *test)
 		&handler.task.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = manifest_cmd_handler_init (&handler.test, &handler.state, NULL,
-		&handler.task.base);
+	status = manifest_cmd_handler_init (&handler.test, &handler.state, NULL, &handler.task.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
 	status = manifest_cmd_handler_init (&handler.test, &handler.state, &handler.manifest.base,
@@ -223,8 +222,8 @@ static void manifest_cmd_handler_test_init_null (CuTest *test)
 static void manifest_cmd_handler_test_static_init (CuTest *test)
 {
 	struct manifest_cmd_handler_testing handler;
-	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base);
+	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (&handler.state,
+		&handler.manifest.base, &handler.task.base);
 	int status;
 
 	TEST_START;
@@ -249,8 +248,8 @@ static void manifest_cmd_handler_test_static_init (CuTest *test)
 static void manifest_cmd_handler_test_static_init_null (CuTest *test)
 {
 	struct manifest_cmd_handler_testing handler;
-	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base);
+	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (&handler.state,
+		&handler.manifest.base, &handler.task.base);
 	int status;
 
 	TEST_START;
@@ -308,8 +307,8 @@ static void manifest_cmd_handler_test_get_status (CuTest *test)
 static void manifest_cmd_handler_test_get_status_static_init (CuTest *test)
 {
 	struct manifest_cmd_handler_testing handler;
-	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base);
+	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (&handler.state,
+		&handler.manifest.base, &handler.task.base);
 	int status;
 
 	TEST_START;
@@ -353,8 +352,8 @@ static void manifest_cmd_handler_test_prepare_manifest (CuTest *test)
 
 	manifest_cmd_handler_testing_init (test, &handler);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -386,8 +385,8 @@ static void manifest_cmd_handler_test_prepare_manifest (CuTest *test)
 static void manifest_cmd_handler_test_prepare_manifest_static_init (CuTest *test)
 {
 	struct manifest_cmd_handler_testing handler;
-	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base);
+	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (&handler.state,
+		&handler.manifest.base, &handler.task.base);
 	int status;
 	uint32_t bytes = 5000;
 
@@ -395,8 +394,8 @@ static void manifest_cmd_handler_test_prepare_manifest_static_init (CuTest *test
 
 	manifest_cmd_handler_testing_init_static (test, &handler, &test_static);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -552,8 +551,8 @@ static void manifest_cmd_handler_test_prepare_manifest_notify_error (CuTest *tes
 
 	manifest_cmd_handler_testing_init (test, &handler);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -590,8 +589,8 @@ static void manifest_cmd_handler_test_store_manifest (CuTest *test)
 
 	manifest_cmd_handler_testing_init (test, &handler);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -636,8 +635,8 @@ static void manifest_cmd_handler_test_store_manifest_max_payload (CuTest *test)
 
 	manifest_cmd_handler_testing_init (test, &handler);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -670,8 +669,8 @@ static void manifest_cmd_handler_test_store_manifest_max_payload (CuTest *test)
 static void manifest_cmd_handler_test_store_manifest_static_init (CuTest *test)
 {
 	struct manifest_cmd_handler_testing handler;
-	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base);
+	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (&handler.state,
+		&handler.manifest.base, &handler.task.base);
 	int status;
 	uint8_t manifest_data[] = {0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18};
 
@@ -679,8 +678,8 @@ static void manifest_cmd_handler_test_store_manifest_static_init (CuTest *test)
 
 	manifest_cmd_handler_testing_init_static (test, &handler, &test_static);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -721,8 +720,7 @@ static void manifest_cmd_handler_test_store_manifest_null (CuTest *test)
 
 	manifest_cmd_handler_testing_init (test, &handler);
 
-	status = handler.test.base_cmd.store_manifest (NULL, manifest_data,
-		sizeof (manifest_data));
+	status = handler.test.base_cmd.store_manifest (NULL, manifest_data,	sizeof (manifest_data));
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
 	status = handler.test.base_cmd.store_manifest (&handler.test.base_cmd, NULL,
@@ -862,8 +860,8 @@ static void manifest_cmd_handler_test_store_manifest_notify_error (CuTest *test)
 
 	manifest_cmd_handler_testing_init (test, &handler);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -900,8 +898,8 @@ static void manifest_cmd_handler_test_finish_manifest (CuTest *test)
 
 	manifest_cmd_handler_testing_init (test, &handler);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -934,8 +932,8 @@ static void manifest_cmd_handler_test_finish_manifest_with_activation (CuTest *t
 
 	manifest_cmd_handler_testing_init (test, &handler);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -964,16 +962,16 @@ static void manifest_cmd_handler_test_finish_manifest_with_activation (CuTest *t
 static void manifest_cmd_handler_test_finish_manifest_static_init (CuTest *test)
 {
 	struct manifest_cmd_handler_testing handler;
-	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base);
+	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (&handler.state,
+		&handler.manifest.base, &handler.task.base);
 	int status;
 
 	TEST_START;
 
 	manifest_cmd_handler_testing_init_static (test, &handler, &test_static);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -1001,16 +999,16 @@ static void manifest_cmd_handler_test_finish_manifest_static_init (CuTest *test)
 static void manifest_cmd_handler_test_finish_manifest_static_init_with_activation (CuTest *test)
 {
 	struct manifest_cmd_handler_testing handler;
-	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base);
+	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (&handler.state,
+		&handler.manifest.base, &handler.task.base);
 	int status;
 
 	TEST_START;
 
 	manifest_cmd_handler_testing_init_static (test, &handler, &test_static);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -1158,8 +1156,8 @@ static void manifest_cmd_handler_test_finish_manifest_notify_error (CuTest *test
 
 	manifest_cmd_handler_testing_init (test, &handler);
 
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
 		sizeof (handler.context_ptr), -1);
 
@@ -1289,8 +1287,8 @@ static void manifest_cmd_handler_test_execute_prepare_manifest_failure (CuTest *
 static void manifest_cmd_handler_test_execute_prepare_manifest_static_init (CuTest *test)
 {
 	struct manifest_cmd_handler_testing handler;
-	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base);
+	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (&handler.state,
+		&handler.manifest.base, &handler.task.base);
 	int status;
 	uint32_t bytes = 50;
 	bool reset = false;
@@ -1437,8 +1435,8 @@ static void manifest_cmd_handler_test_execute_store_manifest_failure (CuTest *te
 static void manifest_cmd_handler_test_execute_store_manifest_static_init (CuTest *test)
 {
 	struct manifest_cmd_handler_testing handler;
-	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base);
+	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (&handler.state,
+		&handler.manifest.base, &handler.task.base);
 	int status;
 	uint8_t manifest_data[] = {0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18};
 	bool reset = false;
@@ -1974,10 +1972,8 @@ static void manifest_cmd_handler_test_execute_finalize_manifest_with_activation_
 	CuAssertIntEquals (test, 0, status);
 
 	status = handler.test_mock.base.base_cmd.get_status (&handler.test_mock.base.base_cmd);
-	CuAssertIntEquals (test,
-		(((MANIFEST_MANAGER_UNSUPPORTED_OP & 0x00ffffff) << 8) |
-			MANIFEST_CMD_STATUS_ACTIVATION_FAIL),
-		status);
+	CuAssertIntEquals (test, (((MANIFEST_MANAGER_UNSUPPORTED_OP & 0x00ffffff) << 8) |
+			MANIFEST_CMD_STATUS_ACTIVATION_FAIL), status);
 
 	manifest_cmd_handler_testing_validate_and_release (test, &handler);
 }
@@ -2034,8 +2030,8 @@ static void manifest_cmd_handler_test_execute_finalize_manifest_with_activation_
 static void manifest_cmd_handler_test_execute_finalize_manifest_static_init (CuTest *test)
 {
 	struct manifest_cmd_handler_testing handler;
-	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base);
+	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (&handler.state,
+		&handler.manifest.base, &handler.task.base);
 	int status;
 	bool reset = false;
 
@@ -2114,10 +2110,8 @@ static void manifest_cmd_handler_test_execute_unknown_action (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = handler.test.base_cmd.get_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((MANIFEST_MANAGER_UNSUPPORTED_OP & 0x00ffffff) << 8) |
-			MANIFEST_CMD_STATUS_INTERNAL_ERROR),
-		status);
+	CuAssertIntEquals (test, (((MANIFEST_MANAGER_UNSUPPORTED_OP & 0x00ffffff) << 8) |
+			MANIFEST_CMD_STATUS_INTERNAL_ERROR), status);
 
 	manifest_cmd_handler_testing_validate_and_release (test, &handler);
 }
@@ -2125,8 +2119,8 @@ static void manifest_cmd_handler_test_execute_unknown_action (CuTest *test)
 static void manifest_cmd_handler_test_execute_unknown_action_static_init (CuTest *test)
 {
 	struct manifest_cmd_handler_testing handler;
-	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base);
+	struct manifest_cmd_handler test_static = manifest_cmd_handler_static_init (&handler.state,
+		&handler.manifest.base, &handler.task.base);
 	int status;
 	bool reset = false;
 	struct debug_log_entry_info entry = {
@@ -2165,16 +2159,15 @@ static void manifest_cmd_handler_test_execute_unknown_action_static_init (CuTest
 	CuAssertIntEquals (test, 0, status);
 
 	status = test_static.base_cmd.get_status (&test_static.base_cmd);
-	CuAssertIntEquals (test,
-		(((MANIFEST_MANAGER_UNSUPPORTED_OP & 0x00ffffff) << 8) |
-			MANIFEST_CMD_STATUS_INTERNAL_ERROR),
-		status);
+	CuAssertIntEquals (test, (((MANIFEST_MANAGER_UNSUPPORTED_OP & 0x00ffffff) << 8) |
+			MANIFEST_CMD_STATUS_INTERNAL_ERROR), status);
 
 	manifest_cmd_handler_testing_release_dependencies (test, &handler);
 	manifest_cmd_handler_release (&test_static);
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (manifest_cmd_handler);
 
 TEST (manifest_cmd_handler_test_init);
@@ -2232,3 +2225,4 @@ TEST (manifest_cmd_handler_test_execute_unknown_action);
 TEST (manifest_cmd_handler_test_execute_unknown_action_static_init);
 
 TEST_SUITE_END;
+// *INDENT-ON*

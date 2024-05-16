@@ -13,8 +13,8 @@
  * RMA context will be supported.
  */
 struct cmd_interface_rma {
-	struct cmd_interface base;						/**< Base command handler instance.  */
-	struct device_manager *device_manager;			/**< Device manager instance */
+	struct cmd_interface base;				/**< Base command handler instance.  */
+	struct device_manager *device_manager;	/**< Device manager instance */
 };
 
 
@@ -22,4 +22,4 @@ int cmd_interface_rma_init (struct cmd_interface_rma *intf, struct device_manage
 void cmd_interface_rma_release (const struct cmd_interface_rma *intf);
 
 
-#endif /* CMD_INTERFACE_RMA_H_ */
+#endif	/* CMD_INTERFACE_RMA_H_ */

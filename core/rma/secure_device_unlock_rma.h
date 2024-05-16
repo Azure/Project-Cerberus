@@ -4,8 +4,8 @@
 #ifndef SECURE_DEVICE_UNLOCK_RMA_H_
 #define SECURE_DEVICE_UNLOCK_RMA_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "device_rma_transition.h"
 #include "rma_unlock_token.h"
 #include "system/secure_device_unlock.h"
@@ -29,4 +29,4 @@ int secure_device_unlock_rma_init (struct secure_device_unlock_rma *unlock,
 void secure_device_unlock_rma_release (const struct secure_device_unlock_rma *unlock);
 
 
-#endif /* SECURE_DEVICE_UNLOCK_RMA_H_ */
+#endif	/* SECURE_DEVICE_UNLOCK_RMA_H_ */

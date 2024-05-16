@@ -4,20 +4,20 @@
 #ifndef COUNTER_MANAGER_REGISTERS_H_
 #define COUNTER_MANAGER_REGISTERS_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
+#include "counter_manager.h"
 #include "platform_api.h"
 #include "cmd_interface/cmd_device.h"
-#include "counter_manager.h"
 
 
 /**
  * Module that holds the registers for reset counter data.
  */
 struct counter_manager_registers {
-	volatile uint32_t *reg1;		/**< Register to store reset counter data */
-	volatile uint32_t *reg2;		/**< Register to store reset counter data */
-	platform_mutex lock;			/**< Synchronization for access/updates to counter data. */
+	volatile uint32_t *reg1;	/**< Register to store reset counter data */
+	volatile uint32_t *reg2;	/**< Register to store reset counter data */
+	platform_mutex lock;		/**< Synchronization for access/updates to counter data. */
 };
 
 
@@ -33,4 +33,4 @@ int counter_manager_registers_get_counter (struct counter_manager_registers *man
 	uint8_t port);
 
 
-#endif /* COUNTER_MANAGER_REGISTERS_H_ */
+#endif	/* COUNTER_MANAGER_REGISTERS_H_ */

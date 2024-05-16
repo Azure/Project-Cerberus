@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
 #include "common/unused.h"
@@ -61,6 +61,7 @@ static void real_time_clock_test_set_time_unsupported_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (real_time_clock);
 
 TEST (real_time_clock_test_init_static);
@@ -68,3 +69,4 @@ TEST (real_time_clock_test_set_time_unsupported);
 TEST (real_time_clock_test_set_time_unsupported_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

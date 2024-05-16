@@ -4,8 +4,8 @@
 #ifndef RIOT_KEYS_H_
 #define RIOT_KEYS_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 
 /**
@@ -23,4 +23,4 @@ struct riot_keys {
 };
 
 
-#endif /* RIOT_KEYS_H_ */
+#endif	/* RIOT_KEYS_H_ */

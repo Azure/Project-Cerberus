@@ -5,13 +5,13 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "intrusion/intrusion_manager.h"
 #include "attestation/pcr_store.h"
 #include "common/array_size.h"
-#include "testing/mock/crypto/hash_mock.h"
-#include "testing/mock/intrusion/intrusion_state_mock.h"
+#include "intrusion/intrusion_manager.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/intrusion/intrusion_manager_testing.h"
+#include "testing/mock/crypto/hash_mock.h"
+#include "testing/mock/intrusion/intrusion_state_mock.h"
 
 
 TEST_SUITE_LABEL ("intrusion_manager");
@@ -21,36 +21,36 @@ TEST_SUITE_LABEL ("intrusion_manager");
  * Test measurement without a detected intrusion;
  */
 const uint8_t INTRUSION_MANAGER_TESTING_NO_INTRUSION[] = {
-	0x61,0xc8,0xcc,0xdf,0x40,0x25,0x38,0x96,0x3e,0x88,0x1d,0x08,0x77,0xff,0xc4,0x71,
-	0xac,0x99,0x1c,0x68,0x46,0xab,0xd8,0xa0,0xfb,0x1c,0x85,0xd5,0xc7,0xc2,0xb3,0x48
+	0x61, 0xc8, 0xcc, 0xdf, 0x40, 0x25, 0x38, 0x96, 0x3e, 0x88, 0x1d, 0x08, 0x77, 0xff, 0xc4, 0x71,
+	0xac, 0x99, 0x1c, 0x68, 0x46, 0xab, 0xd8, 0xa0, 0xfb, 0x1c, 0x85, 0xd5, 0xc7, 0xc2, 0xb3, 0x48
 };
 
 /**
  * Test measurement for an intrusion.
  */
 const uint8_t INTRUSION_MANAGER_TESTING_INTRUSION[] = {
-	0x50,0x29,0x0a,0x4d,0xe7,0x13,0x7d,0xbb,0x61,0x5a,0xee,0xeb,0x8a,0xb2,0x57,0xfe,
-	0x79,0x0d,0xde,0x2b,0x50,0x22,0x24,0xe3,0x0d,0xf0,0x33,0x84,0x5a,0x85,0x59,0x92
+	0x50, 0x29, 0x0a, 0x4d, 0xe7, 0x13, 0x7d, 0xbb, 0x61, 0x5a, 0xee, 0xeb, 0x8a, 0xb2, 0x57, 0xfe,
+	0x79, 0x0d, 0xde, 0x2b, 0x50, 0x22, 0x24, 0xe3, 0x0d, 0xf0, 0x33, 0x84, 0x5a, 0x85, 0x59, 0x92
 };
 
 /**
  * Test measurement for an unknown intrusion state.
  */
 const uint8_t INTRUSION_MANAGER_TESTING_UNKNOWN[] = {
-	0x57,0xd7,0x46,0x26,0x40,0x83,0x6f,0xe0,0x58,0xe7,0xd9,0x3d,0x9a,0xe4,0xf8,0xcf,
-	0x9e,0xea,0x3f,0x50,0x30,0x19,0x31,0x03,0x2f,0x17,0xb8,0x1d,0x6e,0xcb,0xf2,0x2a
+	0x57, 0xd7, 0x46, 0x26, 0x40, 0x83, 0x6f, 0xe0, 0x58, 0xe7, 0xd9, 0x3d, 0x9a, 0xe4, 0xf8, 0xcf,
+	0x9e, 0xea, 0x3f, 0x50, 0x30, 0x19, 0x31, 0x03, 0x2f, 0x17, 0xb8, 0x1d, 0x6e, 0xcb, 0xf2, 0x2a
 };
 
 /**
  * Dependencies for testing.
  */
 struct intrusion_manager_testing {
-	struct intrusion_state_mock state;		/**< Mock for intrusion state. */
-	struct pcr_store store;					/**< PCR manager for testing. */
-	HASH_TESTING_ENGINE hash;				/**< Hash engine for PCR testing. */
-	struct hash_engine_mock hash_mock;		/**< Mock for the hash engine. */
-	uint16_t pcr_id;						/**< The measurement ID used for testing. */
-	struct intrusion_manager test;			/**< Intrusion manager being tested. */
+	struct intrusion_state_mock state;	/**< Mock for intrusion state. */
+	struct pcr_store store;				/**< PCR manager for testing. */
+	HASH_TESTING_ENGINE hash;			/**< Hash engine for PCR testing. */
+	struct hash_engine_mock hash_mock;	/**< Mock for the hash engine. */
+	uint16_t pcr_id;					/**< The measurement ID used for testing. */
+	struct intrusion_manager test;		/**< Intrusion manager being tested. */
 };
 
 
@@ -303,20 +303,20 @@ static void intrusion_manager_test_init_null (CuTest *test)
 
 	intrusion_manager_testing_init_dependencies (test, &manager, PCR_MEASUREMENT (0, 0));
 
-	status = intrusion_manager_init (NULL, &manager.state.base, &manager.hash.base,
-		&manager.store, manager.pcr_id);
+	status = intrusion_manager_init (NULL, &manager.state.base, &manager.hash.base,	&manager.store,
+		manager.pcr_id);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_INVALID_ARGUMENT, status);
 
-	status = intrusion_manager_init (&manager.test, NULL, &manager.hash.base,
-		&manager.store, manager.pcr_id);
+	status = intrusion_manager_init (&manager.test, NULL, &manager.hash.base, &manager.store,
+		manager.pcr_id);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_INVALID_ARGUMENT, status);
 
-	status = intrusion_manager_init (&manager.test, &manager.state.base, NULL,
-		&manager.store, manager.pcr_id);
+	status = intrusion_manager_init (&manager.test, &manager.state.base, NULL, &manager.store,
+		manager.pcr_id);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_INVALID_ARGUMENT, status);
 
-	status = intrusion_manager_init (&manager.test, &manager.state.base, &manager.hash.base,
-		NULL, manager.pcr_id);
+	status = intrusion_manager_init (&manager.test, &manager.state.base, &manager.hash.base, NULL,
+		manager.pcr_id);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_INVALID_ARGUMENT, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
@@ -1229,6 +1229,7 @@ static void intrusion_manager_test_check_state_check_error_and_hash_error (CuTes
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (intrusion_manager);
 
 TEST (intrusion_manager_test_init);
@@ -1258,3 +1259,4 @@ TEST (intrusion_manager_test_check_state_intrusion_hash_error);
 TEST (intrusion_manager_test_check_state_check_error_and_hash_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

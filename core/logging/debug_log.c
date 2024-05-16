@@ -85,6 +85,7 @@ int debug_log_flush ()
 
 	return debug_log->flush (debug_log);
 #else
+
 	return LOGGING_NO_LOG_AVAILABLE;
 #endif
 }
@@ -104,6 +105,7 @@ int debug_log_clear ()
 
 	return debug_log->clear (debug_log);
 #else
+
 	return LOGGING_NO_LOG_AVAILABLE;
 #endif
 }
@@ -122,6 +124,7 @@ int debug_log_get_size ()
 
 	return debug_log->get_size (debug_log);
 #else
+
 	return LOGGING_NO_LOG_AVAILABLE;
 #endif
 }

@@ -10841,6 +10841,7 @@ static void spi_flash_sfdp_test_get_deep_powerdown_commands_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (spi_flash_sfdp);
 
 TEST (spi_flash_sfdp_test_init);
@@ -11049,3 +11050,4 @@ TEST (spi_flash_sfdp_test_get_deep_powerdown_commands_old_table_version);
 TEST (spi_flash_sfdp_test_get_deep_powerdown_commands_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

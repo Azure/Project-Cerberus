@@ -4,19 +4,19 @@
 #ifndef MANIFEST_VERIFICATION_H_
 #define MANIFEST_VERIFICATION_H_
 
-#include <stdint.h>
 #include <stdbool.h>
-#include "status/rot_status.h"
+#include <stdint.h>
+#include "platform_api.h"
 #include "asn1/ecc_der_util.h"
-#include "crypto/rsa.h"
-#include "crypto/hash.h"
-#include "crypto/signature_verification.h"
-#include "pfm/pfm_observer.h"
 #include "cfm/cfm_observer.h"
-#include "pcd/pcd_observer.h"
+#include "crypto/hash.h"
+#include "crypto/rsa.h"
+#include "crypto/signature_verification.h"
 #include "firmware/firmware_update_observer.h"
 #include "keystore/keystore.h"
-#include "platform_api.h"
+#include "pcd/pcd_observer.h"
+#include "pfm/pfm_observer.h"
+#include "status/rot_status.h"
 
 
 #pragma pack(push,1)
@@ -25,17 +25,17 @@
  * regardless of what signing algorithm is utilized.
  */
 struct manifest_verification_key_header {
-	uint32_t id;									/**< ID of the key for revocation. */
-	uint8_t pub_key;								/**< First byte of the public key data. */
+	uint32_t id;		/**< ID of the key for revocation. */
+	uint8_t pub_key;	/**< First byte of the public key data. */
 };
 
 /**
  * An RSA public key used for manifest verification.
  */
 struct manifest_verification_key_rsa {
-	uint32_t id;									/**< ID of the key for revocation. */
-	struct rsa_public_key key;						/**< The RSA public key. */
-	uint8_t signature[RSA_MAX_KEY_LENGTH];			/**< Signature of the key data using the root key. */
+	uint32_t id;							/**< ID of the key for revocation. */
+	struct rsa_public_key key;				/**< The RSA public key. */
+	uint8_t signature[RSA_MAX_KEY_LENGTH];	/**< Signature of the key data using the root key. */
 };
 
 /**
@@ -78,10 +78,10 @@ struct manifest_verification_key {
  * Variable context for verification of firmware manifests.
  */
 struct manifest_verification_state {
-	struct manifest_verification_key stored_key;			/**< Verification key from the keystore. */
-	bool default_valid;										/**< Flag indicating if the default key is valid or revoked. */
-	bool save_failed;										/**< Flag indicating if the key was not saved. */
-	platform_mutex lock;									/**< Synchronization for key operations. */
+	struct manifest_verification_key stored_key;	/**< Verification key from the keystore. */
+	bool default_valid;								/**< Flag indicating if the default key is valid or revoked. */
+	bool save_failed;								/**< Flag indicating if the key was not saved. */
+	platform_mutex lock;							/**< Synchronization for key operations. */
 };
 
 /**
@@ -130,4 +130,4 @@ enum {
 };
 
 
-#endif /* MANIFEST_VERIFICATION_H_ */
+#endif	/* MANIFEST_VERIFICATION_H_ */

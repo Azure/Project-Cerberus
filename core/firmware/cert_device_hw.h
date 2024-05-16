@@ -5,8 +5,8 @@
 #define CERT_DEVICE_HW_H_
 
 #include <stdint.h>
-#include "status/rot_status.h"
 #include "crypto/hash.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -93,4 +93,4 @@ enum {
 };
 
 
-#endif /* CERT_DEVICE_HW_H_ */
+#endif	/* CERT_DEVICE_HW_H_ */

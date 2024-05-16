@@ -4,8 +4,8 @@
 #ifndef SYSTEM_OBSERVER_MOCK_H_
 #define SYSTEM_OBSERVER_MOCK_H_
 
-#include "system/system_observer.h"
 #include "mock.h"
+#include "system/system_observer.h"
 
 
 /**
@@ -23,4 +23,4 @@ void system_observer_mock_release (struct system_observer_mock *mock);
 int system_observer_mock_validate_and_release (struct system_observer_mock *mock);
 
 
-#endif /* SYSTEM_OBSERVER_MOCK_H_ */
+#endif	/* SYSTEM_OBSERVER_MOCK_H_ */

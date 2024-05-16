@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
 #include "cmd_interface/cerberus_protocol.h"
@@ -22,9 +22,9 @@ TEST_SUITE_LABEL ("cmd_interface_protocol_mctp_msft_vdm");
  * Dependencies for testing the protocol handler for Microsoft MCTP vendor defined messages.
  */
 struct cmd_interface_protocol_mctp_msft_vdm_testing {
-	struct device_manager device_mgr;						/**< Device manager. */
-	struct logging_mock log;								/**< Mock for the debug log. */
-	struct cmd_interface_protocol_mctp_msft_vdm test;		/**< Protocol handler being tested. */
+	struct device_manager device_mgr;					/**< Device manager. */
+	struct logging_mock log;							/**< Mock for the debug log. */
+	struct cmd_interface_protocol_mctp_msft_vdm test;	/**< Protocol handler being tested. */
 };
 
 
@@ -392,7 +392,9 @@ static void cmd_interface_protocol_mctp_msft_vdm_test_parse_message_response_lim
 	cmd_interface_protocol_mctp_msft_vdm_testing_release (test, &mctp);
 }
 
-static void cmd_interface_protocol_mctp_msft_vdm_test_parse_message_response_limit_by_capabilites_payload_offset (
+static void
+cmd_interface_protocol_mctp_msft_vdm_test_parse_message_response_limit_by_capabilites_payload_offset
+(
 	CuTest *test)
 {
 	struct cmd_interface_protocol_mctp_msft_vdm_testing mctp;
@@ -521,7 +523,9 @@ static void cmd_interface_protocol_mctp_msft_vdm_test_parse_message_response_lim
 	cmd_interface_protocol_mctp_msft_vdm_testing_release (test, &mctp);
 }
 
-static void cmd_interface_protocol_mctp_msft_vdm_test_parse_message_response_limit_by_buffer_size_payload_offset (
+static void
+cmd_interface_protocol_mctp_msft_vdm_test_parse_message_response_limit_by_buffer_size_payload_offset
+(
 	CuTest *test)
 {
 	struct cmd_interface_protocol_mctp_msft_vdm_testing mctp;
@@ -641,7 +645,8 @@ static void cmd_interface_protocol_mctp_msft_vdm_test_parse_message_static_init 
 	cmd_interface_protocol_mctp_msft_vdm_testing_release (test, &mctp);
 }
 
-static void cmd_interface_protocol_mctp_msft_vdm_test_parse_message_static_init_response_limit_by_capabilites (
+static void
+cmd_interface_protocol_mctp_msft_vdm_test_parse_message_static_init_response_limit_by_capabilites (
 	CuTest *test)
 {
 	struct cmd_interface_protocol_mctp_msft_vdm_testing mctp = {
@@ -1116,7 +1121,8 @@ static void cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_succ
 	cmd_interface_protocol_mctp_msft_vdm_testing_release (test, &mctp);
 }
 
-static void cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_success_zero_data_length (
+static void cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_success_zero_data_length
+(
 	CuTest *test)
 {
 	struct cmd_interface_protocol_mctp_msft_vdm_testing mctp;
@@ -1450,6 +1456,7 @@ static void cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_null
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_protocol_mctp_msft_vdm);
 
 TEST (cmd_interface_protocol_mctp_msft_vdm_test_init);
@@ -1480,3 +1487,4 @@ TEST (cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_static_ini
 TEST (cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

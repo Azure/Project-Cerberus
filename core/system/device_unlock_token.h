@@ -4,11 +4,11 @@
 #ifndef DEVICE_UNLOCK_TOKEN_H_
 #define DEVICE_UNLOCK_TOKEN_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "status/rot_status.h"
+#include <stdint.h>
 #include "cmd_interface/cmd_device.h"
 #include "common/auth_token.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -30,7 +30,7 @@
  * @param oid_length Length of the device type OID.  Must be less than 128 bytes.
  * @param counter_length Length of the unlock counter that will be in the token.
  */
-#define	DEVICE_UNLOCK_TOKEN_SIZEOF_EXTRA_DATA(oid_length, counter_length)	\
+#define	DEVICE_UNLOCK_TOKEN_SIZEOF_EXTRA_DATA(oid_length, counter_length)   \
 	(2 + oid_length + sizeof (uint16_t) + DEVICE_UNLOCK_TOKEN_UUID_LENGTH + sizeof (uint8_t) + \
 		counter_length)
 
@@ -85,4 +85,4 @@ enum {
 };
 
 
-#endif /* DEVICE_UNLOCK_TOKEN_H_ */
+#endif	/* DEVICE_UNLOCK_TOKEN_H_ */

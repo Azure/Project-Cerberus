@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
 #include "x509_extension_builder_dice_tcbinfo.h"
@@ -132,7 +132,7 @@ int x509_extension_builder_mbedtls_dice_tcbinfo_create_extension (
 	/* version		IA5String	OPTIONAL */
 	MBEDTLS_ASN1_CHK_ADD (enc_length,
 		mbedtls_asn1_write_ia5_string (&pos, buffer, dice->tcb->version,
-			strlen (dice->tcb->version)));
+		strlen (dice->tcb->version)));
 	*pos = (MBEDTLS_ASN1_CONTEXT_SPECIFIC | 2);
 
 	/* DiceTcbInfo ::= SEQUENCE */

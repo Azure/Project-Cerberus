@@ -44,4 +44,4 @@ void log_flush_handler_execute (const struct periodic_task_handler *handler);
 	}
 
 
-#endif /* LOG_FLUSH_HANDLER_STATIC_H_ */
+#endif	/* LOG_FLUSH_HANDLER_STATIC_H_ */

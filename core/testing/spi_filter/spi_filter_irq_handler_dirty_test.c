@@ -5,10 +5,10 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "spi_filter/spi_filter_irq_handler_dirty.h"
-#include "spi_filter/spi_filter_irq_handler_dirty_static.h"
 #include "flash/spi_flash.h"
 #include "host_fw/host_state_manager.h"
+#include "spi_filter/spi_filter_irq_handler_dirty.h"
+#include "spi_filter/spi_filter_irq_handler_dirty_static.h"
 #include "testing/mock/flash/flash_master_mock.h"
 #include "testing/mock/host_fw/host_control_mock.h"
 #include "testing/mock/spi_filter/spi_filter_interface_mock.h"
@@ -144,8 +144,8 @@ static void spi_filter_irq_handler_dirty_test_static_init (CuTest *test)
 	struct spi_flash flash;
 	struct host_state_manager host_state;
 	struct host_control_mock control;
-	struct spi_filter_irq_handler_dirty handler = spi_filter_irq_handler_dirty_static_init (
-		&host_state, &control.base);
+	struct spi_filter_irq_handler_dirty handler =
+		spi_filter_irq_handler_dirty_static_init (&host_state, &control.base);
 	int status;
 
 	TEST_START;
@@ -225,8 +225,8 @@ static void spi_filter_irq_handler_dirty_test_ro_flash_dirty_static_init (CuTest
 	struct spi_flash flash;
 	struct host_state_manager host_state;
 	struct host_control_mock control;
-	struct spi_filter_irq_handler_dirty handler = spi_filter_irq_handler_dirty_static_init (
-		&host_state, &control.base);
+	struct spi_filter_irq_handler_dirty handler =
+		spi_filter_irq_handler_dirty_static_init (&host_state, &control.base);
 	int status;
 
 	TEST_START;
@@ -295,6 +295,7 @@ static void spi_filter_irq_handler_dirty_test_ro_flash_dirty_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (spi_filter_irq_handler_dirty);
 
 TEST (spi_filter_irq_handler_dirty_test_init);
@@ -306,3 +307,4 @@ TEST (spi_filter_irq_handler_dirty_test_ro_flash_dirty_static_init);
 TEST (spi_filter_irq_handler_dirty_test_ro_flash_dirty_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

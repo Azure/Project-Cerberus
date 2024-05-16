@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "cfm_manager_flash.h"
 #include "manifest/manifest_logging.h"
@@ -33,6 +33,7 @@ static struct cfm* cfm_manager_flash_get_cfm (struct cfm_manager_flash *manager,
 	}
 
 	flash = (struct cfm_flash*) region->manifest;
+
 	return &flash->base;
 }
 
@@ -177,6 +178,7 @@ int cfm_manager_flash_init (struct cfm_manager_flash *manager, struct cfm_flash 
 		MANIFEST_LOGGING_EMPTY_CFM, false);
 	if (status != 0) {
 		cfm_manager_release (&manager->base);
+
 		return status;
 	}
 

@@ -13,9 +13,9 @@
  * little-endian format.
  */
 struct dme_structure_raw_ecc_le {
-	struct dme_structure_raw_ecc base;					/**< Base DME structure information. */
-	struct ecc_point_public_key dme_key_be;				/**< Big-endian formatted DME public key. */
-	struct ecc_ecdsa_signature signature_be;			/**< Big-endian formatted ECDSA signature. */
+	struct dme_structure_raw_ecc base;			/**< Base DME structure information. */
+	struct ecc_point_public_key dme_key_be;		/**< Big-endian formatted DME public key. */
+	struct ecc_ecdsa_signature signature_be;	/**< Big-endian formatted ECDSA signature. */
 };
 
 
@@ -52,4 +52,4 @@ int dme_structure_raw_ecc_le_init_le_ecc384_with_sha512_nonce_and_challenge (
 	const uint8_t *signature_r, const uint8_t *signature_s, enum hash_type sig_hash);
 
 
-#endif /* DME_STRUCTURE_RAW_ECC_LE_H_ */
+#endif	/* DME_STRUCTURE_RAW_ECC_LE_H_ */

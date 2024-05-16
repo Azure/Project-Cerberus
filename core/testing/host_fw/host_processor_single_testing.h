@@ -5,9 +5,11 @@
 #define HOST_PROCESSOR_SINGLE_TESTING_H_
 
 #include "testing.h"
+#include "flash/spi_flash.h"
 #include "host_fw/host_processor_single.h"
 #include "host_fw/host_state_manager.h"
-#include "flash/spi_flash.h"
+#include "testing/engines/hash_testing_engine.h"
+#include "testing/engines/rsa_testing_engine.h"
 #include "testing/mock/flash/flash_master_mock.h"
 #include "testing/mock/host_fw/host_control_mock.h"
 #include "testing/mock/host_fw/host_flash_manager_single_mock.h"
@@ -18,8 +20,6 @@
 #include "testing/mock/recovery/recovery_image_manager_mock.h"
 #include "testing/mock/recovery/recovery_image_mock.h"
 #include "testing/mock/spi_filter/spi_filter_interface_mock.h"
-#include "testing/engines/hash_testing_engine.h"
-#include "testing/engines/rsa_testing_engine.h"
 
 
 /**
@@ -48,8 +48,7 @@ struct host_processor_single_testing {
 
 void host_processor_single_testing_init_dependencies (CuTest *test,
 	struct host_processor_single_testing *host);
-void host_processor_single_testing_init (CuTest *test,
-	struct host_processor_single_testing *host);
+void host_processor_single_testing_init (CuTest *test, struct host_processor_single_testing *host);
 void host_processor_single_testing_init_pulse_reset (CuTest *test,
 	struct host_processor_single_testing *host);
 void host_processor_single_testing_init_reset_flash (CuTest *test,
@@ -69,4 +68,4 @@ void host_processor_single_testing_init_host_state (CuTest *test, struct host_st
 	struct spi_flash_state *flash_state);
 
 
-#endif /* HOST_PROCESSOR_SINGLE_TESTING_H_ */
+#endif	/* HOST_PROCESSOR_SINGLE_TESTING_H_ */

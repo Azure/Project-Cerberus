@@ -15,4 +15,4 @@ void firmware_update_testing_init_firmware_header (CuTest *test, struct firmware
 int firmware_update_testing_flash_page_size (struct flash_mock *flash, uint32_t page);
 
 
-#endif /* FIRMWARE_UPDATE_TESTING_H_ */
+#endif	/* FIRMWARE_UPDATE_TESTING_H_ */

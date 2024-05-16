@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdint.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include "ecc_hw_mock.h"
 
@@ -129,7 +129,6 @@ static const char* ecc_hw_mock_func_name_map (void *func)
 	else {
 		return "unknown";
 	}
-
 }
 
 static const char* ecc_hw_mock_arg_name_map (void *func, int arg)

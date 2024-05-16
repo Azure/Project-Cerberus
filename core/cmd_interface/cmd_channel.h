@@ -4,12 +4,12 @@
 #ifndef CMD_CHANNEL_H_
 #define CMD_CHANNEL_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
-#include "status/rot_status.h"
+#include <stddef.h>
+#include <stdint.h>
 #include "platform_api.h"
 #include "mctp/mctp_base_protocol.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -21,11 +21,11 @@
  * Valid states for a packet.
  */
 enum {
-	CMD_VALID_PACKET = 0,				/**< Valid command packet. */
-	CMD_OVERFLOW_PACKET,				/**< This packet is part of an overflow condition. */
-	CMD_NACK_PACKET,					/**< NACK should be sent, disregard packet data. */
-	CMD_NO_RESPONSE,					/**< No response needed. */
-	CMD_RX_ERROR,						/**< There was a channel error while receiving the packet data. */
+	CMD_VALID_PACKET = 0,	/**< Valid command packet. */
+	CMD_OVERFLOW_PACKET,	/**< This packet is part of an overflow condition. */
+	CMD_NACK_PACKET,		/**< NACK should be sent, disregard packet data. */
+	CMD_NO_RESPONSE,		/**< No response needed. */
+	CMD_RX_ERROR,			/**< There was a channel error while receiving the packet data. */
 };
 
 /**
@@ -35,7 +35,7 @@ struct cmd_packet {
 	uint8_t data[CMD_MAX_PACKET_SIZE];	/**< Buffer for packet data. */
 	size_t pkt_size;					/**< Total size of the packet data. */
 	uint8_t dest_addr;					/**< The destination address for the packet.  This is
-	 	 	 	 	 	 	 	 	 	 	assumed to be a 7-bit address compatible with I2C. */
+										 	assumed to be a 7-bit address compatible with I2C. */
 	uint8_t state;						/**< The packet state. */
 	platform_clock pkt_timeout;			/**< Time at which processing for the packet must be completed. */
 	bool timeout_valid;					/**< Flag indicating if a packet timeout has been set. */
@@ -45,10 +45,10 @@ struct cmd_packet {
  * Information for a single command message.
  */
 struct cmd_message {
-	uint8_t *data;						/**< Buffer for the message data. */
-	size_t msg_size;					/**< Total size of the message data. */
-	size_t pkt_size;					/**< Size of each packet in the message. */
-	uint8_t dest_addr;					/**< The destination address for the message. */
+	uint8_t *data;		/**< Buffer for the message data. */
+	size_t msg_size;	/**< Total size of the message data. */
+	size_t pkt_size;	/**< Size of each packet in the message. */
+	uint8_t dest_addr;	/**< The destination address for the message. */
 };
 
 struct mctp_interface;
@@ -57,8 +57,8 @@ struct mctp_interface;
  * Variable state context for the command channel interface
  */
 struct cmd_channel_state {
-	platform_mutex lock;		/**< Synchronization for message transmission. */
-	bool overflow;				/**< Flag if the channel is in an overflow condition. */
+	platform_mutex lock;	/**< Synchronization for message transmission. */
+	bool overflow;			/**< Flag if the channel is in an overflow condition. */
 };
 
 /**
@@ -97,8 +97,8 @@ struct cmd_channel {
 	 */
 	int (*send_packet) (const struct cmd_channel *channel, const struct cmd_packet *packet);
 
-	struct cmd_channel_state *state;		/**< Variable context for the command channel. */
-	int id;									/**< ID for the command channel. */
+	struct cmd_channel_state *state;	/**< Variable context for the command channel. */
+	int id;								/**< ID for the command channel. */
 };
 
 
@@ -107,8 +107,7 @@ int cmd_channel_get_id (const struct cmd_channel *channel);
 int cmd_channel_validate_packet_for_send (const struct cmd_packet *packet);
 int cmd_channel_receive_and_process (const struct cmd_channel *channel,
 	const struct mctp_interface *mctp, int ms_timeout);
-int cmd_channel_send_message (const struct cmd_channel *channel,
-	const struct cmd_message *message);
+int cmd_channel_send_message (const struct cmd_channel *channel, const struct cmd_message *message);
 
 /* Internal functions for use by derived types. */
 int cmd_channel_init (struct cmd_channel *channel, struct cmd_channel_state *state, int id);
@@ -135,4 +134,4 @@ enum {
 };
 
 
-#endif /* CMD_CHANNEL_H_ */
+#endif	/* CMD_CHANNEL_H_ */

@@ -4,8 +4,8 @@
 #ifndef DEVICE_UNLOCK_TOKEN_TESTING_H_
 #define DEVICE_UNLOCK_TOKEN_TESTING_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "testing.h"
 
 
@@ -45,4 +45,4 @@ void device_unlock_token_testing_allocate_authorized_data (CuTest *test, const u
 	size_t *token_offset, size_t *policy_offset);
 
 
-#endif /* DEVICE_UNLOCK_TOKEN_TESTING_H_ */
+#endif	/* DEVICE_UNLOCK_TOKEN_TESTING_H_ */

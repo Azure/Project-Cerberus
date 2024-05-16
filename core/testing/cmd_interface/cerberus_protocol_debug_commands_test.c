@@ -1,19 +1,19 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
 #include "cmd_interface/cerberus_protocol.h"
 #include "cmd_interface/cerberus_protocol_debug_commands.h"
+#include "testing/asn1/x509_testing.h"
+#include "testing/cmd_interface/cerberus_protocol_debug_commands_testing.h"
 #include "testing/mock/asn1/x509_mock.h"
 #include "testing/mock/crypto/ecc_mock.h"
-#include "testing/mock/crypto/rsa_mock.h"
 #include "testing/mock/crypto/rng_mock.h"
-#include "testing/cmd_interface/cerberus_protocol_debug_commands_testing.h"
-#include "testing/asn1/x509_testing.h"
+#include "testing/mock/crypto/rsa_mock.h"
 
 
 // TEST_SUITE_LABEL ("cerberus_protocol_debug_commands");
@@ -55,6 +55,8 @@ void cerberus_protocol_debug_commands_testing_process_debug_fill_log (CuTest *te
  *******************/
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cerberus_protocol_debug_commands);
 
 TEST_SUITE_END;
+// *INDENT-ON*

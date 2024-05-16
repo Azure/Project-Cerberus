@@ -4,32 +4,32 @@
 #ifndef MANIFEST_CMD_INTERFACE_H_
 #define MANIFEST_CMD_INTERFACE_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 
 /**
  * Status codes for manifest operations.
  */
 enum manifest_cmd_status {
-	MANIFEST_CMD_STATUS_SUCCESS = 0,				/**< Successful operation. */
-	MANIFEST_CMD_STATUS_STARTING,					/**< The manifest operation is starting. */
-	MANIFEST_CMD_STATUS_REQUEST_BLOCKED,			/**< A request has been made before the previous one finished. */
-	MANIFEST_CMD_STATUS_PREPARE,					/**< The manifest is being prepared for updating. */
-	MANIFEST_CMD_STATUS_PREPARE_FAIL,				/**< There was an error preparing the manifest for updating. */
-	MANIFEST_CMD_STATUS_STORE_DATA,					/**< New manifest data is being stored. */
-	MANIFEST_CMD_STATUS_STORE_FAIL,					/**< There was an error storing manifest data. */
-	MANIFEST_CMD_STATUS_VALIDATION,					/**< The new manifest is being validated. */
-	MANIFEST_CMD_STATUS_VALIDATE_FAIL,				/**< There was an error validating the new manifest. */
-	MANIFEST_CMD_STATUS_INTERNAL_ERROR,				/**< An unspecified, internal error occurred. */
-	MANIFEST_CMD_STATUS_NONE_STARTED,				/**< No manifest operation has been started. */
-	MANIFEST_CMD_STATUS_TASK_NOT_RUNNING,			/**< The task servicing manifest operations is not running. */
-	MANIFEST_CMD_STATUS_UNKNOWN,					/**< The manifest status could not be determined. */
-	MANIFEST_CMD_STATUS_ACTIVATING,					/**< Activation is being attempted for a new manifest. */
-	MANIFEST_CMD_STATUS_ACTIVATION_FAIL,			/**< There was an error activating the new manifest. */
-	MANIFEST_CMD_STATUS_ACTIVATION_PENDING,			/**< Validation was successful, but activation requires a host reboot. */
-	MANIFEST_CMD_STATUS_ACTIVATION_FLASH_ERROR,		/**< An error occurred during activation that prevents host access to flash. */
+	MANIFEST_CMD_STATUS_SUCCESS = 0,			/**< Successful operation. */
+	MANIFEST_CMD_STATUS_STARTING,				/**< The manifest operation is starting. */
+	MANIFEST_CMD_STATUS_REQUEST_BLOCKED,		/**< A request has been made before the previous one finished. */
+	MANIFEST_CMD_STATUS_PREPARE,				/**< The manifest is being prepared for updating. */
+	MANIFEST_CMD_STATUS_PREPARE_FAIL,			/**< There was an error preparing the manifest for updating. */
+	MANIFEST_CMD_STATUS_STORE_DATA,				/**< New manifest data is being stored. */
+	MANIFEST_CMD_STATUS_STORE_FAIL,				/**< There was an error storing manifest data. */
+	MANIFEST_CMD_STATUS_VALIDATION,				/**< The new manifest is being validated. */
+	MANIFEST_CMD_STATUS_VALIDATE_FAIL,			/**< There was an error validating the new manifest. */
+	MANIFEST_CMD_STATUS_INTERNAL_ERROR,			/**< An unspecified, internal error occurred. */
+	MANIFEST_CMD_STATUS_NONE_STARTED,			/**< No manifest operation has been started. */
+	MANIFEST_CMD_STATUS_TASK_NOT_RUNNING,		/**< The task servicing manifest operations is not running. */
+	MANIFEST_CMD_STATUS_UNKNOWN,				/**< The manifest status could not be determined. */
+	MANIFEST_CMD_STATUS_ACTIVATING,				/**< Activation is being attempted for a new manifest. */
+	MANIFEST_CMD_STATUS_ACTIVATION_FAIL,		/**< There was an error activating the new manifest. */
+	MANIFEST_CMD_STATUS_ACTIVATION_PENDING,		/**< Validation was successful, but activation requires a host reboot. */
+	MANIFEST_CMD_STATUS_ACTIVATION_FLASH_ERROR,	/**< An error occurred during activation that prevents host access to flash. */
 };
 
 /**
@@ -94,4 +94,4 @@ struct manifest_cmd_interface {
 };
 
 
-#endif /* MANIFEST_CMD_INTERFACE_H_ */
+#endif	/* MANIFEST_CMD_INTERFACE_H_ */

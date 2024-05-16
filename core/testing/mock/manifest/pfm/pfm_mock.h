@@ -4,16 +4,16 @@
 #ifndef PFM_MOCK_H_
 #define PFM_MOCK_H_
 
-#include "manifest/pfm/pfm.h"
 #include "mock.h"
+#include "manifest/pfm/pfm.h"
 
 
 /**
  * A mock for a PFM.
  */
 struct pfm_mock {
-	struct pfm base;			/**< The base PFM instance. */
-	struct mock mock;			/**< The base mock interface. */
+	struct pfm base;	/**< The base PFM instance. */
+	struct mock mock;	/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void pfm_mock_release (struct pfm_mock *mock);
 int pfm_mock_validate_and_release (struct pfm_mock *mock);
 
 
-#endif /* PFM_MOCK_H_ */
+#endif	/* PFM_MOCK_H_ */

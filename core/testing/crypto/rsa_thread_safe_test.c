@@ -2,14 +2,14 @@
 // Licensed under the MIT license.
 
 #include <stddef.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include "testing.h"
 #include "crypto/rsa_thread_safe.h"
-#include "testing/mock/crypto/rsa_mock.h"
 #include "testing/crypto/rsa_testing.h"
 #include "testing/crypto/signature_testing.h"
+#include "testing/mock/crypto/rsa_mock.h"
 
 
 TEST_SUITE_LABEL ("rsa_thread_safe");
@@ -249,8 +249,7 @@ static void rsa_thread_safe_test_init_private_key_null (CuTest *test)
 	status = rsa_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_private_key (NULL, &key, RSA_PRIVKEY_DER,
-		RSA_PRIVKEY_DER_LEN);
+	status = engine.base.init_private_key (NULL, &key, RSA_PRIVKEY_DER,	RSA_PRIVKEY_DER_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);
@@ -801,8 +800,8 @@ static void rsa_thread_safe_test_sig_verify_null (CuTest *test)
 	status = rsa_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.sig_verify (NULL, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
-		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
+	status = engine.base.sig_verify (NULL, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,	RSA_ENCRYPT_LEN,
+		HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);
@@ -816,6 +815,7 @@ static void rsa_thread_safe_test_sig_verify_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (rsa_thread_safe);
 
 TEST (rsa_thread_safe_test_init);
@@ -846,3 +846,4 @@ TEST (rsa_thread_safe_test_sig_verify_error);
 TEST (rsa_thread_safe_test_sig_verify_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

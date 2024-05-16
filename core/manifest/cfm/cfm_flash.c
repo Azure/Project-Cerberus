@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
+#include "cfm_flash.h"
+#include "cfm_format.h"
 #include "platform_api.h"
 #include "common/buffer_util.h"
 #include "common/common_math.h"
 #include "common/unused.h"
 #include "flash/flash_util.h"
 #include "manifest/manifest_flash.h"
-#include "cfm_format.h"
-#include "cfm_flash.h"
 
 
 static int cfm_flash_verify (struct manifest *cfm, struct hash_engine *hash,
@@ -169,14 +169,15 @@ static int cfm_flash_get_pmr_id_list (struct cfm_flash *cfm_flash, uint8_t entry
 	int status;
 
 	status = manifest_flash_get_child_elements_info (&cfm_flash->base_flash,
-		cfm_flash->base_flash.hash, entry, CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT,
-		CFM_PMR_DIGEST, NULL, &num_pmr_ids, NULL);
+		cfm_flash->base_flash.hash, entry, CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_PMR_DIGEST,
+		NULL, &num_pmr_ids, NULL);
 	if (status != 0) {
 		return status;
 	}
 
 	if (num_pmr_ids == 0) {
 		*pmr_list = NULL;
+
 		return 0;
 	}
 
@@ -235,15 +236,14 @@ static int cfm_flash_get_component_device (struct cfm *cfm, uint32_t component_i
 	if (status == 0) {
 		component->attestation_protocol =
 			(enum cfm_attestation_type) component_element.attestation_protocol;
-		component->transcript_hash_type = manifest_convert_manifest_hash_type (
-			component_element.transcript_hash_type);
-		component->measurement_hash_type = manifest_convert_manifest_hash_type (
-			component_element.measurement_hash_type);
+		component->transcript_hash_type =
+			manifest_convert_manifest_hash_type (component_element.transcript_hash_type);
+		component->measurement_hash_type =
+			manifest_convert_manifest_hash_type (component_element.measurement_hash_type);
 		component->cert_slot = component_element.cert_slot;
 		component->component_id = component_element.component_id;
 
-		status = cfm_flash_get_pmr_id_list (cfm_flash, entry,
-			(uint8_t**) &component->pmr_id_list);
+		status = cfm_flash_get_pmr_id_list (cfm_flash, entry, (uint8_t**) &component->pmr_id_list);
 		if (ROT_IS_ERROR (status)) {
 			return status;
 		}
@@ -311,6 +311,7 @@ static int cfm_flash_buffer_supported_components (struct cfm *cfm, size_t offset
 	}
 
 done:
+
 	return i_components;
 }
 
@@ -394,6 +395,7 @@ static int cfm_flash_get_next_element (struct cfm_flash *cfm_flash, uint32_t com
 	return 0;
 
 not_found:
+
 	return CFM_ENTRY_NOT_FOUND;
 }
 
@@ -401,6 +403,7 @@ static int cfm_flash_get_component_pmr (struct cfm *cfm, uint32_t component_id, 
 	struct cfm_pmr *pmr)
 {
 	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
+
 	union {
 		struct cfm_component_device_element component;
 		struct cfm_pmr_element pmr_element;
@@ -574,8 +577,8 @@ static int cfm_flash_populate_allowable_digests (struct cfm_flash *cfm_flash,
 	}
 
 	// Read each Allowable Digest and fill in allowable_digests
-	for (i_allowable_digest = 0; i_allowable_digest < allowable_digest_count; i_allowable_digest++)
-	{
+	for (i_allowable_digest = 0; i_allowable_digest < allowable_digest_count;
+		i_allowable_digest++) {
 		curr_allowable_digest = &allowable_digests[i_allowable_digest];
 
 		// Read Allowable Digest information
@@ -647,6 +650,7 @@ static int cfm_flash_get_component_pmr_digest (struct cfm *cfm, uint32_t compone
 	uint8_t pmr_id, struct cfm_pmr_digest *pmr_digest)
 {
 	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
+
 	union {
 		struct cfm_component_device_element component;
 		struct cfm_pmr_digest_element pmr_digest_element;
@@ -735,8 +739,8 @@ static int cfm_flash_get_next_measurement (struct cfm *cfm,
 	pmr_measurement->pmr_id = measurement_element.pmr_id;
 	pmr_measurement->measurement_id = measurement_element.measurement_id;
 	pmr_measurement->allowable_digests_count = measurement_element.allowable_digest_count;
-	pmr_measurement->allowable_digests = platform_calloc (
-		pmr_measurement->allowable_digests_count, sizeof (struct cfm_allowable_digests));
+	pmr_measurement->allowable_digests = platform_calloc (pmr_measurement->allowable_digests_count,
+		sizeof (struct cfm_allowable_digests));
 
 	// Retrieve list of cfm_allowable_digests
 	status = cfm_flash_populate_allowable_digests (cfm_flash, pmr_measurement->allowable_digests,
@@ -843,6 +847,7 @@ static int cfm_flash_get_next_measurement_data (struct cfm *cfm,
 	struct cfm_measurement_data *measurement_data, uint8_t *entry)
 {
 	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
+
 	union {
 		struct cfm_measurement_data_element measurement_data_element;
 		struct cfm_allowable_data_element allowable_data_element;
@@ -1062,8 +1067,8 @@ static int cfm_flash_determine_version_set_element (struct cfm *cfm, uint32_t co
 		return status;
 	}
 
-	 status = manifest_flash_get_child_elements_info (&cfm_flash->base_flash,
-	 	cfm_flash->base_flash.hash, *comp_device_entry, CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT,
+	status = manifest_flash_get_child_elements_info (&cfm_flash->base_flash,
+		cfm_flash->base_flash.hash, *comp_device_entry, CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT,
 		CFM_MEASUREMENT_DATA, NULL, NULL, &measurement_data_entry);
 	if (status == MANIFEST_CHILD_NOT_FOUND) {
 		measurement_data_entry = MANIFEST_CHILD_NOT_FOUND;
@@ -1094,10 +1099,11 @@ static int cfm_flash_determine_version_set_element (struct cfm *cfm, uint32_t co
  * Implementation context for the get_next_measurement_or_measurement_data function.
  */
 struct cfm_flash_measurement_context {
-	enum hash_type comp_device_hash_type;				/**< Hash type of component device. */
-	uint8_t element_entry;								/**< Entry for next element to read back. */
-	int version_set_element;							/**< Element type for version set selection. */
+	enum hash_type comp_device_hash_type;	/**< Hash type of component device. */
+	uint8_t element_entry;					/**< Entry for next element to read back. */
+	int version_set_element;				/**< Element type for version set selection. */
 };
+
 
 /**
  * This function assumes all Measurement and Measurement Data entries are contiguous.
@@ -1132,7 +1138,7 @@ static int cfm_flash_get_next_measurement_or_measurement_data (struct cfm *cfm,
 		context->element_entry = comp_device_entry;
 		container->measurement_type =
 			(context->version_set_element == CFM_MEASUREMENT) ?
-			CFM_MEASUREMENT_TYPE_DIGEST : CFM_MEASUREMENT_TYPE_DATA;
+				CFM_MEASUREMENT_TYPE_DIGEST : CFM_MEASUREMENT_TYPE_DATA;
 	}
 	else {
 		cfm_flash_free_measurement_container_internal (cfm, container);
@@ -1184,6 +1190,7 @@ static int cfm_flash_get_root_ca_digest (struct cfm *cfm, uint32_t component_id,
 	struct cfm_root_ca_digests *root_ca_digest)
 {
 	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
+
 	union {
 		struct cfm_component_device_element component;
 		struct cfm_root_ca_digests_element root_ca_digests_element;
@@ -1264,6 +1271,7 @@ static int cfm_flash_get_next_manifest (struct cfm *cfm, uint32_t component_id, 
 	struct cfm_manifest *allowable_manifest, bool first)
 {
 	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
+
 	union {
 		struct cfm_allowable_pfm_element allowable_pfm_element;
 		struct cfm_allowable_id_element allowable_id_element;
@@ -1398,22 +1406,18 @@ free_manifest:
 int cfm_flash_get_next_pfm (struct cfm *cfm, uint32_t component_id,
 	struct cfm_manifest *allowable_pfm, bool first)
 {
-	return cfm_flash_get_next_manifest (cfm, component_id, CFM_ALLOWABLE_PFM, allowable_pfm,
-		first);
+	return cfm_flash_get_next_manifest (cfm, component_id, CFM_ALLOWABLE_PFM, allowable_pfm, first);
 }
 
 int cfm_flash_get_next_cfm (struct cfm *cfm, uint32_t component_id,
 	struct cfm_manifest *allowable_cfm, bool first)
 {
-	return cfm_flash_get_next_manifest (cfm, component_id, CFM_ALLOWABLE_CFM, allowable_cfm,
-		first);
+	return cfm_flash_get_next_manifest (cfm, component_id, CFM_ALLOWABLE_CFM, allowable_cfm, first);
 }
 
-int cfm_flash_get_pcd (struct cfm *cfm, uint32_t component_id,
-	struct cfm_manifest *allowable_pcd)
+int cfm_flash_get_pcd (struct cfm *cfm, uint32_t component_id, struct cfm_manifest *allowable_pcd)
 {
-	return cfm_flash_get_next_manifest (cfm, component_id, CFM_ALLOWABLE_PCD, allowable_pcd,
-		true);
+	return cfm_flash_get_next_manifest (cfm, component_id, CFM_ALLOWABLE_PCD, allowable_pcd, true);
 }
 
 /**

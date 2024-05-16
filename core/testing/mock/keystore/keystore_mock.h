@@ -4,16 +4,16 @@
 #ifndef KEYSTORE_MOCK_H_
 #define KEYSTORE_MOCK_H_
 
-#include "keystore/keystore.h"
 #include "mock.h"
+#include "keystore/keystore.h"
 
 
 /**
  * Mock for storage of device keys.
  */
 struct keystore_mock {
-	struct keystore base;		/**< The keystore instance. */
-	struct mock mock;			/**< The base mock interface. */
+	struct keystore base;	/**< The keystore instance. */
+	struct mock mock;		/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void keystore_mock_release (struct keystore_mock *mock);
 int keystore_mock_validate_and_release (struct keystore_mock *mock);
 
 
-#endif /* KEYSTORE_MOCK_H_ */
+#endif	/* KEYSTORE_MOCK_H_ */

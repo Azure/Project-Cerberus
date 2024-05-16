@@ -4,8 +4,8 @@
 #ifndef PLATFORM_API_H_
 #define PLATFORM_API_H_
 
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include "status/rot_status.h"
 
 
@@ -573,4 +573,5 @@ int platform_os_suspend_scheduler (void);
 int platform_os_resume_scheduler (void);
 #endif
 
-#endif /* PLATFORM_API_H_ */
+
+#endif	/* PLATFORM_API_H_ */

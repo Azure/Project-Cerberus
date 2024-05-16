@@ -4,9 +4,9 @@
 #ifndef FLASH_STORE_H_
 #define FLASH_STORE_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 
 /**
@@ -143,4 +143,4 @@ enum {
 };
 
 
-#endif /* FLASH_STORE_H_ */
+#endif	/* FLASH_STORE_H_ */

@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include "testing.h"
 #include "host_irq_handler_testing.h"
+#include "testing.h"
 #include "host_fw/host_irq_handler_mask_irqs.h"
 #include "host_fw/host_irq_handler_mask_irqs_static.h"
 
@@ -17,8 +17,8 @@ TEST_SUITE_LABEL ("host_irq_handler_mask_irqs");
  * Dependencies for testing.
  */
 struct host_irq_handler_mask_irqs_testing {
-	struct host_irq_handler_testing common;			/**< Common host interrupt handler dependencies. */
-	struct host_irq_handler_mask_irqs test;			/**< Host interrupt handler under test. */
+	struct host_irq_handler_testing common;	/**< Common host interrupt handler dependencies. */
+	struct host_irq_handler_mask_irqs test;	/**< Host interrupt handler under test. */
 };
 
 
@@ -31,7 +31,7 @@ struct host_irq_handler_mask_irqs_testing {
 void host_irq_handler_mask_irqs_testing_init (CuTest *test,
 	struct host_irq_handler_mask_irqs_testing *host)
 {
-    int status;
+	int status;
 
 	host_irq_handler_testing_init_dependencies (test, &host->common);
 
@@ -50,7 +50,7 @@ void host_irq_handler_mask_irqs_testing_init (CuTest *test,
 void host_irq_handler_mask_irqs_testing_init_no_recovery (CuTest *test,
 	struct host_irq_handler_mask_irqs_testing *host)
 {
-    int status;
+	int status;
 
 	host_irq_handler_testing_init_dependencies (test, &host->common);
 
@@ -130,8 +130,7 @@ static void host_irq_handler_mask_irqs_test_init_null (CuTest *test)
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
 
 	status = host_irq_handler_mask_irqs_init (&handler.test, &handler.common.host.base,
-		&handler.common.hash.base, NULL, &handler.common.recovery.base,
-		&handler.common.irq.base);
+		&handler.common.hash.base, NULL, &handler.common.recovery.base,	&handler.common.irq.base);
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
 
 	status = host_irq_handler_mask_irqs_init (&handler.test, &handler.common.host.base,
@@ -144,9 +143,10 @@ static void host_irq_handler_mask_irqs_test_init_null (CuTest *test)
 static void host_irq_handler_mask_irqs_test_static_init (CuTest *test)
 {
 	struct host_irq_handler_mask_irqs_testing handler;
-	struct host_irq_handler_mask_irqs test_static = host_irq_handler_mask_irqs_static_init (
-		&handler.common.host.base, &handler.common.hash.base, &handler.common.rsa.base,
-		&handler.common.recovery.base, &handler.common.irq.base);
+	struct host_irq_handler_mask_irqs test_static =
+		host_irq_handler_mask_irqs_static_init (&handler.common.host.base,
+		&handler.common.hash.base, &handler.common.rsa.base, &handler.common.recovery.base,
+		&handler.common.irq.base);
 	int status;
 
 	TEST_START;
@@ -170,9 +170,9 @@ static void host_irq_handler_mask_irqs_test_static_init (CuTest *test)
 static void host_irq_handler_mask_irqs_test_static_init_no_recovery (CuTest *test)
 {
 	struct host_irq_handler_mask_irqs_testing handler;
-	struct host_irq_handler_mask_irqs test_static = host_irq_handler_mask_irqs_static_init (
-		&handler.common.host.base, &handler.common.hash.base, &handler.common.rsa.base, NULL,
-		&handler.common.irq.base);
+	struct host_irq_handler_mask_irqs test_static =
+		host_irq_handler_mask_irqs_static_init (&handler.common.host.base,
+		&handler.common.hash.base, &handler.common.rsa.base, NULL, &handler.common.irq.base);
 	int status;
 
 	TEST_START;
@@ -375,8 +375,7 @@ static void host_irq_handler_mask_irqs_test_static_init_enable_exit_reset (CuTes
 	host_irq_handler_testing_release_dependencies (test, &handler.common);
 }
 
-static void host_irq_handler_mask_irqs_test_static_init_enable_exit_reset_no_recovery
-	(CuTest *test)
+static void host_irq_handler_mask_irqs_test_static_init_enable_exit_reset_no_recovery (CuTest *test)
 {
 	struct host_irq_handler_mask_irqs_testing handler;
 	struct host_irq_handler_mask_irqs test_static =
@@ -557,9 +556,10 @@ static void host_irq_handler_mask_irqs_test_enter_reset (CuTest *test)
 static void host_irq_handler_mask_irqs_test_enter_reset_static_init (CuTest *test)
 {
 	struct host_irq_handler_mask_irqs_testing handler;
-	struct host_irq_handler_mask_irqs test_static = host_irq_handler_mask_irqs_static_init (
-		&handler.common.host.base, &handler.common.hash.base, &handler.common.rsa.base,
-		&handler.common.recovery.base, &handler.common.irq.base);
+	struct host_irq_handler_mask_irqs test_static =
+		host_irq_handler_mask_irqs_static_init (&handler.common.host.base,
+		&handler.common.hash.base, &handler.common.rsa.base, &handler.common.recovery.base,
+		&handler.common.irq.base);
 	int status;
 
 	TEST_START;
@@ -684,9 +684,10 @@ static void host_irq_handler_mask_irqs_test_exit_reset (CuTest *test)
 static void host_irq_handler_mask_irqs_test_exit_reset_static_init (CuTest *test)
 {
 	struct host_irq_handler_mask_irqs_testing handler;
-	struct host_irq_handler_mask_irqs test_static = host_irq_handler_mask_irqs_static_init (
-		&handler.common.host.base, &handler.common.hash.base, &handler.common.rsa.base,
-		&handler.common.recovery.base, &handler.common.irq.base);
+	struct host_irq_handler_mask_irqs test_static =
+		host_irq_handler_mask_irqs_static_init (&handler.common.host.base,
+		&handler.common.hash.base, &handler.common.rsa.base, &handler.common.recovery.base,
+		&handler.common.irq.base);
 	int status;
 
 	TEST_START;
@@ -754,9 +755,10 @@ static void host_irq_handler_mask_irqs_test_assert_cs0 (CuTest *test)
 static void host_irq_handler_mask_irqs_test_assert_cs0_static_init (CuTest *test)
 {
 	struct host_irq_handler_mask_irqs_testing handler;
-	struct host_irq_handler_mask_irqs test_static = host_irq_handler_mask_irqs_static_init (
-		&handler.common.host.base, &handler.common.hash.base, &handler.common.rsa.base,
-		&handler.common.recovery.base, &handler.common.irq.base);
+	struct host_irq_handler_mask_irqs test_static =
+		host_irq_handler_mask_irqs_static_init (&handler.common.host.base,
+		&handler.common.hash.base, &handler.common.rsa.base, &handler.common.recovery.base,
+		&handler.common.irq.base);
 	int status;
 
 	TEST_START;
@@ -811,7 +813,7 @@ static void host_irq_handler_mask_irqs_test_assert_cs1 (CuTest *test)
 		&handler.common.irq, 0, MOCK_ARG (false));
 
 	status |= mock_expect (&handler.common.recovery.mock, handler.common.recovery.base.on_host_cs1,
-		&handler.common.recovery, 0,MOCK_ARG_PTR (&handler.common.hash),
+		&handler.common.recovery, 0, MOCK_ARG_PTR (&handler.common.hash),
 		MOCK_ARG_PTR (&handler.common.rsa));
 
 	status |= mock_expect (&handler.common.irq.mock, handler.common.irq.base.enable_notifications,
@@ -828,9 +830,10 @@ static void host_irq_handler_mask_irqs_test_assert_cs1 (CuTest *test)
 static void host_irq_handler_mask_irqs_test_assert_cs1_static_init (CuTest *test)
 {
 	struct host_irq_handler_mask_irqs_testing handler;
-	struct host_irq_handler_mask_irqs test_static = host_irq_handler_mask_irqs_static_init (
-		&handler.common.host.base, &handler.common.hash.base, &handler.common.rsa.base,
-		&handler.common.recovery.base, &handler.common.irq.base);
+	struct host_irq_handler_mask_irqs test_static =
+		host_irq_handler_mask_irqs_static_init (&handler.common.host.base,
+		&handler.common.hash.base, &handler.common.rsa.base, &handler.common.recovery.base,
+		&handler.common.irq.base);
 	int status;
 
 	TEST_START;
@@ -924,6 +927,7 @@ static void host_irq_handler_mask_irqs_test_assert_cs1_recovery_error (CuTest *t
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_irq_handler_mask_irqs);
 
 TEST (host_irq_handler_mask_irqs_test_init);
@@ -963,3 +967,4 @@ TEST (host_irq_handler_mask_irqs_test_assert_cs1_null);
 TEST (host_irq_handler_mask_irqs_test_assert_cs1_recovery_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

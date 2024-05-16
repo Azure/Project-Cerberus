@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "pcd_manager_flash.h"
 #include "manifest/manifest_logging.h"
@@ -33,6 +33,7 @@ static struct pcd* pcd_manager_flash_get_pcd (struct pcd_manager_flash *manager,
 	}
 
 	flash = (struct pcd_flash*) region->manifest;
+
 	return &flash->base;
 }
 
@@ -170,6 +171,7 @@ int pcd_manager_flash_init (struct pcd_manager_flash *manager, struct pcd_flash 
 		MANIFEST_LOGGING_EMPTY_PCD, true);
 	if (status != 0) {
 		pcd_manager_release (&manager->base);
+
 		return status;
 	}
 

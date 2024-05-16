@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "pcd_manager.h"
 #include "manifest/manifest_logging.h"
@@ -110,6 +110,7 @@ void pcd_manager_on_pcd_verified (struct pcd_manager *manager, struct pcd *pendi
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 			MANIFEST_LOGGING_PCD_VERIFIED_EVENT_FAIL, MANIFEST_MANAGER_INVALID_ARGUMENT, 0);
+
 		return;
 	}
 
@@ -127,6 +128,7 @@ void pcd_manager_on_pcd_activated (struct pcd_manager *manager)
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 			MANIFEST_LOGGING_PCD_ACTIVATED_EVENT_FAIL, MANIFEST_MANAGER_INVALID_ARGUMENT, 0);
+
 		return;
 	}
 
@@ -144,6 +146,7 @@ void pcd_manager_on_clear_active (struct pcd_manager *manager)
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 			MANIFEST_LOGGING_PCD_CLEAR_ACTIVE_EVENT_FAIL, MANIFEST_MANAGER_INVALID_ARGUMENT, 0);
+
 		return;
 	}
 
@@ -161,6 +164,7 @@ void pcd_manager_on_pcd_activation_request (struct pcd_manager *manager)
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 			MANIFEST_LOGGING_PCD_ACTIVATION_REQUEST_FAIL, MANIFEST_MANAGER_INVALID_ARGUMENT, 0);
+
 		return;
 	}
 

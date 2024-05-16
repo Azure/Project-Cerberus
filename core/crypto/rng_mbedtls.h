@@ -23,4 +23,4 @@ int rng_mbedtls_init (struct rng_engine_mbedtls *engine);
 void rng_mbedtls_release (struct rng_engine_mbedtls *engine);
 
 
-#endif // RNG_MBEDTLS_H_
+#endif	// RNG_MBEDTLS_H_

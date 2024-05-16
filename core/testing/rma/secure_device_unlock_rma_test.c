@@ -19,10 +19,10 @@ TEST_SUITE_LABEL ("secure_device_unlock_rma");
  * RMA authorization token data to use for testing.
  */
 static const uint8_t SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN[] = {
-	0x88,0x7a,0xf6,0x07,0x95,0x7f,0xa3,0x10,0x8a,0x75,0x90,0x53,0x45,0x4c,0x42,0x3e,
-	0xae,0x3f,0x26,0xb5,0xd6,0xec,0x3c,0xcc,0xec,0x6a,0x5d,0x0e,0xf7,0xab,0x5f,0x39,
-	0xf9,0x27,0x7c,0xca,0xc1,0x9b,0x56,0x43,0x8c,0xf8,0x46,0x0e,0xea,0xe6,0x5f,0xd5,
-	0x12,0xf4,0x79,0xa5,0xc0,0xd6,0x58,0xf6,0x64,0xcd,0x92,0xfd,0xcd,0x9c,0x02,0xc2
+	0x88, 0x7a, 0xf6, 0x07, 0x95, 0x7f, 0xa3, 0x10, 0x8a, 0x75, 0x90, 0x53, 0x45, 0x4c, 0x42, 0x3e,
+	0xae, 0x3f, 0x26, 0xb5, 0xd6, 0xec, 0x3c, 0xcc, 0xec, 0x6a, 0x5d, 0x0e, 0xf7, 0xab, 0x5f, 0x39,
+	0xf9, 0x27, 0x7c, 0xca, 0xc1, 0x9b, 0x56, 0x43, 0x8c, 0xf8, 0x46, 0x0e, 0xea, 0xe6, 0x5f, 0xd5,
+	0x12, 0xf4, 0x79, 0xa5, 0xc0, 0xd6, 0x58, 0xf6, 0x64, 0xcd, 0x92, 0xfd, 0xcd, 0x9c, 0x02, 0xc2
 };
 
 static const size_t SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN_LEN =
@@ -33,9 +33,9 @@ static const size_t SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN_LEN =
  * Dependencies for testing the device unlock token handler.
  */
 struct secure_device_unlock_rma_testing {
-	struct rma_unlock_token_mock token;			/**< Mock for the RMA authorization token. */
-	struct device_rma_transition_mock rma;		/**< Mock for the RMA transition handler. */
-	struct secure_device_unlock_rma test;		/**< RMA handler under test. */
+	struct rma_unlock_token_mock token;		/**< Mock for the RMA authorization token. */
+	struct device_rma_transition_mock rma;	/**< Mock for the RMA transition handler. */
+	struct secure_device_unlock_rma test;	/**< RMA handler under test. */
 };
 
 
@@ -275,7 +275,7 @@ static void secure_device_unlock_rma_test_apply_unlock_policy (CuTest *test)
 
 	status = mock_expect (&unlock.token.mock, unlock.token.base.authenticate, &unlock.token, 0,
 		MOCK_ARG_PTR_CONTAINS (SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN,
-			SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN_LEN),
+		SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN_LEN),
 		MOCK_ARG (SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN_LEN));
 
 	status |= mock_expect (&unlock.rma.mock, unlock.rma.base.config_rma, &unlock.rma, 0);
@@ -303,7 +303,7 @@ static void secure_device_unlock_rma_test_apply_unlock_policy_static_init (CuTes
 
 	status = mock_expect (&unlock.token.mock, unlock.token.base.authenticate, &unlock.token, 0,
 		MOCK_ARG_PTR_CONTAINS (SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN,
-			SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN_LEN),
+		SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN_LEN),
 		MOCK_ARG (SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN_LEN));
 
 	status |= mock_expect (&unlock.rma.mock, unlock.rma.base.config_rma, &unlock.rma, 0);
@@ -326,8 +326,8 @@ static void secure_device_unlock_rma_test_apply_unlock_policy_null (CuTest *test
 
 	secure_device_unlock_rma_testing_init (test, &unlock);
 
-	status = unlock.test.base.apply_unlock_policy (NULL,
-		SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN, SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN_LEN);
+	status = unlock.test.base.apply_unlock_policy (NULL, SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN,
+		SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN_LEN);
 	CuAssertIntEquals (test, SECURE_DEVICE_UNLOCK_INVALID_ARGUMENT, status);
 
 	secure_device_unlock_rma_testing_release (test, &unlock);
@@ -345,7 +345,7 @@ static void secure_device_unlock_rma_test_apply_unlock_policy_token_authenticate
 	status = mock_expect (&unlock.token.mock, unlock.token.base.authenticate, &unlock.token,
 		RMA_UNLOCK_TOKEN_BAD_TOKEN_DATA,
 		MOCK_ARG_PTR_CONTAINS (SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN,
-			SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN_LEN),
+		SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN_LEN),
 		MOCK_ARG (SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN_LEN));
 
 	CuAssertIntEquals (test, 0, status);
@@ -368,7 +368,7 @@ static void secure_device_unlock_rma_test_apply_unlock_policy_rma_transition_err
 
 	status = mock_expect (&unlock.token.mock, unlock.token.base.authenticate, &unlock.token, 0,
 		MOCK_ARG_PTR_CONTAINS (SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN,
-			SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN_LEN),
+		SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN_LEN),
 		MOCK_ARG (SECURE_DEVICE_UNLOCK_RMA_TESTING_TOKEN_LEN));
 
 	status |= mock_expect (&unlock.rma.mock, unlock.rma.base.config_rma, &unlock.rma,
@@ -432,6 +432,7 @@ static void secure_device_unlock_rma_test_clear_unlock_policy_null (CuTest *test
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (secure_device_unlock_rma);
 
 TEST (secure_device_unlock_rma_test_init);
@@ -452,3 +453,4 @@ TEST (secure_device_unlock_rma_test_clear_unlock_policy_static_init);
 TEST (secure_device_unlock_rma_test_clear_unlock_policy_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

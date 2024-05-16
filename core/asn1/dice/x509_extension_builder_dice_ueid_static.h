@@ -78,4 +78,4 @@ void x509_extension_builder_dice_ueid_free_static (const struct x509_extension_b
 	}
 
 
-#endif /* X509_EXTENSION_BUILDER_DICE_UEID_STATIC_H_ */
+#endif	/* X509_EXTENSION_BUILDER_DICE_UEID_STATIC_H_ */

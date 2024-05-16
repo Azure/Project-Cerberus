@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 #include <string.h>
-#include "platform_api.h"
 #include "attestation_responder.h"
+#include "platform_api.h"
 #include "common/unused.h"
 
 
@@ -115,6 +115,7 @@ unlock:
 	platform_mutex_unlock (&attestation->lock);
 exit:
 	riot_key_manager_release_riot_keys (attestation->riot, keys);
+
 	return status;
 }
 
@@ -251,6 +252,7 @@ static int attestation_responder_get_certificate (struct attestation_responder *
 
 exit:
 	riot_key_manager_release_riot_keys (attestation->riot, keys);
+
 	return status;
 }
 
@@ -348,12 +350,14 @@ static int attestation_responder_challenge_response (struct attestation_responde
 	}
 
 	platform_mutex_unlock (&attestation->lock);
+
 	return response_len + status;
 
 cleanup:
 	attestation->hash->cancel (attestation->hash);
 unlock:
 	platform_mutex_unlock (&attestation->lock);
+
 	return status;
 }
 
@@ -407,8 +411,8 @@ static int attestation_responder_aux_decrypt (struct attestation_responder *atte
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
 
-	return aux_attestation_decrypt (attestation->aux, encrypted, len_encrypted, label,
-		len_label, pad_hash, decrypted, len_decrypted);
+	return aux_attestation_decrypt (attestation->aux, encrypted, len_encrypted, label, len_label,
+		pad_hash, decrypted, len_decrypted);
 }
 
 static int attestation_responder_aux_decrypt_unsupported (struct attestation_responder *attestation,
@@ -492,6 +496,7 @@ static int attestation_responder_init_common (struct attestation_responder *atte
 	status = platform_mutex_init (&attestation->lock);
 	if (status != 0) {
 		ecc->release_key_pair (ecc, &attestation->ecc_priv_key, NULL);
+
 		return status;
 	}
 

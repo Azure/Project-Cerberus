@@ -12811,6 +12811,7 @@ static void cerberus_protocol_optional_commands_test_session_sync_format (CuTest
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cerberus_protocol_optional_commands);
 
 TEST (cerberus_protocol_optional_commands_test_prepare_pfm_update_format);
@@ -12843,3 +12844,4 @@ TEST (cerberus_protocol_optional_commands_test_key_exchange_type2_format);
 TEST (cerberus_protocol_optional_commands_test_session_sync_format);
 
 TEST_SUITE_END;
+// *INDENT-ON*

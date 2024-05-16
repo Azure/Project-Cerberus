@@ -2,8 +2,8 @@
 // Licensed under the MIT license.
 
 #include <stddef.h>
-#include <string.h>
 #include <stdint.h>
+#include <string.h>
 #include "kdf.h"
 #include "platform_api.h"
 #include "common/common_math.h"

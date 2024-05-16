@@ -48,4 +48,4 @@ int ecdsa_testing_expect_deterministic_k_drbg_instantiate (struct hash_engine_mo
 	size_t key_length, const uint8_t *k0, const uint8_t *v0, const uint8_t *k1, const uint8_t *v1);
 
 
-#endif /* ECDSA_TESTING_H_ */
+#endif	/* ECDSA_TESTING_H_ */

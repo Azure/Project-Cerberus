@@ -45,11 +45,11 @@ int cmd_interface_spdm_process_request (const struct cmd_interface *intf,
 			goto exit;
 		}
 
-		status = session_manager->decode_secure_message (session_manager, request) ;
+		status = session_manager->decode_secure_message (session_manager, request);
 		if (status != 0) {
 			/* Note: Response is not being encoded in case of a decode failure. */
-			spdm_generate_error_response (request, 0, SPDM_ERROR_DECRYPT_ERROR, 0x00, NULL, 0,
-				0, status);
+			spdm_generate_error_response (request, 0, SPDM_ERROR_DECRYPT_ERROR, 0x00, NULL, 0, 0,
+				status);
 			status = 0;
 			goto exit;
 		}
@@ -109,7 +109,7 @@ int cmd_interface_spdm_process_request (const struct cmd_interface *intf,
 		status = session_manager->encode_secure_message (session_manager, request);
 		if (status != 0) {
 			/**
-			 * Note: An error of SPDM_ERROR_DECRYPT_ERROR is being sent to the requester to 
+			 * Note: An error of SPDM_ERROR_DECRYPT_ERROR is being sent to the requester to
 			 * to terminate the session. */
 			spdm_generate_error_response (request, 0, SPDM_ERROR_DECRYPT_ERROR, 0x00, NULL, 0,
 				req_code, status);
@@ -119,6 +119,7 @@ int cmd_interface_spdm_process_request (const struct cmd_interface *intf,
 	}
 
 exit:
+
 	return status;
 }
 
@@ -234,6 +235,7 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	}
 
 exit:
+
 	return status;
 }
 
@@ -277,7 +279,7 @@ static int cmd_interface_spdm_responder_validate_local_capabilities (
 	int status = 0;
 
 	if (spdm_check_request_flag_compatibility (local_capabilities->flags,
-			supported_max_version) == false) {
+		supported_max_version) == false) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INCOMPATIBLE_CAPABILITIES;
 		goto exit;
 	}
@@ -290,12 +292,13 @@ static int cmd_interface_spdm_responder_validate_local_capabilities (
 	if ((local_capabilities->data_transfer_size < SPDM_MIN_DATA_TRANSFER_SIZE_VERSION_1_2) ||
 		(local_capabilities->data_transfer_size > local_capabilities->max_spdm_msg_size) ||
 		((local_capabilities->flags.chunk_cap == 0) &&
-		 (local_capabilities->data_transfer_size != local_capabilities->max_spdm_msg_size))) {
+		(local_capabilities->data_transfer_size != local_capabilities->max_spdm_msg_size))) {
 		status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY;
 		goto exit;
 	}
 
 exit:
+
 	return status;
 }
 
@@ -316,7 +319,7 @@ int cmd_interface_spdm_responder_init_state (
 	if ((spdm_responder == NULL) || (spdm_responder->hash_engine == NULL) ||
 		(spdm_responder->hash_engine_count < SPDM_RESPONDER_HASH_ENGINE_REQUIRED_COUNT) ||
 		(spdm_responder->transcript_manager == NULL) || (spdm_responder->version_num == NULL) ||
-		(spdm_responder->version_num_count == 0) || 
+		(spdm_responder->version_num_count == 0) ||
 		(spdm_responder->local_capabilities == NULL) ||
 		(spdm_responder->local_algorithms == NULL) || (spdm_responder->key_manager == NULL) ||
 		(spdm_responder->measurements == NULL) || (spdm_responder->ecc_engine == NULL) ||
@@ -327,11 +330,11 @@ int cmd_interface_spdm_responder_init_state (
 
 	/* Optional objects for secure session support */
 	if (spdm_responder->secure_message_version_num_count != 0) {
-		if (spdm_responder->secure_message_version_num == NULL ||
-			spdm_responder->session_manager == NULL) {
-				status = CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
-				goto exit;
-			}
+		if ((spdm_responder->secure_message_version_num == NULL) ||
+			(spdm_responder->session_manager == NULL)) {
+			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
+			goto exit;
+		}
 	}
 
 	/* Check if the hash engine instances are valid. */
@@ -343,10 +346,12 @@ int cmd_interface_spdm_responder_init_state (
 	}
 
 	/* Validate the local device capabilities. */
-	supported_max_version = cmd_interface_spdm_responder_get_max_supported_version (
-		spdm_responder->version_num, spdm_responder->version_num_count);
+	supported_max_version =
+		cmd_interface_spdm_responder_get_max_supported_version (spdm_responder->version_num,
+		spdm_responder->version_num_count);
 
-	status = cmd_interface_spdm_responder_validate_local_capabilities (
+	status =
+		cmd_interface_spdm_responder_validate_local_capabilities (
 		spdm_responder->local_capabilities, supported_max_version);
 	if (status != 0) {
 		goto exit;
@@ -359,6 +364,7 @@ int cmd_interface_spdm_responder_init_state (
 	}
 
 exit:
+
 	return status;
 }
 

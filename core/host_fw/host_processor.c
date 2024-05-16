@@ -2,8 +2,8 @@
 // Licensed under the MIT license.
 
 #include <string.h>
-#include "common/observable.h"
 #include "host_processor.h"
+#include "common/observable.h"
 
 
 /**

@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
 #include "recovery/ocp_recovery_device_variable_cms_log.h"
@@ -329,6 +329,7 @@ static void ocp_recovery_device_variable_cms_log_test_get_data_error (CuTest *te
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (ocp_recovery_device_variable_cms_log);
 
 TEST (ocp_recovery_device_variable_cms_log_test_init);
@@ -347,3 +348,4 @@ TEST (ocp_recovery_device_variable_cms_log_test_get_data_error);
 
 
 TEST_SUITE_END;
+// *INDENT-ON*

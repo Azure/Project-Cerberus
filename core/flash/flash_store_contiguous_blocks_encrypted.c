@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "platform_api.h"
 #include "flash_store_contiguous_blocks_encrypted.h"
 #include "flash_util.h"
+#include "platform_api.h"
 
 
 /**
@@ -52,6 +52,7 @@ int flash_store_contiguous_blocks_encrypted_write (const struct flash_store *fla
 
 exit:
 	platform_free (enc_data);
+
 	return status;
 }
 
@@ -118,8 +119,7 @@ static int flash_store_contiguous_blocks_encrypted_init_storage_common (
 		return status;
 	}
 
-	status = flash_store_contiguous_blocks_encrypted_init_state (store, block_count,
-		data_length);
+	status = flash_store_contiguous_blocks_encrypted_init_state (store, block_count, data_length);
 	if (status != 0) {
 		return status;
 	}
@@ -202,8 +202,9 @@ int flash_store_contiguous_blocks_encrypted_init_fixed_storage_decreasing (
  */
 int flash_store_contiguous_blocks_encrypted_init_variable_storage (
 	struct flash_store_contiguous_blocks_encrypted *store,
-	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,uint32_t base_addr,
-	size_t block_count, size_t min_length, struct aes_engine *aes, struct rng_engine *rng)
+	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,
+	uint32_t base_addr,	size_t block_count, size_t min_length, struct aes_engine *aes,
+	struct rng_engine *rng)
 {
 	return flash_store_contiguous_blocks_encrypted_init_storage_common (store, state, flash,
 		base_addr, block_count, min_length, aes, rng, false, true);

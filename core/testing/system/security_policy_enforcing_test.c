@@ -305,6 +305,7 @@ static void security_policy_enforcing_test_check_unlock_persistence_null (CuTest
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (security_policy_enforcing);
 
 TEST (security_policy_enforcing_test_init);
@@ -328,3 +329,4 @@ TEST (security_policy_enforcing_test_check_unlock_persistence_static_init);
 TEST (security_policy_enforcing_test_check_unlock_persistence_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

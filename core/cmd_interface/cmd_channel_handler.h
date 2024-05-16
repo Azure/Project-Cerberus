@@ -13,9 +13,9 @@
  * Handler for processing received commands from a command channel.
  */
 struct cmd_channel_handler {
-	struct periodic_task_handler base;		/**< Base interface for task integration. */
-	const struct cmd_channel *channel;		/**< Command channel for receiving messages. */
-	const struct mctp_interface *mctp;		/**< MCTP protocol layer. */
+	struct periodic_task_handler base;	/**< Base interface for task integration. */
+	const struct cmd_channel *channel;	/**< Command channel for receiving messages. */
+	const struct mctp_interface *mctp;	/**< MCTP protocol layer. */
 };
 
 
@@ -28,4 +28,4 @@ void cmd_channel_handler_release (const struct cmd_channel_handler *handler);
  * codes. */
 
 
-#endif /* CMD_CHANNEL_HANDLER_H_ */
+#endif	/* CMD_CHANNEL_HANDLER_H_ */

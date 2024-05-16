@@ -4,13 +4,13 @@
 #ifndef FLASH_UTIL_H_
 #define FLASH_UTIL_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "status/rot_status.h"
+#include <stdint.h>
 #include "flash.h"
 #include "crypto/hash.h"
 #include "crypto/rsa.h"
 #include "crypto/signature_verification.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -152,4 +152,4 @@ enum {
 };
 
 
-#endif /* FLASH_UTIL_H_ */
+#endif	/* FLASH_UTIL_H_ */

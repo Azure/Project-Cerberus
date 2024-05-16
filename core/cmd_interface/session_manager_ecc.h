@@ -6,17 +6,17 @@
 
 
 #include <stdint.h>
+#include "session_manager.h"
 #include "crypto/ecc.h"
 #include "keystore/keystore.h"
-#include "session_manager.h"
 
 
 /**
  * Module which holds engines needed for session manager operation and caches session keys
  */
 struct session_manager_ecc {
-	struct session_manager base;						/**< Base session manager. */
-	struct ecc_engine *ecc;								/**< ECC engine used to generate AES shared key. */
+	struct session_manager base;	/**< Base session manager. */
+	struct ecc_engine *ecc;			/**< ECC engine used to generate AES shared key. */
 };
 
 
@@ -27,4 +27,4 @@ int session_manager_ecc_init (struct session_manager_ecc *session, struct aes_en
 void session_manager_ecc_release (struct session_manager_ecc *session);
 
 
-#endif // SESSION_MANAGER_ECC_H_
+#endif	// SESSION_MANAGER_ECC_H_

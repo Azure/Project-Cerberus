@@ -17,7 +17,7 @@ int spdm_measurements_get_measurement_summary_hash (const struct spdm_measuremen
 /**
  * Constant initializer for the SPDM measurements API.
  */
-#define	SPDM_MEASUREMENTS_API_INIT	\
+#define	SPDM_MEASUREMENTS_API_INIT  \
 	.get_measurement_count = spdm_measurements_get_measurement_count, \
 	.get_measurement_block = spdm_measurements_get_measurement_block, \
 	.get_measurement_block_length = spdm_measurements_get_measurement_block_length, \
@@ -39,4 +39,4 @@ int spdm_measurements_get_measurement_summary_hash (const struct spdm_measuremen
 	}
 
 
-#endif /* SPDM_MEASUREMENTS_STATIC_H_ */
+#endif	/* SPDM_MEASUREMENTS_STATIC_H_ */

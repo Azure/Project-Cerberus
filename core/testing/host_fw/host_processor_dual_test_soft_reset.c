@@ -25573,6 +25573,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_processor_dual_soft_reset);
 
 TEST (host_processor_dual_test_soft_reset_no_pfm);
@@ -25863,3 +25864,4 @@ TEST (host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_bypass_a
 TEST (host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_bypass_active_filter_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

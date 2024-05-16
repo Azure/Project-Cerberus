@@ -12,8 +12,8 @@
  * A variable CMS interface that uses a logging interface to retrieve the CMS data.
  */
 struct ocp_recovery_device_variable_cms_log {
-	struct ocp_recovery_device_variable_cms base;		/**< The base CMS interface. */
-	struct logging *log;								/**< Logging interface for the data. */
+	struct ocp_recovery_device_variable_cms base;	/**< The base CMS interface. */
+	struct logging *log;							/**< Logging interface for the data. */
 };
 
 
@@ -23,4 +23,4 @@ void ocp_recovery_device_variable_cms_log_release (
 	const struct ocp_recovery_device_variable_cms_log *cms);
 
 
-#endif /* OCP_RECOVERY_DEVICE_VARIABLE_CMS_LOG_H_ */
+#endif	/* OCP_RECOVERY_DEVICE_VARIABLE_CMS_LOG_H_ */

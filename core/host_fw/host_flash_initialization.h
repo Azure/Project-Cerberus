@@ -6,25 +6,25 @@
 
 #include <stdbool.h>
 #include "platform_api.h"
-#include "status/rot_status.h"
 #include "flash/spi_flash.h"
+#include "status/rot_status.h"
 
 
 /**
  * Handler for delayed host flash initialization.
  */
 struct host_flash_initialization {
-	struct spi_flash *flash_cs0;			/**< SPI interface for CS0 flash. */
-	struct spi_flash_state *state_cs0;		/**< Context for CS0 flash. */
-	const struct flash_master *spi_cs0;		/**< SPI master for CS0 flash. */
-	bool is_init0;							/**< Flag indicating if CS0 has been initialized. */
-	struct spi_flash *flash_cs1;			/**< SPI interface for CS1 flash. */
-	struct spi_flash_state *state_cs1;		/**< Context for CS1 flash. */
-	const struct flash_master *spi_cs1;		/**< SPI master for CS1 flash. */
-	bool is_init1;							/**< Flag indicating if CS1 has been initialized. */
-	bool fast_read;							/**< Fast read command flag for flash initialization. */
-	bool drive_strength;					/**< Drive strength flag for flash initialization. */
-	platform_mutex lock;					/**< Synchronization for flash initialization. */
+	struct spi_flash *flash_cs0;		/**< SPI interface for CS0 flash. */
+	struct spi_flash_state *state_cs0;	/**< Context for CS0 flash. */
+	const struct flash_master *spi_cs0;	/**< SPI master for CS0 flash. */
+	bool is_init0;						/**< Flag indicating if CS0 has been initialized. */
+	struct spi_flash *flash_cs1;		/**< SPI interface for CS1 flash. */
+	struct spi_flash_state *state_cs1;	/**< Context for CS1 flash. */
+	const struct flash_master *spi_cs1;	/**< SPI master for CS1 flash. */
+	bool is_init1;						/**< Flag indicating if CS1 has been initialized. */
+	bool fast_read;						/**< Fast read command flag for flash initialization. */
+	bool drive_strength;				/**< Drive strength flag for flash initialization. */
+	platform_mutex lock;				/**< Synchronization for flash initialization. */
 };
 
 
@@ -52,4 +52,4 @@ enum {
 };
 
 
-#endif /* HOST_FLASH_INITIALIZATION_H_ */
+#endif	/* HOST_FLASH_INITIALIZATION_H_ */

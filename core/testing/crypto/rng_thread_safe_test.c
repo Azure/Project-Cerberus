@@ -2,8 +2,8 @@
 // Licensed under the MIT license.
 
 #include <stddef.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include "testing.h"
 #include "crypto/rng_thread_safe.h"
@@ -160,6 +160,7 @@ static void rng_thread_safe_test_generate_random_buffer_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (rng_thread_safe);
 
 TEST (rng_thread_safe_test_init);
@@ -170,3 +171,4 @@ TEST (rng_thread_safe_test_generate_random_buffer_error);
 TEST (rng_thread_safe_test_generate_random_buffer_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

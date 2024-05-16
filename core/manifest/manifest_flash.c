@@ -1,18 +1,18 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "platform_api.h"
-#include "manifest_flash.h"
 #include "manifest.h"
-#include "flash/flash_util.h"
-#include "flash/flash_common.h"
-#include "crypto/ecc.h"
-#include "crypto/rsa.h"
+#include "manifest_flash.h"
+#include "platform_api.h"
 #include "common/buffer_util.h"
 #include "common/common_math.h"
+#include "crypto/ecc.h"
+#include "crypto/rsa.h"
+#include "flash/flash_common.h"
+#include "flash/flash_util.h"
 
 
 /**
@@ -358,6 +358,7 @@ static int manifest_flash_verify_v2 (struct manifest_flash *manifest, struct has
 
 error:
 	hash->cancel (hash);
+
 	return status;
 }
 
@@ -447,6 +448,7 @@ int manifest_flash_verify (struct manifest_flash *manifest, struct hash_engine *
 	if (status == 0) {
 		manifest->manifest_valid = true;
 	}
+
 	return status;
 }
 
@@ -610,6 +612,7 @@ int manifest_flash_get_signature (struct manifest_flash *manifest, uint8_t *sign
 		}
 
 		memcpy (signature, manifest->signature, manifest->header.sig_length);
+
 		return manifest->header.sig_length;
 	}
 	else {
@@ -685,7 +688,7 @@ int manifest_flash_read_element_data (struct manifest_flash *manifest, struct ha
 
 	if (start >= manifest->toc_header.entry_count) {
 		return (parent_type == MANIFEST_NO_PARENT) ?
-			MANIFEST_ELEMENT_NOT_FOUND : MANIFEST_CHILD_NOT_FOUND;
+				   MANIFEST_ELEMENT_NOT_FOUND : MANIFEST_CHILD_NOT_FOUND;
 	}
 
 	entry_addr =
@@ -738,7 +741,7 @@ int manifest_flash_read_element_data (struct manifest_flash *manifest, struct ha
 
 	if (entry.type_id != type) {
 		status = (parent_type == MANIFEST_NO_PARENT) ?
-			MANIFEST_ELEMENT_NOT_FOUND : MANIFEST_CHILD_NOT_FOUND;
+				MANIFEST_ELEMENT_NOT_FOUND : MANIFEST_CHILD_NOT_FOUND;
 		goto error;
 	}
 
@@ -874,6 +877,7 @@ int manifest_flash_read_element_data (struct manifest_flash *manifest, struct ha
 
 error:
 	hash->cancel (hash);
+
 	return status;
 }
 

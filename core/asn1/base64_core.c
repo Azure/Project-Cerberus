@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "base64_core.h"
 #include "common/unused.h"
@@ -41,17 +41,17 @@ int base64_core_encode (struct base64_engine *engine, const uint8_t *data, size_
 		uint8_t byte2 = data[in_pos++];
 		uint8_t byte3 = data[in_pos++];
 
-		encoded[out_pos++] = base64_core_encoding [byte1 >> 2];
-		encoded[out_pos++] = base64_core_encoding [((byte1 & 0x03) << 4) | (byte2 >> 4)];
-		encoded[out_pos++] = base64_core_encoding [((byte2 & 0x0f) << 2) | ((byte3 >> 6) & 0x03)];
-		encoded[out_pos++] = base64_core_encoding [byte3 & 0x3f];
+		encoded[out_pos++] = base64_core_encoding[byte1 >> 2];
+		encoded[out_pos++] = base64_core_encoding[((byte1 & 0x03) << 4) | (byte2 >> 4)];
+		encoded[out_pos++] = base64_core_encoding[((byte2 & 0x0f) << 2) | ((byte3 >> 6) & 0x03)];
+		encoded[out_pos++] = base64_core_encoding[byte3 & 0x3f];
 	}
 
 	/* Deal with any remaining bytes that are not in a group of three. */
 	if (in_pos != length) {
 		uint8_t val = data[in_pos++];
 
-		encoded[out_pos++] = base64_core_encoding [val >> 2];
+		encoded[out_pos++] = base64_core_encoding[val >> 2];
 		val = (val & 0x03) << 4;
 
 		if (in_pos != length) {
@@ -66,7 +66,7 @@ int base64_core_encode (struct base64_engine *engine, const uint8_t *data, size_
 		encoded[out_pos++] = '=';
 	}
 
-    encoded[out_pos] = '\0';
+	encoded[out_pos] = '\0';
 
 	return 0;
 }

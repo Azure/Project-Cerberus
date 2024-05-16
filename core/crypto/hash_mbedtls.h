@@ -32,4 +32,4 @@ int hash_mbedtls_init (struct hash_engine_mbedtls *engine);
 void hash_mbedtls_release (struct hash_engine_mbedtls *engine);
 
 
-#endif /* HASH_MBEDTLS_H_ */
+#endif	/* HASH_MBEDTLS_H_ */

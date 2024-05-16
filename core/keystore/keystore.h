@@ -4,8 +4,8 @@
 #ifndef KEYSTORE_H_
 #define KEYSTORE_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 
 
@@ -80,4 +80,4 @@ enum {
 };
 
 
-#endif /* KEYSTORE_H_ */
+#endif	/* KEYSTORE_H_ */

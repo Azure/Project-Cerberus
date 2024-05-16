@@ -23,4 +23,4 @@
 #define	CLOCK_TICKS_TO_MS(x, clk)	((CLOCK_ROUND_TICKS (x, clk) * 1000) / (clk))
 
 
-#endif // CLOCK_UTILS_H_
+#endif	// CLOCK_UTILS_H_

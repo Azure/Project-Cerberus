@@ -4,9 +4,9 @@
 #ifndef SYSTEM_H_
 #define SYSTEM_H_
 
-#include "status/rot_status.h"
 #include "cmd_interface/cmd_device.h"
 #include "common/observable.h"
+#include "status/rot_status.h"
 #include "system/system_observer.h"
 
 
@@ -39,4 +39,4 @@ enum {
 };
 
 
-#endif /* SYSTEM_H_ */
+#endif	/* SYSTEM_H_ */

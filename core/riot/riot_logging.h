@@ -11,8 +11,8 @@
  * Logging messages for RIoT operations.
  */
 enum {
-	RIOT_LOGGING_DEVID_AUTH_STATUS,			/**< Authentication status for a signed Device ID. */
+	RIOT_LOGGING_DEVID_AUTH_STATUS,	/**< Authentication status for a signed Device ID. */
 };
 
 
-#endif /* RIOT_LOGGING_H_ */
+#endif	/* RIOT_LOGGING_H_ */

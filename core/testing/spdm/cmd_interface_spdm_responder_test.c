@@ -3,25 +3,31 @@
 
 #include <string.h>
 #include "testing.h"
-#include "spdm/cmd_interface_spdm_responder_static.h"
-#include "spdm/spdm_commands.h"
 #include "common/array_size.h"
 #include "pcisig/doe/doe_base_protocol.h"
+#include "spdm/cmd_interface_spdm_responder_static.h"
+#include "spdm/spdm_commands.h"
+#include "testing/asn1/x509_testing.h"
 #include "testing/crypto/hash_testing.h"
+#include "testing/engines/aes_testing_engine.h"
+#include "testing/engines/aes_testing_engine.h"
+#include "testing/engines/ecc_testing_engine.h"
+#include "testing/engines/ecc_testing_engine.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/engines/rng_testing_engine.h"
-#include "testing/engines/ecc_testing_engine.h"
-#include "testing/engines/aes_testing_engine.h"
-#include "testing/mock/crypto/hash_mock.h"
-#include "testing/mock/spdm/spdm_transcript_manager_mock.h"
-#include "testing/mock/spdm/spdm_measurements_mock.h"
-#include "testing/mock/spdm/spdm_secure_session_manager_mock.h"
-#include "testing/mock/keystore/keystore_mock.h"
 #include "testing/mock/asn1/x509_mock.h"
-#include "testing/mock/crypto/rng_mock.h"
 #include "testing/mock/crypto/aes_mock.h"
 #include "testing/mock/crypto/ecc_mock.h"
-#include "testing/asn1/x509_testing.h"
+#include "testing/mock/crypto/hash_mock.h"
+#include "testing/mock/crypto/hash_mock.h"
+#include "testing/mock/crypto/rng_mock.h"
+#include "testing/mock/keystore/keystore_mock.h"
+#include "testing/mock/keystore/keystore_mock.h"
+#include "testing/mock/spdm/spdm_measurements_mock.h"
+#include "testing/mock/spdm/spdm_measurements_mock.h"
+#include "testing/mock/spdm/spdm_secure_session_manager_mock.h"
+#include "testing/mock/spdm/spdm_transcript_manager_mock.h"
+#include "testing/mock/spdm/spdm_transcript_manager_mock.h"
 #include "testing/riot/riot_core_testing.h"
 
 
@@ -71,27 +77,28 @@ uint32_t cmd_interface_spdm_responder_testing_other_params_support_priority_tabl
  * Dependencies for testing.
  */
 struct cmd_interface_spdm_responder_testing {
-	struct cmd_interface_spdm_responder spdm_responder;				/**< The SPDM responder being tested. */
-	struct spdm_state spdm_responder_state;							/**< The SPDM responder state. */
-	struct spdm_transcript_manager_state state;						/**< The transcript manager state. */
-	struct spdm_transcript_manager_mock transcript_manager_mock;	/**< The transcript manager. */
-	struct spdm_transcript_manager_state transcript_manager_state; 	/**< The transcript manager state. */
-	struct spdm_secure_session_manager_mock session_manager_mock;	/**< The session manager. */
-	struct spdm_secure_session_manager_state session_manager_state;	/**< The session manager state. */
-	struct hash_engine_mock hash_engine_mock[SPDM_RESPONDER_HASH_ENGINE_REQUIRED_COUNT];	/**< Mock hash engine for the responder. */
-	struct hash_engine *hash_engine[SPDM_RESPONDER_HASH_ENGINE_REQUIRED_COUNT];				/**< Hash engines. */
-	struct spdm_version_num_entry version_num[2];					/**< Version number entries. */
+	struct cmd_interface_spdm_responder spdm_responder;											/**< The SPDM responder being tested. */
+	struct spdm_state spdm_responder_state;														/**< The SPDM responder state. */
+	struct spdm_transcript_manager_state state;													/**< The transcript manager state. */
+	struct spdm_transcript_manager_mock transcript_manager_mock;								/**< The transcript manager. */
+	struct spdm_transcript_manager_state transcript_manager_state;								/**< The transcript manager state. */
+	struct spdm_secure_session_manager_mock session_manager_mock;								/**< The session manager. */
+	struct spdm_secure_session_manager_state session_manager_state;								/**< The session manager state. */
+	struct hash_engine_mock hash_engine_mock[SPDM_RESPONDER_HASH_ENGINE_REQUIRED_COUNT];		/**< Mock hash engine for the responder. */
+	struct hash_engine *hash_engine[SPDM_RESPONDER_HASH_ENGINE_REQUIRED_COUNT];					/**< Hash engines. */
+	struct spdm_version_num_entry version_num[2];												/**< Version number entries. */
 	struct spdm_version_num_entry secure_message_version_num[SECURED_MESSAGE_VERSION_COUNT];	/**< Secured version number entries. */
-	struct spdm_device_capability local_capabilities;				/**< Local capabilities. */
-	struct spdm_local_device_algorithms local_algorithms;			/**< Local algorithms. */
-	struct riot_key_manager key_manager;							/**< Device key manager for testing. */
-	struct keystore_mock keystore;									/**< Mock for the device keystore. */
-	struct x509_engine_mock x509_mock;								/**< Mock for the X.509 engine. */
-	struct riot_keys keys;											/**< RIoT keys for testing. */
-	struct spdm_measurements_mock measurements_mock;				/**< Mock measurements engine. */
-	struct ecc_engine_mock ecc_mock;								/**< Mock ECC engine. */
-	struct rng_engine_mock rng_mock;								/**< Mock RNG engine. */
+	struct spdm_device_capability local_capabilities;											/**< Local capabilities. */
+	struct spdm_local_device_algorithms local_algorithms;										/**< Local algorithms. */
+	struct riot_key_manager key_manager;														/**< Device key manager for testing. */
+	struct keystore_mock keystore;																/**< Mock for the device keystore. */
+	struct x509_engine_mock x509_mock;															/**< Mock for the X.509 engine. */
+	struct riot_keys keys;																		/**< RIoT keys for testing. */
+	struct spdm_measurements_mock measurements_mock;											/**< Mock measurements engine. */
+	struct ecc_engine_mock ecc_mock;															/**< Mock ECC engine. */
+	struct rng_engine_mock rng_mock;															/**< Mock RNG engine. */
 };
+
 
 /**
  * Helper to initialize all dependencies for testing.
@@ -104,9 +111,9 @@ void cmd_interface_spdm_responder_testing_init_dependencies (CuTest *test,
 {
 	int status;
 	struct spdm_version_num_entry version_num[2] =
-		{ {0, 0, 1, 1}, {0, 0, 2, 1} };
-	struct spdm_version_number secure_message_version_num[SECURED_MESSAGE_VERSION_COUNT] = 
-		{ {0, 0, 0, 1}, {0, 0, 1, 1} };
+	{{0, 0, 1, 1}, {0, 0, 2, 1}};
+	struct spdm_version_number secure_message_version_num[SECURED_MESSAGE_VERSION_COUNT] =
+	{{0, 0, 0, 1}, {0, 0, 1, 1}};
 	uint8_t idx;
 
 	memcpy (testing->version_num, version_num, sizeof (version_num));
@@ -166,7 +173,7 @@ void cmd_interface_spdm_responder_testing_init_dependencies (CuTest *test,
 
 	/* Set the algorithm priorities. */
 	testing->local_algorithms.algorithms_priority_table.aead_priority_table =
-			cmd_interface_spdm_responder_testing_aead_priority_table;
+		cmd_interface_spdm_responder_testing_aead_priority_table;
 	testing->local_algorithms.algorithms_priority_table.aead_priority_table_count =
 		ARRAY_SIZE (cmd_interface_spdm_responder_testing_aead_priority_table);
 
@@ -176,32 +183,32 @@ void cmd_interface_spdm_responder_testing_init_dependencies (CuTest *test,
 		ARRAY_SIZE (cmd_interface_spdm_responder_testing_asym_priority_table);
 
 	testing->local_algorithms.algorithms_priority_table.dhe_priority_table =
-			cmd_interface_spdm_responder_testing_dhe_priority_table;
+		cmd_interface_spdm_responder_testing_dhe_priority_table;
 	testing->local_algorithms.algorithms_priority_table.dhe_priority_table_count =
 		ARRAY_SIZE (cmd_interface_spdm_responder_testing_dhe_priority_table);
 
 	testing->local_algorithms.algorithms_priority_table.hash_priority_table =
-			cmd_interface_spdm_responder_testing_hash_priority_table;
+		cmd_interface_spdm_responder_testing_hash_priority_table;
 	testing->local_algorithms.algorithms_priority_table.hash_priority_table_count =
 		ARRAY_SIZE (cmd_interface_spdm_responder_testing_hash_priority_table);
 
 	testing->local_algorithms.algorithms_priority_table.key_schedule_priority_table =
-			cmd_interface_spdm_responder_testing_key_schedule_priority_table;
+		cmd_interface_spdm_responder_testing_key_schedule_priority_table;
 	testing->local_algorithms.algorithms_priority_table.key_schedule_priority_table_count =
 		ARRAY_SIZE (cmd_interface_spdm_responder_testing_key_schedule_priority_table);
 
 	testing->local_algorithms.algorithms_priority_table.measurement_spec_priority_table =
-			cmd_interface_spdm_responder_testing_measurement_spec_priority_table;
+		cmd_interface_spdm_responder_testing_measurement_spec_priority_table;
 	testing->local_algorithms.algorithms_priority_table.measurement_spec_priority_table_count =
 		ARRAY_SIZE (cmd_interface_spdm_responder_testing_measurement_spec_priority_table);
 
 	testing->local_algorithms.algorithms_priority_table.other_params_support_priority_table =
-			cmd_interface_spdm_responder_testing_other_params_support_priority_table;
+		cmd_interface_spdm_responder_testing_other_params_support_priority_table;
 	testing->local_algorithms.algorithms_priority_table.other_params_support_priority_table_count =
 		ARRAY_SIZE (cmd_interface_spdm_responder_testing_other_params_support_priority_table);
 
 	testing->local_algorithms.algorithms_priority_table.req_asym_priority_table =
-			cmd_interface_spdm_responder_testing_req_asym_priority_table;
+		cmd_interface_spdm_responder_testing_req_asym_priority_table;
 	testing->local_algorithms.algorithms_priority_table.req_asym_priority_table_count =
 		ARRAY_SIZE (cmd_interface_spdm_responder_testing_req_asym_priority_table);
 
@@ -262,8 +269,8 @@ void cmd_interface_spdm_responder_testing_release_dependencies (CuTest *test,
 {
 	int status;
 	uint8_t idx;
-	status = spdm_transcript_manager_mock_validate_and_release (
-		&testing->transcript_manager_mock);
+
+	status = spdm_transcript_manager_mock_validate_and_release (&testing->transcript_manager_mock);
 	CuAssertIntEquals (test, 0, status);
 
 	for (idx = 0; idx < ARRAY_SIZE (testing->hash_engine_mock); idx++) {
@@ -288,8 +295,7 @@ void cmd_interface_spdm_responder_testing_release_dependencies (CuTest *test,
 	status = rng_mock_validate_and_release (&testing->rng_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spdm_secure_session_manager_mock_validate_and_release (
-		&testing->session_manager_mock);
+	status = spdm_secure_session_manager_mock_validate_and_release (&testing->session_manager_mock);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -310,10 +316,9 @@ static void cmd_interface_spdm_responder_testing_init (CuTest *test,
 		&testing->spdm_responder_state, &testing->transcript_manager_mock.base,
 		testing->hash_engine, ARRAY_SIZE (testing->hash_engine), testing->version_num,
 		ARRAY_SIZE (testing->version_num), testing->secure_message_version_num,
-		ARRAY_SIZE (testing->secure_message_version_num),
-		&testing->local_capabilities, &testing->local_algorithms,
-		&testing->key_manager, &testing->measurements_mock.base, &testing->ecc_mock.base,
-		&testing->rng_mock.base, &testing->session_manager_mock.base);
+		ARRAY_SIZE (testing->secure_message_version_num), &testing->local_capabilities,
+		&testing->local_algorithms,	&testing->key_manager, &testing->measurements_mock.base,
+		&testing->ecc_mock.base, &testing->rng_mock.base, &testing->session_manager_mock.base);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -345,13 +350,13 @@ static void cmd_interface_spdm_responder_test_static_init (CuTest *test)
 	cmd_interface_spdm_responder_testing_init_dependencies (test, &testing);
 
 	const struct cmd_interface_spdm_responder spdm_responder =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-			ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-			ARRAY_SIZE (testing.secure_message_version_num), &testing.local_capabilities,
-			&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
-			&testing.ecc_mock.base, &testing.rng_mock.base, &testing.session_manager_mock.base);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state,
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
+		&testing.session_manager_mock.base);
 
 	status = cmd_interface_spdm_responder_init_state (&spdm_responder);
 	CuAssertIntEquals (test, 0, status);
@@ -375,12 +380,11 @@ static void cmd_interface_spdm_responder_test_static_init_non_secure (CuTest *te
 	cmd_interface_spdm_responder_testing_init_dependencies (test, &testing);
 
 	const struct cmd_interface_spdm_responder spdm_responder =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-			ARRAY_SIZE (testing.version_num), NULL, 0, &testing.local_capabilities,
-			&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
-			&testing.ecc_mock.base, &testing.rng_mock.base, NULL);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state,
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		NULL, 0, &testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base, NULL);
 
 	status = cmd_interface_spdm_responder_init_state (&spdm_responder);
 	CuAssertIntEquals (test, 0, status);
@@ -402,142 +406,122 @@ static void cmd_interface_spdm_responder_test_static_init_invalid_arg (CuTest *t
 	cmd_interface_spdm_responder_testing_init_dependencies (test, &testing);
 
 	struct cmd_interface_spdm_responder spdm_responder =
-		cmd_interface_spdm_responder_static_init (
-			NULL, &testing.transcript_manager_mock.base,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine),
-			testing.version_num, ARRAY_SIZE (testing.version_num),
-			testing.secure_message_version_num, ARRAY_SIZE (testing.secure_message_version_num),
-			&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
-			&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
-			&testing.session_manager_mock.base);
+		cmd_interface_spdm_responder_static_init (NULL, &testing.transcript_manager_mock.base,
+		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
+		ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
+		ARRAY_SIZE (testing.secure_message_version_num), &testing.local_capabilities,
+		&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
+		&testing.ecc_mock.base, &testing.rng_mock.base,	&testing.session_manager_mock.base);
 
 	struct cmd_interface_spdm_responder spdm_responder2 =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, NULL,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-			ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-			ARRAY_SIZE (testing.secure_message_version_num),
-			&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
-			&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
-			&testing.session_manager_mock.base);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state, NULL,
+		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
+		ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
+		ARRAY_SIZE (testing.secure_message_version_num), &testing.local_capabilities,
+		&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
+		&testing.ecc_mock.base, &testing.rng_mock.base,	&testing.session_manager_mock.base);
 
 	struct cmd_interface_spdm_responder spdm_responder3 =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			NULL, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-			ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-			ARRAY_SIZE (testing.secure_message_version_num),
-			&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
-			&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
-			&testing.session_manager_mock.base);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state,
+		&testing.transcript_manager_mock.base, NULL, ARRAY_SIZE (testing.hash_engine),
+		testing.version_num, ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
+		ARRAY_SIZE (testing.secure_message_version_num), &testing.local_capabilities,
+		&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
+		&testing.ecc_mock.base, &testing.rng_mock.base,	&testing.session_manager_mock.base);
 
 	struct cmd_interface_spdm_responder spdm_responder4 =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine) - 1, testing.version_num,
-			ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-			ARRAY_SIZE (testing.secure_message_version_num),
-			&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
-			&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
-			&testing.session_manager_mock.base);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state,
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine) - 1, testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
+		&testing.session_manager_mock.base);
 
 	struct cmd_interface_spdm_responder spdm_responder5 =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine), NULL,
-			ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-			ARRAY_SIZE (testing.secure_message_version_num),
-			&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
-			&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
-			&testing.session_manager_mock.base);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state,
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), NULL,	ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
+		&testing.session_manager_mock.base);
 
 	struct cmd_interface_spdm_responder spdm_responder6 =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num, 0,
-			testing.secure_message_version_num, ARRAY_SIZE (testing.secure_message_version_num),
-			&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
-			&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
-			&testing.session_manager_mock.base);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state,
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, 0,
+		testing.secure_message_version_num, ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
+		&testing.session_manager_mock.base);
 
 	struct cmd_interface_spdm_responder spdm_responder7 =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-			ARRAY_SIZE (testing.version_num), NULL, ARRAY_SIZE (testing.secure_message_version_num),
-			&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
-			&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
-			&testing.session_manager_mock.base);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state,
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		NULL, ARRAY_SIZE (testing.secure_message_version_num), &testing.local_capabilities,
+		&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
+		&testing.ecc_mock.base, &testing.rng_mock.base,	&testing.session_manager_mock.base);
 
 	struct cmd_interface_spdm_responder spdm_responder8 =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-			ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-			ARRAY_SIZE (testing.secure_message_version_num),
-			NULL, &testing.local_algorithms, &testing.key_manager,
-			&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
-			&testing.session_manager_mock.base);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state,
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num), NULL,
+		&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
+		&testing.ecc_mock.base, &testing.rng_mock.base,	&testing.session_manager_mock.base);
 
 	struct cmd_interface_spdm_responder spdm_responder9 =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-			ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-			ARRAY_SIZE (testing.secure_message_version_num),
-			&testing.local_capabilities, NULL, &testing.key_manager,
-			&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
-			&testing.session_manager_mock.base);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state,
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, NULL, &testing.key_manager, &testing.measurements_mock.base,
+		&testing.ecc_mock.base, &testing.rng_mock.base,	&testing.session_manager_mock.base);
 
 	struct cmd_interface_spdm_responder spdm_responder10 =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-			ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-			ARRAY_SIZE (testing.secure_message_version_num),
-			&testing.local_capabilities, &testing.local_algorithms, NULL,
-			&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
-			&testing.session_manager_mock.base);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state,
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, NULL,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
+		&testing.session_manager_mock.base);
 
 	struct cmd_interface_spdm_responder spdm_responder11 =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-			ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-			ARRAY_SIZE (testing.secure_message_version_num),
-			&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
-			NULL, &testing.ecc_mock.base, &testing.rng_mock.base,
-			&testing.session_manager_mock.base);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state,
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager, NULL,
+		&testing.ecc_mock.base, &testing.rng_mock.base,	&testing.session_manager_mock.base);
 
 	struct cmd_interface_spdm_responder spdm_responder12 =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-			ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-			ARRAY_SIZE (testing.secure_message_version_num),
-			&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
-			&testing.measurements_mock.base, NULL, &testing.rng_mock.base,
-			&testing.session_manager_mock.base);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state,
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, NULL, &testing.rng_mock.base,
+		&testing.session_manager_mock.base);
 
 	struct cmd_interface_spdm_responder spdm_responder13 =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-			ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-			ARRAY_SIZE (testing.secure_message_version_num),
-			&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
-			&testing.measurements_mock.base, &testing.ecc_mock.base, NULL,
-			&testing.session_manager_mock.base);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state,
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, NULL,
+		&testing.session_manager_mock.base);
 
 	struct cmd_interface_spdm_responder spdm_responder14 =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-			ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-			ARRAY_SIZE (testing.secure_message_version_num),
-			&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
-			&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
-			NULL);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state,
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base, NULL);
 
 	TEST_START;
 
@@ -613,14 +597,13 @@ static void cmd_interface_spdm_responder_test_static_init_incompatible_capabilit
 	testing.local_capabilities.flags.mac_cap = 0;
 
 	const struct cmd_interface_spdm_responder spdm_responder =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-			ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-			ARRAY_SIZE (testing.secure_message_version_num),
-			&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
-			&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
-			&testing.session_manager_mock.base);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state,
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
+		&testing.session_manager_mock.base);
 
 	status = cmd_interface_spdm_responder_init_state (&spdm_responder);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INCOMPATIBLE_CAPABILITIES, status);
@@ -642,14 +625,13 @@ static void cmd_interface_spdm_responder_test_static_init_ct_exponent_gt_max (Cu
 	testing.local_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT + 1;
 
 	const struct cmd_interface_spdm_responder spdm_responder =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-			ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-			ARRAY_SIZE (testing.secure_message_version_num),
-			&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
-			&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
-			&testing.session_manager_mock.base);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state,
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
+		&testing.session_manager_mock.base);
 
 	status = cmd_interface_spdm_responder_init_state (&spdm_responder);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY, status);
@@ -672,14 +654,13 @@ static void cmd_interface_spdm_responder_test_static_init_data_transfer_size_lt_
 	testing.local_capabilities.data_transfer_size = SPDM_MIN_DATA_TRANSFER_SIZE_VERSION_1_2 - 1;
 
 	const struct cmd_interface_spdm_responder spdm_responder =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-			ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-			ARRAY_SIZE (testing.secure_message_version_num),
-			&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
-			&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
-			&testing.session_manager_mock.base);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state,
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
+		&testing.session_manager_mock.base);
 
 	status = cmd_interface_spdm_responder_init_state (&spdm_responder);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY, status);
@@ -703,21 +684,20 @@ static void cmd_interface_spdm_responder_test_static_init_data_transfer_size_gt_
 		testing.local_capabilities.max_spdm_msg_size + 1;
 
 	const struct cmd_interface_spdm_responder spdm_responder =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-			ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-			ARRAY_SIZE (testing.secure_message_version_num),
-			&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
-			&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
-			&testing.session_manager_mock.base);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state,
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
+		&testing.session_manager_mock.base);
 
 	status = cmd_interface_spdm_responder_init_state (&spdm_responder);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY, status);
 
 	cmd_interface_spdm_responder_deinit (&spdm_responder);
 
-	cmd_interface_spdm_responder_testing_release_dependencies(test, &testing);
+	cmd_interface_spdm_responder_testing_release_dependencies (test, &testing);
 }
 
 static void cmd_interface_spdm_responder_test_static_init_data_transfer_size_ne_max_size (
@@ -735,21 +715,20 @@ static void cmd_interface_spdm_responder_test_static_init_data_transfer_size_ne_
 		testing.local_capabilities.data_transfer_size + 1;
 
 	const struct cmd_interface_spdm_responder spdm_responder =
-		cmd_interface_spdm_responder_static_init (
-			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-			ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-			ARRAY_SIZE (testing.secure_message_version_num),
-			&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
-			&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
-			&testing.session_manager_mock.base);
+		cmd_interface_spdm_responder_static_init (&testing.spdm_responder_state,
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
+		&testing.session_manager_mock.base);
 
 	status = cmd_interface_spdm_responder_init_state (&spdm_responder);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY, status);
 
 	cmd_interface_spdm_responder_deinit (&spdm_responder);
 
-	cmd_interface_spdm_responder_testing_release_dependencies(test, &testing);
+	cmd_interface_spdm_responder_testing_release_dependencies (test, &testing);
 }
 
 static void cmd_interface_spdm_responder_test_init (CuTest *test)
@@ -762,10 +741,9 @@ static void cmd_interface_spdm_responder_test_init (CuTest *test)
 	cmd_interface_spdm_responder_testing_init_dependencies (test, &testing);
 
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
-		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-		ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-		ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
 		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
 		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
 		&testing.session_manager_mock.base);
@@ -790,11 +768,10 @@ static void cmd_interface_spdm_responder_test_init_non_secure (CuTest *test)
 	cmd_interface_spdm_responder_testing_init_dependencies (test, &testing);
 
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
-		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-		ARRAY_SIZE (testing.version_num), NULL,	0, &testing.local_capabilities,
-		&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
-		&testing.ecc_mock.base, &testing.rng_mock.base, NULL);
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		NULL, 0, &testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, testing.spdm_responder.base.process_request);
@@ -817,8 +794,8 @@ static void cmd_interface_spdm_responder_test_init_invalid_arg (CuTest *test)
 
 	/* spdm_responder = NULL */
 	status = cmd_interface_spdm_responder_init (NULL, &testing.spdm_responder_state,
-		&testing.transcript_manager_mock.base, testing.hash_engine, ARRAY_SIZE (testing.hash_engine),
-		testing.version_num, ARRAY_SIZE (testing.version_num),
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
 		testing.secure_message_version_num, ARRAY_SIZE (testing.secure_message_version_num),
 		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
 		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
@@ -827,8 +804,8 @@ static void cmd_interface_spdm_responder_test_init_invalid_arg (CuTest *test)
 
 	/* state = NULL */
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder, NULL,
-		&testing.transcript_manager_mock.base, testing.hash_engine, ARRAY_SIZE (testing.hash_engine),
-		testing.version_num, ARRAY_SIZE (testing.version_num),
+		&testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
 		testing.secure_message_version_num, ARRAY_SIZE (testing.secure_message_version_num),
 		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
 		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
@@ -838,11 +815,10 @@ static void cmd_interface_spdm_responder_test_init_invalid_arg (CuTest *test)
 	/* transcript_manager = NULL */
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
 		&testing.spdm_responder_state, NULL, testing.hash_engine, ARRAY_SIZE (testing.hash_engine),
-		testing.version_num, ARRAY_SIZE (testing.version_num),
-		testing.secure_message_version_num, ARRAY_SIZE (testing.secure_message_version_num),
-		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
-		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
-		&testing.session_manager_mock.base);
+		testing.version_num, ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
+		ARRAY_SIZE (testing.secure_message_version_num), &testing.local_capabilities,
+		&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
+		&testing.ecc_mock.base, &testing.rng_mock.base,	&testing.session_manager_mock.base);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
 
 	/* hash_engine = NULL */
@@ -867,8 +843,8 @@ static void cmd_interface_spdm_responder_test_init_invalid_arg (CuTest *test)
 
 	/* version_num = NULL */
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
-		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), NULL, ARRAY_SIZE (testing.version_num),
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), NULL, ARRAY_SIZE (testing.version_num),
 		testing.secure_message_version_num, ARRAY_SIZE (testing.secure_message_version_num),
 		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
 		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
@@ -877,8 +853,8 @@ static void cmd_interface_spdm_responder_test_init_invalid_arg (CuTest *test)
 
 	/* version_num_count = 0 */
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
-		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num, 0,
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, 0,
 		testing.secure_message_version_num, ARRAY_SIZE (testing.secure_message_version_num),
 		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
 		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
@@ -887,79 +863,74 @@ static void cmd_interface_spdm_responder_test_init_invalid_arg (CuTest *test)
 
 	/* secure_message_version_num_count > 0 && secure_message_version_num = NULL */
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
-		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-		ARRAY_SIZE (testing.version_num), NULL, ARRAY_SIZE (testing.secure_message_version_num),
-		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
-		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
-		&testing.session_manager_mock.base);
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		NULL, ARRAY_SIZE (testing.secure_message_version_num), &testing.local_capabilities,
+		&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
+		&testing.ecc_mock.base, &testing.rng_mock.base,	&testing.session_manager_mock.base);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
 
 	/* local_capabilities = NULL */
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
-		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-		ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-		ARRAY_SIZE (testing.secure_message_version_num), NULL, &testing.local_algorithms,
-		&testing.key_manager, &testing.measurements_mock.base, &testing.ecc_mock.base,
-		&testing.rng_mock.base, &testing.session_manager_mock.base);
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num), NULL,
+		&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
+		&testing.ecc_mock.base,	&testing.rng_mock.base, &testing.session_manager_mock.base);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
 
 	/* local_algorithms = NULL */
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
-		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-		ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-		ARRAY_SIZE (testing.secure_message_version_num), &testing.local_capabilities, NULL,
-		&testing.key_manager, &testing.measurements_mock.base, &testing.ecc_mock.base,
-		&testing.rng_mock.base, &testing.session_manager_mock.base);
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, NULL, &testing.key_manager, &testing.measurements_mock.base,
+		&testing.ecc_mock.base,	&testing.rng_mock.base, &testing.session_manager_mock.base);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
 
 	/* key_manager = NULL */
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
-		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-		ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-		ARRAY_SIZE (testing.secure_message_version_num), &testing.local_capabilities,
-		&testing.local_algorithms, NULL, &testing.measurements_mock.base, &testing.ecc_mock.base,
-		&testing.rng_mock.base, &testing.session_manager_mock.base);
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, NULL,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
+		&testing.session_manager_mock.base);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
 
 	/* measurements = NULL */
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
-		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-		ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-		ARRAY_SIZE (testing.secure_message_version_num), &testing.local_capabilities,
-		&testing.local_algorithms, &testing.key_manager, NULL, &testing.ecc_mock.base,
-		&testing.rng_mock.base, &testing.session_manager_mock.base);
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager, NULL,
+		&testing.ecc_mock.base,	&testing.rng_mock.base, &testing.session_manager_mock.base);
 
 	/* ecc = NULL */
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
-		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-		ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-		ARRAY_SIZE (testing.secure_message_version_num), &testing.local_capabilities,
-		&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base, NULL,
-		&testing.rng_mock.base, &testing.session_manager_mock.base);
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, NULL, &testing.rng_mock.base,
+		&testing.session_manager_mock.base);
 
 	/* rng = NULL */
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
-		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-		ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-		ARRAY_SIZE (testing.secure_message_version_num), &testing.local_capabilities,
-		&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
-		&testing.ecc_mock.base, NULL, &testing.session_manager_mock.base);
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, NULL,
+		&testing.session_manager_mock.base);
 
 	/* session_manager = NULL */
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
-		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-		ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-		ARRAY_SIZE (testing.secure_message_version_num), &testing.local_capabilities,
-		&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
-		&testing.ecc_mock.base, &testing.rng_mock.base, NULL);
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base, NULL);
 
 	cmd_interface_spdm_responder_testing_release_dependencies (test, &testing);
 }
@@ -977,15 +948,15 @@ static void cmd_interface_spdm_responder_test_init_incompatible_capabilities (Cu
 	testing.local_capabilities.flags.mac_cap = 0;
 
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
-		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-		ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-		ARRAY_SIZE (testing.secure_message_version_num), &testing.local_capabilities,
-		&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
-		&testing.ecc_mock.base, &testing.rng_mock.base, &testing.session_manager_mock.base);
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
+		&testing.session_manager_mock.base);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INCOMPATIBLE_CAPABILITIES, status);
 
-	cmd_interface_spdm_responder_testing_release_dependencies(test, &testing);
+	cmd_interface_spdm_responder_testing_release_dependencies (test, &testing);
 }
 
 static void cmd_interface_spdm_responder_test_init_ct_exponent_gt_max (CuTest *test)
@@ -1000,15 +971,15 @@ static void cmd_interface_spdm_responder_test_init_ct_exponent_gt_max (CuTest *t
 	testing.local_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT + 1;
 
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
-		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-		ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-		ARRAY_SIZE (testing.secure_message_version_num), &testing.local_capabilities,
-		&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
-		&testing.ecc_mock.base, &testing.rng_mock.base, &testing.session_manager_mock.base);
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
+		&testing.session_manager_mock.base);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY, status);
 
-	cmd_interface_spdm_responder_testing_release_dependencies(test, &testing);
+	cmd_interface_spdm_responder_testing_release_dependencies (test, &testing);
 }
 
 static void cmd_interface_spdm_responder_test_init_data_transfer_size_lt_min_size (CuTest *test)
@@ -1023,15 +994,15 @@ static void cmd_interface_spdm_responder_test_init_data_transfer_size_lt_min_siz
 	testing.local_capabilities.data_transfer_size = SPDM_MIN_DATA_TRANSFER_SIZE_VERSION_1_2 - 1;
 
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
-		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-		ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-		ARRAY_SIZE (testing.secure_message_version_num), &testing.local_capabilities,
-		&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
-		&testing.ecc_mock.base, &testing.rng_mock.base, &testing.session_manager_mock.base);
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
+		&testing.session_manager_mock.base);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY, status);
 
-	cmd_interface_spdm_responder_testing_release_dependencies(test, &testing);
+	cmd_interface_spdm_responder_testing_release_dependencies (test, &testing);
 }
 
 static void cmd_interface_spdm_responder_test_init_data_transfer_size_gt_max_size (CuTest *test)
@@ -1047,15 +1018,15 @@ static void cmd_interface_spdm_responder_test_init_data_transfer_size_gt_max_siz
 		testing.local_capabilities.max_spdm_msg_size + 1;
 
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
-		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-		ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-		ARRAY_SIZE (testing.secure_message_version_num), &testing.local_capabilities,
-		&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
-		&testing.ecc_mock.base, &testing.rng_mock.base, &testing.session_manager_mock.base);
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
+		&testing.session_manager_mock.base);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY, status);
 
-	cmd_interface_spdm_responder_testing_release_dependencies(test, &testing);
+	cmd_interface_spdm_responder_testing_release_dependencies (test, &testing);
 }
 
 static void cmd_interface_spdm_responder_test_init_data_transfer_size_ne_max_size (CuTest *test)
@@ -1072,15 +1043,15 @@ static void cmd_interface_spdm_responder_test_init_data_transfer_size_ne_max_siz
 		testing.local_capabilities.data_transfer_size + 1;
 
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
-		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
-		ARRAY_SIZE (testing.version_num), testing.secure_message_version_num,
-		ARRAY_SIZE (testing.secure_message_version_num), &testing.local_capabilities,
-		&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
-		&testing.ecc_mock.base, &testing.rng_mock.base, &testing.session_manager_mock.base);
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine), testing.version_num, ARRAY_SIZE (testing.version_num),
+		testing.secure_message_version_num,	ARRAY_SIZE (testing.secure_message_version_num),
+		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
+		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
+		&testing.session_manager_mock.base);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY, status);
 
-	cmd_interface_spdm_responder_testing_release_dependencies(test, &testing);
+	cmd_interface_spdm_responder_testing_release_dependencies (test, &testing);
 }
 
 static void cmd_interface_spdm_responder_test_process_request_get_version (CuTest *test)
@@ -1130,29 +1101,26 @@ static void cmd_interface_spdm_responder_test_process_request_get_version (CuTes
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.reset,
-		&testing.transcript_manager_mock.base, 0);
+		testing.transcript_manager_mock.base.reset,	&testing.transcript_manager_mock.base, 0);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update,
-		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
 		MOCK_ARG_PTR_CONTAINS (&rq, sizeof (struct spdm_get_version_request)),
 		MOCK_ARG (sizeof (struct spdm_get_version_request)), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
-		testing.session_manager_mock.base.reset,
-		&testing.session_manager_mock.base, 0);
+		testing.session_manager_mock.base.reset, &testing.session_manager_mock.base, 0);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update,
-		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
 		MOCK_ARG_PTR_CONTAINS (expected_rsp, sizeof (struct spdm_get_version_response) +
-			version_length),
-		MOCK_ARG (sizeof (struct spdm_get_version_response) + version_length),
+		version_length), MOCK_ARG (sizeof (struct spdm_get_version_response) + version_length),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
@@ -1206,7 +1174,7 @@ static void cmd_interface_spdm_responder_test_process_request_get_version_fail (
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
@@ -1262,7 +1230,7 @@ static void cmd_interface_spdm_responder_test_process_request_get_capabilities (
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
@@ -1270,15 +1238,14 @@ static void cmd_interface_spdm_responder_test_process_request_get_capabilities (
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update,
-		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
 		MOCK_ARG_PTR_CONTAINS (&rq, sizeof (struct spdm_get_capabilities)),
 		MOCK_ARG (sizeof (struct spdm_get_capabilities)), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update,
-		&testing.transcript_manager_mock.base, 0,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
 		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (sizeof (struct spdm_get_capabilities)), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
@@ -1313,7 +1280,7 @@ static void cmd_interface_spdm_responder_test_process_request_get_capabilities (
 
 static void cmd_interface_spdm_responder_test_process_request_get_capabilities_fail (CuTest *test)
 {
-uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg request;
 	struct spdm_get_capabilities rq = {0};
 	int status;
@@ -1351,7 +1318,7 @@ uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
@@ -1445,7 +1412,7 @@ static void cmd_interface_spdm_responder_test_process_request_negotiate_algorith
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
@@ -1453,22 +1420,19 @@ static void cmd_interface_spdm_responder_test_process_request_negotiate_algorith
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update,
-		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
-		MOCK_ARG_PTR_CONTAINS (&rq_copy, req_length),
-		MOCK_ARG (req_length), MOCK_ARG (false),
-		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),	MOCK_ARG_PTR_CONTAINS (&rq_copy, req_length),
+		MOCK_ARG (req_length), MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update,
-		&testing.transcript_manager_mock.base, 0,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
 		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_PTR_PTR_NOT_NULL,
 		MOCK_ARG (sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg)), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.set_hash_algo,
-		&testing.transcript_manager_mock.base, 0, MOCK_ARG_NOT_NULL);
+		testing.transcript_manager_mock.base.set_hash_algo,	&testing.transcript_manager_mock.base,
+		0, MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1529,7 +1493,7 @@ static void cmd_interface_spdm_responder_test_process_request_negotiate_algorith
 	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE,
 		resp_no_ext_alg->algstruct_table[3].alg_type);
 	CuAssertIntEquals (test, local_algorithms->device_algorithms.key_schedule,
-		resp_no_ext_alg->algstruct_table[3].alg_supported) ;
+		resp_no_ext_alg->algstruct_table[3].alg_supported);
 
 	CuAssertIntEquals (test, local_algorithms->device_algorithms.aead_cipher_suite,
 		spdm_state->connection_info.peer_algorithms.aead_cipher_suite);
@@ -1592,7 +1556,7 @@ static void cmd_interface_spdm_responder_test_process_request_negotiate_algorith
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
@@ -1616,10 +1580,12 @@ static void cmd_interface_spdm_responder_test_process_request_get_digests (CuTes
 	struct cmd_interface_spdm_responder *spdm_responder;
 	struct spdm_state *spdm_state;
 	struct cmd_interface_spdm_responder_testing testing;
-	uint8_t expected_digest[SHA384_HASH_LENGTH] = { 0xe0, 0xd3, 0x9f, 0x09, 0xd2, 0xea, 0x3c,
+	uint8_t expected_digest[SHA384_HASH_LENGTH] = {
+		0xe0, 0xd3, 0x9f, 0x09, 0xd2, 0xea, 0x3c,
 		0x9b, 0x0a, 0xeb, 0xb0, 0x50, 0xd9, 0x4f, 0x31, 0x44, 0xa7, 0x5e, 0x17, 0xd2, 0x15, 0x23,
 		0x5f, 0xd3, 0x25, 0x0f, 0x0e, 0x56, 0x2a, 0xaf, 0x29, 0xde, 0x0e, 0xe9, 0x51, 0xe1, 0xdc,
-		0x01, 0x81, 0x88, 0x50, 0xd2, 0x2a, 0x4a, 0x0d, 0xce, 0xca, 0x01 };
+		0x01, 0x81, 0x88, 0x50, 0xd2, 0x2a, 0x4a, 0x0d, 0xce, 0xca, 0x01
+	};
 
 	TEST_START;
 
@@ -1650,7 +1616,7 @@ static void cmd_interface_spdm_responder_test_process_request_get_digests (CuTes
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.is_last_session_id_valid,
@@ -1667,49 +1633,42 @@ static void cmd_interface_spdm_responder_test_process_request_get_digests (CuTes
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update,
-		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
 		MOCK_ARG_PTR_CONTAINS (&rq, sizeof (struct spdm_get_digests_request)),
 		MOCK_ARG (sizeof (struct spdm_get_digests_request)), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
-		testing.hash_engine_mock[0].base.calculate_sha384,
-		&testing.hash_engine_mock[0].base, 0,
+		testing.hash_engine_mock[0].base.calculate_sha384, &testing.hash_engine_mock[0].base, 0,
 		MOCK_ARG_PTR (testing.key_manager.root_ca.cert),
-		MOCK_ARG (testing.key_manager.root_ca.length),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+		MOCK_ARG (testing.key_manager.root_ca.length), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
-		testing.hash_engine_mock[0].base.start_sha384,
-		&testing.hash_engine_mock[0].base, 0);
+		testing.hash_engine_mock[0].base.start_sha384, &testing.hash_engine_mock[0].base, 0);
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
-		testing.hash_engine_mock[0].base.update,
-		&testing.hash_engine_mock[0].base, 0,
+		testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	for (uint8_t i = 0; i < SPDM_MAX_CERT_COUNT_IN_CHAIN; i++) {
 		status |= mock_expect (&testing.hash_engine_mock[0].mock,
-			testing.hash_engine_mock[0].base.update,
-			&testing.hash_engine_mock[0].base, 0,
+			testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
 			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	}
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
-		testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_NOT_NULL);
+		testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&testing.hash_engine_mock[0].mock, 0, expected_digest,
 		sizeof (expected_digest), -1);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update,
-		&testing.transcript_manager_mock.base, 0,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
 		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
-		MOCK_ARG_PTR_CONTAINS (rsp,
-			sizeof (struct spdm_get_digests_response) + SHA384_HASH_LENGTH),
-		MOCK_ARG (sizeof (struct spdm_get_digests_response) + SHA384_HASH_LENGTH),
-		MOCK_ARG (false),
+		MOCK_ARG_PTR_CONTAINS (rsp,	sizeof (struct spdm_get_digests_response) + SHA384_HASH_LENGTH),
+		MOCK_ARG (sizeof (struct spdm_get_digests_response) + SHA384_HASH_LENGTH), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1763,7 +1722,7 @@ static void cmd_interface_spdm_responder_test_process_request_get_digests_fail (
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
@@ -1826,7 +1785,7 @@ static void cmd_interface_spdm_responder_test_process_request_get_certificate (C
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.is_last_session_id_valid,
@@ -1838,27 +1797,25 @@ static void cmd_interface_spdm_responder_test_process_request_get_certificate (C
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update,
-		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
 		MOCK_ARG_PTR_CONTAINS (&rq, sizeof (struct spdm_get_certificate_request)),
 		MOCK_ARG (sizeof (struct spdm_get_certificate_request)), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
-		testing.hash_engine_mock[0].base.calculate_sha384,
-		&testing.hash_engine_mock[0].base, 0,
+		testing.hash_engine_mock[0].base.calculate_sha384, &testing.hash_engine_mock[0].base, 0,
 		MOCK_ARG_PTR (testing.key_manager.root_ca.cert),
-		MOCK_ARG (testing.key_manager.root_ca.length),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+		MOCK_ARG (testing.key_manager.root_ca.length), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH));
 	status |= mock_expect_output (&testing.hash_engine_mock[0].mock, 2, SHA384_TEST_HASH,
 		SHA384_HASH_LENGTH, -1);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update,
-		&testing.transcript_manager_mock.base, 0,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
 		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
 		MOCK_ARG_PTR_CONTAINS (rsp,
-			(cert_chain_length + sizeof (struct spdm_get_certificate_response))),
+		(cert_chain_length + sizeof (struct spdm_get_certificate_response))),
 		MOCK_ARG (cert_chain_length + sizeof (struct spdm_get_certificate_response)),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
@@ -1881,28 +1838,28 @@ static void cmd_interface_spdm_responder_test_process_request_get_certificate (C
 	CuAssertIntEquals (test, SPDM_CONNECTION_STATE_AFTER_CERTIFICATE,
 		spdm_state->connection_info.connection_state);
 
-	cert_chain_header = (struct spdm_cert_chain_header*)(rsp + 1);
+	cert_chain_header = (struct spdm_cert_chain_header*) (rsp + 1);
 	CuAssertIntEquals (test, cert_chain_length, cert_chain_header->length);
 	CuAssertIntEquals (test, 0, cert_chain_header->reserved);
 
 	status = testing_validate_array (SHA384_TEST_HASH, cert_chain_header + 1, SHA384_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = memcmp ((uint8_t*)cert_chain_header + sizeof (struct spdm_cert_chain_header) +
+	status = memcmp ((uint8_t*) cert_chain_header + sizeof (struct spdm_cert_chain_header) +
 		SHA384_HASH_LENGTH, key_manager->root_ca.cert, key_manager->root_ca.length);
 	CuAssertIntEquals (test, 0, status);
 
-	status = memcmp ((uint8_t*)cert_chain_header + sizeof (struct spdm_cert_chain_header) +
+	status = memcmp ((uint8_t*) cert_chain_header + sizeof (struct spdm_cert_chain_header) +
 		SHA384_HASH_LENGTH + key_manager->root_ca.length, key_manager->intermediate_ca.cert,
 		key_manager->intermediate_ca.length);
 	CuAssertIntEquals (test, 0, status);
 
-	status = memcmp ((uint8_t*)cert_chain_header + sizeof (struct spdm_cert_chain_header) +
+	status = memcmp ((uint8_t*) cert_chain_header + sizeof (struct spdm_cert_chain_header) +
 		SHA384_HASH_LENGTH + key_manager->root_ca.length + key_manager->intermediate_ca.length,
 		key_manager->keys.devid_cert, key_manager->keys.devid_cert_length);
 	CuAssertIntEquals (test, 0, status);
 
-	status = memcmp ((uint8_t*)cert_chain_header + sizeof (struct spdm_cert_chain_header) +
+	status = memcmp ((uint8_t*) cert_chain_header + sizeof (struct spdm_cert_chain_header) +
 		SHA384_HASH_LENGTH + key_manager->root_ca.length + key_manager->intermediate_ca.length +
 		key_manager->keys.devid_cert_length, key_manager->keys.alias_cert,
 		key_manager->keys.alias_cert_length);
@@ -1944,7 +1901,7 @@ static void cmd_interface_spdm_responder_test_process_request_get_certificate_fa
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_responder->base.process_request (&spdm_responder->base, &request);
@@ -2013,11 +1970,11 @@ static void cmd_interface_spdm_responder_test_process_request_get_measurements (
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.is_last_session_id_valid,
-		&testing.session_manager_mock.base, 0);	
+		&testing.session_manager_mock.base, 0);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
@@ -2025,40 +1982,34 @@ static void cmd_interface_spdm_responder_test_process_request_get_measurements (
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update,
-		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
 		MOCK_ARG_PTR_CONTAINS (&rq, sizeof (struct spdm_get_measurements_request)),
 		MOCK_ARG (sizeof (struct spdm_get_measurements_request)), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.measurements_mock.mock,
-		testing.measurements_mock.base.get_measurement_count,
-		&testing.measurements_mock.base, measurement_count);
+		testing.measurements_mock.base.get_measurement_count, &testing.measurements_mock.base,
+		measurement_count);
 
 	status |= mock_expect (&testing.measurements_mock.mock,
-		testing.measurements_mock.base.get_all_measurement_blocks,
-		&testing.measurements_mock.base, measurement_length,
-		MOCK_ARG (rq.raw_bit_stream_requested),
+		testing.measurements_mock.base.get_all_measurement_blocks, &testing.measurements_mock.base,
+		measurement_length,	MOCK_ARG (rq.raw_bit_stream_requested),
 		MOCK_ARG_PTR (&testing.hash_engine_mock[0].base), MOCK_ARG (HASH_TYPE_SHA384),
-		MOCK_ARG_NOT_NULL,
-		MOCK_ARG (request.max_response - SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (request.max_response - SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH));
 	status |= mock_expect_output (&testing.measurements_mock.mock, 3, expected_measurement_record,
 		measurement_length, -1);
 
-	status |= mock_expect (&testing.rng_mock.mock,
-		testing.rng_mock.base.generate_random_buffer, &testing.rng_mock, 0,
-		MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&testing.rng_mock.mock, 1, expected_nonce,
-		SPDM_NONCE_LEN, -1);
+	status |= mock_expect (&testing.rng_mock.mock, testing.rng_mock.base.generate_random_buffer,
+		&testing.rng_mock, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.rng_mock.mock, 1, expected_nonce, SPDM_NONCE_LEN, -1);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update,
-		&testing.transcript_manager_mock.base, 0,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
 		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
-		MOCK_ARG_PTR_CONTAINS (rsp,
-			(SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + measurement_length)),
-		MOCK_ARG (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + measurement_length),
-		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+		MOCK_ARG_PTR_CONTAINS (rsp,	(SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + measurement_length)),
+		MOCK_ARG (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + measurement_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2074,12 +2025,14 @@ static void cmd_interface_spdm_responder_test_process_request_get_measurements (
 	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
 	CuAssertIntEquals (test, SPDM_RESPONSE_GET_MEASUREMENTS, rsp->header.req_rsp_code);
 	CuAssertIntEquals (test, measurement_count, rsp->number_of_blocks);
-	CuAssertIntEquals (test, 0, memcmp (&measurement_length, rsp->measurement_record_len,
+	CuAssertIntEquals (test, 0,
+		memcmp (&measurement_length, rsp->measurement_record_len,
 		sizeof (rsp->measurement_record_len)));
-	CuAssertIntEquals (test, 0, memcmp (&expected_measurement_record,
-		spdm_get_measurements_resp_measurement_record (rsp), measurement_length));
-	CuAssertIntEquals (test, 0, memcmp (&expected_nonce, spdm_get_measurements_resp_nonce (rsp),
-		SPDM_NONCE_LEN));
+	CuAssertIntEquals (test, 0,
+		memcmp (&expected_measurement_record, spdm_get_measurements_resp_measurement_record (rsp),
+		measurement_length));
+	CuAssertIntEquals (test, 0,
+		memcmp (&expected_nonce, spdm_get_measurements_resp_nonce (rsp), SPDM_NONCE_LEN));
 
 	cmd_interface_spdm_responder_testing_release (test, &testing);
 }
@@ -2120,7 +2073,7 @@ static void cmd_interface_spdm_responder_test_process_request_get_measurements_f
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.is_last_session_id_valid,
@@ -2158,19 +2111,21 @@ static void cmd_interface_spdm_responder_test_process_request_key_exchange (CuTe
 	size_t sig_size = (ECC_KEY_LENGTH_384 << 1);
 	uint8_t *ptr;
 	uint16_t opaque_rq_data_length = sizeof (struct spdm_general_opaque_data_table_header) +
-			   sizeof (struct spdm_secured_message_opaque_element_table_header) +
-			   sizeof (struct spdm_secured_message_opaque_element_supported_version) +
-			   sizeof (struct spdm_version_number) * 1 /* Secure Version Count */;
-	opaque_rq_data_length = (opaque_rq_data_length + 3) & ~3; /* Add Padding. */
-	
+		sizeof (struct spdm_secured_message_opaque_element_table_header) +
+		sizeof (struct spdm_secured_message_opaque_element_supported_version) +
+		sizeof (struct spdm_version_number) * 1	/* Secure Version Count */;
+
+	opaque_rq_data_length = (opaque_rq_data_length + 3) & ~3;	/* Add Padding. */
+
 	uint16_t opaque_resp_data_length = sizeof (struct spdm_general_opaque_data_table_header) +
-			   sizeof (struct spdm_secured_message_opaque_element_table_header) +
-			   sizeof (struct spdm_secured_message_opaque_element_version_selection);
-	opaque_resp_data_length = (opaque_resp_data_length + 3) & ~3; /* Add Padding. */
+		sizeof (struct spdm_secured_message_opaque_element_table_header) +
+		sizeof (struct spdm_secured_message_opaque_element_version_selection);
+
+	opaque_resp_data_length = (opaque_resp_data_length + 3) & ~3;	/* Add Padding. */
 
 	size_t response_size = sizeof (struct spdm_key_exchange_response) + dhe_key_size +
 		SHA384_HASH_LENGTH /* measurement summary hash*/ + sizeof (uint16_t) +
-		opaque_resp_data_length + sig_size + SHA384_HASH_LENGTH /* HMAC */;
+		opaque_resp_data_length + sig_size + SHA384_HASH_LENGTH	/* HMAC */;
 
 	struct spdm_general_opaque_data_table_header *general_opaque_data_table_header;
 	struct spdm_secured_message_opaque_element_table_header *opaque_element_table_header;
@@ -2189,8 +2144,8 @@ static void cmd_interface_spdm_responder_test_process_request_key_exchange (CuTe
 	request.data = buf;
 	request.payload = (uint8_t*) rq;
 	request.max_response = sizeof (buf);
-	request.payload_length = 
-		sizeof (struct spdm_key_exchange_request) + dhe_key_size + sizeof (uint16_t) + 
+	request.payload_length =
+		sizeof (struct spdm_key_exchange_request) + dhe_key_size + sizeof (uint16_t) +
 		opaque_rq_data_length;
 	request.length = request.payload_length;
 
@@ -2200,11 +2155,13 @@ static void cmd_interface_spdm_responder_test_process_request_key_exchange (CuTe
 	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
 	spdm_state->connection_info.peer_capabilities.flags.key_ex_cap = 1;
 	spdm_state->connection_info.peer_algorithms.measurement_spec = SPDM_MEASUREMENT_SPEC_DMTF;
-	spdm_state->connection_info.peer_algorithms.measurement_hash_algo = SPDM_MEAS_RSP_TPM_ALG_SHA_384;
+	spdm_state->connection_info.peer_algorithms.measurement_hash_algo =
+		SPDM_MEAS_RSP_TPM_ALG_SHA_384;
 	spdm_state->connection_info.peer_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_384;
 	spdm_state->connection_info.peer_algorithms.base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P384;
-	spdm_state->connection_info.peer_algorithms.dhe_named_group = SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
-	spdm_state->connection_info.peer_algorithms.other_params_support.opaque_data_format = 
+	spdm_state->connection_info.peer_algorithms.dhe_named_group =
+		SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
+	spdm_state->connection_info.peer_algorithms.other_params_support.opaque_data_format =
 		SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1;
 
 	rq->header.req_rsp_code = SPDM_REQUEST_KEY_EXCHANGE;
@@ -2220,49 +2177,51 @@ static void cmd_interface_spdm_responder_test_process_request_key_exchange (CuTe
 	ptr += dhe_key_size;
 
 	/* Set opaque data length. */
-	ptr[0] = (uint8_t)(opaque_rq_data_length & 0xFF);
-	ptr[1] = (uint8_t)((opaque_rq_data_length >> 8) & 0xFF);
+	ptr[0] = (uint8_t) (opaque_rq_data_length & 0xFF);
+	ptr[1] = (uint8_t) ((opaque_rq_data_length >> 8) & 0xFF);
 	ptr += sizeof (uint16_t);
 
 	general_opaque_data_table_header = (struct spdm_general_opaque_data_table_header*) ptr;
 	general_opaque_data_table_header->total_elements = 1;
-	opaque_element_table_header = 
-		(struct spdm_secured_message_opaque_element_table_header*)(general_opaque_data_table_header + 1);
+	opaque_element_table_header =
+		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
-		sizeof(struct spdm_secured_message_opaque_element_supported_version) +
-		sizeof(struct spdm_version_number) *
+		sizeof (struct spdm_secured_message_opaque_element_supported_version) +
+		sizeof (struct spdm_version_number) *
 		1 /* Secure Version Count */;
 
-	opaque_element_support_version = (void *)(opaque_element_table_header + 1);
+	opaque_element_support_version = (void*) (opaque_element_table_header + 1);
 	opaque_element_support_version->sm_data_version =
 		SPDM_SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_DATA_VERSION;
 	opaque_element_support_version->sm_data_id =
 		SPDM_SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_ID_SUPPORTED_VERSION;
-	opaque_element_support_version->version_count = 1; /*Secure Version Count */
+	opaque_element_support_version->version_count = 1;	/*Secure Version Count */
 
-	versions_list = (void *)(opaque_element_support_version + 1);
+	versions_list = (void*) (opaque_element_support_version + 1);
 	versions_list->major_version = 1;
 	versions_list->minor_version = 0;
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.is_last_session_id_valid,
 		&testing.session_manager_mock.base, 0);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
-		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2), MOCK_ARG (false),
-		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
-		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2), MOCK_ARG (false),
-		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
@@ -2270,72 +2229,64 @@ static void cmd_interface_spdm_responder_test_process_request_key_exchange (CuTe
 		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
-		testing.hash_engine_mock[0].base.calculate_sha384,
-		&testing.hash_engine_mock[0].base, 0,
+		testing.hash_engine_mock[0].base.calculate_sha384, &testing.hash_engine_mock[0].base, 0,
 		MOCK_ARG_PTR (testing.key_manager.root_ca.cert),
-		MOCK_ARG (testing.key_manager.root_ca.length),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+		MOCK_ARG (testing.key_manager.root_ca.length), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
-		testing.hash_engine_mock[0].base.start_sha384,
-		&testing.hash_engine_mock[0].base, 0);
+		testing.hash_engine_mock[0].base.start_sha384, &testing.hash_engine_mock[0].base, 0);
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
-		testing.hash_engine_mock[0].base.update,
-		&testing.hash_engine_mock[0].base, 0,
+		testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	for (uint8_t i = 0; i < SPDM_MAX_CERT_COUNT_IN_CHAIN; i++) {
 		status |= mock_expect (&testing.hash_engine_mock[0].mock,
-			testing.hash_engine_mock[0].base.update,
-			&testing.hash_engine_mock[0].base, 0,
+			testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
 			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	}
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
-		testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base,
-		0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base,	0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base,
-		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG (true), MOCK_ARG (0));
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base,	0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG (true), MOCK_ARG (0));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update,
-		&testing.transcript_manager_mock.base, 0,
-		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_PTR (rq),
-		MOCK_ARG (request.payload_length), MOCK_ARG (true),
-		MOCK_ARG (0));
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_PTR (rq), MOCK_ARG (request.payload_length),
+		MOCK_ARG (true), MOCK_ARG (0));
 
-	status |= mock_expect (&testing.rng_mock.mock,
-		testing.rng_mock.base.generate_random_buffer, &testing.rng_mock, 0,
-		MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&testing.rng_mock.mock, testing.rng_mock.base.generate_random_buffer,
+		&testing.rng_mock, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
-		testing.session_manager_mock.base.generate_shared_secret, &testing.session_manager_mock.base,
-		0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		testing.session_manager_mock.base.generate_shared_secret,
+		&testing.session_manager_mock.base,	0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.measurements_mock.mock,
 		testing.measurements_mock.base.get_measurement_summary_hash,
-		&testing.measurements_mock.base, 0,
-		MOCK_ARG_PTR (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
-		MOCK_ARG_PTR (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
+		&testing.measurements_mock.base, 0,	MOCK_ARG_PTR (testing.hash_engine[0]),
+		MOCK_ARG (HASH_TYPE_SHA384), MOCK_ARG_PTR (testing.hash_engine[1]),
+		MOCK_ARG (HASH_TYPE_SHA384),
 		MOCK_ARG (rq->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update,
-		&testing.transcript_manager_mock.base, 0,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
 		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (response_size - sig_size - SHA384_HASH_LENGTH /* HMAC */),
-		MOCK_ARG (true), MOCK_ARG (0));
+		MOCK_ARG (response_size - sig_size - SHA384_HASH_LENGTH	/* HMAC */), MOCK_ARG (true),
+		MOCK_ARG (0));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock,
-		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
-		MOCK_ARG (false), MOCK_ARG (true), MOCK_ARG (0), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH));
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
 		&testing.ecc_mock.base, 0,
@@ -2347,10 +2298,8 @@ static void cmd_interface_spdm_responder_test_process_request_key_exchange (CuTe
 		&testing.ecc_mock.base, ECC_DER_P384_ECDSA_MAX_LENGTH, MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
-		testing.hash_engine_mock[0].base.calculate_sha384,
-		&testing.hash_engine_mock[0].base, 0,
-		MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + SHA384_HASH_LENGTH),
+		testing.hash_engine_mock[0].base.calculate_sha384, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + SHA384_HASH_LENGTH),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 	status |= mock_expect_output (&testing.hash_engine_mock[0].mock, 2, SHA384_TEST_HASH,
 		SHA384_HASH_LENGTH, -1);
@@ -2366,34 +2315,30 @@ static void cmd_interface_spdm_responder_test_process_request_key_exchange (CuTe
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base,
-		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sig_size), MOCK_ARG (true), MOCK_ARG (0));
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base,	0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL, MOCK_ARG (sig_size),
+		MOCK_ARG (true), MOCK_ARG (0));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_session_handshake_keys,
 		&testing.session_manager_mock.base, 0, MOCK_ARG_PTR (&secure_session));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock,
-		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
-		MOCK_ARG (false), MOCK_ARG (true), MOCK_ARG (0), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH));
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
 	/* HMAC Rounds. */
 	for (idx = 0; idx < 2; idx++) {
 		status |= mock_expect (&testing.hash_engine_mock[0].mock,
-			testing.hash_engine_mock[0].base.start_sha384,
-			&testing.hash_engine_mock[0].base, 0);
+			testing.hash_engine_mock[0].base.start_sha384, &testing.hash_engine_mock[0].base, 0);
 
 		status |= mock_expect (&testing.hash_engine_mock[0].mock,
-			testing.hash_engine_mock[0].base.update,
-			&testing.hash_engine_mock[0].base, 0,
+			testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
 			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 		status |= mock_expect (&testing.hash_engine_mock[0].mock,
-			testing.hash_engine_mock[0].base.update,
-			&testing.hash_engine_mock[0].base, 0,
+			testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
 			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 		status |= mock_expect (&testing.hash_engine_mock[0].mock,
@@ -2402,14 +2347,13 @@ static void cmd_interface_spdm_responder_test_process_request_key_exchange (CuTe
 	}
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base,
-		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG (true), MOCK_ARG (0));
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base,	0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG (true), MOCK_ARG (0));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
-		testing.session_manager_mock.base.set_session_state,
-		&testing.session_manager_mock.base, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SPDM_SESSION_STATE_HANDSHAKING));		
+		testing.session_manager_mock.base.set_session_state, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_SESSION_STATE_HANDSHAKING));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2455,7 +2399,7 @@ static void cmd_interface_spdm_responder_test_process_request_key_exchange_fail 
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
@@ -2514,57 +2458,53 @@ static void cmd_interface_spdm_responder_test_process_request_finish (CuTest *te
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.is_last_session_id_valid,
 		&testing.session_manager_mock.base, 1);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
-		testing.session_manager_mock.base.get_last_session_id,
-		&testing.session_manager_mock.base, 0xDEADBEEF);
+		testing.session_manager_mock.base.get_last_session_id, &testing.session_manager_mock.base,
+		0xDEADBEEF);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
-		testing.session_manager_mock.base.get_session,
-		&testing.session_manager_mock.base, MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
+		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base,
+		MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
-		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2), MOCK_ARG (false),
-		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
-		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2), MOCK_ARG (false),
-		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update,
-		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG_PTR_CONTAINS (rq_copy, sizeof (struct spdm_finish_request)),
 		MOCK_ARG (sizeof (struct spdm_finish_request)), MOCK_ARG (true),
 		MOCK_ARG (session.session_index));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock,
-		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
-		MOCK_ARG (false), MOCK_ARG (true), MOCK_ARG (session.session_index), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH));
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session.session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
 	/* HMAC Rounds. */
 	for (idx = 0; idx < 2; idx++) {
 		status |= mock_expect (&testing.hash_engine_mock[0].mock,
-			testing.hash_engine_mock[0].base.start_sha384,
-			&testing.hash_engine_mock[0].base, 0);
+			testing.hash_engine_mock[0].base.start_sha384, &testing.hash_engine_mock[0].base, 0);
 
 		status |= mock_expect (&testing.hash_engine_mock[0].mock,
-			testing.hash_engine_mock[0].base.update,
-			&testing.hash_engine_mock[0].base, 0,
+			testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
 			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 		status |= mock_expect (&testing.hash_engine_mock[0].mock,
-			testing.hash_engine_mock[0].base.update,
-			&testing.hash_engine_mock[0].base, 0,
+			testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
 			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 		status |= mock_expect (&testing.hash_engine_mock[0].mock,
@@ -2575,17 +2515,15 @@ static void cmd_interface_spdm_responder_test_process_request_finish (CuTest *te
 		SHA384_HASH_LENGTH, -1);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update,
-		&testing.transcript_manager_mock.base, 0,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
 		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG_PTR_CONTAINS (SHA384_TEST_HASH, SHA384_HASH_LENGTH), MOCK_ARG (SHA384_HASH_LENGTH),
 		MOCK_ARG (true), MOCK_ARG (session.session_index));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update,
-		&testing.transcript_manager_mock.base, 0,
-		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (struct spdm_finish_response)), MOCK_ARG (true),
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_finish_response)), MOCK_ARG (true),
 		MOCK_ARG (session.session_index));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
@@ -2647,7 +2585,7 @@ static void cmd_interface_spdm_responder_test_process_request_finish_fail (CuTes
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
@@ -2699,29 +2637,29 @@ static void cmd_interface_spdm_responder_test_process_request_end_session (CuTes
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.is_last_session_id_valid,
 		&testing.session_manager_mock.base, 1);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
-		testing.session_manager_mock.base.get_last_session_id,
-		&testing.session_manager_mock.base, 0xDEADBEEF);
+		testing.session_manager_mock.base.get_last_session_id, &testing.session_manager_mock.base,
+		0xDEADBEEF);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
-		testing.session_manager_mock.base.get_session,
-		&testing.session_manager_mock.base, MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
+		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base,
+		MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
-		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2), MOCK_ARG (false),
-		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
-		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2), MOCK_ARG (false),
-		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2775,7 +2713,7 @@ static void cmd_interface_spdm_responder_test_process_request_end_session_fail (
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
@@ -2810,7 +2748,8 @@ static void cmd_interface_spdm_responder_test_process_request_invalid_arg (CuTes
 	cmd_interface_spdm_responder_testing_release (test, &testing);
 }
 
-static void cmd_interface_spdm_responder_test_process_request_spdm_get_command_id_failure_short_payload (
+static void
+cmd_interface_spdm_responder_test_process_request_spdm_get_command_id_failure_short_payload (
 	CuTest *test)
 {
 	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -2832,7 +2771,7 @@ static void cmd_interface_spdm_responder_test_process_request_spdm_get_command_i
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
@@ -2841,7 +2780,9 @@ static void cmd_interface_spdm_responder_test_process_request_spdm_get_command_i
 	cmd_interface_spdm_responder_testing_release (test, &testing);
 }
 
-static void cmd_interface_spdm_responder_test_process_request_spdm_get_command_id_failure_unsupported_major_version (
+static void
+cmd_interface_spdm_responder_test_process_request_spdm_get_command_id_failure_unsupported_major_version
+(
 	CuTest *test)
 {
 	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -2869,7 +2810,7 @@ static void cmd_interface_spdm_responder_test_process_request_spdm_get_command_i
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
@@ -2907,7 +2848,7 @@ static void cmd_interface_spdm_responder_test_process_request_unsupported_reques
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
-		 &testing.session_manager_mock.base, 0);
+		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
@@ -2933,8 +2874,9 @@ static void cmd_interface_spdm_responder_test_process_response (
 
 	cmd_interface_spdm_responder_testing_init (test, &testing);
 
-	status = testing.spdm_responder.base.process_response (
-		(const struct cmd_interface*)(0xDEADBEEF), (struct cmd_interface_msg*)(0xBAADF00D));
+	status =
+		testing.spdm_responder.base.process_response ((const struct cmd_interface*) (0xDEADBEEF),
+		(struct cmd_interface_msg*) (0xBAADF00D));
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_OPERATION, status);
 
 	cmd_interface_spdm_responder_testing_release (test, &testing);
@@ -2950,14 +2892,16 @@ static void cmd_interface_spdm_responder_test_generate_error_packet (
 
 	cmd_interface_spdm_responder_testing_init (test, &testing);
 
-	status = testing.spdm_responder.base.generate_error_packet (
-		(const struct cmd_interface*)(0xDEADBEEF), (struct cmd_interface_msg*)(0xBAADF00D),
-		-1, -1, -1);
+	status =
+		testing.spdm_responder.base.generate_error_packet (
+		(const struct cmd_interface*) (0xDEADBEEF), (struct cmd_interface_msg*) (0xBAADF00D), -1,
+		-1, -1);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_OPERATION, status);
 
 	cmd_interface_spdm_responder_testing_release (test, &testing);
 }
 
+// *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_spdm_responder);
 
 TEST (cmd_interface_spdm_responder_test_static_init);
@@ -3002,6 +2946,4 @@ TEST (cmd_interface_spdm_responder_test_process_response);
 TEST (cmd_interface_spdm_responder_test_generate_error_packet);
 
 TEST_SUITE_END;
-
-
-
+// *INDENT-ON*

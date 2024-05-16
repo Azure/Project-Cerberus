@@ -1,18 +1,18 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
 #include "x509_cert_build.h"
 #include "asn1/ecc_der_util.h"
 #include "common/unused.h"
 #include "crypto/ecc.h"
+#include "riot/reference/include/RiotDerDec.h"
 #include "riot/reference/include/RiotDerEnc.h"
 #include "riot/reference/include/RiotX509Bldr.h"
-#include "riot/reference/include/RiotDerDec.h"
 
 
 /**
@@ -49,6 +49,7 @@ static DERBuilderContext* x509_cert_build_new_cert (const struct x509_engine_cer
 	der_buf = platform_malloc (x509->max_cert_length);
 	if (der_buf == NULL) {
 		platform_free (der);
+
 		return NULL;
 	}
 
@@ -91,15 +92,16 @@ static int x509_cert_build_add_subject_key_identifier_extension (DERBuilderConte
 	int status;
 
 	DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-		DER_CHK_ENCODE (DERAddOID (der, extSubjectKeyIdentifierOID));
-		DER_CHK_ENCODE (DERStartEnvelopingOctetString (der));
-			DER_CHK_ENCODE (DERAddOctetString (der, key_identifier, id_length));
-		DER_CHK_ENCODE (DERPopNesting (der));
+	DER_CHK_ENCODE (DERAddOID (der, extSubjectKeyIdentifierOID));
+	DER_CHK_ENCODE (DERStartEnvelopingOctetString (der));
+	DER_CHK_ENCODE (DERAddOctetString (der, key_identifier, id_length));
+	DER_CHK_ENCODE (DERPopNesting (der));
 	DER_CHK_ENCODE (DERPopNesting (der));
 
 	return 0;
 
 error:
+
 	return status;
 }
 
@@ -119,17 +121,18 @@ static int x509_cert_build_add_authority_key_identifier_extension (DERBuilderCon
 	int status;
 
 	DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-		DER_CHK_ENCODE (DERAddOID (der, extAuthKeyIdentifierOID));
-		DER_CHK_ENCODE (DERStartEnvelopingOctetString (der));
-			DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-				DER_CHK_ENCODE (DERAddAuthKeyBitString (der, key_identifier, id_length));
-			DER_CHK_ENCODE (DERPopNesting (der));
-		DER_CHK_ENCODE (DERPopNesting (der));
+	DER_CHK_ENCODE (DERAddOID (der, extAuthKeyIdentifierOID));
+	DER_CHK_ENCODE (DERStartEnvelopingOctetString (der));
+	DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
+	DER_CHK_ENCODE (DERAddAuthKeyBitString (der, key_identifier, id_length));
+	DER_CHK_ENCODE (DERPopNesting (der));
+	DER_CHK_ENCODE (DERPopNesting (der));
 	DER_CHK_ENCODE (DERPopNesting (der));
 
 	return 0;
 
 error:
+
 	return status;
 }
 
@@ -152,21 +155,22 @@ static int x509_cert_build_add_key_usage_extension (DERBuilderContext *der, int 
 		bits = 6;
 	}
 	else {
-		key_usage  = RIOT_X509_KEY_USAGE_END_ENTITY;
+		key_usage = RIOT_X509_KEY_USAGE_END_ENTITY;
 		bits = 5;
 	}
 
 	DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-		DER_CHK_ENCODE (DERAddOID (der, keyUsageOID));	/* TODO:  Statically encode all OIDs. */
-		DER_CHK_ENCODE (DERAddBoolean (der, true));
-		DER_CHK_ENCODE (DERStartEnvelopingOctetString (der));
-			DER_CHK_ENCODE (DERAddNamedBitString (der, &key_usage, 1, bits));
-		DER_CHK_ENCODE (DERPopNesting (der));
+	DER_CHK_ENCODE (DERAddOID (der, keyUsageOID));	/* TODO:  Statically encode all OIDs. */
+	DER_CHK_ENCODE (DERAddBoolean (der, true));
+	DER_CHK_ENCODE (DERStartEnvelopingOctetString (der));
+	DER_CHK_ENCODE (DERAddNamedBitString (der, &key_usage, 1, bits));
+	DER_CHK_ENCODE (DERPopNesting (der));
 	DER_CHK_ENCODE (DERPopNesting (der));
 
 	return 0;
 
 error:
+
 	return status;
 }
 
@@ -186,25 +190,26 @@ static int x509_cert_build_add_extended_key_usage_extension (DERBuilderContext *
 	int status;
 
 	DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-		DER_CHK_ENCODE (DERAddOID (der, extKeyUsageOID));
+	DER_CHK_ENCODE (DERAddOID (der, extKeyUsageOID));
 	if (critical) {
 		DER_CHK_ENCODE (DERAddBoolean (der, true));
 	}
-		DER_CHK_ENCODE (DERStartEnvelopingOctetString (der));
-			DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-			if (oid == NULL) {
-				DER_CHK_ENCODE (DERAddOID (der, clientAuthOID));
-			}
-			else {
-				DER_CHK_ENCODE (DERAddEncodedOID (der, oid, oid_length));
-			}
-			DER_CHK_ENCODE (DERPopNesting (der));
-		DER_CHK_ENCODE (DERPopNesting (der));
+	DER_CHK_ENCODE (DERStartEnvelopingOctetString (der));
+	DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
+	if (oid == NULL) {
+		DER_CHK_ENCODE (DERAddOID (der, clientAuthOID));
+	}
+	else {
+		DER_CHK_ENCODE (DERAddEncodedOID (der, oid, oid_length));
+	}
+	DER_CHK_ENCODE (DERPopNesting (der));
+	DER_CHK_ENCODE (DERPopNesting (der));
 	DER_CHK_ENCODE (DERPopNesting (der));
 
 	return 0;
 
 error:
+
 	return status;
 }
 
@@ -223,22 +228,23 @@ static int x509_cert_build_add_basic_constraints_extension (DERBuilderContext *d
 	/* End entity certificates don't need basic constraints. */
 	if (type != X509_CERT_END_ENTITY) {
 		DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-			DER_CHK_ENCODE (DERAddOID (der, basicConstraintsOID));
-			DER_CHK_ENCODE (DERAddBoolean (der, true));
-			DER_CHK_ENCODE (DERStartEnvelopingOctetString (der));
-				DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-					DER_CHK_ENCODE (DERAddBoolean (der, true));
-				if (type < X509_CERT_CA_NO_PATHLEN) {
-					DER_CHK_ENCODE (DERAddInteger (der, X509_CERT_PATHLEN (type)));
-				}
-				DER_CHK_ENCODE (DERPopNesting (der));
-			DER_CHK_ENCODE (DERPopNesting (der));
+		DER_CHK_ENCODE (DERAddOID (der, basicConstraintsOID));
+		DER_CHK_ENCODE (DERAddBoolean (der, true));
+		DER_CHK_ENCODE (DERStartEnvelopingOctetString (der));
+		DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
+		DER_CHK_ENCODE (DERAddBoolean (der, true));
+		if (type < X509_CERT_CA_NO_PATHLEN) {
+			DER_CHK_ENCODE (DERAddInteger (der, X509_CERT_PATHLEN (type)));
+		}
+		DER_CHK_ENCODE (DERPopNesting (der));
+		DER_CHK_ENCODE (DERPopNesting (der));
 		DER_CHK_ENCODE (DERPopNesting (der));
 	}
 
 	return 0;
 
 error:
+
 	return status;
 }
 
@@ -267,18 +273,20 @@ static int x509_cert_build_add_custom_extension (DERBuilderContext *der,
 	}
 
 	DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-		DER_CHK_ENCODE (DERAddEncodedOID (der, extension.oid, extension.oid_length));
+	DER_CHK_ENCODE (DERAddEncodedOID (der, extension.oid, extension.oid_length));
 	if (extension.critical) {
 		DER_CHK_ENCODE (DERAddBoolean (der, true));
 	}
-		DER_CHK_ENCODE (DERAddOctetString (der, extension.data, extension.data_length));
+	DER_CHK_ENCODE (DERAddOctetString (der, extension.data, extension.data_length));
 	DER_CHK_ENCODE (DERPopNesting (der));
 
 	builder->free (builder, &extension);
+
 	return 0;
 
 error:
 	builder->free (builder, &extension);
+
 	return status;
 }
 
@@ -295,17 +303,18 @@ static int x509_cert_build_add_x509_name (DERBuilderContext *der, const char *co
 	int status;
 
 	DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-		DER_CHK_ENCODE (DERStartSequenceOrSet (der, false));
-			DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-				DER_CHK_ENCODE (DERAddOID (der, commonNameOID));
-				DER_CHK_ENCODE (DERAddUTF8String (der, common_name));
-			DER_CHK_ENCODE (DERPopNesting (der));
-		DER_CHK_ENCODE (DERPopNesting (der));
+	DER_CHK_ENCODE (DERStartSequenceOrSet (der, false));
+	DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
+	DER_CHK_ENCODE (DERAddOID (der, commonNameOID));
+	DER_CHK_ENCODE (DERAddUTF8String (der, common_name));
+	DER_CHK_ENCODE (DERPopNesting (der));
+	DER_CHK_ENCODE (DERPopNesting (der));
 	DER_CHK_ENCODE (DERPopNesting (der));
 
 	return 0;
 
 error:
+
 	return status;
 }
 
@@ -333,34 +342,33 @@ static int x509_cert_build_build_csr_tbs_data (DERBuilderContext *der, const cha
 	int status;
 
 	DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-		DER_CHK_ENCODE (DERAddInteger (der, 0));
-		DER_CHK_ENCODE (x509_cert_build_add_x509_name (der, subject_name));
-		DER_CHK_ENCODE (DERAddPublicKey (der, pub_key_der, pub_key_length));
-		DER_CHK_ENCODE (DERStartExplicit (der, 0));
-			DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-				DER_CHK_ENCODE (DERAddOID (der, extensionRequestOID));
-				DER_CHK_ENCODE (DERStartSequenceOrSet (der,false));
-					DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-						DER_CHK_ENCODE (x509_cert_build_add_key_usage_extension (der, type));
-					if ((type == X509_CERT_END_ENTITY) || (eku != NULL)) {
-						DER_CHK_ENCODE (x509_cert_build_add_extended_key_usage_extension (der, eku,
-							eku_length, (type == X509_CERT_END_ENTITY)));
-					}
-						DER_CHK_ENCODE (x509_cert_build_add_basic_constraints_extension (der,
-							type));
-					for (i = 0; i < ext_count; i++) {
-						DER_CHK_ENCODE (x509_cert_build_add_custom_extension (der,
-							extra_extensions[i]));
-					}
-					DER_CHK_ENCODE (DERPopNesting (der));
-				DER_CHK_ENCODE (DERPopNesting (der));
-			DER_CHK_ENCODE (DERPopNesting (der));
-		DER_CHK_ENCODE (DERPopNesting (der));
+	DER_CHK_ENCODE (DERAddInteger (der, 0));
+	DER_CHK_ENCODE (x509_cert_build_add_x509_name (der, subject_name));
+	DER_CHK_ENCODE (DERAddPublicKey (der, pub_key_der, pub_key_length));
+	DER_CHK_ENCODE (DERStartExplicit (der, 0));
+	DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
+	DER_CHK_ENCODE (DERAddOID (der, extensionRequestOID));
+	DER_CHK_ENCODE (DERStartSequenceOrSet (der, false));
+	DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
+	DER_CHK_ENCODE (x509_cert_build_add_key_usage_extension (der, type));
+	if ((type == X509_CERT_END_ENTITY) || (eku != NULL)) {
+		DER_CHK_ENCODE (x509_cert_build_add_extended_key_usage_extension (der, eku,	eku_length,
+			(type == X509_CERT_END_ENTITY)));
+	}
+	DER_CHK_ENCODE (x509_cert_build_add_basic_constraints_extension (der, type));
+	for (i = 0; i < ext_count; i++) {
+		DER_CHK_ENCODE (x509_cert_build_add_custom_extension (der, extra_extensions[i]));
+	}
+	DER_CHK_ENCODE (DERPopNesting (der));
+	DER_CHK_ENCODE (DERPopNesting (der));
+	DER_CHK_ENCODE (DERPopNesting (der));
+	DER_CHK_ENCODE (DERPopNesting (der));
 	DER_CHK_ENCODE (DERPopNesting (der));
 
 	return 0;
 
 error:
+
 	return status;
 }
 
@@ -409,15 +417,16 @@ static int x509_cert_build_sign_certificate (DERBuilderContext *der,
 
 	/* Update the DER encoding with the signature data. */
 	DER_CHK_ENCODE (DERTbsToCert (der));
-		DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-			DER_CHK_ENCODE (DERAddOID (der, sig_oid));
-		DER_CHK_ENCODE (DERPopNesting (der));
-		DER_CHK_ENCODE (DERAddBitString (der, tbs_sig, sig_len));
+	DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
+	DER_CHK_ENCODE (DERAddOID (der, sig_oid));
+	DER_CHK_ENCODE (DERPopNesting (der));
+	DER_CHK_ENCODE (DERAddBitString (der, tbs_sig, sig_len));
 	DER_CHK_ENCODE (DERPopNesting (der));
 
 	return 0;
 
 error:
+
 	return status;
 }
 
@@ -473,7 +482,7 @@ int x509_cert_build_create_csr (struct x509_engine *engine, const uint8_t *priv_
 
 		default:
 			return X509_ENGINE_UNSUPPORTED_SIG_HASH;
-	};
+	}
 
 	status = x509->ecc->init_key_pair (x509->ecc, priv_key, key_length, &ecc_priv_key,
 		&ecc_pub_key);
@@ -493,8 +502,8 @@ int x509_cert_build_create_csr (struct x509_engine *engine, const uint8_t *priv_
 		goto err_free_key_der;
 	}
 
-	status = x509_cert_build_build_csr_tbs_data (der, name, pub_key_der, pub_key_der_len, type,
-		eku, eku_length, extra_extensions, ext_count);
+	status = x509_cert_build_build_csr_tbs_data (der, name, pub_key_der, pub_key_der_len, type,	eku,
+		eku_length, extra_extensions, ext_count);
 	if (status != 0) {
 		status = (status == -1) ? X509_ENGINE_CSR_FAILED : status;
 		goto err_free_cert;
@@ -575,40 +584,40 @@ static int x509_cert_build_build_certificate_tbs_data (DERBuilderContext *der,
 	int status;
 
 	DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-		DER_CHK_ENCODE (DERAddShortExplicitInteger (der, 2));
-		DER_CHK_ENCODE (DERAddIntegerFromArray (der, serial_num, serial_length));
-		DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-			DER_CHK_ENCODE (DERAddOID (der, sig_oid));
-		DER_CHK_ENCODE (DERPopNesting (der));
-		DER_CHK_ENCODE (x509_cert_build_add_x509_name (der, issuer_name));
-		DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-			DER_CHK_ENCODE (DERAddTime (der, VALID_FROM));
-			DER_CHK_ENCODE (DERAddTime (der, VALID_TO));
-		DER_CHK_ENCODE (DERPopNesting (der));
-		DER_CHK_ENCODE (x509_cert_build_add_x509_name (der, subject_name));
-		DER_CHK_ENCODE (DERAddPublicKey (der, pub_key_der, pub_key_length));
-		DER_CHK_ENCODE (DERStartExplicit (der, 3));
-			DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-				DER_CHK_ENCODE (x509_cert_build_add_subject_key_identifier_extension (der,
-					subject_key_id, SHA1_HASH_LENGTH));
-				DER_CHK_ENCODE (x509_cert_build_add_authority_key_identifier_extension (der,
-					auth_key_id, SHA1_HASH_LENGTH));
-				DER_CHK_ENCODE (x509_cert_build_add_key_usage_extension (der, type));
-			if (type == X509_CERT_END_ENTITY) {
-				DER_CHK_ENCODE (x509_cert_build_add_extended_key_usage_extension (der, NULL, 0,
-					true));
-			}
-				DER_CHK_ENCODE (x509_cert_build_add_basic_constraints_extension (der, type));
-			for (i = 0; i < ext_count; i++) {
-				DER_CHK_ENCODE (x509_cert_build_add_custom_extension (der, extra_extensions[i]));
-			}
-			DER_CHK_ENCODE (DERPopNesting (der));
-		DER_CHK_ENCODE (DERPopNesting (der));
+	DER_CHK_ENCODE (DERAddShortExplicitInteger (der, 2));
+	DER_CHK_ENCODE (DERAddIntegerFromArray (der, serial_num, serial_length));
+	DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
+	DER_CHK_ENCODE (DERAddOID (der, sig_oid));
+	DER_CHK_ENCODE (DERPopNesting (der));
+	DER_CHK_ENCODE (x509_cert_build_add_x509_name (der, issuer_name));
+	DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
+	DER_CHK_ENCODE (DERAddTime (der, VALID_FROM));
+	DER_CHK_ENCODE (DERAddTime (der, VALID_TO));
+	DER_CHK_ENCODE (DERPopNesting (der));
+	DER_CHK_ENCODE (x509_cert_build_add_x509_name (der, subject_name));
+	DER_CHK_ENCODE (DERAddPublicKey (der, pub_key_der, pub_key_length));
+	DER_CHK_ENCODE (DERStartExplicit (der, 3));
+	DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
+	DER_CHK_ENCODE (x509_cert_build_add_subject_key_identifier_extension (der, subject_key_id,
+		SHA1_HASH_LENGTH));
+	DER_CHK_ENCODE (x509_cert_build_add_authority_key_identifier_extension (der, auth_key_id,
+		SHA1_HASH_LENGTH));
+	DER_CHK_ENCODE (x509_cert_build_add_key_usage_extension (der, type));
+	if (type == X509_CERT_END_ENTITY) {
+		DER_CHK_ENCODE (x509_cert_build_add_extended_key_usage_extension (der, NULL, 0,	true));
+	}
+	DER_CHK_ENCODE (x509_cert_build_add_basic_constraints_extension (der, type));
+	for (i = 0; i < ext_count; i++) {
+		DER_CHK_ENCODE (x509_cert_build_add_custom_extension (der, extra_extensions[i]));
+	}
+	DER_CHK_ENCODE (DERPopNesting (der));
+	DER_CHK_ENCODE (DERPopNesting (der));
 	DER_CHK_ENCODE (DERPopNesting (der));
 
 	return 0;
 
 error:
+
 	return status;
 }
 
@@ -652,7 +661,7 @@ int x509_cert_build_create_self_signed_certificate (struct x509_engine *engine,
 
 		default:
 			return X509_ENGINE_UNSUPPORTED_SIG_HASH;
-	};
+	}
 
 	status = x509_cert_build_check_serial_number (serial_num, serial_length);
 	if (status != 0) {
@@ -686,7 +695,7 @@ int x509_cert_build_create_self_signed_certificate (struct x509_engine *engine,
 	}
 
 	der = x509_cert_build_new_cert (x509);
-	if (der ==  NULL) {
+	if (der == NULL) {
 		status = X509_ENGINE_NO_MEMORY;
 		goto err_free_key_der;
 	}
@@ -699,8 +708,8 @@ int x509_cert_build_create_self_signed_certificate (struct x509_engine *engine,
 		goto err_free_cert;
 	}
 
-	status = x509_cert_build_sign_certificate (der, &ecc_priv_key, x509->ecc, x509->hash,
-		sig_hash, sig_oid);
+	status = x509_cert_build_sign_certificate (der, &ecc_priv_key, x509->ecc, x509->hash, sig_hash,
+		sig_oid);
 	if (status == -1) {
 		status = X509_ENGINE_SELF_SIGNED_FAILED;
 	}
@@ -722,7 +731,7 @@ err_free_key:
 
 int x509_cert_build_create_ca_signed_certificate (struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *key, size_t key_length, const uint8_t *serial_num,
-	size_t serial_length, const char *name, int type, const uint8_t* ca_priv_key,
+	size_t serial_length, const char *name, int type, const uint8_t *ca_priv_key,
 	size_t ca_key_length, enum hash_type sig_hash, const struct x509_certificate *ca_cert,
 	const struct x509_extension_builder *const *extra_extensions, size_t ext_count)
 {
@@ -770,7 +779,7 @@ int x509_cert_build_create_ca_signed_certificate (struct x509_engine *engine,
 
 		default:
 			return X509_ENGINE_UNSUPPORTED_SIG_HASH;
-	};
+	}
 
 	status = x509_cert_build_check_serial_number (serial_num, serial_length);
 	if (status != 0) {
@@ -842,7 +851,7 @@ int x509_cert_build_create_ca_signed_certificate (struct x509_engine *engine,
 	}
 
 	der = x509_cert_build_new_cert (x509);
-	if (der ==  NULL) {
+	if (der == NULL) {
 		status = X509_ENGINE_NO_MEMORY;
 		goto err_free_name;
 	}

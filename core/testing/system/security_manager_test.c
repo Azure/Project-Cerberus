@@ -7,10 +7,10 @@
 #include "testing.h"
 #include "system/security_manager.h"
 #include "system/system_logging.h"
+#include "testing/logging/debug_log_testing.h"
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/system/security_manager_mock.h"
 #include "testing/mock/system/security_policy_mock.h"
-#include "testing/logging/debug_log_testing.h"
 
 
 TEST_SUITE_LABEL ("security_manager");
@@ -28,9 +28,9 @@ const struct security_policy *const default_policy = &default_policy_mock.base;
  * Dependencies for testing.
  */
 struct security_manager_testing {
-	struct logging_mock logger;				/**< Mock for debug logging. */
-	struct security_policy_mock policy;		/**< Mock for the default policy. */
-	struct security_manager_mock test;		/**< Mock for the security manager to use for testing. */
+	struct logging_mock logger;			/**< Mock for debug logging. */
+	struct security_policy_mock policy;	/**< Mock for the default policy. */
+	struct security_manager_mock test;	/**< Mock for the security manager to use for testing. */
 };
 
 
@@ -196,6 +196,7 @@ static void security_manager_test_get_security_policy_error (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (security_manager);
 
 TEST (security_manager_test_get_security_policy_use_default);
@@ -204,3 +205,4 @@ TEST (security_manager_test_get_security_policy_null);
 TEST (security_manager_test_get_security_policy_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

@@ -50,4 +50,4 @@ void cmd_channel_handler_execute (const struct periodic_task_handler *handler);
 	}
 
 
-#endif /* CMD_CHANNEL_HANDLER_STATIC_H_ */
+#endif	/* CMD_CHANNEL_HANDLER_STATIC_H_ */

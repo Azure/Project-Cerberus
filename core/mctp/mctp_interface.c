@@ -37,8 +37,8 @@
  */
 static int mctp_interface_generate_packets_from_payload (const struct mctp_interface *mctp,
 	const uint8_t *payload, size_t payload_len, uint8_t dest_eid, uint8_t dest_addr,
-	uint8_t src_eid, uint8_t src_addr, uint8_t msg_tag, uint8_t tag_owner,
-	uint8_t *packets, size_t max_list_len, size_t *max_packet_len)
+	uint8_t src_eid, uint8_t src_addr, uint8_t msg_tag, uint8_t tag_owner, uint8_t *packets,
+	size_t max_list_len, size_t *max_packet_len)
 {
 	uint8_t packet_seq = 0;
 	size_t max_packet_payload;
@@ -92,7 +92,7 @@ static int mctp_interface_generate_packets_from_payload (const struct mctp_inter
 static void mctp_interface_reset_message_assembly (const struct mctp_interface *mctp)
 {
 	mctp->state->req_buffer.data = &mctp->state->msg_buffer[sizeof (mctp->state->msg_buffer) -
-		MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+			MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	mctp->state->resp_buffer.data = mctp->state->msg_buffer;
 	mctp->state->start_packet_len = 0;
 
@@ -196,8 +196,7 @@ static int mctp_interface_deprecated_handle_response_message (const struct mctp_
 	 * it would have failed earlier in packet processing. */
 	if (MCTP_BASE_PROTOCOL_IS_CONTROL_MSG (mctp->state->msg_type)) {
 		if (mctp->cmd_mctp) {
-			status = mctp->cmd_mctp->process_response (mctp->cmd_mctp,
-				&mctp->state->req_buffer);
+			status = mctp->cmd_mctp->process_response (mctp->cmd_mctp, &mctp->state->req_buffer);
 			if (status == CMD_HANDLER_ERROR_MESSAGE) {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
 					MCTP_LOGGING_MCTP_CONTROL_RSP_FAIL, status, mctp->state->channel_id);
@@ -217,8 +216,7 @@ static int mctp_interface_deprecated_handle_response_message (const struct mctp_
 			cmd_interface_msg_remove_protocol_header (&mctp->state->req_buffer,
 				sizeof (struct spdm_protocol_mctp_header));
 
-			status = mctp->cmd_spdm->process_response (mctp->cmd_spdm,
-				&mctp->state->req_buffer);
+			status = mctp->cmd_spdm->process_response (mctp->cmd_spdm, &mctp->state->req_buffer);
 		}
 		else {
 			status = MCTP_BASE_PROTOCOL_UNSUPPORTED_OPERATION;
@@ -245,6 +243,7 @@ static int mctp_interface_deprecated_handle_response_message (const struct mctp_
 exit:
 	mctp_interface_reset_message_assembly (mctp);
 	platform_mutex_unlock (&mctp->state->response_lock);
+
 	return status;
 }
 
@@ -400,8 +399,7 @@ static bool mctp_interface_is_expected_response (const struct mctp_interface *mc
 		(mctp->state->rsp_state != MCTP_INTERFACE_RESPONSE_WAITING_DEPRECATED)) {
 		/* We are not waiting for any response.  Just drop the message. */
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_MCTP,
-			MCTP_LOGGING_RSP_DROPPED, MCTP_LOGGING_RSP_DROPPED_UNEXPECTED,
-			mctp->state->channel_id);
+			MCTP_LOGGING_RSP_DROPPED, MCTP_LOGGING_RSP_DROPPED_UNEXPECTED, mctp->state->channel_id);
 
 		expected = false;
 		goto exit;
@@ -454,8 +452,7 @@ exit:
 
 	/* Always drop response messages if issuing requests is not supported. */
 	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_MCTP,
-		MCTP_LOGGING_RSP_DROPPED, MCTP_LOGGING_RSP_DROPPED_UNEXPECTED,
-		mctp->state->channel_id);
+		MCTP_LOGGING_RSP_DROPPED, MCTP_LOGGING_RSP_DROPPED_UNEXPECTED, mctp->state->channel_id);
 
 	return false;
 #endif
@@ -544,9 +541,8 @@ static int mctp_interface_handle_request_message (const struct mctp_interface *m
 
 	/* Check to see if the response requires the message timeout to be adjusted. */
 	if (rx_packet->timeout_valid && mctp->state->req_buffer.crypto_timeout) {
-		platform_increase_timeout (
-			MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS - MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS,
-			&rx_packet->pkt_timeout);
+		platform_increase_timeout (MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS -
+			MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS,	&rx_packet->pkt_timeout);
 	}
 
 	/* If a response was generated during request processing, packetize the message for transmission
@@ -759,8 +755,8 @@ static int mctp_interface_drop_packet (const struct mctp_interface *mctp,
 		}
 	}
 
-	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_MCTP,
-		MCTP_LOGGING_CHANNEL, mctp->state->channel_id, 0);
+	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_MCTP, MCTP_LOGGING_CHANNEL,
+		mctp->state->channel_id, 0);
 	debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
 		MCTP_LOGGING_PKT_DROPPED, msg1, msg2);
 
@@ -770,40 +766,35 @@ static int mctp_interface_drop_packet (const struct mctp_interface *mctp,
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
 					MCTP_LOGGING_PROTOCOL_ERROR,
 					(((uint32_t) CERBERUS_PROTOCOL_ERROR_INVALID_CHECKSUM << 24) | (src_eid << 16) |
-						(dest_eid << 8) | msg_tag),
-					alt_data);
+								(dest_eid << 8) | msg_tag),	alt_data);
 				break;
 
 			case MCTP_BASE_PROTOCOL_NO_SOM:
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
 					MCTP_LOGGING_PROTOCOL_ERROR,
 					(((uint32_t) CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG << 24) | (src_eid << 16) |
-						(dest_eid << 8) | msg_tag),
-					0);
+								(dest_eid << 8) | msg_tag),	0);
 				break;
 
 			case MCTP_BASE_PROTOCOL_OUT_OF_SEQUENCE:
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
 					MCTP_LOGGING_PROTOCOL_ERROR,
 					(((uint32_t) CERBERUS_PROTOCOL_ERROR_OUT_OF_SEQ_WINDOW << 24) |
-						(src_eid << 16) | (dest_eid << 8) | msg_tag),
-					0);
+								(src_eid << 16) | (dest_eid << 8) | msg_tag), 0);
 				break;
 
 			case MCTP_BASE_PROTOCOL_MIDDLE_PKT_LENGTH:
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
 					MCTP_LOGGING_PROTOCOL_ERROR,
 					(((uint32_t) CERBERUS_PROTOCOL_ERROR_INVALID_PACKET_LEN << 24) |
-						(src_eid << 16) | (dest_eid << 8) | msg_tag),
-					alt_data);
+								(src_eid << 16) | (dest_eid << 8) | msg_tag), alt_data);
 				break;
 
 			case MCTP_BASE_PROTOCOL_MSG_TOO_LARGE:
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
 					MCTP_LOGGING_PROTOCOL_ERROR,
 					(((uint32_t) CERBERUS_PROTOCOL_ERROR_MSG_OVERFLOW << 24) | (src_eid << 16) |
-						(dest_eid << 8) | msg_tag),
-					alt_data);
+								(dest_eid << 8) | msg_tag),	alt_data);
 
 				break;
 
@@ -811,8 +802,7 @@ static int mctp_interface_drop_packet (const struct mctp_interface *mctp,
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
 					MCTP_LOGGING_PROTOCOL_ERROR,
 					(((uint32_t) CERBERUS_PROTOCOL_ERROR_INVALID_REQ << 24) | (src_eid << 16) |
-						(dest_eid << 8) | msg_tag),
-					error_data);
+								(dest_eid << 8) | msg_tag),	error_data);
 				break;
 		}
 	}
@@ -878,7 +868,7 @@ int mctp_interface_process_packet (const struct mctp_interface *mctp, struct cmd
 
 		if (tag_owner == MCTP_BASE_PROTOCOL_TO_RESPONSE) {
 			if (!mctp_interface_is_expected_response (mctp, response_addr, src_eid, msg_tag, som,
-					msg_type)) {
+				msg_type)) {
 				/* Unexpected response packets must not interrupt message assembly and should be
 				 * ignored. */
 				return 0;
@@ -912,7 +902,7 @@ int mctp_interface_process_packet (const struct mctp_interface *mctp, struct cmd
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
 				MCTP_LOGGING_RESTART_MESSAGE,
 				((mctp->state->req_buffer.source_eid << 24) | (mctp->state->msg_tag << 16) |
-					(mctp->state->tag_owner << 8) | mctp->state->msg_type),
+							(mctp->state->tag_owner << 8) | mctp->state->msg_type),
 				((src_eid << 24) | (msg_tag << 16) | (tag_owner << 8) | msg_type));
 		}
 
@@ -945,8 +935,8 @@ int mctp_interface_process_packet (const struct mctp_interface *mctp, struct cmd
 		 * different error can be logged.
 		 *
 		 * Drop the packet and do not interrupt message assembly. */
-		return mctp_interface_drop_packet (mctp, rx_packet, MCTP_BASE_PROTOCOL_INVALID_EID,
-			src_eid, dest_eid, msg_tag, 0);
+		return mctp_interface_drop_packet (mctp, rx_packet, MCTP_BASE_PROTOCOL_INVALID_EID,	src_eid,
+			dest_eid, msg_tag, 0);
 	}
 	else if (packet_seq != mctp->state->packet_seq) {
 		/* The packet sequence number is wrong.  Reset message assembly and drop the packet. */
@@ -1183,7 +1173,7 @@ int mctp_interface_send_discovery_notify (const struct mctp_interface *mctp, uin
 
 	cmd_interface_msg_set_message_payload_length (&request,
 		mctp_control_protocol_generate_discovery_notify_request (request.payload,
-			request.payload_length));
+		request.payload_length));
 
 	status = mctp_interface_send_request_message (&mctp->base, &request, timeout_ms, response);
 	if (status == MSG_TRANSPORT_NO_WAIT_RESPONSE) {

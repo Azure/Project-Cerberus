@@ -18,13 +18,13 @@ extern const uint32_t HASH_TESTING_PARTIAL_BLOCK_480_LEN;
 extern const uint8_t HASH_TESTING_FULL_BLOCK_512[];
 extern const uint32_t HASH_TESTING_FULL_BLOCK_512_LEN;
 
-extern const uint8_t  HASH_TESTING_PARTIAL_BLOCK_952[];
+extern const uint8_t HASH_TESTING_PARTIAL_BLOCK_952[];
 extern const uint32_t HASH_TESTING_PARTIAL_BLOCK_952_LEN;
 
-extern const uint8_t  HASH_TESTING_PARTIAL_BLOCK_960[];
+extern const uint8_t HASH_TESTING_PARTIAL_BLOCK_960[];
 extern const uint32_t HASH_TESTING_PARTIAL_BLOCK_960_LEN;
 
-extern const uint8_t  HASH_TESTING_PARTIAL_BLOCK_992[];
+extern const uint8_t HASH_TESTING_PARTIAL_BLOCK_992[];
 extern const uint32_t HASH_TESTING_PARTIAL_BLOCK_992_LEN;
 
 extern const uint8_t HASH_TESTING_FULL_BLOCK_1024[];
@@ -159,4 +159,4 @@ extern const uint8_t SHA384_FULL_BLOCK_4096_BLOCK_KEY_HMAC[];
 extern const uint8_t SHA512_FULL_BLOCK_4096_BLOCK_KEY_HMAC[];
 
 
-#endif /* HASH_TESTING_H_ */
+#endif	/* HASH_TESTING_H_ */

@@ -11020,6 +11020,7 @@ static void cfm_flash_test_free_manifest_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cfm_flash);
 
 TEST (cfm_flash_test_init);
@@ -11221,3 +11222,4 @@ TEST (cfm_flash_test_get_pcd_malformed_allowable_id_list);
 TEST (cfm_flash_test_free_manifest_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

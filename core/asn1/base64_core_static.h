@@ -28,4 +28,4 @@ int base64_core_encode (struct base64_engine *engine, const uint8_t *data, size_
 	}
 
 
-#endif /* BASE64_CORE_STATIC_H_ */
+#endif	/* BASE64_CORE_STATIC_H_ */

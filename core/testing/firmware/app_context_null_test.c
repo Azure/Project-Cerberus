@@ -105,6 +105,7 @@ static void app_context_null_test_save_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (app_context_null);
 
 TEST (app_context_null_test_init);
@@ -116,3 +117,4 @@ TEST (app_context_null_test_save_static_init);
 TEST (app_context_null_test_save_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

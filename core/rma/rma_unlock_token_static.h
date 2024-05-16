@@ -48,4 +48,4 @@ int rma_unlock_token_authenticate (const struct rma_unlock_token *handler, const
 	}
 
 
-#endif /* RMA_UNLOCK_TOKEN_STATIC_H_ */
+#endif	/* RMA_UNLOCK_TOKEN_STATIC_H_ */

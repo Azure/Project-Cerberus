@@ -1,31 +1,31 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
+#include "attestation_cmd_interface.h"
+#include "cerberus_protocol.h"
+#include "cerberus_protocol_master_commands.h"
+#include "cerberus_protocol_optional_commands.h"
+#include "cerberus_protocol_required_commands.h"
+#include "cmd_authorization.h"
+#include "cmd_background.h"
+#include "cmd_interface.h"
+#include "session_manager.h"
+#include "attestation/attestation.h"
 #include "common/certificate.h"
 #include "common/common_math.h"
 #include "common/unused.h"
-#include "host_fw/host_processor.h"
 #include "firmware/firmware_update_control.h"
+#include "host_fw/host_processor.h"
 #include "i2c/i2c_slave_common.h"
 #include "logging/debug_log.h"
 #include "logging/logging_flash.h"
 #include "manifest/manifest_cmd_interface.h"
 #include "manifest/pfm/pfm_manager.h"
-#include "attestation/attestation.h"
-#include "attestation_cmd_interface.h"
-#include "cerberus_protocol.h"
-#include "cmd_authorization.h"
-#include "cmd_background.h"
-#include "cmd_interface.h"
-#include "session_manager.h"
 #include "recovery/recovery_image.h"
-#include "cerberus_protocol_required_commands.h"
-#include "cerberus_protocol_master_commands.h"
-#include "cerberus_protocol_optional_commands.h"
 
 
 /**
@@ -122,6 +122,7 @@ int cerberus_protocol_fw_update_init (const struct firmware_update_control *cont
 	}
 
 	request->length = 0;
+
 	return control->prepare_staging (control, rq->total_size);
 }
 
@@ -147,6 +148,7 @@ int cerberus_protocol_fw_update (const struct firmware_update_control *control,
 		cerberus_protocol_fw_update_length (request));
 
 	request->length = 0;
+
 	return status;
 }
 
@@ -166,6 +168,7 @@ int cerberus_protocol_fw_update_start (const struct firmware_update_control *con
 	}
 
 	request->length = 0;
+
 	return control->start_update (control);
 }
 
@@ -177,8 +180,7 @@ int cerberus_protocol_fw_update_start (const struct firmware_update_control *con
  *
  * @return 0 if request completed successfully or an error code.
  */
-int cerberus_protocol_get_log_info (struct pcr_store *pcr_store,
-	struct cmd_interface_msg *request)
+int cerberus_protocol_get_log_info (struct pcr_store *pcr_store, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_log_info_response *rsp =
 		(struct cerberus_protocol_get_log_info_response*) request->data;
@@ -203,6 +205,7 @@ int cerberus_protocol_get_log_info (struct pcr_store *pcr_store,
 	rsp->tamper_log_length = 0;
 
 	request->length = sizeof (struct cerberus_protocol_get_log_info_response);
+
 	return 0;
 }
 
@@ -248,6 +251,7 @@ int cerberus_protocol_log_read (struct pcr_store *pcr_store, struct hash_engine 
 	}
 
 	request->length = cerberus_protocol_get_log_response_length (log_length);
+
 	return 0;
 }
 
@@ -291,8 +295,7 @@ int cerberus_protocol_log_clear (const struct cmd_background *background,
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-static int cerberus_protocol_get_pfm_id_version (struct pfm *pfm,
-	struct cmd_interface_msg *request)
+static int cerberus_protocol_get_pfm_id_version (struct pfm *pfm, struct cmd_interface_msg *request)
 {
 	return cerberus_protocol_get_manifest_id_version (&pfm->base, request);
 }
@@ -447,6 +450,7 @@ exit:
 	if (pfm_mgr[port] != NULL) {
 		pfm_mgr[port]->free_pfm (pfm_mgr[port], curr_pfm);
 	}
+
 	return status;
 }
 
@@ -459,7 +463,7 @@ exit:
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_pfm_update_init (const struct manifest_cmd_interface* pfm_cmd[],
+int cerberus_protocol_pfm_update_init (const struct manifest_cmd_interface *pfm_cmd[],
 	uint8_t num_ports, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_prepare_pfm_update *rq =
@@ -478,6 +482,7 @@ int cerberus_protocol_pfm_update_init (const struct manifest_cmd_interface* pfm_
 	}
 
 	request->length = 0;
+
 	return pfm_cmd[rq->port_id]->prepare_manifest (pfm_cmd[rq->port_id], rq->size);
 }
 
@@ -512,6 +517,7 @@ int cerberus_protocol_pfm_update (const struct manifest_cmd_interface *pfm_cmd[]
 		cerberus_protocol_pfm_update_length (request));
 
 	request->length = 0;
+
 	return status;
 }
 
@@ -543,8 +549,8 @@ int cerberus_protocol_pfm_update_complete (const struct manifest_cmd_interface *
 	}
 
 	request->length = 0;
-	return pfm_cmd[rq->port_id]->finish_manifest (pfm_cmd[rq->port_id], rq->activation);
 
+	return pfm_cmd[rq->port_id]->finish_manifest (pfm_cmd[rq->port_id], rq->activation);
 }
 
 /**
@@ -608,6 +614,7 @@ int cerberus_protocol_get_host_reset_status (const struct host_control *host_0_c
 	}
 
 	request->length = sizeof (struct cerberus_protocol_get_host_state_response);
+
 	return 0;
 }
 
@@ -649,14 +656,14 @@ int cerberus_protocol_unseal_message (const struct cmd_background *background,
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if ((buffer_unaligned_read16 (
-			(uint16_t*) cerberus_protocol_unseal_ciphertext_length_ptr (rq)) == 0) ||
+	if ((buffer_unaligned_read16 ((uint16_t*) cerberus_protocol_unseal_ciphertext_length_ptr (
+		rq)) == 0) ||
 		(cerberus_protocol_unseal_hmac_length_ptr (rq) >= end)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if ((buffer_unaligned_read16 (
-			(uint16_t*) cerberus_protocol_unseal_hmac_length_ptr (rq)) != SHA256_HASH_LENGTH) ||
+	if ((buffer_unaligned_read16 ((uint16_t*) cerberus_protocol_unseal_hmac_length_ptr (rq)) !=
+		SHA256_HASH_LENGTH) ||
 		((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (rq) >= end)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
@@ -669,10 +676,12 @@ int cerberus_protocol_unseal_message (const struct cmd_background *background,
 	status = background->unseal_start (background, request->data, request->length);
 
 	request->length = 0;
+
 	return status;
 #else
 	UNUSED (background);
 	UNUSED (request);
+
 	return CMD_HANDLER_UNSUPPORTED_COMMAND;
 #endif
 }
@@ -723,6 +732,7 @@ int cerberus_protocol_unseal_message_result (const struct cmd_background *backgr
 #else
 	UNUSED (background);
 	UNUSED (request);
+
 	return CMD_HANDLER_UNSUPPORTED_COMMAND;
 #endif
 }
@@ -747,6 +757,7 @@ int cerberus_protocol_reset_config (struct cmd_authorization *cmd_auth,
 	uint8_t *nonce = NULL;
 	size_t length;
 	int status;
+
 	int (*auth) (struct cmd_authorization*, uint8_t**, size_t*);
 	int (*action) (const struct cmd_background*);
 
@@ -815,6 +826,7 @@ int cerberus_protocol_reset_config (struct cmd_authorization *cmd_auth,
 	UNUSED (background);
 	UNUSED (request);
 	UNUSED (cmd_auth);
+
 	return CMD_HANDLER_UNSUPPORTED_COMMAND;
 #endif
 }
@@ -850,6 +862,7 @@ int cerberus_protocol_prepare_recovery_image (const struct recovery_image_cmd_in
 	}
 
 	request->length = 0;
+
 	return recovery_interface->prepare_recovery_image (recovery_interface, rq->size);
 }
 
@@ -888,6 +901,7 @@ int cerberus_protocol_update_recovery_image (const struct recovery_image_cmd_int
 		cerberus_protocol_recovery_image_update_length (request));
 
 	request->length = 0;
+
 	return status;
 }
 
@@ -923,6 +937,7 @@ int cerberus_protocol_activate_recovery_image (
 	}
 
 	request->length = 0;
+
 	return recovery_interface->activate_recovery_image (recovery_interface);
 }
 

@@ -4,11 +4,11 @@
 #ifndef EVENT_TASK_H_
 #define EVENT_TASK_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
-#include "status/rot_status.h"
+#include <stddef.h>
+#include <stdint.h>
 #include "cmd_interface/cerberus_protocol.h"
+#include "status/rot_status.h"
 
 
 struct event_task_handler;
@@ -152,4 +152,4 @@ enum {
 };
 
 
-#endif /* EVENT_TASK_H_ */
+#endif	/* EVENT_TASK_H_ */

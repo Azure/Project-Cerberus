@@ -5,9 +5,9 @@
 #define RECOVERY_IMAGE_HEADER_H_
 
 #include <stdint.h>
-#include "status/rot_status.h"
-#include "flash/flash.h"
 #include "common/image_header.h"
+#include "flash/flash.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -21,7 +21,7 @@
  * Interface for a recovery image header that provides information about the image.
  */
 struct recovery_image_header {
-	struct image_header base;		/**< The base recovery image header instance. */
+	struct image_header base;	/**< The base recovery image header instance. */
 };
 
 
@@ -53,4 +53,4 @@ enum {
 };
 
 
-#endif /* RECOVERY_IMAGE_HEADER_H_ */
+#endif	/* RECOVERY_IMAGE_HEADER_H_ */

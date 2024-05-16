@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
-#include <stdbool.h>
+#include "pcr.h"
+#include "platform_api.h"
 #include "common/common_math.h"
 #include "flash/flash.h"
 #include "flash/flash_util.h"
-#include "platform_api.h"
-#include "pcr.h"
 
 
 /**
@@ -61,6 +61,7 @@ int pcr_init (struct pcr_bank *pcr, const struct pcr_config *config)
 	pcr->measurement_list = platform_calloc (num_measurements, sizeof (struct pcr_measurement));
 	if (pcr->measurement_list == NULL) {
 		platform_mutex_free (&pcr->lock);
+
 		return PCR_NO_MEMORY;
 	}
 
@@ -722,8 +723,7 @@ int pcr_get_measurement (struct pcr_bank *pcr, uint8_t measurement_index,
  * @return The digest length used for all measurements or an error code.  Use ROT_IS_ERROR to check
  * the return status.
  */
-int pcr_get_all_measurements (struct pcr_bank *pcr,
-	const struct pcr_measurement **measurement_list)
+int pcr_get_all_measurements (struct pcr_bank *pcr,	const struct pcr_measurement **measurement_list)
 {
 	if ((pcr == NULL) || (measurement_list == NULL)) {
 		return PCR_INVALID_ARGUMENT;
@@ -832,7 +832,7 @@ static int pcr_read_measurement_data_bytes (const uint8_t *data, size_t data_len
 	}
 
 	/* TODO: Can this be done with buffer_copy? */
-	bytes_read = ((data_len - offset) > buffer_len) ?  buffer_len : (data_len - offset);
+	bytes_read = ((data_len - offset) > buffer_len) ? buffer_len : (data_len - offset);
 	memcpy (buffer, data + offset, bytes_read);
 
 	return bytes_read;
@@ -883,7 +883,8 @@ static int pcr_get_measurement_data_internal (struct pcr_bank *pcr, uint8_t meas
 
 	if (include_event) {
 		if (offset < 4) {
-			bytes_read = pcr_read_measurement_data_bytes (
+			bytes_read =
+				pcr_read_measurement_data_bytes (
 				(uint8_t*) &pcr->measurement_list[measurement_index].event_type, 4, offset, buffer,
 				length);
 			offset = 0;
@@ -900,8 +901,9 @@ static int pcr_get_measurement_data_internal (struct pcr_bank *pcr, uint8_t meas
 
 	if (include_version) {
 		if (offset < 1) {
-			bytes_read = pcr_read_measurement_data_bytes (
-				&pcr->measurement_list[measurement_index].version, 1, offset, buffer, length);
+			bytes_read =
+				pcr_read_measurement_data_bytes (&pcr->measurement_list[measurement_index].version,
+				1, offset, buffer, length);
 			offset = 0;
 			length -= bytes_read;
 			buffer = buffer + bytes_read;
@@ -923,22 +925,25 @@ static int pcr_get_measurement_data_internal (struct pcr_bank *pcr, uint8_t meas
 			break;
 
 		case PCR_DATA_TYPE_2BYTE:
-			bytes_read = pcr_read_measurement_data_bytes (
-				(uint8_t*) &measured_data->data.value_2byte, 2, offset, buffer, length);
+			bytes_read =
+				pcr_read_measurement_data_bytes ((uint8_t*) &measured_data->data.value_2byte, 2,
+				offset, buffer, length);
 			status = bytes_read + total_bytes;
 			*total_len += 2;
 			break;
 
 		case PCR_DATA_TYPE_4BYTE:
-			bytes_read = pcr_read_measurement_data_bytes (
-					(uint8_t*) &measured_data->data.value_4byte, 4, offset, buffer, length);
+			bytes_read =
+				pcr_read_measurement_data_bytes ((uint8_t*) &measured_data->data.value_4byte, 4,
+				offset, buffer, length);
 			status = bytes_read + total_bytes;
 			*total_len += 4;
 			break;
 
 		case PCR_DATA_TYPE_8BYTE:
-			bytes_read = pcr_read_measurement_data_bytes (
-					(uint8_t*) &measured_data->data.value_8byte, 8, offset, buffer, length);
+			bytes_read =
+				pcr_read_measurement_data_bytes ((uint8_t*) &measured_data->data.value_8byte, 8,
+				offset, buffer, length);
 			status = bytes_read + total_bytes;
 			*total_len += 8;
 			break;
@@ -958,8 +963,8 @@ static int pcr_get_measurement_data_internal (struct pcr_bank *pcr, uint8_t meas
 				status = total_bytes;
 			}
 			else {
-				bytes_read = ((measured_data->data.flash.length - offset) > length ? length :
-					(measured_data->data.flash.length - offset));
+				bytes_read = (((measured_data->data.flash.length - offset) > length) ? length :
+						(measured_data->data.flash.length - offset));
 
 				status = flash_device->read (flash_device, read_addr, buffer, bytes_read);
 				if (status == 0) {
@@ -971,7 +976,7 @@ static int pcr_get_measurement_data_internal (struct pcr_bank *pcr, uint8_t meas
 			break;
 		}
 
-		case PCR_DATA_TYPE_CALLBACK: {
+		case PCR_DATA_TYPE_CALLBACK:
 			status = measured_data->data.callback.get_data (measured_data->data.callback.context,
 				offset, buffer, length, &data_len);
 			if (!ROT_IS_ERROR (status)) {
@@ -981,7 +986,6 @@ static int pcr_get_measurement_data_internal (struct pcr_bank *pcr, uint8_t meas
 			*total_len += data_len;
 
 			break;
-		}
 
 		default:
 			status = PCR_INVALID_DATA_TYPE;
@@ -1009,7 +1013,7 @@ static int pcr_get_measurement_data_internal (struct pcr_bank *pcr, uint8_t meas
  * ROT_IS_ERROR to check the return value.
  */
 int pcr_get_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index, size_t offset,
-	 uint8_t *buffer, size_t length, size_t *total_len)
+	uint8_t *buffer, size_t length, size_t *total_len)
 {
 	int status;
 
@@ -1141,7 +1145,8 @@ int pcr_hash_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
 
 			case PCR_DATA_TYPE_CALLBACK:
 				if (measured_data->data.callback.hash_data != NULL) {
-					status = measured_data->data.callback.hash_data (
+					status =
+						measured_data->data.callback.hash_data (
 						measured_data->data.callback.context, hash);
 				}
 				else {
@@ -1152,7 +1157,7 @@ int pcr_hash_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
 			default:
 				status = PCR_INVALID_DATA_TYPE;
 				break;
-		};
+		}
 		if (status != 0) {
 			goto hash_done;
 		}
@@ -1170,6 +1175,7 @@ hash_done:
 
 exit:
 	platform_mutex_unlock (&pcr->lock);
+
 	return status;
 }
 
@@ -1223,7 +1229,7 @@ int pcr_get_tcg_log (struct pcr_bank *pcr, uint32_t pcr_num, size_t offset, uint
 
 	switch (pcr->config.measurement_algo) {
 		default:
-			/* This isn't possible, since invalid hash types would be caught during init.
+		/* This isn't possible, since invalid hash types would be caught during init.
 			 * Fall-through to SHA-256.  This is here mostly to keep compilers happy. */
 		case HASH_TYPE_SHA256:
 			entry.header.digest_algorithm_id = PCR_TCG_SHA256_ALG_ID;

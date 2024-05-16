@@ -26,4 +26,4 @@ int spdm_measurements_discovery_init (struct spdm_measurements_discovery *handle
 void spdm_measurements_discovery_release (const struct spdm_measurements_discovery *handler);
 
 
-#endif /* SPDM_MEASUREMENTS_DISCOVERY_H_ */
+#endif	/* SPDM_MEASUREMENTS_DISCOVERY_H_ */

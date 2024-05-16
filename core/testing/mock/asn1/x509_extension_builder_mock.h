@@ -4,16 +4,16 @@
 #ifndef X509_EXTENSION_BUILDER_MOCK_H_
 #define X509_EXTENSION_BUILDER_MOCK_H_
 
-#include "asn1/x509_extension_builder.h"
 #include "mock.h"
+#include "asn1/x509_extension_builder.h"
 
 
 /**
  * A mock for building X.509 extensions.
  */
 struct x509_extension_builder_mock {
-	struct x509_extension_builder base;		/**< The base extension builder instance. */
-	struct mock mock;						/**< The base mock interface. */
+	struct x509_extension_builder base;	/**< The base extension builder instance. */
+	struct mock mock;					/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void x509_extension_builder_mock_release (struct x509_extension_builder_mock *mo
 int x509_extension_builder_mock_validate_and_release (struct x509_extension_builder_mock *mock);
 
 
-#endif /* X509_EXTENSION_BUILDER_MOCK_H_ */
+#endif	/* X509_EXTENSION_BUILDER_MOCK_H_ */

@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "platform_io.h"
 #include "cmd_channel_mock.h"
+#include "platform_io.h"
 #include "testing.h"
 
 
@@ -66,6 +66,7 @@ static const char* cmd_channel_mock_arg_name_map (void *func, int arg)
 		switch (arg) {
 			case 0:
 				return "packet";
+
 			case 1:
 				return "ms_timeout";
 		}
@@ -106,6 +107,7 @@ int cmd_channel_mock_init (struct cmd_channel_mock *mock, int id)
 	status = mock_init (&mock->mock);
 	if (status != 0) {
 		cmd_channel_release (&mock->base);
+
 		return status;
 	}
 
@@ -187,8 +189,8 @@ int cmd_channel_mock_validate_packet (const char *arg_info, void *expected, void
 	}
 
 	if (pkt_expected->pkt_size != pkt_actual->pkt_size) {
-		platform_printf ("%sUnexpected packet length: expected=0x%lx, actual=0x%lx" NEWLINE, arg_info,
-			pkt_expected->pkt_size, pkt_actual->pkt_size);
+		platform_printf ("%sUnexpected packet length: expected=0x%lx, actual=0x%lx" NEWLINE,
+			arg_info, pkt_expected->pkt_size, pkt_actual->pkt_size);
 		fail |= 1;
 	}
 

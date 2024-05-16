@@ -45,4 +45,5 @@ int i2c_read (uint8_t cmd, int8_t addr, uint8_t *payload, int16_t length);
  */
 int i2c_write (int8_t addr, uint8_t *payload, int16_t length);
 
-#endif	  //I2C_PLATFORM_H_
+
+#endif	//I2C_PLATFORM_H_

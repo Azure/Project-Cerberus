@@ -5,10 +5,10 @@
 #define PCR_STORE_H_
 
 #include <stdint.h>
-#include "crypto/hash.h"
-#include "logging/logging.h"
 #include "pcr.h"
 #include "pcr_data.h"
+#include "crypto/hash.h"
+#include "logging/logging.h"
 
 
 /**
@@ -24,8 +24,8 @@
  * Storage for all PCRs maintained by the device.
  */
 struct pcr_store {
-	struct pcr_bank *pcrs;		/**< List of individual PCRs for the device.*/
-	uint8_t num_pcrs;			/**< The number of PCRs in the list. */
+	struct pcr_bank *pcrs;	/**< List of individual PCRs for the device.*/
+	uint8_t num_pcrs;		/**< The number of PCRs in the list. */
 };
 
 #pragma pack(push, 1)
@@ -34,10 +34,10 @@ struct pcr_store {
  * Format for an entry in the attestation log.
  */
 struct pcr_store_attestation_log_entry_info {
-	uint32_t event_type;						/**< TCG event type for the measurement. */
-	uint32_t measurement_type;					/**< PCR and measurement index. */
-	uint32_t digest_count;						/**< Number of digests in the log entry. */
-	uint16_t digest_algorithm_id;				/**< TCG ID of the hashing algorithm used. */
+	uint32_t event_type;			/**< TCG event type for the measurement. */
+	uint32_t measurement_type;		/**< PCR and measurement index. */
+	uint32_t digest_count;			/**< Number of digests in the log entry. */
+	uint16_t digest_algorithm_id;	/**< TCG ID of the hashing algorithm used. */
 };
 
 /**
@@ -71,8 +71,8 @@ struct pcr_store_attestation_log_digest_sha512 {
  * Logging attestation entry structure without the variable length measurements.
  */
 struct pcr_store_attestation_log_entry_base {
-	struct logging_entry_header header;						/**< Standard logging header. */
-	struct pcr_store_attestation_log_entry_info info;		/**< Information for the log entry. */
+	struct logging_entry_header header;					/**< Standard logging header. */
+	struct pcr_store_attestation_log_entry_info info;	/**< Information for the log entry. */
 };
 
 /**
@@ -156,10 +156,10 @@ int pcr_store_is_measurement_data_available (struct pcr_store *store, uint16_t m
 int pcr_store_get_measurement_data_length (struct pcr_store *store, uint16_t measurement_type);
 
 int pcr_store_get_attestation_log_size (struct pcr_store *store);
-int pcr_store_get_attestation_log (struct pcr_store *store, struct hash_engine *hash,
-	size_t offset, uint8_t *contents, size_t length);
+int pcr_store_get_attestation_log (struct pcr_store *store, struct hash_engine *hash, size_t offset,
+	uint8_t *contents, size_t length);
 
 int pcr_store_get_tcg_log (struct pcr_store *store, size_t offset, uint8_t *buffer, size_t length);
 
 
-#endif /* PCR_STORE_H_ */
+#endif	/* PCR_STORE_H_ */

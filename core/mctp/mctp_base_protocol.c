@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
-#include "crypto/checksum.h"
 #include "mctp_base_protocol.h"
+#include "crypto/checksum.h"
 
 
 /**

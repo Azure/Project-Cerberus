@@ -4,8 +4,8 @@
 #ifndef FIRMWARE_UPDATE_OBSERVER_MOCK_H_
 #define FIRMWARE_UPDATE_OBSERVER_MOCK_H_
 
-#include "firmware/firmware_update_observer.h"
 #include "mock.h"
+#include "firmware/firmware_update_observer.h"
 
 
 /**
@@ -23,4 +23,4 @@ void firmware_update_observer_mock_release (struct firmware_update_observer_mock
 int firmware_update_observer_mock_validate_and_release (struct firmware_update_observer_mock *mock);
 
 
-#endif /* FIRMWARE_UPDATE_OBSERVER_MOCK_H_ */
+#endif	/* FIRMWARE_UPDATE_OBSERVER_MOCK_H_ */

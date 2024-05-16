@@ -4,12 +4,12 @@
 #ifndef FLASH_VIRTUAL_RAM_H_
 #define FLASH_VIRTUAL_RAM_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
-#include "status/rot_status.h"
-#include "platform_api.h"
 #include "flash.h"
+#include "platform_api.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -21,7 +21,7 @@
  * Variable context for a virtual flash instance.
  */
 struct flash_virtual_ram_state {
-	platform_mutex lock;			/**< Lock to synchronize access to the hardware. */
+	platform_mutex lock;	/**< Lock to synchronize access to the hardware. */
 };
 
 /**
@@ -29,10 +29,10 @@ struct flash_virtual_ram_state {
  * used in the same way as any other flash device, but the data is volatile.
  */
 struct flash_virtual_ram {
-	struct flash base;							/**< Base flash API. */
-	struct flash_virtual_ram_state *state;		/**< Variable context for the virtual  instance. */
-	uint8_t *buffer;							/**< Pointer to the memory buffer of virtual device. */
-	size_t size;								/**< Size in bytes. */
+	struct flash base;						/**< Base flash API. */
+	struct flash_virtual_ram_state *state;	/**< Variable context for the virtual  instance. */
+	uint8_t *buffer;						/**< Pointer to the memory buffer of virtual device. */
+	size_t size;							/**< Size in bytes. */
 };
 
 
@@ -42,4 +42,4 @@ int flash_virtual_ram_init_state (struct flash_virtual_ram *virtual_ram);
 void flash_virtual_ram_release (struct flash_virtual_ram *virtual_ram);
 
 
-#endif /* FLASH_VIRTUAL_RAM */
+#endif	/* FLASH_VIRTUAL_RAM */

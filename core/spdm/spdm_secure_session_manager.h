@@ -4,8 +4,8 @@
 #ifndef SPDM_SECURE_SESSION_MANAGER_H_
 #define SPDM_SECURE_SESSION_MANAGER_H_
 
-#include "spdm_commands.h"
 #include "platform_config.h"
+#include "spdm_commands.h"
 
 
 /* Configurable parameters. Defaults can be overridden in platform_config.h. */
@@ -45,7 +45,7 @@
 /**
  * SPDM Key Schedule related strings.
  */
-#define SPDM_BIN_CONCAT_LABEL 				"spdmx.x "
+#define SPDM_BIN_CONCAT_LABEL				"spdmx.x "
 #define SPDM_VERSION_1_1_BIN_CONCAT_LABEL	"spdm1.1 "
 #define SPDM_VERSION_1_2_BIN_CONCAT_LABEL	"spdm1.2 "
 #define SPDM_BIN_STR_0_LABEL				"derived"
@@ -70,10 +70,10 @@
  * SPDM secure session type.
  */
 enum spdm_secure_session_type {
-	SPDM_SESSION_TYPE_NONE,			/**< Open session. */
-	SPDM_SESSION_TYPE_MAC_ONLY,		/**< MAC only session. */
-	SPDM_SESSION_TYPE_ENC_MAC,		/**< Encrypted and MAC session. */
-	SPDM_SESSION_TYPE_MAX			/**< MAX */
+	SPDM_SESSION_TYPE_NONE,		/**< Open session. */
+	SPDM_SESSION_TYPE_MAC_ONLY,	/**< MAC only session. */
+	SPDM_SESSION_TYPE_ENC_MAC,	/**< Encrypted and MAC session. */
+	SPDM_SESSION_TYPE_MAX,		/**< MAX */
 };
 
 /**
@@ -81,9 +81,9 @@ enum spdm_secure_session_type {
  */
 enum spdm_secure_session_state {
 	SPDM_SESSION_STATE_NOT_STARTED,	/**< Before send KEY_EXCHANGE/PSK_EXCHANGE or after END_SESSION */
-	SPDM_SESSION_STATE_HANDSHAKING, /**< After send KEY_EXCHANGE, before send FINISH */
+	SPDM_SESSION_STATE_HANDSHAKING,	/**< After send KEY_EXCHANGE, before send FINISH */
 	SPDM_SESSION_STATE_ESTABLISHED,	/**< After send FINISH, before END_SESSION */
-	SPDM_SESSION_STATE_MAX			/**< MAX */
+	SPDM_SESSION_STATE_MAX,			/**< MAX */
 };
 
 #pragma pack(1)
@@ -91,12 +91,12 @@ enum spdm_secure_session_state {
 /**
  *  Secured Messages opaque specification Id.
  */
-#define SPDM_SECURED_MESSAGE_OPAQUE_DATA_SPEC_ID 	0x444D5446
+#define SPDM_SECURED_MESSAGE_OPAQUE_DATA_SPEC_ID	0x444D5446
 
 /**
  *  Secured Messages opaque data version.
  */
-#define SPDM_SECURED_MESSAGE_OPAQUE_VERSION 			0x1
+#define SPDM_SECURED_MESSAGE_OPAQUE_VERSION				0x1
 
 /**
  *  Secured Messages opaque data element version.
@@ -111,17 +111,17 @@ enum spdm_secure_session_state {
  *  Secured Message general opaque data table per SPDM secure session spec section 8.
  */
 struct spdm_secured_message_general_opaque_data_table_header {
-	uint32_t spec_id; 			/**< This will be SPDM_SECURED_MESSAGE_OPAQUE_DATA_SPEC_ID per SPDM secure session spec section 8. */
-	uint8_t opaque_version; 	/**< Identifies the format of the remaining bytes. Shall be 1 per SPDM secure session spec section 8. */
-	uint8_t total_elements;		/**< Total number of elements in OpaqueList. */
-	uint16_t reserved;			/**< Reserved. */
+	uint32_t spec_id;		/**< This will be SPDM_SECURED_MESSAGE_OPAQUE_DATA_SPEC_ID per SPDM secure session spec section 8. */
+	uint8_t opaque_version;	/**< Identifies the format of the remaining bytes. Shall be 1 per SPDM secure session spec section 8. */
+	uint8_t total_elements;	/**< Total number of elements in OpaqueList. */
+	uint16_t reserved;		/**< Reserved. */
 };
 
 /**
  * Opaque element table per SPDM secure session spec section 8.
  */
 struct spdm_secured_message_opaque_element_table_header {
-	uint8_t id; 						/**< SPDM_REGISTRY_ID_DMTF*/
+	uint8_t id;							/**< SPDM_REGISTRY_ID_DMTF*/
 	uint8_t vendor_len;					/**< VendorID length. */
 	uint16_t opaque_element_data_len;	/**< Opaque element data length. */
 };
@@ -130,16 +130,16 @@ struct spdm_secured_message_opaque_element_table_header {
  * Opaque element table per SPDM secure session spec section 8.
  */
 struct spdm_secured_message_opaque_element_header {
-	uint8_t sm_data_version; 	/**< SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_DATA_VERSION */
-	uint8_t sm_data_id; 		/**< SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_ID_VERSION_SELECTION */
+	uint8_t sm_data_version;	/**< SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_DATA_VERSION */
+	uint8_t sm_data_id;			/**< SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_ID_VERSION_SELECTION */
 };
 
 /**
  * Secured Message version selection data format per SPDM secure session spec section 8.1.1
  */
 struct spdm_secured_message_opaque_element_version_selection {
-	uint8_t sm_data_version; 	/**< SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_DATA_VERSION */
-	uint8_t sm_data_id; 		/**< SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_ID_VERSION_SELECTION */
+	uint8_t sm_data_version;	/**< SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_DATA_VERSION */
+	uint8_t sm_data_id;			/**< SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_ID_VERSION_SELECTION */
 	struct spdm_version_number selected_version;
 };
 
@@ -148,7 +148,7 @@ struct spdm_secured_message_opaque_element_version_selection {
  */
 struct spdm_secured_message_opaque_element_supported_version {
 	uint8_t sm_data_version;	/**< SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_DATA_VERSION */
-	uint8_t sm_data_id; 		/**< SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_ID_SUPPORTED_VERSION */
+	uint8_t sm_data_id;			/**< SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_ID_SUPPORTED_VERSION */
 	uint8_t version_count;		/**< Number of supported versions. */
 };
 
@@ -163,14 +163,14 @@ struct spdm_secured_message_data_header_1 {
  * SPDM secure message last part of the header.
  */
 struct spdm_secured_message_data_header_2 {
-	uint16_t length; /**< The length of the remaining data, including application_data_length(O), payload, Random(O) and MAC.*/
+	uint16_t length;	/**< The length of the remaining data, including application_data_length(O), payload, Random(O) and MAC.*/
 };
 
 /**
  * SPDM secure message cipher header.
  */
 struct spdm_secured_message_cipher_header {
-	uint16_t application_data_length; /**< The length of the application payload. */
+	uint16_t application_data_length;	/**< The length of the application payload. */
 };
 
 #pragma pack()
@@ -254,7 +254,7 @@ struct spdm_secure_session_manager_state {
 	struct spdm_secure_session sessions[SPDM_MAX_SESSION_COUNT];	/**< Secure Sessions. */
 	uint32_t current_session_count;									/**< Current number of active sessions. */
 	uint32_t last_spdm_request_secure_session_id;					/**< Secure session Id of last secure message. */
-	bool last_spdm_request_secure_session_id_valid; 				/**< Secure session Id validity. */
+	bool last_spdm_request_secure_session_id_valid;					/**< Secure session Id validity. */
 };
 
 struct spdm_secure_session_manager {
@@ -269,13 +269,12 @@ struct spdm_secure_session_manager {
 	 * @return A pointer to the created SPDM secure session or NULL if the session could not be created.
 	 */
 	struct spdm_secure_session* (*create_session) (
-		const struct spdm_secure_session_manager *session_manager, 
-		uint32_t session_id, bool is_requester,
-		const struct spdm_connection_info *connection_info);
+		const struct spdm_secure_session_manager *session_manager, uint32_t session_id,
+		bool is_requester, const struct spdm_connection_info *connection_info);
 
 	/**
 	 * Release an SPDM secure session.
-	 * 
+	 *
 	 * @param session_manager SPDM session manager.
 	 * @param session_id Session Id for the session.
 	 */
@@ -284,10 +283,10 @@ struct spdm_secure_session_manager {
 
 	/**
 	 * Get an SPDM secure session.
-	 * 
+	 *
 	 * @param session_manager SPDM session manager.
 	 * @param session_id Session Id for the session.
-	 * 
+	 *
 	 * @return A pointer to the SPDM secure session or NULL if the session does not exist.
 	 */
 	struct spdm_secure_session* (*get_session) (
@@ -295,7 +294,7 @@ struct spdm_secure_session_manager {
 
 	/**
 	 * Set the session state for an SPDM secure session.
-	 * 
+	 *
 	 * @param session_manager SPDM session manager.
 	 * @param session_id Session Id for the session.
 	 * @param session_state Session state to set.
@@ -305,24 +304,24 @@ struct spdm_secure_session_manager {
 
 	/**
 	 * Reset the Session Manager.
-	 * 
+	 *
 	 * @param session_manager SPDM session manager.
 	 */
 	void (*reset) (const struct spdm_secure_session_manager *session_manager);
 
 	/**
 	 * Generate the shared secret from peer and local publick keys.
-	 * 
+	 *
 	 * @param session_manager SPDM session manager.
 	 * @param session SPDM session info.
 	 * @param peer_pub_key_point Peer public key in point format.
 	 * @param local_pub_key_point Pointer to store the generated local public key in point format.
-	 * 
+	 *
 	 * @return 0 if shared secret is generated successfully. error code otherwise.
 	 */
 	int (*generate_shared_secret) (const struct spdm_secure_session_manager *session_manager,
-		struct spdm_secure_session* session,
-		const struct ecc_point_public_key *peer_pub_key_point, uint8_t *local_pub_key_point);
+		struct spdm_secure_session *session, const struct ecc_point_public_key *peer_pub_key_point,
+		uint8_t *local_pub_key_point);
 
 	/**
 	 * Generate handshake keys for an SPDM secure session.
@@ -332,15 +331,16 @@ struct spdm_secure_session_manager {
 	 *
 	 * @return 0 if the handshake keys are generated successfully, error code otherwise.
 	 */
-	int (*generate_session_handshake_keys) (const struct spdm_secure_session_manager *session_manager,
+	int (*generate_session_handshake_keys) (
+		const struct spdm_secure_session_manager *session_manager,
 		struct spdm_secure_session *session);
 
 	/**
 	 * Generate data keys for an SPDM secure session.
-	 * 
+	 *
 	 * @param session_manager SPDM Session Manager.
 	 * @param session SPDM Secure Session.
-	 * 
+	 *
 	 * @return 0 if the data keys are generated successfully, error code otherwise.
 	 */
 	int (*generate_session_data_keys) (const struct spdm_secure_session_manager *session_manager,
@@ -348,25 +348,25 @@ struct spdm_secure_session_manager {
 
 	/**
 	 * Query if the last session is active.
-	 * 
+	 *
 	 * @param session_manager SPDM session manager.
-	 * 
+	 *
 	 * @return true if the last session is active, false otherwise.
 	 */
 	bool (*is_last_session_id_valid) (const struct spdm_secure_session_manager *session_manager);
 
 	/**
 	 * Get the last session id.
-	 * 
+	 *
 	 * @param session_manager SPDM session manager.
-	 * 
+	 *
 	 * @return Last session id.
 	 */
 	uint32_t (*get_last_session_id) (const struct spdm_secure_session_manager *session_manager);
 
 	/**
 	 * Reset the last session id validity.
-	 * 
+	 *
 	 * @param session_manager SPDM session manager.
 	 */
 	void (*reset_last_session_id_validity) (
@@ -374,10 +374,10 @@ struct spdm_secure_session_manager {
 
 	/**
 	 * Decode a secure message. This includes MAC verification and optionally decryption.
-	 * 
+	 *
 	 * @param session_manager SPDM session manager.
 	 * @param request SPDM request message.
-	 * 
+	 *
 	 * @return 0 if the secure message is decoded successfully, error code otherwise.
 	 */
 	int (*decode_secure_message) (const struct spdm_secure_session_manager *session_manager,
@@ -385,10 +385,10 @@ struct spdm_secure_session_manager {
 
 	/**
 	 * Encode a secure message. This includes MAC generation and optionally encryption.
-	 * 
+	 *
 	 * @param session_manager SPDM session manager.
 	 * @param request SPDM request message.
-	 * 
+	 *
 	 * @return 0 if the secure message is encoded successfully, error code otherwise.
 	 */
 	int (*encode_secure_message) (const struct spdm_secure_session_manager *session_manager,
@@ -407,33 +407,42 @@ struct spdm_secure_session_manager {
 
 
 int spdm_secure_session_manager_init (struct spdm_secure_session_manager *session_manager,
-	struct spdm_secure_session_manager_state *state, const struct spdm_device_capability *local_capabilities,
+	struct spdm_secure_session_manager_state *state,
+	const struct spdm_device_capability *local_capabilities,
 	const struct spdm_device_algorithms *local_algorithms, struct aes_engine *aes_engine,
 	struct hash_engine *hash_engine, struct rng_engine *rng_engine, struct ecc_engine *ecc_engine,
 	struct spdm_transcript_manager *transcript_manager);
 
-void spdm_secure_session_manager_release (const struct spdm_secure_session_manager *session_manager);
+void spdm_secure_session_manager_release (
+	const struct spdm_secure_session_manager *session_manager);
 
-int spdm_secure_session_manager_init_state (const struct spdm_secure_session_manager *session_manager);
+int spdm_secure_session_manager_init_state (
+	const struct spdm_secure_session_manager *session_manager);
 
 
-#define	SPDM_SECURE_SESSION_MANAGER_ERROR(code)	ROT_ERROR (ROT_MODULE_SPDM_SECURE_SESSION_MANAGER, code)
+#define	SPDM_SECURE_SESSION_MANAGER_ERROR(\
+	code) ROT_ERROR (ROT_MODULE_SPDM_SECURE_SESSION_MANAGER, code)
 
 /**
  * Error codes that can be generated by the Secure Session Manager.
  */
 enum {
-	SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT = SPDM_SECURE_SESSION_MANAGER_ERROR (0x00),				/**< Input parameter is null or not valid. */
-	SPDM_SECURE_SESSION_MANAGER_NO_MEMORY = SPDM_SECURE_SESSION_MANAGER_ERROR (0x01),						/**< Memory allocation failed. */
-	SPDM_SECURE_SESSION_MANAGER_GENERATE_SHARED_SECRET_FAILED = SPDM_SECURE_SESSION_MANAGER_ERROR (0x02),	/**< Generate shared secret failed. */
-	SPDM_SECURE_SESSION_MANAGER_GENERATE_HANDSHAKE_KEYS_FAILED = SPDM_SECURE_SESSION_MANAGER_ERROR (0x03),	/**< Generate handshake keys failed. */
-	SPDM_SECURE_SESSION_MANAGER_SEQUENCE_NUMBER_OVERFLOW = SPDM_SECURE_SESSION_MANAGER_ERROR (0x04),		/**< Sequence number overflow. */
-	SPDM_SECURE_SESSION_MANAGER_INVALID_MESSAGE_SIZE = SPDM_SECURE_SESSION_MANAGER_ERROR (0x05),			/**< Invalid message size. */
-	SPDM_SECURE_SESSION_MANAGER_BUFFER_TOO_SMALL = SPDM_SECURE_SESSION_MANAGER_ERROR (0x06),				/**< Buffer too small. */
-	SPDM_SECURE_SESSION_MANAGER_SESSION_TRY_DISCARD_KEY_UPDATE = SPDM_SECURE_SESSION_MANAGER_ERROR (0x07),	/**< Message decryption failed, try update keys. */
-	SPDM_SECURE_SESSION_MANAGER_UNSUPPORTED_CAPABILITY = SPDM_SECURE_SESSION_MANAGER_ERROR (0x08),			/**< Unsupported capability. */
-	SPDM_SECURE_SESSION_MANAGER_INTERNAL_ERROR = SPDM_SECURE_SESSION_MANAGER_ERROR (0x09),					/**< Internal error. */
-	SPDM_SECURE_SESSION_MANAGER_GENERATE_DATA_KEYS_FAILED = SPDM_SECURE_SESSION_MANAGER_ERROR (0x0A),		/**< Generate data keys failed. */
+	SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT = SPDM_SECURE_SESSION_MANAGER_ERROR (0x00),			/**< Input parameter is null or not valid. */
+	SPDM_SECURE_SESSION_MANAGER_NO_MEMORY = SPDM_SECURE_SESSION_MANAGER_ERROR (0x01),					/**< Memory allocation failed. */
+	SPDM_SECURE_SESSION_MANAGER_GENERATE_SHARED_SECRET_FAILED =
+		SPDM_SECURE_SESSION_MANAGER_ERROR (0x02),														/**< Generate shared secret failed. */
+	SPDM_SECURE_SESSION_MANAGER_GENERATE_HANDSHAKE_KEYS_FAILED =
+		SPDM_SECURE_SESSION_MANAGER_ERROR (0x03),														/**< Generate handshake keys failed. */
+	SPDM_SECURE_SESSION_MANAGER_SEQUENCE_NUMBER_OVERFLOW = SPDM_SECURE_SESSION_MANAGER_ERROR (0x04),	/**< Sequence number overflow. */
+	SPDM_SECURE_SESSION_MANAGER_INVALID_MESSAGE_SIZE = SPDM_SECURE_SESSION_MANAGER_ERROR (0x05),		/**< Invalid message size. */
+	SPDM_SECURE_SESSION_MANAGER_BUFFER_TOO_SMALL = SPDM_SECURE_SESSION_MANAGER_ERROR (0x06),			/**< Buffer too small. */
+	SPDM_SECURE_SESSION_MANAGER_SESSION_TRY_DISCARD_KEY_UPDATE =
+		SPDM_SECURE_SESSION_MANAGER_ERROR (0x07),														/**< Message decryption failed, try update keys. */
+	SPDM_SECURE_SESSION_MANAGER_UNSUPPORTED_CAPABILITY = SPDM_SECURE_SESSION_MANAGER_ERROR (0x08),		/**< Unsupported capability. */
+	SPDM_SECURE_SESSION_MANAGER_INTERNAL_ERROR = SPDM_SECURE_SESSION_MANAGER_ERROR (0x09),				/**< Internal error. */
+	SPDM_SECURE_SESSION_MANAGER_GENERATE_DATA_KEYS_FAILED =
+		SPDM_SECURE_SESSION_MANAGER_ERROR (0x0A),														/**< Generate data keys failed. */
 };
 
-#endif /* SPDM_SECURE_SESSION_MANAGER_H_ */
+
+#endif	/* SPDM_SECURE_SESSION_MANAGER_H_ */

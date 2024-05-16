@@ -15201,6 +15201,7 @@ static void flash_store_contiguous_blocks_encrypted_test_read_variable_storage_d
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (flash_store_contiguous_blocks_encrypted);
 
 TEST (flash_store_contiguous_blocks_encrypted_test_init_fixed_storage);
@@ -15488,3 +15489,4 @@ TEST (flash_store_contiguous_blocks_encrypted_test_read_variable_storage_read_ta
 TEST (flash_store_contiguous_blocks_encrypted_test_read_variable_storage_decrypt_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

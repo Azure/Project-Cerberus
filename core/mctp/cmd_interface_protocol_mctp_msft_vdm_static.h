@@ -36,4 +36,4 @@ int cmd_interface_protocol_mctp_msft_vdm_handle_request_result (
 	}
 
 
-#endif /* CMD_INTERFACE_PROTOCOL_MCTP_MSFT_VDM_STATIC_H_ */
+#endif	/* CMD_INTERFACE_PROTOCOL_MCTP_MSFT_VDM_STATIC_H_ */

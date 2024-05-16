@@ -41,4 +41,4 @@ enum {
 };
 
 
-#endif /* FLASH_MFG_FILTER_HANDLER_H_ */
+#endif	/* FLASH_MFG_FILTER_HANDLER_H_ */

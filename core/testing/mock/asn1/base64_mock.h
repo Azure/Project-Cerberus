@@ -4,16 +4,16 @@
 #ifndef BASE64_MOCK_H_
 #define BASE64_MOCK_H_
 
-#include "asn1/base64.h"
 #include "mock.h"
+#include "asn1/base64.h"
 
 
 /**
  * A mock for the base64 API.
  */
 struct base64_engine_mock {
-	struct base64_engine base;		/**< The base base64 instance. */
-	struct mock mock;				/**< The base mock interface. */
+	struct base64_engine base;	/**< The base base64 instance. */
+	struct mock mock;			/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void base64_mock_release (struct base64_engine_mock *mock);
 int base64_mock_validate_and_release (struct base64_engine_mock *mock);
 
 
-#endif /* BASE64_MOCK_H_ */
+#endif	/* BASE64_MOCK_H_ */

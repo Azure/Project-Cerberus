@@ -190,8 +190,8 @@ struct mctp_base_protocol_transport_header {
  * This will only be present in the first MCTP packet of a multi-packet message.
  */
 struct mctp_base_protocol_message_header {
-	uint8_t msg_type:7;				/**< Identifier for the type of message. */
-	uint8_t integrity_check:1;		/**< Flag indicating if an integrity check has been added. */
+	uint8_t msg_type:7;			/**< Identifier for the type of message. */
+	uint8_t integrity_check:1;	/**< Flag indicating if an integrity check has been added. */
 };
 
 /**
@@ -205,6 +205,7 @@ struct mctp_base_protocol_vdm_pci_header {
 	struct mctp_base_protocol_message_header msg_header;	/**< Common MCTP message header. */
 	uint16_t pci_vendor_id;									/**< Vendor identifier using the PCI vendor ID. */
 };
+
 #pragma pack(pop)
 
 /**

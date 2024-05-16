@@ -4,9 +4,9 @@
 #ifndef LOGGING_MEMORY_H_
 #define LOGGING_MEMORY_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "logging.h"
 #include "platform_api.h"
 
@@ -15,11 +15,11 @@
  * Variable context for a log that stores data in volatile memory.
  */
 struct logging_memory_state {
-	platform_mutex lock;				/**< Synchronization for log accesses. */
-	size_t log_start;					/**< The first entry of the log. */
-	size_t log_end;						/**< The end of the log where new entries will be added. */
-	uint32_t next_entry_id;				/**< Next ID to assign to a log entry. */
-	bool is_full;						/**< Flag indicating when the log is full. */
+	platform_mutex lock;	/**< Synchronization for log accesses. */
+	size_t log_start;		/**< The first entry of the log. */
+	size_t log_end;			/**< The end of the log where new entries will be added. */
+	uint32_t next_entry_id;	/**< Next ID to assign to a log entry. */
+	bool is_full;			/**< Flag indicating when the log is full. */
 };
 
 /**
@@ -51,4 +51,4 @@ void logging_memory_release (struct logging_memory *logging);
 int logging_memory_copy_entries (const struct logging_memory *logging, const struct logging *dest);
 
 
-#endif /* LOGGING_MEMORY_H_ */
+#endif	/* LOGGING_MEMORY_H_ */

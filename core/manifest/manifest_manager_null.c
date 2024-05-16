@@ -2,8 +2,8 @@
 // Licensed under the MIT license.
 
 #include <string.h>
-#include "common/unused.h"
 #include "manifest_manager_null.h"
+#include "common/unused.h"
 
 
 int manifest_manager_null_activate_pending_manifest (const struct manifest_manager *manager)

@@ -17754,6 +17754,7 @@ static void host_processor_dual_test_power_on_reset_pending_pfm_with_active_dirt
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_processor_dual_power_on_reset);
 
 TEST (host_processor_dual_test_power_on_reset_no_pfm);
@@ -17966,3 +17967,4 @@ TEST (host_processor_dual_test_power_on_reset_pending_pfm_with_active_dirty_empt
 TEST (host_processor_dual_test_power_on_reset_pending_pfm_with_active_dirty_empty_manifest_cs_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

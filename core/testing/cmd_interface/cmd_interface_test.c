@@ -697,6 +697,7 @@ static void cmd_interface_test_msg_set_max_response_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cmd_interface);
 
 TEST (cmd_interface_test_msg_new_message);
@@ -730,3 +731,4 @@ TEST (cmd_interface_test_msg_set_max_response_larger_than_current);
 TEST (cmd_interface_test_msg_set_max_response_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

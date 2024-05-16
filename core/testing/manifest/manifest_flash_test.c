@@ -5,15 +5,15 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
+#include "crypto/ecc.h"
+#include "flash/spi_flash.h"
+#include "manifest/manifest.h"
 #include "manifest/manifest_flash.h"
 #include "manifest/manifest_format.h"
-#include "manifest/manifest.h"
-#include "flash/spi_flash.h"
-#include "crypto/ecc.h"
-#include "testing/mock/crypto/signature_verification_mock.h"
-#include "testing/mock/flash/flash_master_mock.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/manifest/pfm/pfm_testing.h"
+#include "testing/mock/crypto/signature_verification_mock.h"
+#include "testing/mock/flash/flash_master_mock.h"
 
 
 TEST_SUITE_LABEL ("manifest_flash");
@@ -159,8 +159,7 @@ void manifest_flash_testing_verify_manifest (CuTest *test, struct manifest_flash
 	status = flash_master_mock_expect_rx_xfer (&manifest->flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manifest->flash_mock, 0, manifest_data,
-		PFM_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, manifest->addr, 0, -1, PFM_HEADER_SIZE));
+		PFM_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, manifest->addr, 0, -1, PFM_HEADER_SIZE));
 
 	status = flash_master_mock_expect_rx_xfer (&manifest->flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
@@ -203,9 +202,8 @@ static void manifest_flash_testing_init_and_verify (CuTest *test,
 	int status;
 
 	manifest_flash_testing_init (test, manifest, address, magic_v1);
-	manifest_flash_testing_verify_manifest (test, manifest, manifest_data,
-		manifest_data_len, manifest_sig, manifest_sig_offset, manifest_sig_len, manifest_hash,
-		sig_result);
+	manifest_flash_testing_verify_manifest (test, manifest, manifest_data, manifest_data_len,
+		manifest_sig, manifest_sig_offset, manifest_sig_len, manifest_hash,	sig_result);
 
 	status = manifest_flash_verify (&manifest->test, &manifest->hash.base,
 		&manifest->verification.base, NULL, 0);
@@ -312,16 +310,14 @@ static void manifest_flash_test_verify_null (CuTest *test)
 
 	manifest_flash_testing_init (test, &manifest, 0x10000, PFM_MAGIC_NUM);
 
-	status = manifest_flash_verify (NULL, &manifest.hash.base,
-		&manifest.verification.base, NULL, 0);
+	status = manifest_flash_verify (NULL, &manifest.hash.base, &manifest.verification.base, NULL,
+		0);
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = manifest_flash_verify (&manifest.test, NULL,
-		&manifest.verification.base, NULL, 0);
+	status = manifest_flash_verify (&manifest.test, NULL, &manifest.verification.base, NULL, 0);
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = manifest_flash_verify (&manifest.test, &manifest.hash.base,
-		NULL, NULL, 0);
+	status = manifest_flash_verify (&manifest.test, &manifest.hash.base, NULL, NULL, 0);
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
 	manifest_flash_testing_validate_and_release (test, &manifest);
@@ -408,8 +404,7 @@ static void manifest_flash_test_verify_sig_longer_than_pfm (CuTest *test)
 	status = flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, pfm_bad_data,
-		PFM_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+		PFM_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -437,8 +432,7 @@ static void manifest_flash_test_verify_sig_same_length_as_pfm (CuTest *test)
 	status = flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, pfm_bad_data,
-		PFM_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+		PFM_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -466,8 +460,7 @@ static void manifest_flash_test_verify_sig_length_into_header (CuTest *test)
 	status = flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, pfm_bad_data,
-		PFM_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+		PFM_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -980,8 +973,7 @@ static void manifest_flash_test_get_hash_after_verify_bad_sig_length (CuTest *te
 	status = flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, pfm_bad_data,
-		PFM_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+		PFM_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1076,16 +1068,13 @@ static void manifest_flash_test_get_hash_null (CuTest *test)
 
 	manifest_flash_testing_init (test, &manifest, 0x10000, PFM_MAGIC_NUM);
 
-	status = manifest_flash_get_hash (NULL, &manifest.hash.base, hash_out,
-		sizeof (hash_out));
+	status = manifest_flash_get_hash (NULL, &manifest.hash.base, hash_out, sizeof (hash_out));
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = manifest_flash_get_hash (&manifest.test, NULL, hash_out,
-		sizeof (hash_out));
+	status = manifest_flash_get_hash (&manifest.test, NULL, hash_out, sizeof (hash_out));
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = manifest_flash_get_hash (&manifest.test, &manifest.hash.base, NULL,
-		sizeof (hash_out));
+	status = manifest_flash_get_hash (&manifest.test, &manifest.hash.base, NULL, sizeof (hash_out));
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
 	manifest_flash_testing_validate_and_release (test, &manifest);
@@ -1175,8 +1164,7 @@ static void manifest_flash_test_get_hash_sig_longer_than_pfm (CuTest *test)
 	status = flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, pfm_bad_data,
-		PFM_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+		PFM_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1205,8 +1193,7 @@ static void manifest_flash_test_get_hash_sig_same_length_as_pfm (CuTest *test)
 	status = flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, pfm_bad_data,
-		PFM_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+		PFM_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1521,8 +1508,7 @@ static void manifest_flash_test_get_signature_after_verify_bad_sig_length (CuTes
 	status = flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, pfm_bad_data,
-		PFM_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+		PFM_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1718,8 +1704,7 @@ static void manifest_flash_test_get_signature_sig_longer_than_pfm (CuTest *test)
 	status = flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, pfm_bad_data,
-		PFM_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+		PFM_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1867,8 +1852,7 @@ static void manifest_flash_test_read_header_sig_longer_than_pfm (CuTest *test)
 	status = flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, pfm_bad_data,
-		PFM_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+		PFM_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1896,8 +1880,7 @@ static void manifest_flash_test_read_header_sig_same_length_as_pfm (CuTest *test
 	status = flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, pfm_bad_data,
-		PFM_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+		PFM_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1925,8 +1908,7 @@ static void manifest_flash_test_read_header_sig_length_into_header (CuTest *test
 	status = flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, pfm_bad_data,
-		PFM_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+		PFM_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1954,8 +1936,7 @@ static void manifest_flash_test_read_header_only_header_and_sig (CuTest *test)
 	status = flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, pfm_bad_data,
-		PFM_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+		PFM_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1979,9 +1960,9 @@ static void manifest_flash_test_compare_id_higher (CuTest *test)
 	TEST_START;
 
 	manifest_flash_testing_init_and_verify (test, &manifest1, 0x10000, PFM_MAGIC_NUM, PFM_DATA,
-		PFM_DATA_LEN, PFM_SIGNATURE, PFM_SIGNATURE_OFFSET ,PFM_SIGNATURE_LEN, PFM_HASH, 0);
+		PFM_DATA_LEN, PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_SIGNATURE_LEN, PFM_HASH, 0);
 	manifest_flash_testing_init_and_verify (test, &manifest2, 0x20000, PFM_MAGIC_NUM, PFM2_DATA,
-		PFM2_DATA_LEN, PFM2_SIGNATURE, PFM_SIGNATURE_OFFSET ,PFM_SIGNATURE_LEN, PFM2_HASH, 0);
+		PFM2_DATA_LEN, PFM2_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_SIGNATURE_LEN, PFM2_HASH, 0);
 
 	status = manifest_flash_compare_id (&manifest1.test, &manifest2.test);
 	CuAssertIntEquals (test, 0, status);
@@ -2129,6 +2110,7 @@ static void manifest_flash_test_compare_id_both_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (manifest_flash);
 
 TEST (manifest_flash_test_init);
@@ -2202,3 +2184,4 @@ TEST (manifest_flash_test_compare_id_null_manifest2);
 TEST (manifest_flash_test_compare_id_both_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

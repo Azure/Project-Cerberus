@@ -24,7 +24,7 @@ static int recovery_image_check_platform_id (struct pfm_manager *pfm,
 	struct recovery_image_header *header)
 {
 	struct pfm *manifest;
-	char *pfm_id= NULL;
+	char *pfm_id = NULL;
 	char *img_id;
 	int status;
 
@@ -77,7 +77,7 @@ static int recovery_image_verify (struct recovery_image *image, struct hash_engi
 	}
 
 	if ((hash_out != NULL) && (hash_length < SHA256_HASH_LENGTH)) {
-        return RECOVERY_IMAGE_HASH_BUFFER_TOO_SMALL;
+		return RECOVERY_IMAGE_HASH_BUFFER_TOO_SMALL;
 	}
 
 	image->cache_valid = false;
@@ -95,15 +95,14 @@ static int recovery_image_verify (struct recovery_image *image, struct hash_engi
 	}
 
 	recovery_image_header_get_image_length (&header, &img_len);
-	status = image->flash->read (image->flash,
-		image->addr + img_len - sig_len, signature, sig_len);
+	status = image->flash->read (image->flash, image->addr + img_len - sig_len, signature, sig_len);
 	if (status != 0) {
 		goto free_signature;
 	}
 
-	status = flash_contents_verification (image->flash, image->addr,
-		img_len - sig_len, hash, HASH_TYPE_SHA256, verification, signature, sig_len,
-		image->hash_cache, sizeof (image->hash_cache));
+	status = flash_contents_verification (image->flash, image->addr, img_len - sig_len, hash,
+		HASH_TYPE_SHA256, verification, signature, sig_len,	image->hash_cache,
+		sizeof (image->hash_cache));
 
 	if ((status == 0) || (status == SIG_VERIFICATION_BAD_SIGNATURE)) {
 		image->cache_valid = true;
@@ -131,8 +130,7 @@ static int recovery_image_verify (struct recovery_image *image, struct hash_engi
 
 	next_addr = image->addr + header_len;
 	while (rem_len > 0) {
-		status = recovery_image_section_header_init (&section_header, image->flash,
-			next_addr);
+		status = recovery_image_section_header_init (&section_header, image->flash,	next_addr);
 		if (status != 0) {
 			status = RECOVERY_IMAGE_MALFORMED;
 			goto free_signature;
@@ -195,8 +193,8 @@ static int recovery_image_get_hash (struct recovery_image *image, struct hash_en
 		recovery_image_header_get_signature_length (&header, &sig_len);
 		recovery_image_header_release (&header);
 
-		status = flash_hash_contents (image->flash, image->addr,
-			image_len - sig_len, hash, HASH_TYPE_SHA256, hash_out, hash_length);
+		status = flash_hash_contents (image->flash, image->addr, image_len - sig_len, hash,
+			HASH_TYPE_SHA256, hash_out, hash_length);
 		if (status != 0) {
 			return status;
 		}

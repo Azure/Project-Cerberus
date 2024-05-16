@@ -4,10 +4,10 @@
 #ifndef OCP_RECOVERY_SMBUS_H_
 #define OCP_RECOVERY_SMBUS_H_
 
-#include <stdint.h>
 #include <stdbool.h>
-#include "status/rot_status.h"
+#include <stdint.h>
 #include "ocp_recovery_device.h"
+#include "status/rot_status.h"
 
 
 #pragma pack(push, 1)
@@ -25,6 +25,7 @@ union ocp_recovery_smbus_cmd_buffer {
 	} block_cmd;										/**< SMBus block write or read command. */
 	uint8_t bytes[257];									/**< Raw byte access to the data. */
 };
+
 #pragma pack(pop)
 
 /**
@@ -85,4 +86,4 @@ enum {
 };
 
 
-#endif /* OCP_RECOVERY_SMBUS_H_ */
+#endif	/* OCP_RECOVERY_SMBUS_H_ */

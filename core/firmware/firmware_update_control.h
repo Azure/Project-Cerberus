@@ -47,7 +47,7 @@ struct firmware_update_control {
 	 * @param update The update instance to query.
 	 * @param size Size of incoming update.
 	 *
- 	 * @return Preparation status, 0 if success or an error code.
+	 * @return Preparation status, 0 if success or an error code.
 	 */
 	int (*prepare_staging) (const struct firmware_update_control *update, size_t size);
 
@@ -58,11 +58,11 @@ struct firmware_update_control {
 	 * @param buf Buffer with update data.
 	 * @param buf_len Buffer length.
 	 *
- 	 * @return Write status, 0 if success or an error code.
+	 * @return Write status, 0 if success or an error code.
 	 */
 	int (*write_staging) (const struct firmware_update_control *update, uint8_t *buf,
 		size_t buf_len);
 };
 
 
-#endif /* FIRMWARE_UPDATE_CONTROL_H_ */
+#endif	/* FIRMWARE_UPDATE_CONTROL_H_ */

@@ -11,7 +11,7 @@
  * A handler for executing requests for a single CFM.
  */
 struct manifest_cmd_handler_cfm {
-	struct manifest_cmd_handler base;		/**< Base manifest handler. */
+	struct manifest_cmd_handler base;	/**< Base manifest handler. */
 };
 
 
@@ -22,4 +22,4 @@ int manifest_cmd_handler_cfm_init_state (const struct manifest_cmd_handler_cfm *
 void manifest_cmd_handler_cfm_release (const struct manifest_cmd_handler_cfm *handler);
 
 
-#endif /* MANIFEST_CMD_HANDLER_CFM_H_ */
+#endif	/* MANIFEST_CMD_HANDLER_CFM_H_ */

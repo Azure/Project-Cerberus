@@ -4,16 +4,16 @@
 #ifndef FIRMWARE_IMAGE_MOCK_H_
 #define FIRMWARE_IMAGE_MOCK_H_
 
-#include "firmware/firmware_image.h"
 #include "mock.h"
+#include "firmware/firmware_image.h"
 
 
 /**
  * A mock for a system firmware image.
  */
 struct firmware_image_mock {
-	struct firmware_image base;		/**< The base firmware image instance. */
-	struct mock mock;				/**< The base mock instance. */
+	struct firmware_image base;	/**< The base firmware image instance. */
+	struct mock mock;			/**< The base mock instance. */
 };
 
 
@@ -23,4 +23,4 @@ void firmware_image_mock_release (struct firmware_image_mock *mock);
 int firmware_image_mock_validate_and_release (struct firmware_image_mock *mock);
 
 
-#endif /* FIRMWARE_IMAGE_MOCK_H_ */
+#endif	/* FIRMWARE_IMAGE_MOCK_H_ */

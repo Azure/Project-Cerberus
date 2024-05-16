@@ -7400,6 +7400,7 @@ static void aux_attestation_test_generate_ecdh_seed_hash_error (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (aux_attestation);
 
 TEST (aux_attestation_test_init);
@@ -7534,3 +7535,4 @@ TEST (aux_attestation_test_generate_ecdh_seed_shared_secret_error);
 TEST (aux_attestation_test_generate_ecdh_seed_hash_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

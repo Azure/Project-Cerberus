@@ -31647,6 +31647,7 @@ static void attestation_requestor_test_wait_for_next_action_invalid_arg (CuTest 
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (attestation_requester);
 
 TEST (attestation_requester_test_init);
@@ -31981,3 +31982,4 @@ TEST (attestation_requestor_test_wait_for_next_action);
 TEST (attestation_requestor_test_wait_for_next_action_invalid_arg);
 
 TEST_SUITE_END;
+// *INDENT-ON*

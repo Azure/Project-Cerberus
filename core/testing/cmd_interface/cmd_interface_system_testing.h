@@ -20,4 +20,4 @@ extern uint8_t CMD_DEVICE_UUID[];
 extern const size_t CMD_DEVICE_UUID_LEN;
 
 
-#endif /* CMD_INTERFACE_SYSTEM_TESTING_H_ */
+#endif	/* CMD_INTERFACE_SYSTEM_TESTING_H_ */

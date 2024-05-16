@@ -4,16 +4,16 @@
 #ifndef RECOVERY_IMAGE_MANAGER_MOCK_H_
 #define RECOVERY_IMAGE_MANAGER_MOCK_H_
 
-#include "recovery/recovery_image_manager.h"
 #include "mock.h"
+#include "recovery/recovery_image_manager.h"
 
 
 /**
  * A mock for the recovery image management API.
  */
 struct recovery_image_manager_mock {
-	struct recovery_image_manager base;		/**< The base manager instance. */
-	struct mock mock;						/**< The base mock interface. */
+	struct recovery_image_manager base;	/**< The base manager instance. */
+	struct mock mock;					/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void recovery_image_manager_mock_release (struct recovery_image_manager_mock *mo
 int recovery_image_manager_mock_validate_and_release (struct recovery_image_manager_mock *mock);
 
 
-#endif /* RECOVERY_IMAGE_MANAGER_MOCK_H_ */
+#endif	/* RECOVERY_IMAGE_MANAGER_MOCK_H_ */

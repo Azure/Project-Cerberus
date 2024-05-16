@@ -4,16 +4,16 @@
 #ifndef FLASH_STORE_MOCK_H_
 #define FLASH_STORE_MOCK_H_
 
-#include "flash/flash_store.h"
 #include "mock.h"
+#include "flash/flash_store.h"
 
 
 /**
  * A mock for flash block storage API.
  */
 struct flash_store_mock {
-	struct flash_store base;		/**< The base flash storage API instance. */
-	struct mock mock;				/**< The base mock interface. */
+	struct flash_store base;	/**< The base flash storage API instance. */
+	struct mock mock;			/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void flash_store_mock_release (struct flash_store_mock *mock);
 int flash_store_mock_validate_and_release (struct flash_store_mock *mock);
 
 
-#endif /* FLASH_STORE_MOCK_H_ */
+#endif	/* FLASH_STORE_MOCK_H_ */

@@ -154,4 +154,4 @@ enum {
 };
 
 
-#endif /* FLASH_H_ */
+#endif	/* FLASH_H_ */

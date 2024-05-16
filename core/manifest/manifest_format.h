@@ -28,9 +28,9 @@
  * manifests.
  */
 enum manifest_hash_type {
-	MANIFEST_HASH_SHA256 = 0,		/**< The hash or signature is generated using SHA-256. */
-	MANIFEST_HASH_SHA384 = 1,		/**< The hash or signature is generated using SHA-384. */
-	MANIFEST_HASH_SHA512 = 2,		/**< The hash or signature is generated using SHA-512. */
+	MANIFEST_HASH_SHA256 = 0,	/**< The hash or signature is generated using SHA-256. */
+	MANIFEST_HASH_SHA384 = 1,	/**< The hash or signature is generated using SHA-384. */
+	MANIFEST_HASH_SHA512 = 2,	/**< The hash or signature is generated using SHA-512. */
 };
 
 /**
@@ -57,7 +57,7 @@ enum manifest_key_type {
  *
  * @param hash_type Manifest hash type
  */
-#define manifest_convert_manifest_hash_type(manifest_hash_type)	\
+#define manifest_convert_manifest_hash_type(manifest_hash_type) \
 	((enum hash_type) ((manifest_hash_type) + 1))
 
 /**
@@ -72,19 +72,19 @@ enum manifest_key_type {
  * The header information on a manifest.
  */
 struct manifest_header {
-	uint16_t length;				/**< The total length of the manifest. */
-	uint16_t magic;					/**< The manifest magic number. */
-	uint32_t id;					/**< The manifest identifier. */
-	uint16_t sig_length;			/**< The length of the signature at the end of the manifest. */
-	uint8_t sig_type;				/**< Type of signature used for the manifest. */
-	uint8_t reserved;				/**< Unused. */
+	uint16_t length;		/**< The total length of the manifest. */
+	uint16_t magic;			/**< The manifest magic number. */
+	uint32_t id;			/**< The manifest identifier. */
+	uint16_t sig_length;	/**< The length of the signature at the end of the manifest. */
+	uint8_t sig_type;		/**< Type of signature used for the manifest. */
+	uint8_t reserved;		/**< Unused. */
 };
 
 /**
  * Type identifiers for common manifest elements.
  */
 enum manifest_element_type {
-	MANIFEST_PLATFORM_ID = 0,		/**< The manifest platform identifier. */
+	MANIFEST_PLATFORM_ID = 0,	/**< The manifest platform identifier. */
 };
 
 /**
@@ -114,22 +114,22 @@ enum manifest_element_type {
  * The header for a manifest table of contents.
  */
 struct manifest_toc_header {
-	uint8_t entry_count;			/**< The number of entries in the table of contents. */
-	uint8_t hash_count;				/**< The number of element hashes in the table of contents. */
-	uint8_t hash_type;				/**< The hashing algorithm used in the table of contents. */
-	uint8_t reserved;				/**< Unused. */
+	uint8_t entry_count;	/**< The number of entries in the table of contents. */
+	uint8_t hash_count;		/**< The number of element hashes in the table of contents. */
+	uint8_t hash_type;		/**< The hashing algorithm used in the table of contents. */
+	uint8_t reserved;		/**< Unused. */
 };
 
 /**
  * Table of contents entry for single element in the manifest.
  */
 struct manifest_toc_entry {
-	uint8_t type_id;				/**< Identifier for the type of manifest element. */
-	uint8_t parent;					/**< Type identifier for the parent element. */
-	uint8_t format;					/**< Format version of the data contained in the element. */
-	uint8_t hash_id;				/**< Index of the hash entry for the element. */
-	uint16_t offset;				/**< Offset from the start of the manifest where the element is located. */
-	uint16_t length;				/**< Length of the element data. */
+	uint8_t type_id;	/**< Identifier for the type of manifest element. */
+	uint8_t parent;		/**< Type identifier for the parent element. */
+	uint8_t format;		/**< Format version of the data contained in the element. */
+	uint8_t hash_id;	/**< Index of the hash entry for the element. */
+	uint16_t offset;	/**< Offset from the start of the manifest where the element is located. */
+	uint16_t length;	/**< Length of the element data. */
 };
 
 /**
@@ -145,10 +145,11 @@ struct manifest_toc_max_entries {
  * Header for the manifest platform ID element.
  */
 struct manifest_platform_id {
-	uint8_t id_length;				/**< Length of the platform ID string. */
-	uint8_t reserved[3];			/**< Unused. */
+	uint8_t id_length;		/**< Length of the platform ID string. */
+	uint8_t reserved[3];	/**< Unused. */
 };
+
 #pragma pack(pop)
 
 
-#endif /* MANIFEST_FORMAT_H_ */
+#endif	/* MANIFEST_FORMAT_H_ */

@@ -28254,6 +28254,7 @@ static void spi_flash_test_set_write_command_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (spi_flash);
 
 TEST (spi_flash_test_init);
@@ -28745,3 +28746,4 @@ TEST (spi_flash_test_set_write_command);
 TEST (spi_flash_test_set_write_command_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

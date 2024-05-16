@@ -9,7 +9,8 @@
 
 /* Internal functions declared to allow for static initialization. */
 int manifest_manager_null_activate_pending_manifest (const struct manifest_manager *manager);
-int manifest_manager_null_clear_pending_region (const struct manifest_manager *manager, size_t size);
+int manifest_manager_null_clear_pending_region (const struct manifest_manager *manager,
+	size_t size);
 int manifest_manager_null_write_pending_data (const struct manifest_manager *manager,
 	const uint8_t *data, size_t length);
 int manifest_manager_null_verify_pending_manifest (const struct manifest_manager *manager);
@@ -39,4 +40,4 @@ int manifest_manager_null_clear_all_manifests (const struct manifest_manager *ma
 	}
 
 
-#endif /* MANIFEST_MANAGER_NULL_STATIC_H_ */
+#endif	/* MANIFEST_MANAGER_NULL_STATIC_H_ */

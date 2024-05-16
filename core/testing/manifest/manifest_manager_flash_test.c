@@ -6,14 +6,14 @@
 #include <string.h>
 #include "testing.h"
 #include "flash/flash_common.h"
-#include "manifest/manifest_manager_flash.h"
 #include "manifest/cfm/cfm.h"
+#include "manifest/manifest_manager_flash.h"
 #include "manifest/pcd/pcd.h"
+#include "testing/engines/hash_testing_engine.h"
 #include "testing/mock/crypto/signature_verification_mock.h"
 #include "testing/mock/flash/flash_mock.h"
 #include "testing/mock/manifest/manifest_mock.h"
 #include "testing/mock/state_manager/state_manager_mock.h"
-#include "testing/engines/hash_testing_engine.h"
 
 
 TEST_SUITE_LABEL ("manifest_manager_flash");
@@ -79,8 +79,8 @@ static void manifest_manager_flash_testing_init_dependencies (CuTest *test,
 	status = manifest_manager_init (&manager->mgr_base, &manager->hash.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager->flash.mock, manager->flash.base.get_block_size,
-		&manager->flash, 0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&manager->flash.mock, manager->flash.base.get_block_size,	&manager->flash,
+		0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&manager->flash.mock, 0, &block_size, sizeof (block_size),
 		-1);
 
@@ -169,10 +169,9 @@ static void manifest_manager_flash_test_init_cfm_verify_error (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_flash_init (&manager.test, &manager.mgr_base,
-		&manager.manifest1.base, &manager.manifest2.base, &manager.manifest1_flash,
-		&manager.manifest2_flash, &manager.state_mgr.base, &manager.hash.base,
-		&manager.verification.base, 0, 0, false);
+	status = manifest_manager_flash_init (&manager.test, &manager.mgr_base,	&manager.manifest1.base,
+		&manager.manifest2.base, &manager.manifest1_flash, &manager.manifest2_flash,
+		&manager.state_mgr.base, &manager.hash.base, &manager.verification.base, 0, 0, false);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrEquals (test, NULL,
@@ -212,10 +211,9 @@ static void manifest_manager_flash_test_init_pcd_verify_error (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_flash_init (&manager.test, &manager.mgr_base,
-		&manager.manifest1.base, &manager.manifest2.base, &manager.manifest1_flash,
-		&manager.manifest2_flash, &manager.state_mgr.base, &manager.hash.base,
-		&manager.verification.base, 0, 0, false);
+	status = manifest_manager_flash_init (&manager.test, &manager.mgr_base,	&manager.manifest1.base,
+		&manager.manifest2.base, &manager.manifest1_flash, &manager.manifest2_flash,
+		&manager.state_mgr.base, &manager.hash.base, &manager.verification.base, 0, 0, false);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrEquals (test, NULL,
@@ -227,6 +225,7 @@ static void manifest_manager_flash_test_init_pcd_verify_error (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (manifest_manager_flash);
 
 /* TODO:  Consolidate many of the generic manifest_manager_flash workflows in this test suite rather
@@ -235,3 +234,4 @@ TEST (manifest_manager_flash_test_init_cfm_verify_error);
 TEST (manifest_manager_flash_test_init_pcd_verify_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

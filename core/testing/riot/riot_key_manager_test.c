@@ -7,11 +7,11 @@
 #include "platform_api.h"
 #include "testing.h"
 #include "riot/riot_key_manager.h"
+#include "testing/asn1/x509_testing.h"
+#include "testing/engines/ecc_testing_engine.h"
+#include "testing/engines/x509_testing_engine.h"
 #include "testing/mock/asn1/x509_mock.h"
 #include "testing/mock/keystore/keystore_mock.h"
-#include "testing/engines/x509_testing_engine.h"
-#include "testing/engines/ecc_testing_engine.h"
-#include "testing/asn1/x509_testing.h"
 #include "testing/riot/riot_core_testing.h"
 
 
@@ -1018,8 +1018,8 @@ static void riot_key_manager_test_init_intermediate_signed_device_id_not_trusted
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_gen.base.create_self_signed_certificate (&x509_gen.base, &ca, key_der, key_length,
-		 HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, "Bad", X509_CERT_CA_NO_PATHLEN,
-		 NULL, 0);
+		HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, "Bad", X509_CERT_CA_NO_PATHLEN,
+		NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_gen.base.get_certificate_der (&x509_gen.base, &ca, &ca_der, &ca_der_length);
@@ -1160,8 +1160,7 @@ static void riot_key_manager_test_init_authentication_mock (CuTest *test)
 		MOCK_ARG (RIOT_CORE_ALIAS_CERT_LEN));
 	mock_expect_save_arg (&x509.mock, 0, 0);
 
-	status |= mock_expect (&x509.mock, x509.base.init_ca_cert_store, &x509, 0,
-		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&x509.mock, x509.base.init_ca_cert_store, &x509, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&x509.mock, 0, 1);
 
 	status |= mock_expect (&x509.mock, x509.base.add_root_ca, &x509, 0, MOCK_ARG_SAVED_ARG (1),
@@ -1175,8 +1174,7 @@ static void riot_key_manager_test_init_authentication_mock (CuTest *test)
 	status |= mock_expect (&x509.mock, x509.base.add_intermediate_ca, &x509, 0,
 		MOCK_ARG_SAVED_ARG (1),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_INTR_SIGNED_CERT,
-			RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN),
-		MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN), MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
 
 	status |= mock_expect (&x509.mock, x509.base.authenticate, &x509, 0, MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_SAVED_ARG (1));
@@ -1696,8 +1694,7 @@ static void riot_key_manager_test_init_authenticate_add_root_ca_error (CuTest *t
 		MOCK_ARG (RIOT_CORE_ALIAS_CERT_LEN));
 	mock_expect_save_arg (&x509.mock, 0, 0);
 
-	status |= mock_expect (&x509.mock, x509.base.init_ca_cert_store, &x509, 0,
-		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&x509.mock, x509.base.init_ca_cert_store, &x509, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&x509.mock, 0, 1);
 
 	status |= mock_expect (&x509.mock, x509.base.add_root_ca, &x509, X509_ENGINE_ROOT_CA_FAILED,
@@ -1815,8 +1812,7 @@ static void riot_key_manager_test_init_authenticate_add_intermediate_ca_error (C
 		MOCK_ARG (RIOT_CORE_ALIAS_CERT_LEN));
 	mock_expect_save_arg (&x509.mock, 0, 0);
 
-	status |= mock_expect (&x509.mock, x509.base.init_ca_cert_store, &x509, 0,
-		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&x509.mock, x509.base.init_ca_cert_store, &x509, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&x509.mock, 0, 1);
 
 	status |= mock_expect (&x509.mock, x509.base.add_root_ca, &x509, 0, MOCK_ARG_SAVED_ARG (1),
@@ -1938,8 +1934,7 @@ static void riot_key_manager_test_init_authenticate_add_device_id_error (CuTest 
 		MOCK_ARG (RIOT_CORE_ALIAS_CERT_LEN));
 	mock_expect_save_arg (&x509.mock, 0, 0);
 
-	status |= mock_expect (&x509.mock, x509.base.init_ca_cert_store, &x509, 0,
-		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&x509.mock, x509.base.init_ca_cert_store, &x509, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&x509.mock, 0, 1);
 
 	status |= mock_expect (&x509.mock, x509.base.add_root_ca, &x509, 0, MOCK_ARG_SAVED_ARG (1),
@@ -1953,8 +1948,7 @@ static void riot_key_manager_test_init_authenticate_add_device_id_error (CuTest 
 	status |= mock_expect (&x509.mock, x509.base.add_intermediate_ca, &x509,
 		X509_ENGINE_INTER_CA_FAILED, MOCK_ARG_SAVED_ARG (1),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_INTR_SIGNED_CERT,
-			RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN),
-		MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN), MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
 
 	status |= mock_expect (&x509.mock, x509.base.release_ca_cert_store, &x509, 0,
 		MOCK_ARG_SAVED_ARG (1));
@@ -2066,8 +2060,7 @@ static void riot_key_manager_test_init_authenticate_error (CuTest *test)
 		MOCK_ARG (RIOT_CORE_ALIAS_CERT_LEN));
 	mock_expect_save_arg (&x509.mock, 0, 0);
 
-	status |= mock_expect (&x509.mock, x509.base.init_ca_cert_store, &x509, 0,
-		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&x509.mock, x509.base.init_ca_cert_store, &x509, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&x509.mock, 0, 1);
 
 	status |= mock_expect (&x509.mock, x509.base.add_root_ca, &x509, 0, MOCK_ARG_SAVED_ARG (1),
@@ -2081,8 +2074,7 @@ static void riot_key_manager_test_init_authenticate_error (CuTest *test)
 	status |= mock_expect (&x509.mock, x509.base.add_intermediate_ca, &x509, 0,
 		MOCK_ARG_SAVED_ARG (1),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_INTR_SIGNED_CERT,
-			RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN),
-		MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN), MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
 
 	status |= mock_expect (&x509.mock, x509.base.authenticate, &x509, X509_ENGINE_AUTH_FAILED,
 		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
@@ -3518,8 +3510,8 @@ static void riot_key_manager_test_verify_stored_certs_intermediate_signed_device
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_gen.base.create_self_signed_certificate (&x509_gen.base, &ca, key_der, key_length,
-		 HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, "Bad", X509_CERT_CA_NO_PATHLEN,
-		 NULL, 0);
+		HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, "Bad", X509_CERT_CA_NO_PATHLEN,
+		NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_gen.base.get_certificate_der (&x509_gen.base, &ca, &ca_der, &ca_der_length);
@@ -4382,8 +4374,7 @@ static void riot_key_manager_test_verify_stored_certs_add_root_ca_error (CuTest 
 		MOCK_ARG (RIOT_CORE_ALIAS_CERT_LEN));
 	mock_expect_save_arg (&x509.mock, 0, 0);
 
-	status |= mock_expect (&x509.mock, x509.base.init_ca_cert_store, &x509, 0,
-		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&x509.mock, x509.base.init_ca_cert_store, &x509, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&x509.mock, 0, 1);
 
 	status |= mock_expect (&x509.mock, x509.base.add_root_ca, &x509, X509_ENGINE_ROOT_CA_FAILED,
@@ -4513,8 +4504,7 @@ static void riot_key_manager_test_verify_stored_certs_add_intermediate_ca_error 
 		MOCK_ARG (RIOT_CORE_ALIAS_CERT_LEN));
 	mock_expect_save_arg (&x509.mock, 0, 0);
 
-	status |= mock_expect (&x509.mock, x509.base.init_ca_cert_store, &x509, 0,
-		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&x509.mock, x509.base.init_ca_cert_store, &x509, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&x509.mock, 0, 1);
 
 	status |= mock_expect (&x509.mock, x509.base.add_root_ca, &x509, 0, MOCK_ARG_SAVED_ARG (1),
@@ -4648,8 +4638,7 @@ static void riot_key_manager_test_verify_stored_certs_add_device_id_error (CuTes
 		MOCK_ARG (RIOT_CORE_ALIAS_CERT_LEN));
 	mock_expect_save_arg (&x509.mock, 0, 0);
 
-	status |= mock_expect (&x509.mock, x509.base.init_ca_cert_store, &x509, 0,
-		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&x509.mock, x509.base.init_ca_cert_store, &x509, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&x509.mock, 0, 1);
 
 	status |= mock_expect (&x509.mock, x509.base.add_root_ca, &x509, 0, MOCK_ARG_SAVED_ARG (1),
@@ -4663,8 +4652,7 @@ static void riot_key_manager_test_verify_stored_certs_add_device_id_error (CuTes
 	status |= mock_expect (&x509.mock, x509.base.add_intermediate_ca, &x509,
 		X509_ENGINE_INTER_CA_FAILED, MOCK_ARG_SAVED_ARG (1),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_INTR_SIGNED_CERT,
-			RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN),
-		MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN), MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
 
 	status |= mock_expect (&x509.mock, x509.base.release_ca_cert_store, &x509, 0,
 		MOCK_ARG_SAVED_ARG (1));
@@ -4788,8 +4776,7 @@ static void riot_key_manager_test_verify_stored_certs_authenticate_error (CuTest
 		MOCK_ARG (RIOT_CORE_ALIAS_CERT_LEN));
 	mock_expect_save_arg (&x509.mock, 0, 0);
 
-	status |= mock_expect (&x509.mock, x509.base.init_ca_cert_store, &x509, 0,
-		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&x509.mock, x509.base.init_ca_cert_store, &x509, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&x509.mock, 0, 1);
 
 	status |= mock_expect (&x509.mock, x509.base.add_root_ca, &x509, 0, MOCK_ARG_SAVED_ARG (1),
@@ -4803,8 +4790,7 @@ static void riot_key_manager_test_verify_stored_certs_authenticate_error (CuTest
 	status |= mock_expect (&x509.mock, x509.base.add_intermediate_ca, &x509, 0,
 		MOCK_ARG_SAVED_ARG (1),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_INTR_SIGNED_CERT,
-			RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN),
-		MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN), MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
 
 	status |= mock_expect (&x509.mock, x509.base.authenticate, &x509, X509_ENGINE_AUTH_FAILED,
 		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
@@ -5217,8 +5203,7 @@ static void riot_key_manager_test_store_signed_device_id_null (CuTest *test)
 		RIOT_CORE_DEVID_SIGNED_CERT_LEN);
 	CuAssertIntEquals (test, RIOT_KEY_MANAGER_INVALID_ARGUMENT, status);
 
-	status = riot_key_manager_store_signed_device_id (&manager, RIOT_CORE_DEVID_SIGNED_CERT,
-		0);
+	status = riot_key_manager_store_signed_device_id (&manager, RIOT_CORE_DEVID_SIGNED_CERT, 0);
 	CuAssertIntEquals (test, RIOT_KEY_MANAGER_INVALID_ARGUMENT, status);
 
 	dev_keys = riot_key_manager_get_riot_keys (&manager);
@@ -5710,12 +5695,10 @@ static void riot_key_manager_test_store_root_ca_null (CuTest *test)
 		X509_CERTSS_RSA_CA_NOPL_DER_LEN);
 	CuAssertIntEquals (test, RIOT_KEY_MANAGER_INVALID_ARGUMENT, status);
 
-	status = riot_key_manager_store_root_ca (&manager, NULL,
-		X509_CERTSS_RSA_CA_NOPL_DER_LEN);
+	status = riot_key_manager_store_root_ca (&manager, NULL, X509_CERTSS_RSA_CA_NOPL_DER_LEN);
 	CuAssertIntEquals (test, RIOT_KEY_MANAGER_INVALID_ARGUMENT, status);
 
-	status = riot_key_manager_store_root_ca (&manager, X509_CERTSS_RSA_CA_NOPL_DER,
-		0);
+	status = riot_key_manager_store_root_ca (&manager, X509_CERTSS_RSA_CA_NOPL_DER,	0);
 	CuAssertIntEquals (test, RIOT_KEY_MANAGER_INVALID_ARGUMENT, status);
 
 	dev_keys = riot_key_manager_get_riot_keys (&manager);
@@ -6222,8 +6205,7 @@ static void riot_key_manager_test_store_intermediate_ca_null (CuTest *test)
 		X509_CERTCA_ECC_CA_NOPL_DER_LEN);
 	CuAssertIntEquals (test, RIOT_KEY_MANAGER_INVALID_ARGUMENT, status);
 
-	status = riot_key_manager_store_intermediate_ca (&manager, X509_CERTCA_ECC_CA_NOPL_DER,
-		0);
+	status = riot_key_manager_store_intermediate_ca (&manager, X509_CERTCA_ECC_CA_NOPL_DER,	0);
 	CuAssertIntEquals (test, RIOT_KEY_MANAGER_INVALID_ARGUMENT, status);
 
 	dev_keys = riot_key_manager_get_riot_keys (&manager);
@@ -6896,6 +6878,7 @@ static void riot_key_manager_test_erase_all_certificates_intermediate_ca_error (
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (riot_key_manager);
 
 TEST (riot_key_manager_test_init_no_signed_device_id);
@@ -6975,3 +6958,4 @@ TEST (riot_key_manager_test_erase_all_certificates_root_ca_error);
 TEST (riot_key_manager_test_erase_all_certificates_intermediate_ca_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

@@ -1,17 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
 #include <stdbool.h>
-#include "host_processor_dual.h"
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 #include "host_fw_util.h"
-#include "host_state_manager.h"
 #include "host_logging.h"
+#include "host_processor_dual.h"
+#include "host_state_manager.h"
 #include "flash/flash_util.h"
 #include "recovery/recovery_image.h"
-
 
 
 
@@ -102,7 +101,7 @@ static int host_processor_dual_flash_rollback (struct host_processor *host,
 
 	if ((!active_pfm && !disable_bypass) ||
 		(active_pfm && (!host_state_manager_is_inactive_dirty (dual->state) ||
-			host_state_manager_is_bypass_mode (dual->state)))) {
+		host_state_manager_is_bypass_mode (dual->state)))) {
 		if (host_state_manager_is_bypass_mode (dual->state) && disable_bypass) {
 			status = HOST_PROCESSOR_NO_ROLLBACK;
 			goto exit;
@@ -185,6 +184,7 @@ exit:
 	}
 
 	platform_mutex_unlock (&dual->lock);
+
 	return status;
 }
 
@@ -282,7 +282,7 @@ static int host_processor_dual_full_read_write_flash (struct host_processor_filt
  * @param recovery The manager for recovery of the host processor.
  * @param reset_pulse The length of the reset pulse to apply to the processor, in milliseconds.  Set
  * this to 0 to hold the processor instead of using a pulse.
- * @param reset_flash The flag to indicate that host flash should be reset based on every 
+ * @param reset_flash The flag to indicate that host flash should be reset based on every
  * host processor reset.
  *
  * @return 0 if the host processor interface was successfully initialized or an error code.
@@ -339,8 +339,8 @@ int host_processor_dual_init (struct host_processor_filtered *host,
 	struct host_state_manager *state, const struct spi_filter_interface *filter,
 	struct pfm_manager *pfm, struct recovery_image_manager *recovery)
 {
-	return host_processor_dual_init_internal (host, control, flash, state, filter, pfm, recovery,
-		0, false);
+	return host_processor_dual_init_internal (host, control, flash, state, filter, pfm, recovery, 0,
+		false);
 }
 
 /**
@@ -392,8 +392,8 @@ int host_processor_dual_init_reset_flash (struct host_processor_filtered *host,
 	struct host_state_manager *state, const struct spi_filter_interface *filter,
 	struct pfm_manager *pfm, struct recovery_image_manager *recovery)
 {
-	return host_processor_dual_init_internal (host, control, flash, state, filter, pfm, recovery,
-		0, true);
+	return host_processor_dual_init_internal (host, control, flash, state, filter, pfm, recovery, 0,
+		true);
 }
 
 /**
@@ -401,7 +401,7 @@ int host_processor_dual_init_reset_flash (struct host_processor_filtered *host,
  *
  * While host flash is being accessed, the host processor will not be held in reset.  After the host
  * flash accesses have been completed, the host processor reset will be pulsed.
- * 
+ *
  * Host flash will reset on host resets.
  *
  * @param host The host processor instance to initialize.

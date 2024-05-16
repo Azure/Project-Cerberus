@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
 #include "spdm/spdm_discovery.h"
@@ -20,12 +20,12 @@ static void spdm_discovery_test_device_id_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
 		0x05,
-		0x01,0x02,0x03,0x04,
+		0x01, 0x02, 0x03, 0x04,
 		0x06,
-		0x10,0x11,0x12,0x13,0x14,0x15,
-		0x20,0x21,0x22,0x23,0x24,0x25,
-		0x30,0x31,0x32,0x33,0x34,0x35,
-		0x40,0x41,0x42,0x43,0x44,0x45,
+		0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
+		0x20, 0x21, 0x22, 0x23, 0x24, 0x25,
+		0x30, 0x31, 0x32, 0x33, 0x34, 0x35,
+		0x40, 0x41, 0x42, 0x43, 0x44, 0x45,
 	};
 	struct spdm_discovery_device_id *discovery = (struct spdm_discovery_device_id*) raw_buffer;
 
@@ -121,6 +121,7 @@ static void spdm_discovery_test_device_id_static_init (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (spdm_discovery);
 
 TEST (spdm_discovery_test_device_id_format);
@@ -129,3 +130,4 @@ TEST (spdm_discovery_test_device_id_init_null);
 TEST (spdm_discovery_test_device_id_static_init);
 
 TEST_SUITE_END;
+// *INDENT-ON*

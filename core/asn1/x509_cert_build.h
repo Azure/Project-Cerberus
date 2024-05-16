@@ -40,4 +40,4 @@ int x509_cert_build_init (struct x509_engine_cert_build *engine, struct ecc_engi
 void x509_cert_build_release (struct x509_engine_cert_build *engine);
 
 
-#endif /* X509_CERT_BUILD_H_ */
+#endif	/* X509_CERT_BUILD_H_ */

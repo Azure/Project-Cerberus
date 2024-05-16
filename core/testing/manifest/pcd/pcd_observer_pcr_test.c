@@ -5,14 +5,14 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "manifest/pcd/pcd_observer_pcr.h"
 #include "attestation/pcr_store.h"
 #include "common/array_size.h"
-#include "testing/mock/manifest/pcd/pcd_mock.h"
-#include "testing/mock/manifest/pcd/pcd_manager_mock.h"
+#include "manifest/pcd/pcd_observer_pcr.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/manifest/manifest_observer_pcr_testing.h"
 #include "testing/manifest/pcd/pcd_testing.h"
+#include "testing/mock/manifest/pcd/pcd_manager_mock.h"
+#include "testing/mock/manifest/pcd/pcd_mock.h"
 
 
 TEST_SUITE_LABEL ("pcd_observer_pcr");
@@ -22,8 +22,8 @@ TEST_SUITE_LABEL ("pcd_observer_pcr");
  * Hash for PCD_PLATFORM_ID, event type 0xaabbccdd, and version 0x0 for testing.
  */
 static const uint8_t PCD_PLATFORM_ID_HASH[] = {
-	0x7a,0x79,0xd3,0x58,0x6e,0xe7,0x63,0xca,0x9b,0x43,0xa1,0x0f,0xff,0xbe,0xa0,0xc3,
-	0x78,0xe2,0x42,0x5c,0x58,0x13,0x40,0xe6,0x7c,0x5c,0x61,0x35,0x3c,0xf4,0x26,0x5f
+	0x7a, 0x79, 0xd3, 0x58, 0x6e, 0xe7, 0x63, 0xca, 0x9b, 0x43, 0xa1, 0x0f, 0xff, 0xbe, 0xa0, 0xc3,
+	0x78, 0xe2, 0x42, 0x5c, 0x58, 0x13, 0x40, 0xe6, 0x7c, 0x5c, 0x61, 0x35, 0x3c, 0xf4, 0x26, 0x5f
 };
 
 /**
@@ -37,8 +37,8 @@ static const uint32_t PCD_PLATFORM_ID_HASH_LEN = sizeof (PCD_PLATFORM_ID_HASH);
  * (printf "\xdd\xcc\xbb\xaa\x00"; cat pcd_hash.bin) | openssl dgst -sha256 -binary | to_array.sh -
  */
 const uint8_t PCD_HASH_DIGEST[] = {
-	0x53,0xbf,0x7a,0x9d,0xa9,0x77,0xf7,0xb0,0xed,0x9c,0x14,0x38,0xe8,0xf9,0xf5,0x2b,
-	0x33,0xf4,0xb4,0xa1,0x02,0x30,0x78,0x83,0x77,0xdb,0x4b,0xa9,0x84,0x78,0xdf,0xf2
+	0x53, 0xbf, 0x7a, 0x9d, 0xa9, 0x77, 0xf7, 0xb0, 0xed, 0x9c, 0x14, 0x38, 0xe8, 0xf9, 0xf5, 0x2b,
+	0x33, 0xf4, 0xb4, 0xa1, 0x02, 0x30, 0x78, 0x83, 0x77, 0xdb, 0x4b, 0xa9, 0x84, 0x78, 0xdf, 0xf2
 };
 
 
@@ -317,8 +317,7 @@ static void pcd_observer_pcr_test_on_pcd_activated (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest,
-		MANIFEST_ID_HASH_LEN);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, MANIFEST_ID_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
@@ -444,8 +443,7 @@ static void pcd_observer_pcr_test_on_pcd_activated_sha384 (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest,
-		MANIFEST_ID_HASH_LEN);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, MANIFEST_ID_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
@@ -571,8 +569,7 @@ static void pcd_observer_pcr_test_on_pcd_activated_sha512 (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest,
-		MANIFEST_ID_HASH_LEN);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, MANIFEST_ID_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
@@ -877,8 +874,7 @@ static void pcd_observer_pcr_test_on_pcd_activated_get_platform_id_error (CuTest
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest,
-		MANIFEST_ID_HASH_LEN);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, MANIFEST_ID_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
@@ -1003,8 +999,7 @@ static void pcd_observer_pcr_test_record_measurement (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest,
-		MANIFEST_ID_HASH_LEN);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, MANIFEST_ID_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
@@ -1141,8 +1136,7 @@ static void pcd_observer_pcr_test_record_measurement_sha384 (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest,
-		MANIFEST_ID_HASH_LEN);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, MANIFEST_ID_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
@@ -1279,8 +1273,7 @@ static void pcd_observer_pcr_test_record_measurement_sha512 (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest,
-		MANIFEST_ID_HASH_LEN);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, MANIFEST_ID_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
@@ -1818,8 +1811,7 @@ static void pcd_observer_pcr_test_record_measurement_get_platform_id_error (CuTe
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest,
-		MANIFEST_ID_HASH_LEN);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, MANIFEST_ID_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
@@ -1940,6 +1932,7 @@ static void pcd_observer_pcr_test_on_clear_active (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (pcd_observer_pcr);
 
 TEST (pcd_observer_pcr_test_init);
@@ -1964,3 +1957,4 @@ TEST (pcd_observer_pcr_test_record_measurement_get_platform_id_error);
 TEST (pcd_observer_pcr_test_on_clear_active);
 
 TEST_SUITE_END;
+// *INDENT-ON*

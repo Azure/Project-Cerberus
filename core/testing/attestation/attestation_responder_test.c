@@ -4119,6 +4119,7 @@ static void attestation_responder_test_generate_ecdh_seed_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (attestation_responder);
 
 TEST (attestation_responder_test_init);
@@ -4230,3 +4231,4 @@ TEST (attestation_responder_test_generate_ecdh_seed_fail);
 TEST (attestation_responder_test_generate_ecdh_seed_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

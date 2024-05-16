@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "ocp_recovery_device.h"
 #include "common/buffer_util.h"
@@ -138,6 +138,7 @@ int ocp_recovery_device_start_new_command (const struct ocp_recovery_device *dev
 	if ((command_code < OCP_RECOVERY_CMD_MIN_VALID) ||
 		(command_code > OCP_RECOVERY_CMD_MAX_VALID)) {
 		device->state->protocol_status |= OCP_RECOVERY_DEVICE_STATUS_PROTO_UNSUPPORTED_CMD;
+
 		return OCP_RECOVERY_DEVICE_NACK;
 	}
 
@@ -225,7 +226,7 @@ static int ocp_recovery_device_write_recovery_ctrl (const struct ocp_recovery_de
 
 	if ((!device->hw->activate_recovery) &&
 		((recovery_ctrl->recovery_image == OCP_RECOVERY_RECOVERY_CTRL_IMAGE_FROM_CMS) ||
-			(recovery_ctrl->activate == OCP_RECOVERY_RECOVERY_CTRL_ACTIVATE_IMAGE))) {
+		(recovery_ctrl->activate == OCP_RECOVERY_RECOVERY_CTRL_ACTIVATE_IMAGE))) {
 		return OCP_RECOVERY_DEVICE_UNSUPPORTED_PARAM;
 	}
 
@@ -319,6 +320,7 @@ static int ocp_recovery_device_write_indirect_data (const struct ocp_recovery_de
 	if ((cms->type != OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE) &&
 		(cms->type != OCP_RECOVERY_INDIRECT_STATUS_REGION_VENDOR_RW)) {
 		device->state->indirect_status |= OCP_RECOVERY_INDIRECT_STATUS_READ_ONLY;
+
 		return OCP_RECOVERY_DEVICE_RO_CMS;
 	}
 
@@ -440,6 +442,7 @@ int ocp_recovery_device_write_request (const struct ocp_recovery_device *device,
 	}
 
 	device->state->active_cmd = OCP_RECOVERY_DEVICE_NO_COMMAND;
+
 	return status;
 }
 
@@ -461,8 +464,8 @@ static int ocp_recovery_device_read_prot_cap (const struct ocp_recovery_device *
 	prot_cap->capabilities = OCP_RECOVERY_PROT_CAP_SUPPORTS_IDENTIFICATION |
 		OCP_RECOVERY_PROT_CAP_SUPPORTS_DEVICE_STATUS;
 	prot_cap->cms_regions = 0;
-	prot_cap->max_response_time = 0x10;		// This translates to a 65ms response time.
-	prot_cap->heartbeat_period = 0;			// Heartbeat is not supported.
+	prot_cap->max_response_time = 0x10;	// This translates to a 65ms response time.
+	prot_cap->heartbeat_period = 0;		// Heartbeat is not supported.
 
 	if (device->hw->reset_device) {
 		prot_cap->capabilities |= OCP_RECOVERY_PROT_CAP_SUPPORTS_DEVICE_RESET;
@@ -726,6 +729,7 @@ int ocp_recovery_device_read_request (const struct ocp_recovery_device *device,
 	}
 
 	device->state->active_cmd = OCP_RECOVERY_DEVICE_NO_COMMAND;
+
 	return status;
 }
 

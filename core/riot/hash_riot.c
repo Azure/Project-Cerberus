@@ -8,8 +8,8 @@
 
 
 #ifdef HASH_ENABLE_SHA1
-static int hash_riot_calculate_sha1 (struct hash_engine *engine, const uint8_t *data,
-	size_t length, uint8_t *hash, size_t hash_length)
+static int hash_riot_calculate_sha1 (struct hash_engine *engine, const uint8_t *data, size_t length,
+	uint8_t *hash, size_t hash_length)
 {
 	struct hash_engine_riot *riot = (struct hash_engine_riot*) engine;
 
@@ -189,6 +189,7 @@ static int hash_riot_finish (struct hash_engine *engine, uint8_t *hash, size_t h
 	}
 
 	riot->active = HASH_ACTIVE_NONE;
+
 	return 0;
 }
 

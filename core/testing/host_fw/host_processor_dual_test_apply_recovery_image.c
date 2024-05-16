@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include "testing.h"
 #include "host_processor_dual_testing.h"
+#include "testing.h"
 #include "recovery/recovery_image_header.h"
 
 
@@ -563,7 +563,8 @@ static void host_processor_dual_test_apply_recovery_image_set_flash_for_rot_acce
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_apply_recovery_image_set_flash_for_rot_access_error_pulse_reset (
+static void host_processor_dual_test_apply_recovery_image_set_flash_for_rot_access_error_pulse_reset
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -604,7 +605,8 @@ static void host_processor_dual_test_apply_recovery_image_set_flash_for_rot_acce
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_apply_recovery_image_set_flash_for_rot_access_error_host_access_error (
+static void
+host_processor_dual_test_apply_recovery_image_set_flash_for_rot_access_error_host_access_error (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -682,10 +684,10 @@ static void host_processor_dual_test_apply_recovery_image_chip_erase_error (
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_recovery, &host.observer, 0);
 
 	status |= flash_master_mock_expect_rx_xfer (&host.flash_mock_state, 0, &WIP_STATUS, 1,
-	FLASH_EXP_READ_STATUS_REG);
+		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_xfer (&host.flash_mock_state, 0, FLASH_EXP_WRITE_ENABLE);
 	status |= flash_master_mock_expect_xfer (&host.flash_mock_state, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_OPCODE(0xc7));
+		FLASH_EXP_OPCODE (0xc7));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
@@ -733,10 +735,10 @@ static void host_processor_dual_test_apply_recovery_image_chip_erase_error_pulse
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_recovery, &host.observer, 0);
 
 	status |= flash_master_mock_expect_rx_xfer (&host.flash_mock_state, 0, &WIP_STATUS, 1,
-	FLASH_EXP_READ_STATUS_REG);
+		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_xfer (&host.flash_mock_state, 0, FLASH_EXP_WRITE_ENABLE);
 	status |= flash_master_mock_expect_xfer (&host.flash_mock_state, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_OPCODE(0xc7));
+		FLASH_EXP_OPCODE (0xc7));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
@@ -1203,7 +1205,8 @@ static void host_processor_dual_test_apply_recovery_image_set_flash_for_host_acc
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_apply_recovery_image_set_flash_for_host_access_error_pulse_reset (
+static void
+host_processor_dual_test_apply_recovery_image_set_flash_for_host_access_error_pulse_reset (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1270,6 +1273,7 @@ static void host_processor_dual_test_apply_recovery_image_set_flash_for_host_acc
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_processor_dual_apply_recovery_image);
 
 TEST (host_processor_dual_test_apply_recovery_image);
@@ -1300,3 +1304,4 @@ TEST (host_processor_dual_test_apply_recovery_image_set_flash_for_host_access_er
 TEST (host_processor_dual_test_apply_recovery_image_set_flash_for_host_access_error_pulse_reset);
 
 TEST_SUITE_END;
+// *INDENT-ON*

@@ -4,16 +4,16 @@
 #ifndef HASH_MOCK_H_
 #define HASH_MOCK_H_
 
-#include "crypto/hash.h"
 #include "mock.h"
+#include "crypto/hash.h"
 
 
 /**
  * A mock for the hash API.
  */
 struct hash_engine_mock {
-	struct hash_engine base;		/**< The base hash API instance. */
-	struct mock mock;				/**< The base mock interface. */
+	struct hash_engine base;	/**< The base hash API instance. */
+	struct mock mock;			/**< The base mock interface. */
 };
 
 
@@ -35,4 +35,4 @@ int hash_mock_expect_hmac_large_key (struct hash_engine_mock *mock, const uint8_
 	size_t hmac_length, enum hash_type hmac_algo, const uint8_t *expected, size_t exp_length);
 
 
-#endif /* HASH_MOCK_H_ */
+#endif	/* HASH_MOCK_H_ */

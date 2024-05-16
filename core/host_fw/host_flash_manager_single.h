@@ -34,4 +34,4 @@ int host_flash_manager_single_init_with_managed_flash_initialization (
 void host_flash_manager_single_release (struct host_flash_manager_single *manager);
 
 
-#endif /* HOST_FLASH_MANAGER_SINGLE_H_ */
+#endif	/* HOST_FLASH_MANAGER_SINGLE_H_ */

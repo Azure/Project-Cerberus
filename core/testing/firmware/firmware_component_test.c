@@ -17761,6 +17761,7 @@ static void firmware_component_test_get_total_length_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (firmware_component);
 
 TEST (firmware_component_test_init);
@@ -18036,3 +18037,4 @@ TEST (firmware_component_test_get_total_length_null);
 
 
 TEST_SUITE_END;
+// *INDENT-ON*

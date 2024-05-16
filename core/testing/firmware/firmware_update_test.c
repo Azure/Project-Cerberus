@@ -30519,6 +30519,7 @@ static void firmware_update_test_recovery_matches_active_image_flash_error (CuTe
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (firmware_update);
 
 TEST (firmware_update_test_init);
@@ -30971,3 +30972,4 @@ TEST (firmware_update_test_recovery_matches_active_image_recovery_img_size_error
 TEST (firmware_update_test_recovery_matches_active_image_flash_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

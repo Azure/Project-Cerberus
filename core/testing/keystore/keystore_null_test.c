@@ -274,6 +274,7 @@ static void keystore_null_test_erase_all_keys_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (keystore_null);
 
 TEST (keystore_null_test_init);
@@ -294,3 +295,4 @@ TEST (keystore_null_test_erase_all_keys_static_init);
 TEST (keystore_null_test_erase_all_keys_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

@@ -4,8 +4,8 @@
 #ifndef X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_H_
 #define X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "asn1/x509_extension_builder.h"
 
 
@@ -39,4 +39,4 @@ extern const struct x509_extension X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_E
 extern const struct x509_extension X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_EXTENSION_SVN_ZERO;
 
 
-#endif /* X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_H_ */
+#endif	/* X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_H_ */

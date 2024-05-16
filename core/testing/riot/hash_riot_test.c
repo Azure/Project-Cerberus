@@ -2,8 +2,8 @@
 // Licensed under the MIT license.
 
 #include <stddef.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include "testing.h"
 #include "riot/hash_riot.h"
@@ -703,7 +703,8 @@ static void hash_riot_test_sha1_incremental_get_hash_multiple_hash_blocks_not_al
 	hash_riot_release (&engine);
 }
 
-static void hash_riot_test_sha1_incremental_get_hash_multiple_hash_blocks_not_aligned_partial_update (
+static void hash_riot_test_sha1_incremental_get_hash_multiple_hash_blocks_not_aligned_partial_update
+(
 	CuTest *test)
 {
 	struct hash_engine_riot engine;
@@ -1823,7 +1824,8 @@ static void hash_riot_test_sha256_incremental_get_hash_multiple_hash_blocks_not_
 	hash_riot_release (&engine);
 }
 
-static void hash_riot_test_sha256_incremental_get_hash_multiple_hash_blocks_not_aligned_partial_update (
+static void
+hash_riot_test_sha256_incremental_get_hash_multiple_hash_blocks_not_aligned_partial_update (
 	CuTest *test)
 {
 	struct hash_engine_riot engine;
@@ -2600,8 +2602,7 @@ static void hash_riot_test_calculate_sha1_null (CuTest *test)
 		sizeof (hash));
 	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.calculate_sha1 (&engine.base, NULL, strlen (message), hash,
-		sizeof (hash));
+	status = engine.base.calculate_sha1 (&engine.base, NULL, strlen (message), hash, sizeof (hash));
 	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.calculate_sha1 (&engine.base, (uint8_t*) message, strlen (message), NULL,
@@ -2870,6 +2871,7 @@ static void hash_riot_test_calculate_sha512 (CuTest *test)
 #endif
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (hash_riot);
 
 TEST (hash_riot_test_init);
@@ -2985,3 +2987,4 @@ TEST (hash_riot_test_calculate_sha512);
 #endif
 
 TEST_SUITE_END;
+// *INDENT-ON*

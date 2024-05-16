@@ -21,7 +21,7 @@ int cmd_interface_spdm_generate_error_packet (const struct cmd_interface *intf,
  * Constant initializer for response handling.
  */
 #ifdef CMD_ENABLE_ISSUE_REQUEST
-#define	CMD_INTERFACE_SPDM_RESPONDER_RESPONSE_API	\
+#define	CMD_INTERFACE_SPDM_RESPONDER_RESPONSE_API   \
 	.process_response = cmd_interface_spdm_process_response,
 #else
 #define	CMD_INTERFACE_SPDM_RESPONDER_RESPONSE_API
@@ -81,4 +81,4 @@ int cmd_interface_spdm_generate_error_packet (const struct cmd_interface *intf,
 	}
 
 
-#endif /* CMD_INTERFACE_SPDM_RESPONDER_STATIC_H_ */
+#endif	/* CMD_INTERFACE_SPDM_RESPONDER_STATIC_H_ */

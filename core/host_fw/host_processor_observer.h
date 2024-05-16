@@ -62,4 +62,4 @@ enum {
 };
 
 
-#endif /* HOST_PROCESSOR_OBSERVER_H_ */
+#endif	/* HOST_PROCESSOR_OBSERVER_H_ */

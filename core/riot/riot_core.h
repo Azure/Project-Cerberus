@@ -4,8 +4,8 @@
 #ifndef RIOT_CORE_H_
 #define RIOT_CORE_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 
 
@@ -123,4 +123,4 @@ enum {
 };
 
 
-#endif /* RIOT_CORE_H_ */
+#endif	/* RIOT_CORE_H_ */

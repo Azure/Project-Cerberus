@@ -4,9 +4,9 @@
 #ifndef MANIFEST_CMD_HANDLER_PFM_H_
 #define MANIFEST_CMD_HANDLER_PFM_H_
 
-#include "manifest/manifest_cmd_handler.h"
 #include "host_fw/host_processor.h"
 #include "host_fw/host_state_manager.h"
+#include "manifest/manifest_cmd_handler.h"
 #include "spi_filter/spi_filter_interface.h"
 
 
@@ -32,4 +32,4 @@ int manifest_cmd_handler_pfm_init_state (const struct manifest_cmd_handler_pfm *
 void manifest_cmd_handler_pfm_release (const struct manifest_cmd_handler_pfm *handler);
 
 
-#endif /* MANIFEST_CMD_HANDLER_PFM_H_ */
+#endif	/* MANIFEST_CMD_HANDLER_PFM_H_ */

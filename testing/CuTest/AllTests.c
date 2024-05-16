@@ -2,8 +2,8 @@
 
 #include <stdio.h>
 
-#include "CuTest.h"
 #include "all_tests.h"
+#include "CuTest.h"
 
 
 int RunAllTests (void)
@@ -24,6 +24,7 @@ int RunAllTests (void)
 
 	CuStringDelete (output);
 	CuSuiteDelete (suite);
+
 	return fail;
 }
 

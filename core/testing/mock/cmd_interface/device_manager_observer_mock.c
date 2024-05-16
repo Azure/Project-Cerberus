@@ -1,14 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "status/rot_status.h"
 #include "device_manager_observer_mock.h"
+#include "status/rot_status.h"
 
 
-static void device_manager_observer_mock_on_set_eid (struct device_manager_observer *observer, int *eid)
+static void device_manager_observer_mock_on_set_eid (struct device_manager_observer *observer,
+	int *eid)
 {
 	struct device_manager_observer_mock *mock = (struct device_manager_observer_mock*) observer;
 

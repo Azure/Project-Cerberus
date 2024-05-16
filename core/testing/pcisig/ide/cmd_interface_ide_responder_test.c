@@ -4,12 +4,12 @@
 #include <string.h>
 #include "testing.h"
 #include "cmd_interface/cmd_interface.h"
-#include "spdm/spdm_commands.h"
-#include "pcisig/ide/cmd_interface_ide_responder_static.h"
-#include "pcisig/ide/ide_driver.h"
-#include "testing/mock/pcisig/ide/ide_driver_mock.h"
 #include "common/array_size.h"
 #include "pcisig/doe/doe_base_protocol.h"
+#include "pcisig/ide/cmd_interface_ide_responder_static.h"
+#include "pcisig/ide/ide_driver.h"
+#include "spdm/spdm_commands.h"
+#include "testing/mock/pcisig/ide/ide_driver_mock.h"
 
 
 TEST_SUITE_LABEL ("cmd_interface_ide_responder");
@@ -22,6 +22,7 @@ struct cmd_interface_ide_responder_testing {
 	struct cmd_interface_ide_responder ide_responder;
 	struct ide_driver_mock ide_driver_mock;
 };
+
 
 /**
  * Helper to initialize all dependencies for testing.
@@ -191,10 +192,10 @@ static void cmd_interface_ide_responder_test_process_request_query (CuTest *test
 		sizeof (uint8_t), -1);
 
 	capability_register.link_ide_stream_supported = 1;
-	capability_register.number_of_tcs_supported_for_link_ide = 7; /* 8 tcs supported */
+	capability_register.number_of_tcs_supported_for_link_ide = 7;	/* 8 tcs supported */
 	capability_register.selective_ide_streams_supported = 1;
 	capability_register.number_of_selective_ide_streams_supported =
-	 selective_ide_stream_register_block_count - 1; /* 100 streams supported. */
+		selective_ide_stream_register_block_count - 1;				/* 100 streams supported. */
 
 	status |= mock_expect (&testing.ide_driver_mock.mock,
 		testing.ide_driver_mock.base.get_capability_register, &testing.ide_driver_mock, 0,
@@ -210,7 +211,6 @@ static void cmd_interface_ide_responder_test_process_request_query (CuTest *test
 		sizeof (control_register), -1);
 
 	for (i = 0; i < (capability_register.number_of_tcs_supported_for_link_ide + 1); i++) {
-
 		link_ide_reg_block[i].stream_control_register.value = rand ();
 		link_ide_reg_block[i].stream_status_register.value = rand ();
 
@@ -223,10 +223,10 @@ static void cmd_interface_ide_responder_test_process_request_query (CuTest *test
 	}
 
 	for (i = 0; i < (capability_register.number_of_selective_ide_streams_supported + 1); i++) {
-
 		selective_ide_reg_block[i].sel_ide_stream_cap_reg.value = rand ();
-		selective_ide_reg_block[i].sel_ide_stream_cap_reg.number_of_address_association_register_blocks
-			= SELECTIVE_IDE_ADDRESS_ASSOCIATION_REGISTER_BLOCK_MAX_COUNT;
+		selective_ide_reg_block[i].sel_ide_stream_cap_reg.
+		number_of_address_association_register_blocks =
+			SELECTIVE_IDE_ADDRESS_ASSOCIATION_REGISTER_BLOCK_MAX_COUNT;
 		selective_ide_reg_block[i].sel_ide_stream_control_reg.value = rand ();
 		selective_ide_reg_block[i].sel_ide_stream_status_reg.value = rand ();
 		selective_ide_reg_block[i].ide_rid_assoc_reg_1.value = rand ();
@@ -248,7 +248,8 @@ static void cmd_interface_ide_responder_test_process_request_query (CuTest *test
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd_interface_ide_responder_process_request (
+	status =
+		cmd_interface_ide_responder_process_request (
 		(const struct cmd_interface*) (&testing.ide_responder), &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -262,7 +263,7 @@ static void cmd_interface_ide_responder_test_process_request_query (CuTest *test
 	CuAssertIntEquals (test, control_register.value, rsp->control_register);
 
 	/* Validate the Link IDE Register Block array. */
-	rsp_link_ide_stream_register_block = (struct ide_link_ide_stream_register_block *) (rsp + 1);
+	rsp_link_ide_stream_register_block = (struct ide_link_ide_stream_register_block*) (rsp + 1);
 
 	for (i = 0; i < (capability_register.number_of_tcs_supported_for_link_ide + 1); i++) {
 		CuAssertIntEquals (test, link_ide_reg_block[i].stream_control_register.value,
@@ -273,9 +274,9 @@ static void cmd_interface_ide_responder_test_process_request_query (CuTest *test
 	}
 
 	/* Validate the Selective IDE Register Block array. */
-	rsp_selective_ide_stream_register_block = (struct ide_selective_ide_stream_register_block *)
+	rsp_selective_ide_stream_register_block = (struct ide_selective_ide_stream_register_block*)
 		(rsp_link_ide_stream_register_block +
-		(capability_register.number_of_tcs_supported_for_link_ide + 1));
+			(capability_register.number_of_tcs_supported_for_link_ide + 1));
 
 	for (i = 0; i < (capability_register.number_of_selective_ide_streams_supported + 1); i++) {
 		CuAssertIntEquals (test, selective_ide_reg_block[i].sel_ide_stream_cap_reg.value,
@@ -329,12 +330,13 @@ static void cmd_interface_ide_responder_test_process_request_query_fail (CuTest 
 	rq->port_index = 1;
 
 	cmd_interface_ide_responder_testing_init (test, &testing);
-	
-	status = cmd_interface_ide_responder_process_request (
+
+	status =
+		cmd_interface_ide_responder_process_request (
 		(const struct cmd_interface*) (&testing.ide_responder), &msg);
 
 	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_MSG_SIZE, status);
-	
+
 	cmd_interface_ide_responder_testing_release (test, &testing);
 }
 
@@ -367,16 +369,17 @@ static void cmd_interface_ide_responder_test_process_request_key_prog (CuTest *t
 
 	cmd_interface_ide_responder_testing_init (test, &testing);
 
-	status = mock_expect (&testing.ide_driver_mock.mock,
-		testing.ide_driver_mock.base.key_prog, &testing.ide_driver_mock, 0,
-		MOCK_ARG (rq->port_index), MOCK_ARG (rq->stream_id), MOCK_ARG (rq->sub_stream_info.key_set),
-		MOCK_ARG (rq->sub_stream_info.rx_tx), MOCK_ARG (rq->sub_stream_info.key_sub_stream),
-		MOCK_ARG_PTR (&key_buffer->key), MOCK_ARG (sizeof (key_buffer->key)),
-		MOCK_ARG_PTR (&key_buffer->iv), MOCK_ARG (sizeof (key_buffer->iv)));
+	status = mock_expect (&testing.ide_driver_mock.mock, testing.ide_driver_mock.base.key_prog,
+		&testing.ide_driver_mock, 0, MOCK_ARG (rq->port_index), MOCK_ARG (rq->stream_id),
+		MOCK_ARG (rq->sub_stream_info.key_set),	MOCK_ARG (rq->sub_stream_info.rx_tx),
+		MOCK_ARG (rq->sub_stream_info.key_sub_stream), MOCK_ARG_PTR (&key_buffer->key),
+		MOCK_ARG (sizeof (key_buffer->key)), MOCK_ARG_PTR (&key_buffer->iv),
+		MOCK_ARG (sizeof (key_buffer->iv)));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd_interface_ide_responder_process_request (
+	status =
+		cmd_interface_ide_responder_process_request (
 		(const struct cmd_interface*) (&testing.ide_responder), &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -418,14 +421,15 @@ static void cmd_interface_ide_responder_test_process_request_key_set_go (CuTest 
 
 	cmd_interface_ide_responder_testing_init (test, &testing);
 
-	status = mock_expect (&testing.ide_driver_mock.mock,
-		testing.ide_driver_mock.base.key_set_go, &testing.ide_driver_mock, 0,
-		MOCK_ARG (rq->port_index), MOCK_ARG (rq->stream_id), MOCK_ARG (rq->sub_stream_info.key_set),
-		MOCK_ARG (rq->sub_stream_info.rx_tx), MOCK_ARG (rq->sub_stream_info.key_sub_stream));
+	status = mock_expect (&testing.ide_driver_mock.mock, testing.ide_driver_mock.base.key_set_go,
+		&testing.ide_driver_mock, 0, MOCK_ARG (rq->port_index), MOCK_ARG (rq->stream_id),
+		MOCK_ARG (rq->sub_stream_info.key_set),	MOCK_ARG (rq->sub_stream_info.rx_tx),
+		MOCK_ARG (rq->sub_stream_info.key_sub_stream));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd_interface_ide_responder_process_request (
+	status =
+		cmd_interface_ide_responder_process_request (
 		(const struct cmd_interface*) (&testing.ide_responder), &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -461,7 +465,8 @@ static void cmd_interface_ide_responder_test_process_request_key_set_go_fail (
 
 	cmd_interface_ide_responder_testing_init (test, &testing);
 
-	status = cmd_interface_ide_responder_process_request (
+	status =
+		cmd_interface_ide_responder_process_request (
 		(const struct cmd_interface*) (&testing.ide_responder), &msg);
 
 	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_MSG_SIZE, status);
@@ -494,14 +499,15 @@ static void cmd_interface_ide_responder_test_process_request_key_set_stop (CuTes
 
 	cmd_interface_ide_responder_testing_init (test, &testing);
 
-	status = mock_expect (&testing.ide_driver_mock.mock,
-		testing.ide_driver_mock.base.key_set_stop, &testing.ide_driver_mock, 0,
-		MOCK_ARG (rq->port_index), MOCK_ARG (rq->stream_id), MOCK_ARG (rq->sub_stream_info.key_set),
-		MOCK_ARG (rq->sub_stream_info.rx_tx), MOCK_ARG (rq->sub_stream_info.key_sub_stream));
+	status = mock_expect (&testing.ide_driver_mock.mock, testing.ide_driver_mock.base.key_set_stop,
+		&testing.ide_driver_mock, 0, MOCK_ARG (rq->port_index), MOCK_ARG (rq->stream_id),
+		MOCK_ARG (rq->sub_stream_info.key_set),	MOCK_ARG (rq->sub_stream_info.rx_tx),
+		MOCK_ARG (rq->sub_stream_info.key_sub_stream));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd_interface_ide_responder_process_request (
+	status =
+		cmd_interface_ide_responder_process_request (
 		(const struct cmd_interface*) (&testing.ide_responder), &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -536,9 +542,10 @@ static void cmd_interface_ide_responder_test_process_request_key_set_stop_fail (
 
 	cmd_interface_ide_responder_testing_init (test, &testing);
 
-	status = cmd_interface_ide_responder_process_request (
+	status =
+		cmd_interface_ide_responder_process_request (
 		(const struct cmd_interface*) (&testing.ide_responder), &msg);
-	
+
 	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_MSG_SIZE, status);
 
 	cmd_interface_ide_responder_testing_release (test, &testing);
@@ -549,11 +556,12 @@ static void cmd_interface_ide_responder_test_process_request_invalid_params (CuT
 	int status;
 
 	status = cmd_interface_ide_responder_process_request (NULL,
-		(struct cmd_interface_msg*)(0xDEADBEEF));
+		(struct cmd_interface_msg*) (0xDEADBEEF));
 	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_ARGUMENT, status);
 
-	status = cmd_interface_ide_responder_process_request (
-		(const struct cmd_interface*) (0xDEADBEEF), NULL);
+	status =
+		cmd_interface_ide_responder_process_request ((const struct cmd_interface*) (0xDEADBEEF),
+		NULL);
 	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_ARGUMENT, status);
 }
 
@@ -575,7 +583,8 @@ static void cmd_interface_ide_responder_test_process_request_invalid_msg_size (C
 
 	cmd_interface_ide_responder_testing_init (test, &testing);
 
-	status = cmd_interface_ide_responder_process_request (
+	status =
+		cmd_interface_ide_responder_process_request (
 		(const struct cmd_interface*) (&testing.ide_responder), &msg);
 	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_MSG_SIZE, status);
 }
@@ -599,7 +608,8 @@ static void cmd_interface_ide_responder_test_process_request_unkown_command (CuT
 
 	cmd_interface_ide_responder_testing_init (test, &testing);
 
-	status = cmd_interface_ide_responder_process_request (
+	status =
+		cmd_interface_ide_responder_process_request (
 		(const struct cmd_interface*) (&testing.ide_responder), &msg);
 	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_UNKNOWN_COMMAND, status);
 }
@@ -642,6 +652,7 @@ static void cmd_interface_ide_responder_test_generate_error_packet (CuTest *test
 	cmd_interface_ide_responder_testing_release (test, &testing);
 }
 
+// *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_ide_responder);
 
 TEST (cmd_interface_ide_responder_test_static_init);
@@ -662,3 +673,4 @@ TEST (cmd_interface_ide_responder_test_process_response);
 TEST (cmd_interface_ide_responder_test_generate_error_packet);
 
 TEST_SUITE_END;
+// *INDENT-ON*

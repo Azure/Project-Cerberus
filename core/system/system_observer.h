@@ -36,4 +36,4 @@ enum {
 };
 
 
-#endif /* SYSTEM_OBSERVER_H_ */
+#endif	/* SYSTEM_OBSERVER_H_ */

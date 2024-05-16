@@ -4,9 +4,9 @@
 #ifndef SPDM_MEASUREMENTS_H_
 #define SPDM_MEASUREMENTS_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "attestation/pcr_store.h"
 #include "crypto/hash.h"
 #include "status/rot_status.h"
@@ -29,10 +29,10 @@ struct spdm_measurements_dmtf_measurement {
  * the SPDM DSP0274 spec section 10.11.1.
  */
 struct spdm_measurements_measurement_block {
-	uint8_t index;										/**< Measurement block index. */
-	uint8_t measurement_specification;					/**< Measurement specification the measurement block format follows. */
-	uint16_t measurement_size;							/**< Total size of the DMTF wrapped measurement data. */
-	struct spdm_measurements_dmtf_measurement dmtf;		/**< Measurement data following the DMTF format. */
+	uint8_t index;									/**< Measurement block index. */
+	uint8_t measurement_specification;				/**< Measurement specification the measurement block format follows. */
+	uint16_t measurement_size;						/**< Total size of the DMTF wrapped measurement data. */
+	struct spdm_measurements_dmtf_measurement dmtf;	/**< Measurement data following the DMTF format. */
 };
 
 /**
@@ -46,7 +46,7 @@ struct spdm_measurements_measurement_block {
  *
  * @param block Pointer to a SPDM measurement block.
  */
-#define spdm_measurements_measurement_value(block)		\
+#define spdm_measurements_measurement_value(block)      \
 	(uint8_t*) (((uint8_t*) block) + sizeof (struct spdm_measurements_measurement_block))
 
 /**
@@ -63,7 +63,7 @@ struct spdm_measurements_measurement_block {
  *
  * @param measurement_value_size Size of measurement data contained in the measurement block.
  */
-#define spdm_measurements_block_size(measurement_value_size)		\
+#define spdm_measurements_block_size(measurement_value_size)        \
 	(sizeof (struct spdm_measurements_measurement_block) + measurement_value_size)
 
 /**
@@ -72,7 +72,7 @@ struct spdm_measurements_measurement_block {
  *
  * @param measurement_value_size Size of measurement data contained in the measurement block.
  */
-#define spdm_measurements_measurement_size(measurement_value_size)	\
+#define spdm_measurements_measurement_size(measurement_value_size)  \
 	(sizeof (struct spdm_measurements_dmtf_measurement) + measurement_value_size)
 #pragma pack(pop)
 
@@ -195,7 +195,7 @@ struct spdm_measurements {
 		struct hash_engine *measurement_hash, enum hash_type measurement_hash_type, bool only_tcb,
 		uint8_t *buffer, size_t length);
 
-	struct pcr_store *store;			/**< Device measurement management. */
+	struct pcr_store *store;	/**< Device measurement management. */
 };
 
 
@@ -220,7 +220,7 @@ int spdm_measurements_start_summary_hash (const struct spdm_measurements *handle
 	struct hash_engine *summary_hash, enum hash_type summary_hash_type,
 	struct hash_engine *measurement_hash, uint8_t *buffer, size_t length);
 int spdm_measurements_update_summary_hash (const struct spdm_measurements *handler,
-struct hash_engine *summary_hash, struct hash_engine *measurement_hash,
+	struct hash_engine *summary_hash, struct hash_engine *measurement_hash,
 	enum hash_type measurement_hash_type, bool only_tcb);
 
 
@@ -231,7 +231,7 @@ struct hash_engine *summary_hash, struct hash_engine *measurement_hash,
  */
 enum {
 	SPDM_MEASUREMENTS_INVALID_ARGUMENT = SPDM_MEASUREMENTS_ERROR (0x00),				/**< Input parameter is null or not valid. */
-	SPDM_MEASUREMENTS_NO_MEMORY =SPDM_MEASUREMENTS_ERROR (0x01),						/**< Memory allocation failed. */
+	SPDM_MEASUREMENTS_NO_MEMORY = SPDM_MEASUREMENTS_ERROR (0x01),						/**< Memory allocation failed. */
 	SPDM_MEASUREMENTS_GET_COUNT_FAILED = SPDM_MEASUREMENTS_ERROR (0x02),				/**< Failed to determine the number of measurements. */
 	SPDM_MEASUREMENTS_GET_BLOCK_FAILED = SPDM_MEASUREMENTS_ERROR (0x03),				/**< Failed to get a measurement block. */
 	SPDM_MEASUREMENTS_BLOCK_LENGTH_FAILED = SPDM_MEASUREMENTS_ERROR (0x04),				/**< Failed to determine a measurement block length. */
@@ -247,4 +247,4 @@ enum {
 };
 
 
-#endif /* SPDM_MEASUREMENTS_H_ */
+#endif	/* SPDM_MEASUREMENTS_H_ */

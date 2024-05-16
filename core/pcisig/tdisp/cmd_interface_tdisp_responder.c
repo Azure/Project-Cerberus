@@ -4,9 +4,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "cmd_interface/cmd_interface.h"
 #include "cmd_interface_tdisp_responder.h"
 #include "tdisp_commands.h"
+#include "cmd_interface/cmd_interface.h"
 #include "common/unused.h"
 
 
@@ -70,6 +70,7 @@ int cmd_interface_tdisp_responder_process_request (const struct cmd_interface *i
 	}
 
 exit:
+
 	return status;
 }
 
@@ -109,8 +110,8 @@ int cmd_interface_tdisp_responder_generate_error_packet (const struct cmd_interf
  * @return 0 if the TDISP responder instance was initialized successfully or an error code.
  */
 int cmd_interface_tdisp_responder_init (struct cmd_interface_tdisp_responder *tdisp_responder,
-	struct tdisp_state *tdisp_state, struct tdisp_driver *tdisp_driver,
-	const uint8_t *version_num, uint8_t version_num_count, struct rng_engine *rng_engine)
+	struct tdisp_state *tdisp_state, struct tdisp_driver *tdisp_driver,	const uint8_t *version_num,
+	uint8_t version_num_count, struct rng_engine *rng_engine)
 {
 	int status = 0;
 
@@ -138,6 +139,7 @@ int cmd_interface_tdisp_responder_init (struct cmd_interface_tdisp_responder *td
 	status = cmd_interface_tdisp_responder_init_state (tdisp_responder);
 
 exit:
+
 	return status;
 }
 
@@ -166,6 +168,7 @@ int cmd_interface_tdisp_responder_init_state (
 	}
 
 exit:
+
 	return status;
 }
 
@@ -179,5 +182,3 @@ void cmd_interface_tdisp_responder_release (
 {
 	UNUSED (tdisp_interface);
 }
-
-

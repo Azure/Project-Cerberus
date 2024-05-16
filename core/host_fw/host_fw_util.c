@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "common/buffer_util.h"
-#include "platform_api.h"
 #include "host_fw_util.h"
+#include "platform_api.h"
+#include "common/buffer_util.h"
 #include "flash/flash_util.h"
 
 
@@ -161,6 +161,7 @@ int host_fw_determine_offset_version (const struct spi_flash *flash, uint32_t of
 
 exit:
 	platform_free (fw_version);
+
 	return status;
 }
 
@@ -278,12 +279,12 @@ bool host_fw_are_images_different (const struct pfm_image_list *img_list1,
 
 			if ((img_list1->images_sig[i].sig_length != img_list2->images_sig[i].sig_length) ||
 				(img_list1->images_sig[i].always_validate !=
-					img_list2->images_sig[i].always_validate)) {
+				img_list2->images_sig[i].always_validate)) {
 				return true;
 			}
 
-			if (buffer_compare (img_list1->images_sig[i].signature, img_list2->images_sig[i].signature,
-				img_list1->images_sig->sig_length) != 0) {
+			if (buffer_compare (img_list1->images_sig[i].signature,
+				img_list2->images_sig[i].signature,	img_list1->images_sig->sig_length) != 0) {
 				return true;
 			}
 
@@ -297,7 +298,7 @@ bool host_fw_are_images_different (const struct pfm_image_list *img_list1,
 			if ((img_list1->images_hash[i].hash_length != img_list2->images_hash[i].hash_length) ||
 				(img_list1->images_hash[i].hash_type != img_list2->images_hash[i].hash_type) ||
 				(img_list1->images_hash[i].always_validate !=
-					img_list2->images_hash[i].always_validate)) {
+				img_list2->images_hash[i].always_validate)) {
 				return true;
 			}
 
@@ -589,8 +590,8 @@ int host_fw_full_flash_verification (const struct spi_flash *flash,
 	const struct pfm_image_list *img_list, const struct pfm_read_write_regions *writable,
 	uint8_t unused_byte, struct hash_engine *hash, struct rsa_engine *rsa)
 {
-	return host_fw_full_flash_verification_multiple_fw (flash, img_list, writable, 1,
-		unused_byte, hash, rsa);
+	return host_fw_full_flash_verification_multiple_fw (flash, img_list, writable, 1, unused_byte,
+		hash, rsa);
 }
 
 /**

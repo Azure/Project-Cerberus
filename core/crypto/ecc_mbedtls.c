@@ -1,21 +1,21 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "platform_api.h"
 #include "ecc_mbedtls.h"
+#include "platform_api.h"
 #include "asn1/ecc_der_util.h"
-#include "mbedtls/pk.h"
-#include "mbedtls/ecp.h"
-#include "mbedtls/ecdsa.h"
-#include "mbedtls/ecdh.h"
-#include "mbedtls/bignum.h"
+#include "common/unused.h"
 #include "crypto/crypto_logging.h"
 #include "crypto/hash.h"
-#include "common/unused.h"
+#include "mbedtls/bignum.h"
+#include "mbedtls/ecdh.h"
+#include "mbedtls/ecdsa.h"
+#include "mbedtls/ecp.h"
+#include "mbedtls/pk.h"
 
 
 /**
@@ -111,15 +111,17 @@ static mbedtls_pk_context* ecc_mbedtls_convert_private_to_public (mbedtls_pk_con
 	}
 
 	*error = 0;
+
 	return pub;
 
 error_exit:
 	ecc_mbedtls_free_key_context (pub);
 	*error = status;
 
-	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-		msg_code, status, 0);
+	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO, msg_code, status,
+		0);
 error_alloc:
+
 	return NULL;
 }
 
@@ -178,6 +180,7 @@ static int ecc_mbedtls_init_key_pair (struct ecc_engine *engine, const uint8_t *
 
 error:
 	ecc_mbedtls_free_key_context (key_ctx);
+
 	return status;
 }
 
@@ -218,6 +221,7 @@ static int ecc_mbedtls_init_public_key (struct ecc_engine *engine, const uint8_t
 
 error:
 	ecc_mbedtls_free_key_context (key_ctx);
+
 	return status;
 }
 
@@ -325,6 +329,7 @@ error_log:
 
 error:
 	ecc_mbedtls_free_key_context (key_ctx);
+
 	return status;
 }
 
@@ -386,8 +391,7 @@ static int ecc_mbedtls_generate_key_pair (struct ecc_engine *engine, size_t key_
 	}
 
 	ec = mbedtls_pk_ec (*key_ctx);
-	status = mbedtls_ecp_gen_key (curve, ec, mbedtls_ctr_drbg_random,
-		&mbedtls->ctr_drbg);
+	status = mbedtls_ecp_gen_key (curve, ec, mbedtls_ctr_drbg_random, &mbedtls->ctr_drbg);
 	if (status != 0) {
 		msg_code = CRYPTO_LOG_MSG_MBEDTLS_ECP_GEN_KEY_EC;
 		goto error_log;
@@ -412,6 +416,7 @@ error_log:
 
 error:
 	ecc_mbedtls_free_key_context (key_ctx);
+
 	return status;
 }
 #endif
@@ -442,6 +447,7 @@ static int ecc_mbedtls_get_signature_max_length (struct ecc_engine *engine,
 	}
 
 	key_len = mbedtls_pk_get_len ((mbedtls_pk_context*) key->context);
+
 	return (((key_len + 3) * 2) + ((key_len > 61) ? 3 : 2));
 }
 
@@ -588,8 +594,8 @@ static int ecc_mbedtls_verify (struct ecc_engine *engine, const struct ecc_publi
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	status = mbedtls_pk_verify ((mbedtls_pk_context*) key->context, MBEDTLS_MD_NONE, digest,
-		length, signature, ecc_der_get_ecdsa_signature_length (signature, sig_length));
+	status = mbedtls_pk_verify ((mbedtls_pk_context*) key->context, MBEDTLS_MD_NONE, digest, length,
+		signature, ecc_der_get_ecdsa_signature_length (signature, sig_length));
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_PK_VERIFY_EC, status, 0);
@@ -675,6 +681,7 @@ static int ecc_mbedtls_compute_shared_secret (struct ecc_engine *engine,
 
 error:
 	mbedtls_mpi_free (&out);
+
 	return status;
 }
 #endif
@@ -732,6 +739,7 @@ int ecc_mbedtls_init (struct ecc_engine_mbedtls *engine)
 exit:
 	mbedtls_entropy_free (&engine->entropy);
 	mbedtls_ctr_drbg_free (&engine->ctr_drbg);
+
 	return status;
 }
 

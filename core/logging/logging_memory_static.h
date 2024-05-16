@@ -79,4 +79,4 @@ int logging_memory_read_contents (const struct logging *logging, uint32_t offset
 	}
 
 
-#endif /* LOGGING_MEMORY_STATIC_H_ */
+#endif	/* LOGGING_MEMORY_STATIC_H_ */

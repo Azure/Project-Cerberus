@@ -4,16 +4,16 @@
 #ifndef PERIODIC_TASK_HANDLER_MOCK_H_
 #define PERIODIC_TASK_HANDLER_MOCK_H_
 
-#include "system/periodic_task.h"
 #include "mock.h"
+#include "system/periodic_task.h"
 
 
 /**
  * A mock for a handler from a periodic task.
  */
 struct periodic_task_handler_mock {
-	struct periodic_task_handler base;		/**< The base handler instance. */
-	struct mock mock;						/**< The base mock interface. */
+	struct periodic_task_handler base;	/**< The base handler instance. */
+	struct mock mock;					/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void periodic_task_handler_mock_release (struct periodic_task_handler_mock *mock
 int periodic_task_handler_mock_validate_and_release (struct periodic_task_handler_mock *mock);
 
 
-#endif /* PERIODIC_TASK_HANDLER_MOCK_H_ */
+#endif	/* PERIODIC_TASK_HANDLER_MOCK_H_ */

@@ -10746,6 +10746,7 @@ static void pcr_store_test_get_measurement_type_invalid_sequential_id (CuTest *t
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (pcr_store);
 
 TEST (pcr_store_test_init_sha256);
@@ -10988,3 +10989,4 @@ TEST (pcr_store_test_get_measurement_type_null);
 TEST (pcr_store_test_get_measurement_type_invalid_sequential_id);
 
 TEST_SUITE_END;
+// *INDENT-ON*

@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "host_state_manager.h"
 #include "host_state_observer.h"
@@ -126,6 +126,7 @@ int host_state_manager_init (struct host_state_manager *manager, const struct fl
 	status = observable_init (&manager->observable);
 	if (status != 0) {
 		state_manager_release (&manager->base);
+
 		return status;
 	}
 
@@ -332,7 +333,6 @@ int host_state_manager_save_active_recovery_image (struct host_state_manager *ma
 	}
 
 	return status;
-
 }
 
 /**
@@ -350,7 +350,7 @@ enum recovery_image_region host_state_manager_get_active_recovery_image (
 	}
 
 	return (manager->base.nv_state & ACTIVE_RECOVERY_IMAGE_MASK) ?
-		RECOVERY_IMAGE_REGION_1 : RECOVERY_IMAGE_REGION_2;
+			   RECOVERY_IMAGE_REGION_1 : RECOVERY_IMAGE_REGION_2;
 }
 
 /**

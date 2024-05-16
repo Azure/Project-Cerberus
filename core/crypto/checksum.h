@@ -13,4 +13,4 @@ uint8_t checksum_init_smbus_crc8 (uint8_t smbus_addr);
 uint8_t checksum_update_smbus_crc8 (uint8_t crc, const uint8_t *data, uint8_t len);
 
 
-#endif //CHECKSUM_H_
+#endif	//CHECKSUM_H_

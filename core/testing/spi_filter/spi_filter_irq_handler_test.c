@@ -5,10 +5,10 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "spi_filter/spi_filter_irq_handler.h"
-#include "spi_filter/spi_filter_irq_handler_static.h"
 #include "flash/spi_flash.h"
 #include "host_fw/host_state_manager.h"
+#include "spi_filter/spi_filter_irq_handler.h"
+#include "spi_filter/spi_filter_irq_handler_static.h"
 #include "state_manager/state_manager.h"
 #include "testing/mock/flash/flash_master_mock.h"
 #include "testing/mock/spi_filter/spi_filter_interface_mock.h"
@@ -234,6 +234,7 @@ static void spi_filter_irq_handler_test_ro_flash_dirty_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (spi_filter_irq_handler);
 
 TEST (spi_filter_irq_handler_test_init);
@@ -245,3 +246,4 @@ TEST (spi_filter_irq_handler_test_ro_flash_dirty_static_init);
 TEST (spi_filter_irq_handler_test_ro_flash_dirty_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

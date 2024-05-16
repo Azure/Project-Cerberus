@@ -42,8 +42,8 @@ static void msg_transport_test_create_empty_request (CuTest *test)
 	status = msg_transport_mock_init (&transport);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&transport.mock, transport.base.get_buffer_overhead, &transport,
-		overhead, MOCK_ARG (0x33), MOCK_ARG (sizeof (data)));
+	status = mock_expect (&transport.mock, transport.base.get_buffer_overhead, &transport, overhead,
+		MOCK_ARG (0x33), MOCK_ARG (sizeof (data)));
 	status |= mock_expect (&transport.mock, transport.base.get_max_message_payload_length,
 		&transport, max_payload, MOCK_ARG (0x33));
 
@@ -95,8 +95,8 @@ static void msg_transport_test_create_empty_request_no_transport_overhead (CuTes
 	status = msg_transport_mock_init (&transport);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&transport.mock, transport.base.get_buffer_overhead, &transport,
-		overhead, MOCK_ARG (0x22), MOCK_ARG (sizeof (data)));
+	status = mock_expect (&transport.mock, transport.base.get_buffer_overhead, &transport, overhead,
+		MOCK_ARG (0x22), MOCK_ARG (sizeof (data)));
 	status |= mock_expect (&transport.mock, transport.base.get_max_message_payload_length,
 		&transport, max_payload, MOCK_ARG (0x22));
 
@@ -148,8 +148,8 @@ static void msg_transport_test_create_empty_request_overhead_same_as_buffer (CuT
 	status = msg_transport_mock_init (&transport);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&transport.mock, transport.base.get_buffer_overhead, &transport,
-		overhead, MOCK_ARG (0x11), MOCK_ARG (sizeof (data)));
+	status = mock_expect (&transport.mock, transport.base.get_buffer_overhead, &transport, overhead,
+		MOCK_ARG (0x11), MOCK_ARG (sizeof (data)));
 	status |= mock_expect (&transport.mock, transport.base.get_max_message_payload_length,
 		&transport, max_payload, MOCK_ARG (0x11));
 
@@ -201,8 +201,8 @@ static void msg_transport_test_create_empty_request_payload_length_limited_by_ta
 	status = msg_transport_mock_init (&transport);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&transport.mock, transport.base.get_buffer_overhead, &transport,
-		overhead, MOCK_ARG (0x33), MOCK_ARG (sizeof (data)));
+	status = mock_expect (&transport.mock, transport.base.get_buffer_overhead, &transport, overhead,
+		MOCK_ARG (0x33), MOCK_ARG (sizeof (data)));
 	status |= mock_expect (&transport.mock, transport.base.get_max_message_payload_length,
 		&transport, max_payload, MOCK_ARG (0x33));
 
@@ -254,8 +254,8 @@ static void msg_transport_test_create_empty_request_payload_length_limited_by_bu
 	status = msg_transport_mock_init (&transport);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&transport.mock, transport.base.get_buffer_overhead, &transport,
-		overhead, MOCK_ARG (0x33), MOCK_ARG (sizeof (data)));
+	status = mock_expect (&transport.mock, transport.base.get_buffer_overhead, &transport, overhead,
+		MOCK_ARG (0x33), MOCK_ARG (sizeof (data)));
 	status |= mock_expect (&transport.mock, transport.base.get_max_message_payload_length,
 		&transport, max_payload, MOCK_ARG (0x33));
 
@@ -307,8 +307,8 @@ static void msg_transport_test_create_empty_request_payload_length_same_as_buffe
 	status = msg_transport_mock_init (&transport);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&transport.mock, transport.base.get_buffer_overhead, &transport,
-		overhead, MOCK_ARG (0x23), MOCK_ARG (sizeof (data)));
+	status = mock_expect (&transport.mock, transport.base.get_buffer_overhead, &transport, overhead,
+		MOCK_ARG (0x23), MOCK_ARG (sizeof (data)));
 	status |= mock_expect (&transport.mock, transport.base.get_max_message_payload_length,
 		&transport, max_payload, MOCK_ARG (0x23));
 
@@ -346,16 +346,14 @@ static void msg_transport_test_create_empty_request_null (CuTest *test)
 	status = msg_transport_mock_init (&transport);
 	CuAssertIntEquals (test, 0, status);
 
-	status = msg_transport_create_empty_request (NULL, data, sizeof (data), 0x33,
-		&request);
+	status = msg_transport_create_empty_request (NULL, data, sizeof (data), 0x33, &request);
 	CuAssertIntEquals (test, MSG_TRANSPORT_INVALID_ARGUMENT, status);
 
 	status = msg_transport_create_empty_request (&transport.base, NULL, sizeof (data), 0x33,
 		&request);
 	CuAssertIntEquals (test, MSG_TRANSPORT_INVALID_ARGUMENT, status);
 
-	status = msg_transport_create_empty_request (&transport.base, data, sizeof (data), 0x33,
-		NULL);
+	status = msg_transport_create_empty_request (&transport.base, data, sizeof (data), 0x33, NULL);
 	CuAssertIntEquals (test, MSG_TRANSPORT_INVALID_ARGUMENT, status);
 
 	status = msg_transport_mock_validate_and_release (&transport);
@@ -462,8 +460,8 @@ static void msg_transport_test_create_empty_request_check_payload_error (CuTest 
 	status = msg_transport_mock_init (&transport);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&transport.mock, transport.base.get_buffer_overhead, &transport,
-		overhead, MOCK_ARG (0x33), MOCK_ARG (sizeof (data)));
+	status = mock_expect (&transport.mock, transport.base.get_buffer_overhead, &transport, overhead,
+		MOCK_ARG (0x33), MOCK_ARG (sizeof (data)));
 	status |= mock_expect (&transport.mock, transport.base.get_max_message_payload_length,
 		&transport, MSG_TRANSPORT_MAX_PAYLOAD_FAILED, MOCK_ARG (0x33));
 
@@ -541,6 +539,7 @@ static void msg_transport_test_create_empty_response_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (msg_transport);
 
 TEST (msg_transport_test_create_empty_request);
@@ -557,3 +556,4 @@ TEST (msg_transport_test_create_empty_response);
 TEST (msg_transport_test_create_empty_response_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

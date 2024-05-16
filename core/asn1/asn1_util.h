@@ -4,8 +4,8 @@
 #ifndef ASN1_UTIL_H_
 #define ASN1_UTIL_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 
 
@@ -35,4 +35,4 @@ enum {
 };
 
 
-#endif /* ASN1_UTIL_H_ */
+#endif	/* ASN1_UTIL_H_ */

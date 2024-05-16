@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <math.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include <math.h>
 #include "platform_api.h"
 #include "testing.h"
-#include "tpm/tpm.h"
 #include "testing/mock/flash/flash_store_mock.h"
+#include "tpm/tpm.h"
 
 
 TEST_SUITE_LABEL ("tpm");
@@ -265,7 +265,8 @@ static void tpm_test_init_clear (CuTest *test)
 	memset (empty_buffer, 0xff, sizeof (empty_buffer));
 	for (id = 2; id > 0; id--) {
 		status |= mock_expect (&flash.mock, flash.base.write, &flash, 0, MOCK_ARG (id),
-			MOCK_ARG_PTR_CONTAINS (empty_buffer, sizeof (empty_buffer)), MOCK_ARG (sizeof (empty_buffer)));
+			MOCK_ARG_PTR_CONTAINS (empty_buffer, sizeof (empty_buffer)),
+			MOCK_ARG (sizeof (empty_buffer)));
 	}
 
 	header->clear = 0;
@@ -481,7 +482,8 @@ static void tpm_test_init_clear_write_header_fail (CuTest *test)
 	memset (empty_buffer, 0xff, sizeof (empty_buffer));
 	for (id = 2; id > 0; id--) {
 		status |= mock_expect (&flash.mock, flash.base.write, &flash, 0, MOCK_ARG (id),
-			MOCK_ARG_PTR_CONTAINS (empty_buffer, sizeof (empty_buffer)), MOCK_ARG (sizeof (empty_buffer)));
+			MOCK_ARG_PTR_CONTAINS (empty_buffer, sizeof (empty_buffer)),
+			MOCK_ARG (sizeof (empty_buffer)));
 	}
 
 	header->clear = 0;
@@ -1297,7 +1299,8 @@ static void tpm_test_on_soft_reset (CuTest *test)
 	memset (empty_buffer, 0xff, sizeof (empty_buffer));
 	for (id = 2; id > 0; id--) {
 		status |= mock_expect (&flash.mock, flash.base.write, &flash, 0, MOCK_ARG (id),
-			MOCK_ARG_PTR_CONTAINS (empty_buffer, sizeof (empty_buffer)), MOCK_ARG (sizeof (empty_buffer)));
+			MOCK_ARG_PTR_CONTAINS (empty_buffer, sizeof (empty_buffer)),
+			MOCK_ARG (sizeof (empty_buffer)));
 	}
 
 	header->clear = 0;
@@ -1539,7 +1542,8 @@ static void tpm_test_on_soft_reset_write_header_fail (CuTest *test)
 	memset (empty_buffer, 0xff, sizeof (empty_buffer));
 	for (id = 2; id > 0; id--) {
 		status |= mock_expect (&flash.mock, flash.base.write, &flash, 0, MOCK_ARG (id),
-			MOCK_ARG_PTR_CONTAINS (empty_buffer, sizeof (empty_buffer)), MOCK_ARG (sizeof (empty_buffer)));
+			MOCK_ARG_PTR_CONTAINS (empty_buffer, sizeof (empty_buffer)),
+			MOCK_ARG (sizeof (empty_buffer)));
 	}
 
 	header->clear = 0;
@@ -1854,6 +1858,7 @@ static void tpm_test_schedule_clear_write_fail (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (tpm);
 
 TEST (tpm_test_init);
@@ -1919,3 +1924,4 @@ TEST (tpm_test_schedule_clear_read_fail);
 TEST (tpm_test_schedule_clear_write_fail);
 
 TEST_SUITE_END;
+// *INDENT-ON*

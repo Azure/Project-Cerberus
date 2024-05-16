@@ -2,8 +2,8 @@
 // Licensed under the MIT license.
 
 #include <string.h>
-#include "counter_manager_registers.h"
 #include "cerberus_protocol_required_commands.h"
+#include "counter_manager_registers.h"
 
 
 /**
@@ -29,15 +29,15 @@ static int counter_manager_registers_set_counter (struct counter_manager_registe
 
 	switch (type) {
 		case CERBERUS_PROTOCOL_CERBERUS_RESET:
-			*manager->reg1 = (*manager->reg1 & 0xffff0000) | counter; 
+			*manager->reg1 = (*manager->reg1 & 0xffff0000) | counter;
 			break;
 
 		case CERBERUS_PROTOCOL_COMPONENT_RESET:
 			if (port == 0) {
-				*manager->reg1 = (*manager->reg1 & 0x0000ffff) | (counter << 16); 
+				*manager->reg1 = (*manager->reg1 & 0x0000ffff) | (counter << 16);
 			}
 			else if ((manager->reg2 != NULL) && (port == 1)) {
-				*manager->reg2 = (*manager->reg2 & 0xffff0000) | counter; 
+				*manager->reg2 = (*manager->reg2 & 0xffff0000) | counter;
 			}
 			else {
 				status = COUNTER_MANAGER_UNKNOWN_COUNTER;
@@ -88,6 +88,7 @@ int counter_manager_registers_increment (struct counter_manager_registers *manag
 	}
 
 	counter++;
+
 	return counter_manager_registers_set_counter (manager, type, port, (uint16_t) counter);
 }
 
@@ -118,7 +119,7 @@ int counter_manager_registers_get_counter (struct counter_manager_registers *man
 
 		case CERBERUS_PROTOCOL_COMPONENT_RESET:
 			if (port == 0) {
-				status = (*manager->reg1 >> 16) & 0x0000ffff; 
+				status = (*manager->reg1 >> 16) & 0x0000ffff;
 			}
 			else if ((manager->reg2 != NULL) && (port == 1)) {
 				status = (*manager->reg2 & 0x0000ffff);

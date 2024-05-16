@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
 #include <limits.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 #include "attestation_cmd_interface.h"
 #include "cerberus_protocol_optional_commands.h"
 #include "cmd_background_handler.h"
@@ -188,8 +188,7 @@ int cmd_background_handler_clear_platform_config (const struct cmd_background *c
 
 int cmd_background_handler_clear_component_manifests (const struct cmd_background *cmd)
 {
-	return cmd_background_handler_start_config_reset (cmd,
-		CMD_BACKGROUND_HANDLER_ACTION_CLEAR_CFM);
+	return cmd_background_handler_start_config_reset (cmd, CMD_BACKGROUND_HANDLER_ACTION_CLEAR_CFM);
 }
 #endif
 
@@ -323,7 +322,7 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
 				cerberus_protocol_unseal_hmac (unseal), HMAC_SHA256,
 				cerberus_protocol_unseal_ciphertext (unseal),
 				buffer_unaligned_read16 (
-					(uint16_t*) cerberus_protocol_unseal_ciphertext_length_ptr (unseal)),
+				(uint16_t*) cerberus_protocol_unseal_ciphertext_length_ptr (unseal)),
 				cerberus_protocol_get_unseal_pmr_sealing (unseal)->pmr, CERBERUS_PROTOCOL_MAX_PMR,
 				cmd->state->key, sizeof (cmd->state->key));
 			if (status != 0) {
@@ -481,11 +480,11 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
 
 #ifdef ATTESTATION_SUPPORT_RSA_UNSEAL
 		case CMD_BACKGROUND_HANDLER_ACTION_AUX_KEY_GEN:
-			status = aux_attestation_generate_key (
-				*((struct aux_attestation**) context->event_buffer));
+			status =
+				aux_attestation_generate_key (*((struct aux_attestation**) context->event_buffer));
 
-			debug_log_create_entry (
-				(status == 0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_ERROR,
+			debug_log_create_entry ((status ==
+				0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_ERROR,
 				DEBUG_LOG_COMPONENT_CMD_INTERFACE, CMD_LOGGING_AUX_KEY, status, 0);
 			break;
 #endif
@@ -624,7 +623,7 @@ int cmd_background_handler_init_state (const struct cmd_background_handler *hand
 	memset (handler->state, 0, sizeof (struct cmd_background_handler_state));
 
 	handler->state->cert_state = (riot_key_manager_get_root_ca (handler->keys) == NULL) ?
-		RIOT_CERT_STATE_CHAIN_INVALID : RIOT_CERT_STATE_CHAIN_VALID;
+			RIOT_CERT_STATE_CHAIN_INVALID : RIOT_CERT_STATE_CHAIN_VALID;
 
 #ifdef CMD_ENABLE_UNSEAL
 	handler->state->attestation_status = ATTESTATION_CMD_STATUS_NONE_STARTED;

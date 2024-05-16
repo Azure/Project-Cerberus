@@ -22,7 +22,7 @@ TEST_SUITE_LABEL ("mctp_control_protocol_commands");
 static void mctp_control_protocol_commands_test_header_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0x7e,0xf5,0xaa
+		0x7e, 0xf5, 0xaa
 	};
 	struct mctp_control_protocol_header *header;
 
@@ -56,7 +56,7 @@ static void mctp_control_protocol_commands_test_header_format (CuTest *test)
 static void mctp_control_protocol_commands_test_resp_header_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0x7e,0xf5,0xaa,0xcc
+		0x7e, 0xf5, 0xaa, 0xcc
 	};
 	struct mctp_control_protocol_resp_header *header;
 
@@ -95,12 +95,12 @@ static void mctp_control_protocol_commands_test_resp_header_format (CuTest *test
 static void mctp_control_protocol_commands_test_set_eid_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x03,0x01,
-		0x12,0x34
+		0x7e, 0x03, 0x01,
+		0x12, 0x34
 	};
 	uint8_t raw_buffer_resp[] = {
-		0x7e,0x03,0x01,
-		0x11,0xe1,0x33,0x44
+		0x7e, 0x03, 0x01,
+		0x11, 0xe1, 0x33, 0x44
 	};
 	struct mctp_control_set_eid *req;
 	struct mctp_control_set_eid_response *resp;
@@ -145,11 +145,11 @@ static void mctp_control_protocol_commands_test_set_eid_format (CuTest *test)
 static void mctp_control_protocol_commands_test_get_eid_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x03,0x02
+		0x7e, 0x03, 0x02
 	};
 	uint8_t raw_buffer_resp[] = {
-		0x7e,0x03,0x02,
-		0x11,0xBB,0x9C,0xCC
+		0x7e, 0x03, 0x02,
+		0x11, 0xBB, 0x9C, 0xCC
 	};
 	struct mctp_control_get_eid *req;
 	struct mctp_control_get_eid_response *resp;
@@ -190,18 +190,18 @@ static void mctp_control_protocol_commands_test_get_eid_format (CuTest *test)
 static void mctp_control_protocol_commands_test_get_mctp_version_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x03,0x04,
+		0x7e, 0x03, 0x04,
 		0x01
 	};
 	uint8_t raw_buffer_resp[] = {
-		0x7e,0x03,0x04,
-		0x11,0x02,
-		0xDD,0xCC,0xBB,0xAA,
-		0xFF,0xEE,0x22,0x11
+		0x7e, 0x03, 0x04,
+		0x11, 0x02,
+		0xDD, 0xCC, 0xBB, 0xAA,
+		0xFF, 0xEE, 0x22, 0x11
 	};
 	struct mctp_control_get_mctp_version *req;
 	struct mctp_control_get_mctp_version_response *resp;
-	struct mctp_control_mctp_version_number_entry* entry;
+	struct mctp_control_mctp_version_number_entry *entry;
 
 	TEST_START;
 
@@ -228,7 +228,8 @@ static void mctp_control_protocol_commands_test_get_mctp_version_format (CuTest 
 	CuAssertIntEquals (test, 0, resp->header.header.d_bit);
 	CuAssertIntEquals (test, 0, resp->header.header.rsvd);
 	CuAssertIntEquals (test, 0x03, resp->header.header.instance_id);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_GET_MCTP_VERSION, resp->header.header.command_code);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_GET_MCTP_VERSION,
+		resp->header.header.command_code);
 
 	CuAssertIntEquals (test, 0x11, resp->header.completion_code);
 	CuAssertIntEquals (test, 0x02, resp->version_num_entry_count);
@@ -251,12 +252,12 @@ static void mctp_control_protocol_commands_test_get_mctp_version_format (CuTest 
 static void mctp_control_protocol_commands_test_get_message_type_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x03,0x05
+		0x7e, 0x03, 0x05
 	};
 	uint8_t raw_buffer_resp[] = {
-		0x7e,0x03,0x05,
-		0x11,0x02,
-		0xAA,0xBB
+		0x7e, 0x03, 0x05,
+		0x11, 0x02,
+		0xAA, 0xBB
 	};
 	struct mctp_control_get_message_type *req;
 	struct mctp_control_get_message_type_response *resp;
@@ -300,16 +301,16 @@ static void mctp_control_protocol_commands_test_get_message_type_format (CuTest 
 static void mctp_control_protocol_commands_test_get_vendor_def_msg_support_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x03,0x06,
+		0x7e, 0x03, 0x06,
 		0x12
 	};
 	uint8_t raw_buffer_pci_resp[] = {
-		0x7e,0x03,0x06,
-		0x11,0x22,0x00,0x44,0x55,0x66,0x77
+		0x7e, 0x03, 0x06,
+		0x11, 0x22, 0x00, 0x44, 0x55, 0x66, 0x77
 	};
 	uint8_t raw_buffer_iana_resp[] = {
-		0x7e,0x03,0x06,
-		0x11,0x22,0x01,0xAA,0xBB,0x44,0x55,0x66,0x77
+		0x7e, 0x03, 0x06,
+		0x11, 0x22, 0x01, 0xAA, 0xBB, 0x44, 0x55, 0x66, 0x77
 	};
 	struct mctp_control_get_vendor_def_msg_support *req;
 	struct mctp_control_get_vendor_def_msg_support_pci_response *pci_resp;
@@ -373,14 +374,14 @@ static void mctp_control_protocol_commands_test_get_vendor_def_msg_support_forma
 static void mctp_control_protocol_commands_test_get_routing_table_entries_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x03,0x0A,
+		0x7e, 0x03, 0x0A,
 		0x12
 	};
 	uint8_t raw_buffer_resp[] = {
-		0x7e,0x03,0x0A,
-		0x11,0x22,2,
-		0x02,0xAA,0xB5,0x55,0x66,0x77,0x88,
-		0x03,0xFF,0xCA,0x11,0x22,0x33,0x44,
+		0x7e, 0x03, 0x0A,
+		0x11, 0x22, 2,
+		0x02, 0xAA, 0xB5, 0x55, 0x66, 0x77, 0x88,
+		0x03, 0xFF, 0xCA, 0x11, 0x22, 0x33, 0x44,
 	};
 	struct mctp_control_get_routing_table_entries *req;
 	struct mctp_control_get_routing_table_entries_response *resp;
@@ -447,10 +448,10 @@ static void mctp_control_protocol_commands_test_get_routing_table_entries_format
 static void mctp_control_protocol_commands_test_discovery_notify_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x03,0x0d
+		0x7e, 0x03, 0x0d
 	};
 	uint8_t raw_buffer_resp[] = {
-		0x7e,0x03,0x0d,
+		0x7e, 0x03, 0x0d,
 		0x11
 	};
 	struct mctp_control_discovery_notify *req;
@@ -536,12 +537,12 @@ static void mctp_control_protocol_commands_test_process_set_eid (CuTest *test)
 	CuAssertIntEquals (test, 0, response->eid_allocation_status);
 	CuAssertIntEquals (test, 0xBB, response->eid_setting);
 	CuAssertIntEquals (test, 0, response->eid_pool_size);
-	CuAssertIntEquals (test, 0xBB, device_manager_get_device_eid (&device_manager,
-		DEVICE_MANAGER_SELF_DEVICE_NUM));
-	CuAssertIntEquals (test, 0xAA, device_manager_get_device_eid (&device_manager,
-		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM));
-	CuAssertIntEquals (test, 0x20, device_manager_get_device_addr (&device_manager,
-		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM));
+	CuAssertIntEquals (test, 0xBB,
+		device_manager_get_device_eid (&device_manager,	DEVICE_MANAGER_SELF_DEVICE_NUM));
+	CuAssertIntEquals (test, 0xAA,
+		device_manager_get_device_eid (&device_manager,	DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM));
+	CuAssertIntEquals (test, 0x20,
+		device_manager_get_device_addr (&device_manager, DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM));
 
 	device_manager_release (&device_manager);
 }
@@ -598,12 +599,12 @@ static void mctp_control_protocol_commands_test_process_set_eid_force (CuTest *t
 	CuAssertIntEquals (test, 0, response->eid_allocation_status);
 	CuAssertIntEquals (test, 0xBB, response->eid_setting);
 	CuAssertIntEquals (test, 0, response->eid_pool_size);
-	CuAssertIntEquals (test, 0xBB, device_manager_get_device_eid (&device_manager,
-		DEVICE_MANAGER_SELF_DEVICE_NUM));
-	CuAssertIntEquals (test, 0xAA, device_manager_get_device_eid (&device_manager,
-		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM));
-	CuAssertIntEquals (test, 0x20, device_manager_get_device_addr (&device_manager,
-		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM));
+	CuAssertIntEquals (test, 0xBB,
+		device_manager_get_device_eid (&device_manager,	DEVICE_MANAGER_SELF_DEVICE_NUM));
+	CuAssertIntEquals (test, 0xAA,
+		device_manager_get_device_eid (&device_manager,	DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM));
+	CuAssertIntEquals (test, 0x20,
+		device_manager_get_device_addr (&device_manager, DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM));
 
 	device_manager_release (&device_manager);
 }
@@ -941,7 +942,8 @@ static void mctp_control_protocol_commands_test_process_get_eid_invalid_len (CuT
 	device_manager_release (&device_manager);
 }
 
-static void mctp_control_protocol_commands_test_process_get_mctp_version_support_mctp_base_protocol (
+static void mctp_control_protocol_commands_test_process_get_mctp_version_support_mctp_base_protocol
+(
 	CuTest *test)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT];
@@ -988,7 +990,8 @@ static void mctp_control_protocol_commands_test_process_get_mctp_version_support
 	CuAssertIntEquals (test, 0, entry->alpha);
 }
 
-static void mctp_control_protocol_commands_test_process_get_mctp_version_support_mctp_ctrl_protocol (
+static void mctp_control_protocol_commands_test_process_get_mctp_version_support_mctp_ctrl_protocol
+(
 	CuTest *test)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT];
@@ -1131,7 +1134,8 @@ static void mctp_control_protocol_commands_test_process_get_mctp_version_support
 	CuAssertIntEquals (test, 3, response->header.completion_code);
 }
 
-static void mctp_control_protocol_commands_test_process_get_mctp_version_support_unsupported_msg_type (
+static void
+mctp_control_protocol_commands_test_process_get_mctp_version_support_unsupported_msg_type (
 	CuTest *test)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT];
@@ -1277,7 +1281,8 @@ static void mctp_control_protocol_commands_test_generate_get_message_type_suppor
 	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_INVALID_ARGUMENT, status);
 }
 
-static void mctp_control_protocol_commands_test_generate_get_message_type_support_request_buf_too_small (
+static void
+mctp_control_protocol_commands_test_generate_get_message_type_support_request_buf_too_small (
 	CuTest *test)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT];
@@ -1603,7 +1608,8 @@ static void mctp_control_protocol_commands_test_generate_get_vendor_def_msg_supp
 	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_INVALID_ARGUMENT, status);
 }
 
-static void mctp_control_protocol_commands_test_generate_get_vendor_def_msg_support_request_buf_too_small (
+static void
+mctp_control_protocol_commands_test_generate_get_vendor_def_msg_support_request_buf_too_small (
 	CuTest *test)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT];
@@ -1691,7 +1697,8 @@ static void mctp_control_protocol_commands_test_process_get_vendor_def_msg_suppo
 	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_INVALID_ARGUMENT, status);
 }
 
-static void mctp_control_protocol_commands_test_process_get_vendor_def_msg_support_response_bad_len (
+static void mctp_control_protocol_commands_test_process_get_vendor_def_msg_support_response_bad_len
+(
 	CuTest *test)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT];
@@ -1734,7 +1741,8 @@ static void mctp_control_protocol_commands_test_process_get_vendor_def_msg_suppo
 	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_BAD_LENGTH, status);
 }
 
-static void mctp_control_protocol_commands_test_process_get_vendor_def_msg_support_response_cc_fail (
+static void mctp_control_protocol_commands_test_process_get_vendor_def_msg_support_response_cc_fail
+(
 	CuTest *test)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT];
@@ -1805,7 +1813,8 @@ static void mctp_control_protocol_commands_test_generate_get_routing_table_entri
 	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_INVALID_ARGUMENT, status);
 }
 
-static void mctp_control_protocol_commands_test_generate_get_routing_table_entries_request_buf_too_small (
+static void
+mctp_control_protocol_commands_test_generate_get_routing_table_entries_request_buf_too_small (
 	CuTest *test)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT];
@@ -2084,6 +2093,7 @@ static void mctp_control_protocol_commands_test_process_discovery_notify_respons
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (mctp_control_protocol_commands);
 
 TEST (mctp_control_protocol_commands_test_header_format);
@@ -2147,3 +2157,4 @@ TEST (mctp_control_protocol_commands_test_process_discovery_notify_response_bad_
 TEST (mctp_control_protocol_commands_test_process_discovery_notify_response_cc_fail);
 
 TEST_SUITE_END;
+// *INDENT-ON*

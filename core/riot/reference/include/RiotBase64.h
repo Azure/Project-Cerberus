@@ -2,6 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See LICENSE in the project root.
  */
+
 #ifndef RIOT_BASE64_H
 #define RIOT_BASE64_H
 
@@ -11,23 +12,15 @@ extern "C" {
 
 #define Base64Length(l) ((l == 0) ? (1) : (((((l - 1) / 3) + 1) * 4) + 1))
 
-int
-Base64Encode(
-    const unsigned char *Input,
-    size_t				Length,
-    char				*Output,
-    size_t				*OutLen
-);
+int Base64Encode (
+	const unsigned char *Input, size_t Length, char	*Output, size_t	*OutLen);
 
-int
-Base64Decode(
-    const char      *Input,
-    unsigned char   *Output,
-    uint32_t        *OutLen
-);
+int Base64Decode (
+	const char *Input, unsigned char *Output, uint32_t *OutLen);
 
 #ifdef __cplusplus
 }
 #endif
+
 
 #endif

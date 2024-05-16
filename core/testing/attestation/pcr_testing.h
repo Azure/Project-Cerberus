@@ -50,4 +50,4 @@ extern const uint8_t PCR_TESTING_SHA512_PCR_NONE_VALID_MEASUREMENT0[];
 extern const uint8_t PCR_TESTING_SHA512_PCR_NONE_VALID_MEASUREMENT1[];
 
 
-#endif /* PCR_TESTING_H_ */
+#endif	/* PCR_TESTING_H_ */

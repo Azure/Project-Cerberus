@@ -4,8 +4,8 @@
 #ifndef SPI_FLASH_SFDP_TESTING_H_
 #define SPI_FLASH_SFDP_TESTING_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 
 #define	FLASH_ID_LEN	3
@@ -144,4 +144,5 @@ extern const uint32_t SFDP_PARAMS_ADDR_S28HS02GT;
 extern const uint32_t SFDP_PARAMS_S28HS02GT[];
 extern const size_t SFDP_PARAMS_S28HS02GT_LEN;
 
-#endif /* SPI_FLASH_SFDP_TESTING_H_ */
+
+#endif	/* SPI_FLASH_SFDP_TESTING_H_ */

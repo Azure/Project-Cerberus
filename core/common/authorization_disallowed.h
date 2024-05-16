@@ -11,7 +11,7 @@
  * Authorization manager that does not allow any operation.
  */
 struct authorization_disallowed {
-	struct authorization base;			/**< Base authorization manager. */
+	struct authorization base;	/**< Base authorization manager. */
 };
 
 
@@ -19,4 +19,4 @@ int authorization_disallowed_init (struct authorization_disallowed *auth);
 void authorization_disallowed_release (struct authorization_disallowed *auth);
 
 
-#endif /* AUTHORIZATION_DISALLOWED_H_ */
+#endif	/* AUTHORIZATION_DISALLOWED_H_ */

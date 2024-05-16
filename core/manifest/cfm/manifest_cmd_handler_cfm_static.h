@@ -4,8 +4,8 @@
 #ifndef MANIFEST_CMD_HANDLER_CFM_STATIC_H_
 #define MANIFEST_CMD_HANDLER_CFM_STATIC_H_
 
-#include "manifest/manifest_cmd_handler_static.h"
 #include "manifest/cfm/manifest_cmd_handler_cfm.h"
+#include "manifest/manifest_cmd_handler_static.h"
 
 
 /* Internal functions declared to allow for static initialization. */
@@ -28,4 +28,4 @@ int manifest_cmd_handler_cfm_activation (const struct manifest_cmd_handler *hand
 	}
 
 
-#endif /* MANIFEST_CMD_HANDLER_CFM_STATIC_H_ */
+#endif	/* MANIFEST_CMD_HANDLER_CFM_STATIC_H_ */

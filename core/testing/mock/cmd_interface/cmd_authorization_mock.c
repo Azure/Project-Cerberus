@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "cmd_authorization_mock.h"
 
@@ -117,7 +117,6 @@ static const char* cmd_authorization_mock_arg_name_map (void *func, int arg)
 
 			case 1:
 				return "length";
-
 		}
 	}
 	else if (func == cmd_authorization_mock_authorize_reset_defaults) {
@@ -127,7 +126,6 @@ static const char* cmd_authorization_mock_arg_name_map (void *func, int arg)
 
 			case 1:
 				return "length";
-
 		}
 	}
 	else if (func == cmd_authorization_mock_authorize_clear_platform_config) {
@@ -137,7 +135,6 @@ static const char* cmd_authorization_mock_arg_name_map (void *func, int arg)
 
 			case 1:
 				return "length";
-
 		}
 	}
 	else if (func == cmd_authorization_mock_authorize_clear_component_manifests) {
@@ -147,7 +144,6 @@ static const char* cmd_authorization_mock_arg_name_map (void *func, int arg)
 
 			case 1:
 				return "length";
-
 		}
 	}
 	else if (func == cmd_authorization_mock_authorize_reset_intrusion) {
@@ -157,7 +153,6 @@ static const char* cmd_authorization_mock_arg_name_map (void *func, int arg)
 
 			case 1:
 				return "length";
-
 		}
 	}
 

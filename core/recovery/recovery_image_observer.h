@@ -46,4 +46,4 @@ enum {
 };
 
 
-#endif /* RECOVERY_IMAGE_OBSERVER_H_ */
+#endif	/* RECOVERY_IMAGE_OBSERVER_H_ */

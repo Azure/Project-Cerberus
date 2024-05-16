@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "firmware_image_mock.h"
 
@@ -191,4 +191,3 @@ int firmware_image_mock_validate_and_release (struct firmware_image_mock *mock)
 
 	return status;
 }
-

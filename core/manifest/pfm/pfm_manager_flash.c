@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "pfm_manager_flash.h"
-#include "manifest/manifest_logging.h"
 #include "host_fw/host_state_manager.h"
+#include "manifest/manifest_logging.h"
 
 
 /**
@@ -18,8 +18,7 @@
  *
  * @return The requested PFM instance or null if there was an error.
  */
-static struct pfm* pfm_manager_flash_get_pfm (struct pfm_manager_flash *manager,
-	bool active)
+static struct pfm* pfm_manager_flash_get_pfm (struct pfm_manager_flash *manager, bool active)
 {
 	struct pfm_flash *flash;
 	struct manifest_manager_flash_region *region;
@@ -34,6 +33,7 @@ static struct pfm* pfm_manager_flash_get_pfm (struct pfm_manager_flash *manager,
 	}
 
 	flash = (struct pfm_flash*) region->manifest;
+
 	return &flash->base;
 }
 
@@ -224,6 +224,7 @@ int pfm_manager_flash_init_port (struct pfm_manager_flash *manager, struct pfm_f
 
 manifest_base_error:
 	pfm_manager_release (&manager->base);
+
 	return status;
 }
 

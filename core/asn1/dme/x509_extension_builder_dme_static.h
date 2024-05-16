@@ -72,4 +72,4 @@ void x509_extension_builder_dme_free_static (const struct x509_extension_builder
 	}
 
 
-#endif /* X509_EXTENSION_BUILDER_DME_STATIC_H_ */
+#endif	/* X509_EXTENSION_BUILDER_DME_STATIC_H_ */

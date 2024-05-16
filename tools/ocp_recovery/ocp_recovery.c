@@ -1,25 +1,25 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <linux/i2c-dev.h>
+#include <linux/i2c.h>
+#include <linux/types.h>
+#include <stdarg.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <string.h>
-#include <stdbool.h>
 #include <stdio.h>
-#include <stdarg.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <time.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
-#include <linux/types.h>
-#include <linux/i2c.h>
-#include <linux/i2c-dev.h>
+#include <time.h>
+#include <unistd.h>
+#include "i2c_platform.h"
 #include "crypto/checksum.h"
 #include "logging/debug_log.h"
-#include "i2c_platform.h"
 
 
 /**
@@ -270,8 +270,7 @@ void output_array (int fd, const uint8_t *data, int start, int end, const char *
  * @param label Label to apply to the array.
  * @param tabs The tab depth for the array.
  */
-void print_byte_array (const uint8_t *data, int start, int end, const char *label,
-	const char *tabs)
+void print_byte_array (const uint8_t *data, int start, int end, const char *label, const char *tabs)
 {
 	output_array (-1, data, start, end, label, tabs);
 }
@@ -396,6 +395,7 @@ uint8_t smbus_block_read (uint8_t cmd, uint8_t *payload, uint8_t min_length, uin
 	}
 
 	free (rx_smbus);
+
 	return length;
 }
 
@@ -601,8 +601,8 @@ void read_device_id (bool raw)
 		exit (1);
 	}
 	else if (bytes != (24 + data[1])) {
-		printf ("%s: Invalid response length %d, with vender string length %d.\n", __func__,
-			bytes, data[1]);
+		printf ("%s: Invalid response length %d, with vender string length %d.\n", __func__, bytes,
+			data[1]);
 		exit (1);
 	}
 
@@ -748,6 +748,7 @@ const char *RECOVERY_REASON_STR[] = {
 	[0x11] = "Forced recovery"
 };
 
+
 /**
  * Send the DEVICE_STATUS command to the device and parse the response.
  *
@@ -838,6 +839,7 @@ const char *RESET_CONTROL_STR[] = {
 	[0x2] = "Reset Management",
 };
 
+
 /**
  * Read the RESET information and parse the response.
  *
@@ -899,6 +901,7 @@ const char *RECOVERY_IMAGE_STR[] = {
 	[0x1] = "Use recovery image from a memory window (CMS)",
 	[0x2] = "Use recovery image stored on the device (C-Image)",
 };
+
 
 /**
  * Read the RECOVERY_CTRL information and parse the response.
@@ -974,6 +977,7 @@ const char *RECOVERY_STATUS_STR[] = {
 	[0xe] = "Error entering recovery mode",
 	[0xf] = "Invalid component address space"
 };
+
 
 /**
  * Send the RECOVERY_STATUS command to the device and parse the response.
@@ -1201,6 +1205,7 @@ const char *REGION_TYPE_STR[] = {
 	[0xf] = "Unsupported region"
 };
 
+
 /**
  * Send the INDIRECT_STATUS command to the device and parse the response.
  *
@@ -1418,11 +1423,12 @@ uint32_t dump_cms_data (uint8_t cms, uint32_t offset, const char *file_out, uint
  * OCP Recovery log header format.
  */
 struct ocp_log_entry_header {
-	uint16_t log_magic;		/**< Start of entry marker.   This is 0xe5e5. */
-	uint16_t length;		/**< Total length of the entry. */
-	uint32_t entry_id;		/**< Unique entry identifier. */
-	uint16_t format;		/**< Format of the message body. */
+	uint16_t log_magic;	/**< Start of entry marker.   This is 0xe5e5. */
+	uint16_t length;	/**< Total length of the entry. */
+	uint32_t entry_id;	/**< Unique entry identifier. */
+	uint16_t format;	/**< Format of the message body. */
 };
+
 #pragma pack(pop)
 
 /**
@@ -1854,7 +1860,8 @@ void print_help ()
 
 	printf ("\n");
 	printf ("OPTIONS\n");
-	printf ("  -a <hex> :  The 7-bit I2C address, in hex.  This follows the spec and defaults to 0x69.\n");
+	printf (
+		"  -a <hex> :  The 7-bit I2C address, in hex.  This follows the spec and defaults to 0x69.\n");
 	printf ("  -b       :  Show raw response bytes in addition to parsed data.\n");
 	printf ("  -c <num> :  The CMS to use for the operation.  Defaults to 0.\n");
 	printf ("  -d <num> :  The I2C device number.  This is required.\n");
@@ -1864,12 +1871,16 @@ void print_help ()
 	printf ("  -o <hex> :  The offset in a CMS to start reading or writing.  Defaults to 0.\n");
 	printf ("  -p       :  Disable PEC bytes on block reads and writes.\n");
 	printf ("  -r       :  Force the device into recovery mode during reset commands.\n");
-	printf ("  -R       :  Maximum number of bytes to read from a CMS in each command.  Defaults to 252 bytes.\n");
+	printf (
+		"  -R       :  Maximum number of bytes to read from a CMS in each command.  Defaults to 252 bytes.\n");
 	printf ("  -s       :  Add a delay after every write transaction.\n");
-	printf ("  -S       :  Specify the amount of time, in usec, to delay after write transactions.  Defaults to 1000.\n");
-	printf ("  -v       :  Verbose output for command processing.  Specify multiple times to increase.\n");
+	printf (
+		"  -S       :  Specify the amount of time, in usec, to delay after write transactions.  Defaults to 1000.\n");
+	printf (
+		"  -v       :  Verbose output for command processing.  Specify multiple times to increase.\n");
 	printf ("  -w       :  Execute a raw write transaction.  Default is to execute a read.\n");
-	printf ("  -W       :  Maximum number of bytes to write to a CMS in each command.  Defaults to 252 bytes.\n");
+	printf (
+		"  -W       :  Maximum number of bytes to write to a CMS in each command.  Defaults to 252 bytes.\n");
 	printf ("  -h       :  Displays the help menu.\n");
 	printf ("\n");
 	printf ("COMMANDS\n");
@@ -1877,11 +1888,13 @@ void print_help ()
 	printf ("  load_img <file>   : Write a binary file to device memory.\n");
 	printf ("  verify_img <file> : Read CMS data and compare it to a specified file.\n");
 	printf ("  activate_img      : Activate an image loaded into device memory.\n");
-	printf ("  read_log [file]   : Read and parse contents of a CMS log.  Optionally output to a file.\n");
+	printf (
+		"  read_log [file]   : Read and parse contents of a CMS log.  Optionally output to a file.\n");
 	printf ("  read_data [file]  : Raw CMS data read.  Optionally output to a file.\n");
 	printf ("  reset_device      : Issue a device reset.\n");
 	printf ("  reset_mgmt        : Issue a management reset for the device.\n");
-	printf ("  show_all          : Send a read request for every command supported by the device.\n");
+	printf (
+		"  show_all          : Send a read request for every command supported by the device.\n");
 	printf ("\n");
 	printf ("RAW COMMANDS\n");
 	printf ("  prot_cap        :  The PROT_CAP command.\n");
@@ -2033,6 +2046,7 @@ int main (int argc, char *argv[])
 
 			case 'h':
 				print_help ();
+
 				return 0;
 		}
 	}
@@ -2040,17 +2054,20 @@ int main (int argc, char *argv[])
 	if (device_num < 0) {
 		printf ("No I2C device specified.\n\n");
 		print_usage ();
+
 		return 1;
 	}
 
 	if (cms_block_write > MAX_CMS_BLOCK_SIZE) {
 		printf ("Invalid CMS block write value.\n\n");
 		print_usage ();
+
 		return 1;
 	}
 
 	if (optind >= argc) {
 		print_usage ();
+
 		return 1;
 	}
 
@@ -2060,6 +2077,7 @@ int main (int argc, char *argv[])
 		(strcmp ("verify_img", command) == 0)) {
 		if (optind >= argc) {
 			printf ("A file must be provided for this command.\n");
+
 			return 1;
 		}
 
@@ -2082,6 +2100,7 @@ int main (int argc, char *argv[])
 		}
 		else if (!is_read) {
 			printf ("No data provided for the command.\n");
+
 			return 1;
 		}
 	}
@@ -2208,6 +2227,7 @@ int main (int argc, char *argv[])
 	}
 	else {
 		printf ("Uknown command.\n");
+
 		return 1;
 	}
 

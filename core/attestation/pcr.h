@@ -4,18 +4,18 @@
 #ifndef PCR_H_
 #define PCR_H_
 
-#include <stdint.h>
 #include <stdbool.h>
-#include "status/rot_status.h"
-#include "crypto/hash.h"
+#include <stdint.h>
 #include "pcr_data.h"
 #include "platform_api.h"
 #include "platform_config.h"
+#include "crypto/hash.h"
+#include "status/rot_status.h"
 
 
 /* Configurable PCR parameters.  Defaults can be overridden in platform_config.h. */
 #ifndef PCR_MAX_DIGEST_LENGTH
-#define PCR_MAX_DIGEST_LENGTH 								SHA512_HASH_LENGTH
+#define PCR_MAX_DIGEST_LENGTH								SHA512_HASH_LENGTH
 #endif
 
 #if PCR_MAX_DIGEST_LENGTH < SHA256_HASH_LENGTH
@@ -57,8 +57,7 @@ enum pcr_dmtf_value_type {
 	 * compatibility with SPDM 1.1.
 	 */
 	PCR_DMTF_VALUE_TYPE_UNUSED = 0x05,
-
-	PCR_DMTF_VALUE_TYPE_RESERVED = 0x0b,		/**< Reserved. */
+	PCR_DMTF_VALUE_TYPE_RESERVED = 0x0b,	/**< Reserved. */
 };
 
 
@@ -100,10 +99,10 @@ struct pcr_bank {
  * Header for the TCG_PCR_EVENT2 log structure.
  */
 struct pcr_tcg_event2_header {
-	uint32_t pcr_index;						/**< Index for the PCR containing the measurement. */
-	uint32_t event_type;					/**< Event identifier for the measurement. */
-	uint32_t digest_count;					/**< Number of digests calculated for the event. */
-	uint16_t digest_algorithm_id;			/**< ID of hashing algorithm used to calculate the digest. */
+	uint32_t pcr_index;				/**< Index for the PCR containing the measurement. */
+	uint32_t event_type;			/**< Event identifier for the measurement. */
+	uint32_t digest_count;			/**< Number of digests calculated for the event. */
+	uint16_t digest_algorithm_id;	/**< ID of hashing algorithm used to calculate the digest. */
 };
 
 /**
@@ -167,6 +166,7 @@ struct pcr_tcg_log_header {
 	uint8_t vendor_info_size;					/**< Size of vendorInfo */
 	//uint8_t vendor_info[0];					/**< Vendor-specific extra information. Commented out since not used by Cerberus */
 };
+
 #pragma pack(pop)
 
 
@@ -177,6 +177,8 @@ int pcr_get_num_measurements (struct pcr_bank *pcr);
 int pcr_check_measurement_index (struct pcr_bank *pcr, uint8_t measurement_index);
 
 enum hash_type pcr_get_hash_algorithm (struct pcr_bank *pcr);
+
+
 int pcr_get_digest_length (struct pcr_bank *pcr);
 
 int pcr_set_tcg_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_t event_type);
@@ -254,4 +256,4 @@ enum {
 };
 
 
-#endif /* PCR_H_ */
+#endif	/* PCR_H_ */

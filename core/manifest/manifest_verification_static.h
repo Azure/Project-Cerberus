@@ -77,4 +77,4 @@ void manifest_verification_on_update_start (const struct firmware_update_observe
 	}
 
 
-#endif /* MANIFEST_VERIFICATION_STATIC_H_ */
+#endif	/* MANIFEST_VERIFICATION_STATIC_H_ */

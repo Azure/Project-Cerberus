@@ -29,4 +29,4 @@
 	}
 
 
-#endif /* CMD_CHANNEL_STATIC_H_ */
+#endif	/* CMD_CHANNEL_STATIC_H_ */

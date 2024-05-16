@@ -41,4 +41,4 @@ int cmd_interface_protocol_cerberus_secure_handle_request_result (
 	}
 
 
-#endif /* CMD_INTERFACE_PROTOCOL_CERBERUS_SECURE_STATIC_H_ */
+#endif	/* CMD_INTERFACE_PROTOCOL_CERBERUS_SECURE_STATIC_H_ */

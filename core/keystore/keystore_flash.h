@@ -13,8 +13,8 @@
  * Device key storage on flash.
  */
 struct keystore_flash {
-	struct keystore base;					/**< Base keystore instance. */
-	const struct flash_store *store;		/**< Flash storage for keys. */
+	struct keystore base;				/**< Base keystore instance. */
+	const struct flash_store *store;	/**< Flash storage for keys. */
 };
 
 
@@ -22,4 +22,4 @@ int keystore_flash_init (struct keystore_flash *store, const struct flash_store 
 void keystore_flash_release (const struct keystore_flash *store);
 
 
-#endif /* KEYSTORE_FLASH_H_ */
+#endif	/* KEYSTORE_FLASH_H_ */

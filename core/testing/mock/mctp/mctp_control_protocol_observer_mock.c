@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "cmd_interface/cmd_interface.h"
 #include "mctp_control_protocol_observer_mock.h"
+#include "cmd_interface/cmd_interface.h"
 
 
 static void mctp_control_protocol_observer_mock_on_set_eid_request (
@@ -205,7 +205,7 @@ void mctp_control_protocol_observer_mock_release (struct mctp_control_protocol_o
  * @return 0 if all expectations were met or 1 if not.
  */
 int mctp_control_protocol_observer_mock_validate_and_release (
-		struct mctp_control_protocol_observer_mock *mock)
+	struct mctp_control_protocol_observer_mock *mock)
 {
 	int status = 1;
 

@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
 #include "asn1/dme/x509_extension_builder_dme.h"
 #include "asn1/dme/x509_extension_builder_mbedtls_dme.h"
 #include "asn1/dme/x509_extension_builder_mbedtls_dme_static.h"
-#include "testing/asn1/x509_testing.h"
 #include "testing/asn1/dme/dme_structure_testing.h"
 #include "testing/asn1/dme/x509_extension_builder_dme_testing.h"
+#include "testing/asn1/x509_testing.h"
 
 
 TEST_SUITE_LABEL ("x509_extension_builder_mbedtls_dme");
@@ -20,7 +20,7 @@ TEST_SUITE_LABEL ("x509_extension_builder_mbedtls_dme");
 /**
  * Length of the static buffer to use for testing.
  */
-#define	X509_EXTENSION_BUILDER_MBEDTLS_DME_TESTING_BUFFER_LENGTH(type)		\
+#define	X509_EXTENSION_BUILDER_MBEDTLS_DME_TESTING_BUFFER_LENGTH(type)      \
 	(X509_EXTENSION_BUILDER_DME_TESTING_DATA_ ## type ## _LEN)
 
 
@@ -121,7 +121,7 @@ static void x509_extension_builder_mbedtls_dme_test_static_init_with_buffer (CuT
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DME_TESTING_BUFFER_LENGTH (ECC384_SHA384)];
 	struct x509_extension_builder_mbedtls_dme builder =
 		x509_extension_builder_mbedtls_dme_static_init_with_buffer (&dme, ext_buffer,
-			sizeof (ext_buffer));
+		sizeof (ext_buffer));
 
 	TEST_START;
 
@@ -649,7 +649,7 @@ static void x509_extension_builder_mbedtls_dme_test_build_with_buffer_static_ini
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DME_TESTING_BUFFER_LENGTH (ECC384_SHA384)];
 	struct x509_extension_builder_mbedtls_dme builder =
 		x509_extension_builder_mbedtls_dme_static_init_with_buffer (&dme, ext_buffer,
-			sizeof (ext_buffer));
+		sizeof (ext_buffer));
 	int status;
 	struct x509_extension extension;
 
@@ -662,8 +662,7 @@ static void x509_extension_builder_mbedtls_dme_test_build_with_buffer_static_ini
 	CuAssertIntEquals (test, false, extension.critical);
 	CuAssertPtrNotNull (test, extension.oid);
 	CuAssertPtrEquals (test, ext_buffer, (void*) extension.data);
-	CuAssertIntEquals (test, X509_EXTENSION_BUILDER_DME_TESTING_OID_LEN,
-		extension.oid_length);
+	CuAssertIntEquals (test, X509_EXTENSION_BUILDER_DME_TESTING_OID_LEN, extension.oid_length);
 	CuAssertIntEquals (test, X509_EXTENSION_BUILDER_DME_TESTING_DATA_ECC384_SHA384_LEN,
 		extension.data_length);
 
@@ -711,7 +710,7 @@ static void x509_extension_builder_mbedtls_dme_test_build_with_buffer_static_ini
 	struct dme_structure dme;
 	struct x509_extension_builder_mbedtls_dme builder =
 		x509_extension_builder_mbedtls_dme_static_init_with_buffer (&dme, NULL,
-			X509_EXTENSION_BUILDER_MBEDTLS_DME_TESTING_BUFFER_LENGTH (ECC384_SHA384));
+		X509_EXTENSION_BUILDER_MBEDTLS_DME_TESTING_BUFFER_LENGTH (ECC384_SHA384));
 	int status;
 	struct x509_extension extension;
 
@@ -725,13 +724,14 @@ static void x509_extension_builder_mbedtls_dme_test_build_with_buffer_static_ini
 	x509_extension_builder_mbedtls_dme_release (&builder);
 }
 
-static void x509_extension_builder_mbedtls_dme_test_build_with_buffer_static_init_null_dme_structure (
+static void x509_extension_builder_mbedtls_dme_test_build_with_buffer_static_init_null_dme_structure
+(
 	CuTest *test)
 {
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DME_TESTING_BUFFER_LENGTH (ECC384_SHA384)];
 	struct x509_extension_builder_mbedtls_dme builder =
 		x509_extension_builder_mbedtls_dme_static_init_with_buffer (NULL, ext_buffer,
-			sizeof (ext_buffer));
+		sizeof (ext_buffer));
 	int status;
 	struct x509_extension extension;
 
@@ -915,7 +915,8 @@ static void x509_extension_builder_mbedtls_dme_test_build_with_buffer_small_buff
 	x509_extension_builder_mbedtls_dme_release (&builder);
 }
 
-static void x509_extension_builder_mbedtls_dme_test_build_with_buffer_small_buffer_dme_structure_oid (
+static void x509_extension_builder_mbedtls_dme_test_build_with_buffer_small_buffer_dme_structure_oid
+(
 	CuTest *test)
 {
 	struct dme_structure dme;
@@ -967,7 +968,8 @@ static void x509_extension_builder_mbedtls_dme_test_build_with_buffer_small_buff
 	x509_extension_builder_mbedtls_dme_release (&builder);
 }
 
-static void x509_extension_builder_mbedtls_dme_test_build_with_buffer_small_buffer_ext_sequence_len (
+static void x509_extension_builder_mbedtls_dme_test_build_with_buffer_small_buffer_ext_sequence_len
+(
 	CuTest *test)
 {
 	struct dme_structure dme;
@@ -993,7 +995,8 @@ static void x509_extension_builder_mbedtls_dme_test_build_with_buffer_small_buff
 	x509_extension_builder_mbedtls_dme_release (&builder);
 }
 
-static void x509_extension_builder_mbedtls_dme_test_build_with_buffer_small_buffer_ext_sequence_tag (
+static void x509_extension_builder_mbedtls_dme_test_build_with_buffer_small_buffer_ext_sequence_tag
+(
 	CuTest *test)
 {
 	struct dme_structure dme;
@@ -1020,6 +1023,7 @@ static void x509_extension_builder_mbedtls_dme_test_build_with_buffer_small_buff
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (x509_extension_builder_mbedtls_dme);
 
 TEST (x509_extension_builder_mbedtls_dme_test_init);
@@ -1062,3 +1066,4 @@ TEST (x509_extension_builder_mbedtls_dme_test_build_with_buffer_small_buffer_ext
 TEST (x509_extension_builder_mbedtls_dme_test_build_with_buffer_small_buffer_ext_sequence_tag);
 
 TEST_SUITE_END;
+// *INDENT-ON*

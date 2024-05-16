@@ -168,6 +168,7 @@ int image_header_hash_header (const struct image_header *header, struct hash_eng
 
 error:
 	hash->cancel (hash);
+
 	return status;
 }
 

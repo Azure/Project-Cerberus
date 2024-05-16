@@ -4,8 +4,8 @@
 #ifndef ECDSA_H_
 #define ECDSA_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "crypto/hash.h"
 #include "status/rot_status.h"
 
@@ -41,4 +41,4 @@ enum {
 };
 
 
-#endif /* ECDSA_H_ */
+#endif	/* ECDSA_H_ */

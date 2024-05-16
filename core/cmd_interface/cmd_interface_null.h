@@ -12,7 +12,7 @@
  * generate Cerberus error messages.
  */
 struct cmd_interface_null {
-	struct cmd_interface base;			/**< The base command handler API. */
+	struct cmd_interface base;	/**< The base command handler API. */
 };
 
 
@@ -20,4 +20,4 @@ int cmd_interface_null_init (struct cmd_interface_null *intf);
 void cmd_interface_null_release (const struct cmd_interface_null *intf);
 
 
-#endif /* CMD_INTERFACE_NULL_H_ */
+#endif	/* CMD_INTERFACE_NULL_H_ */

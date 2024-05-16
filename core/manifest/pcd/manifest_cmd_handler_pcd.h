@@ -11,7 +11,7 @@
  * A handler for executing requests for a single PCD.
  */
 struct manifest_cmd_handler_pcd {
-	struct manifest_cmd_handler base;		/**< Base manifest handler. */
+	struct manifest_cmd_handler base;	/**< Base manifest handler. */
 };
 
 
@@ -22,4 +22,4 @@ int manifest_cmd_handler_pcd_init_state (const struct manifest_cmd_handler_pcd *
 void manifest_cmd_handler_pcd_release (const struct manifest_cmd_handler_pcd *handler);
 
 
-#endif /* MANIFEST_CMD_HANDLER_PCD_H_ */
+#endif	/* MANIFEST_CMD_HANDLER_PCD_H_ */

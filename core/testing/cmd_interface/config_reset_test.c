@@ -1,18 +1,18 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
 #include "cmd_interface/config_reset.h"
+#include "testing/asn1/x509_testing.h"
+#include "testing/cmd_interface/config_reset_testing.h"
 #include "testing/mock/intrusion/intrusion_manager_mock.h"
 #include "testing/mock/manifest/manifest_manager_mock.h"
 #include "testing/mock/recovery/recovery_image_manager_mock.h"
 #include "testing/mock/state_manager/state_manager_mock.h"
-#include "testing/asn1/x509_testing.h"
-#include "testing/cmd_interface/config_reset_testing.h"
 #include "testing/riot/riot_core_testing.h"
 
 
@@ -1557,8 +1557,7 @@ static void config_reset_test_restore_defaults (CuTest *test)
 	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
 		&keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions,
-		&recovery, 0);
+	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
 
 	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
 	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
@@ -1701,8 +1700,7 @@ static void config_reset_test_restore_defaults_multiple_bypass (CuTest *test)
 	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
 		&keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions,
-		&recovery, 0);
+	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
 
 	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
 	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
@@ -1859,8 +1857,7 @@ static void config_reset_test_restore_defaults_multiple_default (CuTest *test)
 	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
 		&keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions,
-		&recovery, 0);
+	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
 
 	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
 	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
@@ -2017,8 +2014,7 @@ static void config_reset_test_restore_defaults_multiple_components (CuTest *test
 	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
 		&keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions,
-		&recovery, 0);
+	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
 
 	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
 	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
@@ -2136,8 +2132,7 @@ static void config_reset_test_restore_defaults_no_bypass_manifests (CuTest *test
 	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
 		&keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions,
-		&recovery, 0);
+	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
 
 	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
 	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
@@ -2239,8 +2234,7 @@ static void config_reset_test_restore_defaults_no_default_manifests (CuTest *tes
 	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
 		&keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions,
-		&recovery, 0);
+	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
 
 	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
 	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
@@ -2342,8 +2336,7 @@ static void config_reset_test_restore_defaults_no_component_manifests (CuTest *t
 	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
 		&keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions,
-		&recovery, 0);
+	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
 
 	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
 	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
@@ -2422,8 +2415,7 @@ static void config_reset_test_restore_defaults_no_manifests (CuTest *test)
 	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
 		&keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions,
-		&recovery, 0);
+	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
 
 	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
 	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
@@ -2517,8 +2509,7 @@ static void config_reset_test_restore_defaults_no_state (CuTest *test)
 	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
 		&keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions,
-		&recovery, 0);
+	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
 
 	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
 	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
@@ -2621,8 +2612,7 @@ static void config_reset_test_restore_defaults_no_riot (CuTest *test)
 	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
 		&keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions,
-		&recovery, 0);
+	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
 
 	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
 	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
@@ -2732,8 +2722,7 @@ static void config_reset_test_restore_defaults_no_aux (CuTest *test)
 	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
 		&keys.riot_keystore, 0, MOCK_ARG (2));
 
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions,
-		&recovery, 0);
+	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
 
 	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
 	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
@@ -2941,8 +2930,7 @@ static void config_reset_test_restore_defaults_no_keystore_array (CuTest *test)
 	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
 		&keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions,
-		&recovery, 0);
+	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
 
 	status |= mock_expect (&intrusion.mock, intrusion.base.handle_intrusion, &intrusion, 0);
 
@@ -3042,8 +3030,7 @@ static void config_reset_test_restore_defaults_no_intrusion (CuTest *test)
 	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
 		&keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions,
-		&recovery, 0);
+	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
 
 	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
 	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
@@ -3752,8 +3739,8 @@ static void config_reset_test_restore_defaults_recovery_in_use_error (CuTest *te
 	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
 		&keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions,
-		&recovery, RECOVERY_IMAGE_MANAGER_IMAGE_IN_USE);
+	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery,
+		RECOVERY_IMAGE_MANAGER_IMAGE_IN_USE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3861,8 +3848,7 @@ static void config_reset_test_restore_defaults_keystore_array_erase_error (CuTes
 	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
 		&keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions,
-		&recovery, 0);
+	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
 
 	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1,
 		KEYSTORE_NO_MEMORY);
@@ -3973,8 +3959,7 @@ static void config_reset_test_restore_defaults_intrusion_error (CuTest *test)
 	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
 		&keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions,
-		&recovery, 0);
+	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
 
 	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
 	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
@@ -5209,8 +5194,9 @@ static void config_reset_test_clear_component_manifests_clear_error (CuTest *tes
 
 	status = mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
 		&manifest_components, 0);
-	status |= mock_expect (&manifest_components2.mock, manifest_components2.base.clear_all_manifests,
-		&manifest_components2, MANIFEST_MANAGER_CLEAR_ALL_FAILED);
+	status |= mock_expect (&manifest_components2.mock,
+		manifest_components2.base.clear_all_manifests, &manifest_components2,
+		MANIFEST_MANAGER_CLEAR_ALL_FAILED);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5253,6 +5239,7 @@ static void config_reset_test_clear_component_manifests_clear_error (CuTest *tes
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (config_reset);
 
 TEST (config_reset_test_init);
@@ -5311,3 +5298,4 @@ TEST (config_reset_test_clear_component_manifests_null);
 TEST (config_reset_test_clear_component_manifests_clear_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "host_processor_single_full_bypass.h"
 #include "host_state_manager.h"
@@ -35,6 +35,7 @@ int host_processor_single_full_bypass_init (struct host_processor_filtered *host
 {
 	int status = host_processor_single_init_internal (host, control, flash, state, filter, pfm,
 		recovery, 0, false);
+
 	if (status != 0) {
 		return status;
 	}
@@ -107,6 +108,7 @@ int host_processor_single_full_bypass_init_reset_flash (struct host_processor_fi
 {
 	int status = host_processor_single_init_internal (host, control, flash, state, filter, pfm,
 		recovery, 0, true);
+
 	if (status != 0) {
 		return status;
 	}

@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
+#include "flash_common.h"
 #include "platform_io.h"
 #include "spi_flash_sfdp.h"
-#include "flash_common.h"
 #include "common/common_math.h"
 #include "common/unused.h"
 
@@ -24,7 +24,7 @@
 /**
  * Get the starting address of a parameter table.
  */
-#define	SPI_FLASH_SFDP_PARAMETER_PTR(x)	\
+#define	SPI_FLASH_SFDP_PARAMETER_PTR(x) \
 	((x.table_pointer[2] << 16) | (x.table_pointer[1] << 8) | x.table_pointer[0])
 
 #pragma pack(push,1)
@@ -32,9 +32,9 @@
  * SFDP basic flash parameter table format version 1.0.
  */
 struct spi_flash_sfdp_basic_parameter_table_1_0 {
-	uint8_t write_attr;				/**< 1st DWORD: Write attributes. */
-	uint8_t erase_4kb;				/**< 1st DWORD: 4kB erase instruction. */
-	uint8_t dspi_qspi;				/**< 1st DWORD: DSPI and QSPI support flags. */
+	uint8_t write_attr;	/**< 1st DWORD: Write attributes. */
+	uint8_t erase_4kb;	/**< 1st DWORD: 4kB erase instruction. */
+	uint8_t dspi_qspi;	/**< 1st DWORD: DSPI and QSPI support flags. */
 #define	SPI_FLASH_SFDP_SUPPORTS_1_1_2	(1U << 0)
 #define	SPI_FLASH_SFDP_ADDRESS_BYTES	(3U << 1)
 #define	SPI_FLASH_SFDP_3BYTE_ONLY			(0)
@@ -44,40 +44,42 @@ struct spi_flash_sfdp_basic_parameter_table_1_0 {
 #define	SPI_FLASH_SFDP_SUPPORTS_1_2_2	(1U << 4)
 #define	SPI_FLASH_SFDP_SUPPORTS_1_4_4	(1U << 5)
 #define	SPI_FLASH_SFDP_SUPPORTS_1_1_4	(1U << 6)
-	uint8_t unused1;				/**< 1st DWORD: Unused. */
-	uint32_t memory_density;		/**< 2nd DWORD: Size of the flash device. */
+	uint8_t unused1;			/**< 1st DWORD: Unused. */
+	uint32_t memory_density;	/**< 2nd DWORD: Size of the flash device. */
 #define	SPI_FLASH_SFDP_4GB_DENSITY		(1U << 31)
-	uint8_t dummy_1_4_4;			/**< 3rd DWORD: 1-4-4 dummy clocks. */
+	uint8_t dummy_1_4_4;		/**< 3rd DWORD: 1-4-4 dummy clocks. */
 #define	SPI_FLASH_SFDP_MODE_CLKS_MASK	0x7
 #define	SPI_FLASH_SFDP_MODE_CLKS_SHIFT	5
-#define	SPI_FLASH_SFDP_MODE_CLKS(x)		(((x) >> SPI_FLASH_SFDP_MODE_CLKS_SHIFT) & SPI_FLASH_SFDP_MODE_CLKS_MASK)
+#define	SPI_FLASH_SFDP_MODE_CLKS(\
+		x)	   (((x) >> SPI_FLASH_SFDP_MODE_CLKS_SHIFT) & SPI_FLASH_SFDP_MODE_CLKS_MASK)
 #define	SPI_FLASH_SFDP_DUMMY_CLKS_MASK	0x1f
 #define	SPI_FLASH_SFDP_DUMMY_CLKS_SHIFT	0
-#define	SPI_FLASH_SFDP_DUMMY_CLKS(x)	(((x) >> SPI_FLASH_SFDP_DUMMY_CLKS_SHIFT) & SPI_FLASH_SFDP_DUMMY_CLKS_MASK)
-	uint8_t opcode_1_4_4;			/**< 3rd DWORD: 1-4-4 command opcode. */
-	uint8_t dummy_1_1_4;			/**< 3rd DWORD: 1-1-4 dummy clocks. */
-	uint8_t opcode_1_1_4;			/**< 3rd DWORD: 1-1-4 command opcode. */
-	uint8_t dummy_1_1_2;			/**< 4th DWORD: 1-1-2 dummy clocks. */
-	uint8_t opcode_1_1_2;			/**< 4th DWORD: 1-1-2 command opcode. */
-	uint8_t dummy_1_2_2;			/**< 4th DWORD: 1-2-2 dummy clocks. */
-	uint8_t opcode_1_2_2;			/**< 4th DWORD: 1-2-2 command opcode. */
-	uint32_t dpi_qpi;				/**< 5th DWORD: DPI and QPI support flags. */
+#define	SPI_FLASH_SFDP_DUMMY_CLKS(\
+		x)	  (((x) >> SPI_FLASH_SFDP_DUMMY_CLKS_SHIFT) & SPI_FLASH_SFDP_DUMMY_CLKS_MASK)
+	uint8_t opcode_1_4_4;	/**< 3rd DWORD: 1-4-4 command opcode. */
+	uint8_t dummy_1_1_4;	/**< 3rd DWORD: 1-1-4 dummy clocks. */
+	uint8_t opcode_1_1_4;	/**< 3rd DWORD: 1-1-4 command opcode. */
+	uint8_t dummy_1_1_2;	/**< 4th DWORD: 1-1-2 dummy clocks. */
+	uint8_t opcode_1_1_2;	/**< 4th DWORD: 1-1-2 command opcode. */
+	uint8_t dummy_1_2_2;	/**< 4th DWORD: 1-2-2 dummy clocks. */
+	uint8_t opcode_1_2_2;	/**< 4th DWORD: 1-2-2 command opcode. */
+	uint32_t dpi_qpi;		/**< 5th DWORD: DPI and QPI support flags. */
 #define	SPI_FLASH_SFDP_SUPPORTS_2_2_2	(1U << 0)
 #define	SPI_FLASH_SFDP_SUPPORTS_4_4_4	(1U << 4)
-	uint16_t unused6;				/**< 6th DWORD: Unused. */
-	uint8_t dummy_2_2_2;			/**< 6th DWORD: 2-2-2 dummy clocks. */
-	uint8_t opcode_2_2_2;			/**< 6th DWORD: 2-2-2 command opcode. */
-	uint16_t unused7;				/**< 7th DWORD: Unused. */
-	uint8_t dummy_4_4_4;			/**< 7th DWORD: 4-4-4 dummy clocks. */
-	uint8_t opcode_4_4_4;			/**< 7th DWORD: 4-4-4 command opcode. */
-	uint8_t erase1_size;			/**< 8th DWORD: Erase 1 block size. */
-	uint8_t erase1;					/**< 8th DWORD: Erase 1 instruction. */
-	uint8_t erase2_size;			/**< 8th DWORD: Erase 2 block size. */
-	uint8_t erase2;					/**< 8th DWORD: Erase 2 instruction. */
-	uint8_t erase3_size;			/**< 9th DWORD: Erase 3 block size. */
-	uint8_t erase3;					/**< 9th DWORD: Erase 3 instruction. */
-	uint8_t erase4_size;			/**< 9th DWORD: Erase 4 block size. */
-	uint8_t erase4;					/**< 9th DWORD: Erase 4 instruction. */
+	uint16_t unused6;		/**< 6th DWORD: Unused. */
+	uint8_t dummy_2_2_2;	/**< 6th DWORD: 2-2-2 dummy clocks. */
+	uint8_t opcode_2_2_2;	/**< 6th DWORD: 2-2-2 command opcode. */
+	uint16_t unused7;		/**< 7th DWORD: Unused. */
+	uint8_t dummy_4_4_4;	/**< 7th DWORD: 4-4-4 dummy clocks. */
+	uint8_t opcode_4_4_4;	/**< 7th DWORD: 4-4-4 command opcode. */
+	uint8_t erase1_size;	/**< 8th DWORD: Erase 1 block size. */
+	uint8_t erase1;			/**< 8th DWORD: Erase 1 instruction. */
+	uint8_t erase2_size;	/**< 8th DWORD: Erase 2 block size. */
+	uint8_t erase2;			/**< 8th DWORD: Erase 2 instruction. */
+	uint8_t erase3_size;	/**< 9th DWORD: Erase 3 block size. */
+	uint8_t erase3;			/**< 9th DWORD: Erase 3 instruction. */
+	uint8_t erase4_size;	/**< 9th DWORD: Erase 4 block size. */
+	uint8_t erase4;			/**< 9th DWORD: Erase 4 instruction. */
 };
 
 /**
@@ -85,27 +87,28 @@ struct spi_flash_sfdp_basic_parameter_table_1_0 {
  */
 struct spi_flash_sfdp_basic_parameter_table_1_5 {
 	struct spi_flash_sfdp_basic_parameter_table_1_0 table_1_0;
-	uint32_t erase_time;			/**< 10th DWORD: Erase typical timing. */
-	uint8_t page_size;				/**< 11th DWORD: Page size. */
+	uint32_t erase_time;		/**< 10th DWORD: Erase typical timing. */
+	uint8_t page_size;			/**< 11th DWORD: Page size. */
 #define	SPI_FLASH_SFDP_PAGE_SIZE(x)			(((x) & 0xf0) >> 4)
-	uint16_t program_time;			/**< 11th DWORD: Page programming typical timing. */
-	uint8_t chip_erase_time;		/**< 11th DWORD: Chip erase typical timing. */
-	uint32_t suspend_attr;			/**< 12th DWORD: Suspend/Resume attributes. */
-	uint8_t program_resume;			/**< 13th DWORD: Program Resume instruction. */
-	uint8_t program_suspend;		/**< 13th DWORD: Program Suspend instruction. */
-	uint8_t resume;					/**< 13th DWORD: Resume instruction. */
-	uint8_t suspend;				/**< 13th DWORD: Suspend instruction. */
-	uint8_t status_reg;				/**< 14th DWORD: Status register polling device busy. */
+	uint16_t program_time;		/**< 11th DWORD: Page programming typical timing. */
+	uint8_t chip_erase_time;	/**< 11th DWORD: Chip erase typical timing. */
+	uint32_t suspend_attr;		/**< 12th DWORD: Suspend/Resume attributes. */
+	uint8_t program_resume;		/**< 13th DWORD: Program Resume instruction. */
+	uint8_t program_suspend;	/**< 13th DWORD: Program Suspend instruction. */
+	uint8_t resume;				/**< 13th DWORD: Resume instruction. */
+	uint8_t suspend;			/**< 13th DWORD: Suspend instruction. */
+	uint8_t status_reg;			/**< 14th DWORD: Status register polling device busy. */
 #define	SPI_FLASH_SFDP_BUSY_SR_WIP			(1U << 2)
 #define	SPI_FLASH_SFDP_BUSY_SR_FLAG			(1U << 3)
-	uint8_t deep_powerdown[3];		/**< 14th DWORD: Deep power down attributes. */
+	uint8_t deep_powerdown[3];	/**< 14th DWORD: Deep power down attributes. */
 #define	SPI_FLASH_SFDP_PWRDWN_NO_SUPPORT(x)	((x)[2] & (1U << 7))
 #define	SPI_FLASH_SFDP_PWRDWN_ENTER(x)		((((x)[2] & 0x7f) << 1) | (((x)[1] & 0x80) >> 7))
 #define	SPI_FLASH_SFDP_PWRDWN_EXIT(x)		((((x)[1] & 0x7f) << 1) | (((x)[0] & 0x80) >> 7))
-	uint32_t quad_enable;			/**< 15th DWORD: Quad enable sequences. */
+	uint32_t quad_enable;	/**< 15th DWORD: Quad enable sequences. */
 #define	SPI_FLASH_SFDP_QER_MASK				0x7
 #define	SPI_FLASH_SFDP_QER_SHIFT			20
-#define	SPI_FLASH_SFDP_QER(x)				(((x) >> SPI_FLASH_SFDP_QER_SHIFT) & SPI_FLASH_SFDP_QER_MASK)
+#define	SPI_FLASH_SFDP_QER(\
+		x)				 (((x) >> SPI_FLASH_SFDP_QER_SHIFT) & SPI_FLASH_SFDP_QER_MASK)
 #define	SPI_FLASH_SFDP_QER_NO_QUAD_ENABLE		0
 #define	SPI_FLASH_SFDP_QER_BIT1_SR2				1
 #define	SPI_FLASH_SFDP_QER_BIT6_SR1				2
@@ -115,14 +118,14 @@ struct spi_flash_sfdp_basic_parameter_table_1_5 {
 #define	SPI_FLASH_SFDP_QER_RESERVED1			6
 #define	SPI_FLASH_SFDP_QER_RESERVED2			7
 #define	SPI_FLASH_SFDP_HOLD_RST_DISABLE		(1U << 23)
-	uint8_t sr_write_enable;		/**< 16th DWORD: Status register 1 write enable. */
+	uint8_t sr_write_enable;	/**< 16th DWORD: Status register 1 write enable. */
 #define	SPI_FLASH_SFDP_NV_SR_06				(1U << 0)
 #define	SPI_FLASH_SFDP_VOLATILE_SR_06		(1U << 1)
 #define	SPI_FLASH_SFDP_VOLATILE_SR_50		(1U << 2)
 #define	SPI_FLASH_SFDP_NV_V_SR_06_50		(1U << 3)
 #define	SPI_FLASH_SFDP_NV_V_SR_06			(1U << 4)
 #define SPI_FLASH_SFDP_SR_WE_RESERVED		(0xe0)
-	uint16_t reset_exit_4b;			/**< 16th DWORD: Soft reset and Exit 4-byte address mode. */
+	uint16_t reset_exit_4b;	/**< 16th DWORD: Soft reset and Exit 4-byte address mode. */
 #define	SPI_FLASH_SFDP_RST_F0				(1U << 3)
 #define	SPI_FLASH_SFDP_RST_66_99			(1U << 4)
 #define	SPI_FLASH_SFDP_4B_EXIT_E9			(1U << 6)
@@ -133,7 +136,7 @@ struct spi_flash_sfdp_basic_parameter_table_1_5 {
 #define	SPI_FLASH_SFDP_4B_EXIT_HW_RESET		(1U << 11)
 #define	SPI_FLASH_SFDP_4B_EXIT_SW_RESET		(1U << 12)
 #define	SPI_FLASH_SFDP_4B_EXIT_AC_RESET		(1U << 13)
-	uint8_t enter_4b;				/**< 16th DWORD: Enter 4-byte address mode. */
+	uint8_t enter_4b;	/**< 16th DWORD: Enter 4-byte address mode. */
 #define	SPI_FLASH_SFDP_4B_ENTER_B7			(1U << 0)
 #define	SPI_FLASH_SFDP_4B_ENTER_06_B7		(1U << 1)
 #define	SPI_FLASH_SFDP_4B_ENTER_EAR_C5		(1U << 2)
@@ -142,6 +145,7 @@ struct spi_flash_sfdp_basic_parameter_table_1_5 {
 #define	SPI_FLASH_SFDP_4B_OPCODES			(1U << 5)
 #define	SPI_FLASH_SFDP_ALWAYS_4B			(1U << 6)
 };
+
 #pragma pack(pop)
 
 /**
@@ -431,8 +435,8 @@ int spi_flash_sfdp_get_page_size (const struct spi_flash_sfdp_basic_table *table
  * @param dummy_clocks The number of dummy clocks for the command.
  * @param clocks_per_byte The number of clocks for each dummy byte.
  */
-static void spi_flash_sfdp_parse_read_command (struct spi_flash_sfdp_read_cmd *cmd,
-	uint8_t opcode, uint8_t dummy_clocks, uint8_t clocks_per_byte)
+static void spi_flash_sfdp_parse_read_command (struct spi_flash_sfdp_read_cmd *cmd,	uint8_t opcode,
+	uint8_t dummy_clocks, uint8_t clocks_per_byte)
 {
 	uint8_t partial_byte;
 
@@ -522,7 +526,7 @@ bool spi_flash_sfdp_use_busy_flag_status (const struct spi_flash_sfdp_basic_tabl
 {
 	struct spi_flash_sfdp_basic_parameter_table_1_5 *params;
 
-	if ((table != NULL) && table->sfdp->sfdp_header.parameter0.minor_revision >= 5) {
+	if ((table != NULL) && (table->sfdp->sfdp_header.parameter0.minor_revision >= 5)) {
 		params = (struct spi_flash_sfdp_basic_parameter_table_1_5*) table->data;
 		if (params->status_reg & SPI_FLASH_SFDP_BUSY_SR_WIP) {
 			return false;
@@ -548,7 +552,7 @@ bool spi_flash_sfdp_use_volatile_write_enable (const struct spi_flash_sfdp_basic
 {
 	struct spi_flash_sfdp_basic_parameter_table_1_5 *params;
 
-	if ((table != NULL) && table->sfdp->sfdp_header.parameter0.minor_revision >= 5) {
+	if ((table != NULL) && (table->sfdp->sfdp_header.parameter0.minor_revision >= 5)) {
 		params = (struct spi_flash_sfdp_basic_parameter_table_1_5*) table->data;
 		if (params->sr_write_enable ==
 			(SPI_FLASH_SFDP_SR_WE_RESERVED | SPI_FLASH_SFDP_VOLATILE_SR_50)) {
@@ -671,7 +675,7 @@ int spi_flash_sfdp_get_4byte_mode_switch (const struct spi_flash_sfdp_basic_tabl
 bool spi_flash_sfdp_exit_4byte_mode_on_reset (const struct spi_flash_sfdp_basic_table *table)
 {
 	struct spi_flash_sfdp_basic_parameter_table_1_5 *params;
-	bool revert = true;		// Assume a device will revert unless SFDP explicitly says otherwise.
+	bool revert = true;	// Assume a device will revert unless SFDP explicitly says otherwise.
 
 	if ((table != NULL) && (table->sfdp->sfdp_header.parameter0.minor_revision >= 5)) {
 		params = (struct spi_flash_sfdp_basic_parameter_table_1_5*) table->data;
@@ -745,6 +749,7 @@ int spi_flash_sfdp_get_quad_enable (const struct spi_flash_sfdp_basic_table *tab
 	}
 
 	*quad_enable = (enum spi_flash_sfdp_quad_enable) quad;
+
 	return 0;
 }
 
@@ -784,6 +789,7 @@ int spi_flash_sfdp_get_reset_command (const struct spi_flash_sfdp_basic_table *t
 	}
 
 	*reset = command;
+
 	return status;
 }
 
@@ -836,6 +842,7 @@ int spi_flash_sfdp_get_deep_powerdown_commands (const struct spi_flash_sfdp_basi
 
 	*enter = cmd_enter;
 	*exit = cmd_exit;
+
 	return status;
 }
 

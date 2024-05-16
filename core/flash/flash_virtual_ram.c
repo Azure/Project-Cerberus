@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <string.h>
 #include <stdint.h>
+#include <string.h>
 #include "flash_virtual_ram.h"
 
 

@@ -4,12 +4,12 @@
 #include <string.h>
 #include "testing.h"
 #include "cmd_interface/cmd_interface.h"
+#include "common/array_size.h"
 #include "pcisig/doe/doe_cmd_channel.h"
 #include "pcisig/doe/doe_interface.h"
 #include "pcisig/doe/doe_interface_static.h"
-#include "testing/mock/pcisig/doe/doe_channel_mock.h"
 #include "testing/mock/cmd_interface/cmd_interface_mock.h"
-#include "common/array_size.h"
+#include "testing/mock/pcisig/doe/doe_channel_mock.h"
 
 
 TEST_SUITE_LABEL ("doe_interface");
@@ -20,11 +20,12 @@ TEST_SUITE_LABEL ("doe_interface");
  * Dependencies for testing.
  */
 struct doe_interface_testing {
-	struct doe_interface doe_interface;			/**< DOE interface. */
-	struct doe_cmd_channel_mock cmd_channel;	/**< Mock for the DOE command channel. */
-	struct cmd_interface_mock spdm_responder;	/**< Mock for the SPDM responder. */
+	struct doe_interface doe_interface;															/**< DOE interface. */
+	struct doe_cmd_channel_mock cmd_channel;													/**< Mock for the DOE command channel. */
+	struct cmd_interface_mock spdm_responder;													/**< Mock for the SPDM responder. */
 	struct doe_data_object_protocol data_object_protocol[DOE_DATA_OBJECT_PROTOCOLS_MAX_COUNT];	/**< Supported DOE data object protocols. */
 };
+
 
 /**
  * Helper to initialize all dependencies for testing.
@@ -41,6 +42,7 @@ static void doe_interface_testing_init_dependencies (CuTest *test,
 		{DOE_VENDOR_ID_PCISIG, DOE_DATA_OBJECT_TYPE_SPDM},
 		{DOE_VENDOR_ID_PCISIG, DOE_DATA_OBJECT_TYPE_SECURED_SPDM},
 	};
+
 	memcpy (interface_testing->data_object_protocol, data_object_protocol,
 		sizeof (data_object_protocol));
 
@@ -259,7 +261,7 @@ static void doe_interface_test_doe_interface_process_message_decode_spdm_data_ob
 		interface_testing.spdm_responder.base.process_request,
 		&interface_testing.spdm_responder.base, 0,
 		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &msg_expected,
-			sizeof (msg_expected)));
+		sizeof (msg_expected)));
 	CuAssertIntEquals (test, 0, status);
 
 	doe_header = (struct doe_base_protocol_transport_header*) doe_message.message;
@@ -273,7 +275,8 @@ static void doe_interface_test_doe_interface_process_message_decode_spdm_data_ob
 	doe_interface_testing_release (test, &interface_testing);
 }
 
-static void doe_interface_test_doe_interface_process_message_decode_spdm_data_object_type_static_init (
+static void
+doe_interface_test_doe_interface_process_message_decode_spdm_data_object_type_static_init (
 	CuTest *test)
 {
 	struct doe_cmd_message doe_message = {0};
@@ -294,7 +297,7 @@ static void doe_interface_test_doe_interface_process_message_decode_spdm_data_ob
 	msg_expected.length = sizeof (struct doe_base_protocol_transport_header) + sizeof (uint32_t);
 	msg_expected.payload_length = sizeof (uint32_t);
 	msg_expected.data = doe_message.message;
-	msg_expected.payload = (uint8_t *) doe_message.message +
+	msg_expected.payload = (uint8_t*) doe_message.message +
 		sizeof (struct doe_base_protocol_transport_header);
 	msg_expected.max_response = ARRAY_SIZE (doe_message.message);
 
@@ -302,7 +305,7 @@ static void doe_interface_test_doe_interface_process_message_decode_spdm_data_ob
 		interface_testing.spdm_responder.base.process_request,
 		&interface_testing.spdm_responder.base, 0,
 		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &msg_expected,
-			sizeof (msg_expected)));
+		sizeof (msg_expected)));
 	CuAssertIntEquals (test, 0, status);
 
 	doe_header = (struct doe_base_protocol_transport_header*) doe_message.message;
@@ -318,7 +321,9 @@ static void doe_interface_test_doe_interface_process_message_decode_spdm_data_ob
 	doe_interface_testing_release_dependencies (test, &interface_testing);
 }
 
-static void doe_interface_test_doe_interface_process_message_decode_spdm_data_object_type_static_init_doe_discovery (
+static void
+doe_interface_test_doe_interface_process_message_decode_spdm_data_object_type_static_init_doe_discovery
+(
 	CuTest *test)
 {
 	struct doe_cmd_message doe_message = {0};
@@ -380,7 +385,7 @@ static void doe_interface_test_doe_interface_process_message_decode_secure_spdm_
 		2 * sizeof (uint32_t);
 	msg_expected.payload_length = 2 * sizeof (uint32_t);
 	msg_expected.data = doe_message.message;
-	msg_expected.payload = (uint8_t *) doe_message.message +
+	msg_expected.payload = (uint8_t*) doe_message.message +
 		sizeof (struct doe_base_protocol_transport_header);
 	msg_expected.max_response = ARRAY_SIZE (doe_message.message);
 
@@ -388,7 +393,7 @@ static void doe_interface_test_doe_interface_process_message_decode_secure_spdm_
 		interface_testing.spdm_responder.base.process_request,
 		&interface_testing.spdm_responder.base, 0,
 		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &msg_expected,
-			sizeof (msg_expected)));
+		sizeof (msg_expected)));
 	CuAssertIntEquals (test, 0, status);
 
 	doe_header = (struct doe_base_protocol_transport_header*) doe_message.message;
@@ -403,7 +408,8 @@ static void doe_interface_test_doe_interface_process_message_decode_secure_spdm_
 	doe_interface_testing_release (test, &interface_testing);
 }
 
-static void doe_interface_test_doe_interface_process_message_decode_doe_discovery_data_object_type_discovery (
+static void
+doe_interface_test_doe_interface_process_message_decode_doe_discovery_data_object_type_discovery (
 	CuTest *test)
 {
 	struct doe_cmd_message doe_message = {0};
@@ -443,7 +449,8 @@ static void doe_interface_test_doe_interface_process_message_decode_doe_discover
 	doe_interface_testing_release (test, &interface_testing);
 }
 
-static void doe_interface_test_doe_interface_process_message_decode_doe_discovery_data_object_type_spdm (
+static void
+doe_interface_test_doe_interface_process_message_decode_doe_discovery_data_object_type_spdm (
 	CuTest *test)
 {
 	struct doe_cmd_message doe_message = {0};
@@ -483,7 +490,8 @@ static void doe_interface_test_doe_interface_process_message_decode_doe_discover
 	doe_interface_testing_release (test, &interface_testing);
 }
 
-static void doe_interface_test_doe_interface_process_message_decode_doe_discovery_data_object_type_secure_spdm (
+static void
+doe_interface_test_doe_interface_process_message_decode_doe_discovery_data_object_type_secure_spdm (
 	CuTest *test)
 {
 	struct doe_cmd_message doe_message = {0};
@@ -523,7 +531,9 @@ static void doe_interface_test_doe_interface_process_message_decode_doe_discover
 	doe_interface_testing_release (test, &interface_testing);
 }
 
-static void doe_interface_test_doe_interface_process_message_decode_doe_discovery_no_additional_data_object_type_suppported (
+static void
+doe_interface_test_doe_interface_process_message_decode_doe_discovery_no_additional_data_object_type_suppported
+(
 	CuTest *test)
 {
 	struct doe_cmd_message doe_message = {0};
@@ -535,6 +545,7 @@ static void doe_interface_test_doe_interface_process_message_decode_doe_discover
 	struct doe_data_object_protocol data_object_protocol[] = {
 		{DOE_VENDOR_ID_PCISIG, DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY}
 	};
+
 	TEST_START;
 
 	doe_interface_testing_init_dependencies (test, &interface_testing);
@@ -628,7 +639,7 @@ static void doe_interface_test_doe_interface_process_message_decode_max_size (
 		interface_testing.spdm_responder.base.process_request,
 		&interface_testing.spdm_responder.base, 0,
 		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &msg_expected,
-			sizeof (msg_expected)));
+		sizeof (msg_expected)));
 	CuAssertIntEquals (test, 0, status);
 
 	doe_header = (struct doe_base_protocol_transport_header*) doe_message.message;
@@ -657,8 +668,8 @@ static void doe_interface_test_doe_interface_process_message_null (CuTest *test)
 	CuAssertIntEquals (test, DOE_INTERFACE_INVALID_ARGUMENT, status);
 }
 
-static void doe_interface_test_doe_interface_process_message_decode_invalid_message_size
-	(CuTest *test)
+static void doe_interface_test_doe_interface_process_message_decode_invalid_message_size (
+	CuTest *test)
 {
 	struct doe_cmd_message doe_message = {0};
 	struct doe_interface_testing interface_testing;
@@ -828,7 +839,7 @@ static void doe_interface_test_doe_interface_process_message_encode_zero_payload
 
 	status = doe_interface_process_message (&interface_testing.doe_interface, &doe_message);
 	CuAssertIntEquals (test, 0, status);
-	doe_header = (struct doe_base_protocol_transport_header *) doe_message.message;
+	doe_header = (struct doe_base_protocol_transport_header*) doe_message.message;
 	CuAssertIntEquals (test, doe_header->length,
 		(sizeof (struct doe_base_protocol_transport_header)) / sizeof (uint32_t));
 	CuAssertIntEquals (test, doe_header->reserved, 0);
@@ -856,8 +867,8 @@ static void doe_interface_test_doe_interface_process_message_encode_max_payload 
 	status = mock_expect (&interface_testing.spdm_responder.mock,
 		interface_testing.spdm_responder.base.process_request,
 		&interface_testing.spdm_responder.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
-	status |= mock_expect_output (&interface_testing.spdm_responder.mock, 0,
-		&processed_msg, sizeof (processed_msg), -1);
+	status |= mock_expect_output (&interface_testing.spdm_responder.mock, 0, &processed_msg,
+		sizeof (processed_msg), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -917,6 +928,7 @@ static void doe_interface_test_doe_interface_process_message_encode_gt_max_paylo
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (doe_interface);
 
 TEST (doe_interface_test_doe_transport_header_format);
@@ -946,3 +958,4 @@ TEST (doe_interface_test_doe_interface_process_message_encode_max_payload);
 TEST (doe_interface_test_doe_interface_process_message_encode_gt_max_payload);
 
 TEST_SUITE_END;
+// *INDENT-ON*

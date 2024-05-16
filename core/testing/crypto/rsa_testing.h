@@ -145,4 +145,4 @@ extern const uint8_t RSA5K_PUBKEY_DER[];
 extern const size_t RSA5K_PUBKEY_DER_LEN;
 
 
-#endif /* RSA_TESTING_H_ */
+#endif	/* RSA_TESTING_H_ */

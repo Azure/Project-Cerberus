@@ -4,8 +4,8 @@
 #ifndef FLASH_MFG_FILTER_HANDLER_MOCK_H_
 #define FLASH_MFG_FILTER_HANDLER_MOCK_H_
 
-#include "spi_filter/flash_mfg_filter_handler.h"
 #include "mock.h"
+#include "spi_filter/flash_mfg_filter_handler.h"
 
 
 /**
@@ -23,4 +23,4 @@ void flash_mfg_filter_handler_mock_release (struct flash_mfg_filter_handler_mock
 int flash_mfg_filter_handler_mock_validate_and_release (struct flash_mfg_filter_handler_mock *mock);
 
 
-#endif /* FLASH_MFG_FILTER_HANDLER_MOCK_H_ */
+#endif	/* FLASH_MFG_FILTER_HANDLER_MOCK_H_ */

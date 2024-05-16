@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "pfm_manager.h"
 #include "manifest/manifest_logging.h"
@@ -114,6 +114,7 @@ void pfm_manager_on_pfm_verified (struct pfm_manager *manager)
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 			MANIFEST_LOGGING_PFM_VERIFIED_EVENT_FAIL, MANIFEST_MANAGER_INVALID_ARGUMENT, 0);
+
 		return;
 	}
 
@@ -131,6 +132,7 @@ void pfm_manager_on_pfm_activated (struct pfm_manager *manager)
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 			MANIFEST_LOGGING_PFM_ACTIVATED_EVENT_FAIL, MANIFEST_MANAGER_INVALID_ARGUMENT, 0);
+
 		return;
 	}
 
@@ -148,6 +150,7 @@ void pfm_manager_on_clear_active (struct pfm_manager *manager)
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 			MANIFEST_LOGGING_PFM_CLEAR_ACTIVE_EVENT_FAIL, MANIFEST_MANAGER_INVALID_ARGUMENT, 0);
+
 		return;
 	}
 
@@ -165,6 +168,7 @@ void pfm_manager_on_pfm_activation_request (struct pfm_manager *manager)
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 			MANIFEST_LOGGING_PFM_ACTIVATION_REQUEST_FAIL, MANIFEST_MANAGER_INVALID_ARGUMENT, 0);
+
 		return;
 	}
 
@@ -266,7 +270,6 @@ int pfm_manager_get_platform_id_measured_data (struct pfm_manager *manager, size
 			length, total_len);
 		manager->free_pfm (manager, active);
 	}
-
 
 	return status;
 }

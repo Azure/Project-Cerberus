@@ -37,4 +37,4 @@ enum {
 };
 
 
-#endif /* CRASH_DUMP_LOGGING_H_ */
+#endif	/* CRASH_DUMP_LOGGING_H_ */

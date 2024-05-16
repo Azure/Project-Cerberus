@@ -4,8 +4,8 @@
 #ifndef SPI_FILTER_IRQ_HANDLER_H_
 #define SPI_FILTER_IRQ_HANDLER_H_
 
-#include "status/rot_status.h"
 #include "host_fw/host_state_manager.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -19,7 +19,7 @@ struct spi_filter_irq_handler {
 	 */
 	void (*ro_flash_dirty) (const struct spi_filter_irq_handler *handler);
 
-	struct host_state_manager *host_state;		/**< State of the host for the SPI filter. */
+	struct host_state_manager *host_state;	/**< State of the host for the SPI filter. */
 };
 
 
@@ -43,4 +43,4 @@ enum {
 };
 
 
-#endif /* SPI_FILTER_IRQ_HANDLER_H_ */
+#endif	/* SPI_FILTER_IRQ_HANDLER_H_ */

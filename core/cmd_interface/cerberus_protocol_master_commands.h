@@ -4,8 +4,8 @@
 #ifndef CERBERUS_PROTOCOL_MASTER_COMMANDS_H_
 #define CERBERUS_PROTOCOL_MASTER_COMMANDS_H_
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "cmd_interface/cerberus_protocol.h"
 #include "cmd_interface/cmd_background.h"
 #include "cmd_interface/cmd_interface.h"
@@ -13,8 +13,8 @@
 #include "crypto/rng.h"
 #include "firmware/firmware_update_control.h"
 #include "host_fw/host_processor.h"
-#include "manifest/manifest_cmd_interface.h"
 #include "manifest/cfm/cfm_manager.h"
+#include "manifest/manifest_cmd_interface.h"
 #include "manifest/pcd/pcd_manager.h"
 #include "recovery/recovery_image_cmd_interface.h"
 #include "recovery/recovery_image_manager.h"
@@ -37,8 +37,8 @@ enum {
  * Identifier for the type of manifest ID.
  */
 enum {
-	CERBERUS_PROTOCOL_ID_VERSION = 0,				/**< Request a manifest version ID */
-	CERBERUS_PROTOCOL_ID_PLATFORM					/**< Request a manifest platform ID */
+	CERBERUS_PROTOCOL_ID_VERSION = 0,	/**< Request a manifest version ID */
+	CERBERUS_PROTOCOL_ID_PLATFORM,		/**< Request a manifest platform ID */
 };
 
 #pragma pack(push, 1)
@@ -46,35 +46,36 @@ enum {
  * Cerberus protocol get component firmware manifest ID request format
  */
 struct cerberus_protocol_get_cfm_id {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint8_t region;									/**< Manifest region to query */
-	uint8_t id;										/**< Identifier to retrieve (optional) */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t region;							/**< Manifest region to query */
+	uint8_t id;								/**< Identifier to retrieve (optional) */
 };
 
 /**
  * Cerberus protocol get component firmware manifest ID response format with a version identifier
  */
 struct cerberus_protocol_get_cfm_id_version_response {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint8_t valid;									/**< Indication if the CFM is valid */
-	uint32_t version;								/**< CFM version ID */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t valid;							/**< Indication if the CFM is valid */
+	uint32_t version;						/**< CFM version ID */
 };
 
 /**
  * Cerberus protocol get component firmware manifest ID response format with a platform identifier
  */
 struct cerberus_protocol_get_cfm_id_platform_response {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint8_t valid;									/**< Indication if the CFM is valid */
-	uint8_t platform;								/**< First byte of the ASCII CFM platform ID */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t valid;							/**< Indication if the CFM is valid */
+	uint8_t platform;						/**< First byte of the ASCII CFM platform ID */
 };
+
 
 /**
  * Get the total response length for a get component firmware manifest ID response message.
  *
  * @param len Length of the platform id string including null terminator
  */
-#define	cerberus_protocol_get_cfm_id_platform_response_length(len)	\
+#define	cerberus_protocol_get_cfm_id_platform_response_length(len)  \
 	(len + sizeof (struct cerberus_protocol_get_cfm_id_platform_response) - sizeof (uint8_t))
 
 /**
@@ -82,57 +83,58 @@ struct cerberus_protocol_get_cfm_id_platform_response {
  *
  * @param req The command request structure containing the message.
  */
-#define	CERBERUS_PROTOCOL_MAX_CFM_ID_PLATFORM(req)	\
+#define	CERBERUS_PROTOCOL_MAX_CFM_ID_PLATFORM(req)  \
 	((req->max_response - sizeof (struct cerberus_protocol_get_cfm_id_platform_response)) + sizeof (uint8_t))
 
 /**
  * Cerberus protocol prepare component firmware manifest request format
  */
 struct cerberus_protocol_prepare_cfm_update {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint32_t total_size;							/**< Total expected size of the update */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint32_t total_size;					/**< Total expected size of the update */
 };
 
 /**
  * Cerberus protocol update component firmware manifest request format
  */
 struct cerberus_protocol_cfm_update {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint8_t payload;								/**< First byte of the variable CFM data */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t payload;						/**< First byte of the variable CFM data */
 };
+
 
 /**
  * Get the amount of payload data in a CFM update message.
  *
  * @param req The command request structure containing the message.
  */
-#define	cerberus_protocol_cfm_update_length(req)	\
+#define	cerberus_protocol_cfm_update_length(req)    \
 	((req->length - sizeof (struct cerberus_protocol_cfm_update)) + sizeof (uint8_t))
 
 /**
  * Cerberus protocol activate component firmware manifest request format
  */
 struct cerberus_protocol_complete_cfm_update {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint8_t activation;								/**< Manifest activation control */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t activation;						/**< Manifest activation control */
 };
 
 /**
  * Cerberus protocol get component firmware manifest component IDs request format
  */
 struct cerberus_protocol_get_cfm_component_ids {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint8_t region;									/**< Manifest region to query */
-	uint32_t offset;								/**< Offset in the total list for  */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t region;							/**< Manifest region to query */
+	uint32_t offset;						/**< Offset in the total list for  */
 };
 
 /**
  * Cerberus protocol get component firmware manifest component IDs response format
  */
 struct cerberus_protocol_get_cfm_component_ids_response {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint8_t valid;									/**< Indication if the CFM is valid */
-	uint32_t version;								/**< CFM version identifier */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t valid;							/**< Indication if the CFM is valid */
+	uint32_t version;						/**< CFM version identifier */
 };
 
 /**
@@ -145,7 +147,7 @@ struct cerberus_protocol_get_cfm_component_ids_response {
  *
  * @param len Length of the component data.
  */
-#define	cerberus_protocol_get_cfm_component_ids_response_length(len)	\
+#define	cerberus_protocol_get_cfm_component_ids_response_length(len)    \
 	(len + sizeof (struct cerberus_protocol_get_cfm_component_ids_response))
 
 /**
@@ -153,41 +155,42 @@ struct cerberus_protocol_get_cfm_component_ids_response {
  *
  * @param req The command request structure containing the message.
  */
-#define	CERBERUS_PROTOCOL_MAX_COMPONENT_IDS(req)	\
+#define	CERBERUS_PROTOCOL_MAX_COMPONENT_IDS(req)    \
 	((req)->max_response - sizeof (struct cerberus_protocol_get_cfm_component_ids_response))
 
 /**
  * Cerberus protocol get platform configuration data ID request format
  */
 struct cerberus_protocol_get_pcd_id {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint8_t id;										/**< Identifier to retrieve (optional) */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t id;								/**< Identifier to retrieve (optional) */
 };
 
 /**
  * Cerberus protocol get platform configuration data ID response format with a version identifier
  */
 struct cerberus_protocol_get_pcd_id_version_response {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint8_t valid;									/**< Indication if the PCD is valid */
-	uint32_t version;								/**< PCD version ID */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t valid;							/**< Indication if the PCD is valid */
+	uint32_t version;						/**< PCD version ID */
 };
 
 /**
  * Cerberus protocol get platform configuration data ID response format with a platform identifier
  */
 struct cerberus_protocol_get_pcd_id_platform_response {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint8_t valid;									/**< Indication if the PCD is valid */
-	uint8_t platform;								/**< First byte of the ASCII PCD platform ID */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t valid;							/**< Indication if the PCD is valid */
+	uint8_t platform;						/**< First byte of the ASCII PCD platform ID */
 };
+
 
 /**
  * Get the total response length for a get platform configuration data ID response message.
  *
  * @param len Length of the platform id string including null terminator
  */
-#define	cerberus_protocol_get_pcd_id_platform_response_length(len)	\
+#define	cerberus_protocol_get_pcd_id_platform_response_length(len)  \
 	(len + sizeof (struct cerberus_protocol_get_pcd_id_platform_response) - sizeof (uint8_t))
 
 /**
@@ -195,72 +198,73 @@ struct cerberus_protocol_get_pcd_id_platform_response {
  *
  * @param req The command request structure containing the message.
  */
-#define	CERBERUS_PROTOCOL_MAX_PCD_ID_PLATFORM(req)	\
+#define	CERBERUS_PROTOCOL_MAX_PCD_ID_PLATFORM(req)  \
 	((req->max_response - sizeof (struct cerberus_protocol_get_pcd_id_platform_response)) + sizeof (uint8_t))
 
 /**
  * Cerberus protocol prepare platform configuration data request format
  */
 struct cerberus_protocol_prepare_pcd_update {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint32_t total_size;							/**< Total expected size of the update */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint32_t total_size;					/**< Total expected size of the update */
 };
 
 /**
  * Cerberus protocol update platform configuration data request format
  */
 struct cerberus_protocol_pcd_update {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint8_t payload;								/**< First byte of the variable CFM data */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t payload;						/**< First byte of the variable CFM data */
 };
+
 
 /**
  * Get the amount of payload data in a PCD update message.
  *
  * @param req The command request structure containing the message.
  */
-#define	cerberus_protocol_pcd_update_length(req)	\
+#define	cerberus_protocol_pcd_update_length(req)    \
 	((req->length - sizeof (struct cerberus_protocol_pcd_update)) + sizeof (uint8_t))
 
 /**
  * Cerberus protocol activate platform configuration data request format
  */
 struct cerberus_protocol_complete_pcd_update {
-	struct cerberus_protocol_header header;			/**< Message header */
+	struct cerberus_protocol_header header;	/**< Message header */
 };
 
 /**
  * Cerberus protocol update status request format
  */
 struct cerberus_protocol_update_status {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint8_t update_type;							/**< Update type to query for status */
-	uint8_t port_id;								/**< Port identifier, if applicable */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t update_type;					/**< Update type to query for status */
+	uint8_t port_id;						/**< Port identifier, if applicable */
 };
 
 /**
  * Cerberus protocol update status response format
  */
 struct cerberus_protocol_update_status_response {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint32_t update_status;							/**< Status of the requested update */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint32_t update_status;					/**< Status of the requested update */
 };
 
 /**
  * Cerberus protocol get platform configuration data component IDs request format
  */
 struct cerberus_protocol_get_pcd_component_ids {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint32_t offset;								/**< Offset in the total list of PCD components */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint32_t offset;						/**< Offset in the total list of PCD components */
 };
 
 /**
  * Cerberus protocol get platform configuration data component IDs response format
  */
 struct cerberus_protocol_get_pcd_component_ids_response {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint8_t valid;									/**< Indication if the PCD is valid */
-	uint32_t version;								/**< PCD version identifier */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t valid;							/**< Indication if the PCD is valid */
+	uint32_t version;						/**< PCD version identifier */
 };
 
 /**
@@ -275,7 +279,7 @@ struct cerberus_protocol_get_pcd_component_ids_response {
  *
  * @param len Length of the component data.
  */
-#define	cerberus_protocol_get_pcd_component_ids_response_length(len)	\
+#define	cerberus_protocol_get_pcd_component_ids_response_length(len)    \
 	(len + sizeof (struct cerberus_protocol_get_pcd_component_ids_response))
 
 /**
@@ -283,7 +287,7 @@ struct cerberus_protocol_get_pcd_component_ids_response {
  *
  * @param req The command request structure containing the message.
  */
-#define	CERBERUS_PROTOCOL_MAX_PCD_COMPONENT_IDS(req)	\
+#define	CERBERUS_PROTOCOL_MAX_PCD_COMPONENT_IDS(req)    \
 	((req)->max_response - sizeof (struct cerberus_protocol_get_pcd_component_ids_response))
 
 
@@ -291,43 +295,44 @@ struct cerberus_protocol_get_pcd_component_ids_response {
  * Cerberus protocol get extended update status request format
  */
 struct cerberus_protocol_extended_update_status {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint8_t update_type;							/**< Update type */
-	uint8_t port_id;								/**< Port ID */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t update_type;					/**< Update type */
+	uint8_t port_id;						/**< Port ID */
 };
 
 /**
  * Cerberus protocol get extended update status response format
  */
 struct cerberus_protocol_extended_update_status_response {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint32_t update_status;							/**< Update status */
-	uint32_t remaining_len;							/**< Number of bytes expected to still be sent */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint32_t update_status;					/**< Update status */
+	uint32_t remaining_len;					/**< Number of bytes expected to still be sent */
 };
 
 /**
  * Cerberus protocol get configuration IDs request format
  */
 struct cerberus_protocol_get_configuration_ids {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint8_t nonce[32];								/**< Random nonce for freshness */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t nonce[32];						/**< Random nonce for freshness */
 };
 
 /**
  * Cerberus protocol get configuration IDs response format
  */
 struct cerberus_protocol_get_configuration_ids_response {
-	struct cerberus_protocol_header header;			/**< Message header */
-	uint8_t nonce[32];								/**< Random nonce for freshness */
-	uint8_t pfm_count;								/**< Number of PFM IDs reported */
-	uint8_t cfm_count;								/**< Number of CFM IDs reported */
-	uint32_t version_id;							/**< First version ID in the variable list */
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t nonce[32];						/**< Random nonce for freshness */
+	uint8_t pfm_count;						/**< Number of PFM IDs reported */
+	uint8_t cfm_count;						/**< Number of CFM IDs reported */
+	uint32_t version_id;					/**< First version ID in the variable list */
 };
+
 
 /**
  * Get a pointer to the first platform ID in a get configuration IDs response
  */
-#define cerberus_protocol_configuration_ids_get_platform_ids(resp)	\
+#define cerberus_protocol_configuration_ids_get_platform_ids(resp)  \
 	(((uint8_t*) resp) + sizeof (*resp) + (sizeof (uint32_t) * (resp->pfm_count + resp->cfm_count)))
 #pragma pack(pop)
 
@@ -415,4 +420,4 @@ int cerberus_protocol_get_manifest_id_platform (struct manifest *manifest,
 	struct cmd_interface_msg *request);
 
 
-#endif /* CERBERUS_PROTOCOL_MASTER_COMMANDS_H_ */
+#endif	/* CERBERUS_PROTOCOL_MASTER_COMMANDS_H_ */

@@ -4,16 +4,16 @@
 #ifndef ECC_MOCK_H_
 #define ECC_MOCK_H_
 
-#include "crypto/ecc.h"
 #include "mock.h"
+#include "crypto/ecc.h"
 
 
 /**
  * A mock for the ECC API.
  */
 struct ecc_engine_mock {
-	struct ecc_engine base;			/**< The base ECC API instance. */
-	struct mock mock;				/**< The base mock interface. */
+	struct ecc_engine base;	/**< The base ECC API instance. */
+	struct mock mock;		/**< The base mock interface. */
 };
 
 
@@ -26,4 +26,4 @@ int ecc_mock_validate_point_public_key (const char *arg_info, void *expected, vo
 int ecc_mock_validate_ecdsa_signature (const char *arg_info, void *expected, void *actual);
 
 
-#endif /* ECC_MOCK_H_ */
+#endif	/* ECC_MOCK_H_ */

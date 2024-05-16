@@ -223,8 +223,8 @@ static void host_processor_dual_full_bypass_test_init (CuTest *test)
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state,
-		&flash_state, &flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
+		&flash_context);
 
 	status = host_processor_dual_full_bypass_init (&host, &control.base, &flash_mgr.base,
 		&host_state, &filter.base, &pfm_mgr.base, NULL);
@@ -289,23 +289,23 @@ static void host_processor_dual_full_bypass_test_init_null (CuTest *test)
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state,
-		&flash_state, &flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
+		&flash_context);
 
 	status = host_processor_dual_full_bypass_init (NULL, &control.base, &flash_mgr.base,
 		&host_state, &filter.base, &pfm_mgr.base, NULL);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_dual_full_bypass_init (&host, NULL, &flash_mgr.base,
-		&host_state, &filter.base, &pfm_mgr.base, NULL);
+	status = host_processor_dual_full_bypass_init (&host, NULL, &flash_mgr.base, &host_state,
+		&filter.base, &pfm_mgr.base, NULL);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_dual_full_bypass_init (&host, &control.base, NULL,
-		&host_state, &filter.base, &pfm_mgr.base, NULL);
+	status = host_processor_dual_full_bypass_init (&host, &control.base, NULL, &host_state,
+		&filter.base, &pfm_mgr.base, NULL);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_dual_full_bypass_init (&host, &control.base, &flash_mgr.base,
-		NULL, &filter.base, &pfm_mgr.base, NULL);
+	status = host_processor_dual_full_bypass_init (&host, &control.base, &flash_mgr.base, NULL,
+		&filter.base, &pfm_mgr.base, NULL);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
 	status = host_processor_dual_full_bypass_init (&host, &control.base, &flash_mgr.base,
@@ -362,8 +362,8 @@ static void host_processor_dual_full_bypass_test_init_pulse_reset (CuTest *test)
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state,
-		&flash_state, &flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
+		&flash_context);
 
 	status = host_processor_dual_full_bypass_init_pulse_reset (&host, &control.base,
 		&flash_mgr.base, &host_state, &filter.base, &pfm_mgr.base, NULL, 100);
@@ -428,19 +428,19 @@ static void host_processor_dual_full_bypass_test_init_pulse_reset_null (CuTest *
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state,
-		&flash_state, &flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
+		&flash_context);
 
-	status = host_processor_dual_full_bypass_init_pulse_reset (NULL, &control.base,
-		&flash_mgr.base, &host_state, &filter.base, &pfm_mgr.base, NULL, 100);
+	status = host_processor_dual_full_bypass_init_pulse_reset (NULL, &control.base,	&flash_mgr.base,
+		&host_state, &filter.base, &pfm_mgr.base, NULL, 100);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_dual_full_bypass_init_pulse_reset (&host, NULL,
-		&flash_mgr.base, &host_state, &filter.base, &pfm_mgr.base, NULL, 100);
+	status = host_processor_dual_full_bypass_init_pulse_reset (&host, NULL,	&flash_mgr.base,
+		&host_state, &filter.base, &pfm_mgr.base, NULL, 100);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_dual_full_bypass_init_pulse_reset (&host, &control.base,
-		NULL, &host_state, &filter.base, &pfm_mgr.base, NULL, 100);
+	status = host_processor_dual_full_bypass_init_pulse_reset (&host, &control.base, NULL,
+		&host_state, &filter.base, &pfm_mgr.base, NULL, 100);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
 	status = host_processor_dual_full_bypass_init_pulse_reset (&host, &control.base,
@@ -501,8 +501,8 @@ static void host_processor_dual_full_bypass_test_init_pulse_reset_invalid_pulse_
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state,
-		&flash_state, &flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
+		&flash_context);
 
 	status = host_processor_dual_full_bypass_init_pulse_reset (&host, &control.base,
 		&flash_mgr.base, &host_state, &filter.base, &pfm_mgr.base, NULL, 0);
@@ -1108,7 +1108,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_no_pfm_pulse_res
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_active_not_dirty_empty_manifest (
+static void
+host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_active_not_dirty_empty_manifest (
 	CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
@@ -1170,7 +1171,9 @@ static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_a
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_active_not_dirty_validation_fail (
+static void
+host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_active_not_dirty_validation_fail
+(
 	CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
@@ -1225,7 +1228,9 @@ static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_a
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_active_not_dirty_hash_validation_fail (
+static void
+host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_active_not_dirty_hash_validation_fail
+(
 	CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
@@ -1280,7 +1285,9 @@ static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_a
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_active_not_dirty_unknown_version (
+static void
+host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_active_not_dirty_unknown_version
+(
 	CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
@@ -1336,7 +1343,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_a
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_active_dirty_validation_fail (
+static void
+host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_active_dirty_validation_fail (
 	CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
@@ -1397,7 +1405,9 @@ static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_a
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_active_dirty_hash_validation_fail (
+static void
+host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_active_dirty_hash_validation_fail
+(
 	CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
@@ -1458,7 +1468,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_a
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_active_dirty_unknown_version (
+static void
+host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_active_dirty_unknown_version (
 	CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
@@ -1520,7 +1531,9 @@ static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_a
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_with_active_not_dirty_empty_manifest (
+static void
+host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_with_active_not_dirty_empty_manifest
+(
 	CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
@@ -1641,7 +1654,9 @@ static void host_processor_dual_full_bypass_test_power_on_reset_no_pfm_filter_er
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_active_dirty_bypass_enable_error (
+static void
+host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_active_dirty_bypass_enable_error
+(
 	CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
@@ -1678,8 +1693,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_a
 		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
 		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
-		0, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -1869,7 +1884,8 @@ static void host_processor_dual_full_bypass_test_soft_reset_no_pfm_filter_error 
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_full_bypass_test_soft_reset_pending_pfm_no_active_not_dirty_empty_manifest (
+static void
+host_processor_dual_full_bypass_test_soft_reset_pending_pfm_no_active_not_dirty_empty_manifest (
 	CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
@@ -1934,7 +1950,9 @@ static void host_processor_dual_full_bypass_test_soft_reset_pending_pfm_no_activ
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_full_bypass_test_soft_reset_pending_pfm_no_active_not_dirty_empty_manifest_filter_error (
+static void
+host_processor_dual_full_bypass_test_soft_reset_pending_pfm_no_active_not_dirty_empty_manifest_filter_error
+(
 	CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
@@ -2007,7 +2025,8 @@ static void host_processor_dual_full_bypass_test_soft_reset_pending_pfm_no_activ
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_full_bypass_test_soft_reset_pending_pfm_with_active_not_dirty_empty_manifest (
+static void
+host_processor_dual_full_bypass_test_soft_reset_pending_pfm_with_active_not_dirty_empty_manifest (
 	CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
@@ -2075,7 +2094,9 @@ static void host_processor_dual_full_bypass_test_soft_reset_pending_pfm_with_act
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_full_bypass_test_soft_reset_pending_pfm_with_active_not_dirty_empty_manifest_filter_error (
+static void
+host_processor_dual_full_bypass_test_soft_reset_pending_pfm_with_active_not_dirty_empty_manifest_filter_error
+(
 	CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
@@ -2248,7 +2269,9 @@ static void host_processor_dual_full_bypass_test_run_time_verification_no_pfm_fi
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_full_bypass_test_run_time_verification_pending_pfm_no_active_not_dirty_empty_manifest (
+static void
+host_processor_dual_full_bypass_test_run_time_verification_pending_pfm_no_active_not_dirty_empty_manifest
+(
 	CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
@@ -2306,7 +2329,9 @@ static void host_processor_dual_full_bypass_test_run_time_verification_pending_p
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_full_bypass_test_run_time_verification_pending_pfm_no_active_not_dirty_empty_manifest_filter_error (
+static void
+host_processor_dual_full_bypass_test_run_time_verification_pending_pfm_no_active_not_dirty_empty_manifest_filter_error
+(
 	CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
@@ -2372,7 +2397,9 @@ static void host_processor_dual_full_bypass_test_run_time_verification_pending_p
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_full_bypass_test_run_time_verification_pending_pfm_with_active_not_dirty_empty_manifest (
+static void
+host_processor_dual_full_bypass_test_run_time_verification_pending_pfm_with_active_not_dirty_empty_manifest
+(
 	CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
@@ -2433,7 +2460,9 @@ static void host_processor_dual_full_bypass_test_run_time_verification_pending_p
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_full_bypass_test_run_time_verification_pending_pfm_with_active_not_dirty_empty_manifest_filter_error (
+static void
+host_processor_dual_full_bypass_test_run_time_verification_pending_pfm_with_active_not_dirty_empty_manifest_filter_error
+(
 	CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
@@ -2670,7 +2699,8 @@ static void host_processor_dual_full_bypass_test_flash_rollback_active_pfm_dirty
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_full_bypass_test_flash_rollback_active_pfm_not_dirty_bypass_enable_error (
+static void
+host_processor_dual_full_bypass_test_flash_rollback_active_pfm_not_dirty_bypass_enable_error (
 	CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
@@ -2699,8 +2729,8 @@ static void host_processor_dual_full_bypass_test_flash_rollback_active_pfm_not_d
 		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS1));
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
 		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS1));
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
-		0, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS1));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS1));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -2912,6 +2942,7 @@ static void host_processor_dual_full_bypass_test_bypass_mode_enable_error (CuTes
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_processor_dual_full_bypass);
 
 TEST (host_processor_dual_full_bypass_test_init);
@@ -2965,3 +2996,4 @@ TEST (host_processor_dual_full_bypass_test_bypass_mode_rw_flash_cs0);
 TEST (host_processor_dual_full_bypass_test_bypass_mode_enable_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

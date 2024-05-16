@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include "testing.h"
 #include "host_processor_dual_testing.h"
+#include "testing.h"
 
 
 TEST_SUITE_LABEL ("host_processor_dual");
@@ -68,8 +68,7 @@ void host_processor_dual_testing_init_dependencies (CuTest *test,
  * @param test The testing framework.
  * @param host The testing components to initialize.
  */
-void host_processor_dual_testing_init (CuTest *test,
-	struct host_processor_dual_testing *host)
+void host_processor_dual_testing_init (CuTest *test, struct host_processor_dual_testing *host)
 {
 	int status;
 
@@ -319,8 +318,8 @@ static void host_processor_dual_test_init (CuTest *test)
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state,
-		&flash_state, &flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
+		&flash_context);
 
 	status = host_processor_dual_init (&host, &control.base, &flash_mgr.base, &host_state,
 		&filter.base, &pfm_mgr.base, NULL);
@@ -385,27 +384,27 @@ static void host_processor_dual_test_init_null (CuTest *test)
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state,
-		&flash_state, &flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
+		&flash_context);
 
 	status = host_processor_dual_init (NULL, &control.base, &flash_mgr.base, &host_state,
 		&filter.base, &pfm_mgr.base, NULL);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_dual_init (&host, NULL, &flash_mgr.base, &host_state,
-		&filter.base, &pfm_mgr.base, NULL);
+	status = host_processor_dual_init (&host, NULL, &flash_mgr.base, &host_state, &filter.base,
+		&pfm_mgr.base, NULL);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_dual_init (&host, &control.base, NULL, &host_state,
-		&filter.base, &pfm_mgr.base, NULL);
+	status = host_processor_dual_init (&host, &control.base, NULL, &host_state,	&filter.base,
+		&pfm_mgr.base, NULL);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_dual_init (&host, &control.base, &flash_mgr.base, NULL,
-		&filter.base, &pfm_mgr.base, NULL);
+	status = host_processor_dual_init (&host, &control.base, &flash_mgr.base, NULL,	&filter.base,
+		&pfm_mgr.base, NULL);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_dual_init (&host, &control.base, &flash_mgr.base, &host_state,
-		NULL, &pfm_mgr.base, NULL);
+	status = host_processor_dual_init (&host, &control.base, &flash_mgr.base, &host_state, NULL,
+		&pfm_mgr.base, NULL);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
 	status = host_processor_dual_init (&host, &control.base, &flash_mgr.base, &host_state,
@@ -458,8 +457,8 @@ static void host_processor_dual_test_init_pulse_reset (CuTest *test)
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state,
-		&flash_state, &flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
+		&flash_context);
 
 	status = host_processor_dual_init_pulse_reset (&host, &control.base, &flash_mgr.base,
 		&host_state, &filter.base, &pfm_mgr.base, NULL, 100);
@@ -524,23 +523,23 @@ static void host_processor_dual_test_init_pulse_reset_null (CuTest *test)
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state,
-		&flash_state, &flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
+		&flash_context);
 
 	status = host_processor_dual_init_pulse_reset (NULL, &control.base, &flash_mgr.base,
 		&host_state, &filter.base, &pfm_mgr.base, NULL, 100);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_dual_init_pulse_reset (&host, NULL, &flash_mgr.base,
-		&host_state, &filter.base, &pfm_mgr.base, NULL, 100);
+	status = host_processor_dual_init_pulse_reset (&host, NULL, &flash_mgr.base, &host_state,
+		&filter.base, &pfm_mgr.base, NULL, 100);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_dual_init_pulse_reset (&host, &control.base, NULL,
-		&host_state, &filter.base, &pfm_mgr.base, NULL, 100);
+	status = host_processor_dual_init_pulse_reset (&host, &control.base, NULL, &host_state,
+		&filter.base, &pfm_mgr.base, NULL, 100);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_dual_init_pulse_reset (&host, &control.base, &flash_mgr.base,
-		NULL, &filter.base, &pfm_mgr.base, NULL, 100);
+	status = host_processor_dual_init_pulse_reset (&host, &control.base, &flash_mgr.base, NULL,
+		&filter.base, &pfm_mgr.base, NULL, 100);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
 	status = host_processor_dual_init_pulse_reset (&host, &control.base, &flash_mgr.base,
@@ -597,8 +596,8 @@ static void host_processor_dual_test_init_pulse_reset_invalid_pulse_width (CuTes
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state,
-		&flash_state, &flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
+		&flash_context);
 
 	status = host_processor_dual_init_pulse_reset (&host, &control.base, &flash_mgr.base,
 		&host_state, &filter.base, &pfm_mgr.base, NULL, 0);
@@ -885,7 +884,8 @@ static void host_processor_dual_test_get_next_reset_verification_actions_no_pfm_
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_no_pfm_dirty_checked_bypass (
+static void host_processor_dual_test_get_next_reset_verification_actions_no_pfm_dirty_checked_bypass
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -940,7 +940,8 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_active_pfm_not_dirty_bypass (
+static void host_processor_dual_test_get_next_reset_verification_actions_active_pfm_not_dirty_bypass
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -968,7 +969,8 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_active_pfm_not_dirty_checked (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_active_pfm_not_dirty_checked (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -996,7 +998,8 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_active_pfm_not_dirty_checked_bypass (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_active_pfm_not_dirty_checked_bypass (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1085,7 +1088,8 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_active_pfm_dirty_prevalidated_flash (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_active_pfm_dirty_prevalidated_flash (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1116,7 +1120,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_active_pfm_dirty_prevalidated_flash_bypass (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_active_pfm_dirty_prevalidated_flash_bypass
+(
 	CuTest *test)
 {
 	/* This scenario should not be possible.  In order to have already validated the flash, the
@@ -1153,7 +1159,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_active_pfm_dirty_prevalidated_flash_and_pfm (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_active_pfm_dirty_prevalidated_flash_and_pfm
+(
 	CuTest *test)
 {
 	/* This scenario should not be possible since there is no pending PFM. */
@@ -1187,7 +1195,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_active_pfm_dirty_prevalidated_flash_and_pfm_bypass (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_active_pfm_dirty_prevalidated_flash_and_pfm_bypass
+(
 	CuTest *test)
 {
 	/* This scenario should not be possible since there is no pending PFM.
@@ -1256,7 +1266,8 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_active_pfm_dirty_checked_bypass (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_active_pfm_dirty_checked_bypass (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1288,7 +1299,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_active_pfm_dirty_checked_prevalidated_flash (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_active_pfm_dirty_checked_prevalidated_flash
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1320,7 +1333,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_active_pfm_dirty_checked_prevalidated_flash_bypass (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_active_pfm_dirty_checked_prevalidated_flash_bypass
+(
 	CuTest *test)
 {
 	/* This scenario should not be possible.  In order to have already validated the flash, the
@@ -1358,7 +1373,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_active_pfm_dirty_checked_prevalidated_flash_and_pfm (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_active_pfm_dirty_checked_prevalidated_flash_and_pfm
+(
 	CuTest *test)
 {
 	/* This scenario should not be possible since there is no pending PFM. */
@@ -1393,7 +1410,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_active_pfm_dirty_checked_prevalidated_flash_and_pfm_bypass (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_active_pfm_dirty_checked_prevalidated_flash_and_pfm_bypass
+(
 	CuTest *test)
 {
 	/* This scenario should not be possible since there is no pending PFM.
@@ -1432,7 +1451,8 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_no_active_not_dirty (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_no_active_not_dirty (
 	CuTest *test)
 {
 	/* This scenario should not be possible since the host will be in bypass mode without an active
@@ -1461,7 +1481,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_no_active_not_dirty_bypass (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_no_active_not_dirty_bypass
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1489,7 +1511,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_no_active_not_dirty_checked (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_no_active_not_dirty_checked
+(
 	CuTest *test)
 {
 	/* This scenario should not be possible since the host will be in bypass mode without an active
@@ -1520,7 +1544,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_no_active_not_dirty_checked_bypass (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_no_active_not_dirty_checked_bypass
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1549,7 +1575,8 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_no_active_dirty (
+static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_no_active_dirty
+(
 	CuTest *test)
 {
 	/* This scenario should not be possible since the host will be in bypass mode without an active
@@ -1581,7 +1608,8 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_no_active_dirty_bypass (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_no_active_dirty_bypass (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1612,7 +1640,8 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_no_active_dirty_checked (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_no_active_dirty_checked (
 	CuTest *test)
 {
 	/* This scenario should not be possible since the host will be in bypass mode without an active
@@ -1646,7 +1675,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_no_active_dirty_checked_bypass (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_no_active_dirty_checked_bypass
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1678,7 +1709,8 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_not_dirty (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_not_dirty (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1706,7 +1738,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_not_dirty_bypass (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_not_dirty_bypass
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1736,7 +1770,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_not_dirty_checked (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_not_dirty_checked
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1766,7 +1802,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_not_dirty_checked_bypass (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_not_dirty_checked_bypass
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1797,7 +1835,8 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1828,7 +1867,8 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_bypass (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_bypass (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1861,7 +1901,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_prevalidated_flash (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_prevalidated_flash
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -1894,7 +1936,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_prevalidated_flash_bypass (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_prevalidated_flash_bypass
+(
 	CuTest *test)
 {
 	/* This scenario should not be possible.  In order to have already validated the flash, the
@@ -1933,7 +1977,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_prevalidated_flash_and_pfm (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_prevalidated_flash_and_pfm
+(
 	CuTest *test)
 {
 	/* This scenario should not be possible.  In order to have already validated the R/W flash and
@@ -1972,7 +2018,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_prevalidated_flash_and_pfm_bypass (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_prevalidated_flash_and_pfm_bypass
+(
 	CuTest *test)
 {
 	/* This scenario should not be possible.  In order to have already validated the R/W flash and
@@ -2015,7 +2063,8 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_checked (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_checked (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -2048,7 +2097,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_checked_bypass (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_checked_bypass
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -2082,7 +2133,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_checked_prevalidated_flash (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_checked_prevalidated_flash
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -2116,7 +2169,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_checked_prevalidated_flash_bypass (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_checked_prevalidated_flash_bypass
+(
 	CuTest *test)
 {
 	/* This scenario should not be possible.  In order to have already validated the flash, the
@@ -2156,7 +2211,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -2191,7 +2248,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm_bypass (
+static void
+host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm_bypass
+(
 	CuTest *test)
 {
 	/* This scenario should not be possible.  In order to have already validated the flash, the
@@ -2248,6 +2307,7 @@ static void host_processor_dual_test_get_next_reset_verification_actions_null (C
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_processor_dual);
 
 TEST (host_processor_dual_test_init);
@@ -2311,3 +2371,4 @@ TEST (host_processor_dual_test_get_next_reset_verification_actions_pending_pfm_w
 TEST (host_processor_dual_test_get_next_reset_verification_actions_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

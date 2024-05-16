@@ -25,7 +25,7 @@ struct cmd_interface_multi_handler_msg_type {
  * against a set of registered command handlers for the supported message types.
  */
 struct cmd_interface_multi_handler {
-	struct cmd_interface base;				/**< The base command handler API. */
+	struct cmd_interface base;	/**< The base command handler API. */
 
 	/**
 	 * Determine if a specified message type is supported by the message type handler.
@@ -56,4 +56,4 @@ int cmd_interface_multi_handler_init (struct cmd_interface_multi_handler *intf,
 void cmd_interface_multi_handler_release (const struct cmd_interface_multi_handler *intf);
 
 
-#endif /* CMD_INTERFACE_MULTI_HANDLER_H_ */
+#endif	/* CMD_INTERFACE_MULTI_HANDLER_H_ */

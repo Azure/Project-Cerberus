@@ -57,8 +57,8 @@ static int spdm_measurements_discovery_build_device_id_block (
 		memcpy (value, discovery->device_id, value_size);
 	}
 	else {
-		value_size = hash_calculate (hash, hash_type, (uint8_t*) discovery->device_id,
-			value_size, value, max_length);
+		value_size = hash_calculate (hash, hash_type, (uint8_t*) discovery->device_id, value_size,
+			value, max_length);
 		if (ROT_IS_ERROR (value_size)) {
 			if (value_size == HASH_ENGINE_HASH_BUFFER_TOO_SMALL) {
 				return SPDM_MEASUREMENTS_BUFFER_TOO_SMALL;
@@ -150,7 +150,7 @@ int spdm_measurements_discovery_get_all_measurement_blocks_length (
 
 	if (raw_bit_stream) {
 		return record_length +
-			spdm_measurements_block_size (sizeof (struct spdm_discovery_device_id));
+			   spdm_measurements_block_size (sizeof (struct spdm_discovery_device_id));
 	}
 	else {
 		/* The hash type is known to be valid since the call to get length of all the other blocks

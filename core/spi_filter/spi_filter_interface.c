@@ -103,8 +103,10 @@ void spi_filter_log_filter_config (int port, uint8_t mfg, bool enabled, spi_filt
 
 	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_SPI_FILTER,
 		SPI_FILTER_LOGGING_FILTER_CONFIG, port, (mfg | (enabled << 8) | (ro << 9) |
-			(mode << 10) | (dirty << 11) | (bypass << 12) | (full_rw << 14) | (mode_fixed << 15) |
-			(mode_reset << 16) | (mode_write_en << 17) | (flash_cfg << 18) | (write_allow << 21)));
+					(mode << 10) | (dirty << 11) | (bypass << 12) | (full_rw << 14) | (mode_fixed <<
+					15) |
+					(mode_reset << 16) | (mode_write_en << 17) | (flash_cfg << 18) | (write_allow <<
+					21)));
 
 	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_SPI_FILTER,
 		SPI_FILTER_LOGGING_DEVICE_SIZE, port, device_size);

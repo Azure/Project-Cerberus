@@ -35,7 +35,7 @@ int mctp_interface_send_request_message (const struct msg_transport *transport,
  * Initializer for fields only available when issuing requests is supported.
  */
 #ifdef CMD_ENABLE_ISSUE_REQUEST
-#define	MCTP_INTERFACE_ISSUE_REQUEST_INIT(channel_ptr, cmd_mctp_ptr, cmd_spdm_ptr)	\
+#define	MCTP_INTERFACE_ISSUE_REQUEST_INIT(channel_ptr, cmd_mctp_ptr, cmd_spdm_ptr)  \
 	.base = MCTP_INTERFACE_MSG_TRANSPORT_API_INIT, \
 	.channel = channel_ptr, \
 	.cmd_mctp = cmd_mctp_ptr, \
@@ -72,4 +72,4 @@ int mctp_interface_send_request_message (const struct msg_transport *transport,
 	}
 
 
-#endif /* MCTP_INTERFACE_STATIC_H_ */
+#endif	/* MCTP_INTERFACE_STATIC_H_ */

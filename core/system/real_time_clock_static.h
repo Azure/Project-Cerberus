@@ -23,4 +23,4 @@
 	}
 
 
-#endif /* REAL_TIME_CLOCK_STATIC_H_ */
+#endif	/* REAL_TIME_CLOCK_STATIC_H_ */

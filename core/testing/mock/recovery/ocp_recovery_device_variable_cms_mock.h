@@ -4,8 +4,8 @@
 #ifndef OCP_RECOVERY_DEVICE_VARIABLE_CMS_MOCK_H_
 #define OCP_RECOVERY_DEVICE_VARIABLE_CMS_MOCK_H_
 
-#include "recovery/ocp_recovery_device.h"
 #include "mock.h"
+#include "recovery/ocp_recovery_device.h"
 
 
 /**
@@ -26,4 +26,4 @@ int ocp_recovery_device_variable_cms_mock_validate_and_release (
 	struct ocp_recovery_device_variable_cms_mock *mock);
 
 
-#endif /* OCP_RECOVERY_DEVICE_VARIABLE_CMS_MOCK_H_ */
+#endif	/* OCP_RECOVERY_DEVICE_VARIABLE_CMS_MOCK_H_ */

@@ -4,9 +4,9 @@
 #ifndef FLASH_STORE_AGGREGATOR_H_
 #define FLASH_STORE_AGGREGATOR_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "flash_store.h"
 
 
@@ -20,9 +20,10 @@ struct flash_store_aggregator {
 	size_t flash_store_cnt;								/**< Holds the count of number of flash stores. */
 };
 
+
 int flash_store_aggregator_init (struct flash_store_aggregator *aggregator,
 	const struct flash_store *const *flash_store_array, size_t flash_store_cnt);
 void flash_store_aggregator_release (const struct flash_store_aggregator *aggregator);
 
 
-#endif /* FLASH_STORE_AGGREGATOR_H_*/
+#endif	/* FLASH_STORE_AGGREGATOR_H_*/

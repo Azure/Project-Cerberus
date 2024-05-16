@@ -290,6 +290,7 @@ static void manifest_manager_null_test_clear_all_manifests_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (manifest_manager_null);
 
 TEST (manifest_manager_null_test_init);
@@ -313,3 +314,4 @@ TEST (manifest_manager_null_test_clear_all_manifests_static_init);
 TEST (manifest_manager_null_test_clear_all_manifests_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

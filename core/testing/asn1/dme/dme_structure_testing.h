@@ -4,8 +4,8 @@
 #ifndef DME_STRUCTURE_TESTING_H_
 #define DME_STRUCTURE_TESTING_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "asn1/dme/dme_structure.h"
 
 
@@ -226,4 +226,4 @@ void dme_structure_testing_structure_ecc256_sha256 (struct dme_structure *dme);
 void dme_structure_testing_structure_ecc521_sha512 (struct dme_structure *dme);
 
 
-#endif /* DME_STRUCTURE_TESTING_H_ */
+#endif	/* DME_STRUCTURE_TESTING_H_ */

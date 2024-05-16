@@ -4,8 +4,8 @@
 #ifndef SPDM_SECURE_SESSION_MANAGER_MOCK_H_
 #define SPDM_SECURE_SESSION_MANAGER_MOCK_H_
 
-#include "spdm/spdm_secure_session_manager.h"
 #include "mock.h"
+#include "spdm/spdm_secure_session_manager.h"
 
 
 /**
@@ -23,4 +23,4 @@ int spdm_secure_session_manager_mock_validate_and_release (
 	struct spdm_secure_session_manager_mock *mock);
 
 
-#endif /* SPDM_SECURE_SESSION_MANAGER_MOCK_H_ */
+#endif	/* SPDM_SECURE_SESSION_MANAGER_MOCK_H_ */

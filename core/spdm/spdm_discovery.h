@@ -51,26 +51,26 @@ enum spdm_discovery_device_id_descriptors {
  * only used in earlier SPDM specification versions.
  */
 struct spdm_discovery_device_id_block {
-	uint8_t completion_code;					/**< Completion code */
-	uint32_t device_id_len;						/**< Total length of descriptors field */
-	uint8_t descriptor_count;					/**< Number of descriptors in descriptors field */
+	uint8_t completion_code;	/**< Completion code */
+	uint32_t device_id_len;		/**< Total length of descriptors field */
+	uint8_t descriptor_count;	/**< Number of descriptors in descriptors field */
 };
 
 /**
  * Format of a device ID descriptor.
  */
 struct spdm_discovery_device_id_descriptor {
-	uint16_t descriptor_type;					/**< Type of descriptor */
-	uint16_t descriptor_len;					/**< Length of descriptor */
+	uint16_t descriptor_type;	/**< Type of descriptor */
+	uint16_t descriptor_len;	/**< Length of descriptor */
 };
 
 /**
  * Format of a descriptor containing a PCI ID.
  */
 struct spdm_discovery_pci_id_descriptor {
-	uint16_t descriptor_type;					/**< Type of descriptor */
-	uint16_t descriptor_len;					/**< Length of descriptor */
-	uint16_t descriptor_data;					/**< Data contained in the descriptor. */
+	uint16_t descriptor_type;	/**< Type of descriptor */
+	uint16_t descriptor_len;	/**< Length of descriptor */
+	uint16_t descriptor_data;	/**< Data contained in the descriptor. */
 };
 
 /**
@@ -81,6 +81,7 @@ struct spdm_discovery_device_id {
 	struct spdm_discovery_device_id_block header;			/**< Header on the the descriptor list. */
 	struct spdm_discovery_pci_id_descriptor descriptor[4];	/**< List of descriptor identifiers. */
 };
+
 #pragma pack(pop)
 
 
@@ -88,4 +89,4 @@ void spdm_discovery_device_id_init (struct spdm_discovery_device_id *discovery, 
 	uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id);
 
 
-#endif /* SPDM_DISCOVERY_H_ */
+#endif	/* SPDM_DISCOVERY_H_ */

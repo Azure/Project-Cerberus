@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "manifest_manager_flash.h"
-#include "manifest_manager.h"
 #include "manifest_logging.h"
-#include "flash/flash_util.h"
-#include "flash/flash_common.h"
+#include "manifest_manager.h"
+#include "manifest_manager_flash.h"
 #include "crypto/ecc.h"
+#include "flash/flash_common.h"
+#include "flash/flash_util.h"
 
 
 /**
@@ -124,8 +124,8 @@ static int manifest_manager_flash_check_empty_manifest (struct manifest_manager_
 		if (status == 1) {
 			status = manifest_manager_flash_clear_all_manifests (manager, true);
 
-			debug_log_create_entry (
-				(status == 0) ? DEBUG_LOG_SEVERITY_WARNING : DEBUG_LOG_SEVERITY_ERROR,
+			debug_log_create_entry ((status ==
+				0) ? DEBUG_LOG_SEVERITY_WARNING : DEBUG_LOG_SEVERITY_ERROR,
 				DEBUG_LOG_COMPONENT_MANIFEST, clear_msg, manifest_manager_get_port (manager->base),
 				status);
 		}
@@ -231,6 +231,7 @@ exit_region2:
 	flash_updater_release (&manager->region2.updater);
 exit_region1:
 	flash_updater_release (&manager->region1.updater);
+
 	return status;
 }
 
@@ -365,6 +366,7 @@ int manifest_manager_flash_activate_pending_manifest (struct manifest_manager_fl
 
 exit:
 	platform_mutex_unlock (&manager->lock);
+
 	return status;
 }
 
@@ -389,6 +391,7 @@ int manifest_manager_flash_clear_pending_region (struct manifest_manager_flash *
 		status = flash_updater_check_update_size (&region->updater, size);
 		if (status != 0) {
 			platform_mutex_unlock (&manager->lock);
+
 			return status;
 		}
 
@@ -397,6 +400,7 @@ int manifest_manager_flash_clear_pending_region (struct manifest_manager_flash *
 	}
 	else {
 		platform_mutex_unlock (&manager->lock);
+
 		return MANIFEST_MANAGER_PENDING_IN_USE;
 	}
 
@@ -488,6 +492,7 @@ exit:
 	manager->updating = NULL;
 
 	platform_mutex_unlock (&manager->lock);
+
 	return status;
 }
 
@@ -507,6 +512,7 @@ static int manifest_manager_flash_clear_manifest (struct manifest_manager_flash_
 	}
 
 	region->is_valid = false;
+
 	return flash_erase_region (region->updater.flash, region->updater.base_addr, FLASH_BLOCK_SIZE);
 }
 
@@ -527,19 +533,20 @@ int manifest_manager_flash_clear_all_manifests (struct manifest_manager_flash *m
 		platform_mutex_lock (&manager->lock);
 	}
 
-	status = manifest_manager_flash_clear_manifest (
-		manifest_manager_flash_get_region (manager, false), MANIFEST_MANAGER_PENDING_IN_USE);
+	status = manifest_manager_flash_clear_manifest (manifest_manager_flash_get_region (manager,
+		false), MANIFEST_MANAGER_PENDING_IN_USE);
 	if (status != 0) {
 		goto exit;
 	}
 
 	manager->updating = NULL;
-	status = manifest_manager_flash_clear_manifest (
-		manifest_manager_flash_get_region (manager, true), MANIFEST_MANAGER_ACTIVE_IN_USE);
+	status = manifest_manager_flash_clear_manifest (manifest_manager_flash_get_region (manager,
+		true), MANIFEST_MANAGER_ACTIVE_IN_USE);
 
 exit:
 	if (!no_lock) {
 		platform_mutex_unlock (&manager->lock);
 	}
+
 	return status;
 }

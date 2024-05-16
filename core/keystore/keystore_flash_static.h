@@ -40,4 +40,4 @@ int keystore_flash_erase_all_keys (const struct keystore *store);
 	}
 
 
-#endif /* KEYSTORE_FLASH_STATIC_H_ */
+#endif	/* KEYSTORE_FLASH_STATIC_H_ */

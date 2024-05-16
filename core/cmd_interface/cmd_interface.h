@@ -4,11 +4,11 @@
 #ifndef CMD_INTERFACE_H_
 #define CMD_INTERFACE_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
-#include "status/rot_status.h"
 #include "session_manager.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -100,18 +100,18 @@ struct cmd_interface_msg {
  * A list of firmware versions.
  */
 struct cmd_interface_fw_version {
-	size_t count;					/**< The number of firmware identifiers. */
-	const char **id;				/**< The list of firmware identifiers. */
+	size_t count;		/**< The number of firmware identifiers. */
+	const char **id;	/**< The list of firmware identifiers. */
 };
 
 /**
  * A list of device IDs.
  */
 struct cmd_interface_device_id {
-	uint16_t vendor_id;				/**< Vendor ID */
-	uint16_t device_id;				/**< Device ID */
-	uint16_t subsystem_vid;			/**< Subsystem vendor ID */
-	uint16_t subsystem_id;			/**< Subsystem ID */
+	uint16_t vendor_id;		/**< Vendor ID */
+	uint16_t device_id;		/**< Device ID */
+	uint16_t subsystem_vid;	/**< Subsystem vendor ID */
+	uint16_t subsystem_id;	/**< Subsystem ID */
 };
 
 
@@ -158,10 +158,10 @@ struct cmd_interface {
 	 * return Cerberus error messages for MCTP layer errors?
 	 *
 	 * @param intf The command interface to utilize.
- 	 * @param request The request container to utilize.
+	 * @param request The request container to utilize.
 	 * @param error_code Identifier for the error.
 	 * @param error_data Data for the error condition.
- 	 * @param cmd_set Command set to respond on.
+	 * @param cmd_set Command set to respond on.
 	 *
 	 * @return 0 if the packet was generated successfully or an error code.
 	 */
@@ -172,7 +172,7 @@ struct cmd_interface {
 	/* TODO:  Now that the cmd_interface is used for more than Cerberus messages, this should get
 	 * refactored out of the base interface and into some Cerberus specific handling, like the
 	 * protocol handlers. */
-	struct session_manager *session;				/**< Session manager for channel encryption */
+	struct session_manager *session;	/**< Session manager for channel encryption */
 };
 
 /**
@@ -306,4 +306,4 @@ enum {
 };
 
 
-#endif /* CMD_INTERFACE_H_ */
+#endif	/* CMD_INTERFACE_H_ */

@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "spi_flash.h"
+#include "common/unused.h"
 #include "flash/flash_common.h"
 #include "flash/flash_logging.h"
-#include "common/unused.h"
 
 
 /* Status bits indicating when flash is operating in 4-byte address mode. */
@@ -55,7 +55,7 @@
 		if (addr >= bytes) { \
 			return SPI_FLASH_ADDRESS_OUT_OF_RANGE; \
 		} \
-		\
+        \
 		if ((addr + len) > bytes) { \
 			return SPI_FLASH_OPERATION_OUT_OF_RANGE; \
 		} \
@@ -192,6 +192,7 @@ static int spi_flash_configure_device (const struct spi_flash *flash, bool wake_
 
 	if ((flash->state->device_id[0] == 0xff) || (flash->state->device_id[0] == 0x00)) {
 		status = SPI_FLASH_NO_DEVICE;
+
 		return status;
 	}
 
@@ -216,7 +217,7 @@ static int spi_flash_configure_device (const struct spi_flash *flash, bool wake_
 		status = spi_flash_reset_device (flash);
 		if ((status != 0) &&
 			((status != SPI_FLASH_RESET_NOT_SUPPORTED) ||
-				(reset_device & SPI_FLASH_RESET_IS_REQUIRED))) {
+			(reset_device & SPI_FLASH_RESET_IS_REQUIRED))) {
 			/* Only fail initialization if reset is supported and fails or if the device does not
 			 * support reset and the reset was marked as being a required step. */
 			goto exit;
@@ -252,6 +253,7 @@ static int spi_flash_configure_device (const struct spi_flash *flash, bool wake_
 
 exit:
 	spi_flash_sfdp_release (&sfdp);
+
 	return status;
 }
 
@@ -683,6 +685,7 @@ static int spi_flash_simple_command (const struct spi_flash *flash, uint8_t cmd)
 	struct flash_xfer xfer;
 
 	FLASH_XFER_INIT_CMD_ONLY (xfer, cmd, 0);
+
 	return flash->spi->xfer (flash->spi, &xfer);
 }
 
@@ -822,7 +825,8 @@ static int spi_flash_infineon_write_register (const struct spi_flash *flash, uin
 	}
 
 	/* Assume 4byte address mode. */
-	FLASH_XFER_INIT_WRITE (xfer, FLASH_CMD_INFINEON_WR_ARG, addr, 0, data, length, FLASH_FLAG_4BYTE_ADDRESS);
+	FLASH_XFER_INIT_WRITE (xfer, FLASH_CMD_INFINEON_WR_ARG, addr, 0, data, length,
+		FLASH_FLAG_4BYTE_ADDRESS);
 	status = flash->spi->xfer (flash->spi, &xfer);
 	if (status != 0) {
 		return status;
@@ -979,6 +983,7 @@ int spi_flash_discover_device_properties (const struct spi_flash *flash,
 exit:
 	platform_mutex_unlock (&flash->state->lock);
 	spi_flash_sfdp_basic_table_release (&parameters);
+
 	return status;
 }
 
@@ -1129,6 +1134,7 @@ int spi_flash_get_device_id (const struct spi_flash *flash, uint8_t *vendor, uin
 
 exit:
 	platform_mutex_unlock (&flash->state->lock);
+
 	return status;
 }
 
@@ -1147,6 +1153,7 @@ int spi_flash_get_device_size (const struct spi_flash *flash, uint32_t *bytes)
 	}
 
 	*bytes = flash->state->device_size;
+
 	return 0;
 }
 
@@ -1235,6 +1242,7 @@ int spi_flash_reset_device (const struct spi_flash *flash)
 
 exit:
 	platform_mutex_unlock (&flash->state->lock);
+
 	return status;
 }
 
@@ -1276,6 +1284,7 @@ int spi_flash_force_reset_device (const struct spi_flash *flash, uint32_t wait_m
 	status = spi_flash_execute_reset_device (flash, wait_ms);
 
 	platform_mutex_unlock (&flash->state->lock);
+
 	return status;
 }
 
@@ -1383,6 +1392,7 @@ int spi_flash_clear_block_protect (const struct spi_flash *flash)
 
 exit:
 	platform_mutex_unlock (&flash->state->lock);
+
 	return status;
 }
 
@@ -1422,6 +1432,7 @@ int spi_flash_deep_power_down (const struct spi_flash *flash, uint8_t enable)
 	}
 
 	platform_mutex_unlock (&flash->state->lock);
+
 	return status;
 }
 
@@ -1533,7 +1544,7 @@ int spi_flash_is_4byte_address_mode_on_reset (const struct spi_flash *flash)
 	}
 
 	return ((vendor == FLASH_ID_MICRON) || (vendor == FLASH_ID_MICRON_X)) ?
-		!(reg & mask) : !!(reg & mask);
+			   !(reg & mask) : !!(reg & mask);
 }
 
 /**
@@ -1605,6 +1616,7 @@ int spi_flash_enable_4byte_address_mode (const struct spi_flash *flash, uint8_t 
 
 exit:
 	platform_mutex_unlock (&flash->state->lock);
+
 	return status;
 }
 
@@ -1690,6 +1702,7 @@ int spi_flash_detect_4byte_address_mode (const struct spi_flash *flash)
 
 exit:
 	platform_mutex_unlock (&flash->state->lock);
+
 	return status;
 }
 
@@ -1734,6 +1747,7 @@ int spi_flash_force_4byte_address_mode (const struct spi_flash *flash, uint8_t e
 
 exit:
 	platform_mutex_unlock (&flash->state->lock);
+
 	return status;
 }
 
@@ -1856,6 +1870,7 @@ int spi_flash_enable_quad_spi (const struct spi_flash *flash, uint8_t enable)
 
 exit:
 	platform_mutex_unlock (&flash->state->lock);
+
 	return status;
 }
 
@@ -1920,7 +1935,7 @@ int spi_flash_is_quad_spi_enabled (const struct spi_flash *flash)
 
 		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35:
 			reg[1] = reg[0];
-			/* fall through */ /* no break */
+		/* fall through */ /* no break */
 
 		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2:
 		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_NO_CLR:
@@ -1941,6 +1956,7 @@ int spi_flash_is_quad_spi_enabled (const struct spi_flash *flash)
 
 exit:
 	platform_mutex_unlock (&flash->state->lock);
+
 	return status;
 }
 
@@ -1996,6 +2012,7 @@ int spi_flash_configure_drive_strength (const struct spi_flash *flash)
 	}
 
 	platform_mutex_unlock (&flash->state->lock);
+
 	return status;
 }
 
@@ -2035,6 +2052,7 @@ int spi_flash_read (const struct spi_flash *flash, uint32_t address, uint8_t *da
 
 exit:
 	platform_mutex_unlock (&flash->state->lock);
+
 	return status;
 }
 
@@ -2055,6 +2073,7 @@ int spi_flash_get_page_size (const struct spi_flash *flash, uint32_t *bytes)
 	/* All supported devices use a 256 byte page size.  If necessary, this value can be read from
 	 * the SFDP tables. */
 	*bytes = FLASH_PAGE_SIZE;
+
 	return 0;
 }
 
@@ -2085,6 +2104,7 @@ int spi_flash_minimum_write_per_page (const struct spi_flash *flash, uint32_t *b
 	}
 
 	*bytes = 1;
+
 	return 0;
 }
 
@@ -2163,6 +2183,7 @@ exit:
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_FLASH,
 				FLASH_LOGGING_INCOMPLETE_WRITE, address, status);
 		}
+
 		return length;
 	}
 	else {
@@ -2226,6 +2247,7 @@ static int spi_flash_erase_region (const struct spi_flash *flash, uint32_t addre
 
 exit:
 	platform_mutex_unlock (&flash->state->lock);
+
 	return status;
 }
 
@@ -2246,6 +2268,7 @@ int spi_flash_get_sector_size (const struct spi_flash *flash, uint32_t *bytes)
 	/* It is possible to detect this value through SFDP.  As more flash devices are supported, it
 	 * may be necessary to parse this value from the SFDP tables. */
 	*bytes = FLASH_SECTOR_SIZE;
+
 	return 0;
 }
 
@@ -2293,6 +2316,7 @@ int spi_flash_get_block_size (const struct spi_flash *flash, uint32_t *bytes)
 	/* It is possible to detect this value through SFDP.  As more flash devices are supported, it
 	 * may be necessary to parse this value from the SFDP tables. */
 	*bytes = FLASH_BLOCK_SIZE;
+
 	return 0;
 }
 
@@ -2351,6 +2375,7 @@ int spi_flash_chip_erase (const struct spi_flash *flash)
 
 exit:
 	platform_mutex_unlock (&flash->state->lock);
+
 	return status;
 }
 

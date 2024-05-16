@@ -4,11 +4,11 @@
 #ifndef LOG_FLUSH_HANDLER_H_
 #define LOG_FLUSH_HANDLER_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
-#include "platform_api.h"
+#include <stddef.h>
+#include <stdint.h>
 #include "logging.h"
+#include "platform_api.h"
 #include "system/periodic_task.h"
 
 
@@ -16,8 +16,8 @@
  * Variable context for the handler for flushing log data.
  */
 struct log_flush_handler_state {
-	platform_clock next;					/**< Time at which the next execution should run. */
-	bool next_valid;						/**< Indicate if the next timeout has been initialized. */
+	platform_clock next;	/**< Time at which the next execution should run. */
+	bool next_valid;		/**< Indicate if the next timeout has been initialized. */
 };
 
 /**
@@ -43,4 +43,4 @@ void log_flush_handler_release (const struct log_flush_handler *handler);
  * codes. */
 
 
-#endif /* LOG_FLUSH_HANDLER_H_ */
+#endif	/* LOG_FLUSH_HANDLER_H_ */

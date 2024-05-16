@@ -4,8 +4,8 @@
 #ifndef ECC_TESTING_H_
 #define ECC_TESTING_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "crypto/ecc.h"
 
 
@@ -826,4 +826,4 @@ extern const uint8_t ECC521_PRIVKE2_NO_PUBKEY_DER[];
 extern const size_t ECC521_PRIVKEY2_NO_PUBKEY_DER_LEN;
 
 
-#endif /* ECC_TESTING_H_ */
+#endif	/* ECC_TESTING_H_ */

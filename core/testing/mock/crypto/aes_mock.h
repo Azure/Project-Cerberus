@@ -4,16 +4,16 @@
 #ifndef AES_MOCK_H_
 #define AES_MOCK_H_
 
-#include "crypto/aes.h"
 #include "mock.h"
+#include "crypto/aes.h"
 
 
 /**
  * A mock for the AES API.
  */
 struct aes_engine_mock {
-	struct aes_engine base;		/**< The base AES API instance. */
-	struct mock mock;			/**< The base mock interface. */
+	struct aes_engine base;	/**< The base AES API instance. */
+	struct mock mock;		/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void aes_mock_release (struct aes_engine_mock *mock);
 int aes_mock_validate_and_release (struct aes_engine_mock *mock);
 
 
-#endif /* AES_MOCK_H_ */
+#endif	/* AES_MOCK_H_ */

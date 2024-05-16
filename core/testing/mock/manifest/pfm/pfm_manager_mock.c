@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "pfm_manager_mock.h"
 #include "testing/engines/hash_testing_engine.h"
@@ -63,8 +63,7 @@ static int pfm_manager_mock_clear_pending_region (const struct manifest_manager 
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pfm_manager_mock_clear_pending_region, manager,
-		MOCK_ARG_CALL (size));
+	MOCK_RETURN (&mock->mock, pfm_manager_mock_clear_pending_region, manager, MOCK_ARG_CALL (size));
 }
 
 static int pfm_manager_mock_write_pending_data (const struct manifest_manager *manager,
@@ -200,12 +199,14 @@ int pfm_manager_mock_init (struct pfm_manager_mock *mock)
 	status = HASH_TESTING_ENGINE_INIT (hash);
 	if (status != 0) {
 		platform_free (hash);
+
 		return status;
 	}
 
 	status = pfm_manager_init (&mock->base, &hash->base, -1);
 	if (status != 0) {
 		platform_free (hash);
+
 		return status;
 	}
 
@@ -213,6 +214,7 @@ int pfm_manager_mock_init (struct pfm_manager_mock *mock)
 	if (status != 0) {
 		platform_free (hash);
 		pfm_manager_release (&mock->base);
+
 		return status;
 	}
 

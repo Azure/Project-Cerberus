@@ -4,11 +4,11 @@
 #ifndef MANIFEST_H_
 #define MANIFEST_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "status/rot_status.h"
+#include <stdint.h>
 #include "crypto/hash.h"
 #include "crypto/signature_verification.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -143,4 +143,4 @@ enum {
 };
 
 
-#endif /* MANIFEST_H_ */
+#endif	/* MANIFEST_H_ */

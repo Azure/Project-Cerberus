@@ -23,6 +23,7 @@ uint8_t checksum_crc8 (uint8_t smbus_addr, const uint8_t *data, uint8_t len)
 	}
 
 	crc = checksum_init_smbus_crc8 (smbus_addr);
+
 	return checksum_update_smbus_crc8 (crc, data, len);
 }
 

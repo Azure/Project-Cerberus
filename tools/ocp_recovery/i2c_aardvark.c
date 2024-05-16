@@ -13,8 +13,8 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
-#include "aardvark/aardvark.h"
 #include "i2c_platform.h"
+#include "aardvark/aardvark.h"
 
 
 /**
@@ -28,6 +28,7 @@
  */
 static Aardvark i2c_handle;
 
+
 int i2c_init (uint8_t port)
 {
 	uint16_t bitrate;
@@ -36,6 +37,7 @@ int i2c_init (uint8_t port)
 
 	if (i2c_handle < 0) {
 		printf ("Error open aardvark port = %d: %s\n", port, aa_status_string (i2c_handle));
+
 		return FAILURE;
 	}
 
@@ -59,6 +61,7 @@ int i2c_read (uint8_t cmd, int8_t addr, uint8_t *payload, int16_t length)
 
 	if (ret != AA_I2C_STATUS_OK) {
 		printf ("Error send aardvark command %d: %s\n", ret, aa_status_string (ret));
+
 		return FAILURE;
 	}
 
@@ -66,8 +69,10 @@ int i2c_read (uint8_t cmd, int8_t addr, uint8_t *payload, int16_t length)
 
 	if (ret != AA_I2C_STATUS_OK) {
 		printf ("Error to read aardvark data %d: %s\n", ret, aa_status_string (ret));
+
 		return FAILURE;
 	}
+
 	return SUCCESS;
 }
 
@@ -80,6 +85,7 @@ int i2c_write (int8_t addr, uint8_t *payload, int16_t length)
 
 	if (ret != AA_I2C_STATUS_OK) {
 		printf ("Error to write aardvark data %d: %s\n", ret, aa_status_string (ret));
+
 		return FAILURE;
 	}
 

@@ -16,15 +16,15 @@ TEST_SUITE_LABEL ("periodic_task");
  * Dependencies for testing.
  */
 struct periodic_task_testing {
-	struct periodic_task_handler_mock handler1;		/**< A mock periodic handler. */
-	struct periodic_task_handler_mock handler2;		/**< A mock periodic handler. */
-	struct periodic_task_handler_mock handler3;		/**< A mock periodic handler. */
-	struct periodic_task_handler_mock handler4;		/**< A mock periodic handler. */
-	platform_clock start;							/**< Start time of the test. */
-	platform_clock time_500ms;						/**< A time 500ms in the future. */
-	platform_clock time_1000ms;						/**< A time 1000ms in the future. */
-	platform_clock time_1500ms;						/**< A time 1500ms in the future. */
-	platform_clock time_2000ms;						/**< A time 2000ms in the future. */
+	struct periodic_task_handler_mock handler1;	/**< A mock periodic handler. */
+	struct periodic_task_handler_mock handler2;	/**< A mock periodic handler. */
+	struct periodic_task_handler_mock handler3;	/**< A mock periodic handler. */
+	struct periodic_task_handler_mock handler4;	/**< A mock periodic handler. */
+	platform_clock start;						/**< Start time of the test. */
+	platform_clock time_500ms;					/**< A time 500ms in the future. */
+	platform_clock time_1000ms;					/**< A time 1000ms in the future. */
+	platform_clock time_1500ms;					/**< A time 1500ms in the future. */
+	platform_clock time_2000ms;					/**< A time 2000ms in the future. */
 };
 
 
@@ -589,6 +589,7 @@ static void periodic_task_test_execute_next_handler_multiple_with_null_handler (
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (periodic_task);
 
 TEST (periodic_task_test_prepare_handlers);
@@ -609,3 +610,4 @@ TEST (periodic_task_test_execute_next_handler_null_handler);
 TEST (periodic_task_test_execute_next_handler_multiple_with_null_handler);
 
 TEST_SUITE_END;
+// *INDENT-ON*

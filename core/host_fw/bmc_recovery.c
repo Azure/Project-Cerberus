@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "bmc_recovery.h"
 #include "host_logging.h"
@@ -16,6 +16,7 @@
 static void bmc_recovery_enter_running_state (struct bmc_recovery *recovery)
 {
 	int status = recovery->irq->enable_chip_selects (recovery->irq, false);
+
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_HOST_FW,
 			HOST_LOGGING_RECOVERY_IRQ, status, false);
@@ -32,6 +33,7 @@ static void bmc_recovery_enter_running_state (struct bmc_recovery *recovery)
 static void bmc_recovery_enter_in_reset_state (struct bmc_recovery *recovery)
 {
 	int status = recovery->irq->enable_chip_selects (recovery->irq, true);
+
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
 			HOST_LOGGING_RECOVERY_IRQ, status, true);

@@ -4,14 +4,14 @@
 #ifndef HOST_PROCESSOR_FILTERED_H_
 #define HOST_PROCESSOR_FILTERED_H_
 
-#include "platform_api.h"
-#include "host_processor.h"
 #include "host_control.h"
 #include "host_flash_manager.h"
+#include "host_processor.h"
 #include "host_state_manager.h"
-#include "spi_filter/spi_filter_interface.h"
+#include "platform_api.h"
 #include "manifest/pfm/pfm_manager.h"
 #include "recovery/recovery_image_manager.h"
+#include "spi_filter/spi_filter_interface.h"
 
 
 /**
@@ -74,4 +74,4 @@ int host_processor_filtered_needs_config_recovery (struct host_processor *host);
 int host_processor_filtered_apply_recovery_image (struct host_processor *host, bool no_reset);
 
 
-#endif /* HOST_PROCESSOR_FILTERED_H_ */
+#endif	/* HOST_PROCESSOR_FILTERED_H_ */

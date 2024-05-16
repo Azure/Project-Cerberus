@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
 #include "recovery/ocp_recovery.h"
@@ -19,9 +19,9 @@ TEST_SUITE_LABEL ("ocp_recovery");
 static void ocp_recovery_test_prot_cap_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		'O','C','P',' ','R','E','C','V',
-		0x01,0x02,
-		0x03,0x04,0x05,0x06,0x07
+		'O', 'C', 'P', ' ', 'R', 'E', 'C', 'V',
+		0x01, 0x02,
+		0x03, 0x04, 0x05, 0x06, 0x07
 	};
 	struct ocp_recovery_prot_cap *msg;
 
@@ -40,8 +40,7 @@ static void ocp_recovery_test_prot_cap_format (CuTest *test)
 
 	CuAssertIntEquals (test, (1U << 6),
 		OCP_RECOVERY_PROT_CAP_RESPONSE_TIME_US (msg->max_response_time));
-	CuAssertIntEquals (test, (1U << 7),
-		OCP_RECOVERY_PROT_CAP_HEARTBEAT_US (msg->heartbeat_period));
+	CuAssertIntEquals (test, (1U << 7),	OCP_RECOVERY_PROT_CAP_HEARTBEAT_US (msg->heartbeat_period));
 
 	raw_buffer[14] = 0;
 	CuAssertIntEquals (test, 0, OCP_RECOVERY_PROT_CAP_HEARTBEAT_US (msg->heartbeat_period));
@@ -119,7 +118,7 @@ static void ocp_recovery_test_device_status_format (CuTest *test)
 static void ocp_recovery_test_reset_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0x01,0x02,0x03
+		0x01, 0x02, 0x03
 	};
 	struct ocp_recovery_reset *msg;
 
@@ -136,7 +135,7 @@ static void ocp_recovery_test_reset_format (CuTest *test)
 static void ocp_recovery_test_recovery_ctrl_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0x01,0x02,0x03
+		0x01, 0x02, 0x03
 	};
 	struct ocp_recovery_recovery_ctrl *msg;
 
@@ -153,7 +152,7 @@ static void ocp_recovery_test_recovery_ctrl_format (CuTest *test)
 static void ocp_recovery_test_recovery_status_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0x01,0x02
+		0x01, 0x02
 	};
 	struct ocp_recovery_recovery_status *msg;
 
@@ -191,7 +190,7 @@ static void ocp_recovery_test_hw_status_format (CuTest *test)
 static void ocp_recovery_test_indirect_ctrl_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0x01,0x02,0x03,0x04,0x05,0x06
+		0x01, 0x02, 0x03, 0x04, 0x05, 0x06
 	};
 	struct ocp_recovery_indirect_ctrl *msg;
 
@@ -208,7 +207,7 @@ static void ocp_recovery_test_indirect_ctrl_format (CuTest *test)
 static void ocp_recovery_test_indirect_status_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0x01,0x02,0x03,0x04,0x05,0x06
+		0x01, 0x02, 0x03, 0x04, 0x05, 0x06
 	};
 	struct ocp_recovery_indirect_status *msg;
 
@@ -259,6 +258,7 @@ static void ocp_recovery_test_vendor_format (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (ocp_recovery);
 
 TEST (ocp_recovery_test_prot_cap_format);
@@ -274,3 +274,4 @@ TEST (ocp_recovery_test_indirect_data_format);
 TEST (ocp_recovery_test_vendor_format);
 
 TEST_SUITE_END;
+// *INDENT-ON*

@@ -132,6 +132,7 @@ static const char* recovery_image_mock_arg_name_map (void *func, int arg)
 		switch (arg) {
 			case 0:
 				return "version";
+
 			case 1:
 				return "len";
 		}

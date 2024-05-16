@@ -33,4 +33,4 @@ enum {
 };
 
 
-#endif /* DEVICE_MANAGER_OBSERVER_H_ */
+#endif	/* DEVICE_MANAGER_OBSERVER_H_ */

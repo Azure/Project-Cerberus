@@ -11,9 +11,9 @@
  * Command interface for processing requests from two command sets
  */
 struct cmd_interface_dual_cmd_set {
-	struct cmd_interface base;					/**< Base command interface */
-	const struct cmd_interface *intf_0;			/**< Interface to process commands from set 0 */
-	const struct cmd_interface *intf_1;			/**< Interface to process commands from set 1 */
+	struct cmd_interface base;			/**< Base command interface */
+	const struct cmd_interface *intf_0;	/**< Interface to process commands from set 0 */
+	const struct cmd_interface *intf_1;	/**< Interface to process commands from set 1 */
 };
 
 
@@ -22,4 +22,4 @@ int cmd_interface_dual_cmd_set_init (struct cmd_interface_dual_cmd_set *intf,
 void cmd_interface_dual_cmd_set_deinit (const struct cmd_interface_dual_cmd_set *intf);
 
 
-#endif /* CMD_INTERFACE_DUAL_CMD_SET_H_ */
+#endif	/* CMD_INTERFACE_DUAL_CMD_SET_H_ */

@@ -5,11 +5,11 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "firmware/firmware_header.h"
 #include "common/image_header.h"
-#include "testing/mock/flash/flash_mock.h"
+#include "firmware/firmware_header.h"
 #include "testing/common/image_header_testing.h"
 #include "testing/firmware/firmware_header_testing.h"
+#include "testing/mock/flash/flash_mock.h"
 
 
 TEST_SUITE_LABEL ("firmware_header");
@@ -19,7 +19,7 @@ TEST_SUITE_LABEL ("firmware_header");
  * Example header using format 0.
  */
 const uint8_t FIRMWARE_HEADER_FORMAT_0[] = {
-	0x0a,0x00,0x00,0x00,0x47,0x4d,0x49,0x43,0x01,0x00
+	0x0a, 0x00, 0x00, 0x00, 0x47, 0x4d, 0x49, 0x43, 0x01, 0x00
 };
 
 const size_t FIRMWARE_HEADER_FORMAT_0_TOTAL_LEN = sizeof (FIRMWARE_HEADER_FORMAT_0);
@@ -28,7 +28,7 @@ const size_t FIRMWARE_HEADER_FORMAT_0_TOTAL_LEN = sizeof (FIRMWARE_HEADER_FORMAT
  * Example header using format 1.
  */
 const uint8_t FIRMWARE_HEADER_FORMAT_1[] = {
-	0x0b,0x00,0x01,0x00,0x47,0x4d,0x49,0x43,0x02,0x00,0x03
+	0x0b, 0x00, 0x01, 0x00, 0x47, 0x4d, 0x49, 0x43, 0x02, 0x00, 0x03
 };
 
 const size_t FIRMWARE_HEADER_FORMAT_1_TOTAL_LEN = sizeof (FIRMWARE_HEADER_FORMAT_1);
@@ -37,7 +37,7 @@ const size_t FIRMWARE_HEADER_FORMAT_1_TOTAL_LEN = sizeof (FIRMWARE_HEADER_FORMAT
  * Example header using format 2.
  */
 const uint8_t FIRMWARE_HEADER_FORMAT_2[] = {
-	0x0d,0x00,0x02,0x00,0x47,0x4d,0x49,0x43,0x03,0x00,0x05,0x02,0x00
+	0x0d, 0x00, 0x02, 0x00, 0x47, 0x4d, 0x49, 0x43, 0x03, 0x00, 0x05, 0x02, 0x00
 };
 
 const size_t FIRMWARE_HEADER_FORMAT_2_TOTAL_LEN = sizeof (FIRMWARE_HEADER_FORMAT_2);
@@ -46,7 +46,8 @@ const size_t FIRMWARE_HEADER_FORMAT_2_TOTAL_LEN = sizeof (FIRMWARE_HEADER_FORMAT
  * Example header using format 3.
  */
 const uint8_t FIRMWARE_HEADER_FORMAT_3[] = {
-	0x13,0x00,0x03,0x00,0x47,0x4d,0x49,0x43,0x04,0x00,0x06,0x03,0x00,0x44,0x33,0x22,0x11,0x00,0x02
+	0x13, 0x00, 0x03, 0x00, 0x47, 0x4d, 0x49, 0x43, 0x04, 0x00, 0x06, 0x03, 0x00, 0x44, 0x33, 0x22,
+	0x11, 0x00, 0x02
 };
 
 const size_t FIRMWARE_HEADER_FORMAT_3_TOTAL_LEN = sizeof (FIRMWARE_HEADER_FORMAT_3);
@@ -75,8 +76,8 @@ static void firmware_header_test_init_format0 (CuTest *test)
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_0_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_0 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_0_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_0 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_0_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -108,8 +109,8 @@ static void firmware_header_test_init_format1 (CuTest *test)
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_1_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_1 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_1_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_1 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_1_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -141,8 +142,8 @@ static void firmware_header_test_init_format2 (CuTest *test)
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_2_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_2 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_2_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_2 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_2_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -174,8 +175,8 @@ static void firmware_header_test_init_format3 (CuTest *test)
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_3_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_3 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_3_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_3 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_3_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -675,8 +676,8 @@ static void firmware_header_test_get_recovery_revision_format0 (CuTest *test)
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_0_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_0 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_0_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_0 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_0_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -716,8 +717,8 @@ static void firmware_header_test_get_recovery_revision_format1 (CuTest *test)
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_1_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_1 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_1_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_1 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_1_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -757,8 +758,8 @@ static void firmware_header_test_get_recovery_revision_format2 (CuTest *test)
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_2_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_2 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_2_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_2 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_2_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -798,8 +799,8 @@ static void firmware_header_test_get_recovery_revision_format3 (CuTest *test)
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_3_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_3 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_3_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_3 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_3_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -885,8 +886,8 @@ static void firmware_header_test_get_recovery_revision_null (CuTest *test)
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_0_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_0 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_0_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_0 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_0_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -927,8 +928,8 @@ static void firmware_header_test_get_extra_images_format1 (CuTest *test)
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_1_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_1 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_1_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_1 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_1_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -966,8 +967,8 @@ static void firmware_header_test_get_extra_images_format2 (CuTest *test)
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_2_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_2 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_2_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_2 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_2_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1005,8 +1006,8 @@ static void firmware_header_test_get_extra_images_format3 (CuTest *test)
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_3_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_3 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_3_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_3 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_3_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1088,8 +1089,8 @@ static void firmware_header_test_get_extra_images_null (CuTest *test)
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_0_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_0 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_0_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_0 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_0_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1127,8 +1128,8 @@ static void firmware_header_test_get_extra_images_format0 (CuTest *test)
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_0_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_0 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_0_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_0 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_0_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1167,8 +1168,8 @@ static void firmware_header_test_get_earliest_allowed_revision_format2 (CuTest *
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_2_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_2 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_2_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_2 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_2_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1208,8 +1209,8 @@ static void firmware_header_test_get_earliest_allowed_revision_format3 (CuTest *
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_3_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_3 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_3_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_3 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_3_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1295,8 +1296,8 @@ static void firmware_header_test_get_earliest_allowed_revision_null (CuTest *tes
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_0_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_0 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_0_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_0 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_0_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1338,8 +1339,8 @@ static void firmware_header_test_get_earliest_allowed_revision_format0 (CuTest *
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_0_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_0 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_0_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_0 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_0_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1378,8 +1379,8 @@ static void firmware_header_test_get_earliest_allowed_revision_format1 (CuTest *
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_1_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_1 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_1_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_1 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_1_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1419,8 +1420,8 @@ static void firmware_header_test_get_signature_info_format3 (CuTest *test)
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_3_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_3 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_3_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_3 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_3_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1511,8 +1512,8 @@ static void firmware_header_test_get_signature_info_null (CuTest *test)
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_0_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_0 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_0_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_0 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_0_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1558,8 +1559,8 @@ static void firmware_header_test_get_signature_info_format0 (CuTest *test)
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_0_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_0 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_0_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_0 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_0_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1601,8 +1602,8 @@ static void firmware_header_test_get_signature_info_format1 (CuTest *test)
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_1_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_1 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_1_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_1 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_1_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1644,8 +1645,8 @@ static void firmware_header_test_get_signature_info_format2 (CuTest *test)
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FIRMWARE_HEADER_FORMAT_2_LEN));
-	status |= mock_expect_output (&flash.mock, 1,
-		FIRMWARE_HEADER_FORMAT_2 + IMAGE_HEADER_BASE_LEN, FIRMWARE_HEADER_FORMAT_2_LEN, 2);
+	status |= mock_expect_output (&flash.mock, 1, FIRMWARE_HEADER_FORMAT_2 + IMAGE_HEADER_BASE_LEN,
+		FIRMWARE_HEADER_FORMAT_2_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1667,6 +1668,7 @@ static void firmware_header_test_get_signature_info_format2 (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (firmware_header);
 
 TEST (firmware_header_test_init_format0);
@@ -1716,3 +1718,4 @@ TEST (firmware_header_test_get_signature_info_format1);
 TEST (firmware_header_test_get_signature_info_format2);
 
 TEST_SUITE_END;
+// *INDENT-ON*

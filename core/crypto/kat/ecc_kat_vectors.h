@@ -56,4 +56,4 @@ extern const uint8_t ECC_KAT_VECTORS_ECDSA_SHA384_DIGEST[];
 extern const uint8_t ECC_KAT_VECTORS_ECDSA_SHA512_DIGEST[];
 
 
-#endif /* ECC_KAT_VECTORS_H_ */
+#endif	/* ECC_KAT_VECTORS_H_ */

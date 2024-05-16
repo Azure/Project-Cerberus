@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "firmware_update_mock.h"
 
@@ -116,6 +116,7 @@ int firmware_update_mock_init (struct firmware_update_mock *mock,
 	status = mock_init (&mock->mock);
 	if (status != 0) {
 		firmware_update_release (&mock->base);
+
 		return status;
 	}
 

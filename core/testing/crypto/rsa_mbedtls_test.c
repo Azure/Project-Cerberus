@@ -2,16 +2,16 @@
 // Licensed under the MIT license.
 
 #include <stddef.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
 #include "crypto/rsa_mbedtls.h"
 #include "mbedtls/pk.h"
 #include "mbedtls/sha256.h"
-#include "testing/crypto/rsa_testing.h"
 #include "testing/crypto/ecc_testing.h"
+#include "testing/crypto/rsa_testing.h"
 #include "testing/crypto/signature_testing.h"
 
 
@@ -187,20 +187,20 @@ static void rsa_mbedtls_test_sig_verify_null (CuTest *test)
 	status = rsa_mbedtls_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.sig_verify (NULL, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
-		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
+	status = engine.base.sig_verify (NULL, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,	RSA_ENCRYPT_LEN,
+		HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sig_verify (&engine.base, NULL, RSA_SIGNATURE_TEST,
-		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
+	status = engine.base.sig_verify (&engine.base, NULL, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN,
+		HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, NULL,
-		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
+	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, NULL, RSA_ENCRYPT_LEN,
+		HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
-		0, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
+	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,	0,
+		HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
@@ -388,20 +388,17 @@ static void rsa_mbedtls_test_init_private_key_null (CuTest *test)
 	status = rsa_mbedtls_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_private_key (NULL, &key, RSA_PRIVKEY_DER,
-		RSA_PRIVKEY_DER_LEN);
+	status = engine.base.init_private_key (NULL, &key, RSA_PRIVKEY_DER,	RSA_PRIVKEY_DER_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.init_private_key (&engine.base, NULL, RSA_PRIVKEY_DER,
 		RSA_PRIVKEY_DER_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_private_key (&engine.base, &key, NULL,
-		RSA_PRIVKEY_DER_LEN);
+	status = engine.base.init_private_key (&engine.base, &key, NULL, RSA_PRIVKEY_DER_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_private_key (&engine.base, &key, RSA_PRIVKEY_DER,
-		0);
+	status = engine.base.init_private_key (&engine.base, &key, RSA_PRIVKEY_DER,	0);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	rsa_mbedtls_release (&engine);
@@ -944,8 +941,8 @@ static void rsa_mbedtls_test_decrypt_null (CuTest *test)
 		HASH_TYPE_SHA1, (uint8_t*) message, sizeof (message));
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.decrypt (&engine.base, &key, RSA_ENCRYPT_TEST, 0, NULL, 0,
-		HASH_TYPE_SHA1, (uint8_t*) message, sizeof (message));
+	status = engine.base.decrypt (&engine.base, &key, RSA_ENCRYPT_TEST, 0, NULL, 0,	HASH_TYPE_SHA1,
+		(uint8_t*) message, sizeof (message));
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.decrypt (&engine.base, &key, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN, NULL, 0,
@@ -1082,6 +1079,7 @@ static void rsa_mbedtls_test_decrypt_wrong_hash (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (rsa_mbedtls);
 
 TEST (rsa_mbedtls_test_init);
@@ -1130,3 +1128,4 @@ TEST (rsa_mbedtls_test_decrypt_with_wrong_label);
 TEST (rsa_mbedtls_test_decrypt_wrong_hash);
 
 TEST_SUITE_END;
+// *INDENT-ON*

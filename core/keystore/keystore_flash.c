@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "platform_api.h"
 #include "keystore_flash.h"
+#include "platform_api.h"
 #include "common/unused.h"
 
 
@@ -44,6 +44,7 @@ int keystore_flash_load_key (const struct keystore *store, int id, uint8_t **key
 		if (key_len == FLASH_STORE_NO_DATA) {
 			key_len = KEYSTORE_NO_KEY;
 		}
+
 		return key_len;
 	}
 
@@ -67,12 +68,14 @@ int keystore_flash_load_key (const struct keystore *store, int id, uint8_t **key
 	}
 
 	*length = key_len;
+
 	return 0;
 
 error:
 	platform_free (*key);
 	*key = NULL;
 	*length = 0;
+
 	return status;
 }
 

@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
 #include "cmd_interface/cerberus_protocol.h"
@@ -932,7 +932,8 @@ static void cmd_interface_protocol_cerberus_test_handle_request_result_success_n
 	cmd_interface_protocol_cerberus_testing_release (test, &cerberus);
 }
 
-static void cmd_interface_protocol_cerberus_test_handle_request_result_success_no_payload_encrypted (
+static void cmd_interface_protocol_cerberus_test_handle_request_result_success_no_payload_encrypted
+(
 	CuTest *test)
 {
 	struct cmd_interface_protocol_cerberus_testing cerberus;
@@ -1342,6 +1343,7 @@ static void cmd_interface_protocol_cerberus_test_handle_request_result_null (CuT
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_protocol_cerberus);
 
 TEST (cmd_interface_protocol_cerberus_test_init);
@@ -1370,3 +1372,4 @@ TEST (cmd_interface_protocol_cerberus_test_handle_request_result_static_init);
 TEST (cmd_interface_protocol_cerberus_test_handle_request_result_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

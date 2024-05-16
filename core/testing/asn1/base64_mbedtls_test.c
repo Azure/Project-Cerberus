@@ -2,8 +2,8 @@
 // Licensed under the MIT license.
 
 #include <stddef.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include "testing.h"
 #include "asn1/base64_mbedtls.h"
@@ -157,12 +157,10 @@ static void base64_mbedtls_test_encode_null (CuTest *test)
 	status = base64_mbedtls_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encode (NULL, BASE64_DATA_BLOCK, BASE64_DATA_BLOCK_LEN, out,
-		sizeof (out));
+	status = engine.base.encode (NULL, BASE64_DATA_BLOCK, BASE64_DATA_BLOCK_LEN, out, sizeof (out));
 	CuAssertIntEquals (test, BASE64_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.encode (&engine.base, NULL, BASE64_DATA_BLOCK_LEN, out,
-		sizeof (out));
+	status = engine.base.encode (&engine.base, NULL, BASE64_DATA_BLOCK_LEN, out, sizeof (out));
 	CuAssertIntEquals (test, BASE64_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.encode (&engine.base, BASE64_DATA_BLOCK, BASE64_DATA_BLOCK_LEN, NULL,
@@ -191,6 +189,7 @@ static void base64_mbedtls_test_encode_buffer_too_small (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (base64_mbedtls);
 
 TEST (base64_mbedtls_test_init);
@@ -204,3 +203,4 @@ TEST (base64_mbedtls_test_encode_null);
 TEST (base64_mbedtls_test_encode_buffer_too_small);
 
 TEST_SUITE_END;
+// *INDENT-ON*

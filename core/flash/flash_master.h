@@ -4,8 +4,8 @@
 #ifndef FLASH_MASTER_H_
 #define FLASH_MASTER_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 
 
@@ -22,6 +22,7 @@ struct flash_xfer {
 	uint16_t flags;			/**< Transaction flags. */
 };
 
+
 /**
  * Flags that can be set for a SPI flash transaction.
  */
@@ -35,13 +36,13 @@ enum {
 	 * behavior.  Though, it is possible to have multiple dual or quad flags set on a transaction.
 	 */
 
-	FLASH_FLAG_DUAL_CMD = 0x0100,		/**< Command code will be sent in dual SPI mode. */
-	FLASH_FLAG_DUAL_ADDR = 0x0200,		/**< Command address will be sent in dual SPI mode. */
-	FLASH_FLAG_DUAL_DATA = 0x0400,		/**< Command data will be transmitted in dual SPI mode. */
+	FLASH_FLAG_DUAL_CMD = 0x0100,	/**< Command code will be sent in dual SPI mode. */
+	FLASH_FLAG_DUAL_ADDR = 0x0200,	/**< Command address will be sent in dual SPI mode. */
+	FLASH_FLAG_DUAL_DATA = 0x0400,	/**< Command data will be transmitted in dual SPI mode. */
 
-	FLASH_FLAG_QUAD_CMD = 0x1000,		/**< Command code will be sent in quad SPI mode. */
-	FLASH_FLAG_QUAD_ADDR = 0x2000,		/**< Command address will be sent in quad SPI mode. */
-	FLASH_FLAG_QUAD_DATA = 0x4000,		/**< Command data will be transmitted in quad SPI mode. */
+	FLASH_FLAG_QUAD_CMD = 0x1000,	/**< Command code will be sent in quad SPI mode. */
+	FLASH_FLAG_QUAD_ADDR = 0x2000,	/**< Command address will be sent in quad SPI mode. */
+	FLASH_FLAG_QUAD_DATA = 0x4000,	/**< Command data will be transmitted in quad SPI mode. */
 };
 
 /**
@@ -140,18 +141,18 @@ enum {
  * Capabilities that can reported by SPI masters.
  */
 enum {
-	FLASH_CAP_DUAL_2_2_2 = 0x01,		/**< Supports full DPI (2-2-2) mode. */
-	FLASH_CAP_DUAL_1_2_2 = 0x02,		/**< Supports Dual address and data (1-2-2) mode. */
-	FLASH_CAP_DUAL_1_1_2 = 0x04,		/**< Supports Dual data (1-1-2) mode. */
-	FLASH_CAP_DUAL_RX_ONLY = 0x08,		/**< Only supports Dual operations for read commands. */
+	FLASH_CAP_DUAL_2_2_2 = 0x01,	/**< Supports full DPI (2-2-2) mode. */
+	FLASH_CAP_DUAL_1_2_2 = 0x02,	/**< Supports Dual address and data (1-2-2) mode. */
+	FLASH_CAP_DUAL_1_1_2 = 0x04,	/**< Supports Dual data (1-1-2) mode. */
+	FLASH_CAP_DUAL_RX_ONLY = 0x08,	/**< Only supports Dual operations for read commands. */
 
-	FLASH_CAP_QUAD_4_4_4 = 0x10,		/**< Supports full QPI (4-4-4) mode. */
-	FLASH_CAP_QUAD_1_4_4 = 0x20,		/**< Supports Quad address and data (1-4-4) mode. */
-	FLASH_CAP_QUAD_1_1_4 = 0x40,		/**< Supports Quad data (1-1-4) mode. */
-	FLASH_CAP_QUAD_RX_ONLY = 0x80,		/**< Only supports Quad operations for read commands. */
+	FLASH_CAP_QUAD_4_4_4 = 0x10,	/**< Supports full QPI (4-4-4) mode. */
+	FLASH_CAP_QUAD_1_4_4 = 0x20,	/**< Supports Quad address and data (1-4-4) mode. */
+	FLASH_CAP_QUAD_1_1_4 = 0x40,	/**< Supports Quad data (1-1-4) mode. */
+	FLASH_CAP_QUAD_RX_ONLY = 0x80,	/**< Only supports Quad operations for read commands. */
 
-	FLASH_CAP_3BYTE_ADDR = 0x100,		/**< Commands can be sent with 3-byte addresses. */
-	FLASH_CAP_4BYTE_ADDR = 0x200,		/**< Commands can be sent with 4-byte addresses. */
+	FLASH_CAP_3BYTE_ADDR = 0x100,	/**< Commands can be sent with 3-byte addresses. */
+	FLASH_CAP_4BYTE_ADDR = 0x200,	/**< Commands can be sent with 4-byte addresses. */
 };
 
 
@@ -234,4 +235,4 @@ enum {
 };
 
 
-#endif /* FLASH_MASTER_H_ */
+#endif	/* FLASH_MASTER_H_ */

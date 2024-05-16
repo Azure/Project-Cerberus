@@ -12,9 +12,9 @@
  * Thread-safe wrapper for a hash instance.
  */
 struct hash_engine_thread_safe {
-	struct hash_engine base;			/**< Base API implementation. */
-	struct hash_engine *engine;			/**< Hash instance to use for execution. */
-	platform_mutex lock;				/**< Synchronization lock. */
+	struct hash_engine base;	/**< Base API implementation. */
+	struct hash_engine *engine;	/**< Hash instance to use for execution. */
+	platform_mutex lock;		/**< Synchronization lock. */
 };
 
 
@@ -22,4 +22,4 @@ int hash_thread_safe_init (struct hash_engine_thread_safe *engine, struct hash_e
 void hash_thread_safe_release (struct hash_engine_thread_safe *engine);
 
 
-#endif /* HASH_THREAD_SAFE_H_ */
+#endif	/* HASH_THREAD_SAFE_H_ */

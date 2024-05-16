@@ -7,10 +7,10 @@
 #include "testing.h"
 #include "system/system.h"
 #include "system/system_logging.h"
+#include "testing/logging/debug_log_testing.h"
 #include "testing/mock/cmd_interface/cmd_device_mock.h"
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/system/system_observer_mock.h"
-#include "testing/logging/debug_log_testing.h"
 
 
 TEST_SUITE_LABEL ("system");
@@ -348,6 +348,7 @@ static void system_test_reset_device_reset_error (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (system);
 
 TEST (system_test_init);
@@ -363,3 +364,4 @@ TEST (system_test_reset_null);
 TEST (system_test_reset_device_reset_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

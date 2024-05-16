@@ -45,32 +45,27 @@
 // @param contextSize
 // @param numberOfBits the number of bits to be produced
 //
-size_t RIOT_KDF_FIXED(
-    uint8_t         *fixed,
-    size_t          fixedSize,
-    const uint8_t   *label,
-    size_t          labelSize,
-    const uint8_t   *context,
-    size_t          contextSize,
-    uint32_t        numberOfBits
-)
+size_t RIOT_KDF_FIXED (
+	uint8_t *fixed, size_t fixedSize, const uint8_t *label, size_t labelSize,
+	const uint8_t *context, size_t contextSize, uint32_t numberOfBits)
 {
-    size_t          total = (((label) ? labelSize : 0) + ((context) ? contextSize : 0) + 5);
+	size_t total = (((label) ? labelSize : 0) + ((context) ? contextSize : 0) + 5);
 
-    assert(fixedSize >= total);
+	assert (fixedSize >= total);
 
-    if (label) {
-        memcpy(fixed, label, labelSize);
-        fixed += labelSize;
-    }
-    *fixed++ = 0;
-    if (context) {
-        memcpy(fixed, context, contextSize);
-        fixed += contextSize;
-    }
-    numberOfBits = UINT32_TO_BIGENDIAN(numberOfBits);
-    memcpy(fixed, &numberOfBits, 4);
-    return total;
+	if (label) {
+		memcpy (fixed, label, labelSize);
+		fixed += labelSize;
+	}
+	*fixed++ = 0;
+	if (context) {
+		memcpy (fixed, context, contextSize);
+		fixed += contextSize;
+	}
+	numberOfBits = UINT32_TO_BIGENDIAN (numberOfBits);
+	memcpy (fixed, &numberOfBits, 4);
+
+	return total;
 }
 
 
@@ -85,26 +80,21 @@ size_t RIOT_KDF_FIXED(
 // @param fixed the label parameter (optional)
 // @param fixedSize
 //
-void RIOT_KDF_SHA256(
-    uint8_t         *out,
-    const uint8_t   *key,
-    size_t          keySize,
-    uint32_t        *counter,
-    const uint8_t   *fixed,
-    size_t          fixedSize
-)
+void RIOT_KDF_SHA256 (
+	uint8_t *out, const uint8_t *key, size_t keySize, uint32_t *counter, const uint8_t *fixed,
+	size_t fixedSize)
 {
-    RIOT_HMAC_SHA256_CTX    ctx;
-    uint32_t                ctr = counter ? ++*counter : 1;
+	RIOT_HMAC_SHA256_CTX ctx;
+	uint32_t ctr = counter ? ++*counter : 1;
 
-    assert(out && key && fixed);
+	assert (out && key && fixed);
 
-    // Start the HMAC
-    RIOT_HMAC_SHA256_Init(&ctx, key, keySize);
-    // Add the counter
-    ctr = UINT32_TO_BIGENDIAN(ctr);
-    RIOT_HMAC_SHA256_Update(&ctx, (uint8_t *)&ctr, 4);
-    // Add fixed stuff
-    RIOT_HMAC_SHA256_Update(&ctx, fixed, fixedSize);
-    RIOT_HMAC_SHA256_Final(&ctx, out);
+	// Start the HMAC
+	RIOT_HMAC_SHA256_Init (&ctx, key, keySize);
+	// Add the counter
+	ctr = UINT32_TO_BIGENDIAN (ctr);
+	RIOT_HMAC_SHA256_Update (&ctx, (uint8_t*) &ctr, 4);
+	// Add fixed stuff
+	RIOT_HMAC_SHA256_Update (&ctx, fixed, fixedSize);
+	RIOT_HMAC_SHA256_Final (&ctx, out);
 }

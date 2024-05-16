@@ -12,7 +12,7 @@
  * store any data.  Load operations will always report that there is no key present for any key ID.
  */
 struct keystore_null {
-	struct keystore base;		/**< Base keystore API. */
+	struct keystore base;	/**< Base keystore API. */
 };
 
 
@@ -20,4 +20,4 @@ int keystore_null_init (struct keystore_null *store);
 void keystore_null_release (const struct keystore_null *store);
 
 
-#endif /* KEYSTORE_NULL_H_ */
+#endif	/* KEYSTORE_NULL_H_ */

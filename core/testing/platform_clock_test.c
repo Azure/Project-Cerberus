@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include "testing.h"
 #include "platform_api.h"
+#include "testing.h"
 #include "status/rot_status.h"
 
 
@@ -204,8 +204,7 @@ static void platform_clock_test_get_duration_between_two_timeouts_less_than_one_
 
 	msec = platform_get_duration (&timeout1, &timeout2);
 	/* Allow both values to account for boundary cases. */
-	CuAssertTrue (test,
-		((msec == 400) || (msec == (400 + PLATFORM_CLOCK_RESOLUTION))));
+	CuAssertTrue (test,	((msec == 400) || (msec == (400 + PLATFORM_CLOCK_RESOLUTION))));
 }
 
 static void platform_clock_test_get_duration_between_two_timeouts_one_second (CuTest *test)
@@ -225,8 +224,7 @@ static void platform_clock_test_get_duration_between_two_timeouts_one_second (Cu
 
 	msec = platform_get_duration (&timeout1, &timeout2);
 	/* Allow both values to account for boundary cases. */
-	CuAssertTrue (test,
-		((msec == 1100) || (msec == (1100 + PLATFORM_CLOCK_RESOLUTION))));
+	CuAssertTrue (test,	((msec == 1100) || (msec == (1100 + PLATFORM_CLOCK_RESOLUTION))));
 }
 
 static void platform_clock_test_get_duration_between_two_timeouts_more_than_one_second (
@@ -247,8 +245,7 @@ static void platform_clock_test_get_duration_between_two_timeouts_more_than_one_
 
 	msec = platform_get_duration (&timeout1, &timeout2);
 	/* Allow both values to account for boundary cases. */
-	CuAssertTrue (test,
-		((msec == 3700) || (msec == (3700 + PLATFORM_CLOCK_RESOLUTION))));
+	CuAssertTrue (test,	((msec == 3700) || (msec == (3700 + PLATFORM_CLOCK_RESOLUTION))));
 }
 
 static void platform_clock_test_get_duration_null (CuTest *test)
@@ -286,6 +283,7 @@ static void platform_clock_test_init_current_tick_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (platform_clock);
 
 TEST (platform_clock_test_init_timeout);
@@ -303,3 +301,4 @@ TEST (platform_clock_test_get_duration_null);
 TEST (platform_clock_test_init_current_tick_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

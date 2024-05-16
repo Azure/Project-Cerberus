@@ -114,20 +114,16 @@ static void logging_memory_test_init_from_buffer_null (CuTest *test)
 
 	TEST_START;
 
-	status = logging_memory_init_from_buffer (NULL, &state, buffer, sizeof (buffer),
-		entry_size);
+	status = logging_memory_init_from_buffer (NULL, &state, buffer, sizeof (buffer), entry_size);
 	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
 
-	status = logging_memory_init_from_buffer (&logging, NULL, buffer, sizeof (buffer),
-		entry_size);
+	status = logging_memory_init_from_buffer (&logging, NULL, buffer, sizeof (buffer), entry_size);
 	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
 
-	status = logging_memory_init_from_buffer (&logging, &state, NULL, sizeof (buffer),
-		entry_size);
+	status = logging_memory_init_from_buffer (&logging, &state, NULL, sizeof (buffer), entry_size);
 	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
 
-	status = logging_memory_init_from_buffer (&logging, &state, buffer, sizeof (buffer),
-		0);
+	status = logging_memory_init_from_buffer (&logging, &state, buffer, sizeof (buffer), 0);
 	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
 }
 
@@ -214,8 +210,7 @@ static void logging_memory_test_init_append_existing_null (CuTest *test)
 		entry_size);
 	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
 
-	status = logging_memory_init_append_existing (&logging, &state, buffer, sizeof (buffer),
-		0);
+	status = logging_memory_init_append_existing (&logging, &state, buffer, sizeof (buffer), 0);
 	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
 }
 
@@ -784,7 +779,7 @@ static void logging_memory_test_create_entry_log_wrap_from_buffer_not_entry_alig
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
 	const int entry_count = 32;
 	const int entry_full = entry_len * entry_count;
-	uint8_t  buffer[entry_full + entry_size];
+	uint8_t buffer[entry_full + entry_size];
 	uint8_t entry[entry_count + 1][entry_size];
 	uint8_t entry_data[entry_full];
 	struct logging_entry_header *header;
@@ -852,7 +847,7 @@ static void logging_memory_test_create_entry_log_wrap_appending_existing_empty_n
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
 	const int entry_count = 32;
 	const int entry_full = entry_len * entry_count;
-	uint8_t  buffer[entry_full + entry_size];
+	uint8_t buffer[entry_full + entry_size];
 	uint8_t entry[entry_count + 1][entry_size];
 	uint8_t entry_data[entry_full];
 	struct logging_entry_header *header;
@@ -2416,7 +2411,7 @@ static void logging_memory_test_clear_append_existing (CuTest *test)
 	memset (buffer_expected, 0, sizeof (buffer_expected));
 
 	pos = buffer;
-	for (i = 0; i < entry_count ; i++) {
+	for (i = 0; i < entry_count; i++) {
 		header = (struct logging_entry_header*) pos;
 		header->log_magic = 0xCB;
 		header->length = entry_len;
@@ -2665,7 +2660,6 @@ static void logging_memory_test_copy_entries (CuTest *test)
 	const int entry_count = 32;
 	uint8_t entry[entry_size];
 	size_t log_len = entry_len;
-
 
 	TEST_START;
 
@@ -2949,7 +2943,7 @@ static void logging_memory_test_copy_entries_log_wrap_from_buffer_not_entry_alig
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
 	const int entry_count = 32;
 	const int entry_full = entry_len * entry_count;
-	uint8_t  buffer[entry_full + entry_size];
+	uint8_t buffer[entry_full + entry_size];
 	uint8_t entry[entry_count + 1][entry_size];
 	size_t log_len = entry_full;
 	int i;
@@ -3003,7 +2997,7 @@ static void logging_memory_test_copy_entries_log_wrap_appending_existing_empty_n
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
 	const int entry_count = 32;
 	const int entry_full = entry_len * entry_count;
-	uint8_t  buffer[entry_full + entry_size];
+	uint8_t buffer[entry_full + entry_size];
 	uint8_t entry[entry_count + 1][entry_size];
 	size_t log_len = entry_full;
 	int i;
@@ -3103,7 +3097,6 @@ static void logging_memory_test_copy_entries_empty (CuTest *test)
 	int status;
 	const int entry_size = 11;
 	const int entry_count = 32;
-
 
 	TEST_START;
 
@@ -3288,7 +3281,6 @@ static void logging_memory_test_copy_entries_null (CuTest *test)
 	const int entry_count = 32;
 	uint8_t entry[entry_size];
 
-
 	TEST_START;
 
 	memset (entry, 0, sizeof (entry));
@@ -3365,6 +3357,7 @@ static void logging_memory_test_copy_entries_error (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (logging_memory);
 
 TEST (logging_memory_test_init);
@@ -3444,3 +3437,4 @@ TEST (logging_memory_test_copy_entries_null);
 TEST (logging_memory_test_copy_entries_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

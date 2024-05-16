@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
 #include "platform_io.h"
 #include "testing.h"
-#include "testing/crypto/rsa_testing.h"
 #include "flash/flash_virtual_ram.h"
 #include "flash/flash_virtual_ram_static.h"
+#include "testing/crypto/rsa_testing.h"
 
 
 TEST_SUITE_LABEL ("flash_virtual_ram");
@@ -424,8 +424,7 @@ static void flash_virtual_ram_test_read (CuTest *test)
 
 	memcpy (flash_virtual_ram_testing_buffer, RSA_PRIVKEY_DER, (VIRTUAL_FLASH_BLOCK_SIZE * 4));
 
-	status = virtual_flash.base.read (&virtual_flash.base, 0, read_data,
-		sizeof (read_data));
+	status = virtual_flash.base.read (&virtual_flash.base, 0, read_data, sizeof (read_data));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (RSA_PRIVKEY_DER, read_data, sizeof (read_data));
@@ -446,8 +445,7 @@ static void flash_virtual_ram_test_read_not_page_aligned (CuTest *test)
 	status = flash_virtual_ram_init (&virtual_flash, &state, flash_virtual_ram_testing_buffer,
 		FLASH_VIRTUAL_RAM_TESTING_BUF_SIZE);
 
-	status = virtual_flash.base.read (&virtual_flash.base, 16, read_data,
-		sizeof (read_data));
+	status = virtual_flash.base.read (&virtual_flash.base, 16, read_data, sizeof (read_data));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (flash_virtual_ram_testing_buffer + 16, read_data,
@@ -469,8 +467,7 @@ static void flash_virtual_ram_test_read_multiple_pages (CuTest *test)
 	status = flash_virtual_ram_init (&virtual_flash, &state, flash_virtual_ram_testing_buffer,
 		FLASH_VIRTUAL_RAM_TESTING_BUF_SIZE);
 
-	status = virtual_flash.base.read (&virtual_flash.base, 0, read_data,
-		sizeof (read_data));
+	status = virtual_flash.base.read (&virtual_flash.base, 0, read_data, sizeof (read_data));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (flash_virtual_ram_testing_buffer, read_data,
@@ -492,8 +489,7 @@ static void flash_virtual_ram_test_read_multiple_pages_first_page_offset (CuTest
 	status = flash_virtual_ram_init (&virtual_flash, &state, flash_virtual_ram_testing_buffer,
 		FLASH_VIRTUAL_RAM_TESTING_BUF_SIZE);
 
-	status = virtual_flash.base.read (&virtual_flash.base, 16, read_data,
-		sizeof (read_data));
+	status = virtual_flash.base.read (&virtual_flash.base, 16, read_data, sizeof (read_data));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array ((flash_virtual_ram_testing_buffer + 16), read_data,
@@ -515,8 +511,7 @@ static void flash_virtual_ram_test_read_multiple_pages_last_page_partial (CuTest
 	status = flash_virtual_ram_init (&virtual_flash, &state, flash_virtual_ram_testing_buffer,
 		FLASH_VIRTUAL_RAM_TESTING_BUF_SIZE);
 
-	status = virtual_flash.base.read (&virtual_flash.base, 0, read_data,
-		sizeof (read_data));
+	status = virtual_flash.base.read (&virtual_flash.base, 0, read_data, sizeof (read_data));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (flash_virtual_ram_testing_buffer, read_data,
@@ -539,8 +534,7 @@ static void flash_virtual_ram_test_read_multiple_pages_first_page_offset_last_pa
 	status = flash_virtual_ram_init (&virtual_flash, &state, flash_virtual_ram_testing_buffer,
 		FLASH_VIRTUAL_RAM_TESTING_BUF_SIZE);
 
-	status = virtual_flash.base.read (&virtual_flash.base, 16, read_data,
-		sizeof (read_data));
+	status = virtual_flash.base.read (&virtual_flash.base, 16, read_data, sizeof (read_data));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array ((flash_virtual_ram_testing_buffer + 16), read_data,
@@ -556,7 +550,7 @@ static void flash_virtual_ram_test_read_static (CuTest *test)
 	struct flash_virtual_ram virtual_flash =
 		flash_virtual_ram_static_init (&state, flash_virtual_ram_testing_buffer,
 		FLASH_VIRTUAL_RAM_TESTING_BUF_SIZE);
-	uint8_t read_data [VIRTUAL_FLASH_BLOCK_SIZE];
+	uint8_t read_data[VIRTUAL_FLASH_BLOCK_SIZE];
 	int status;
 
 	TEST_START;
@@ -564,8 +558,7 @@ static void flash_virtual_ram_test_read_static (CuTest *test)
 	status = flash_virtual_ram_init_state (&virtual_flash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = virtual_flash.base.read (&virtual_flash.base, 0, read_data,
-		sizeof (read_data));
+	status = virtual_flash.base.read (&virtual_flash.base, 0, read_data, sizeof (read_data));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (RSA_PRIVKEY_DER, read_data, sizeof (read_data));
@@ -686,8 +679,7 @@ static void flash_virtual_ram_test_read_length_too_long (CuTest *test)
 	status = flash_virtual_ram_init (&virtual_flash, &state, flash_virtual_ram_testing_buffer,
 		FLASH_VIRTUAL_RAM_TESTING_BUF_SIZE);
 
-	status = virtual_flash.base.read (&virtual_flash.base, 16, read_data,
-		0xFFFFFFFF);
+	status = virtual_flash.base.read (&virtual_flash.base, 16, read_data, 0xFFFFFFFF);
 	CuAssertIntEquals (test, FLASH_ADDRESS_OUT_OF_RANGE, status);
 
 	flash_virtual_ram_release (&virtual_flash);
@@ -826,8 +818,8 @@ static void flash_virtual_ram_test_write_multiple_pages_first_page_offset (CuTes
 
 	memset (flash_virtual_ram_testing_buffer, 0xFF, (VIRTUAL_FLASH_BLOCK_SIZE * 4));
 
-	status = virtual_flash.base.write (&virtual_flash.base, 16,
-		RSA_PRIVKEY_DER, ((VIRTUAL_FLASH_BLOCK_SIZE * 4) - 16));
+	status = virtual_flash.base.write (&virtual_flash.base, 16,	RSA_PRIVKEY_DER,
+		((VIRTUAL_FLASH_BLOCK_SIZE * 4) - 16));
 	CuAssertIntEquals (test, ((VIRTUAL_FLASH_BLOCK_SIZE * 4) - 16), status);
 
 	status = testing_validate_array (RSA_PRIVKEY_DER, (flash_virtual_ram_testing_buffer + 16),
@@ -951,8 +943,8 @@ static void flash_virtual_ram_test_write_out_of_range_address_zero (CuTest *test
 	status = flash_virtual_ram_init (&virtual_flash, &state, flash_virtual_ram_testing_buffer,
 		FLASH_VIRTUAL_RAM_TESTING_BUF_SIZE);
 
-	status = virtual_flash.base.write (&virtual_flash.base, 0,
-		RSA_PRIVKEY_DER, (FLASH_VIRTUAL_RAM_TESTING_BUF_SIZE + 1));
+	status = virtual_flash.base.write (&virtual_flash.base, 0, RSA_PRIVKEY_DER,
+		(FLASH_VIRTUAL_RAM_TESTING_BUF_SIZE + 1));
 	CuAssertIntEquals (test, FLASH_ADDRESS_OUT_OF_RANGE, status);
 
 	flash_virtual_ram_release (&virtual_flash);
@@ -969,8 +961,8 @@ static void flash_virtual_ram_test_write_out_of_range_address_non_zero (CuTest *
 	status = flash_virtual_ram_init (&virtual_flash, &state, flash_virtual_ram_testing_buffer,
 		FLASH_VIRTUAL_RAM_TESTING_BUF_SIZE);
 
-	status = virtual_flash.base.write (&virtual_flash.base, 16,
-		RSA_PRIVKEY_DER, ((FLASH_VIRTUAL_RAM_TESTING_BUF_SIZE + 1) - 16));
+	status = virtual_flash.base.write (&virtual_flash.base, 16,	RSA_PRIVKEY_DER,
+		((FLASH_VIRTUAL_RAM_TESTING_BUF_SIZE + 1) - 16));
 	CuAssertIntEquals (test, FLASH_ADDRESS_OUT_OF_RANGE, status);
 
 	flash_virtual_ram_release (&virtual_flash);
@@ -1048,7 +1040,7 @@ static void flash_virtual_ram_test_sector_erase (CuTest *test)
 	status = virtual_flash.base.sector_erase (&virtual_flash.base, VIRTUAL_FLASH_BLOCK_SIZE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = memcmp ((flash_virtual_ram_testing_buffer + VIRTUAL_FLASH_BLOCK_SIZE) , test_data,
+	status = memcmp ((flash_virtual_ram_testing_buffer + VIRTUAL_FLASH_BLOCK_SIZE), test_data,
 		VIRTUAL_FLASH_BLOCK_SIZE);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1158,7 +1150,7 @@ static void flash_virtual_ram_test_block_erase (CuTest *test)
 	status = virtual_flash.base.block_erase (&virtual_flash.base, VIRTUAL_FLASH_BLOCK_SIZE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = memcmp ((flash_virtual_ram_testing_buffer + VIRTUAL_FLASH_BLOCK_SIZE) , test_data,
+	status = memcmp ((flash_virtual_ram_testing_buffer + VIRTUAL_FLASH_BLOCK_SIZE), test_data,
 		VIRTUAL_FLASH_BLOCK_SIZE);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1268,7 +1260,8 @@ static void flash_virtual_ram_test_chip_erase (CuTest *test)
 	status = virtual_flash.base.chip_erase (&virtual_flash.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = memcmp (flash_virtual_ram_testing_buffer, test_data, FLASH_VIRTUAL_RAM_TESTING_BUF_SIZE);
+	status = memcmp (flash_virtual_ram_testing_buffer, test_data,
+		FLASH_VIRTUAL_RAM_TESTING_BUF_SIZE);
 	CuAssertIntEquals (test, 0, status);
 
 	flash_virtual_ram_release (&virtual_flash);
@@ -1319,6 +1312,7 @@ static void flash_virtual_ram_test_chip_erase_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (flash_virtual_ram);
 
 TEST (flash_virtual_ram_test_init);
@@ -1390,3 +1384,4 @@ TEST (flash_virtual_ram_test_chip_erase_static);
 TEST (flash_virtual_ram_test_chip_erase_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

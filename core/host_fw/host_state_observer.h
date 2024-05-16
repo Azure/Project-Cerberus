@@ -4,8 +4,8 @@
 #ifndef HOST_STATE_OBSERVER_H_
 #define HOST_STATE_OBSERVER_H_
 
-#include "status/rot_status.h"
 #include "host_state_manager.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -64,8 +64,7 @@ struct host_state_observer {
 	 * @param observer The observer instance being notified.
 	 * @param manager The manager generating the event.
 	 */
-	void (*on_pfm_dirty) (struct host_state_observer *observer,
-		struct host_state_manager *manager);
+	void (*on_pfm_dirty) (struct host_state_observer *observer,	struct host_state_manager *manager);
 
 	/**
 	 * Notification that the run-time validation status has changed.
@@ -112,4 +111,4 @@ enum {
 };
 
 
-#endif /* HOST_STATE_OBSERVER_H_ */
+#endif	/* HOST_STATE_OBSERVER_H_ */

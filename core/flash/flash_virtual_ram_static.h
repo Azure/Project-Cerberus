@@ -12,8 +12,8 @@ int flash_virtual_ram_get_device_size (const struct flash *virtual_ram, uint32_t
 int flash_virtual_ram_read (const struct flash *virtual_ram, uint32_t address, uint8_t *data,
 	size_t length);
 int flash_virtual_ram_get_block_size (const struct flash *virtual_ram, uint32_t *bytes);
-int flash_virtual_ram_write (const struct flash *virtual_ram, uint32_t address,
-	const uint8_t *data, size_t length);
+int flash_virtual_ram_write (const struct flash *virtual_ram, uint32_t address,	const uint8_t *data,
+	size_t length);
 int flash_virtual_ram_block_erase (const struct flash *virtual_ram, uint32_t address);
 int flash_virtual_ram_chip_erase (const struct flash *virtual_ram);
 
@@ -50,4 +50,4 @@ int flash_virtual_ram_chip_erase (const struct flash *virtual_ram);
 	}
 
 
-#endif /* FLASH_STORE_AGGREGATOR_STATIC_H_*/
+#endif	/* FLASH_STORE_AGGREGATOR_STATIC_H_*/

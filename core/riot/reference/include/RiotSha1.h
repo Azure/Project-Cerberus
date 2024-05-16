@@ -43,9 +43,9 @@
 
 typedef int asb;
 
-typedef uint8_t  sha2_uint8_t;  // Exactly 1 byte
-typedef uint32_t sha2_word32;   // Exactly 4 bytes
-typedef uint64_t sha2_word64;   // Exactly 8 bytes
+typedef uint8_t sha2_uint8_t;	// Exactly 1 byte
+typedef uint32_t sha2_word32;	// Exactly 4 bytes
+typedef uint64_t sha2_word64;	// Exactly 8 bytes
 
 #endif
 
@@ -54,8 +54,8 @@ extern "C" {
 #endif
 
 /* Make sure you define these types for your architecture: */
-typedef unsigned int sha1_quadbyte; // 4 byte type
-typedef unsigned char sha1_byte;    // single byte type
+typedef unsigned int sha1_quadbyte;	// 4 byte type
+typedef unsigned char sha1_byte;	// single byte type
 
 
 #define SHA1_BLOCK_LENGTH       64	// Equal to SHA1_BLOCK_SIZE
@@ -63,19 +63,19 @@ typedef unsigned char sha1_byte;    // single byte type
 
 /* The SHA1 structure: */
 typedef struct _RIOT_SHA1_CONTEXT {
-    sha1_quadbyte   state[5];
-    sha1_quadbyte   count[2];
-    sha1_byte       buffer[SHA1_BLOCK_LENGTH];
+	sha1_quadbyte state[5];
+	sha1_quadbyte count[2];
+	sha1_byte buffer[SHA1_BLOCK_LENGTH];
 } RIOT_SHA1_CONTEXT;
 
 #ifndef NOPROTO
-void RIOT_SHA1_Init(RIOT_SHA1_CONTEXT *context);
-void RIOT_SHA1_Update(RIOT_SHA1_CONTEXT *context, const sha1_byte *data, unsigned int len);
-void RIOT_SHA1_Final(RIOT_SHA1_CONTEXT* context, sha1_byte digest[SHA1_DIGEST_LENGTH]);
+void RIOT_SHA1_Init (RIOT_SHA1_CONTEXT *context);
+void RIOT_SHA1_Update (RIOT_SHA1_CONTEXT *context, const sha1_byte *data, unsigned int len);
+void RIOT_SHA1_Final (RIOT_SHA1_CONTEXT *context, sha1_byte digest[SHA1_DIGEST_LENGTH]);
 #else
-void RIOT_SHA1_Init();
-void RIOT_SHA1_Update();
-void RIOT_SHA1_Final();
+void RIOT_SHA1_Init ();
+void RIOT_SHA1_Update ();
+void RIOT_SHA1_Final ();
 #endif
 
 //
@@ -84,10 +84,9 @@ void RIOT_SHA1_Final();
 // @param bufSize the number of bytes in the buffer
 // @param digest the buffer to hold the digest.  Must be of size SHA1_DIGEST_LENGTH
 //
-void RIOT_SHA1_Block(const uint8_t *buf, size_t bufSize, uint8_t *digest);
+void RIOT_SHA1_Block (const uint8_t *buf, size_t bufSize, uint8_t *digest);
 
 #ifdef    __cplusplus
 }
 #endif
 #endif
-

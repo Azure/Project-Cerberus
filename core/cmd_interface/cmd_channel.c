@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "platform_api.h"
 #include "cmd_channel.h"
 #include "cmd_logging.h"
+#include "platform_api.h"
 #include "common/common_math.h"
 #include "mctp/mctp_interface.h"
 
@@ -174,6 +174,7 @@ int cmd_channel_receive_and_process (const struct cmd_channel *channel,
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
 			CMD_LOGGING_RECEIVE_PACKET_FAIL, channel->id, status);
+
 		return status;
 	}
 
@@ -184,6 +185,7 @@ int cmd_channel_receive_and_process (const struct cmd_channel *channel,
 			CMD_LOGGING_PACKET_OVERFLOW, channel->id, 0);
 
 		channel->state->overflow = true;
+
 		return CMD_CHANNEL_PKT_OVERFLOW;
 	}
 	else if (channel->state->overflow) {
@@ -191,6 +193,7 @@ int cmd_channel_receive_and_process (const struct cmd_channel *channel,
 		 * remaining bytes from the transaction that triggered the overflow condition, so it doesn't
 		 * actually represent valid data. */
 		channel->state->overflow = false;
+
 		return 0;
 	}
 
@@ -250,5 +253,6 @@ int cmd_channel_send_message (const struct cmd_channel *channel, const struct cm
 	}
 
 	packet.timeout_valid = false;
+
 	return cmd_channel_send_packets (channel, message, &packet);
 }

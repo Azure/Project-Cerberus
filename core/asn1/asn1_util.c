@@ -10,8 +10,8 @@
  * Type tags used in ASN.1 encoding.
  */
 enum {
-	ASN1_TAG_INTEGER = 0x02,				/**< ASN.1 INTEGER value. */
-	ASN1_TAG_OBJECT_IDENTIFIER = 0x06,		/**< ASN.1 OBJECT IDENTIFIER value. */
+	ASN1_TAG_INTEGER = 0x02,			/**< ASN.1 INTEGER value. */
+	ASN1_TAG_OBJECT_IDENTIFIER = 0x06,	/**< ASN.1 OBJECT IDENTIFIER value. */
 };
 
 
@@ -273,6 +273,7 @@ int asn1_decode_integer (const uint8_t *der, size_t length, uint64_t *value)
 	}
 
 	*value = tmp;
+
 	return 0;
 }
 
@@ -332,5 +333,6 @@ int asn1_decode_base128_oid (const uint8_t *der, size_t length, const uint8_t **
 	}
 
 	*oid = der;
+
 	return asn1_get_item (ASN1_TAG_OBJECT_IDENTIFIER, oid, &length, oid_length);
 }

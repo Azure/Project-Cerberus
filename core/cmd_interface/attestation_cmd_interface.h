@@ -23,4 +23,4 @@ enum attestation_cmd_status {
 };
 
 
-#endif //ATTESTATION_CMD_INTERFACE_H_
+#endif	//ATTESTATION_CMD_INTERFACE_H_

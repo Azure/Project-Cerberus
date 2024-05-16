@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
@@ -126,6 +126,7 @@ static void checksum_test_update_smbus_crc8_zero_length (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (checksum);
 
 TEST (checksum_test_crc8);
@@ -137,3 +138,4 @@ TEST (checksum_test_update_smbus_crc8_null);
 TEST (checksum_test_update_smbus_crc8_zero_length);
 
 TEST_SUITE_END;
+// *INDENT-ON*

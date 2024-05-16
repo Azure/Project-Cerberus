@@ -40,4 +40,4 @@ int secure_device_unlock_policy_clear_unlock_policy (const struct secure_device_
 	}
 
 
-#endif /* SECURE_DEVICE_UNLOCK_POLICY_STATIC_H_ */
+#endif	/* SECURE_DEVICE_UNLOCK_POLICY_STATIC_H_ */

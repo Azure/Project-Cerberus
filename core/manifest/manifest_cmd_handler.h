@@ -23,7 +23,7 @@ enum {
  * Variable context for the manifest command handler.
  */
 struct manifest_cmd_handler_state {
-	int status;									/**< The manifest operation status. */
+	int status;	/**< The manifest operation status. */
 };
 
 /**
@@ -63,4 +63,4 @@ void manifest_cmd_handler_set_status (const struct manifest_cmd_handler *handler
  * error codes. */
 
 
-#endif /* MANIFEST_CMD_HANDLER_H_ */
+#endif	/* MANIFEST_CMD_HANDLER_H_ */

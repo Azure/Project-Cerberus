@@ -4,11 +4,11 @@
 #ifndef OCP_RECOVERY_DEVICE_H_
 #define OCP_RECOVERY_DEVICE_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
-#include "status/rot_status.h"
+#include <stddef.h>
+#include <stdint.h>
 #include "ocp_recovery.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -60,6 +60,7 @@ struct ocp_recovery_device_cms {
 		uint8_t *base_addr;											/**< The base address for a fixed-length region of memory. */
 		const struct ocp_recovery_device_variable_cms *variable;	/**< Log interface for the memory region.  Must be a RO region. */
 	};
+
 	/**
 	 * Size of the memory that is accessible, in bytes.
 	 *
@@ -68,7 +69,7 @@ struct ocp_recovery_device_cms {
 	 * using a variable interface, it is best if the data will always be 4-byte aligned.
 	 */
 	size_t length;
-	enum ocp_recovery_region_type type;								/**< The type of memory region that is exposed. */
+	enum ocp_recovery_region_type type;	/**< The type of memory region that is exposed. */
 };
 
 #pragma pack(push, 1)
@@ -76,8 +77,8 @@ struct ocp_recovery_device_cms {
  * Define a vender-specific status format that will be reported in DEVICE_STATUS messages.
  */
 struct ocp_recovery_device_status_vendor {
-	uint8_t failure_id;						/**< Identifier indicating the overall failure condition. */
-	uint32_t error_code;					/**< Specific error code of the failure. */
+	uint8_t failure_id;		/**< Identifier indicating the overall failure condition. */
+	uint32_t error_code;	/**< Specific error code of the failure. */
 };
 
 /**
@@ -95,6 +96,7 @@ union ocp_recovery_device_cmd_buffer {
 	struct ocp_recovery_indirect_data indirect_data;		/**< The INDIRECT_DATA command structure. */
 	uint8_t bytes[255];										/**< Raw byte access to the command bytes. */
 };
+
 #pragma pack(pop)
 
 /**
@@ -195,10 +197,10 @@ struct ocp_recovery_device_state {
  * Device-side handler for the OCP Recovery protocol.
  */
 struct ocp_recovery_device {
-	struct ocp_recovery_device_state *state;			/**< The variable context for the handler. */
-	const struct ocp_recovery_device_hw *hw;			/**< HW interface to the device. */
-	const struct ocp_recovery_device_cms *cms;			/**< Memory regions available for recovery commands. */
-	size_t cms_count;									/**< Number of memory regions supported. */
+	struct ocp_recovery_device_state *state;	/**< The variable context for the handler. */
+	const struct ocp_recovery_device_hw *hw;	/**< HW interface to the device. */
+	const struct ocp_recovery_device_cms *cms;	/**< Memory regions available for recovery commands. */
+	size_t cms_count;							/**< Number of memory regions supported. */
 };
 
 
@@ -268,4 +270,4 @@ enum {
 };
 
 
-#endif /* OCP_RECOVERY_DEVICE_H_ */
+#endif	/* OCP_RECOVERY_DEVICE_H_ */

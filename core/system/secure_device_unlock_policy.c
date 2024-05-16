@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "secure_device_unlock_policy.h"
 #include "common/common_math.h"
@@ -56,6 +56,7 @@ int secure_device_unlock_policy_get_unlock_token (const struct secure_device_unl
 
 exit:
 	platform_free (counter);
+
 	return status;
 }
 

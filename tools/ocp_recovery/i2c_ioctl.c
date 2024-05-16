@@ -25,6 +25,7 @@
  */
 static int i2c_handle;
 
+
 int i2c_init (uint8_t port)
 {
 	char dev_name[64];
@@ -34,11 +35,11 @@ int i2c_init (uint8_t port)
 
 	if (i2c_handle < 0) {
 		printf ("Failed to open I2C device %s: %s\n", dev_name, strerror (errno));
+
 		return FAILURE;
 	}
 
 	return SUCCESS;
-
 }
 
 int i2c_read (uint8_t cmd, int8_t addr, uint8_t *payload, int16_t length)
@@ -63,6 +64,7 @@ int i2c_read (uint8_t cmd, int8_t addr, uint8_t *payload, int16_t length)
 	ret = ioctl (i2c_handle, I2C_RDWR, &xfer);
 	if (ret < 0) {
 		printf ("Unable to read data ioctl i2c device port: %s\n", strerror (errno));
+
 		return FAILURE;
 	}
 
@@ -86,6 +88,7 @@ int i2c_write (int8_t addr, uint8_t *payload, int16_t length)
 	ret = ioctl (i2c_handle, I2C_RDWR, &xfer);
 	if (ret < 0) {
 		printf ("Unable to write data ioctl i2c device port: %s\n", strerror (errno));
+
 		return FAILURE;
 	}
 

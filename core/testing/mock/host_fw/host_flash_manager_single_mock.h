@@ -4,16 +4,16 @@
 #ifndef HOST_FLASH_MANAGER_SINGLE_MOCK_H_
 #define HOST_FLASH_MANAGER_SINGLE_MOCK_H_
 
-#include "host_fw/host_flash_manager_single.h"
 #include "mock.h"
+#include "host_fw/host_flash_manager_single.h"
 
 
 /**
  * A mock for the manager of protected host flash using a single flash.
  */
 struct host_flash_manager_single_mock {
-	struct host_flash_manager_single base;		/**< The base manager instance. */
-	struct mock mock;							/**< The base mock interface. */
+	struct host_flash_manager_single base;	/**< The base manager instance. */
+	struct mock mock;						/**< The base mock interface. */
 };
 
 
@@ -24,4 +24,4 @@ int host_flash_manager_single_mock_validate_and_release (
 	struct host_flash_manager_single_mock *mock);
 
 
-#endif /* HOST_FLASH_MANAGER_SINGLE_MOCK_H_ */
+#endif	/* HOST_FLASH_MANAGER_SINGLE_MOCK_H_ */

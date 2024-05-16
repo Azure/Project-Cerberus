@@ -15360,6 +15360,7 @@ static void host_fw_migrate_read_write_data_multiple_fw_test_erase_error (CuTest
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_fw_util);
 
 TEST (host_fw_determine_version_test);
@@ -15591,3 +15592,4 @@ TEST (host_fw_migrate_read_write_data_multiple_fw_test_null);
 TEST (host_fw_migrate_read_write_data_multiple_fw_test_erase_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

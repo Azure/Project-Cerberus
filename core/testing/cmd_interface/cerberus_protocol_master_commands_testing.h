@@ -4,16 +4,16 @@
 #ifndef CERBERUS_PROTOCOL_MASTER_COMMANDS_TESTING_H_
 #define CERBERUS_PROTOCOL_MASTER_COMMANDS_TESTING_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "testing.h"
 #include "cmd_interface/cmd_interface.h"
 #include "testing/mock/cmd_interface/cmd_background_mock.h"
 #include "testing/mock/firmware/firmware_update_control_mock.h"
 #include "testing/mock/flash/flash_mock.h"
 #include "testing/mock/host_fw/host_processor_mock.h"
-#include "testing/mock/manifest/manifest_cmd_interface_mock.h"
 #include "testing/mock/manifest/cfm/cfm_manager_mock.h"
+#include "testing/mock/manifest/manifest_cmd_interface_mock.h"
 #include "testing/mock/manifest/pcd/pcd_manager_mock.h"
 #include "testing/mock/recovery/recovery_image_cmd_interface_mock.h"
 #include "testing/mock/recovery/recovery_image_manager_mock.h"
@@ -21,7 +21,8 @@
 
 void cerberus_protocol_master_commands_testing_process_response_get_certificate_digest (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_interface_msg *response);
-void cerberus_protocol_master_commands_testing_process_response_get_certificate_digest_invalid_buf_len (
+void
+cerberus_protocol_master_commands_testing_process_response_get_certificate_digest_invalid_buf_len (
 	CuTest *test, struct cmd_interface *cmd);
 
 void cerberus_protocol_master_commands_testing_process_response_get_certificate (CuTest *test,
@@ -42,7 +43,8 @@ void cerberus_protocol_master_commands_testing_process_response_challenge_rsvd_n
 
 void cerberus_protocol_master_commands_testing_process_response_device_capabilities (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_interface_msg *response);
-void cerberus_protocol_master_commands_testing_process_response_device_capabilities_invalid_buf_len (
+void cerberus_protocol_master_commands_testing_process_response_device_capabilities_invalid_buf_len
+(
 	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_master_commands_testing_process_response_device_capabilities_rsvd_not_zero (
 	CuTest *test, struct cmd_interface *cmd);
@@ -227,11 +229,15 @@ void cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verific
 	CuTest *test, struct cmd_interface *cmd, struct host_processor_mock *host_0);
 void cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_port1 (
 	CuTest *test, struct cmd_interface *cmd, struct host_processor_mock *host_1);
-void cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_port0_null (
+void
+cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_port0_null (
 	CuTest *test, struct cmd_interface *cmd);
-void cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_port1_null (
+void
+cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_port1_null (
 	CuTest *test, struct cmd_interface *cmd);
-void cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_invalid_port (
+void
+cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_invalid_port
+(
 	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_fail (
 	CuTest *test, struct cmd_interface *cmd, struct host_processor_mock *host_0);
@@ -243,7 +249,8 @@ void cerberus_protocol_master_commands_testing_process_get_recovery_image_update
 	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_master_commands_testing_process_get_recovery_image_update_status_port1_null (
 	CuTest *test, struct cmd_interface *cmd);
-void cerberus_protocol_master_commands_testing_process_get_recovery_image_update_status_bad_port_index (
+void
+cerberus_protocol_master_commands_testing_process_get_recovery_image_update_status_bad_port_index (
 	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_master_commands_testing_process_get_reset_config_status (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_background_mock *background);
@@ -266,9 +273,11 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_ext_update_status
 	struct cmd_interface *cmd);
 void cerberus_protocol_master_commands_testing_process_get_pcd_ext_update_status (CuTest *test,
 	struct cmd_interface *cmd);
-void cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_ext_status_port0 (
+void
+cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_ext_status_port0 (
 	CuTest *test, struct cmd_interface *cmd);
-void cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_ext_status_port1 (
+void
+cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_ext_status_port1 (
 	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port0 (
 	CuTest *test, struct cmd_interface *cmd, struct recovery_image_cmd_interface_mock *recovery_0,
@@ -276,15 +285,23 @@ void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_up
 void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port1 (
 	CuTest *test, struct cmd_interface *cmd, struct recovery_image_cmd_interface_mock *recovery_1,
 	struct recovery_image_manager_mock *recovery_manager_1, struct flash_mock *flash);
-void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port0_null (
+void
+cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port0_null (
 	CuTest *test, struct cmd_interface *cmd);
-void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port0_cmd_intf_null (
+void
+cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port0_cmd_intf_null
+(
 	CuTest *test, struct cmd_interface *cmd);
-void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port1_null (
+void
+cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port1_null (
 	CuTest *test, struct cmd_interface *cmd);
-void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port1_cmd_intf_null (
+void
+cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port1_cmd_intf_null
+(
 	CuTest *test, struct cmd_interface *cmd);
-void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_bad_port_index (
+void
+cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_bad_port_index
+(
 	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_master_commands_testing_process_get_reset_config_ext_update_status (
 	CuTest *test, struct cmd_interface *cmd);
@@ -294,4 +311,4 @@ void cerberus_protocol_master_commands_testing_process_get_ext_update_status_inv
 	CuTest *test, struct cmd_interface *cmd);
 
 
-#endif /* CERBERUS_PROTOCOL_MASTER_COMMANDS_TESTING_H_ */
+#endif	/* CERBERUS_PROTOCOL_MASTER_COMMANDS_TESTING_H_ */

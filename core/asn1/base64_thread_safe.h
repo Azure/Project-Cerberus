@@ -12,9 +12,9 @@
  * Thread-safe wrapper for a Base64 instance.
  */
 struct base64_engine_thread_safe {
-	struct base64_engine base;			/**< Base API implementation. */
-	struct base64_engine *engine;		/**< Base64 instance to use for execution. */
-	platform_mutex lock;				/**< Synchronization lock. */
+	struct base64_engine base;		/**< Base API implementation. */
+	struct base64_engine *engine;	/**< Base64 instance to use for execution. */
+	platform_mutex lock;			/**< Synchronization lock. */
 };
 
 
@@ -23,4 +23,4 @@ int base64_thread_safe_init (struct base64_engine_thread_safe *engine,
 void base64_thread_safe_release (struct base64_engine_thread_safe *engine);
 
 
-#endif /* BASE64_THREAD_SAFE_H_ */
+#endif	/* BASE64_THREAD_SAFE_H_ */

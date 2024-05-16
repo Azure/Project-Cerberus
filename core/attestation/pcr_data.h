@@ -5,6 +5,7 @@
 #define PCR_DATA_H_
 
 #include <stdint.h>
+#include "crypto/hash.h"
 #include "flash/flash.h"
 
 

@@ -4,10 +4,10 @@
 #ifndef ECC_DER_UTIL_H_
 #define ECC_DER_UTIL_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "status/rot_status.h"
+#include <stdint.h>
 #include "crypto/ecc.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -15,8 +15,8 @@
  * be used to reference either a public or private key.
  */
 struct ecc_der_key {
-	const uint8_t *der;						/**< Reference to the DER encoded key data. */
-	size_t length;							/**< Length of the DER encoded data. */
+	const uint8_t *der;	/**< Reference to the DER encoded key data. */
+	size_t length;		/**< Length of the DER encoded data. */
 };
 
 
@@ -90,8 +90,8 @@ size_t ecc_der_get_public_key_length (const uint8_t *der, size_t max_length);
  * Container for a DER encoded ECC public key.
  */
 struct ecc_der_public_key {
-	uint8_t der[ECC_DER_MAX_PUBLIC_LENGTH];		/**< Buffer for the DER encoded public key. */
-	size_t length;								/**< Length of the public key data. */
+	uint8_t der[ECC_DER_MAX_PUBLIC_LENGTH];	/**< Buffer for the DER encoded public key. */
+	size_t length;							/**< Length of the public key data. */
 };
 
 
@@ -140,4 +140,4 @@ enum {
 };
 
 
-#endif /* ECC_DER_UTIL_H_ */
+#endif	/* ECC_DER_UTIL_H_ */

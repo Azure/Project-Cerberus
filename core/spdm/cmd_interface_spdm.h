@@ -5,10 +5,10 @@
 #define CMD_INTERFACE_SPDM_H_
 
 #include <stdint.h>
-#include "crypto/hash.h"
-#include "common/observable.h"
-#include "cmd_interface/cmd_interface.h"
 #include "spdm_protocol_observer.h"
+#include "cmd_interface/cmd_interface.h"
+#include "common/observable.h"
+#include "crypto/hash.h"
 
 
 /**
@@ -17,8 +17,8 @@
  * TODO:  Rename this to cmd_interface_spdm_requester.
  */
 struct cmd_interface_spdm {
-	struct cmd_interface base;					/**< Base command interface. */
-	struct observable observable;				/**< Observer manager for the interface. */
+	struct cmd_interface base;		/**< Base command interface. */
+	struct observable observable;	/**< Observer manager for the interface. */
 };
 
 
@@ -57,4 +57,4 @@ enum {
 };
 
 
-#endif /* CMD_INTERFACE_SPDM_H_ */
+#endif	/* CMD_INTERFACE_SPDM_H_ */

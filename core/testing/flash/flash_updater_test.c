@@ -1713,6 +1713,7 @@ static void flash_updater_test_check_update_size_too_large_with_offset (CuTest *
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (flash_updater);
 
 TEST (flash_updater_test_init);
@@ -1767,3 +1768,4 @@ TEST (flash_updater_test_check_update_size_too_large);
 TEST (flash_updater_test_check_update_size_too_large_with_offset);
 
 TEST_SUITE_END;
+// *INDENT-ON*

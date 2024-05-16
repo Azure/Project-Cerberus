@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "manifest_cmd_handler_mock.h"
 
@@ -81,6 +81,7 @@ int manifest_cmd_handler_mock_init (struct manifest_cmd_handler_mock *mock,
 	status = mock_init (&mock->mock);
 	if (status != 0) {
 		manifest_cmd_handler_release (&mock->base);
+
 		return status;
 	}
 

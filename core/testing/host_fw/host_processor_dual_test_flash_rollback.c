@@ -82,8 +82,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -172,8 +172,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_bypass (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -262,8 +262,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_checked (CuTest *test
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -353,8 +353,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_checked_bypass (CuTes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -444,8 +444,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_dirty (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
@@ -540,8 +540,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_dirty_bypass (CuTest 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
@@ -636,8 +636,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_dirty_checked (CuTest
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
@@ -733,8 +733,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_dirty_checked_bypass 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
@@ -824,8 +824,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_pulse_reset (CuTest *
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -964,8 +964,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_no_reset (CuTest *tes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, true);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		true);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -1047,8 +1047,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_no_reset_pulse_reset 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, true);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		true);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -1137,8 +1137,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_unsupported_flash (Cu
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -1224,8 +1224,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty (CuTest
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -1311,8 +1311,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_multipl
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -1346,8 +1346,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_bypass 
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_ro_cs, &host.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
@@ -1365,8 +1365,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_bypass 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -1406,8 +1406,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_bypass_
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_ro_cs, &host.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_1));
@@ -1425,8 +1425,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_bypass_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -1467,8 +1467,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_bypass_
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_ro_cs, &host.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
@@ -1483,8 +1483,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_bypass_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -1566,8 +1566,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_checked
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -1603,8 +1603,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_checked
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_ro_cs, &host.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
@@ -1622,8 +1622,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_checked
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -1703,8 +1703,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_pulse_r
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -1812,8 +1812,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_no_rese
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, true);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		true);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -1886,8 +1886,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_no_rese
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, true);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		true);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -1918,8 +1918,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_unsuppo
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_PROCESSOR_FLASH_NOT_SUPPORTED, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -1950,8 +1950,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_dirty (CuTest *te
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_PROCESSOR_ROLLBACK_DIRTY, status);
 
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
@@ -1991,8 +1991,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_dirty_bypass (CuT
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_ro_cs, &host.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
@@ -2010,8 +2010,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_dirty_bypass (CuT
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
@@ -2050,8 +2050,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_dirty_checked (Cu
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_PROCESSOR_ROLLBACK_DIRTY, status);
 
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
@@ -2092,8 +2092,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_dirty_checked_byp
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_ro_cs, &host.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
@@ -2111,8 +2111,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_dirty_checked_byp
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
@@ -2194,8 +2194,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_dirty_bypass_no_r
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_ro_cs, &host.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
@@ -2211,8 +2211,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_dirty_bypass_no_r
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, true);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		true);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
@@ -2253,8 +2253,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_dirty_bypass_no_r
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_ro_cs, &host.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
@@ -2270,8 +2270,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_dirty_bypass_no_r
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, true);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		true);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
@@ -2311,8 +2311,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_dirty_unsupported
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_PROCESSOR_FLASH_NOT_SUPPORTED, status);
 
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
@@ -2360,8 +2360,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_validat
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -2406,8 +2406,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_hash_va
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_FW_UTIL_BAD_IMAGE_HASH, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -2440,8 +2440,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_unknown
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
 		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm),
-		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
 		MOCK_ARG_PTR (&host.pfm));
@@ -2453,8 +2452,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_unknown
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_FW_UTIL_UNSUPPORTED_VERSION, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -2498,8 +2497,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_blank_f
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, FLASH_UTIL_UNEXPECTED_VALUE, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -2543,8 +2542,8 @@ static void host_processor_dual_test_flash_rollback_validation_fail_pulse_reset 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -2588,8 +2587,8 @@ static void host_processor_dual_test_flash_rollback_hash_validation_fail_pulse_r
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_FW_UTIL_BAD_IMAGE_HASH, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -2618,8 +2617,7 @@ static void host_processor_dual_test_flash_rollback_unknown_version_pulse_reset 
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
 		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm),
-		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
 		MOCK_ARG_PTR (&host.pfm));
@@ -2634,8 +2632,8 @@ static void host_processor_dual_test_flash_rollback_unknown_version_pulse_reset 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_FW_UTIL_UNSUPPORTED_VERSION, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -2679,8 +2677,8 @@ static void host_processor_dual_test_flash_rollback_blank_fail_pulse_reset (CuTe
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, FLASH_UTIL_UNEXPECTED_VALUE, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -2770,8 +2768,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_rot_access_error (CuT
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_ROT_ACCESS_FAILED, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -2844,8 +2842,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_rot_access_error_puls
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_ROT_ACCESS_FAILED, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -2927,8 +2925,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_rot_access_error_host
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_ROT_ACCESS_FAILED, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -3008,8 +3006,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_erase_error (CuTest *
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -3089,8 +3087,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_erase_error_pulse_res
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -3171,8 +3169,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_copy_error (CuTest *t
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -3253,8 +3251,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_copy_error_pulse_rese
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -3350,8 +3348,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_host_access_error (Cu
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -3445,8 +3443,8 @@ static void host_processor_dual_test_flash_rollback_no_pfm_host_access_error_pul
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -3496,8 +3494,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_rot_acc
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_ROT_ACCESS_FAILED, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -3509,7 +3507,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_rot_acc
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_rot_access_error_pulse_reset (
+static void
+host_processor_dual_test_flash_rollback_active_pfm_not_dirty_rot_access_error_pulse_reset (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -3538,8 +3537,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_rot_acc
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_ROT_ACCESS_FAILED, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -3551,7 +3550,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_rot_acc
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_rot_access_error_host_access_error (
+static void
+host_processor_dual_test_flash_rollback_active_pfm_not_dirty_rot_access_error_host_access_error (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -3589,8 +3589,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_rot_acc
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_ROT_ACCESS_FAILED, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -3623,8 +3623,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_validat
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
 		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm),
-		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
 		MOCK_ARG_PTR (&host.pfm));
@@ -3636,8 +3635,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_validat
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_VALIDATE_RW_FAILED, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -3649,7 +3648,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_validat
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_validation_error_pulse_reset (
+static void
+host_processor_dual_test_flash_rollback_active_pfm_not_dirty_validation_error_pulse_reset (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -3667,8 +3667,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_validat
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
 		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm),
-		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
 		MOCK_ARG_PTR (&host.pfm));
@@ -3683,8 +3682,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_validat
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_VALIDATE_RW_FAILED, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -3769,8 +3768,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_swap_er
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -3856,8 +3855,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_swap_er
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -3942,8 +3941,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_filter_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -4029,8 +4028,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_filter_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -4117,8 +4116,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_ac
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -4130,7 +4129,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_ac
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_access_error_pulse_reset (
+static void
+host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_access_error_pulse_reset (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -4202,8 +4202,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_ac
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -4215,7 +4215,9 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_ac
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_access_error_after_validation_fail (
+static void
+host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_access_error_after_validation_fail
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -4257,8 +4259,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_ac
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -4270,7 +4272,9 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_ac
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_access_error_after_validation_fail_pulse_reset (
+static void
+host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_access_error_after_validation_fail_pulse_reset
+(
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -4309,8 +4313,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_ac
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -4353,8 +4357,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_bypass_
 		&host.filter, SPI_FILTER_CLEAR_RW_FAILED);
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_ro_cs, &host.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
@@ -4372,8 +4376,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_bypass_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -4411,36 +4415,36 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_bypass_
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_ro_cs, &host.filter,
 		SPI_FILTER_SET_RO_FAILED, MOCK_ARG (SPI_FILTER_CS_0));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_ro_cs, &host.filter,
 		SPI_FILTER_SET_RO_FAILED, MOCK_ARG (SPI_FILTER_CS_0));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_ro_cs, &host.filter,
 		SPI_FILTER_SET_RO_FAILED, MOCK_ARG (SPI_FILTER_CS_0));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_ro_cs, &host.filter,
 		SPI_FILTER_SET_RO_FAILED, MOCK_ARG (SPI_FILTER_CS_0));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_ro_cs, &host.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
 
@@ -4457,8 +4461,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_bypass_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
-		false, false);
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
@@ -4474,6 +4478,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_bypass_
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_processor_dual_flash_rollback);
 
 TEST (host_processor_dual_test_flash_rollback_no_pfm);
@@ -4544,3 +4549,4 @@ TEST (host_processor_dual_test_flash_rollback_active_pfm_not_dirty_bypass_filter
 TEST (host_processor_dual_test_flash_rollback_active_pfm_not_dirty_bypass_cs_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

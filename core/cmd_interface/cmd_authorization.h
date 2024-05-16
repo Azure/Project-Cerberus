@@ -4,10 +4,10 @@
 #ifndef CMD_AUTHORIZATION_H_
 #define CMD_AUTHORIZATION_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "status/rot_status.h"
+#include <stdint.h>
 #include "common/authorization.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -120,4 +120,4 @@ enum {
 };
 
 
-#endif /* CMD_AUTHORIZATION_H_ */
+#endif	/* CMD_AUTHORIZATION_H_ */

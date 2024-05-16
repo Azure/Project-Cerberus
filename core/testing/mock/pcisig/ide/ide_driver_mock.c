@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <string.h>
-#include <stdint.h>
 #include <stdbool.h>
-#include "status/rot_status.h"
+#include <stdint.h>
+#include <string.h>
+#include "ide_driver_mock.h"
 #include "platform_io.h"
 #include "pcisig/ide/ide_driver.h"
-#include "ide_driver_mock.h"
+#include "status/rot_status.h"
 
 
 static int ide_driver_mock_get_bus_device_segment_info (
@@ -21,13 +21,14 @@ static int ide_driver_mock_get_bus_device_segment_info (
 	}
 
 	MOCK_RETURN (&mock->mock, ide_driver_mock_get_bus_device_segment_info, ide_driver,
-		MOCK_ARG_CALL (port_index), MOCK_ARG_PTR_CALL (bus_num), MOCK_ARG_PTR_CALL (device_func_num),
-		MOCK_ARG_PTR_CALL (segment), MOCK_ARG_PTR_CALL (max_port_index));
+		MOCK_ARG_CALL (port_index), MOCK_ARG_PTR_CALL (bus_num),
+		MOCK_ARG_PTR_CALL (device_func_num), MOCK_ARG_PTR_CALL (segment),
+		MOCK_ARG_PTR_CALL (max_port_index));
 }
 
 static int ide_driver_mock_get_capability_register (
-		const struct ide_driver *ide_driver, uint8_t port_index,
-		struct ide_capability_register *capability_register)
+	const struct ide_driver *ide_driver, uint8_t port_index,
+	struct ide_capability_register *capability_register)
 {
 	struct ide_driver_mock *mock = (struct ide_driver_mock*) ide_driver;
 
@@ -54,8 +55,8 @@ static int ide_driver_mock_get_control_register (
 }
 
 static int ide_driver_mock_get_link_ide_register_block (
-		const struct ide_driver *ide_driver, uint8_t port_index, uint8_t block_idx,
-		struct ide_link_ide_stream_register_block *register_block)
+	const struct ide_driver *ide_driver, uint8_t port_index, uint8_t block_idx,
+	struct ide_link_ide_stream_register_block *register_block)
 {
 	struct ide_driver_mock *mock = (struct ide_driver_mock*) ide_driver;
 
@@ -68,8 +69,8 @@ static int ide_driver_mock_get_link_ide_register_block (
 }
 
 static int ide_driver_mock_get_selective_ide_stream_register_block (
-		const struct ide_driver *ide_driver, uint8_t port_index, uint8_t block_idx,
-		struct ide_selective_ide_stream_register_block *register_block)
+	const struct ide_driver *ide_driver, uint8_t port_index, uint8_t block_idx,
+	struct ide_selective_ide_stream_register_block *register_block)
 {
 	struct ide_driver_mock *mock = (struct ide_driver_mock*) ide_driver;
 
@@ -77,15 +78,14 @@ static int ide_driver_mock_get_selective_ide_stream_register_block (
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, ide_driver_mock_get_selective_ide_stream_register_block,
-		ide_driver, MOCK_ARG_CALL (port_index), MOCK_ARG_CALL (block_idx),
-		MOCK_ARG_PTR_CALL (register_block));
+	MOCK_RETURN (&mock->mock, ide_driver_mock_get_selective_ide_stream_register_block, ide_driver,
+		MOCK_ARG_CALL (port_index), MOCK_ARG_CALL (block_idx), MOCK_ARG_PTR_CALL (register_block));
 }
 
 static int ide_driver_mock_key_prog (
-		const struct ide_driver *ide_driver, uint8_t port_index, uint8_t stream_id,
-		uint8_t key_set, bool tx_key, uint8_t key_substream, const uint32_t* key, uint32_t key_size,
-		const uint32_t* iv, uint32_t iv_size)
+	const struct ide_driver *ide_driver, uint8_t port_index, uint8_t stream_id,	uint8_t key_set,
+	bool tx_key, uint8_t key_substream, const uint32_t *key, uint32_t key_size,	const uint32_t *iv,
+	uint32_t iv_size)
 {
 	struct ide_driver_mock *mock = (struct ide_driver_mock*) ide_driver;
 
@@ -93,15 +93,15 @@ static int ide_driver_mock_key_prog (
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, ide_driver_mock_key_prog, ide_driver,
-		MOCK_ARG_CALL (port_index), MOCK_ARG_CALL (stream_id), MOCK_ARG_CALL (key_set),
-		MOCK_ARG_CALL (tx_key), MOCK_ARG_CALL (key_substream), MOCK_ARG_PTR_CALL (key),
-		MOCK_ARG_CALL (key_size), MOCK_ARG_PTR_CALL (iv), MOCK_ARG_CALL (iv_size));
+	MOCK_RETURN (&mock->mock, ide_driver_mock_key_prog, ide_driver,	MOCK_ARG_CALL (port_index),
+		MOCK_ARG_CALL (stream_id), MOCK_ARG_CALL (key_set),	MOCK_ARG_CALL (tx_key),
+		MOCK_ARG_CALL (key_substream), MOCK_ARG_PTR_CALL (key),	MOCK_ARG_CALL (key_size),
+		MOCK_ARG_PTR_CALL (iv), MOCK_ARG_CALL (iv_size));
 }
 
 static int ide_driver_mock_key_set_go (
-	const struct ide_driver *ide_driver, uint8_t port_index, uint8_t stream_id,
-	uint8_t key_set, bool tx_key, uint8_t key_substream)
+	const struct ide_driver *ide_driver, uint8_t port_index, uint8_t stream_id,	uint8_t key_set,
+	bool tx_key, uint8_t key_substream)
 {
 	struct ide_driver_mock *mock = (struct ide_driver_mock*) ide_driver;
 
@@ -109,13 +109,13 @@ static int ide_driver_mock_key_set_go (
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, ide_driver_mock_key_set_go, ide_driver,
-		MOCK_ARG_CALL (port_index), MOCK_ARG_CALL (stream_id), MOCK_ARG_CALL (key_set),
-		MOCK_ARG_CALL (tx_key), MOCK_ARG_CALL (key_substream));
+	MOCK_RETURN (&mock->mock, ide_driver_mock_key_set_go, ide_driver, MOCK_ARG_CALL (port_index),
+		MOCK_ARG_CALL (stream_id), MOCK_ARG_CALL (key_set),	MOCK_ARG_CALL (tx_key),
+		MOCK_ARG_CALL (key_substream));
 }
 
-static int ide_driver_mock_key_set_stop (const struct ide_driver *ide_driver,
-	uint8_t port_index, uint8_t stream_id, uint8_t key_set, bool tx_key, uint8_t key_substream)
+static int ide_driver_mock_key_set_stop (const struct ide_driver *ide_driver, uint8_t port_index,
+	uint8_t stream_id, uint8_t key_set, bool tx_key, uint8_t key_substream)
 {
 	struct ide_driver_mock *mock = (struct ide_driver_mock*) ide_driver;
 
@@ -123,9 +123,9 @@ static int ide_driver_mock_key_set_stop (const struct ide_driver *ide_driver,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, ide_driver_mock_key_set_stop, ide_driver,
-		MOCK_ARG_CALL (port_index), MOCK_ARG_CALL (stream_id), MOCK_ARG_CALL (key_set),
-		MOCK_ARG_CALL (tx_key), MOCK_ARG_CALL (key_substream));
+	MOCK_RETURN (&mock->mock, ide_driver_mock_key_set_stop, ide_driver,	MOCK_ARG_CALL (port_index),
+		MOCK_ARG_CALL (stream_id), MOCK_ARG_CALL (key_set),	MOCK_ARG_CALL (tx_key),
+		MOCK_ARG_CALL (key_substream));
 }
 
 static int ide_driver_mock_func_arg_count (void *func)

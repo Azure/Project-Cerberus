@@ -2,9 +2,9 @@
 // Licensed under the MIT license.
 
 #include <string.h>
+#include "doe_interface.h"
 #include "common/array_size.h"
 #include "common/unused.h"
-#include "doe_interface.h"
 
 
 /**
@@ -24,10 +24,10 @@ int doe_interface_init (struct doe_interface *doe, struct cmd_interface *cmd_spd
 	int status = 0;
 
 	if ((doe == NULL) || (cmd_spdm_responder == NULL) || (data_object_protocol == NULL) ||
-		(data_object_protocol_count == 0) || 
+		(data_object_protocol_count == 0) ||
 		(data_object_protocol[0].vendor_id != DOE_VENDOR_ID_PCISIG) ||
 		(data_object_protocol[0].data_object_type != DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY)) {
-		status =  DOE_INTERFACE_INVALID_ARGUMENT;
+		status = DOE_INTERFACE_INVALID_ARGUMENT;
 		goto exit;
 	}
 
@@ -38,6 +38,7 @@ int doe_interface_init (struct doe_interface *doe, struct cmd_interface *cmd_spd
 	doe->data_object_protocol_count = data_object_protocol_count;
 
 exit:
+
 	return status;
 }
 
@@ -87,6 +88,7 @@ static int doe_interface_encode_message (struct doe_cmd_message *doe_message, si
 	doe_header->vendor_id = DOE_VENDOR_ID_PCISIG;
 
 exit:
+
 	return status;
 }
 
@@ -118,13 +120,14 @@ static int doe_interface_process_doe_discovery_request (const struct doe_interfa
 		doe_interface->data_object_protocol[index].data_object_type;
 
 	/* For the last data object protocol, the next_index is 0. */
-	discovery_response->next_index = 
+	discovery_response->next_index =
 		(index == (doe_interface->data_object_protocol_count - 1)) ? 0 : (index + 1);
 
 	cmd_interface_msg_set_message_payload_length (data_obj_message,
 		sizeof (struct doe_base_protocol_discovery_response));
 
 exit:
+
 	return status;
 }
 
@@ -216,6 +219,7 @@ static int doe_interface_decode_message (struct doe_cmd_message *doe_message,
 	doe_interface_msg_init (data_obj_message, doe_message_size, doe_message);
 
 exit:
+
 	return status;
 }
 
@@ -270,5 +274,6 @@ int doe_interface_process_message (const struct doe_interface *doe,
 	}
 
 exit:
+
 	return status;
 }

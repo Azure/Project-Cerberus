@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
+#include "platform_io.h"
 #include "rng_dummy.h"
 #include "common/unused.h"
-#include "platform_io.h"
 
 
 /* Parameters used to generate "random" numbers. */

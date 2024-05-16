@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include "cmd_interface/cmd_interface.h"
 #include "doe_cmd_channel.h"
+#include "cmd_interface/cmd_interface.h"
 
 
 /**
@@ -42,5 +42,6 @@ int doe_cmd_channel_receive_and_process (const struct doe_cmd_channel *channel,
 	}
 
 exit:
+
 	return status;
 }

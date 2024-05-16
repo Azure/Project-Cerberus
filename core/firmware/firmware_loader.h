@@ -4,11 +4,11 @@
 #ifndef FIRMWARE_LOADER_H_
 #define FIRMWARE_LOADER_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "status/rot_status.h"
+#include <stdint.h>
 #include "crypto/hash.h"
 #include "flash/flash.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -177,4 +177,4 @@ enum {
 };
 
 
-#endif /* FIRMWARE_LOADER_H_ */
+#endif	/* FIRMWARE_LOADER_H_ */

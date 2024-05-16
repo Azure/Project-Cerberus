@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 #include "common_math.h"
 
@@ -154,6 +154,7 @@ int common_math_increment_byte_array (uint8_t *buf, size_t length, bool allow_ro
 		}
 		else {
 			memset (buf, 0xff, length);
+
 			return COMMON_MATH_BOUNDARY_REACHED;
 		}
 	}

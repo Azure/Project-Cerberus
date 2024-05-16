@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "tpm/tpm.h"
 #include "host_state_observer_mock.h"
+#include "tpm/tpm.h"
 
 
 static void host_state_observer_mock_on_active_pfm (struct host_state_observer *observer,
@@ -143,7 +143,7 @@ static const char* host_state_observer_mock_func_name_map (void *func)
 		return "on_active_recovery_image";
 	}
 	else if (func == host_state_observer_mock_on_pfm_dirty) {
-		return  "on_pfm_dirty";
+		return "on_pfm_dirty";
 	}
 	else if (func == host_state_observer_mock_on_run_time_validation) {
 		return "on_run_time_validation";

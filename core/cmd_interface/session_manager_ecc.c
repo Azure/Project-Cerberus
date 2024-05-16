@@ -1,18 +1,18 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
+#include "cerberus_protocol_optional_commands.h"
+#include "session_manager.h"
+#include "session_manager_ecc.h"
 #include "crypto/aes.h"
 #include "crypto/ecc.h"
 #include "crypto/hash.h"
 #include "crypto/kdf.h"
 #include "riot/riot_key_manager.h"
-#include "cerberus_protocol_optional_commands.h"
-#include "session_manager.h"
-#include "session_manager_ecc.h"
 
 
 static int session_manager_ecc_establish_session (struct session_manager *session,
@@ -105,8 +105,8 @@ static int session_manager_ecc_establish_session (struct session_manager *sessio
 		goto free_session_pub_der;
 	}
 
-	memcpy (cerberus_protocol_key_exchange_type_0_response_key_data (rsp),
-		session_pub_key_der, session_pub_key_der_len);
+	memcpy (cerberus_protocol_key_exchange_type_0_response_key_data (rsp), session_pub_key_der,
+		session_pub_key_der_len);
 
 	rsp->key_len = (uint16_t) session_pub_key_der_len;
 
@@ -186,7 +186,7 @@ static int session_manager_ecc_establish_session (struct session_manager *sessio
 
 	request->length =
 		cerberus_protocol_key_exchange_type_0_response_length (session_pub_key_der_len, sig_len,
-			hash_len);
+		hash_len);
 	request->crypto_timeout = true;
 
 free_shared_secret:
@@ -238,8 +238,8 @@ int session_manager_ecc_init (struct session_manager_ecc *session, struct aes_en
 		return SESSION_MANAGER_INVALID_ARGUMENT;
 	}
 
-	status = session_manager_init (&session->base, aes, hash, riot, sessions_table,
-		num_sessions, pairing_eids, num_pairing_eids, store);
+	status = session_manager_init (&session->base, aes, hash, riot, sessions_table,	num_sessions,
+		pairing_eids, num_pairing_eids, store);
 	if (status == 0) {
 		session->base.add_session = session_manager_add_session;
 		session->base.establish_session = session_manager_ecc_establish_session;

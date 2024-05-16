@@ -4,16 +4,16 @@
 #ifndef RSA_MOCK_H_
 #define RSA_MOCK_H_
 
-#include "crypto/rsa.h"
 #include "mock.h"
+#include "crypto/rsa.h"
 
 
 /**
  * A mock for the RSA API.
  */
 struct rsa_engine_mock {
-	struct rsa_engine base;			/**< The base RSA API instance. */
-	struct mock mock;				/**< The base mock interface. */
+	struct rsa_engine base;	/**< The base RSA API instance. */
+	struct mock mock;		/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void rsa_mock_release (struct rsa_engine_mock *mock);
 int rsa_mock_validate_and_release (struct rsa_engine_mock *mock);
 
 
-#endif /* RSA_MOCK_H_ */
+#endif	/* RSA_MOCK_H_ */

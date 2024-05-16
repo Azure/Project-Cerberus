@@ -4,14 +4,14 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "mctp/mctp_base_protocol.h"
 #include "cmd_interface/cmd_interface.h"
 #include "cmd_interface/device_manager.h"
-#include "mctp/mctp_control_protocol_commands.h"
-#include "mctp/mctp_control_protocol.h"
 #include "mctp/cmd_interface_mctp_control.h"
-#include "testing/mock/mctp/mctp_control_protocol_observer_mock.h"
+#include "mctp/mctp_base_protocol.h"
+#include "mctp/mctp_control_protocol.h"
+#include "mctp/mctp_control_protocol_commands.h"
 #include "testing/mock/cmd_interface/cmd_interface_mock.h"
+#include "testing/mock/mctp/mctp_control_protocol_observer_mock.h"
 
 
 TEST_SUITE_LABEL ("cmd_interface_mctp_control");
@@ -21,9 +21,9 @@ TEST_SUITE_LABEL ("cmd_interface_mctp_control");
  * Dependencies for testing the MCTP protocol command interface.
  */
 struct cmd_interface_mctp_control_testing {
-	struct cmd_interface_mctp_control handler;					/**< Command handler instance. */
-	struct device_manager device_manager;						/**< Device manager. */
-	struct mctp_control_protocol_observer_mock observer;		/**< MCTP protocol observer. */
+	struct cmd_interface_mctp_control handler;				/**< Command handler instance. */
+	struct device_manager device_manager;					/**< Device manager. */
+	struct mctp_control_protocol_observer_mock observer;	/**< MCTP protocol observer. */
 };
 
 
@@ -57,8 +57,7 @@ static void setup_cmd_interface_mctp_control_test (CuTest *test,
 	status = mctp_control_protocol_observer_mock_init (&cmd->observer);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd_interface_mctp_control_init (&cmd->handler, &cmd->device_manager,
-		0x1414, 0x04);
+	status = cmd_interface_mctp_control_init (&cmd->handler, &cmd->device_manager, 0x1414, 0x04);
 	CuAssertIntEquals (test, 0, status);
 
 	if (register_response_observer) {
@@ -74,8 +73,8 @@ static void setup_cmd_interface_mctp_control_test (CuTest *test,
  * @param test The test framework.
  * @param cmd The testing instance to release.
  */
- static void complete_cmd_interface_mctp_control_test (CuTest *test,
- 	struct cmd_interface_mctp_control_testing *cmd)
+static void complete_cmd_interface_mctp_control_test (CuTest *test,
+	struct cmd_interface_mctp_control_testing *cmd)
 {
 	int status;
 
@@ -801,8 +800,8 @@ static void cmd_interface_mctp_control_test_process_response_get_message_type (C
 	setup_cmd_interface_mctp_control_test (test, &cmd, true);
 
 	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_get_message_type_response,
-		&cmd.observer, 0, MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &response,
-		sizeof (response)));
+		&cmd.observer, 0,
+		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &response,	sizeof (response)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
@@ -952,8 +951,8 @@ static void cmd_interface_mctp_control_test_process_response_get_vendor_def_msg_
 	setup_cmd_interface_mctp_control_test (test, &cmd, true);
 
 	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_get_vendor_def_msg_response,
-		&cmd.observer, 0, MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &response,
-		sizeof (response)));
+		&cmd.observer, 0,
+		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &response,	sizeof (response)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
@@ -1036,7 +1035,8 @@ static void cmd_interface_mctp_control_test_process_response_get_vendor_def_msg_
 	complete_cmd_interface_mctp_control_test (test, &cmd);
 }
 
-static void cmd_interface_mctp_control_test_process_response_get_vendor_def_msg_support_no_observer (
+static void cmd_interface_mctp_control_test_process_response_get_vendor_def_msg_support_no_observer
+(
 	CuTest *test)
 {
 	struct cmd_interface_mctp_control_testing cmd;
@@ -1490,6 +1490,7 @@ static void cmd_interface_mctp_control_test_remove_mctp_control_protocol_observe
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_mctp_control);
 
 TEST (cmd_interface_mctp_control_test_init);
@@ -1533,3 +1534,4 @@ TEST (cmd_interface_mctp_control_test_remove_mctp_control_protocol_observer);
 TEST (cmd_interface_mctp_control_test_remove_mctp_control_protocol_observer_invalid_arg);
 
 TEST_SUITE_END;
+// *INDENT-ON*

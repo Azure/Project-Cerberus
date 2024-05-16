@@ -52,4 +52,4 @@ int dme_structure_raw_ecc_init_le_ecc384_with_sha512_nonce_and_challenge (
 	const uint8_t *signature_r, const uint8_t *signature_s, enum hash_type sig_hash);
 
 
-#endif /* DME_STRUCTURE_RAW_ECC_H_ */
+#endif	/* DME_STRUCTURE_RAW_ECC_H_ */

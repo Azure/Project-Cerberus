@@ -11,9 +11,9 @@
  * Logging messages for state management.
  */
 enum {
-	STATE_LOGGING_PERSIST_FAIL,			/**< Failed to persist non-volatile state. */
-	STATE_LOGGING_ERASE_FAIL,			/**< Failed to erase unused state region. */
+	STATE_LOGGING_PERSIST_FAIL,	/**< Failed to persist non-volatile state. */
+	STATE_LOGGING_ERASE_FAIL,	/**< Failed to erase unused state region. */
 };
 
 
-#endif /* STATE_LOGGING_H_ */
+#endif	/* STATE_LOGGING_H_ */

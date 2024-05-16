@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <string.h>
 #include <stdint.h>
+#include <string.h>
 #include "i2c_master_mock.h"
 
 static int i2c_master_mock_write (struct i2c_master_interface *i2c, uint16_t slave_addr,
@@ -241,7 +241,7 @@ int i2c_master_mock_expect_rx_xfer (struct i2c_master_mock *mock, intptr_t retur
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	status =  mock_expect (&mock->mock, i2c_master_mock_read_reg, mock, return_val,
+	status = mock_expect (&mock->mock, i2c_master_mock_read_reg, mock, return_val,
 		MOCK_ARG (slave_addr), MOCK_ARG (reg_addr), MOCK_ARG (reg_addr_len), exp_data,
 		MOCK_ARG (len));
 

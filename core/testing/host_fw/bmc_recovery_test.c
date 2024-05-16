@@ -7,11 +7,11 @@
 #include "platform_api.h"
 #include "testing.h"
 #include "host_fw/bmc_recovery.h"
-#include "testing/mock/host_fw/host_irq_control_mock.h"
-#include "testing/mock/host_fw/host_processor_mock.h"
-#include "testing/mock/host_fw/host_control_mock.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/engines/rsa_testing_engine.h"
+#include "testing/mock/host_fw/host_control_mock.h"
+#include "testing/mock/host_fw/host_irq_control_mock.h"
+#include "testing/mock/host_fw/host_processor_mock.h"
 
 
 TEST_SUITE_LABEL ("bmc_recovery");
@@ -1470,9 +1470,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_bad_sig_roll
 
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
-	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false),
-		MOCK_ARG (false));
+	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,	RSA_ENGINE_BAD_SIGNATURE,
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (false));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1541,9 +1540,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_bad_hash_rol
 
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
-	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false),
-		MOCK_ARG (false));
+	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,	HOST_FW_UTIL_BAD_IMAGE_HASH,
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (false));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1613,9 +1611,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_blank_fail_r
 
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
-	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false),
-		MOCK_ARG (false));
+	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,	FLASH_UTIL_UNEXPECTED_VALUE,
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (false));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1788,7 +1785,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_no_rollback_
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
 }
 
-static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_no_rollback_unsupported_recovery_image (
+static void
+bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_no_rollback_unsupported_recovery_image (
 	CuTest *test)
 {
 	HASH_TESTING_ENGINE hash;
@@ -1865,7 +1863,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_no_rollback_
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
 }
 
-static void bmc_recovery_test_state_in_reset_cs1_irq_recovery_image_auth_error_recovery_image_error (
+static void bmc_recovery_test_state_in_reset_cs1_irq_recovery_image_auth_error_recovery_image_error
+(
 	CuTest *test)
 {
 	HASH_TESTING_ENGINE hash;
@@ -3962,9 +3961,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_bad_sig_ro
 
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
-	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false),
-		MOCK_ARG (false));
+	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,	RSA_ENGINE_BAD_SIGNATURE,
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (false));
 
 	CuAssertIntEquals (test, 0, status);
@@ -4034,9 +4032,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_bad_hash_r
 
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
-	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false),
-		MOCK_ARG (false));
+	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,	HOST_FW_UTIL_BAD_IMAGE_HASH,
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (false));
 
 	CuAssertIntEquals (test, 0, status);
@@ -4106,9 +4103,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_blank_fail
 
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
-	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false),
-		MOCK_ARG (false));
+	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,	FLASH_UTIL_UNEXPECTED_VALUE,
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (false));
 
 	CuAssertIntEquals (test, 0, status);
@@ -4205,7 +4201,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_unknown_ro
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
 }
 
-static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_no_rollback_no_recovery_image (
+static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_no_rollback_no_recovery_image
+(
 	CuTest *test)
 {
 	HASH_TESTING_ENGINE hash;
@@ -4282,7 +4279,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_no_rollbac
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
 }
 
-static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_no_rollback_unsupported_recovery_image (
+static void
+bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_no_rollback_unsupported_recovery_image (
 	CuTest *test)
 {
 	HASH_TESTING_ENGINE hash;
@@ -4359,7 +4357,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_no_rollbac
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
 }
 
-static void bmc_recovery_test_state_exit_reset_cs1_irq_recovery_image_auth_error_recovery_image_error (
+static void
+bmc_recovery_test_state_exit_reset_cs1_irq_recovery_image_auth_error_recovery_image_error (
 	CuTest *test)
 {
 	HASH_TESTING_ENGINE hash;
@@ -4897,7 +4896,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_extra_events_after_no_rec
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
 }
 
-static void bmc_recovery_test_state_exit_reset_cs1_irq_extra_events_after_unsupported_recovery_image (
+static void bmc_recovery_test_state_exit_reset_cs1_irq_extra_events_after_unsupported_recovery_image
+(
 	CuTest *test)
 {
 	HASH_TESTING_ENGINE hash;
@@ -5951,6 +5951,7 @@ static void bmc_recovery_test_set_initial_state_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (bmc_recovery);
 
 TEST (bmc_recovery_test_init);
@@ -6032,3 +6033,4 @@ TEST (bmc_recovery_test_set_initial_state_in_reset);
 TEST (bmc_recovery_test_set_initial_state_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

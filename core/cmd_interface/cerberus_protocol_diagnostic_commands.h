@@ -14,16 +14,17 @@
  * Cerberus protocol heap statistics diagnostic request format
  */
 struct cerberus_protocol_heap_stats {
-	struct cerberus_protocol_header header;					/**< Message header */
+	struct cerberus_protocol_header header;	/**< Message header */
 };
 
 /**
  * Cerberus protocol heap statistics diagnostic response format
  */
 struct cerberus_protocol_heap_stats_response {
-	struct cerberus_protocol_header header;					/**< Message header */
-	struct cmd_device_heap_stats heap;						/**< Current heap statistics */
+	struct cerberus_protocol_header header;	/**< Message header */
+	struct cmd_device_heap_stats heap;		/**< Current heap statistics */
 };
+
 #pragma pack(pop)
 
 
@@ -31,4 +32,4 @@ int cerberus_protocol_heap_stats (const struct cmd_device *device,
 	struct cmd_interface_msg *request);
 
 
-#endif /* CERBERUS_PROTOCOL_DIAGNOSTIC_COMMANDS_H_ */
+#endif	/* CERBERUS_PROTOCOL_DIAGNOSTIC_COMMANDS_H_ */

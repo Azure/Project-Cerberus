@@ -4,16 +4,16 @@
 #ifndef PFM_OBSERVER_MOCK_H_
 #define PFM_OBSERVER_MOCK_H_
 
-#include "manifest/pfm/pfm_observer.h"
 #include "mock.h"
+#include "manifest/pfm/pfm_observer.h"
 
 
 /**
  * A mock for PFM management notifications.
  */
 struct pfm_observer_mock {
-	struct pfm_observer base;		/**< The base observer instance. */
-	struct mock mock;				/**< The base mock interface. */
+	struct pfm_observer base;	/**< The base observer instance. */
+	struct mock mock;			/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void pfm_observer_mock_release (struct pfm_observer_mock *mock);
 int pfm_observer_mock_validate_and_release (struct pfm_observer_mock *mock);
 
 
-#endif /* PFM_OBSERVER_MOCK_H_ */
+#endif	/* PFM_OBSERVER_MOCK_H_ */

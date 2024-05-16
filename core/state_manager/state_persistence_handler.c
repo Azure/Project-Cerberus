@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "state_persistence_handler.h"
 #include "state_logging.h"
+#include "state_persistence_handler.h"
 #include "common/unused.h"
 
 

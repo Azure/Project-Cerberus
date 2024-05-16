@@ -4,12 +4,12 @@
 #ifndef APP_IMAGE_H_
 #define APP_IMAGE_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "status/rot_status.h"
-#include "flash/flash.h"
-#include "crypto/rsa.h"
+#include <stdint.h>
 #include "crypto/hash.h"
+#include "crypto/rsa.h"
+#include "flash/flash.h"
+#include "status/rot_status.h"
 
 
 /* NOTE:  Firmware images wrapped as an app_image have a fixed structure that requires RSA2k signing
@@ -65,4 +65,4 @@ enum {
 };
 
 
-#endif /* APP_IMAGE_H_ */
+#endif	/* APP_IMAGE_H_ */

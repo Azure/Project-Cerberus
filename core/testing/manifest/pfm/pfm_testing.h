@@ -4,8 +4,8 @@
 #ifndef PFM_TESTING_H_
 #define PFM_TESTING_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 
 extern const uint8_t PFM_DATA[];
@@ -61,4 +61,4 @@ extern const uint32_t PFM_HASH_LEN;
 #define	PFM_PLATFORM_HEADER_SIZE	4
 
 
-#endif /* PFM_TESTING_H_ */
+#endif	/* PFM_TESTING_H_ */

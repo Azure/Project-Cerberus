@@ -4,14 +4,15 @@
 #ifndef MANIFEST_FLASH_V2_TESTING_H_
 #define MANIFEST_FLASH_V2_TESTING_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
+#include "CuTest/CuTest.h"
 #include "manifest/manifest_flash.h"
-#include "testing/mock/crypto/signature_verification_mock.h"
-#include "testing/mock/crypto/hash_mock.h"
-#include "testing/mock/flash/flash_mock.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/manifest/manifest_v2_testing.h"
+#include "testing/mock/crypto/hash_mock.h"
+#include "testing/mock/crypto/signature_verification_mock.h"
+#include "testing/mock/flash/flash_mock.h"
 
 
 /**
@@ -72,4 +73,4 @@ void manifest_flash_v2_testing_iterate_manifest_toc_mocked_hash (CuTest *test,
 	int entry, int last_entry);
 
 
-#endif /* MANIFEST_FLASH_V2_TESTING_H_ */
+#endif	/* MANIFEST_FLASH_V2_TESTING_H_ */

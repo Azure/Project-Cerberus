@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "host_flash_manager.h"
 #include "host_fw_util.h"
@@ -59,6 +59,7 @@ free_images:
 	pfm->free_firmware_images (pfm, fw_images);
 free_versions:
 	pfm->free_fw_versions (pfm, versions);
+
 	return status;
 }
 
@@ -107,6 +108,7 @@ free_img:
 	platform_free (host_img->fw_images);
 free_firmware:
 	pfm->free_firmware (pfm, host_fw);
+
 	return HOST_FLASH_MGR_NO_MEMORY;
 }
 
@@ -231,6 +233,7 @@ free_host:
 
 	host_flash_manager_free_images (&host_img);
 	pfm->free_firmware (pfm, &host_fw);
+
 	return status;
 }
 
@@ -266,7 +269,7 @@ int host_flash_manager_validate_pfm (struct pfm *pfm, struct pfm *good_pfm,
 		return status;
 	}
 
-	for (i = 0; i <host_fw.count; i++) {
+	for (i = 0; i < host_fw.count; i++) {
 		status = host_flash_manager_get_image_entry (pfm, flash, 0, host_fw.ids[i], &versions,
 			&version, &host_img.fw_images[i], (host_rw) ? &host_rw->writable[i] : NULL);
 		if (status != 0) {
@@ -304,6 +307,7 @@ free_host:
 
 	host_flash_manager_free_images (&host_img);
 	pfm->free_firmware (pfm, &host_fw);
+
 	return status;
 }
 
@@ -381,6 +385,7 @@ free_rw:
 	}
 
 	pfm->free_firmware (pfm, &host_fw);
+
 	return status;
 }
 
@@ -415,6 +420,7 @@ static int host_flash_manager_flash_address_mode (const struct spi_flash *cs0,
 	}
 
 	*mode = (addr_4byte) ? SPI_FILTER_ADDRESS_MODE_4 : SPI_FILTER_ADDRESS_MODE_3;
+
 	return 0;
 }
 
@@ -477,6 +483,7 @@ static int host_flash_manager_detect_flash_address_mode_properties (const struct
 	}
 
 	*reset_mode = (reset_addr[0] == 1) ? SPI_FILTER_ADDRESS_MODE_4 : SPI_FILTER_ADDRESS_MODE_3;
+
 	return 0;
 }
 
@@ -524,8 +531,7 @@ int host_flash_manager_config_spi_filter_flash_type (const struct spi_flash *cs0
 		}
 	}
 
-	status = mfg_handler->set_flash_manufacturer (mfg_handler, vendor[0],
-		device[0]);
+	status = mfg_handler->set_flash_manufacturer (mfg_handler, vendor[0], device[0]);
 	if (status != 0) {
 		return status;
 	}

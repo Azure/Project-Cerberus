@@ -12,7 +12,7 @@
  * dependencies.
  */
 struct base64_engine_core {
-	struct base64_engine base;		/**< The base base64 engine. */
+	struct base64_engine base;	/**< The base base64 engine. */
 };
 
 
@@ -20,4 +20,4 @@ int base64_core_init (struct base64_engine_core *engine);
 void base64_core_release (struct base64_engine_core *engine);
 
 
-#endif /* BASE64_CORE_H_ */
+#endif	/* BASE64_CORE_H_ */

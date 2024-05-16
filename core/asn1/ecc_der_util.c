@@ -10,7 +10,7 @@
  * The ASN.1 encoded OID for the P256 ECC curve.
  */
 static const uint8_t ECC_DER_P256_OID[] = {
-	0x2a,0x86,0x48,0xce,0x3d,0x03,0x01,0x07
+	0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07
 };
 
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
@@ -18,7 +18,7 @@ static const uint8_t ECC_DER_P256_OID[] = {
  * The ASN.1 encoded OID for the P384 ECC curve.
  */
 static const uint8_t ECC_DER_P384_OID[] = {
-	0x2b,0x81,0x04,0x00,0x22
+	0x2b, 0x81, 0x04, 0x00, 0x22
 };
 #endif
 
@@ -27,7 +27,7 @@ static const uint8_t ECC_DER_P384_OID[] = {
  * The ASN.1 encoded OID for the P521 ECC curve.
  */
 static const uint8_t ECC_DER_P521_OID[] = {
-	0x2b,0x81,0x04,0x00,0x23
+	0x2b, 0x81, 0x04, 0x00, 0x23
 };
 #endif
 
@@ -35,7 +35,7 @@ static const uint8_t ECC_DER_P521_OID[] = {
  * The ASN.1 encoded OID for an ECC public key.
  */
 static const uint8_t ECC_DER_EC_PUBLIC_KEY_OID[] = {
-	0x2a,0x86,0x48,0xce,0x3d,0x02,0x01
+	0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01
 };
 
 
@@ -92,6 +92,7 @@ static int ecc_der_get_next_tag (uint8_t type, const uint8_t **der, size_t *leng
 
 	*der = pos + header_len;
 	*length -= header_len;
+
 	return 0;
 }
 
@@ -139,6 +140,7 @@ static int ecc_der_add_next_tag (uint8_t type, size_t type_len, const uint8_t *d
 	}
 
 	*der = pos;
+
 	return 0;
 }
 
@@ -195,6 +197,7 @@ static int ecc_der_encode_public_key_bit_string (const uint8_t *pub_key_x, const
 
 	*der = pos;
 	*length -= (sizeof (pub_key_hdr) + (key_length * 2));
+
 	return 0;
 }
 
@@ -271,8 +274,7 @@ int ecc_der_decode_private_key (const uint8_t *der, size_t length, uint8_t *priv
  *
  * @return Length of the private key or an error code.
  */
-int ecc_der_decode_private_key_no_copy (const uint8_t *der, size_t length,
-	const uint8_t **priv_key)
+int ecc_der_decode_private_key_no_copy (const uint8_t *der, size_t length, const uint8_t **priv_key)
 {
 	const uint8_t *pos = der;
 	size_t type_len;
@@ -320,7 +322,7 @@ int ecc_der_decode_private_key_no_copy (const uint8_t *der, size_t length,
 			pos++;
 			type_len--;
 
-			/* fall through */ /* no break */
+		/* fall through */ /* no break */
 
 		case ECC_KEY_LENGTH_256:
 			oid = ECC_DER_P256_OID;
@@ -337,7 +339,7 @@ int ecc_der_decode_private_key_no_copy (const uint8_t *der, size_t length,
 			pos++;
 			type_len--;
 
-			/* fall through */ /* no break */
+		/* fall through */ /* no break */
 
 		case ECC_KEY_LENGTH_384:
 			oid = ECC_DER_P384_OID;
@@ -347,7 +349,7 @@ int ecc_der_decode_private_key_no_copy (const uint8_t *der, size_t length,
 
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 		case ECC_KEY_LENGTH_521 - 1:
-			/* Some encoders drop the first byte of private key if it is 0, so accept one less byte
+		/* Some encoders drop the first byte of private key if it is 0, so accept one less byte
 			 * than normally expected. */
 		case ECC_KEY_LENGTH_521:
 			oid = ECC_DER_P521_OID;
@@ -500,6 +502,7 @@ int ecc_der_encode_private_key (const uint8_t *priv_key, const uint8_t *pub_key_
 	}
 
 	der[seq_hdr_len - 1] = (pos - der) - seq_hdr_len;
+
 	return der[seq_hdr_len - 1] + seq_hdr_len;
 }
 
@@ -630,7 +633,7 @@ int ecc_der_decode_public_key_no_copy (const uint8_t *der, size_t length, const 
 		return status;
 	}
 
-	if ((type_len != sizeof (ECC_DER_EC_PUBLIC_KEY_OID) ||
+	if (((type_len != sizeof (ECC_DER_EC_PUBLIC_KEY_OID)) ||
 		(memcmp (pos, ECC_DER_EC_PUBLIC_KEY_OID, type_len) != 0))) {
 		return ECC_DER_UTIL_UNSUPPORTED_ALGORITHM;
 	}
@@ -707,6 +710,7 @@ int ecc_der_decode_public_key_no_copy (const uint8_t *der, size_t length, const 
 	}
 
 	*pub_key = pos;
+
 	return type_len;
 }
 
@@ -794,6 +798,7 @@ int ecc_der_encode_public_key (const uint8_t *pub_key_x, const uint8_t *pub_key_
 	}
 
 	der[seq_hdr_len - 1] = (pos - der) - seq_hdr_len;
+
 	return der[seq_hdr_len - 1] + seq_hdr_len;
 }
 
@@ -922,6 +927,7 @@ static int ecc_der_encode_ecdsa_integer (const uint8_t *sig, size_t key_length, 
 	*int_len += key_length;
 
 	*der = pos;
+
 	return 0;
 }
 

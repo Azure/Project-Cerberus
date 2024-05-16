@@ -5,12 +5,12 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "manifest/pfm/pfm_observer_pending_reset.h"
 #include "manifest/manifest_logging.h"
+#include "manifest/pfm/pfm_observer_pending_reset.h"
+#include "testing/logging/debug_log_testing.h"
 #include "testing/mock/host_fw/host_control_mock.h"
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/manifest/pfm/pfm_mock.h"
-#include "testing/logging/debug_log_testing.h"
 
 
 TEST_SUITE_LABEL ("pfm_observer_pending_reset");
@@ -253,6 +253,7 @@ static void pfm_observer_pending_reset_test_on_clear_active_control_error (CuTes
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (pfm_observer_pending_reset);
 
 TEST (pfm_observer_pending_reset_test_init);
@@ -264,3 +265,4 @@ TEST (pfm_observer_pending_reset_test_on_clear_active);
 TEST (pfm_observer_pending_reset_test_on_clear_active_control_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

@@ -30,4 +30,4 @@ int app_context_null_save (const struct app_context *context);
 	}
 
 
-#endif /* APP_CONTEXT_NULL_STATIC_H_ */
+#endif	/* APP_CONTEXT_NULL_STATIC_H_ */

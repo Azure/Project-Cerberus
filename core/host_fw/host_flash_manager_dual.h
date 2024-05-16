@@ -33,4 +33,4 @@ int host_flash_manager_dual_init_with_managed_flash_initialization (
 void host_flash_manager_dual_release (struct host_flash_manager_dual *manager);
 
 
-#endif /* HOST_FLASH_MANAGER_DUAL_H_ */
+#endif	/* HOST_FLASH_MANAGER_DUAL_H_ */

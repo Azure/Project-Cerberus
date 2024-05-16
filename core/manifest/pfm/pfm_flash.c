@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "platform_api.h"
 #include "pfm_flash.h"
 #include "pfm_format.h"
+#include "platform_api.h"
 #include "common/buffer_util.h"
 #include "common/unused.h"
 #include "flash/flash_util.h"
@@ -70,7 +70,7 @@ static int pfm_flash_verify (struct manifest *pfm, struct hash_engine *hash,
 
 		if (pfm_flash->base_flash.header.length !=
 			(sizeof (struct manifest_header) + fw_section.length + key_section.length +
-				platform_section.length + pfm_flash->base_flash.header.sig_length)) {
+			platform_section.length + pfm_flash->base_flash.header.sig_length)) {
 			status = MANIFEST_MALFORMED;
 			goto error;
 		}
@@ -111,6 +111,7 @@ static int pfm_flash_verify (struct manifest *pfm, struct hash_engine *hash,
 
 error:
 	pfm_flash->base_flash.manifest_valid = false;
+
 	return status;
 }
 
@@ -246,9 +247,8 @@ static int pfm_flash_read_firmware_element_v2 (struct pfm_flash *pfm, uint8_t *e
 	int id_pad;
 	int status;
 
-	status = manifest_flash_read_element_data (&pfm->base_flash, pfm->base_flash.hash,
-		PFM_FIRMWARE, *entry, MANIFEST_NO_PARENT, 0, entry, NULL, NULL, &element,
-		sizeof (*fw_element));
+	status = manifest_flash_read_element_data (&pfm->base_flash, pfm->base_flash.hash, PFM_FIRMWARE,
+		*entry, MANIFEST_NO_PARENT, 0, entry, NULL, NULL, &element,	sizeof (*fw_element));
 	if (ROT_IS_ERROR (status)) {
 		return status;
 	}
@@ -314,6 +314,7 @@ static int pfm_flash_get_firmware_v2 (struct pfm_flash *pfm, struct pfm_firmware
 
 error:
 	pfm_flash_free_firmware (&pfm->base, fw);
+
 	return status;
 }
 
@@ -400,6 +401,7 @@ static int pfm_flash_get_supported_versions_v1 (struct pfm_flash *pfm,
 		if (ver_list) {
 			memset (ver_list, 0, sizeof (*ver_list));
 		}
+
 		return 0;
 	}
 
@@ -453,6 +455,7 @@ static int pfm_flash_get_supported_versions_v1 (struct pfm_flash *pfm,
 
 error:
 	pfm_flash_free_fw_versions (&pfm->base, ver_list);
+
 	return status;
 }
 
@@ -526,13 +529,14 @@ static int pfm_flash_read_firmware_version_element_v2 (struct pfm_flash *pfm, ui
 
 	if (ver_len <
 		((sizeof (*ver_element) - sizeof (ver_element->version)) + ver_element->version_length +
-			ver_pad + (sizeof (struct pfm_fw_version_element_rw_region) * ver_element->rw_count))) {
+		ver_pad + (sizeof (struct pfm_fw_version_element_rw_region) * ver_element->rw_count))) {
 		return PFM_MALFORMED_FW_VER_ELEMENT;
 	}
 
 	if (element_len) {
 		*element_len = status;
 	}
+
 	return 0;
 }
 
@@ -568,6 +572,7 @@ static int pfm_flash_get_supported_versions_v2 (struct pfm_flash *pfm, const cha
 			if (ver_list) {
 				memset (ver_list, 0, sizeof (*ver_list));
 			}
+
 			return 0;
 		}
 		else {
@@ -584,6 +589,7 @@ static int pfm_flash_get_supported_versions_v2 (struct pfm_flash *pfm, const cha
 		if (ver_list) {
 			memset (ver_list, 0, sizeof (*ver_list));
 		}
+
 		return 0;
 	}
 
@@ -630,6 +636,7 @@ static int pfm_flash_get_supported_versions_v2 (struct pfm_flash *pfm, const cha
 
 error:
 	pfm_flash_free_fw_versions (&pfm->base, ver_list);
+
 	return status;
 }
 
@@ -802,6 +809,7 @@ static int pfm_flash_find_version_entry_v1 (struct manifest_flash *pfm, const ch
 
 error:
 	platform_free (check);
+
 	return status;
 }
 
@@ -924,6 +932,7 @@ static int pfm_flash_get_read_write_regions_v1 (struct pfm_flash *pfm, const cha
 
 error:
 	pfm_flash_free_read_write_regions (&pfm->base, writable);
+
 	return status;
 }
 
@@ -1013,6 +1022,7 @@ static int pfm_flash_get_read_write_regions_v2 (struct pfm_flash *pfm, const cha
 
 	if (buffer.ver_element.rw_count == 0) {
 		memset (writable, 0, sizeof (*writable));
+
 		return 0;
 	}
 
@@ -1080,6 +1090,7 @@ static int pfm_flash_get_read_write_regions_v2 (struct pfm_flash *pfm, const cha
 
 error:
 	pfm_flash_free_read_write_regions (&pfm->base, writable);
+
 	return status;
 }
 
@@ -1270,6 +1281,7 @@ static int pfm_flash_get_firmware_images_v1 (struct pfm_flash *pfm, const char *
 
 error:
 	pfm_flash_free_firmware_images (&pfm->base, img_list);
+
 	return status;
 }
 
@@ -1478,6 +1490,7 @@ static int pfm_flash_get_firmware_images_v2 (struct pfm_flash *pfm, const char *
 
 error:
 	pfm_flash_free_firmware_images (&pfm->base, img_list);
+
 	return status;
 }
 

@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <string.h>
 #include <stdint.h>
+#include <string.h>
 #include "msg_transport_mock.h"
 
 
@@ -101,7 +101,7 @@ static const char* msg_transport_mock_func_name_map (void *func)
 		return "get_max_encapsulated_message_length";
 	}
 	else if (func == msg_transport_mock_get_buffer_overhead) {
-		return  "get_buffer_overhead";
+		return "get_buffer_overhead";
 	}
 	else if (func == msg_transport_mock_send_request_message) {
 		return "send_request_message";

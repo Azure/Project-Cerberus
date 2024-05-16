@@ -4,16 +4,16 @@
 #ifndef CERBERUS_PROTOCOL_OBSERVER_MOCK_H_
 #define CERBERUS_PROTOCOL_OBSERVER_MOCK_H_
 
-#include "cmd_interface/cerberus_protocol_observer.h"
 #include "mock.h"
+#include "cmd_interface/cerberus_protocol_observer.h"
 
 
 /**
  * A mock for Cerberus protocol notifications.
  */
 struct cerberus_protocol_observer_mock {
-	struct cerberus_protocol_observer base;			/**< The base observer instance. */
-	struct mock mock;								/**< The base mock interface. */
+	struct cerberus_protocol_observer base;	/**< The base observer instance. */
+	struct mock mock;						/**< The base mock interface. */
 };
 
 
@@ -24,4 +24,4 @@ int cerberus_protocol_observer_mock_validate_and_release (
 	struct cerberus_protocol_observer_mock *mock);
 
 
-#endif /* CERBERUS_PROTOCOL_OBSERVER_MOCK_H_ */
+#endif	/* CERBERUS_PROTOCOL_OBSERVER_MOCK_H_ */

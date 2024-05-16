@@ -4,8 +4,8 @@
 #ifndef SPI_SLAVE_COMMON_H_
 #define SPI_SLAVE_COMMON_H_
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 
 
@@ -22,4 +22,4 @@ enum {
 };
 
 
-#endif /* SPI_SLAVE_COMMON_H_ */
+#endif	/* SPI_SLAVE_COMMON_H_ */

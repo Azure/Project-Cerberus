@@ -2,8 +2,8 @@
 // Licensed under the MIT license.
 
 #include <stddef.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include "testing.h"
 #include "crypto/hash_mbedtls.h"
@@ -703,7 +703,8 @@ static void hash_mbedtls_test_sha1_incremental_get_hash_multiple_hash_blocks_not
 	hash_mbedtls_release (&engine);
 }
 
-static void hash_mbedtls_test_sha1_incremental_get_hash_multiple_hash_blocks_not_aligned_partial_update (
+static void
+hash_mbedtls_test_sha1_incremental_get_hash_multiple_hash_blocks_not_aligned_partial_update (
 	CuTest *test)
 {
 	struct hash_engine_mbedtls engine;
@@ -1669,7 +1670,8 @@ static void hash_mbedtls_test_sha256_incremental_get_hash_update_to_full_hash_bl
 	hash_mbedtls_release (&engine);
 }
 
-static void hash_mbedtls_test_sha256_incremental_get_hash_update_to_full_hash_block_after_full_block (
+static void hash_mbedtls_test_sha256_incremental_get_hash_update_to_full_hash_block_after_full_block
+(
 	CuTest *test)
 {
 	struct hash_engine_mbedtls engine;
@@ -1823,7 +1825,8 @@ static void hash_mbedtls_test_sha256_incremental_get_hash_multiple_hash_blocks_n
 	hash_mbedtls_release (&engine);
 }
 
-static void hash_mbedtls_test_sha256_incremental_get_hash_multiple_hash_blocks_not_aligned_partial_update (
+static void
+hash_mbedtls_test_sha256_incremental_get_hash_multiple_hash_blocks_not_aligned_partial_update (
 	CuTest *test)
 {
 	struct hash_engine_mbedtls engine;
@@ -2789,7 +2792,8 @@ static void hash_mbedtls_test_sha384_incremental_get_hash_update_to_full_hash_bl
 	hash_mbedtls_release (&engine);
 }
 
-static void hash_mbedtls_test_sha384_incremental_get_hash_update_to_full_hash_block_after_full_block (
+static void hash_mbedtls_test_sha384_incremental_get_hash_update_to_full_hash_block_after_full_block
+(
 	CuTest *test)
 {
 	struct hash_engine_mbedtls engine;
@@ -2943,7 +2947,8 @@ static void hash_mbedtls_test_sha384_incremental_get_hash_multiple_hash_blocks_n
 	hash_mbedtls_release (&engine);
 }
 
-static void hash_mbedtls_test_sha384_incremental_get_hash_multiple_hash_blocks_not_aligned_partial_update (
+static void
+hash_mbedtls_test_sha384_incremental_get_hash_multiple_hash_blocks_not_aligned_partial_update (
 	CuTest *test)
 {
 	struct hash_engine_mbedtls engine;
@@ -3910,7 +3915,8 @@ static void hash_mbedtls_test_sha512_incremental_get_hash_update_to_full_hash_bl
 	hash_mbedtls_release (&engine);
 }
 
-static void hash_mbedtls_test_sha512_incremental_get_hash_update_to_full_hash_block_after_full_block (
+static void hash_mbedtls_test_sha512_incremental_get_hash_update_to_full_hash_block_after_full_block
+(
 	CuTest *test)
 {
 	struct hash_engine_mbedtls engine;
@@ -4064,7 +4070,8 @@ static void hash_mbedtls_test_sha512_incremental_get_hash_multiple_hash_blocks_n
 	hash_mbedtls_release (&engine);
 }
 
-static void hash_mbedtls_test_sha512_incremental_get_hash_multiple_hash_blocks_not_aligned_partial_update (
+static void
+hash_mbedtls_test_sha512_incremental_get_hash_multiple_hash_blocks_not_aligned_partial_update (
 	CuTest *test)
 {
 	struct hash_engine_mbedtls engine;
@@ -4806,8 +4813,7 @@ static void hash_mbedtls_test_calculate_sha1_null (CuTest *test)
 		sizeof (hash));
 	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.calculate_sha1 (&engine.base, NULL, strlen (message), hash,
-		sizeof (hash));
+	status = engine.base.calculate_sha1 (&engine.base, NULL, strlen (message), hash, sizeof (hash));
 	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.calculate_sha1 (&engine.base, (uint8_t*) message, strlen (message), NULL,
@@ -5364,6 +5370,7 @@ static void hash_mbedtls_test_calculate_sha512_small_hash_buffer (CuTest *test)
 #endif
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (hash_mbedtls);
 
 TEST (hash_mbedtls_test_init);
@@ -5559,3 +5566,4 @@ TEST (hash_mbedtls_test_calculate_sha512_small_hash_buffer);
 #endif
 
 TEST_SUITE_END;
+// *INDENT-ON*

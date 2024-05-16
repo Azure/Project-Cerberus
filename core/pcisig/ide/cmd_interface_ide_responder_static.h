@@ -21,7 +21,7 @@ int cmd_interface_ide_responder_generate_error_packet (const struct cmd_interfac
  * Constant initializer for response handling.
  */
 #ifdef CMD_ENABLE_ISSUE_REQUEST
-#define	CMD_INTERFACE_IDE_RESPONDER_RESPONSE_API	\
+#define	CMD_INTERFACE_IDE_RESPONDER_RESPONSE_API    \
 	.process_response = cmd_interface_ide_responder_process_response,
 #else
 #define	CMD_INTERFACE_IDE_RESPONDER_RESPONSE_API
@@ -49,4 +49,4 @@ int cmd_interface_ide_responder_generate_error_packet (const struct cmd_interfac
 	}
 
 
-#endif /* CMD_INTERFACE_IDE_RESPONDER_STATIC_H_ */
+#endif	/* CMD_INTERFACE_IDE_RESPONDER_STATIC_H_ */

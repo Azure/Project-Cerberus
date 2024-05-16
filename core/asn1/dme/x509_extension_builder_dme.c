@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
 #include "x509_extension_builder_dme.h"
@@ -30,7 +30,7 @@
  * The encoded OID for the DME extension:  1.3.6.1.4.1.311.102.3.1
  */
 const uint8_t X509_EXTENSION_BUILDER_DME_OID[] = {
-	0x2b,0x06,0x01,0x04,0x01,0x82,0x37,0x66,0x03,0x01
+	0x2b, 0x06, 0x01, 0x04, 0x01, 0x82, 0x37, 0x66, 0x03, 0x01
 };
 
 /**
@@ -84,26 +84,26 @@ int x509_extension_builder_dme_create_extension (const struct dme_structure *dme
 
 	/* TODO:  Not each of these error checks is tested.  Add tests when refactoring DER encoding. */
 	DER_CHK_ENCODE (DERStartSequenceOrSet (&der, true));
-		DER_CHK_ENCODE (DERAddPublicKey (&der, dme->dme_pub_key, dme->key_length));
-		DER_CHK_ENCODE (DERAddEncodedOID (&der, dme->data_oid, dme->data_oid_length));
-		DER_CHK_ENCODE (DERAddOctetString (&der, dme->data, dme->data_length));
-		DER_CHK_ENCODE (DERStartSequenceOrSet (&der, true));
-			DER_CHK_ENCODE (DERAddEncodedOID (&der, dme->sig_oid, dme->sig_oid_length));
-		DER_CHK_ENCODE (DERPopNesting (&der));
-		DER_CHK_ENCODE (DERAddBitString (&der, dme->signature, dme->signature_length));
+	DER_CHK_ENCODE (DERAddPublicKey (&der, dme->dme_pub_key, dme->key_length));
+	DER_CHK_ENCODE (DERAddEncodedOID (&der, dme->data_oid, dme->data_oid_length));
+	DER_CHK_ENCODE (DERAddOctetString (&der, dme->data, dme->data_length));
+	DER_CHK_ENCODE (DERStartSequenceOrSet (&der, true));
+	DER_CHK_ENCODE (DERAddEncodedOID (&der, dme->sig_oid, dme->sig_oid_length));
+	DER_CHK_ENCODE (DERPopNesting (&der));
+	DER_CHK_ENCODE (DERAddBitString (&der, dme->signature, dme->signature_length));
 
-		/* Optional fields need different tags. */
-		if (dme->device_oid) {
-			tag_pos = der.Position;
-			DER_CHK_ENCODE (DERAddEncodedOID (&der, dme->device_oid, dme->dev_oid_length));
-			der.Buffer[tag_pos] = 0x80;
-		}
+	/* Optional fields need different tags. */
+	if (dme->device_oid) {
+		tag_pos = der.Position;
+		DER_CHK_ENCODE (DERAddEncodedOID (&der, dme->device_oid, dme->dev_oid_length));
+		der.Buffer[tag_pos] = 0x80;
+	}
 
-		if (dme->renewal_counter) {
-			tag_pos = der.Position;
-			DER_CHK_ENCODE (DERAddBitString (&der, dme->renewal_counter, dme->counter_length));
-			der.Buffer[tag_pos] = 0x81;
-		}
+	if (dme->renewal_counter) {
+		tag_pos = der.Position;
+		DER_CHK_ENCODE (DERAddBitString (&der, dme->renewal_counter, dme->counter_length));
+		der.Buffer[tag_pos] = 0x81;
+	}
 	DER_CHK_ENCODE (DERPopNesting (&der));
 
 	x509_extension_builder_init_extension_descriptor (extension, false,
@@ -113,6 +113,7 @@ int x509_extension_builder_dme_create_extension (const struct dme_structure *dme
 	return 0;
 
 error:
+
 	return DME_EXTENSION_SMALL_EXT_BUFFER;
 }
 

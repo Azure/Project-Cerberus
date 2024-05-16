@@ -5,8 +5,8 @@
 #define CFM_MANAGER_FLASH_H_
 
 #include <stdbool.h>
-#include "cfm_manager.h"
 #include "cfm_flash.h"
+#include "cfm_manager.h"
 #include "manifest/manifest_manager_flash.h"
 
 
@@ -25,4 +25,4 @@ int cfm_manager_flash_init (struct cfm_manager_flash *manager, struct cfm_flash 
 void cfm_manager_flash_release (struct cfm_manager_flash *manager);
 
 
-#endif /* CFM_MANAGER_FLASH_H_ */
+#endif	/* CFM_MANAGER_FLASH_H_ */

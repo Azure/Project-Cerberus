@@ -4,15 +4,15 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include "testing.h"
 #include "platform_api.h"
+#include "testing.h"
 #include "flash/flash_common.h"
 #include "state_manager/state_logging.h"
 #include "state_manager/state_persistence_handler.h"
 #include "state_manager/state_persistence_handler_static.h"
+#include "testing/logging/debug_log_testing.h"
 #include "testing/mock/flash/flash_mock.h"
 #include "testing/mock/logging/logging_mock.h"
-#include "testing/logging/debug_log_testing.h"
 
 
 TEST_SUITE_LABEL ("state_persistence_handler");
@@ -53,11 +53,11 @@ static void state_persistence_handler_testing_init_state_manager (CuTest *test,
 	status |= mock_expect_output_tmp (&flash->mock, 0, &bytes, sizeof (bytes), -1);
 
 	status |= mock_expect (&flash->mock, flash->base.read, flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output_tmp (&flash->mock, 1, state, sizeof (state), 2);
 
 	status |= mock_expect (&flash->mock, flash->base.read, flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
 	status |= mock_expect_output_tmp (&flash->mock, 1, state, sizeof (state), 2);
 
 	status |= flash_mock_expect_erase_flash_sector_verify (flash, 0x10000, 0x1000);
@@ -231,7 +231,7 @@ static void state_persistence_handler_test_init_null (CuTest *test)
 	status = state_persistence_handler_init (&handler.test, &handler.state, list, 0, 100);
 	CuAssertIntEquals (test, STATE_MANAGER_INVALID_ARGUMENT, status);
 
-	state_persistence_handler_testing_release_dependencies(test, &handler);
+	state_persistence_handler_testing_release_dependencies (test, &handler);
 }
 
 static void state_persistence_handler_test_static_init (CuTest *test)
@@ -239,8 +239,8 @@ static void state_persistence_handler_test_static_init (CuTest *test)
 	struct state_persistence_handler_testing handler;
 	struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
 	const size_t count = sizeof (list) / sizeof (list[0]);
-	struct state_persistence_handler test_static = state_persistence_handler_static_init (
-		&handler.state, list, count, 500);
+	struct state_persistence_handler test_static =
+		state_persistence_handler_static_init (&handler.state, list, count, 500);
 	int status;
 
 	TEST_START;
@@ -263,8 +263,8 @@ static void state_persistence_handler_test_static_init_null (CuTest *test)
 	struct state_persistence_handler_testing handler;
 	struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
 	const size_t count = sizeof (list) / sizeof (list[0]);
-	struct state_persistence_handler test_static = state_persistence_handler_static_init (
-		&handler.state, list, count, 500);
+	struct state_persistence_handler test_static =
+		state_persistence_handler_static_init (&handler.state, list, count, 500);
 	int status;
 
 	TEST_START;
@@ -346,8 +346,8 @@ static void state_persistence_handler_test_get_next_execution_static_init (CuTes
 	struct state_persistence_handler_testing handler;
 	struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
 	const size_t count = sizeof (list) / sizeof (list[0]);
-	struct state_persistence_handler test_static = state_persistence_handler_static_init (
-		&handler.state, list, count, 5000);
+	struct state_persistence_handler test_static =
+		state_persistence_handler_static_init (&handler.state, list, count, 5000);
 	const platform_clock *next_time;
 	uint32_t msec;
 	int status;
@@ -637,8 +637,8 @@ static void state_persistence_handler_test_execute_static_init (CuTest *test)
 	struct state_persistence_handler_testing handler;
 	struct state_manager *list[] = {&handler.manager1};
 	const size_t count = sizeof (list) / sizeof (list[0]);
-	struct state_persistence_handler test_static = state_persistence_handler_static_init (
-		&handler.state, list, count, 5000);
+	struct state_persistence_handler test_static =
+		state_persistence_handler_static_init (&handler.state, list, count, 5000);
 	const platform_clock *next_time;
 	uint32_t msec;
 	int status;
@@ -686,6 +686,7 @@ static void state_persistence_handler_test_execute_static_init (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (state_persistence_handler);
 
 TEST (state_persistence_handler_test_init);
@@ -703,3 +704,4 @@ TEST (state_persistence_handler_test_execute_multiple_managers_failure);
 TEST (state_persistence_handler_test_execute_static_init);
 
 TEST_SUITE_END;
+// *INDENT-ON*

@@ -1,19 +1,19 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
 #include "asn1/ecc_der_util.h"
 #include "crypto/ecc_ecc_hw.h"
 #include "crypto/ecc_ecc_hw_static.h"
+#include "testing/crypto/ecc_testing.h"
+#include "testing/crypto/rsa_testing.h"
+#include "testing/crypto/signature_testing.h"
 #include "testing/mock/crypto/ecc_hw_mock.h"
 #include "testing/mock/crypto/ecc_mock.h"
-#include "testing/crypto/ecc_testing.h"
-#include "testing/crypto/signature_testing.h"
-#include "testing/crypto/rsa_testing.h"
 
 
 TEST_SUITE_LABEL ("ecc_ecc_hw");
@@ -116,10 +116,10 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify (CuTest *test)
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
@@ -166,10 +166,10 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_no_pubkey (CuTes
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
@@ -209,8 +209,7 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_extra_buffer (Cu
 	status |= mock_expect_output (&hw.mock, 2, &ECC_PUBKEY_POINT, sizeof (ECC_PUBKEY_POINT), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_key_pair (&engine.base, privkey, sizeof (privkey), NULL,
-		&pub_key);
+	status = engine.base.init_key_pair (&engine.base, privkey, sizeof (privkey), NULL, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, pub_key.context);
 
@@ -219,10 +218,10 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_extra_buffer (Cu
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
@@ -271,10 +270,10 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_p384 (CuTest *te
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC384_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA384_TEST_HASH),
+		MOCK_ARG (SHA384_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH,
@@ -322,10 +321,10 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_p384_no_pubkey (
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC384_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA384_TEST_HASH),
+		MOCK_ARG (SHA384_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH,
@@ -366,8 +365,7 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_p384_extra_buffe
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_key_pair (&engine.base, privkey, sizeof (privkey), NULL,
-		&pub_key);
+	status = engine.base.init_key_pair (&engine.base, privkey, sizeof (privkey), NULL, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, pub_key.context);
 
@@ -376,10 +374,10 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_p384_extra_buffe
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC384_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA384_TEST_HASH),
+		MOCK_ARG (SHA384_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH,
@@ -429,10 +427,10 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_p521 (CuTest *te
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC521_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA512_TEST_HASH),
+		MOCK_ARG (SHA512_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH,
@@ -480,10 +478,10 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_p521_no_pubkey (
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC521_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA512_TEST_HASH),
+		MOCK_ARG (SHA512_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH,
@@ -524,8 +522,7 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_p521_extra_buffe
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_key_pair (&engine.base, privkey, sizeof (privkey), NULL,
-		&pub_key);
+	status = engine.base.init_key_pair (&engine.base, privkey, sizeof (privkey), NULL, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, pub_key.context);
 
@@ -534,10 +531,10 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_p521_extra_buffe
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC521_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA512_TEST_HASH),
+		MOCK_ARG (SHA512_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH,
@@ -584,10 +581,10 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_bad_sig (CuTest 
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, ECC_HW_ECDSA_BAD_SIGNATURE,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_BAD_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
@@ -744,10 +741,10 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify (CuTest *test)
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, out, out_len);
@@ -815,10 +812,10 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_no_pubkey (CuTest 
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, out, out_len);
@@ -889,10 +886,10 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_extra_buffer (CuTe
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, out, out_len);
@@ -962,10 +959,10 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p384 (CuTest *test
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC384_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA384_TEST_HASH),
+		MOCK_ARG (SHA384_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
@@ -1035,10 +1032,10 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p384_no_pubkey (Cu
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC384_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA384_TEST_HASH),
+		MOCK_ARG (SHA384_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
@@ -1111,10 +1108,10 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p384_extra_buffer 
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC384_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA384_TEST_HASH),
+		MOCK_ARG (SHA384_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
@@ -1186,10 +1183,10 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p521 (CuTest *test
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC521_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA512_TEST_HASH),
+		MOCK_ARG (SHA512_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
@@ -1259,10 +1256,10 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p521_no_pubkey (Cu
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC521_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA512_TEST_HASH),
+		MOCK_ARG (SHA512_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
@@ -1332,10 +1329,10 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p521_no_leading_ze
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC521_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA512_TEST_HASH),
+		MOCK_ARG (SHA512_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
@@ -1408,10 +1405,10 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p521_extra_buffer 
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC521_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA512_TEST_HASH),
+		MOCK_ARG (SHA512_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
@@ -1513,16 +1510,15 @@ static void ecc_ecc_hw_test_init_key_pair_null (CuTest *test)
 	status = ecc_ecc_hw_init (&engine, &hw.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_key_pair (NULL, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		&priv_key,  &pub_key);
+	status = engine.base.init_key_pair (NULL, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,	&priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_key_pair (&engine.base, NULL, ECC_PRIVKEY_DER_LEN,
-		&priv_key, &pub_key);
+	status = engine.base.init_key_pair (&engine.base, NULL, ECC_PRIVKEY_DER_LEN, &priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, 0,
-		&priv_key, &pub_key);
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, 0, &priv_key, &pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = ecc_hw_mock_validate_and_release (&hw);
@@ -1606,10 +1602,10 @@ static void ecc_ecc_hw_test_init_public_key_and_verify (CuTest *test)
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
@@ -1653,10 +1649,10 @@ static void ecc_ecc_hw_test_init_public_key_and_verify_extra_buffer (CuTest *tes
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, signature,
@@ -1697,10 +1693,10 @@ static void ecc_ecc_hw_test_init_public_key_and_verify_p384 (CuTest *test)
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC384_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA384_TEST_HASH),
+		MOCK_ARG (SHA384_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH,
@@ -1744,10 +1740,10 @@ static void ecc_ecc_hw_test_init_public_key_and_verify_p384_extra_buffer (CuTest
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC384_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA384_TEST_HASH),
+		MOCK_ARG (SHA384_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH,
@@ -1789,10 +1785,10 @@ static void ecc_ecc_hw_test_init_public_key_and_verify_p521 (CuTest *test)
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC521_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA512_TEST_HASH),
+		MOCK_ARG (SHA512_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH,
@@ -1836,10 +1832,10 @@ static void ecc_ecc_hw_test_init_public_key_and_verify_p521_extra_buffer (CuTest
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC521_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA512_TEST_HASH),
+		MOCK_ARG (SHA512_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH,
@@ -1879,10 +1875,10 @@ static void ecc_ecc_hw_test_init_public_key_and_verify_bad_sig (CuTest *test)
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, ECC_HW_ECDSA_BAD_SIGNATURE,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_BAD_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
@@ -1912,20 +1908,16 @@ static void ecc_ecc_hw_test_init_public_key_null (CuTest *test)
 	status = ecc_ecc_hw_init (&engine, &hw.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_public_key (NULL, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
-		&pub_key);
+	status = engine.base.init_public_key (NULL, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,	&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_public_key (&engine.base, NULL, ECC_PUBKEY_DER_LEN,
-		&pub_key);
+	status = engine.base.init_public_key (&engine.base, NULL, ECC_PUBKEY_DER_LEN, &pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, 0,
-		&pub_key);
+	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, 0, &pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
-		NULL);
+	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,	NULL);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = ecc_hw_mock_validate_and_release (&hw);
@@ -2016,10 +2008,10 @@ static void ecc_ecc_hw_test_public_key_generate_derived_key_pair_and_verify (CuT
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
@@ -2070,10 +2062,10 @@ static void ecc_ecc_hw_test_public_key_generate_derived_key_pair_and_verify_p384
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC384_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA384_TEST_HASH),
+		MOCK_ARG (SHA384_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH,
@@ -2127,10 +2119,10 @@ static void ecc_ecc_hw_test_public_key_generate_derived_key_pair_and_verify_p521
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC521_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA512_TEST_HASH),
+		MOCK_ARG (SHA512_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH,
@@ -2179,10 +2171,10 @@ static void ecc_ecc_hw_test_public_key_generate_derived_key_pair_and_verify_bad_
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, ECC_HW_ECDSA_BAD_SIGNATURE,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_BAD_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
@@ -2334,10 +2326,10 @@ static void ecc_ecc_hw_test_generate_derived_key_pair_and_sign_and_verify (CuTes
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, out, out_len);
@@ -2358,6 +2350,7 @@ static void ecc_ecc_hw_test_generate_derived_key_pair_and_sign_and_verify_p384 (
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
+
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 	int out_len;
 	uint8_t out[ECC_TESTING_ECC384_DSA_MAX_LENGTH * 2];
@@ -2409,10 +2402,10 @@ static void ecc_ecc_hw_test_generate_derived_key_pair_and_sign_and_verify_p384 (
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC384_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA384_TEST_HASH),
+		MOCK_ARG (SHA384_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
@@ -2437,6 +2430,7 @@ static void ecc_ecc_hw_test_generate_derived_key_pair_and_sign_and_verify_p521 (
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
+
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 	int out_len;
 	uint8_t out[ECC_TESTING_ECC521_DSA_MAX_LENGTH * 2];
@@ -2488,10 +2482,10 @@ static void ecc_ecc_hw_test_generate_derived_key_pair_and_sign_and_verify_p521 (
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC521_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA512_TEST_HASH),
+		MOCK_ARG (SHA512_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
@@ -2591,16 +2585,16 @@ static void ecc_ecc_hw_test_generate_derived_key_pair_null (CuTest *test)
 	status = ecc_ecc_hw_init (&engine, &hw.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_derived_key_pair (NULL, ECC_PRIVKEY, ECC_PRIVKEY_LEN,
-		&priv_key, &pub_key);
+	status = engine.base.generate_derived_key_pair (NULL, ECC_PRIVKEY, ECC_PRIVKEY_LEN,	&priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.generate_derived_key_pair (&engine.base, NULL, ECC_PRIVKEY_LEN,
-		&priv_key, &pub_key);
+	status = engine.base.generate_derived_key_pair (&engine.base, NULL, ECC_PRIVKEY_LEN, &priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.generate_derived_key_pair (&engine.base, ECC_PRIVKEY, 0,
-		&priv_key, &pub_key);
+	status = engine.base.generate_derived_key_pair (&engine.base, ECC_PRIVKEY, 0, &priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = ecc_hw_mock_validate_and_release (&hw);
@@ -2810,10 +2804,10 @@ static void ecc_ecc_hw_test_generate_key_pair_and_sign_and_verify (CuTest *test)
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, out, out_len);
@@ -2834,6 +2828,7 @@ static void ecc_ecc_hw_test_generate_key_pair_and_sign_and_verify_p384 (CuTest *
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
+
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 	int out_len;
 	uint8_t out[ECC_TESTING_ECC384_DSA_MAX_LENGTH * 2];
@@ -2884,10 +2879,10 @@ static void ecc_ecc_hw_test_generate_key_pair_and_sign_and_verify_p384 (CuTest *
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC384_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA384_TEST_HASH),
+		MOCK_ARG (SHA384_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
@@ -2912,6 +2907,7 @@ static void ecc_ecc_hw_test_generate_key_pair_and_sign_and_verify_p521 (CuTest *
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
+
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 	int out_len;
 	uint8_t out[ECC_TESTING_ECC521_DSA_MAX_LENGTH * 2];
@@ -2962,10 +2958,10 @@ static void ecc_ecc_hw_test_generate_key_pair_and_sign_and_verify_p521 (CuTest *
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC521_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SHA512_TEST_HASH),
+		MOCK_ARG (SHA512_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
@@ -3132,20 +3128,16 @@ static void ecc_ecc_hw_test_sign_null (CuTest *test)
 		&priv_key, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.sign (NULL, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
-		sizeof (out));
+	status = engine.base.sign (NULL, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sign (&engine.base, NULL, SIG_HASH_TEST, SIG_HASH_LEN, out,
-		sizeof (out));
+	status = engine.base.sign (&engine.base, NULL, SIG_HASH_TEST, SIG_HASH_LEN, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sign (&engine.base, &priv_key, NULL, SIG_HASH_LEN, out,
-		sizeof (out));
+	status = engine.base.sign (&engine.base, &priv_key, NULL, SIG_HASH_LEN, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, 0, out,
-		sizeof (out));
+	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, 0, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL,
@@ -3278,24 +3270,24 @@ static void ecc_ecc_hw_test_verify_null (CuTest *test)
 		&priv_key, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.verify (NULL, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
-		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+	status = engine.base.verify (NULL, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.verify (&engine.base, NULL, SIG_HASH_TEST, SIG_HASH_LEN,
 		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.verify (&engine.base, &pub_key, NULL, SIG_HASH_LEN,
-		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+	status = engine.base.verify (&engine.base, &pub_key, NULL, SIG_HASH_LEN, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, 0,
-		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, 0, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
-		NULL, ECC_SIG_TEST_LEN);
+	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
@@ -3341,8 +3333,8 @@ static void ecc_ecc_hw_test_verify_corrupt_signature (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
-		bad_sig, sizeof (bad_sig));
+	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, bad_sig,
+		sizeof (bad_sig));
 	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
 
 	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
@@ -3775,8 +3767,7 @@ static void ecc_ecc_hw_test_compute_shared_secret (CuTest *test)
 	status = mock_expect (&hw.mock, hw.base.ecdh_compute, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
-		MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
+		sizeof (struct ecc_point_public_key)), MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
 	status |= mock_expect_output (&hw.mock, 3, ECC_DH_SECRET, ECC_DH_SECRET_LEN, 4);
 
 	CuAssertIntEquals (test, 0, status);
@@ -3833,8 +3824,7 @@ static void ecc_ecc_hw_test_compute_shared_secret_p384 (CuTest *test)
 	status = mock_expect (&hw.mock, hw.base.ecdh_compute, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC384_PRIVKEY, ECC384_PRIVKEY_LEN), MOCK_ARG (ECC384_PRIVKEY_LEN),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
-		MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
+		sizeof (struct ecc_point_public_key)), MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
 	status |= mock_expect_output (&hw.mock, 3, ECC384_DH_SECRET, ECC384_DH_SECRET_LEN, 4);
 
 	CuAssertIntEquals (test, 0, status);
@@ -3892,8 +3882,7 @@ static void ecc_ecc_hw_test_compute_shared_secret_p521 (CuTest *test)
 	status = mock_expect (&hw.mock, hw.base.ecdh_compute, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC521_PRIVKEY, ECC521_PRIVKEY_LEN), MOCK_ARG (ECC521_PRIVKEY_LEN),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
-		MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
+		sizeof (struct ecc_point_public_key)), MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
 	status |= mock_expect_output (&hw.mock, 3, ECC521_DH_SECRET, ECC521_DH_SECRET_LEN, 4);
 
 	CuAssertIntEquals (test, 0, status);
@@ -3947,8 +3936,7 @@ static void ecc_ecc_hw_test_compute_shared_secret_leading_zero (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY_LEADING_ZERO, ECC_PRIVKEY_LEADING_ZERO_LEN),
 		MOCK_ARG (ECC_PRIVKEY_LEADING_ZERO_LEN),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
-		MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
+		sizeof (struct ecc_point_public_key)), MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
 	status |= mock_expect_output (&hw.mock, 3, ECC_DH_SECRET_LEADING_ZERO,
 		ECC_DH_SECRET_LEADING_ZERO_LEN, 4);
 
@@ -4004,8 +3992,7 @@ static void ecc_ecc_hw_test_compute_shared_secret_derived_key (CuTest *test)
 	status = mock_expect (&hw.mock, hw.base.ecdh_compute, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
-		MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
+		sizeof (struct ecc_point_public_key)), MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
 	status |= mock_expect_output (&hw.mock, 3, ECC_DH_SECRET, ECC_DH_SECRET_LEN, 4);
 
 	CuAssertIntEquals (test, 0, status);
@@ -4053,16 +4040,13 @@ static void ecc_ecc_hw_test_compute_shared_secret_null (CuTest *test)
 		&priv_key, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.compute_shared_secret (NULL, &priv_key, &pub_key, out,
-		sizeof (out));
+	status = engine.base.compute_shared_secret (NULL, &priv_key, &pub_key, out,	sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.compute_shared_secret (&engine.base, NULL, &pub_key, out,
-		sizeof (out));
+	status = engine.base.compute_shared_secret (&engine.base, NULL, &pub_key, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.compute_shared_secret (&engine.base, &priv_key, NULL, out,
-		sizeof (out));
+	status = engine.base.compute_shared_secret (&engine.base, &priv_key, NULL, out,	sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.compute_shared_secret (&engine.base, &priv_key, &pub_key, NULL,
@@ -4869,10 +4853,10 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_static_init (CuTes
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, out, out_len);
@@ -4910,10 +4894,10 @@ static void ecc_ecc_hw_test_init_public_key_and_verify_static_init (CuTest *test
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
@@ -4976,10 +4960,10 @@ static void ecc_ecc_hw_test_generate_derived_key_pair_and_sign_and_verify_static
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, out, out_len);
@@ -5040,10 +5024,10 @@ static void ecc_ecc_hw_test_generate_key_pair_and_sign_and_verify_static_init (C
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, out, out_len);
@@ -5143,8 +5127,7 @@ static void ecc_ecc_hw_test_compute_shared_secret_static_init (CuTest *test)
 	status = mock_expect (&hw.mock, hw.base.ecdh_compute, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
-		MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
+		sizeof (struct ecc_point_public_key)), MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
 	status |= mock_expect_output (&hw.mock, 3, ECC_DH_SECRET, ECC_DH_SECRET_LEN, 4);
 
 	CuAssertIntEquals (test, 0, status);
@@ -5387,10 +5370,10 @@ static void ecc_ecc_hw_test_verify_hw_error (CuTest *test)
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_verify, &hw, ECC_HW_ECDSA_VERIFY_FAILED,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
+		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
-			sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		sizeof (struct ecc_ecdsa_signature)), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
@@ -5441,8 +5424,7 @@ static void ecc_ecc_hw_test_compute_shared_secret_hw_error (CuTest *test)
 	status = mock_expect (&hw.mock, hw.base.ecdh_compute, &hw, ECC_HW_ECDH_COMPUTE_FAILED,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
-			sizeof (struct ecc_point_public_key)),
-		MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
+		sizeof (struct ecc_point_public_key)), MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5498,6 +5480,7 @@ static void ecc_ecc_hw_test_get_private_key_der_hw_error (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (ecc_ecc_hw);
 
 TEST (ecc_ecc_hw_test_init);
@@ -5658,3 +5641,4 @@ TEST (ecc_ecc_hw_test_compute_shared_secret_hw_error);
 TEST (ecc_ecc_hw_test_get_private_key_der_hw_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

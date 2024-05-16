@@ -5,32 +5,34 @@
 #define HOST_PROCESSOR_H_
 
 #include <stdbool.h>
-#include "status/rot_status.h"
 #include "host_fw_util.h"
+#include "host_processor_observer.h"
+#include "common/observable.h"
 #include "crypto/hash.h"
 #include "crypto/rsa.h"
 #include "flash/flash_util.h"
-#include "common/observable.h"
-#include "host_processor_observer.h"
+#include "status/rot_status.h"
 
 
 /**
  * Boolean macro to determine if a status code represents a validation failure of flash.
  */
-#define	IS_VALIDATION_FAILURE(x)	((x == RSA_ENGINE_BAD_SIGNATURE) || (x == HOST_FW_UTIL_BAD_IMAGE_HASH) || (x == FLASH_UTIL_UNEXPECTED_VALUE) || (x == HOST_FW_UTIL_UNSUPPORTED_VERSION))
+#define	IS_VALIDATION_FAILURE(\
+	x)\
+		((x == RSA_ENGINE_BAD_SIGNATURE) || (x == HOST_FW_UTIL_BAD_IMAGE_HASH) || (x == FLASH_UTIL_UNEXPECTED_VALUE) || (x == HOST_FW_UTIL_UNSUPPORTED_VERSION))
 
 
 /**
  * Verification actions that can be taken on reset of the host processor.
  */
 enum host_processor_reset_actions {
-	HOST_PROCESSOR_ACTION_NONE = 0,						/**< No action is pending on host reset. */
-	HOST_PROCESSOR_ACTION_VERIFY_PFM,					/**< A pending PFM will be verified. */
-	HOST_PROCESSOR_ACTION_VERIFY_UPDATE,				/**< A host FW update will be verified. */
-	HOST_PROCESSOR_ACTION_VERIFY_PFM_AND_UPDATE,		/**< A pending PFM and host FW update will be verified. */
-	HOST_PROCESSOR_ACTION_ACTIVATE_UPDATE,				/**< A prevalidated host FW update will be made active. */
-	HOST_PROCESSOR_ACTION_ACTIVATE_PFM_AND_UPDATE,		/**< A prevalidated pending PFM and host FW update will both be made active. */
-	HOST_PROCESSOR_ACTION_VERIFY_BYPASS_FLASH,			/**< A PFM will be used to verify flash, which is being accessed in bypass mode. */
+	HOST_PROCESSOR_ACTION_NONE = 0,					/**< No action is pending on host reset. */
+	HOST_PROCESSOR_ACTION_VERIFY_PFM,				/**< A pending PFM will be verified. */
+	HOST_PROCESSOR_ACTION_VERIFY_UPDATE,			/**< A host FW update will be verified. */
+	HOST_PROCESSOR_ACTION_VERIFY_PFM_AND_UPDATE,	/**< A pending PFM and host FW update will be verified. */
+	HOST_PROCESSOR_ACTION_ACTIVATE_UPDATE,			/**< A prevalidated host FW update will be made active. */
+	HOST_PROCESSOR_ACTION_ACTIVATE_PFM_AND_UPDATE,	/**< A prevalidated pending PFM and host FW update will both be made active. */
+	HOST_PROCESSOR_ACTION_VERIFY_BYPASS_FLASH,		/**< A PFM will be used to verify flash, which is being accessed in bypass mode. */
 };
 
 /**
@@ -159,8 +161,8 @@ struct host_processor {
 	 */
 	int (*bypass_mode) (struct host_processor *host, bool swap_flash);
 
-	int port;								/**< The port identifier of the host. */
-	struct observable observable;			/**< Observer manager for the port handler. */
+	int port;						/**< The port identifier of the host. */
+	struct observable observable;	/**< Observer manager for the port handler. */
 };
 
 
@@ -206,4 +208,4 @@ enum {
 };
 
 
-#endif /* HOST_PROCESSOR_H_ */
+#endif	/* HOST_PROCESSOR_H_ */

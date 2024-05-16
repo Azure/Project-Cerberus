@@ -4,8 +4,8 @@
 #ifndef RNG_H_
 #define RNG_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 
 
@@ -40,4 +40,4 @@ enum {
 };
 
 
-#endif /* RNG_H_ */
+#endif	/* RNG_H_ */

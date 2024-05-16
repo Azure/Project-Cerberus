@@ -5,30 +5,30 @@
 #define ATTESTATION_REQUESTER_H_
 
 #include <stdint.h>
+#include "attestation.h"
+#include "pcr_store.h"
 #include "asn1/x509.h"
-#include "crypto/hash.h"
-#include "crypto/ecc.h"
-#include "crypto/rsa.h"
-#include "crypto/rng.h"
 #include "cmd_interface/cerberus_protocol_observer.h"
 #include "cmd_interface/device_manager.h"
+#include "crypto/ecc.h"
+#include "crypto/hash.h"
+#include "crypto/rng.h"
+#include "crypto/rsa.h"
 #include "manifest/cfm/cfm_manager.h"
 #include "manifest/cfm/cfm_observer.h"
 #include "mctp/mctp_base_protocol.h"
 #include "mctp/mctp_control_protocol_observer.h"
-#include "spdm/spdm_protocol_observer.h"
 #include "riot/riot_key_manager.h"
-#include "attestation.h"
-#include "pcr_store.h"
+#include "spdm/spdm_protocol_observer.h"
 
 
 /**
  * Attestation requester request transaction state
  */
 enum attestation_requester_request_state {
-	ATTESTATION_REQUESTER_REQUEST_IDLE = 0,						/**< Start of a transaction or no response received yet */
-	ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL,					/**< Successful response received */
-	ATTESTATION_REQUESTER_REQUEST_RSP_FAIL,						/**< Failed response received */
+	ATTESTATION_REQUESTER_REQUEST_IDLE = 0,		/**< Start of a transaction or no response received yet */
+	ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL,	/**< Successful response received */
+	ATTESTATION_REQUESTER_REQUEST_RSP_FAIL,		/**< Failed response received */
 };
 
 /**
@@ -64,12 +64,12 @@ struct attestation_requester_transaction_state {
  * Variable context associated with an attestation requester
  */
 struct attestation_requester_state {
-	struct attestation_requester_transaction_state txn;			/**< Current transaction context. */
-	struct spdm_protocol_mctp_header *spdm_mctp;				/**< MCTP header for SPDM requests. */
-	uint8_t *spdm_msg_buffer;									/**< Buffer for building SPDM requests. */
-	bool get_routing_table;										/**< Flag indicating that MCTP routing table should be updated. */
-	bool mctp_bridge_wait;										/**< Flag indicating Cerberus is waiting on MCTP bridge to start discovery flow */
-	platform_semaphore next_action;								/**< Semaphore used to indicate attestation requester has a pending action. */
+	struct attestation_requester_transaction_state txn;	/**< Current transaction context. */
+	struct spdm_protocol_mctp_header *spdm_mctp;		/**< MCTP header for SPDM requests. */
+	uint8_t *spdm_msg_buffer;							/**< Buffer for building SPDM requests. */
+	bool get_routing_table;								/**< Flag indicating that MCTP routing table should be updated. */
+	bool mctp_bridge_wait;								/**< Flag indicating Cerberus is waiting on MCTP bridge to start discovery flow */
+	platform_semaphore next_action;						/**< Semaphore used to indicate attestation requester has a pending action. */
 };
 
 /**
@@ -86,7 +86,7 @@ struct attestation_requester {
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 	struct mctp_control_protocol_observer mctp_rsp_observer;	/**< Observer to notifications of a MCTP control protocol response message. */
 #endif
-	struct cfm_observer cfm_observer; 							/**< Observer to CFM notifications. */
+	struct cfm_observer cfm_observer;							/**< Observer to CFM notifications. */
 	struct attestation_requester_state *state;					/**< Variable context for the attestation requester. */
 	const struct cmd_channel *channel;							/**< Channel for communicating with BMC. */
 	const struct mctp_interface *mctp;							/**< MCTP interface to utilize for communication with BMC. */
@@ -132,4 +132,4 @@ void attestation_requester_refresh_routing_table (const struct attestation_reque
 void attestation_requestor_wait_for_next_action (const struct attestation_requester *attestation);
 
 
-#endif /* ATTESTATION_REQUESTER_H_ */
+#endif	/* ATTESTATION_REQUESTER_H_ */

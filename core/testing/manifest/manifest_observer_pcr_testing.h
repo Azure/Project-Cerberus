@@ -23,4 +23,4 @@ extern const uint8_t ZERO_BUFFER_HASH_DIGEST[];
 extern const uint32_t ZERO_BUFFER_HASH_LEN;
 
 
-#endif /* MANIFEST_OBSERVER_PCR_TESTING_H_ */
+#endif	/* MANIFEST_OBSERVER_PCR_TESTING_H_ */

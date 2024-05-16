@@ -1,15 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "host_irq_handler_mask_irqs.h"
 
 
 int host_irq_handler_mask_irqs_enter_reset (const struct host_irq_handler *handler)
 {
-	const struct host_irq_handler_mask_irqs *irq = (const struct host_irq_handler_mask_irqs*) handler;
+	const struct host_irq_handler_mask_irqs *irq =
+		(const struct host_irq_handler_mask_irqs*) handler;
 	int status;
 
 	if (irq == NULL) {
@@ -25,7 +26,8 @@ int host_irq_handler_mask_irqs_enter_reset (const struct host_irq_handler *handl
 
 int host_irq_handler_mask_irqs_assert_cs1 (const struct host_irq_handler *handler)
 {
-	const struct host_irq_handler_mask_irqs *irq = (const struct host_irq_handler_mask_irqs*) handler;
+	const struct host_irq_handler_mask_irqs *irq =
+		(const struct host_irq_handler_mask_irqs*) handler;
 	int status = 0;
 
 	if (irq) {
@@ -115,7 +117,7 @@ int host_irq_handler_mask_irqs_init_enable_exit_reset (struct host_irq_handler_m
  * Configure host interrupts.
  *
  * @param handler The handler instance to initialize.
- * 
+ *
  * @return 0 if the host interrupts ware successfully configured or an error code.
  */
 int host_irq_handler_mask_irqs_config_interrupts (const struct host_irq_handler *handler)

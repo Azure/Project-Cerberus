@@ -4,15 +4,15 @@
 #ifndef FIRMWARE_UPDATE_MOCK_H_
 #define FIRMWARE_UPDATE_MOCK_H_
 
-#include "firmware/firmware_update.h"
 #include "mock.h"
+#include "firmware/firmware_update.h"
 
 
 /**
  * A mock for a system firmware update.
  */
 struct firmware_update_mock {
-	struct firmware_update base;		/**< The base firmware update instance. */
+	struct firmware_update base;	/**< The base firmware update instance. */
 	struct mock mock;				/**< The base mock instance. */
 };
 
@@ -34,4 +34,4 @@ int firmware_update_mock_verify_boot_image (const struct firmware_update *update
 void firmware_update_mock_enable_verify_boot_image (struct firmware_update_mock *mock);
 
 
-#endif /* FIRMWARE_UPDATE_MOCK_H_ */
+#endif	/* FIRMWARE_UPDATE_MOCK_H_ */

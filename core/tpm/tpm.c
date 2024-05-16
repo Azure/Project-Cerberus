@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
-#include <stdbool.h>
 #include "platform_api.h"
-#include "status/rot_status.h"
+#include "tpm.h"
+#include "tpm_logging.h"
+#include "flash/flash.h"
 #include "flash/flash_common.h"
 #include "flash/flash_util.h"
-#include "flash/flash.h"
 #include "logging/debug_log.h"
-#include "tpm_logging.h"
-#include "tpm.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -100,6 +100,7 @@ static int tpm_read_header (struct tpm *tpm, bool init, bool write, bool log)
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_TPM,
 				TPM_LOGGING_READ_HEADER_FAILED, status, 0);
 		}
+
 		return status;
 	}
 	else {
@@ -133,6 +134,7 @@ static void tpm_on_soft_reset (struct host_processor_observer *observer)
 	if (tpm == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_TPM,
 			TPM_LOGGING_SOFT_RESET_ERROR, TPM_INVALID_ARGUMENT, 0);
+
 		return;
 	}
 

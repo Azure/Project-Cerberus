@@ -4,8 +4,8 @@
 #ifndef CERT_DEVICE_HW_MOCK_H_
 #define CERT_DEVICE_HW_MOCK_H_
 
-#include "firmware/cert_device_hw.h"
 #include "mock.h"
+#include "firmware/cert_device_hw.h"
 
 
 /**
@@ -28,4 +28,4 @@ void cert_device_hw_mock_release (struct cert_device_hw_mock *mock);
 int cert_device_hw_mock_validate_and_release (struct cert_device_hw_mock *mock);
 
 
-#endif /* CERT_DEVICE_HW_MOCK_H_ */
+#endif	/* CERT_DEVICE_HW_MOCK_H_ */

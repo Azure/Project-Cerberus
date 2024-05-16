@@ -47,4 +47,4 @@ void host_irq_handler_auth_check_exit_reset (const struct host_irq_handler *hand
 	}
 
 
-#endif /* HOST_IRQ_HANDLER_AUTH_CHECK_STATIC_H_ */
+#endif	/* HOST_IRQ_HANDLER_AUTH_CHECK_STATIC_H_ */

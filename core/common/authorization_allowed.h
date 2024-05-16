@@ -11,7 +11,7 @@
  * Authorization manager that allows all operations.
  */
 struct authorization_allowed {
-	struct authorization base;			/**< Base authorization manager. */
+	struct authorization base;	/**< Base authorization manager. */
 };
 
 
@@ -19,4 +19,4 @@ int authorization_allowed_init (struct authorization_allowed *auth);
 void authorization_allowed_release (struct authorization_allowed *auth);
 
 
-#endif /* AUTHORIZATION_ALLOWED_H_ */
+#endif	/* AUTHORIZATION_ALLOWED_H_ */

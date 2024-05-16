@@ -4,8 +4,8 @@
 #ifndef RMA_UNLOCK_TOKEN_H_
 #define RMA_UNLOCK_TOKEN_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "cmd_interface/cmd_device.h"
 #include "crypto/hash.h"
 #include "crypto/signature_verification.h"
@@ -31,16 +31,16 @@ struct rma_unlock_token {
 	int (*authenticate) (const struct rma_unlock_token *handler, const uint8_t *data,
 		size_t length);
 
-	struct hash_engine *hash;							/**< Hash engine for token digests. */
-	const struct signature_verification *authority;		/**< Verification handler for the token signing authority. */
-	const uint8_t *authority_key;						/**< Public key for the token signing authority. */
-	size_t auth_key_length;								/**< Length of the authority public key. */
-	enum hash_type auth_hash;							/**< Hash algorithm for data authentication. */
-	const struct cmd_device *uuid;						/**< Interface to retrieve the device UUID. */
-	const uint8_t *oid;									/**< OID for the device type. */
-	size_t oid_length;									/**< Length of the device type OID. */
-	const uint8_t *dice_hash;							/**< Digest of the DICE public key. */
-	size_t dice_length;									/**< Length of the DICE key digest. */
+	struct hash_engine *hash;						/**< Hash engine for token digests. */
+	const struct signature_verification *authority;	/**< Verification handler for the token signing authority. */
+	const uint8_t *authority_key;					/**< Public key for the token signing authority. */
+	size_t auth_key_length;							/**< Length of the authority public key. */
+	enum hash_type auth_hash;						/**< Hash algorithm for data authentication. */
+	const struct cmd_device *uuid;					/**< Interface to retrieve the device UUID. */
+	const uint8_t *oid;								/**< OID for the device type. */
+	size_t oid_length;								/**< Length of the device type OID. */
+	const uint8_t *dice_hash;						/**< Digest of the DICE public key. */
+	size_t dice_length;								/**< Length of the DICE key digest. */
 };
 
 
@@ -64,4 +64,4 @@ enum {
 };
 
 
-#endif /* RMA_UNLOCK_TOKEN_H_ */
+#endif	/* RMA_UNLOCK_TOKEN_H_ */

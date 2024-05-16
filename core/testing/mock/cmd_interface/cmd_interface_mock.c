@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <string.h>
 #include <stdint.h>
-#include "platform_io.h"
+#include <string.h>
 #include "cmd_interface_mock.h"
+#include "platform_io.h"
 #include "testing.h"
 
 

@@ -40,12 +40,12 @@ enum {
 	MANIFEST_LOGGING_PCD_CLEAR_ACTIVE_EVENT_FAIL,	/**< Failed clear active PCD notification. */
 	MANIFEST_LOGGING_PCD_UPDATE,					/**< Received a PCD update. */
 	MANIFEST_LOGGING_CFM_ACTIVATION,				/**< Received a CFM activate request. */
-	MANIFEST_LOGGING_PFM_ACTIVATION_REQUEST_FAIL, 	/**< PFM activation request notification failure. */
-	MANIFEST_LOGGING_CFM_ACTIVATION_REQUEST_FAIL, 	/**< CFM activation request notification failure. */
-	MANIFEST_LOGGING_PCD_ACTIVATION_REQUEST_FAIL, 	/**< PCD activation request notification failure. */
+	MANIFEST_LOGGING_PFM_ACTIVATION_REQUEST_FAIL,	/**< PFM activation request notification failure. */
+	MANIFEST_LOGGING_CFM_ACTIVATION_REQUEST_FAIL,	/**< CFM activation request notification failure. */
+	MANIFEST_LOGGING_PCD_ACTIVATION_REQUEST_FAIL,	/**< PCD activation request notification failure. */
 	MANIFEST_LOGGING_NO_STORED_MANIFEST_KEY,		/**< There is no valid manifest key available in the keystore. */
 	MANIFEST_LOGGING_MANIFEST_KEY_REVOKED,			/**< The manifest key in the keystore has revoked the default key. */
 };
 
 
-#endif /* MANIFEST_LOGGING_H_ */
+#endif	/* MANIFEST_LOGGING_H_ */

@@ -2,9 +2,9 @@
 // Licensed under the MIT license.
 
 #include <string.h>
-#include "cmd_interface/cmd_interface.h"
 #include "cmd_interface_ide_responder.h"
 #include "ide_commands.h"
+// #include "cmd_interface/cmd_interface.h"
 #include "common/unused.h"
 
 
@@ -13,7 +13,7 @@ int cmd_interface_ide_responder_process_request (const struct cmd_interface *int
 {
 	int status = 0;
 	const struct ide_km_header *ide_km_request;
-	const struct cmd_interface_ide_responder *ide_responder = 
+	const struct cmd_interface_ide_responder *ide_responder =
 		(const struct cmd_interface_ide_responder*) intf;
 
 	if ((ide_responder == NULL) || (request == NULL)) {
@@ -50,6 +50,7 @@ int cmd_interface_ide_responder_process_request (const struct cmd_interface *int
 	}
 
 exit:
+
 	return status;
 }
 
@@ -103,6 +104,7 @@ int cmd_interface_ide_responder_init (struct cmd_interface_ide_responder *ide_re
 		cmd_interface_ide_responder_generate_error_packet;
 
 exit:
+
 	return status;
 }
 

@@ -4,20 +4,20 @@
 #ifndef PCD_MANAGER_H_
 #define PCD_MANAGER_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
+#include "common/observable.h"
 #include "manifest/manifest_manager.h"
 #include "manifest/pcd/pcd.h"
 #include "manifest/pcd/pcd_observer.h"
-#include "common/observable.h"
 
 
 /**
  * API for managing a PCD.
  */
 struct pcd_manager {
-	struct manifest_manager base;					/**< Manifest manager interface */
-	struct observable observable;					/**< The manager for PCD observers. */
+	struct manifest_manager base;	/**< Manifest manager interface */
+	struct observable observable;	/**< The manager for PCD observers. */
 
 	/**
 	 * Get the active PCD. The PCD instance must be released with the manager.
@@ -65,4 +65,4 @@ void pcd_manager_on_clear_active (struct pcd_manager *manager);
 void pcd_manager_on_pcd_activation_request (struct pcd_manager *manager);
 
 
-#endif /* PCD_MANAGER_H_ */
+#endif	/* PCD_MANAGER_H_ */

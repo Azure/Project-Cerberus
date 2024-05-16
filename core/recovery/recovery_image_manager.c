@@ -2,15 +2,15 @@
 // Licensed under the MIT license.
 
 #include <string.h>
+#include "recovery_image_header.h"
+#include "recovery_image_manager.h"
+#include "recovery_image_section_header.h"
+#include "recovery_logging.h"
 #include "common/common_math.h"
 #include "common/unused.h"
 #include "crypto/ecc.h"
 #include "flash/flash_util.h"
 #include "host_fw/host_processor_dual.h"
-#include "recovery_image_manager.h"
-#include "recovery_image_header.h"
-#include "recovery_image_section_header.h"
-#include "recovery_logging.h"
 
 
 /**
@@ -210,6 +210,7 @@ static int recovery_image_manager_clear_recovery_image_region (
 		status = flash_updater_check_update_size (&region->updater, size);
 		if (status != 0) {
 			platform_mutex_unlock (&manager->lock);
+
 			return status;
 		}
 
@@ -221,6 +222,7 @@ static int recovery_image_manager_clear_recovery_image_region (
 	}
 	else {
 		platform_mutex_unlock (&manager->lock);
+
 		return RECOVERY_IMAGE_MANAGER_IMAGE_IN_USE;
 	}
 
@@ -291,6 +293,7 @@ static int recovery_image_manager_activate_recovery_image (struct recovery_image
 
 	if (flash_updater_get_remaining_bytes (manager->updating) > 0) {
 		platform_mutex_unlock (&manager->lock);
+
 		return RECOVERY_IMAGE_MANAGER_INCOMPLETE_UPDATE;
 	}
 
@@ -298,8 +301,8 @@ static int recovery_image_manager_activate_recovery_image (struct recovery_image
 	is_valid = region->is_valid;
 	if (!region->is_valid) {
 		if (manager->updating != NULL) {
-			status = region->image->verify (region->image, manager->hash,
-				manager->verification, NULL, 0, manager->pfm);
+			status = region->image->verify (region->image, manager->hash, manager->verification,
+				NULL, 0, manager->pfm);
 			if (status == 0) {
 				recovery_image_manager_update_active_region (manager, region);
 			}
@@ -307,7 +310,7 @@ static int recovery_image_manager_activate_recovery_image (struct recovery_image
 				goto exit;
 			}
 		}
-		else  {
+		else {
 			status = RECOVERY_IMAGE_MANAGER_NONE_PENDING;
 			goto exit;
 		}
@@ -351,6 +354,7 @@ static int recovery_image_manager_erase_recovery_region (
 	}
 
 	region->is_valid = false;
+
 	return flash_erase_region (region->updater.flash, region->updater.base_addr,
 		region->updater.max_size);
 }
@@ -390,6 +394,7 @@ exit:
 		observable_notify_observers (&manager->observable,
 			offsetof (struct recovery_image_observer, on_recovery_image_deactivated));
 	}
+
 	return status;
 }
 
@@ -459,6 +464,7 @@ release_updater:
 	flash_updater_release (&manager->region1.updater);
 release_observer:
 	observable_release (&manager->observable);
+
 	return status;
 }
 
@@ -479,8 +485,8 @@ release_observer:
  */
 int recovery_image_manager_init_two_region (struct recovery_image_manager *manager,
 	struct recovery_image *image1, struct recovery_image *image2, struct host_state_manager *state,
-	struct hash_engine *hash, const struct signature_verification *verification, struct pfm_manager *pfm,
-	size_t max_size)
+	struct hash_engine *hash, const struct signature_verification *verification,
+	struct pfm_manager *pfm, size_t max_size)
 {
 	enum recovery_image_region active_region;
 	int status;

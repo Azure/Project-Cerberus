@@ -3,10 +3,11 @@
 
 #include <stdint.h>
 #include <string.h>
-#include "common/buffer_util.h"
-#include "cmd_interface/cmd_interface.h"
 #include "cmd_interface_tdisp_responder.h"
 #include "tdisp_commands.h"
+#include "cmd_interface/cmd_interface.h"
+#include "cmd_interface/cmd_interface.h"
+#include "common/buffer_util.h"
 
 
 /* [TODO] Log the error code generated from internal functions in this file. */
@@ -66,9 +67,8 @@ void tdisp_generate_error_response (struct cmd_interface_msg *response, uint8_t 
  *
  * @return The interface context or null if the interface is not found.
  */
-static struct tdisp_interface_context *tdisp_get_interface_context (
-	struct tdisp_state *tdisp_state,
-	const struct tdisp_interface_id *interface_id)
+static struct tdisp_interface_context* tdisp_get_interface_context (
+	struct tdisp_state *tdisp_state, const struct tdisp_interface_id *interface_id)
 {
 	uint8_t interface_idx;
 
@@ -91,8 +91,7 @@ static struct tdisp_interface_context *tdisp_get_interface_context (
  * @return The initialized interface context or null no interface context is available.
  */
 static struct tdisp_interface_context* tdisp_initialize_interface_context (
-	struct tdisp_state *tdisp_state,
-	const struct tdisp_interface_id *interface_id)
+	struct tdisp_state *tdisp_state, const struct tdisp_interface_id *interface_id)
 {
 	uint8_t interface_idx;
 	struct tdisp_interface_context *interface_context;
@@ -107,7 +106,8 @@ static struct tdisp_interface_context* tdisp_initialize_interface_context (
 
 		/* Find an unintialized interface context. */
 		for (interface_idx = 0; interface_idx < TDISP_INTERFACE_MAX_COUNT; interface_idx++) {
-			if (tdisp_state->interface_context[interface_idx].interface_id.function_id == UINT32_MAX) {
+			if (tdisp_state->interface_context[interface_idx].interface_id.function_id ==
+				UINT32_MAX) {
 				interface_context = &tdisp_state->interface_context[interface_idx];
 				tdisp_state->interface_context_count++;
 				break;
@@ -132,8 +132,8 @@ static struct tdisp_interface_context* tdisp_initialize_interface_context (
  *
  * @return 0 if request processed successfully (including TDISP error msg) or an error code.
  */
-int tdisp_get_version (struct tdisp_state *tdisp_state,
-	const uint8_t *version_num, uint8_t version_num_count, struct cmd_interface_msg *request)
+int tdisp_get_version (struct tdisp_state *tdisp_state,	const uint8_t *version_num,
+	uint8_t version_num_count, struct cmd_interface_msg *request)
 {
 	uint32_t status = 0;
 	const struct tdisp_get_version_request *tdisp_request;
@@ -141,7 +141,7 @@ int tdisp_get_version (struct tdisp_state *tdisp_state,
 	uint32_t function_id = 0;
 	size_t version_array_length;
 	size_t response_length;
-	struct tdisp_interface_context* interface_context;
+	struct tdisp_interface_context *interface_context;
 	size_t available_payload_length;
 
 	if ((tdisp_state == NULL) || (version_num == NULL) || (version_num_count == 0) ||
@@ -187,8 +187,8 @@ int tdisp_get_version (struct tdisp_state *tdisp_state,
 	tdisp_response->header.version = TDISP_VERSION_1_0;
 	tdisp_response->header.message_type = TDISP_RESPONSE_GET_VERSION;
 	tdisp_response->header.interface_id.function_id = function_id;
-	memcpy ((void*)(tdisp_version_response_get_version_num_offset (tdisp_response)),
-		version_num, version_array_length);
+	memcpy ((void*) (tdisp_version_response_get_version_num_offset (tdisp_response)), version_num,
+		version_array_length);
 
 	cmd_interface_msg_set_message_payload_length (request, response_length);
 
@@ -277,9 +277,8 @@ exit:
  *
  * @return 0 if request processed successfully (including TDISP error msg) or an error code.
  */
-int tdisp_lock_interface (struct tdisp_state *tdisp_state,
-	const struct tdisp_driver *tdisp_driver, struct rng_engine *rng_engine,
-	struct cmd_interface_msg *request)
+int tdisp_lock_interface (struct tdisp_state *tdisp_state, const struct tdisp_driver *tdisp_driver,
+	struct rng_engine *rng_engine, struct cmd_interface_msg *request)
 {
 	int status = 0;
 	const struct tdisp_lock_interface_request *tdisp_request;
@@ -399,16 +398,16 @@ int tdisp_get_device_interface_report (const struct tdisp_driver *tdisp_driver,
 		goto exit;
 	}
 
-	/* Account for the response header size.*/ 
+	/* Account for the response header size.*/
 	available_payload_length -= sizeof (struct tdisp_device_interface_report_response);
 
 	/* Report chunk is limited to max. UINT16_MAX. */
 	report_length = (available_payload_length > UINT16_MAX) ?
-		UINT16_MAX : (uint16_t) available_payload_length;
+			UINT16_MAX : (uint16_t) available_payload_length;
 
 	/* Call the TDISP driver to get the device interface report. */
 	status = tdisp_driver->get_device_interface_report (tdisp_driver, function_id,
-		tdisp_request->offset, tdisp_request->length,  &report_length,
+		tdisp_request->offset, tdisp_request->length, &report_length,
 		tdisp_device_interface_report_resp_report_ptr (tdisp_response), &remainder_length);
 	if (status != 0) {
 		status = TDISP_ERROR_CODE_UNSPECIFIED;
@@ -510,8 +509,8 @@ exit:
  *
  * @return 0 if request processed successfully (including TDISP error msg) or an error code.
  */
-int tdisp_start_interface (struct tdisp_state *tdisp_state,
-	const struct tdisp_driver *tdisp_driver, struct cmd_interface_msg *request)
+int tdisp_start_interface (struct tdisp_state *tdisp_state,	const struct tdisp_driver *tdisp_driver,
+	struct cmd_interface_msg *request)
 {
 	uint32_t status = 0;
 	const struct tdisp_start_interface_request *tdisp_request;

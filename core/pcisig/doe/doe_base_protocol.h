@@ -95,7 +95,7 @@ struct doe_base_protocol_discovery_response {
 /**
  * Minimum DOE message size. Header (8 bytes) + Min payload (4 bytes).
  */
-#define DOE_MESSAGE_MIN_SIZE_IN_BYTES 		12
+#define DOE_MESSAGE_MIN_SIZE_IN_BYTES		12
 #define DOE_MESSAGE_MIN_SIZE_IN_DWORDS		(DOE_MESSAGE_MIN_SIZE_IN_BYTES / 4)
 
 #if DOE_MESSAGE_MAX_SIZE_IN_BYTES < DOE_MESSAGE_MIN_SIZE_IN_BYTES
@@ -131,4 +131,5 @@ struct doe_base_protocol_discovery_response {
 #define DOE_MESSAGE_MAX_PAYLOAD_SIZE_IN_BYTES \
 	(DOE_MESSAGE_MAX_SIZE_IN_BYTES - (sizeof (struct doe_base_protocol_transport_header)))
 
-#endif /* DOE_BASE_PROTOCOL_H_ */
+
+#endif	/* DOE_BASE_PROTOCOL_H_ */

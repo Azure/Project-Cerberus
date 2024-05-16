@@ -18261,6 +18261,7 @@ static void flash_hash_update_noncontiguous_contents_at_offset_test_hash_update_
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START  (flash_util);
 
 TEST (flash_hash_contents_test_sha256);
@@ -18694,3 +18695,4 @@ TEST (flash_hash_update_noncontiguous_contents_at_offset_test_multiple_regions_r
 TEST (flash_hash_update_noncontiguous_contents_at_offset_test_hash_update_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

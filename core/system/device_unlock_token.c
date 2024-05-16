@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "device_unlock_token.h"
 #include "platform_api.h"
@@ -29,18 +29,18 @@
  * This provides pointers to the fields in this variable length structure.
  */
 struct device_unlock_token_auth_data {
-	const uint16_t *token_length;			/**< The unlock token data length. */
-	const uint8_t *token_data;				/**< The unlock token data. */
-	const uint8_t *oid;						/**< The device type OID in the unlock token. */
-	const uint16_t *format_version;			/**< Version identifier for the token. */
-	const uint8_t *uuid;					/**< UUID for the device that generated the token. */
-	const uint8_t *counter_length;			/**< Length of the unlock counter. */
-	const uint8_t *counter;					/**< Unlock counter value in the token. */
-	const uint8_t *nonce;					/**< Token nonce. */
-	const uint8_t *token_signature;			/**< Signature for the token data. */
-	const uint16_t *policy_length;			/**< The unlock policy data length. */
-	const uint8_t *policy_data;				/**< The authorized unlock policy data. */
-	const uint8_t *data_signature;			/**< Signature for the authorized data. */
+	const uint16_t *token_length;	/**< The unlock token data length. */
+	const uint8_t *token_data;		/**< The unlock token data. */
+	const uint8_t *oid;				/**< The device type OID in the unlock token. */
+	const uint16_t *format_version;	/**< Version identifier for the token. */
+	const uint8_t *uuid;			/**< UUID for the device that generated the token. */
+	const uint8_t *counter_length;	/**< Length of the unlock counter. */
+	const uint8_t *counter;			/**< Unlock counter value in the token. */
+	const uint8_t *nonce;			/**< Token nonce. */
+	const uint8_t *token_signature;	/**< Signature for the token data. */
+	const uint16_t *policy_length;	/**< The unlock policy data length. */
+	const uint8_t *policy_data;		/**< The authorized unlock policy data. */
+	const uint8_t *data_signature;	/**< Signature for the authorized data. */
 };
 
 /**
@@ -63,11 +63,11 @@ struct device_unlock_token_auth_data {
 	{ \
 		size_t temp_off = offset; \
 		uint16_t temp_len = field_length; \
-		\
+        \
 		if (length < (temp_off + (temp_len))) { \
 			return DEVICE_UNLOCK_TOKEN_BAD_AUTH_DATA; \
 		} \
-		\
+        \
 		field = (void*) &data[temp_off]; \
 		temp_off += (temp_len); \
 		offset = temp_off; \
@@ -257,11 +257,11 @@ int device_unlock_token_generate (const struct device_unlock_token *token,
 	}
 
 	/* Use the user-provided buffer as a temp location for building the token context data.
- 	 * - <var>:       OID
- 	 * - uint16_t:    format version
- 	 * - uint8_t[16]: UUID
- 	 * - uint8_t:     counter length
- 	 * - <var>:       counter */
+	 * - <var>:       OID
+	 * - uint16_t:    format version
+	 * - uint8_t[16]: UUID
+	 * - uint8_t:     counter length
+	 * - <var>:       counter */
 	status = asn1_encode_base128_oid (token->oid, token->oid_length, data, token->data_length);
 	if (ROT_IS_ERROR (status)) {
 		return status;

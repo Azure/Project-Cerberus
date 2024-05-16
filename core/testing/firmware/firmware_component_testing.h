@@ -4,8 +4,8 @@
 #ifndef FIRMWARE_COMPONENT_TESTING_H_
 #define FIRMWARE_COMPONENT_TESTING_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 
 /**
@@ -71,4 +71,4 @@ int64_t firmware_component_testing_mock_action_update_digest (const struct mock_
 	const struct mock_call *called);
 
 
-#endif /* FIRMWARE_COMPONENT_TESTING_H_ */
+#endif	/* FIRMWARE_COMPONENT_TESTING_H_ */

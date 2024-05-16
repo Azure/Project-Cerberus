@@ -4,10 +4,10 @@
 #ifndef CERBERUS_PROTOCOL_DEBUG_COMMANDS_H_
 #define CERBERUS_PROTOCOL_DEBUG_COMMANDS_H_
 
+#include "attestation/attestation_requester.h"
 #include "cmd_interface/cmd_background.h"
 #include "cmd_interface/cmd_interface.h"
 #include "cmd_interface/device_manager.h"
-#include "attestation/attestation_requester.h"
 #include "crypto/hash.h"
 
 
@@ -23,4 +23,4 @@ int cerberus_protocol_get_attestation_state (struct device_manager *device_mgr,
 	struct cmd_interface_msg *request);
 
 
-#endif /* CERBERUS_PROTOCOL_DEBUG_COMMANDS_H_ */
+#endif	/* CERBERUS_PROTOCOL_DEBUG_COMMANDS_H_ */

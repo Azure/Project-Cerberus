@@ -13,6 +13,7 @@ struct spdm_secure_session* spdm_secure_session_manager_create_session (
 	const struct spdm_secure_session_manager *session_manager, uint32_t session_id,
 	bool is_requester, const struct spdm_connection_info *connection_info);
 
+
 void spdm_secure_session_manager_release_session (
 	const struct spdm_secure_session_manager *session_manager, uint32_t session_id);
 
@@ -25,18 +26,16 @@ void spdm_secure_session_manager_reset (const struct spdm_secure_session_manager
 struct spdm_secure_session* spdm_secure_session_manager_get_session (
 	const struct spdm_secure_session_manager *session_manager, uint32_t session_id);
 
+
 int spdm_secure_session_manager_generate_shared_secret (
-	const struct spdm_secure_session_manager *session_manager,
-	struct spdm_secure_session* session, const struct ecc_point_public_key *peer_pub_key_point,
-	uint8_t *local_pub_key_point);
+	const struct spdm_secure_session_manager *session_manager, struct spdm_secure_session *session,
+	const struct ecc_point_public_key *peer_pub_key_point, uint8_t *local_pub_key_point);
 
 int spdm_secure_session_manager_generate_session_handshake_keys (
-	const struct spdm_secure_session_manager *session_manager,
-	struct spdm_secure_session *session);
+	const struct spdm_secure_session_manager *session_manager, struct spdm_secure_session *session);
 
 int spdm_secure_session_manager_generate_session_data_keys (
-	const struct spdm_secure_session_manager *session_manager,
-	struct spdm_secure_session *session);
+	const struct spdm_secure_session_manager *session_manager, struct spdm_secure_session *session);
 
 bool spdm_secure_session_manager_is_last_session_id_valid (
 	const struct spdm_secure_session_manager *session_manager);
@@ -100,4 +99,4 @@ int spdm_secure_session_manager_encode_secure_message (
 	}
 
 
-#endif /* SPDM_SECURE_SESSION_MANAGER_STATIC_H_ */
+#endif	/* SPDM_SECURE_SESSION_MANAGER_STATIC_H_ */

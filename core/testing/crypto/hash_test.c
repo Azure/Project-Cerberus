@@ -3424,6 +3424,7 @@ static void hash_test_is_alg_supported (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (hash);
 
 TEST (hash_test_hmac_sha1_incremental);
@@ -3551,3 +3552,4 @@ TEST (hash_test_get_block_size_unsupported);
 TEST (hash_test_is_alg_supported);
 
 TEST_SUITE_END;
+// *INDENT-ON*

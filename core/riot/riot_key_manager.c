@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
 #include "riot_key_manager.h"
@@ -53,6 +53,7 @@ static int riot_key_manager_authenticate_stored_certificates (struct riot_key_ma
 				platform_free (signed_devid);
 
 				platform_mutex_unlock (&riot->store_lock);
+
 				return status;
 			}
 		}
@@ -63,6 +64,7 @@ static int riot_key_manager_authenticate_stored_certificates (struct riot_key_ma
 			}
 
 			platform_mutex_unlock (&riot->store_lock);
+
 			return status;
 		}
 	}
@@ -72,6 +74,7 @@ static int riot_key_manager_authenticate_stored_certificates (struct riot_key_ma
 		}
 
 		platform_mutex_unlock (&riot->store_lock);
+
 		return status;
 	}
 
@@ -204,6 +207,7 @@ static int riot_key_manager_init_certs (struct riot_key_manager *riot,
 	status = platform_mutex_init (&riot->auth_lock);
 	if (status != 0) {
 		platform_mutex_free (&riot->store_lock);
+
 		return status;
 	}
 
@@ -360,7 +364,7 @@ int riot_key_manager_verify_stored_certs (struct riot_key_manager *riot)
 	return riot_key_manager_authenticate_stored_certificates (riot);
 }
 
- /**
+/**
  * Erase all stored certificates.  Certificates loaded in memory will not be affected.
  *
  * @param riot The RIoT key manager to update.
@@ -391,6 +395,7 @@ int riot_key_manager_erase_all_certificates (struct riot_key_manager *riot)
 
 exit:
 	platform_mutex_unlock (&riot->store_lock);
+
 	return status;
 }
 
@@ -410,6 +415,7 @@ const struct riot_keys* riot_key_manager_get_riot_keys (struct riot_key_manager 
 		 * If multiple modules ever need to access the keys simultaneously, this lock will need to
 		 * only be used to protect a reference count on the keys structure. */
 		platform_mutex_lock (&riot->auth_lock);
+
 		return &riot->keys;
 	}
 	else {

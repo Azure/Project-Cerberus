@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "state_manager.h"
+#include "platform_io.h"
 #include "state_logging.h"
+#include "state_manager.h"
 #include "flash/flash_common.h"
 #include "flash/flash_util.h"
-#include "platform_io.h"
 
 
 /* Bitmasks for settings in non-volatile memory. */
@@ -59,6 +59,7 @@ static int state_manager_init_single_byte_state (struct state_manager *manager,
 	} while (*offset == 0);
 
 	manager->nv_state |= MULTI_BYTE_STATE;
+
 	return 0;
 }
 
@@ -301,6 +302,7 @@ int state_manager_init (struct state_manager *manager, const struct flash *state
 	status = platform_mutex_init (&manager->store_lock);
 	if (status != 0) {
 		platform_mutex_free (&manager->state_lock);
+
 		return status;
 	}
 
@@ -431,16 +433,17 @@ int state_manager_store_non_volatile_state (struct state_manager *manager)
 			!(manager->volatile_state & SECTOR_1_BLANK)) {
 			status = STATE_MANAGER_NOT_BLANK;
 		}
-		else if (next_addr == (manager->base_addr + sector_size - 8) &&
+		else if ((next_addr == (manager->base_addr + sector_size - 8)) &&
 			!(manager->volatile_state & SECTOR_2_BLANK)) {
 			status = STATE_MANAGER_NOT_BLANK;
 		}
 
 		if (status == 0) {
-			status = manager->nv_store->write (manager->nv_store, next_addr,
-				(uint8_t*) nv_state, sizeof (nv_state));
+			status = manager->nv_store->write (manager->nv_store, next_addr, (uint8_t*) nv_state,
+				sizeof (nv_state));
 			if (ROT_IS_ERROR (status)) {
 				platform_mutex_unlock (&manager->store_lock);
+
 				return status;
 			}
 
@@ -536,6 +539,7 @@ int state_manager_save_active_manifest (struct state_manager *manager, enum mani
 	}
 
 	platform_mutex_unlock (&manager->state_lock);
+
 	return status;
 }
 

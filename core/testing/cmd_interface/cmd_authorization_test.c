@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include "testing.h"
 #include "platform_api.h"
+#include "testing.h"
 #include "cmd_interface/cmd_authorization.h"
 #include "testing/mock/common/authorization_mock.h"
 
@@ -375,8 +375,8 @@ static void authorization_allowed_test_authorize_reset_defaults (CuTest *test)
 		&components.base, &intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&defaults.mock, defaults.base.authorize, &defaults, 0, MOCK_ARG_PTR (&nonce),
-		MOCK_ARG_PTR (&length));
+	status = mock_expect (&defaults.mock, defaults.base.authorize, &defaults, 0,
+		MOCK_ARG_PTR (&nonce), MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.authorize_reset_defaults (&auth, &nonce, &length);
@@ -592,8 +592,8 @@ static void authorization_allowed_test_authorize_clear_platform_config (CuTest *
 		&components.base, &intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&platform.mock, platform.base.authorize, &platform, 0, MOCK_ARG_PTR (&nonce),
-		MOCK_ARG_PTR (&length));
+	status = mock_expect (&platform.mock, platform.base.authorize, &platform, 0,
+		MOCK_ARG_PTR (&nonce), MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.authorize_clear_platform_config (&auth, &nonce, &length);
@@ -811,7 +811,7 @@ static void authorization_allowed_test_authorize_clear_component_manifests (CuTe
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&components.mock, components.base.authorize, &components, 0,
-		MOCK_ARG_PTR (&nonce),	MOCK_ARG_PTR (&length));
+		MOCK_ARG_PTR (&nonce), MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.authorize_clear_component_manifests (&auth, &nonce, &length);
@@ -1028,8 +1028,8 @@ static void authorization_allowed_test_authorize_reset_intrusion (CuTest *test)
 		&components.base, &intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&intrusion.mock, intrusion.base.authorize, &intrusion, 0, MOCK_ARG_PTR (&nonce),
-		MOCK_ARG_PTR (&length));
+	status = mock_expect (&intrusion.mock, intrusion.base.authorize, &intrusion, 0,
+		MOCK_ARG_PTR (&nonce), MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.authorize_reset_intrusion (&auth, &nonce, &length);
@@ -1207,6 +1207,7 @@ static void authorization_allowed_test_authorize_reset_intrusion_null (CuTest *t
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cmd_authorization);
 
 TEST (authorization_allowed_test_init);
@@ -1234,3 +1235,4 @@ TEST (authorization_allowed_test_authorize_reset_intrusion_challenge);
 TEST (authorization_allowed_test_authorize_reset_intrusion_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

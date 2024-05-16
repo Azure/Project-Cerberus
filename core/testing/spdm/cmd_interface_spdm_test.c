@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
 #include "spdm/cmd_interface_spdm.h"
@@ -21,9 +21,10 @@ TEST_SUITE_LABEL ("cmd_interface_spdm");
  * Dependencies for testing the SPDM command interface.
  */
 struct cmd_interface_spdm_testing {
-	struct cmd_interface_spdm handler;							/**< Command handler instance. */
-	struct spdm_protocol_observer_mock observer;				/**< SPDM protocol observer. */
+	struct cmd_interface_spdm handler;				/**< Command handler instance. */
+	struct spdm_protocol_observer_mock observer;	/**< SPDM protocol observer. */
 };
+
 
 /**
  * Helper function to setup the SPDM command interface.
@@ -55,7 +56,7 @@ static void setup_cmd_interface_spdm_mock_test (CuTest *test,
  * @param test The test framework.
  * @param cmd The testing instance to release.
  */
- static void complete_cmd_interface_spdm_mock_test (CuTest *test,
+static void complete_cmd_interface_spdm_mock_test (CuTest *test,
 	struct cmd_interface_spdm_testing *cmd)
 {
 	int status;
@@ -152,8 +153,8 @@ static void cmd_interface_spdm_test_process_response_get_version_response (CuTes
 	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_spdm_get_version_response,
 		&cmd.observer, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
@@ -296,8 +297,8 @@ static void cmd_interface_spdm_test_process_response_get_capabilities_response (
 	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_spdm_get_capabilities_response,
 		&cmd.observer, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
@@ -443,8 +444,8 @@ static void cmd_interface_spdm_test_process_response_negotiate_algorithms_respon
 	status = mock_expect (&cmd.observer.mock,
 		cmd.observer.base.on_spdm_negotiate_algorithms_response, &cmd.observer, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
@@ -596,11 +597,11 @@ static void cmd_interface_spdm_test_process_response_get_digests_response (CuTes
 
 	setup_cmd_interface_spdm_mock_test (test, &cmd, true);
 
-	status = mock_expect (&cmd.observer.mock,
-		cmd.observer.base.on_spdm_get_digests_response, &cmd.observer, 0,
+	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_spdm_get_digests_response,
+		&cmd.observer, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
@@ -739,11 +740,11 @@ static void cmd_interface_spdm_test_process_response_get_certificate_response (C
 
 	setup_cmd_interface_spdm_mock_test (test, &cmd, true);
 
-	status = mock_expect (&cmd.observer.mock,
-		cmd.observer.base.on_spdm_get_certificate_response, &cmd.observer, 0,
+	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_spdm_get_certificate_response,
+		&cmd.observer, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
@@ -887,11 +888,11 @@ static void cmd_interface_spdm_test_process_response_challenge_response (CuTest 
 
 	setup_cmd_interface_spdm_mock_test (test, &cmd, true);
 
-	status = mock_expect (&cmd.observer.mock,
-		cmd.observer.base.on_spdm_challenge_response, &cmd.observer, 0,
+	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_spdm_challenge_response,
+		&cmd.observer, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
@@ -1038,11 +1039,11 @@ static void cmd_interface_spdm_test_process_response_get_measurements_response (
 
 	setup_cmd_interface_spdm_mock_test (test, &cmd, true);
 
-	status = mock_expect (&cmd.observer.mock,
-		cmd.observer.base.on_spdm_get_measurements_response, &cmd.observer, 0,
+	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_spdm_get_measurements_response,
+		&cmd.observer, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
@@ -1277,8 +1278,8 @@ static void cmd_interface_spdm_test_process_response_error_response_response_not
 	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_spdm_response_not_ready,
 		&cmd.observer, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
@@ -1605,6 +1606,7 @@ static void cmd_interface_spdm_test_remove_spdm_protocol_observer_invalid_arg (C
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_spdm);
 
 TEST (cmd_interface_spdm_test_init);
@@ -1646,3 +1648,4 @@ TEST (cmd_interface_spdm_test_add_spdm_protocol_observer_invalid_arg);
 TEST (cmd_interface_spdm_test_remove_spdm_protocol_observer_invalid_arg);
 
 TEST_SUITE_END;
+// *INDENT-ON*

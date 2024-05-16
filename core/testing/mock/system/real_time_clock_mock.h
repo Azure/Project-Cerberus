@@ -4,16 +4,16 @@
 #ifndef REAL_TIME_CLOCK_MOCK_H_
 #define REAL_TIME_CLOCK_MOCK_H_
 
-#include "system/real_time_clock.h"
 #include "mock.h"
+#include "system/real_time_clock.h"
 
 
 /**
  * A mock for the interface used for real time clock access.
  */
 struct real_time_clock_mock {
-	struct real_time_clock base;		/**< The base real time clock interface. */
-	struct mock mock;					/**< The base mock interface. */
+	struct real_time_clock base;	/**< The base real time clock interface. */
+	struct mock mock;				/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void real_time_clock_mock_release (struct real_time_clock_mock *mock);
 int real_time_clock_mock_validate_and_release (struct real_time_clock_mock *mock);
 
 
-#endif /* REAL_TIME_CLOCK_MOCK_H_ */
+#endif	/* REAL_TIME_CLOCK_MOCK_H_ */

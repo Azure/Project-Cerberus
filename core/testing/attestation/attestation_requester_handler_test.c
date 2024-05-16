@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include "testing.h"
 #include "platform_api.h"
+#include "testing.h"
 #include "attestation/attestation_requester_handler.h"
 #include "attestation/attestation_requester_handler_static.h"
 #include "common/array_size.h"
@@ -23,6 +23,7 @@ struct attestation_requester_handler_testing {
 	struct pcr_store pcr;						/**< PCR manager. */
 	struct attestation_requester_handler test;	/**< Attestation task for testing. */
 };
+
 
 /**
  * Initialize testing dependencies.
@@ -137,30 +138,31 @@ static void attestation_requester_handler_test_init_null (CuTest *test)
 
 	attestation_requester_handler_testing_init_dependencies (test, &handler);
 
-	status = attestation_requester_handler_init (NULL, &handler.attestation,
-		&handler.device_mgr, &handler.pcr, 0, 0);
+	status = attestation_requester_handler_init (NULL, &handler.attestation, &handler.device_mgr,
+		&handler.pcr, 0, 0);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_requester_handler_init (&handler.test, NULL,
-		&handler.device_mgr, &handler.pcr, 0, 0);
+	status = attestation_requester_handler_init (&handler.test, NULL, &handler.device_mgr,
+		&handler.pcr, 0, 0);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_requester_handler_init (&handler.test, &handler.attestation,
-		NULL, &handler.pcr, 0, 0);
+	status = attestation_requester_handler_init (&handler.test, &handler.attestation, NULL,
+		&handler.pcr, 0, 0);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation_requester_handler_init (&handler.test, &handler.attestation,
 		&handler.device_mgr, NULL, 0, 0);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	attestation_requester_handler_testing_release_dependencies(test, &handler);
+	attestation_requester_handler_testing_release_dependencies (test, &handler);
 }
 
 static void attestation_requester_handler_test_static_init (CuTest *test)
 {
 	struct attestation_requester_handler_testing handler;
-	struct attestation_requester_handler test_static = attestation_requester_handler_static_init (
-		&handler.attestation, &handler.device_mgr, &handler.pcr, 0, 0);
+	struct attestation_requester_handler test_static =
+		attestation_requester_handler_static_init (&handler.attestation, &handler.device_mgr,
+		&handler.pcr, 0, 0);
 
 	TEST_START;
 
@@ -198,8 +200,9 @@ static void attestation_requester_handler_test_get_next_execution (CuTest *test)
 static void attestation_requester_handler_test_get_next_execution_static_init (CuTest *test)
 {
 	struct attestation_requester_handler_testing handler;
-	struct attestation_requester_handler test_static = attestation_requester_handler_static_init (
-		&handler.attestation, &handler.device_mgr, &handler.pcr, 0, 0);
+	struct attestation_requester_handler test_static =
+		attestation_requester_handler_static_init (&handler.attestation, &handler.device_mgr,
+		&handler.pcr, 0, 0);
 	const platform_clock *next_time;
 
 	TEST_START;
@@ -213,6 +216,7 @@ static void attestation_requester_handler_test_get_next_execution_static_init (C
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (attestation_requester_handler);
 
 TEST (attestation_requester_handler_test_init);
@@ -225,3 +229,4 @@ TEST (attestation_requester_handler_test_get_next_execution_static_init);
  * implementation. */
 
 TEST_SUITE_END;
+// *INDENT-ON*

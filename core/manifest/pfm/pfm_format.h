@@ -5,43 +5,43 @@
 #define PFM_FORMAT_H_
 
 #include <stdint.h>
-#include "manifest/pfm/pfm.h"
 #include "manifest/manifest_format.h"
+#include "manifest/pfm/pfm.h"
 
 /**
  * Type identifiers for PFM v2 elements.
  */
 enum pfm_element_type {
-	PFM_FLASH_DEVICE = 0x10,				/**< Global information about the flash device. */
-	PFM_FIRMWARE = 0x11,					/**< A single type of firmware stored on the flash. */
-	PFM_FIRMWARE_VERSION = 0x12,			/**< A single version of firmware. */
+	PFM_FLASH_DEVICE = 0x10,		/**< Global information about the flash device. */
+	PFM_FIRMWARE = 0x11,			/**< A single type of firmware stored on the flash. */
+	PFM_FIRMWARE_VERSION = 0x12,	/**< A single version of firmware. */
 };
 
 /**
  * The PFM flash device element structure.
  */
 struct pfm_flash_device_element {
-	uint8_t blank_byte;						/**< The byte used to fill unused flash. */
-	uint8_t fw_count;						/**< The number of firmware components on the flash device. */
-	uint16_t reserved;						/**< Unused. */
+	uint8_t blank_byte;	/**< The byte used to fill unused flash. */
+	uint8_t fw_count;	/**< The number of firmware components on the flash device. */
+	uint16_t reserved;	/**< Unused. */
 };
 
 /**
  * Flags for a firmware component.
  */
 enum pfm_firmware_flags {
-	PFM_FIRMWARE_RUNTIME_UPDATE = 0x01,		/**< Firmware updates can take effect at run-time. */
+	PFM_FIRMWARE_RUNTIME_UPDATE = 0x01,	/**< Firmware updates can take effect at run-time. */
 };
 
 /**
  * The PFM firmware element structure.  This represents the maximum size of the element.
  */
 struct pfm_firmware_element {
-	uint8_t version_count;					/**< The number of allowable firmware versions contained in the PFM. */
-	uint8_t id_length;						/**< Length of the firmware identifier. */
-	uint8_t flags;							/**< Flags for the firmware component. */
-	uint8_t reserved;						/**< Unused. */
-	uint8_t id[MANIFEST_MAX_STRING];		/**< The identifier for the firmware. */
+	uint8_t version_count;				/**< The number of allowable firmware versions contained in the PFM. */
+	uint8_t id_length;					/**< Length of the firmware identifier. */
+	uint8_t flags;						/**< Flags for the firmware component. */
+	uint8_t reserved;					/**< Unused. */
+	uint8_t id[MANIFEST_MAX_STRING];	/**< The identifier for the firmware. */
 };
 
 /**
@@ -62,17 +62,17 @@ struct pfm_firmware_version_element {
  * A region of flash defined in the PFM.
  */
 struct pfm_flash_region {
-	uint32_t start_addr;					/**< The first address in the region. */
-	uint32_t end_addr;						/**< The last address in the region. */
+	uint32_t start_addr;	/**< The first address in the region. */
+	uint32_t end_addr;		/**< The last address in the region. */
 };
 
 /**
  * A single read/write region defined within a firmware version element.
  */
 struct pfm_fw_version_element_rw_region {
-	uint8_t flags;							/**< Flags for the read/write region. */
-	uint8_t reserved[3];					/**< Unused. */
-	struct pfm_flash_region region;			/**< The flash region that contains read/write data. */
+	uint8_t flags;					/**< Flags for the read/write region. */
+	uint8_t reserved[3];			/**< Unused. */
+	struct pfm_flash_region region;	/**< The flash region that contains read/write data. */
 };
 
 /**
@@ -86,10 +86,10 @@ struct pfm_fw_version_element_rw_region {
  * A single authenticated image defined within a firmware version element.
  */
 struct pfm_fw_version_element_image {
-	uint8_t hash_type;						/**< The hashing algorithm used to generate the image hash. */
-	uint8_t region_count;					/**< The number of flash regions that make up the image. */
-	uint8_t flags;							/**< Flags for the authenticated image. */
-	uint8_t reserved;						/**< Unused. */
+	uint8_t hash_type;		/**< The hashing algorithm used to generate the image hash. */
+	uint8_t region_count;	/**< The number of flash regions that make up the image. */
+	uint8_t flags;			/**< Flags for the authenticated image. */
+	uint8_t reserved;		/**< Unused. */
 };
 
 
@@ -151,9 +151,9 @@ struct pfm_fw_version_element_image {
  * that will be allowed to run.
  */
 struct pfm_allowable_firmware_header {
-	uint16_t length;		/**< The total length of the allowable firmware section. */
-	uint8_t fw_count;		/**< The number of allowable firmware versions contained in the PFM. */
-	uint8_t reserved;		/**< Unused. */
+	uint16_t length;	/**< The total length of the allowable firmware section. */
+	uint8_t fw_count;	/**< The number of allowable firmware versions contained in the PFM. */
+	uint8_t reserved;	/**< Unused. */
 };
 
 /**
@@ -173,7 +173,7 @@ struct pfm_firmware_header {
  * Flags that can be set in an image header defined in the PFM.
  */
 enum pfm_image_flags {
-	PFM_IMAGE_MUST_VALIDATE = 0x01,		/**< The image must be validated on every host reset. */
+	PFM_IMAGE_MUST_VALIDATE = 0x01,	/**< The image must be validated on every host reset. */
 };
 
 /**
@@ -192,9 +192,9 @@ struct pfm_image_header {
  * firmware images.
  */
 struct pfm_key_manifest_header {
-	uint16_t length;		/**< The total length of the key manifest section. */
-	uint8_t key_count;		/**< The number of keys contained in the PFM. */
-	uint8_t reserved;		/**< Unused. */
+	uint16_t length;	/**< The total length of the key manifest section. */
+	uint8_t key_count;	/**< The number of keys contained in the PFM. */
+	uint8_t reserved;	/**< Unused. */
 };
 
 /**
@@ -212,10 +212,10 @@ struct pfm_public_key_header {
  * The header information for the platform information.
  */
 struct pfm_platform_header {
-	uint16_t length;		/**< The total length of the platform descriptor. */
-	uint8_t id_length;		/**< The length of the platform identifier string. */
-	uint8_t reserved;		/**< Unused. */
+	uint16_t length;	/**< The total length of the platform descriptor. */
+	uint8_t id_length;	/**< The length of the platform identifier string. */
+	uint8_t reserved;	/**< Unused. */
 };
 
 
-#endif /* PFM_FORMAT_H_ */
+#endif	/* PFM_FORMAT_H_ */

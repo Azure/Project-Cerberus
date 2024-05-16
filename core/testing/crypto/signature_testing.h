@@ -16,4 +16,4 @@
 #define	SIG_HASH_LEN	SHA256_HASH_LENGTH
 
 
-#endif /* SIGNATURE_TESTING_H_ */
+#endif	/* SIGNATURE_TESTING_H_ */

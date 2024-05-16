@@ -17,17 +17,17 @@
  * Action identifiers for the background command handler.
  */
 enum {
-	CMD_BACKGROUND_HANDLER_ACTION_RUN_UNSEAL = 1,		/**< Start unsealing with received data. */
-	CMD_BACKGROUND_HANDLER_ACTION_RUN_BYPASS,			/**< Revert the device to bypass mode. */
-	CMD_BACKGROUND_HANDLER_ACTION_RUN_DEFAULTS,			/**< Restore factory defaults. */
-	CMD_BACKGROUND_HANDLER_ACTION_DEBUG_LOG_CLEAR,		/**< Clear the debug log. */
-	CMD_BACKGROUND_HANDLER_ACTION_DEBUG_LOG_FILL,		/**< Fill the debug log with data. */
-	CMD_BACKGROUND_HANDLER_ACTION_AUTH_RIOT,			/**< Authenticate device certificates. */
-	CMD_BACKGROUND_HANDLER_ACTION_AUX_KEY_GEN,			/**< Generate the aux attestation key. */
-	CMD_BACKGROUND_HANDLER_ACTION_PLATFORM_CFG,			/**< Clear the platform configuration. */
-	CMD_BACKGROUND_HANDLER_ACTION_RESET_INTRUSION,		/**< Reset the intrusion state. */
-	CMD_BACKGROUND_HANDLER_ACTION_CLEAR_CFM,			/**< Clear define CFMs. */
-	CMD_BACKGROUND_HANDLER_ACTION_REBOOT_DEVICE,		/**< Warm reset the device. */
+	CMD_BACKGROUND_HANDLER_ACTION_RUN_UNSEAL = 1,	/**< Start unsealing with received data. */
+	CMD_BACKGROUND_HANDLER_ACTION_RUN_BYPASS,		/**< Revert the device to bypass mode. */
+	CMD_BACKGROUND_HANDLER_ACTION_RUN_DEFAULTS,		/**< Restore factory defaults. */
+	CMD_BACKGROUND_HANDLER_ACTION_DEBUG_LOG_CLEAR,	/**< Clear the debug log. */
+	CMD_BACKGROUND_HANDLER_ACTION_DEBUG_LOG_FILL,	/**< Fill the debug log with data. */
+	CMD_BACKGROUND_HANDLER_ACTION_AUTH_RIOT,		/**< Authenticate device certificates. */
+	CMD_BACKGROUND_HANDLER_ACTION_AUX_KEY_GEN,		/**< Generate the aux attestation key. */
+	CMD_BACKGROUND_HANDLER_ACTION_PLATFORM_CFG,		/**< Clear the platform configuration. */
+	CMD_BACKGROUND_HANDLER_ACTION_RESET_INTRUSION,	/**< Reset the intrusion state. */
+	CMD_BACKGROUND_HANDLER_ACTION_CLEAR_CFM,		/**< Clear define CFMs. */
+	CMD_BACKGROUND_HANDLER_ACTION_REBOOT_DEVICE,	/**< Warm reset the device. */
 };
 
 
@@ -35,14 +35,14 @@ enum {
  * Variable context for background command processing.
  */
 struct cmd_background_handler_state {
-	int cert_state;									/**< Certificate authentication state. */
+	int cert_state;								/**< Certificate authentication state. */
 #ifdef CMD_ENABLE_UNSEAL
-	int attestation_status;							/**< The attestation operation status. */
-	uint8_t *unseal_request;						/**< The current unseal request. */
-	uint8_t key[AUX_ATTESTATION_KEY_256BIT];		/**< Buffer for the unsealed key. */
+	int attestation_status;						/**< The attestation operation status. */
+	uint8_t *unseal_request;					/**< The current unseal request. */
+	uint8_t key[AUX_ATTESTATION_KEY_256BIT];	/**< Buffer for the unsealed key. */
 #endif
 #if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
-	int config_status;								/**< Status for configuration operations. */
+	int config_status;							/**< Status for configuration operations. */
 #endif
 };
 
@@ -50,17 +50,17 @@ struct cmd_background_handler_state {
  * Handler for executing background operations from the command processor.
  */
 struct cmd_background_handler {
-	struct cmd_background base_cmd;					/**< The base interface for command handling. */
-	struct event_task_handler base_event;			/**< THe base interface for task integration. */
-	struct cmd_background_handler_state *state;		/**< Variable context for the handler. */
-	struct riot_key_manager *keys;					/**< Manager for the RIoT keys and certificates. */
-	const struct event_task *task;					/**< The task context executing the handler. */
+	struct cmd_background base_cmd;				/**< The base interface for command handling. */
+	struct event_task_handler base_event;		/**< THe base interface for task integration. */
+	struct cmd_background_handler_state *state;	/**< Variable context for the handler. */
+	struct riot_key_manager *keys;				/**< Manager for the RIoT keys and certificates. */
+	const struct event_task *task;				/**< The task context executing the handler. */
 #ifdef CMD_ENABLE_UNSEAL
-	struct attestation_responder *attestation;		/**< Attestation responder to utilize for attestation operations. */
-	struct hash_engine *hash;						/**< Hash engine to be used in attestation operations. */
+	struct attestation_responder *attestation;	/**< Attestation responder to utilize for attestation operations. */
+	struct hash_engine *hash;					/**< Hash engine to be used in attestation operations. */
 #endif
 #if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
-	struct config_reset *reset;						/**< Configuration reset manager. */
+	struct config_reset *reset;					/**< Configuration reset manager. */
 #endif
 };
 
@@ -76,4 +76,4 @@ int cmd_background_handler_generate_aux_key (const struct cmd_background_handler
 	struct aux_attestation *aux);
 
 
-#endif /* CMD_BACKGROUND_HANDLER_H_ */
+#endif	/* CMD_BACKGROUND_HANDLER_H_ */

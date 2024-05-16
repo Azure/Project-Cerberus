@@ -1,16 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
 #include "asn1/dice/x509_extension_builder_dice_tcbinfo.h"
 #include "asn1/dice/x509_extension_builder_mbedtls_dice_tcbinfo.h"
 #include "asn1/dice/x509_extension_builder_mbedtls_dice_tcbinfo_static.h"
-#include "testing/asn1/x509_testing.h"
 #include "testing/asn1/dice/x509_extension_builder_dice_tcbinfo_testing.h"
+#include "testing/asn1/x509_testing.h"
 
 
 TEST_SUITE_LABEL ("x509_extension_builder_mbedtls_dice_tcbinfo");
@@ -107,16 +107,16 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_init_with_buffer_nu
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
-	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (NULL, &tcb,
-		ext_buffer, sizeof (ext_buffer));
+	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (NULL, &tcb, ext_buffer,
+		sizeof (ext_buffer));
 	CuAssertIntEquals (test, DICE_TCBINFO_EXTENSION_INVALID_ARGUMENT, status);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, NULL,
 		ext_buffer, sizeof (ext_buffer));
 	CuAssertIntEquals (test, DICE_TCBINFO_EXTENSION_INVALID_ARGUMENT, status);
 
-	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
-		NULL, sizeof (ext_buffer));
+	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb, NULL,
+		sizeof (ext_buffer));
 	CuAssertIntEquals (test, DICE_TCBINFO_EXTENSION_INVALID_ARGUMENT, status);
 }
 
@@ -140,7 +140,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_static_init_with_bu
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA256)];
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder =
 		x509_extension_builder_mbedtls_dice_tcbinfo_static_init_with_buffer (&tcb, ext_buffer,
-			sizeof (ext_buffer));
+		sizeof (ext_buffer));
 
 	TEST_START;
 
@@ -762,7 +762,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA256)];
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder =
 		x509_extension_builder_mbedtls_dice_tcbinfo_static_init_with_buffer (&tcb, ext_buffer,
-			sizeof (ext_buffer));
+		sizeof (ext_buffer));
 	int status;
 	struct x509_extension extension = {0};
 
@@ -824,13 +824,14 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_n
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
-static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_static_init_null_buffer (
+static void
+x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_static_init_null_buffer (
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder =
 		x509_extension_builder_mbedtls_dice_tcbinfo_static_init_with_buffer (&tcb, NULL,
-			X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA256));
+		X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA256));
 	int status;
 	struct x509_extension extension = {0};
 
@@ -847,13 +848,14 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
-static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_static_init_null_tcb (
+static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_static_init_null_tcb
+(
 	CuTest *test)
 {
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA256)];
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder =
 		x509_extension_builder_mbedtls_dice_tcbinfo_static_init_with_buffer (NULL, ext_buffer,
-			sizeof (ext_buffer));
+		sizeof (ext_buffer));
 	int status;
 	struct x509_extension extension = {0};
 
@@ -891,7 +893,8 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
-static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_len (
+static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_len
+(
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
@@ -917,7 +920,8 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
-static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_tag (
+static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_tag
+(
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
@@ -943,7 +947,8 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
-static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_oid (
+static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_oid
+(
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
@@ -970,7 +975,8 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
-static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_sequence_len (
+static void
+x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_sequence_len (
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
@@ -997,7 +1003,8 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
-static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_sequence_tag (
+static void
+x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_sequence_tag (
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
@@ -1024,7 +1031,8 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
-static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_list_len (
+static void
+x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_list_len (
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
@@ -1051,7 +1059,8 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
-static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_list_tag (
+static void
+x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_list_tag (
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
@@ -1105,7 +1114,8 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
-static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_version (
+static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_version
+(
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
@@ -1132,7 +1142,8 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
-static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_ext_sequence_len (
+static void
+x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_ext_sequence_len (
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
@@ -1158,7 +1169,8 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
-static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_ext_sequence_tag (
+static void
+x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_ext_sequence_tag (
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
@@ -1185,6 +1197,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (x509_extension_builder_mbedtls_dice_tcbinfo);
 
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_init);
@@ -1228,3 +1241,4 @@ TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_b
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_ext_sequence_tag);
 
 TEST_SUITE_END;
+// *INDENT-ON*

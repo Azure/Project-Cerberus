@@ -1,16 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
 #include "recovery/ocp_recovery_smbus.h"
 #include "recovery/recovery_logging.h"
+#include "testing/logging/debug_log_testing.h"
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/recovery/ocp_recovery_device_hw_mock.h"
-#include "testing/logging/debug_log_testing.h"
 
 
 TEST_SUITE_LABEL ("ocp_recovery_smbus");
@@ -93,8 +93,7 @@ static void ocp_recovery_smbus_testing_release_dependencies (CuTest *test,
  * @param test The test framework.
  * @param smbus Testing components to initialize.
  */
-static void ocp_recovery_smbus_testing_init (CuTest *test,
-	struct ocp_recovery_smbus_testing *smbus)
+static void ocp_recovery_smbus_testing_init (CuTest *test, struct ocp_recovery_smbus_testing *smbus)
 {
 	int status;
 
@@ -129,7 +128,7 @@ static void ocp_recovery_smbus_testing_check_protocol_status (CuTest *test,
 {
 	int status;
 	uint8_t expected[] = {
-		0x00,protocol_status,0x00,0x00,0x00,0x00,0x05,0x00,0x00,0x00,0x00,0x00
+		0x00, protocol_status, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00
 	};
 	enum ocp_recovery_device_status_code status_code = 0;
 	enum ocp_recovery_recovery_reason_code reason_code = 0;
@@ -397,7 +396,7 @@ static void ocp_recovery_smbus_test_block_write_command_twice (CuTest *test)
 	struct ocp_recovery_smbus_testing smbus;
 	int status;
 	uint8_t cms_data[OCP_RECOVERY_SMBUS_TESTING_CMS_0_LEN] = {
-		0x55,0xaa,0x00,0x00,0x11,0x22,0x00,0x00
+		0x55, 0xaa, 0x00, 0x00, 0x11, 0x22, 0x00, 0x00
 	};
 
 	TEST_START;
@@ -450,7 +449,7 @@ static void ocp_recovery_smbus_test_block_write_command_with_pec_twice (CuTest *
 	struct ocp_recovery_smbus_testing smbus;
 	int status;
 	uint8_t cms_data[OCP_RECOVERY_SMBUS_TESTING_CMS_0_LEN] = {
-		0x55,0xaa,0x00,0x00,0x11,0x22,0x00,0x00
+		0x55, 0xaa, 0x00, 0x00, 0x11, 0x22, 0x00, 0x00
 	};
 
 	TEST_START;
@@ -754,7 +753,7 @@ static void ocp_recovery_smbus_test_block_write_command_full_memory_region_with_
 	struct ocp_recovery_smbus_testing smbus;
 	int status;
 	uint8_t cms_data[OCP_RECOVERY_SMBUS_TESTING_CMS_0_LEN] = {
-		0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08
+		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08
 	};
 	size_t i;
 
@@ -870,7 +869,7 @@ static void ocp_recovery_smbus_test_block_read_command (CuTest *test)
 	struct ocp_recovery_smbus_testing smbus;
 	int status;
 	uint8_t cms_data[OCP_RECOVERY_SMBUS_TESTING_CMS_0_LEN] = {
-		0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08
+		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08
 	};
 	union ocp_recovery_smbus_cmd_buffer expected;
 	const union ocp_recovery_smbus_cmd_buffer *output = NULL;
@@ -911,7 +910,7 @@ static void ocp_recovery_smbus_test_block_read_command_twice (CuTest *test)
 	struct ocp_recovery_smbus_testing smbus;
 	int status;
 	uint8_t cms_data[OCP_RECOVERY_SMBUS_TESTING_CMS_0_LEN] = {
-		0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08
+		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08
 	};
 	union ocp_recovery_smbus_cmd_buffer expected;
 	const union ocp_recovery_smbus_cmd_buffer *output = NULL;
@@ -1051,7 +1050,7 @@ static void ocp_recovery_smbus_test_block_read_command_static_init (CuTest *test
 		&smbus.device);
 	int status;
 	uint8_t cms_data[OCP_RECOVERY_SMBUS_TESTING_CMS_0_LEN] = {
-		0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08
+		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08
 	};
 	union ocp_recovery_smbus_cmd_buffer expected;
 	const union ocp_recovery_smbus_cmd_buffer *output = NULL;
@@ -1157,7 +1156,6 @@ static void ocp_recovery_smbus_test_transmit_bytes_null (CuTest *test)
 
 	TEST_START;
 
-
 	ocp_recovery_smbus_testing_init (test, &smbus);
 
 	ocp_recovery_smbus_start (&smbus.test, 0x69);
@@ -1175,6 +1173,7 @@ static void ocp_recovery_smbus_test_transmit_bytes_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (ocp_recovery_smbus);
 
 TEST (ocp_recovery_smbus_test_init);
@@ -1206,3 +1205,4 @@ TEST (ocp_recovery_smbus_test_receive_byte_null);
 TEST (ocp_recovery_smbus_test_transmit_bytes_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

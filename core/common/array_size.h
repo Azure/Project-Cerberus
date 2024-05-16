@@ -13,4 +13,4 @@
 #endif
 
 
-#endif /* ARRAY_SIZE_H_ */
+#endif	/* ARRAY_SIZE_H_ */

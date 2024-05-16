@@ -5,8 +5,8 @@
 #define OBSERVABLE_H_
 
 #include <stddef.h>
-#include "status/rot_status.h"
 #include "platform_api.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -49,4 +49,4 @@ enum {
 };
 
 
-#endif /* OBSERVABLE_H_ */
+#endif	/* OBSERVABLE_H_ */

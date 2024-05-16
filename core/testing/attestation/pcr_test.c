@@ -24626,6 +24626,7 @@ static void pcr_test_get_tcg_log_get_measured_data_fail (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (pcr);
 
 TEST (pcr_test_init_sha256);
@@ -25358,3 +25359,4 @@ TEST (pcr_test_get_tcg_log_null);
 TEST (pcr_test_get_tcg_log_get_measured_data_fail);
 
 TEST_SUITE_END;
+// *INDENT-ON*

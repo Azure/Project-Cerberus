@@ -12,9 +12,9 @@
  * Thread-safe wrapper for an RNG instance.
  */
 struct rng_engine_thread_safe {
-	struct rng_engine base;				/**< Base API implementation. */
-	struct rng_engine *engine;			/**< RNG instance to use for execution. */
-	platform_mutex lock;				/**< Synchronization lock. */
+	struct rng_engine base;		/**< Base API implementation. */
+	struct rng_engine *engine;	/**< RNG instance to use for execution. */
+	platform_mutex lock;		/**< Synchronization lock. */
 };
 
 
@@ -22,4 +22,4 @@ int rng_thread_safe_init (struct rng_engine_thread_safe *engine, struct rng_engi
 void rng_thread_safe_release (struct rng_engine_thread_safe *engine);
 
 
-#endif /* RNG_THREAD_SAFE_H_ */
+#endif	/* RNG_THREAD_SAFE_H_ */

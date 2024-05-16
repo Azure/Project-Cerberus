@@ -2,11 +2,11 @@
 // Licensed under the MIT license.
 
 #include <string.h>
+#include "doe_channel_mock.h"
 #include "platform_io.h"
 #include "cmd_interface/cmd_interface.h"
 #include "pcisig/doe/doe_base_protocol.h"
 #include "pcisig/doe/doe_interface.h"
-#include "doe_channel_mock.h"
 
 
 static int doe_cmd_channel_mock_receive_message (
@@ -79,7 +79,7 @@ static const char* doe_cmd_channel_mock_func_name_map (void *func)
 	}
 	else {
 		return "unknown";
-	}	
+	}
 }
 
 /**

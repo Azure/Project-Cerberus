@@ -22,4 +22,4 @@
 	}
 
 
-#endif /* DOE_CMD_CHANNEL_STATIC_H_ */
+#endif	/* DOE_CMD_CHANNEL_STATIC_H_ */

@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "pcd_observer_pcr.h"
 #include "manifest/manifest_logging.h"
@@ -86,6 +86,7 @@ void pcd_observer_pcr_record_measurement (const struct pcd_observer_pcr *observe
 	if ((observer == NULL) || (manager == NULL)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 			MANIFEST_LOGGING_PCD_RECORD_INVALID, PCD_OBSERVER_INVALID_ARGUMENT, 0);
+
 		return;
 	}
 

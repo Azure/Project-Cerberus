@@ -4,8 +4,8 @@
 #ifndef CMD_AUTHORIZATION_MOCK_H_
 #define CMD_AUTHORIZATION_MOCK_H_
 
-#include "cmd_interface/cmd_authorization.h"
 #include "mock.h"
+#include "cmd_interface/cmd_authorization.h"
 
 
 /**
@@ -23,4 +23,4 @@ void cmd_authorization_mock_release (struct cmd_authorization_mock *mock);
 int cmd_authorization_mock_validate_and_release (struct cmd_authorization_mock *mock);
 
 
-#endif /* CMD_AUTHORIZATION_MOCK_H_ */
+#endif	/* CMD_AUTHORIZATION_MOCK_H_ */

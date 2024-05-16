@@ -64,4 +64,4 @@ void spdm_transcript_manager_reset_session_transcript (
 	}
 
 
-#endif /* SPDM_TRANSCRIPT_MANAGER_STATIC_H_ */
+#endif	/* SPDM_TRANSCRIPT_MANAGER_STATIC_H_ */

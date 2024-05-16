@@ -2,9 +2,9 @@
 // Licensed under the MIT license.
 
 #include <string.h>
-#include "cmd_interface/cmd_interface.h"
 #include "cmd_interface_ide_responder.h"
 #include "ide_commands.h"
+#include "cmd_interface/cmd_interface.h"
 #include "common/unused.h"
 
 
@@ -23,7 +23,7 @@ int ide_km_query (const struct ide_driver *ide_driver, struct cmd_interface_msg 
 	struct ide_km_query_resp *ide_km_response;
 	uint8_t port_index;
 	struct ide_capability_register *capability_register;
-	uint8_t* ptr;
+	uint8_t *ptr;
 	uint8_t block_idx;
 	size_t ide_addr_assoc_reg_block_length;
 	size_t available_payload_length;
@@ -81,11 +81,9 @@ int ide_km_query (const struct ide_driver *ide_driver, struct cmd_interface_msg 
 	ptr = (uint8_t*) (ide_km_response + 1);
 	available_payload_length -= sizeof (struct ide_km_query_resp);
 	if (capability_register->link_ide_stream_supported == 1) {
-
 		for (block_idx = 0;
 			block_idx < (capability_register->number_of_tcs_supported_for_link_ide + 1);
 			block_idx++) {
-
 			if (available_payload_length < sizeof (struct ide_link_ide_stream_register_block)) {
 				status = CMD_INTERFACE_IDE_RESPONDER_OUT_OF_BUFFER_SPACE;
 				goto exit;
@@ -106,12 +104,11 @@ int ide_km_query (const struct ide_driver *ide_driver, struct cmd_interface_msg 
 
 	/* Add the Selective IDE Stream Register block(s). */
 	if (capability_register->selective_ide_streams_supported == 1) {
-
 		for (block_idx = 0;
 			block_idx < (capability_register->number_of_selective_ide_streams_supported + 1);
 			block_idx++) {
-
-			if (available_payload_length < sizeof (struct ide_selective_ide_stream_register_block)) {
+			if (available_payload_length <
+				sizeof (struct ide_selective_ide_stream_register_block)) {
 				status = CMD_INTERFACE_IDE_RESPONDER_OUT_OF_BUFFER_SPACE;
 				goto exit;
 			}
@@ -123,14 +120,14 @@ int ide_km_query (const struct ide_driver *ide_driver, struct cmd_interface_msg 
 				goto exit;
 			}
 
-			ide_addr_assoc_reg_block_length = 
-			((struct ide_selective_ide_stream_capability_register*)
-				ptr)->number_of_address_association_register_blocks *
-			(sizeof (struct ide_selective_ide_address_association_register_block));
+			ide_addr_assoc_reg_block_length =
+				((struct ide_selective_ide_stream_capability_register*)
+					ptr)->number_of_address_association_register_blocks *
+				(sizeof (struct ide_selective_ide_address_association_register_block));
 
-			incr_length = 
+			incr_length =
 				(offsetof (struct ide_selective_ide_stream_register_block, addr_assoc_reg_block) +
-				ide_addr_assoc_reg_block_length);
+					ide_addr_assoc_reg_block_length);
 			ptr += incr_length;
 			available_payload_length -= incr_length;
 		}
@@ -140,6 +137,7 @@ int ide_km_query (const struct ide_driver *ide_driver, struct cmd_interface_msg 
 		((size_t) ptr - (size_t) (ide_km_response)));
 
 exit:
+
 	return status;
 }
 
@@ -148,7 +146,7 @@ exit:
  *
  * @param ide_driver The IDE driver to program the key.
  * @param request The IDE_KM request message.
- * 
+ *
  *  @return 0 if the message was successfully processed or an error code.
  */
 int ide_km_key_prog (const struct ide_driver *ide_driver, struct cmd_interface_msg *request)
@@ -194,6 +192,7 @@ construct_response:
 	ide_km_response->status = status;
 
 	cmd_interface_msg_set_message_payload_length (request, sizeof (struct ide_km_kp_ack));
+
 	return 0;
 }
 
@@ -202,7 +201,7 @@ construct_response:
  *
  * @param ide_driver The IDE driver to activate the key set.
  * @param request The IDE_KM request message.
- * 
+ *
  *  @return 0 if the message was successfully processed or an error code.
  */
 int ide_km_key_set_go (const struct ide_driver *ide_driver, struct cmd_interface_msg *request)
@@ -241,6 +240,7 @@ int ide_km_key_set_go (const struct ide_driver *ide_driver, struct cmd_interface
 	cmd_interface_msg_set_message_payload_length (request, sizeof (struct ide_km_k_gostop_ack));
 
 exit:
+
 	return status;
 }
 
@@ -252,8 +252,7 @@ exit:
  *
  * @return 0 if the message was successfully processed or an error code.
  */
-int ide_km_key_set_stop (const struct ide_driver *ide_driver,
-	struct cmd_interface_msg *request)
+int ide_km_key_set_stop (const struct ide_driver *ide_driver, struct cmd_interface_msg *request)
 {
 	int status = 0;
 	const struct ide_km_k_set_stop *ide_km_request;
@@ -289,7 +288,6 @@ int ide_km_key_set_stop (const struct ide_driver *ide_driver,
 	cmd_interface_msg_set_message_payload_length (request, sizeof (struct ide_km_k_gostop_ack));
 
 exit:
+
 	return status;
 }
-
-

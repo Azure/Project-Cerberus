@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "buffer_util.h"
 #include "common_math.h"
@@ -37,6 +37,7 @@ size_t buffer_copy (const uint8_t *src, size_t src_length, size_t *offset, size_
 
 		if (start >= src_length) {
 			*offset -= src_length;
+
 			return 0;
 		}
 	}
@@ -218,7 +219,7 @@ int buffer_compare_dwords (const uint32_t *buf1, const uint32_t *buf2, size_t dw
  * for that seems to be poor.
  *
  * Reference:  http://www.daemonology.net/blog/2014-09-04-how-to-zero-a-buffer.html */
-static void* (*const volatile memset_ptr) (void*, int, size_t) = memset;
+static void*(*const volatile memset_ptr) (void*, int, size_t) = memset;
 
 /**
  * Clear a buffer by filling it with zeros.  This is not necessarily achieved in the most efficient

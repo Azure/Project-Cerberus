@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "rma_unlock_token_mock.h"
 
@@ -79,7 +79,7 @@ int rma_unlock_token_mock_init (struct rma_unlock_token_mock *mock)
 
 	mock_set_name (&mock->mock, "rma_unlock_token");
 
-	mock->base.authenticate= rma_unlock_token_mock_authenticate;
+	mock->base.authenticate = rma_unlock_token_mock_authenticate;
 
 	mock->mock.func_arg_count = rma_unlock_token_mock_func_arg_count;
 	mock->mock.func_name_map = rma_unlock_token_mock_func_name_map;

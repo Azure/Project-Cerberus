@@ -4,16 +4,16 @@
 #ifndef SIGNATURE_VERIFICATION_MOCK_H_
 #define SIGNATURE_VERIFICATION_MOCK_H_
 
-#include "crypto/signature_verification.h"
 #include "mock.h"
+#include "crypto/signature_verification.h"
 
 
 /**
  * A mock for signature verification.
  */
 struct signature_verification_mock {
-	struct signature_verification base;		/**< The base verification instance. */
-	struct mock mock;						/**< The base mock interface. */
+	struct signature_verification base;	/**< The base verification instance. */
+	struct mock mock;					/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void signature_verification_mock_release (struct signature_verification_mock *mo
 int signature_verification_mock_validate_and_release (struct signature_verification_mock *mock);
 
 
-#endif /* SIGNATURE_VERIFICATION_MOCK_H_ */
+#endif	/* SIGNATURE_VERIFICATION_MOCK_H_ */

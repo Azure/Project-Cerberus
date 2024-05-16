@@ -4,8 +4,8 @@
 #ifndef APP_CONTEXT_MOCK_H_
 #define APP_CONTEXT_MOCK_H_
 
-#include "firmware/app_context.h"
 #include "mock.h"
+#include "firmware/app_context.h"
 
 
 /**
@@ -23,4 +23,4 @@ void app_context_mock_release (struct app_context_mock *mock);
 int app_context_mock_validate_and_release (struct app_context_mock *mock);
 
 
-#endif /* APP_CONTEXT_MOCK_H_ */
+#endif	/* APP_CONTEXT_MOCK_H_ */

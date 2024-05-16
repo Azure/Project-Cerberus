@@ -4,16 +4,16 @@
 #ifndef X509_TESTING_H_
 #define X509_TESTING_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "testing/engines/hash_testing_engine.h"
-#include "testing/engines/ecc_testing_engine.h"
-#include "testing/engines/rsa_testing_engine.h"
 #include "testing/crypto/ecc_testing.h"
 #include "testing/crypto/rsa_testing.h"
+#include "testing/engines/ecc_testing_engine.h"
+#include "testing/engines/hash_testing_engine.h"
+#include "testing/engines/rsa_testing_engine.h"
 
 
 int x509_testing_get_item_length (const uint8_t *der, uint8_t *header);
@@ -29,7 +29,7 @@ int x509_testing_corrupt_signature (uint8_t *der);
  */
 #define	x509_testing_write_der_file(der, length, name) do { \
 	FILE *out; \
-	\
+    \
 	out = fopen (name, "w+"); \
 	CuAssertPtrNotNull (test, out); \
 	fwrite (der, length, 1, out); \
@@ -77,23 +77,23 @@ int x509_testing_corrupt_signature (uint8_t *der);
 #define	X509_TESTING_CERTSS_ALGO_SET_RSA_SHA512_WITH_NULL(der, len) \
 	x509_testing_set_cert_sig_algo_params (der, true, len)
 
-#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_NO_NULL				\
+#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_NO_NULL              \
 	X509_TESTING_CERTSS_ALGO_SET_ECDSA_NO_NULL
-#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_WITH_NULL			\
+#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_WITH_NULL            \
 	X509_TESTING_CERTSS_ALGO_SET_ECDSA_WITH_NULL
-#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_SHA384_NO_NULL		\
+#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_SHA384_NO_NULL       \
 	X509_TESTING_CERTSS_ALGO_SET_ECDSA_SHA384_NO_NULL
-#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_SHA384_WITH_NULL		\
+#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_SHA384_WITH_NULL     \
 	X509_TESTING_CERTSS_ALGO_SET_ECDSA_SHA384_WITH_NULL
-#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_SHA512_NO_NULL		\
+#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_SHA512_NO_NULL       \
 	X509_TESTING_CERTSS_ALGO_SET_ECDSA_SHA512_NO_NULL
-#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_SHA512_WITH_NULL		\
+#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_SHA512_WITH_NULL     \
 	X509_TESTING_CERTSS_ALGO_SET_ECDSA_SHA512_WITH_NULL
-#define	X509_TESTING_CERTCA_ALGO_SET_RSA_WITH_NULL				\
+#define	X509_TESTING_CERTCA_ALGO_SET_RSA_WITH_NULL              \
 	X509_TESTING_CERTSS_ALGO_SET_RSA_WITH_NULL
-#define	X509_TESTING_CERTCA_ALGO_SET_RSA_SHA384_WITH_NULL		\
+#define	X509_TESTING_CERTCA_ALGO_SET_RSA_SHA384_WITH_NULL       \
 	X509_TESTING_CERTSS_ALGO_SET_RSA_WITH_NULL
-#define	X509_TESTING_CERTCA_ALGO_SET_RSA_SHA512_WITH_NULL		\
+#define	X509_TESTING_CERTCA_ALGO_SET_RSA_SHA512_WITH_NULL       \
 	X509_TESTING_CERTSS_ALGO_SET_RSA_WITH_NULL
 
 #define	X509_TESTING_RIOT_ALGO_SET_ECDSA_NO_NULL		X509_TESTING_CERTSS_ALGO_SET_ECDSA_NO_NULL
@@ -120,24 +120,24 @@ int x509_testing_corrupt_signature (uint8_t *der);
 	int actual_algo_len; \
 	int actual_sig_len; \
 	int verify_status;\
-	\
+    \
 	verify_status = HASH_TESTING_ENGINE_INIT (&hash_verify); \
 	CuAssertIntEquals (test, 0, verify_status); \
-	\
+    \
 	exp_der_len = X509_##cert_type##_##exp##_DER_LEN; \
 	memcpy (exp_der, X509_##cert_type##_##exp##_DER, exp_der_len); \
 	exp_algo = X509_##algo_type##_SIG_ALGO_DER; \
 	exp_algo_len = X509_##algo_type##_SIG_ALGO_DER_LEN; \
-	\
+    \
 	verify_status = X509_TESTING_CN_SET_##cert_type (exp_der, X509_TESTING_CN_##cn_type); \
 	CuAssertIntEquals (test, 0, verify_status); \
-	\
+    \
 	verify_status = X509_TESTING_##cert_type##_ALGO_SET_##algo_type (exp_der, &exp_der_len); \
 	CuAssertIntEquals (test, 0, verify_status); \
-	\
+    \
 	exp_header_len = x509_testing_get_start_offset (exp_der); \
 	CuAssertTrue (test, (exp_header_len > 0)); \
-	\
+    \
 	exp_cert_len = x509_testing_get_item_length (&exp_der[exp_header_len], &tmp); \
 	CuAssertTrue (test, (exp_cert_len > 0));
 
@@ -154,7 +154,7 @@ int x509_testing_corrupt_signature (uint8_t *der);
 #define	x509_testing_verify_cert(test, actual) \
 	actual_cert_len = x509_testing_get_item_length (&actual[actual_header_len], &tmp); \
 	CuAssertIntEquals (test, exp_cert_len, actual_cert_len); \
-	\
+    \
 	verify_status = testing_validate_array (&exp_der[exp_header_len], &actual[actual_header_len], \
 		exp_cert_len); \
 	CuAssertIntEquals (test, 0, verify_status);
@@ -166,7 +166,7 @@ int x509_testing_corrupt_signature (uint8_t *der);
 	actual_algo_len = x509_testing_get_item_length (&actual[actual_header_len + actual_cert_len], \
 		&tmp); \
 	CuAssertIntEquals (test, exp_algo_len, actual_algo_len); \
-	\
+    \
 	verify_status = testing_validate_array (exp_algo, &actual[actual_header_len + actual_cert_len], \
 		exp_algo_len); \
 	CuAssertIntEquals (test, 0, verify_status);
@@ -179,30 +179,30 @@ int x509_testing_corrupt_signature (uint8_t *der);
 	struct ecc_public_key key_verify; \
 	int hash_length; \
 	int exp_hash_length; \
-	\
+    \
 	verify_status = ECC_TESTING_ENGINE_INIT (&ecc_verify); \
 	CuAssertIntEquals (test, 0, verify_status); \
-	\
+    \
 	verify_status = ecc_verify.base.init_public_key (&ecc_verify.base, (uint8_t*) key##_DER, \
 		key##_DER_LEN, &key_verify); \
 	CuAssertIntEquals (test, 0, verify_status); \
-	\
+    \
 	exp_hash_length = hash_get_hash_length (HASH_TYPE_##hash_algo); \
 	CuAssertTrue (test, (exp_hash_length != HASH_ENGINE_UNKNOWN_HASH)); \
-	\
+    \
 	hash_length = hash_calculate (&hash_verify.base, HASH_TYPE_##hash_algo, \
 		&actual[actual_header_len], actual_cert_len, actual_hash, sizeof (actual_hash)); \
 	CuAssertIntEquals (test, exp_hash_length, hash_length); \
-	\
+    \
 	actual_sig_len = x509_testing_get_item_length ( \
 		&actual[actual_header_len + actual_cert_len + actual_algo_len], &tmp); \
 	CuAssertTrue (test, (actual_sig_len > 0)); \
-	\
+    \
 	verify_status = ecc_verify.base.verify (&ecc_verify.base, &key_verify, actual_hash, \
 		hash_length, &actual[actual_header_len + actual_cert_len + actual_algo_len + tmp + 1], \
 		actual_sig_len - (tmp + 1)); \
 	CuAssertIntEquals (test, 0, verify_status); \
-	\
+    \
 	ecc_verify.base.release_key_pair (&ecc_verify.base, NULL, &key_verify); \
 	ECC_TESTING_ENGINE_RELEASE (&ecc_verify); \
 } while (0);
@@ -214,26 +214,26 @@ int x509_testing_corrupt_signature (uint8_t *der);
 	RSA_TESTING_ENGINE rsa_verify; \
 	int hash_length; \
 	int exp_hash_length; \
-	\
+    \
 	verify_status = RSA_TESTING_ENGINE_INIT (&rsa_verify); \
 	CuAssertIntEquals (test, 0, verify_status); \
-	\
+    \
 	exp_hash_length = hash_get_hash_length (HASH_TYPE_##hash_algo); \
 	CuAssertTrue (test, (exp_hash_length != HASH_ENGINE_UNKNOWN_HASH)); \
-	\
+    \
 	hash_length = hash_calculate (&hash_verify.base, HASH_TYPE_##hash_algo, \
 		&actual[actual_header_len], actual_cert_len, actual_hash, sizeof (actual_hash)); \
 	CuAssertIntEquals (test, exp_hash_length, hash_length); \
-	\
+    \
 	actual_sig_len = x509_testing_get_item_length ( \
 		&actual[actual_header_len + actual_cert_len + actual_algo_len], &tmp); \
 	CuAssertTrue (test, (actual_sig_len > 0)); \
-	\
+    \
 	verify_status = rsa_verify.base.sig_verify (&rsa_verify.base, &RSA_PUBLIC_KEY, \
 		&actual[actual_header_len + actual_cert_len + actual_algo_len + tmp + 1], \
 		actual_sig_len - (tmp + 1), HASH_TYPE_##hash_algo, actual_hash, hash_length); \
 	CuAssertIntEquals (test, 0, verify_status); \
-	\
+    \
 	RSA_TESTING_ENGINE_RELEASE (&rsa_verify); \
 } while (0);
 
@@ -525,4 +525,4 @@ extern const uint8_t X509_CERTCA_ECC_EE_TCBINFO_DER[];
 extern const size_t X509_CERTCA_ECC_EE_TCBINFO_DER_LEN;
 
 
-#endif /* X509_TESTING_H_ */
+#endif	/* X509_TESTING_H_ */

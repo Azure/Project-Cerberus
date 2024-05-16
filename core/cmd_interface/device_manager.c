@@ -4,17 +4,17 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "platform_api.h"
 #include "device_manager.h"
+#include "platform_api.h"
 #include "common/buffer_util.h"
 #include "common/common_math.h"
+#include "crypto/hash.h"
 #include "manifest/pcd/pcd.h"
 #include "mctp/mctp_base_protocol.h"
-#include "crypto/hash.h"
 
 
 // Attestation status component header length
-#define DEVICE_MANAGER_ATTESTATION_STATUS_COMPONENT_HEADER_LEN		\
+#define DEVICE_MANAGER_ATTESTATION_STATUS_COMPONENT_HEADER_LEN      \
 	(sizeof (struct pcd_supported_component))
 
 /**
@@ -23,7 +23,7 @@
  *
  * @param state Device state
  */
-#define device_manager_is_device_unauthenticated(state)			\
+#define device_manager_is_device_unauthenticated(state)         \
 	((state == DEVICE_MANAGER_READY_FOR_ATTESTATION) ||  \
 	(state == DEVICE_MANAGER_ATTESTATION_FAILED))
 
@@ -32,7 +32,7 @@
  *
  * @param state Device state
  */
-#define device_manager_can_device_be_attested(state)			\
+#define device_manager_can_device_be_attested(state)            \
 	(device_manager_is_device_unauthenticated(state) || (state == DEVICE_MANAGER_AUTHENTICATED) || \
 	(state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS) || \
 	(state == DEVICE_MANAGER_NEVER_ATTESTED))
@@ -70,7 +70,7 @@ int device_manager_update_device_state (struct device_manager *mgr, int device_n
 	}
 	else if ((device_manager_is_device_unauthenticated (state)) &&
 		(device_manager_is_device_unauthenticated (prev_state) ||
-			(prev_state == DEVICE_MANAGER_NEVER_ATTESTED))) {
+		(prev_state == DEVICE_MANAGER_NEVER_ATTESTED))) {
 		timeout = mgr->unauthenticated_cadence_ms;
 	}
 	else if (state == DEVICE_MANAGER_NEVER_ATTESTED) {
@@ -132,7 +132,8 @@ int device_manager_init (struct device_manager *mgr, int num_requester_devices,
 
 	if (num_responder_devices != 0) {
 		mgr->attestation_status = platform_malloc (num_responder_devices +
-			(num_unique_responder_devices * DEVICE_MANAGER_ATTESTATION_STATUS_COMPONENT_HEADER_LEN));
+			(num_unique_responder_devices *
+				DEVICE_MANAGER_ATTESTATION_STATUS_COMPONENT_HEADER_LEN));
 		if (mgr->attestation_status == NULL) {
 			status = DEVICE_MGR_NO_MEMORY;
 			goto free_entries;
@@ -1194,8 +1195,7 @@ int device_manager_reset_discovered_devices (struct device_manager *mgr)
 			continue;
 		}
 
-		status = device_manager_update_device_state (mgr, i_device,
-			DEVICE_MANAGER_UNIDENTIFIED);
+		status = device_manager_update_device_state (mgr, i_device,	DEVICE_MANAGER_UNIDENTIFIED);
 		if (status != 0) {
 			return status;
 		}
@@ -1559,7 +1559,8 @@ int device_manager_get_attestation_status (struct device_manager *mgr,
 	}
 
 	attestation_status_len = mgr->num_responder_devices +
-		(mgr->num_unique_responder_devices * DEVICE_MANAGER_ATTESTATION_STATUS_COMPONENT_HEADER_LEN);
+		(mgr->num_unique_responder_devices *
+			DEVICE_MANAGER_ATTESTATION_STATUS_COMPONENT_HEADER_LEN);
 
 	*attestation_status = mgr->attestation_status;
 

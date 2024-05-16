@@ -4,16 +4,16 @@
 #ifndef AUTH_TOKEN_MOCK_H_
 #define AUTH_TOKEN_MOCK_H_
 
-#include "common/auth_token.h"
 #include "mock.h"
+#include "common/auth_token.h"
 
 
 /**
  * A mock for handling authorization tokens.
  */
 struct auth_token_mock {
-	struct auth_token base;		/**< The base token handler instance. */
-	struct mock mock;			/**< The base mock interface. */
+	struct auth_token base;	/**< The base token handler instance. */
+	struct mock mock;		/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void auth_token_mock_release (struct auth_token_mock *mock);
 int auth_token_mock_validate_and_release (struct auth_token_mock *mock);
 
 
-#endif /* AUTH_TOKEN_MOCK_H_ */
+#endif	/* AUTH_TOKEN_MOCK_H_ */

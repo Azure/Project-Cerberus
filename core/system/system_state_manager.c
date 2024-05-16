@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "system_state_manager.h"
 #include "common/unused.h"
@@ -67,6 +67,7 @@ static int system_state_manager_restore_default_state (struct state_manager *man
 	manager->nv_state = 0xffff;
 
 	platform_mutex_unlock (&manager->state_lock);
+
 	return 0;
 }
 

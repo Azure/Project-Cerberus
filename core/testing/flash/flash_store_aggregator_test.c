@@ -5,10 +5,10 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "flash/flash_store_contiguous_blocks.h"
-#include "flash/flash_store_contiguous_blocks_encrypted.h"
 #include "flash/flash_store_aggregator.h"
 #include "flash/flash_store_aggregator_static.h"
+#include "flash/flash_store_contiguous_blocks.h"
+#include "flash/flash_store_contiguous_blocks_encrypted.h"
 #include "testing/mock/flash/flash_store_mock.h"
 
 
@@ -149,7 +149,7 @@ static void flash_store_aggregator_test_static_init (CuTest *test)
 {
 	struct flash_store_aggregator_testing store;
 	const struct flash_store *flash_store_array[2] =
-		{&store.flash_1.base, &store.flash_2.base};
+	{&store.flash_1.base, &store.flash_2.base};
 	struct flash_store_aggregator aggregator =
 		flash_store_aggregator_static_init (flash_store_array, 2);
 
@@ -199,33 +199,29 @@ static void flash_store_aggregator_test_read (CuTest *test)
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
 	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.read, &store.flash_1,
 		sizeof (flash_1_data), MOCK_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG (256));
-	status |= mock_expect_output (&store.flash_1.mock, 1, flash_1_data,
-		sizeof (flash_1_data), -1);
+	status |= mock_expect_output (&store.flash_1.mock, 1, flash_1_data,	sizeof (flash_1_data), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2,	34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
 	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.read, &store.flash_2,
 		sizeof (flash_2_data), MOCK_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG (256));
-	status |= mock_expect_output (&store.flash_2.mock, 1, flash_2_data,
-		sizeof (flash_2_data), -1);
+	status |= mock_expect_output (&store.flash_2.mock, 1, flash_2_data,	sizeof (flash_2_data), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.read (&store.test.base, 2, read_data,
-		sizeof(read_data));
+	status = store.test.base.read (&store.test.base, 2, read_data, sizeof (read_data));
 	CuAssertIntEquals (test, sizeof (flash_1_data), status);
 
 	status = testing_validate_array (flash_1_data, read_data, status);
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.read (&store.test.base, 36, read_data,
-		sizeof(read_data));
+	status = store.test.base.read (&store.test.base, 36, read_data,	sizeof (read_data));
 	CuAssertIntEquals (test, sizeof (flash_2_data), status);
 
 	status = testing_validate_array (flash_2_data, read_data, status);
@@ -254,33 +250,29 @@ static void flash_store_aggregator_test_read_on_start_index (CuTest *test)
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1,	34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
 	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.read, &store.flash_1,
 		sizeof (flash_1_data), MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG (256));
-	status |= mock_expect_output (&store.flash_1.mock, 1, flash_1_data,
-		sizeof (flash_1_data), -1);
+	status |= mock_expect_output (&store.flash_1.mock, 1, flash_1_data,	sizeof (flash_1_data), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1,	34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2,	34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
 	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.read, &store.flash_2,
 		sizeof (flash_2_data), MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG (256));
-	status |= mock_expect_output (&store.flash_2.mock, 1, flash_2_data,
-		sizeof (flash_2_data), -1);
+	status |= mock_expect_output (&store.flash_2.mock, 1, flash_2_data,	sizeof (flash_2_data), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.read (&store.test.base, 0, read_data,
-		sizeof(read_data));
+	status = store.test.base.read (&store.test.base, 0, read_data, sizeof (read_data));
 	CuAssertIntEquals (test, sizeof (flash_1_data), status);
 
 	status = testing_validate_array (flash_1_data, read_data, status);
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.read (&store.test.base, 34, read_data,
-		sizeof(read_data));
+	status = store.test.base.read (&store.test.base, 34, read_data,	sizeof (read_data));
 	CuAssertIntEquals (test, sizeof (flash_2_data), status);
 
 	status = testing_validate_array (flash_2_data, read_data, status);
@@ -309,32 +301,29 @@ static void flash_store_aggregator_test_read_on_end_index (CuTest *test)
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
 	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.read, &store.flash_1,
 		sizeof (flash_1_data), MOCK_ARG (33), MOCK_ARG_NOT_NULL, MOCK_ARG (256));
-	status |= mock_expect_output (&store.flash_1.mock, 1, flash_1_data,
-		sizeof (flash_1_data), -1);
+	status |= mock_expect_output (&store.flash_1.mock, 1, flash_1_data,	sizeof (flash_1_data), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
 	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.read, &store.flash_2,
 		sizeof (flash_2_data), MOCK_ARG (33), MOCK_ARG_NOT_NULL, MOCK_ARG (256));
-	status |= mock_expect_output (&store.flash_2.mock, 1, flash_2_data,
-		sizeof (flash_2_data), -1);
+	status |= mock_expect_output (&store.flash_2.mock, 1, flash_2_data,	sizeof (flash_2_data), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.read (&store.test.base, 33, read_data,
-		sizeof(read_data));
+	status = store.test.base.read (&store.test.base, 33, read_data,	sizeof (read_data));
 	CuAssertIntEquals (test, sizeof (flash_1_data), status);
 
 	status = testing_validate_array (flash_1_data, read_data, status);
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.read (&store.test.base, 67, read_data, sizeof(read_data));
+	status = store.test.base.read (&store.test.base, 67, read_data, sizeof (read_data));
 	CuAssertIntEquals (test, sizeof (flash_2_data), status);
 
 	status = testing_validate_array (flash_2_data, read_data, status);
@@ -347,7 +336,7 @@ static void flash_store_aggregator_test_read_static (CuTest *test)
 {
 	struct flash_store_aggregator_testing store;
 	const struct flash_store *flash_store_array[2] =
-		{&store.flash_1.base, &store.flash_2.base};
+	{&store.flash_1.base, &store.flash_2.base};
 	struct flash_store_aggregator aggregator =
 		flash_store_aggregator_static_init (flash_store_array, 2);
 	uint8_t flash_1_data[256];
@@ -367,33 +356,29 @@ static void flash_store_aggregator_test_read_static (CuTest *test)
 
 	store.test = aggregator;
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
 	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.read, &store.flash_1,
 		sizeof (flash_1_data), MOCK_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG (256));
-	status |= mock_expect_output (&store.flash_1.mock, 1, flash_1_data,
-		sizeof (flash_1_data), -1);
+	status |= mock_expect_output (&store.flash_1.mock, 1, flash_1_data,	sizeof (flash_1_data), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2,	34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
 	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.read, &store.flash_2,
 		sizeof (flash_2_data), MOCK_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG (256));
-	status |= mock_expect_output (&store.flash_2.mock, 1, flash_2_data,
-		sizeof (flash_2_data), -1);
+	status |= mock_expect_output (&store.flash_2.mock, 1, flash_2_data,	sizeof (flash_2_data), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.read (&store.test.base, 2, read_data,
-		sizeof(read_data));
+	status = store.test.base.read (&store.test.base, 2, read_data, sizeof (read_data));
 	CuAssertIntEquals (test, sizeof (flash_1_data), status);
 
 	status = testing_validate_array (flash_1_data, read_data, status);
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.read (&store.test.base, 36, read_data,
-		sizeof(read_data));
+	status = store.test.base.read (&store.test.base, 36, read_data,	sizeof (read_data));
 	CuAssertIntEquals (test, sizeof (flash_2_data), status);
 
 	status = testing_validate_array (flash_2_data, read_data, status);
@@ -414,13 +399,13 @@ static void flash_store_aggregator_test_read_fail_invalid_id (CuTest *test)
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.read (&store.test.base, 68, read_data, sizeof(read_data));
+	status = store.test.base.read (&store.test.base, 68, read_data, sizeof (read_data));
 	CuAssertIntEquals (test, FLASH_STORE_UNSUPPORTED_ID, status);
 
 	flash_store_aggregator_testing_release (test, &store);
@@ -436,8 +421,7 @@ static void flash_store_aggregator_test_read_fail_aggregator_null (CuTest *test)
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = store.test.base.read (NULL, 68, read_data,
-		sizeof(read_data));
+	status = store.test.base.read (NULL, 68, read_data,	sizeof (read_data));
 	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
 
 	flash_store_aggregator_release (&store.test);
@@ -455,26 +439,24 @@ static void flash_store_aggregator_test_write (CuTest *test)
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
 	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.write, &store.flash_1, 0,
-		MOCK_ARG (2), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),
-		MOCK_ARG (sizeof(data)));
+		MOCK_ARG (2), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
 	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.write, &store.flash_2, 0,
-		MOCK_ARG (2), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),
-		MOCK_ARG (sizeof(data)));
+		MOCK_ARG (2), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.write (&store.test.base, 2, data, sizeof(data));
+	status = store.test.base.write (&store.test.base, 2, data, sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.write (&store.test.base, 36, data, sizeof(data));
+	status = store.test.base.write (&store.test.base, 36, data, sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
 	flash_store_aggregator_testing_release (test, &store);
@@ -492,26 +474,24 @@ static void flash_store_aggregator_test_write_on_start_index (CuTest *test)
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
 	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.write, &store.flash_1, 0,
-		MOCK_ARG (0), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),
-		MOCK_ARG (sizeof(data)));
+		MOCK_ARG (0), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
 	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.write, &store.flash_2, 0,
-		MOCK_ARG (0), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),
-		MOCK_ARG (sizeof(data)));
+		MOCK_ARG (0), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.write (&store.test.base, 0, data, sizeof(data));
+	status = store.test.base.write (&store.test.base, 0, data, sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.write (&store.test.base, 34, data, sizeof(data));
+	status = store.test.base.write (&store.test.base, 34, data, sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
 	flash_store_aggregator_testing_release (test, &store);
@@ -529,26 +509,24 @@ static void flash_store_aggregator_test_write_on_end_index (CuTest *test)
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
 	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.write, &store.flash_1, 0,
-		MOCK_ARG (33), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),
-		MOCK_ARG (sizeof(data)));
+		MOCK_ARG (33), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),	MOCK_ARG (sizeof (data)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
 	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.write, &store.flash_2, 0,
-		MOCK_ARG (33), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),
-		MOCK_ARG (sizeof(data)));
+		MOCK_ARG (33), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),	MOCK_ARG (sizeof (data)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.write (&store.test.base, 33, data, sizeof(data));
+	status = store.test.base.write (&store.test.base, 33, data, sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.write (&store.test.base, 67, data, sizeof(data));
+	status = store.test.base.write (&store.test.base, 67, data, sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
 	flash_store_aggregator_testing_release (test, &store);
@@ -558,7 +536,7 @@ static void flash_store_aggregator_test_write_static (CuTest *test)
 {
 	struct flash_store_aggregator_testing store;
 	const struct flash_store *flash_store_array[2] =
-		{&store.flash_1.base, &store.flash_2.base};
+	{&store.flash_1.base, &store.flash_2.base};
 	struct flash_store_aggregator aggregator =
 		flash_store_aggregator_static_init (flash_store_array, 2);
 	uint8_t data[256] = {0};
@@ -570,26 +548,24 @@ static void flash_store_aggregator_test_write_static (CuTest *test)
 
 	store.test = aggregator;
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
 	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.write, &store.flash_1, 0,
-		MOCK_ARG (2), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),
-		MOCK_ARG (sizeof(data)));
+		MOCK_ARG (2), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
 	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.write, &store.flash_2, 0,
-		MOCK_ARG (2), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),
-		MOCK_ARG (sizeof(data)));
+		MOCK_ARG (2), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.write (&store.test.base, 2, data, sizeof(data));
+	status = store.test.base.write (&store.test.base, 2, data, sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.write (&store.test.base, 36, data, sizeof(data));
+	status = store.test.base.write (&store.test.base, 36, data, sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
 	flash_store_aggregator_testing_release (test, &store);
@@ -607,13 +583,13 @@ static void flash_store_aggregator_test_write_fail_invalid_id (CuTest *test)
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.write (&store.test.base, 68, data, sizeof(data));
+	status = store.test.base.write (&store.test.base, 68, data, sizeof (data));
 	CuAssertIntEquals (test, FLASH_STORE_UNSUPPORTED_ID, status);
 
 	flash_store_aggregator_testing_release (test, &store);
@@ -629,7 +605,7 @@ static void flash_store_aggregator_test_write_fail_aggregator_null (CuTest *test
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = store.test.base.write (NULL, 2, data, sizeof(data));
+	status = store.test.base.write (NULL, 2, data, sizeof (data));
 	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
 
 	flash_store_aggregator_release (&store.test);
@@ -642,21 +618,20 @@ static void flash_store_aggregator_test_erase (CuTest *test)
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
 	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.erase, &store.flash_1, 0,
 		MOCK_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
 	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.erase, &store.flash_2, 0,
 		MOCK_ARG (2));
 	CuAssertIntEquals (test, 0, status);
@@ -677,21 +652,20 @@ static void flash_store_aggregator_test_erase_start_index (CuTest *test)
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
 	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.erase, &store.flash_1, 0,
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
 	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.erase, &store.flash_2, 0,
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -712,21 +686,20 @@ static void flash_store_aggregator_test_erase_end_index (CuTest *test)
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
 	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.erase, &store.flash_1, 0,
 		MOCK_ARG (33));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
 	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.erase, &store.flash_2, 0,
 		MOCK_ARG (33));
 	CuAssertIntEquals (test, 0, status);
@@ -744,28 +717,27 @@ static void flash_store_aggregator_test_erase_static (CuTest *test)
 {
 	struct flash_store_aggregator_testing store;
 	const struct flash_store *flash_store_array[2] =
-		{&store.flash_1.base, &store.flash_2.base};
+	{&store.flash_1.base, &store.flash_2.base};
 	struct flash_store_aggregator aggregator =
 		flash_store_aggregator_static_init (flash_store_array, 2);
 	int status;
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	store.test = aggregator;
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
 	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.erase, &store.flash_1, 0,
 		MOCK_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
 	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.erase, &store.flash_2, 0,
 		MOCK_ARG (2));
 	CuAssertIntEquals (test, 0, status);
@@ -786,15 +758,14 @@ static void flash_store_aggregator_test_erase_fail_invalid_id (CuTest *test)
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 68);
@@ -825,8 +796,7 @@ static void flash_store_aggregator_test_erase_all (CuTest *test)
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
@@ -846,15 +816,14 @@ static void flash_store_aggregator_test_erase_all_static (CuTest *test)
 {
 	struct flash_store_aggregator_testing store;
 	const struct flash_store *flash_store_array[2] =
-		{&store.flash_1.base, &store.flash_2.base};
+	{&store.flash_1.base, &store.flash_2.base};
 	struct flash_store_aggregator aggregator =
 		flash_store_aggregator_static_init (flash_store_array, 2);
 	int status;
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	store.test = aggregator;
 
@@ -877,8 +846,7 @@ static void flash_store_aggregator_test_erase_all_fail (CuTest *test)
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
@@ -886,7 +854,7 @@ static void flash_store_aggregator_test_erase_all_fail (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash_2.mock, store.flash_2.base.erase_all, &store.flash_2,
-	FLASH_STORE_ERASE_ALL_FAILED);
+		FLASH_STORE_ERASE_ALL_FAILED);
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase_all (&store.test.base);
@@ -917,23 +885,22 @@ static void flash_store_aggregator_test_get_data_length (CuTest *test)
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.get_data_length,
-		&store.flash_1, 256, MOCK_ARG (2));
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.get_data_length,	&store.flash_1,
+		256, MOCK_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_data_length,
-		&store.flash_2, 512, MOCK_ARG (2));
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_data_length,	&store.flash_2,
+		512, MOCK_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.get_data_length (&store.test.base, 2);
@@ -952,23 +919,22 @@ static void flash_store_aggregator_test_get_data_length_start_index (CuTest *tes
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.get_data_length,
-		&store.flash_1, 256, MOCK_ARG (0));
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.get_data_length,	&store.flash_1,
+		256, MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_data_length,
-		&store.flash_2, 512, MOCK_ARG (0));
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_data_length,	&store.flash_2,
+		512, MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.get_data_length (&store.test.base, 0);
@@ -987,23 +953,22 @@ static void flash_store_aggregator_test_get_data_length_end_index (CuTest *test)
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.get_data_length,
-		&store.flash_1, 256, MOCK_ARG (33));
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.get_data_length,	&store.flash_1,
+		256, MOCK_ARG (33));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_data_length,
-		&store.flash_2, 512, MOCK_ARG (33));
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_data_length,	&store.flash_2,
+		512, MOCK_ARG (33));
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.get_data_length (&store.test.base, 33);
@@ -1019,30 +984,29 @@ static void flash_store_aggregator_test_get_data_length_static (CuTest *test)
 {
 	struct flash_store_aggregator_testing store;
 	const struct flash_store *flash_store_array[2] =
-		{&store.flash_1.base, &store.flash_2.base};
+	{&store.flash_1.base, &store.flash_2.base};
 	struct flash_store_aggregator aggregator =
 		flash_store_aggregator_static_init (flash_store_array, 2);
 	int status;
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	store.test = aggregator;
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.get_data_length,
-		&store.flash_1, 256, MOCK_ARG (2));
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.get_data_length,	&store.flash_1,
+		256, MOCK_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_data_length,
-		&store.flash_2, 512, MOCK_ARG (2));
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_data_length,	&store.flash_2,
+		512, MOCK_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.get_data_length (&store.test.base, 2);
@@ -1061,15 +1025,14 @@ static void flash_store_aggregator_test_get_data_length_fail_invalid_id (CuTest 
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.get_data_length (&store.test.base, 68);
@@ -1100,17 +1063,16 @@ static void flash_store_aggregator_test_get_flash_size (CuTest *test)
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_flash_size,
-		&store.flash_1, 256);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_flash_size, &store.flash_1,
+		256);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_2.mock, store.flash_2.base.get_flash_size,
-		&store.flash_2, 256);
+	status = mock_expect (&store.flash_2.mock, store.flash_2.base.get_flash_size, &store.flash_2,
+		256);
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.get_flash_size (&store.test.base);
@@ -1123,24 +1085,23 @@ static void flash_store_aggregator_test_get_flash_size_static (CuTest *test)
 {
 	struct flash_store_aggregator_testing store;
 	const struct flash_store *flash_store_array[2] =
-		{&store.flash_1.base, &store.flash_2.base};
+	{&store.flash_1.base, &store.flash_2.base};
 	struct flash_store_aggregator aggregator =
 		flash_store_aggregator_static_init (flash_store_array, 2);
 	int status;
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	store.test = aggregator;
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_flash_size,
-		&store.flash_1, 256);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_flash_size, &store.flash_1,
+		256);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_2.mock, store.flash_2.base.get_flash_size,
-		&store.flash_2, 256);
+	status = mock_expect (&store.flash_2.mock, store.flash_2.base.get_flash_size, &store.flash_2,
+		256);
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.get_flash_size (&store.test.base);
@@ -1156,17 +1117,16 @@ static void flash_store_aggregator_test_get_flash_size_fail (CuTest *test)
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_flash_size,
-		&store.flash_1, 256);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_flash_size, &store.flash_1,
+		256);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_2.mock, store.flash_2.base.get_flash_size,
-		&store.flash_2, FLASH_STORE_INVALID_ARGUMENT);
+	status = mock_expect (&store.flash_2.mock, store.flash_2.base.get_flash_size, &store.flash_2,
+		FLASH_STORE_INVALID_ARGUMENT);
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.get_flash_size (&store.test.base);
@@ -1197,8 +1157,7 @@ static void flash_store_aggregator_test_get_max_data_length (CuTest *test)
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
@@ -1221,8 +1180,7 @@ static void flash_store_aggregator_test_get_max_data_length_min_followed_max (Cu
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
@@ -1242,15 +1200,14 @@ static void flash_store_aggregator_test_get_max_data_length_static (CuTest *test
 {
 	struct flash_store_aggregator_testing store;
 	const struct flash_store *flash_store_array[2] =
-		{&store.flash_1.base, &store.flash_2.base};
+	{&store.flash_1.base, &store.flash_2.base};
 	struct flash_store_aggregator aggregator =
 		flash_store_aggregator_static_init (flash_store_array, 2);
 	int status;
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	store.test = aggregator;
 
@@ -1273,8 +1230,7 @@ static void flash_store_aggregator_test_get_max_data_length_fail (CuTest *test)
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
@@ -1312,15 +1268,14 @@ static void flash_store_aggregator_test_get_num_blocks (CuTest *test)
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.get_num_blocks (&store.test.base);
@@ -1333,22 +1288,21 @@ static void flash_store_aggregator_test_get_num_blocks_static (CuTest *test)
 {
 	struct flash_store_aggregator_testing store;
 	const struct flash_store *flash_store_array[2] =
-		{&store.flash_1.base, &store.flash_2.base};
+	{&store.flash_1.base, &store.flash_2.base};
 	struct flash_store_aggregator aggregator =
 		flash_store_aggregator_static_init (flash_store_array, 2);
 	int status;
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	store.test = aggregator;
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.get_num_blocks (&store.test.base);
@@ -1364,15 +1318,14 @@ static void flash_store_aggregator_test_get_num_blocks_fail (CuTest *test)
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, FLASH_STORE_INVALID_ARGUMENT);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		FLASH_STORE_INVALID_ARGUMENT);
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.get_num_blocks (&store.test.base);
@@ -1403,23 +1356,22 @@ static void flash_store_aggregator_test_has_data_stored (CuTest *test)
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.has_data_stored,
-		&store.flash_1, 0, MOCK_ARG (2));
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.has_data_stored,	&store.flash_1,
+		0, MOCK_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.has_data_stored,
-		&store.flash_2, 1, MOCK_ARG (2));
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.has_data_stored,	&store.flash_2,
+		1, MOCK_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.has_data_stored (&store.test.base, 2);
@@ -1438,23 +1390,22 @@ static void flash_store_aggregator_test_has_data_stored_start_index (CuTest *tes
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.has_data_stored,
-		&store.flash_1, 0, MOCK_ARG (0));
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.has_data_stored,	&store.flash_1,
+		0, MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.has_data_stored,
-		&store.flash_2, 1, MOCK_ARG (0));
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.has_data_stored,	&store.flash_2,
+		1, MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.has_data_stored (&store.test.base, 0);
@@ -1473,23 +1424,22 @@ static void flash_store_aggregator_test_has_data_stored_end_index (CuTest *test)
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.has_data_stored,
-		&store.flash_1, 0, MOCK_ARG (33));
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.has_data_stored,	&store.flash_1,
+		0, MOCK_ARG (33));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.has_data_stored,
-		&store.flash_2, 1, MOCK_ARG (33));
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.has_data_stored,	&store.flash_2,
+		1, MOCK_ARG (33));
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.has_data_stored (&store.test.base, 33);
@@ -1505,30 +1455,29 @@ static void flash_store_aggregator_test_has_data_stored_static (CuTest *test)
 {
 	struct flash_store_aggregator_testing store;
 	const struct flash_store *flash_store_array[2] =
-		{&store.flash_1.base, &store.flash_2.base};
+	{&store.flash_1.base, &store.flash_2.base};
 	struct flash_store_aggregator aggregator =
 		flash_store_aggregator_static_init (flash_store_array, 2);
 	int status;
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	store.test = aggregator;
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.has_data_stored,
-		&store.flash_1, 0, MOCK_ARG (2));
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_1.mock, store.flash_1.base.has_data_stored,	&store.flash_1,
+		0, MOCK_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.has_data_stored,
-		&store.flash_2, 1, MOCK_ARG (2));
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.has_data_stored,	&store.flash_2,
+		1, MOCK_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.has_data_stored (&store.test.base, 2);
@@ -1547,15 +1496,14 @@ static void flash_store_aggregator_test_has_data_stored_fail_invalid_id (CuTest 
 
 	TEST_START;
 
-	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,
-		&store.flash_2);
+	flash_store_aggregator_testing_init_dependencies (test, &store, &store.flash_1,	&store.flash_2);
 
 	flash_store_aggregator_init (&store.test, store.flash_store_array, 2);
 
-	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks,
-		&store.flash_1, 34);
-	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks,
-		&store.flash_2, 34);
+	status = mock_expect (&store.flash_1.mock, store.flash_1.base.get_num_blocks, &store.flash_1,
+		34);
+	status |= mock_expect (&store.flash_2.mock, store.flash_2.base.get_num_blocks, &store.flash_2,
+		34);
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.has_data_stored (&store.test.base, 68);
@@ -1579,6 +1527,7 @@ static void flash_store_aggregator_test_has_data_stored_fail_aggregator_null (Cu
 	flash_store_aggregator_release (&store.test);
 }
 
+// *INDENT-OFF*
 TEST_SUITE_START (flash_store_aggregator);
 
 TEST (flash_store_aggregator_test_init);
@@ -1635,3 +1584,4 @@ TEST (flash_store_aggregator_test_has_data_stored_fail_invalid_id);
 TEST (flash_store_aggregator_test_has_data_stored_fail_aggregator_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

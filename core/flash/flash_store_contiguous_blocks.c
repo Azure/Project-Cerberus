@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "flash_store_contiguous_blocks.h"
 #include "flash_util.h"
@@ -97,7 +97,7 @@ int flash_store_contiguous_blocks_write_common (const struct flash_store_contigu
 			.length = length
 		};
 		size_t header_len = (!flash->variable) ? 0 :
-			(flash->state->old_header) ? sizeof (header.length) : sizeof (header);
+				(flash->state->old_header) ? sizeof (header.length) : sizeof (header);
 		size_t first = flash->state->page_size - header_len;
 		size_t remain = FLASH_REGION_OFFSET (length + header_len, flash->state->page_size);
 		size_t write_extra = flash->state->page_size - remain;
@@ -219,8 +219,8 @@ int flash_store_contiguous_blocks_write_common (const struct flash_store_contigu
 
 		if (extra_data) {
 			offset += length;
-			status = flash_write_and_verify (flash->flash, flash->base_addr + offset,
-				extra_data, extra_length);
+			status = flash_write_and_verify (flash->flash, flash->base_addr + offset, extra_data,
+				extra_length);
 			if (status != 0) {
 				return status;
 			}
@@ -402,6 +402,7 @@ int flash_store_contiguous_blocks_read_common (const struct flash_store_contiguo
 	}
 
 	*out_length = length;
+
 	return 0;
 }
 
@@ -413,6 +414,7 @@ int flash_store_contiguous_blocks_read_no_hash (const struct flash_store *flash_
 	int status;
 
 	status = flash_store_contiguous_blocks_read_common (flash, id, data, length, NULL, 0, &length);
+
 	return (status == 0) ? (int) length : status;
 }
 
@@ -611,6 +613,7 @@ int flash_store_contiguous_blocks_init_state_common (
 {
 	uint32_t sector_size;
 	uint32_t device_size;
+
 #ifdef FLASH_STORE_SUPPORT_NO_PARTIAL_PAGE_WRITE
 	uint32_t write_size;
 #endif
@@ -687,7 +690,7 @@ int flash_store_contiguous_blocks_init_state_common (
 
 	if ((write_size != 1) &&
 		(store->variable || (!store->variable && extra_data &&
-			FLASH_REGION_OFFSET (store->state->max_size, store->state->page_size) != 0))) {
+		(FLASH_REGION_OFFSET (store->state->max_size, store->state->page_size) != 0)))) {
 		/* We need to buffer full page writes at the beginning and/or end of the data. */
 		store->state->page_buffer = platform_malloc (store->state->page_size);
 		if (store->state->page_buffer == NULL) {
@@ -698,6 +701,7 @@ int flash_store_contiguous_blocks_init_state_common (
 	status = platform_mutex_init (&store->state->lock);
 	if (status != 0) {
 		platform_free (store->state->page_buffer);
+
 		return status;
 	}
 #endif
@@ -872,8 +876,8 @@ int flash_store_contiguous_blocks_init_variable_storage (
 	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
 	struct hash_engine *hash)
 {
-	return flash_store_contiguous_blocks_init (store, state, flash, base_addr, block_count, min_length,
-		hash, false, true);
+	return flash_store_contiguous_blocks_init (store, state, flash, base_addr, block_count,
+		min_length,	hash, false, true);
 }
 
 /**
@@ -898,8 +902,8 @@ int flash_store_contiguous_blocks_init_variable_storage_decreasing (
 	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
 	struct hash_engine *hash)
 {
-	return flash_store_contiguous_blocks_init (store, state, flash, base_addr, block_count, min_length,
-		hash, true, true);
+	return flash_store_contiguous_blocks_init (store, state, flash, base_addr, block_count,
+		min_length,	hash, true, true);
 }
 
 /**
@@ -951,8 +955,8 @@ void flash_store_contiguous_blocks_release (const struct flash_store_contiguous_
  *
  * @param store The flash storage to configure.
  */
-void flash_store_contiguous_blocks_use_length_only_header
-	(struct flash_store_contiguous_blocks *store)
+void flash_store_contiguous_blocks_use_length_only_header (
+	struct flash_store_contiguous_blocks *store)
 {
 	if (store) {
 		store->state->old_header = true;

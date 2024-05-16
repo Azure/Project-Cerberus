@@ -3,8 +3,8 @@
 
 #include <string.h>
 #include "testing.h"
-#include "cmd_interface/counter_manager_registers.h"
 #include "cmd_interface/cerberus_protocol_required_commands.h"
+#include "cmd_interface/counter_manager_registers.h"
 
 
 TEST_SUITE_LABEL ("counter_manager_registers");
@@ -699,6 +699,7 @@ static void counter_manager_registers_test_clear_no_port1_counter (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (counter_manager_registers);
 
 TEST (counter_manager_registers_test_init);
@@ -728,3 +729,4 @@ TEST (counter_manager_registers_test_clear_unknown_port);
 TEST (counter_manager_registers_test_clear_no_port1_counter);
 
 TEST_SUITE_END;
+// *INDENT-ON*

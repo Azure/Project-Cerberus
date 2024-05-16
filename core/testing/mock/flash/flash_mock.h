@@ -4,9 +4,9 @@
 #ifndef FLASH_MOCK_H_
 #define FLASH_MOCK_H_
 
+#include "mock.h"
 #include "flash/flash.h"
 #include "flash/flash_util.h"
-#include "mock.h"
 #include "testing/mock/crypto/hash_mock.h"
 
 
@@ -62,4 +62,4 @@ int flash_mock_expect_verify_copy (struct flash_mock *mock1, uint32_t start1, co
 	struct flash_mock *mock2, uint32_t start2, const uint8_t *data2, size_t length);
 
 
-#endif /* FLASH_MOCK_H_ */
+#endif	/* FLASH_MOCK_H_ */

@@ -4,20 +4,20 @@
 #ifndef CFM_MANAGER_H_
 #define CFM_MANAGER_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "manifest/manifest_manager.h"
+#include <stdint.h>
+#include "common/observable.h"
 #include "manifest/cfm/cfm.h"
 #include "manifest/cfm/cfm_observer.h"
-#include "common/observable.h"
+#include "manifest/manifest_manager.h"
 
 
 /**
  * API for managing a CFM.
  */
 struct cfm_manager {
-	struct manifest_manager base;					/**< Manifest manager interface */
-	struct observable observable;					/**< The manager for CFM observers. */
+	struct manifest_manager base;	/**< Manifest manager interface */
+	struct observable observable;	/**< The manager for CFM observers. */
 
 	/**
 	 * Get the active CFM for the protected flash.  The CFM instance must be released with the
@@ -62,8 +62,8 @@ int cfm_manager_get_platform_id_measured_data (struct cfm_manager *manager, size
 int cfm_manager_hash_platform_id_measured_data (struct cfm_manager *manager,
 	struct hash_engine *hash);
 
-int cfm_manager_get_cfm_measured_data (struct cfm_manager *manager, size_t offset,
-	uint8_t *buffer, size_t length, uint32_t *total_len);
+int cfm_manager_get_cfm_measured_data (struct cfm_manager *manager, size_t offset, uint8_t *buffer,
+	size_t length, uint32_t *total_len);
 int cfm_manager_hash_cfm_measured_data (struct cfm_manager *manager, struct hash_engine *hash);
 
 /* Internal functions for use by derived types. */
@@ -76,4 +76,4 @@ void cfm_manager_on_clear_active (struct cfm_manager *manager);
 void cfm_manager_on_cfm_activation_request (struct cfm_manager *manager);
 
 
-#endif /* CFM_MANAGER_H_ */
+#endif	/* CFM_MANAGER_H_ */

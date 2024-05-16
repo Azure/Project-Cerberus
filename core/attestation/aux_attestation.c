@@ -1,16 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+#include "aux_attestation.h"
 #include "platform_api.h"
 #include "common/buffer_util.h"
 #include "common/unused.h"
 #include "crypto/kdf.h"
 #include "riot/riot_core.h"
-#include "aux_attestation.h"
 
 
 /**
@@ -216,9 +216,9 @@ int aux_attestation_create_certificate (struct aux_attestation *aux, struct x509
 		}
 	} while (i == sizeof (serial_num));
 
-	status = x509->create_ca_signed_certificate (x509, &attestation_cert, priv, length,
-		serial_num, sizeof (serial_num), "AUX", X509_CERT_END_ENTITY, ca_key,
-		key_length, HASH_TYPE_SHA256, &ca_cert, NULL, 0);
+	status = x509->create_ca_signed_certificate (x509, &attestation_cert, priv, length,	serial_num,
+		sizeof (serial_num), "AUX", X509_CERT_END_ENTITY, ca_key, key_length, HASH_TYPE_SHA256,
+		&ca_cert, NULL, 0);
 	if (status != 0) {
 		goto exit_free_ca;
 	}
@@ -235,6 +235,7 @@ exit_free_ca:
 exit_free_key:
 	riot_core_clear (priv, length);
 	platform_free (priv);
+
 	return status;
 }
 #endif
@@ -292,6 +293,7 @@ int aux_attestation_set_static_certificate (struct aux_attestation *aux, const u
 	}
 
 	aux->is_static = true;
+
 	return 0;
 }
 
@@ -396,7 +398,7 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 			break;
 		}
 
-		case AUX_ATTESTATION_SEED_ECDH: {
+		case AUX_ATTESTATION_SEED_ECDH:
 			if ((seed_param != AUX_ATTESTATION_PARAM_ECDH_RAW) &&
 				(seed_param != AUX_ATTESTATION_PARAM_ECDH_SHA256)) {
 				return AUX_ATTESTATION_BAD_SEED_PARAM;
@@ -406,7 +408,6 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 				(seed_param == AUX_ATTESTATION_PARAM_ECDH_SHA256) ? hash : NULL, secret,
 				sizeof (secret));
 			break;
-		}
 
 		default:
 			return AUX_ATTESTATION_UNKNOWN_SEED;
@@ -500,6 +501,7 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 
 hmac_error:
 	hash_hmac_cancel (&run_hmac);
+
 	return status;
 }
 
@@ -605,8 +607,8 @@ int aux_attestation_generate_ecdh_seed (struct aux_attestation *aux, const uint8
 	}
 
 	keys = riot_key_manager_get_riot_keys (aux->riot);
-	status = aux->ecc->init_key_pair (aux->ecc, keys->alias_key, keys->alias_key_length,
-		&priv, NULL);
+	status = aux->ecc->init_key_pair (aux->ecc, keys->alias_key, keys->alias_key_length, &priv,
+		NULL);
 	riot_key_manager_release_riot_keys (aux->riot, keys);
 	if (status != 0) {
 		goto ecc_init_error;

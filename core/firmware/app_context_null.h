@@ -11,7 +11,7 @@
  * Null handler for application context, for scenarios where no context saving is needed.
  */
 struct app_context_null {
-	struct app_context base;		/**< Base application context API. */
+	struct app_context base;	/**< Base application context API. */
 };
 
 
@@ -19,4 +19,4 @@ int app_context_null_init (struct app_context_null *context);
 void app_context_null_release (const struct app_context_null *context);
 
 
-#endif /* APP_CONTEXT_NULL_H_ */
+#endif	/* APP_CONTEXT_NULL_H_ */

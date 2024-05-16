@@ -11,19 +11,20 @@
  * Define all different formats of the recovery image header.
  */
 union recovery_image_header_format {
-	struct __attribute__ ((__packed__)) {
+	struct __attribute__((__packed__)) {
 		/**
 		 * The image version ID for recovery image updates, including the NULL terminator.
 		 */
 		char version_id[CERBERUS_PROTOCOL_FW_VERSION_LEN];
-		uint32_t image_length;					/**< The size in bytes of the recovery image,
+		uint32_t image_length;		/**< The size in bytes of the recovery image,
 													 including the header, image, and signature. */
-		uint32_t signature_length;				/**< The size in bytes of the recovery image
+		uint32_t signature_length;	/**< The size in bytes of the recovery image
 													 signature. */
-		uint8_t platform_id_length;				/**< The platform identifier length, including the
+		uint8_t platform_id_length;	/**< The platform identifier length, including the
 													 NULL terminator. */
 	} format0;
-} __attribute__ ((__packed__));
+} __attribute__((__packed__));
+
 
 /**
  * Get the expected length of a header format version.
@@ -74,8 +75,8 @@ int recovery_image_header_init (struct recovery_image_header *header, const stru
 				goto err_free_header;
 			}
 
-			platform_id_len = strnlen (
-				(char*) &header->base.data[RECOVERY_IMAGE_HEADER_FORMAT_LENGTH (0)],
+			platform_id_len =
+				strnlen ((char*) &header->base.data[RECOVERY_IMAGE_HEADER_FORMAT_LENGTH (0)],
 				hdr->format0.platform_id_length);
 			if ((platform_id_len + 1) != hdr->format0.platform_id_length) {
 				status = RECOVERY_IMAGE_HEADER_BAD_PLATFORM_ID;
@@ -106,6 +107,7 @@ int recovery_image_header_init (struct recovery_image_header *header, const stru
 
 err_free_header:
 	image_header_release (&header->base);
+
 	return status;
 }
 

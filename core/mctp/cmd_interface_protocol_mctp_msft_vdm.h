@@ -12,8 +12,8 @@
  * Protocol handler for Microsoft MCTP vendor defined messages.
  */
 struct cmd_interface_protocol_mctp_msft_vdm {
-	struct cmd_interface_protocol base;			/**< Base protocol handling API. */
-	struct device_manager *device_mgr;			/**< Manager for information about other devices. */
+	struct cmd_interface_protocol base;	/**< Base protocol handling API. */
+	struct device_manager *device_mgr;	/**< Manager for information about other devices. */
 };
 
 
@@ -23,4 +23,4 @@ void cmd_interface_protocol_mctp_msft_vdm_release (
 	const struct cmd_interface_protocol_mctp_msft_vdm *mctp);
 
 
-#endif /* CMD_INTERFACE_PROTOCOL_MCTP_MSFT_VDM_H_ */
+#endif	/* CMD_INTERFACE_PROTOCOL_MCTP_MSFT_VDM_H_ */

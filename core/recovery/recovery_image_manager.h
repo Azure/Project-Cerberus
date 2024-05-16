@@ -6,12 +6,12 @@
 
 #include "platform_api.h"
 #include "recovery_image.h"
-#include "common/observable.h"
-#include "crypto/signature_verification.h"
 #include "recovery_image_observer.h"
+#include "common/observable.h"
+#include "crypto/hash.h"
+#include "crypto/signature_verification.h"
 #include "flash/flash.h"
 #include "flash/flash_updater.h"
-#include "crypto/hash.h"
 #include "host_fw/host_state_manager.h"
 
 
@@ -19,17 +19,16 @@
  * Container of information for a recovery image region on flash.
  */
 struct recovery_image_manager_flash_region {
-	struct recovery_image *image;			/**< The recovery image instance on flash. */
-	bool is_valid;							/**< Flag indicating if the flash region has a valid recovery image. */
-	int ref_count;							/**< The number of active references to the recovery image region. */
-	struct flash_updater updater;			/**< Update manager for writing data to flash. */
+	struct recovery_image *image;	/**< The recovery image instance on flash. */
+	bool is_valid;					/**< Flag indicating if the flash region has a valid recovery image. */
+	int ref_count;					/**< The number of active references to the recovery image region. */
+	struct flash_updater updater;	/**< Update manager for writing data to flash. */
 };
 
 /**
  * API for managing a recovery image.
  */
 struct recovery_image_manager {
-
 	/**
 	 * Verify and activate the recovery image that has been written to flash. Successful
 	 * verification is a requirement for activation.
@@ -181,5 +180,4 @@ enum {
 };
 
 
-#endif /* RECOVERY_IMAGE_MANAGER_H_ */
-
+#endif	/* RECOVERY_IMAGE_MANAGER_H_ */

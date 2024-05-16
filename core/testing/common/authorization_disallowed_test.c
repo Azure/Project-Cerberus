@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
 #include "common/authorization_disallowed.h"
@@ -91,6 +91,7 @@ static void authorization_disallowed_test_authorize_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (authorization_disallowed);
 
 TEST (authorization_disallowed_test_init);
@@ -100,3 +101,4 @@ TEST (authorization_disallowed_test_authorize);
 TEST (authorization_disallowed_test_authorize_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

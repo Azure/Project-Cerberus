@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "host_flash_initialization.h"
 
@@ -167,5 +167,6 @@ int host_flash_initialization_initialize_flash (struct host_flash_initialization
 
 exit:
 	platform_mutex_unlock (&init->lock);
+
 	return status;
 }

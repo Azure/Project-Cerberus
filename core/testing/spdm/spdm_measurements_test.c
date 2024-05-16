@@ -1,20 +1,20 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
 #include "common/array_size.h"
 #include "spdm/spdm_measurements.h"
 #include "spdm/spdm_measurements_static.h"
-#include "testing/mock/crypto/hash_mock.h"
-#include "testing/mock/flash/flash_mock.h"
-#include "testing/engines/hash_testing_engine.h"
 #include "testing/attestation/pcr_testing.h"
 #include "testing/crypto/hash_testing.h"
+#include "testing/engines/hash_testing_engine.h"
+#include "testing/mock/crypto/hash_mock.h"
+#include "testing/mock/flash/flash_mock.h"
 
 
 TEST_SUITE_LABEL ("spdm_measurements");
@@ -24,12 +24,12 @@ TEST_SUITE_LABEL ("spdm_measurements");
  * Dependencies for testing SPDM measurement handling.
  */
 struct spdm_measurements_testing {
-	HASH_TESTING_ENGINE hash;				/**< Hash engine for testing measurements. */
-	HASH_TESTING_ENGINE hash2;				/**< A second hash engine for testing summary hashes. */
-	struct hash_engine_mock hash_mock;		/**< Mock for hash operations. */
-	struct flash_mock flash;				/**< Mock for measurement flash operations. */
-	struct pcr_store store;					/**< Measurement storage. */
-	struct spdm_measurements test;			/**< PCR store under test. */
+	HASH_TESTING_ENGINE hash;			/**< Hash engine for testing measurements. */
+	HASH_TESTING_ENGINE hash2;			/**< A second hash engine for testing summary hashes. */
+	struct hash_engine_mock hash_mock;	/**< Mock for hash operations. */
+	struct flash_mock flash;			/**< Mock for measurement flash operations. */
+	struct pcr_store store;				/**< Measurement storage. */
+	struct spdm_measurements test;		/**< PCR store under test. */
 };
 
 
@@ -124,9 +124,9 @@ static void spdm_measurements_testing_release (CuTest *test,
 static void spdm_measurements_test_measurement_block_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0x01,0x02,0x03,0x04,
-		0x7f,0x06,0x07,
-		0x11,0x22,0x33,0x44,0x55,0x66
+		0x01, 0x02, 0x03, 0x04,
+		0x7f, 0x06, 0x07,
+		0x11, 0x22, 0x33, 0x44, 0x55, 0x66
 	};
 	const size_t spdm_header_length = 7;
 	const size_t dmtf_header_length = 3;
@@ -833,8 +833,8 @@ static void spdm_measurements_test_get_measurement_block_null (CuTest *test)
 		HASH_TYPE_SHA256, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, SPDM_MEASUREMENTS_INVALID_ARGUMENT, status);
 
-	status = handler.test.get_measurement_block (&handler.test, 2, false, NULL,
-		HASH_TYPE_SHA256, buffer, sizeof (buffer));
+	status = handler.test.get_measurement_block (&handler.test, 2, false, NULL,	HASH_TYPE_SHA256,
+		buffer, sizeof (buffer));
 	CuAssertIntEquals (test, SPDM_MEASUREMENTS_INVALID_ARGUMENT, status);
 
 	status = handler.test.get_measurement_block (&handler.test, 2, false, &handler.hash.base,
@@ -2289,8 +2289,8 @@ static void spdm_measurements_test_get_all_measurement_blocks_null (CuTest *test
 		HASH_TYPE_SHA256, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, SPDM_MEASUREMENTS_INVALID_ARGUMENT, status);
 
-	status = handler.test.get_all_measurement_blocks (&handler.test, false, NULL,
-		HASH_TYPE_SHA256, buffer, sizeof (buffer));
+	status = handler.test.get_all_measurement_blocks (&handler.test, false, NULL, HASH_TYPE_SHA256,
+		buffer, sizeof (buffer));
 	CuAssertIntEquals (test, SPDM_MEASUREMENTS_INVALID_ARGUMENT, status);
 
 	status = handler.test.get_all_measurement_blocks (&handler.test, false, &handler.hash.base,
@@ -2541,7 +2541,8 @@ static void spdm_measurements_test_get_all_measurement_blocks_raw_bit_stream_sma
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_all_measurement_blocks_raw_bit_stream_none_available_small_buffer (
+static void
+spdm_measurements_test_get_all_measurement_blocks_raw_bit_stream_none_available_small_buffer (
 	CuTest *test)
 {
 	struct spdm_measurements_testing handler;
@@ -2792,7 +2793,8 @@ static void spdm_measurements_test_get_all_measurement_blocks_length_raw_bit_str
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_all_measurement_blocks_length_raw_bit_stream_partial_not_available (
+static void
+spdm_measurements_test_get_all_measurement_blocks_length_raw_bit_stream_partial_not_available (
 	CuTest *test)
 {
 	struct spdm_measurements_testing handler;
@@ -2908,8 +2910,7 @@ static void spdm_measurements_test_get_all_measurement_blocks_length_null (CuTes
 
 	spdm_measurements_testing_init (test, &handler, pcr_config, ARRAY_SIZE (pcr_config));
 
-	status = handler.test.get_all_measurement_blocks_length (NULL, false,
-		HASH_TYPE_SHA256);
+	status = handler.test.get_all_measurement_blocks_length (NULL, false, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, SPDM_MEASUREMENTS_INVALID_ARGUMENT, status);
 
 	spdm_measurements_testing_release (test, &handler);
@@ -2981,7 +2982,8 @@ static void spdm_measurements_test_get_all_measurement_blocks_length_data_length
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_hash_summary_sha256_meas_sha256_all_blocks (
+static void
+spdm_measurements_test_get_measurement_summary_hash_summary_sha256_meas_sha256_all_blocks (
 	CuTest *test)
 {
 	struct spdm_measurements_testing handler;
@@ -3073,7 +3075,8 @@ static void spdm_measurements_test_get_measurement_summary_hash_summary_sha256_m
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_hash_summary_sha384_meas_sha256_only_tcb (
+static void spdm_measurements_test_get_measurement_summary_hash_summary_sha384_meas_sha256_only_tcb
+(
 	CuTest *test)
 {
 	struct spdm_measurements_testing handler;
@@ -3257,7 +3260,8 @@ static void spdm_measurements_test_get_measurement_summary_hash_summary_sha512_m
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_hash_summary_sha256_meas_sha384_all_blocks (
+static void
+spdm_measurements_test_get_measurement_summary_hash_summary_sha256_meas_sha384_all_blocks (
 	CuTest *test)
 {
 	struct spdm_measurements_testing handler;
@@ -3348,7 +3352,8 @@ static void spdm_measurements_test_get_measurement_summary_hash_summary_sha256_m
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_hash_summary_sha256_meas_sha512_only_tcb (
+static void spdm_measurements_test_get_measurement_summary_hash_summary_sha256_meas_sha512_only_tcb
+(
 	CuTest *test)
 {
 	struct spdm_measurements_testing handler;
@@ -3770,12 +3775,12 @@ static void spdm_measurements_test_get_measurement_summary_hash_null (CuTest *te
 
 	spdm_measurements_testing_init (test, &handler, pcr_config, ARRAY_SIZE (pcr_config));
 
-	status = handler.test.get_measurement_summary_hash (NULL, &handler.hash.base,
-		HASH_TYPE_SHA256, &handler.hash2.base, HASH_TYPE_SHA256, false, buffer, sizeof (buffer));
+	status = handler.test.get_measurement_summary_hash (NULL, &handler.hash.base, HASH_TYPE_SHA256,
+		&handler.hash2.base, HASH_TYPE_SHA256, false, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, SPDM_MEASUREMENTS_INVALID_ARGUMENT, status);
 
-	status = handler.test.get_measurement_summary_hash (&handler.test, NULL,
-		HASH_TYPE_SHA256, &handler.hash2.base, HASH_TYPE_SHA256, false, buffer, sizeof (buffer));
+	status = handler.test.get_measurement_summary_hash (&handler.test, NULL, HASH_TYPE_SHA256,
+		&handler.hash2.base, HASH_TYPE_SHA256, false, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, SPDM_MEASUREMENTS_INVALID_ARGUMENT, status);
 
 	status = handler.test.get_measurement_summary_hash (&handler.test, &handler.hash.base,
@@ -4190,6 +4195,7 @@ static void spdm_measurements_test_get_measurement_summary_hash_hash_not_possibl
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (spdm_measurements);
 
 TEST (spdm_measurements_test_measurement_block_format);
@@ -4269,3 +4275,4 @@ TEST (spdm_measurements_test_get_measurement_summary_hash_measurement_block_erro
 TEST (spdm_measurements_test_get_measurement_summary_hash_hash_not_possible);
 
 TEST_SUITE_END;
+// *INDENT-ON*

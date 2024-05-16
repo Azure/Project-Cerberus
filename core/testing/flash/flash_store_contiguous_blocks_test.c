@@ -20007,6 +20007,7 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (flash_store_contiguous_blocks);
 
 TEST (flash_store_contiguous_blocks_test_init_fixed_storage_no_hash);
@@ -20504,3 +20505,4 @@ TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_invali
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_old_format_invalid_data_length);
 
 TEST_SUITE_END;
+// *INDENT-ON*

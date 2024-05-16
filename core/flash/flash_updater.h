@@ -4,10 +4,10 @@
 #ifndef FLASH_UPDATER_H_
 #define FLASH_UPDATER_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "status/rot_status.h"
+#include <stdint.h>
 #include "flash.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -57,4 +57,4 @@ enum {
 };
 
 
-#endif /* FLASH_UPDATER_H_ */
+#endif	/* FLASH_UPDATER_H_ */

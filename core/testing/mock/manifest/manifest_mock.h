@@ -4,16 +4,16 @@
 #ifndef MANIFEST_MOCK_H_
 #define MANIFEST_MOCK_H_
 
-#include "manifest/manifest.h"
 #include "mock.h"
+#include "manifest/manifest.h"
 
 
 /**
  * A mock for a Manifest.
  */
 struct manifest_mock {
-	struct manifest base;		/**< The base manifest instance. */
-	struct mock mock;			/**< The base mock interface. */
+	struct manifest base;	/**< The base manifest instance. */
+	struct mock mock;		/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void manifest_mock_release (struct manifest_mock *mock);
 int manifest_mock_validate_and_release (struct manifest_mock *mock);
 
 
-#endif /* MANIFEST_MOCK_H_ */
+#endif	/* MANIFEST_MOCK_H_ */

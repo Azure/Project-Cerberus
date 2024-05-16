@@ -4,8 +4,8 @@
 #ifndef SPI_FILTER_INTERFACE_H_
 #define SPI_FILTER_INTERFACE_H_
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 
 
@@ -13,16 +13,16 @@
  * SPI filter chip selects
  */
 typedef enum {
-	SPI_FILTER_CS_0 = 0,				/**< SPI filter CS 0 */
-	SPI_FILTER_CS_1,					/**< SPI filter CS 1 */
+	SPI_FILTER_CS_0 = 0,	/**< SPI filter CS 0 */
+	SPI_FILTER_CS_1,		/**< SPI filter CS 1 */
 } spi_filter_cs;
 
 /**
  * SPI filter address modes
  */
 typedef enum {
-	SPI_FILTER_ADDRESS_MODE_3 = 0,		/**< 3 byte address mode */
-	SPI_FILTER_ADDRESS_MODE_4,			/**< 4 byte address mode */
+	SPI_FILTER_ADDRESS_MODE_3 = 0,	/**< 3 byte address mode */
+	SPI_FILTER_ADDRESS_MODE_4,		/**< 4 byte address mode */
 } spi_filter_address_mode;
 
 /**
@@ -37,20 +37,20 @@ typedef enum {
  * Modes of operation for the SPI filter
  */
 typedef enum {
-	SPI_FILTER_FLASH_DUAL = 0,			/**< Normal operation in dual flash mode */
-	SPI_FILTER_FLASH_BYPASS_CS0,		/**< Disable SPI filtering, direct commands to CS0 */
-	SPI_FILTER_FLASH_BYPASS_CS1,		/**< Disable SPI filtering, direct commands to CS1 */
-	SPI_FILTER_FLASH_SINGLE_CS0,		/**< Single flash operation to CS0 */
-	SPI_FILTER_FLASH_SINGLE_CS1,		/**< Single flash operation to CS1 */
+	SPI_FILTER_FLASH_DUAL = 0,		/**< Normal operation in dual flash mode */
+	SPI_FILTER_FLASH_BYPASS_CS0,	/**< Disable SPI filtering, direct commands to CS0 */
+	SPI_FILTER_FLASH_BYPASS_CS1,	/**< Disable SPI filtering, direct commands to CS1 */
+	SPI_FILTER_FLASH_SINGLE_CS0,	/**< Single flash operation to CS0 */
+	SPI_FILTER_FLASH_SINGLE_CS1,	/**< Single flash operation to CS1 */
 } spi_filter_flash_mode;
 
 /**
  * Flash manufacturer IDs for the SPI filter.
  */
 enum {
-	SPI_FILTER_MFG_MACRONIX = 0,		/**< Macronix flash. */
-	SPI_FILTER_MFG_WINBOND = 1,			/**< Winbond flash. */
-	SPI_FILTER_MFG_MICRON = 2,			/**< Micron flash. */
+	SPI_FILTER_MFG_MACRONIX = 0,	/**< Macronix flash. */
+	SPI_FILTER_MFG_WINBOND = 1,		/**< Winbond flash. */
+	SPI_FILTER_MFG_MICRON = 2,		/**< Micron flash. */
 };
 
 /**
@@ -373,14 +373,14 @@ void spi_filter_log_filter_config (int port, uint8_t mfg, bool enabled, spi_filt
  * Note: Commented error codes have been deprecated.
  */
 enum {
-	SPI_FILTER_INVALID_ARGUMENT = SPI_FILTER_ERROR (0x00),			/**< Input parameter is null or not valid. */
-	SPI_FILTER_NO_MEMORY = SPI_FILTER_ERROR (0x01),					/**< Memory allocation failed. */
-	SPI_FILTER_GET_MFG_FAILED = SPI_FILTER_ERROR (0x02),			/**< Failed to get the configured manufacturer ID. */
-	SPI_FILTER_SET_MFG_FAILED = SPI_FILTER_ERROR (0x03),			/**< Failed to configure manufacturer ID. */
-	SPI_FILTER_GET_ENABLED_FAILED = SPI_FILTER_ERROR (0x04),		/**< Could not determine if the filter is enabled. */
-	SPI_FILTER_ENABLE_FAILED = SPI_FILTER_ERROR (0x05),				/**< The filter was not enabled. */
-	SPI_FILTER_GET_RO_FAILED = SPI_FILTER_ERROR (0x06),				/**< Could not determine the configured RO chip select. */
-	SPI_FILTER_SET_RO_FAILED = SPI_FILTER_ERROR (0x07),				/**< The RO chip select was not set. */
+	SPI_FILTER_INVALID_ARGUMENT = SPI_FILTER_ERROR (0x00),		/**< Input parameter is null or not valid. */
+	SPI_FILTER_NO_MEMORY = SPI_FILTER_ERROR (0x01),				/**< Memory allocation failed. */
+	SPI_FILTER_GET_MFG_FAILED = SPI_FILTER_ERROR (0x02),		/**< Failed to get the configured manufacturer ID. */
+	SPI_FILTER_SET_MFG_FAILED = SPI_FILTER_ERROR (0x03),		/**< Failed to configure manufacturer ID. */
+	SPI_FILTER_GET_ENABLED_FAILED = SPI_FILTER_ERROR (0x04),	/**< Could not determine if the filter is enabled. */
+	SPI_FILTER_ENABLE_FAILED = SPI_FILTER_ERROR (0x05),			/**< The filter was not enabled. */
+	SPI_FILTER_GET_RO_FAILED = SPI_FILTER_ERROR (0x06),			/**< Could not determine the configured RO chip select. */
+	SPI_FILTER_SET_RO_FAILED = SPI_FILTER_ERROR (0x07),			/**< The RO chip select was not set. */
 //	SPI_FILTER_GET_RO_READ_FAILED = SPI_FILTER_ERROR (0x08),		/**< Could not determine the configured RO read region. */
 //	SPI_FILTER_SET_RO_READ_FAILED = SPI_FILTER_ERROR (0x09),		/**< The RO read region was not set. */
 //	SPI_FILTER_GET_READ_SWITCH_FAILED = SPI_FILTER_ERROR (0x0a),	/**< Could not determine if switching the RO read region is allowed. */
@@ -417,4 +417,4 @@ enum {
 };
 
 
-#endif /* SPI_FILTER_INTERFACE_H_ */
+#endif	/* SPI_FILTER_INTERFACE_H_ */

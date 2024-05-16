@@ -16,7 +16,7 @@
 		.exit_reset = host_irq_handler_exit_reset, \
 		.assert_cs0 = host_irq_handler_assert_cs0, \
 		.assert_cs1 = host_irq_handler_assert_cs1, \
-		.force_recovery = host_irq_handler_force_recovery 
+		.force_recovery = host_irq_handler_force_recovery
 
 /**
  * Static initializer for the IRQ handler instance.
@@ -83,4 +83,4 @@
 	}
 
 
-#endif /* HOST_IRQ_HANDLER_STATIC_H_ */
+#endif	/* HOST_IRQ_HANDLER_STATIC_H_ */

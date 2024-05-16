@@ -4,11 +4,11 @@
 #include <string.h>
 #include "testing.h"
 #include "cmd_interface/cmd_interface.h"
-#include "pcisig/ide/ide_driver.h"
-#include "pcisig/ide/ide_commands.h"
-#include "testing/mock/pcisig/ide/ide_driver_mock.h"
 #include "common/array_size.h"
 #include "pcisig/doe/doe_base_protocol.h"
+#include "pcisig/ide/ide_commands.h"
+#include "pcisig/ide/ide_driver.h"
+#include "testing/mock/pcisig/ide/ide_driver_mock.h"
 
 
 TEST_SUITE_LABEL ("ide_commands");
@@ -21,6 +21,7 @@ struct ide_commands_testing {
 	struct cmd_interface_ide_responder ide_responder;	/**< IDE responder interface. */
 	struct ide_driver_mock ide_driver_mock;				/**< IDE driver mock. */
 };
+
 
 /**
  * Helper to initialize all dependencies for testing.
@@ -65,7 +66,7 @@ static void ide_commands_testing_release_dependencies (CuTest *test,
 static void ide_commands_test_ide_km_header_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0x3D, /* IDE command Id */
+		0x3D,	/* IDE command Id */
 	};
 
 	struct ide_km_header *header = (struct ide_km_header*) raw_buffer;
@@ -80,9 +81,9 @@ static void ide_commands_test_ide_km_header_format (CuTest *test)
 static void ide_commands_test_ide_km_query_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0xBD, /* IDE command Id */
-		0xFE, /* reserved */
-		0xCD, /* port index */
+		0xBD,	/* IDE command Id */
+		0xFE,	/* reserved */
+		0xCD,	/* port index */
 	};
 
 	struct ide_km_query *query = (struct ide_km_query*) raw_buffer;
@@ -99,15 +100,15 @@ static void ide_commands_test_ide_km_query_format (CuTest *test)
 static void ide_commands_test_ide_km_query_resp_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0xAD, /* IDE command Id */
-		0xFA, /* reserved */
-		0xAD, /* port_index */
-		0x25, /* dev_func_num */
-		0x3D, /* bus_num */
-		0x5A, /* segment */
-		0x7F, /* max_port_index */
-		0xDE, 0xAD, 0xBE, 0xEF, /* capability register */
-		0x01, 0x02, 0x03, 0x04, /* control register */
+		0xAD,					/* IDE command Id */
+		0xFA,					/* reserved */
+		0xAD,					/* port_index */
+		0x25,					/* dev_func_num */
+		0x3D,					/* bus_num */
+		0x5A,					/* segment */
+		0x7F,					/* max_port_index */
+		0xDE, 0xAD, 0xBE, 0xEF,	/* capability register */
+		0x01, 0x02, 0x03, 0x04,	/* control register */
 	};
 
 	struct ide_km_query_resp *query_resp = (struct ide_km_query_resp*) raw_buffer;
@@ -130,12 +131,12 @@ static void ide_commands_test_ide_km_query_resp_format (CuTest *test)
 static void ide_commands_test_ide_km_key_prog_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0xAB, /* IDE command Id */
-		0xFB, 0xCE, /* reserved[2] */
-		0xAB, /* stream_id */
-		0x2B, /* reserved2 */
-		0x5A, /* sub_stream_info */
-		0x6F /* port_index */
+		0xAB,		/* IDE command Id */
+		0xFB, 0xCE,	/* reserved[2] */
+		0xAB,		/* stream_id */
+		0x2B,		/* reserved2 */
+		0x5A,		/* sub_stream_info */
+		0x6F		/* port_index */
 	};
 
 	struct ide_km_key_prog *key_prog = (struct ide_km_key_prog*) raw_buffer;
@@ -159,7 +160,7 @@ static void ide_commands_test_ide_km_key_prog_format (CuTest *test)
 static void ide_commands_test_ide_km_aes_256_gcm_key_buffer_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0x61, 0x62, 0x63, 0x64, /* 256-bit key */
+		0x61, 0x62, 0x63, 0x64,	/* 256-bit key */
 		0x65, 0x66, 0x67, 0x68,
 		0x69, 0x6A, 0x6B, 0x6C,
 		0x6D, 0x6E, 0x6F, 0x70,
@@ -167,7 +168,7 @@ static void ide_commands_test_ide_km_aes_256_gcm_key_buffer_format (CuTest *test
 		0x75, 0x76, 0x77, 0x78,
 		0x79, 0x7A, 0x61, 0x62,
 		0x63, 0x64, 0x65, 0x66,
-		0x30, 0x31, 0x32, 0x33, /* 64-bit IV */
+		0x30, 0x31, 0x32, 0x33,	/* 64-bit IV */
 		0x34, 0x35, 0x36, 0x37
 	};
 
@@ -193,15 +194,15 @@ static void ide_commands_test_ide_km_aes_256_gcm_key_buffer_format (CuTest *test
 static void ide_commands_test_ide_km_kp_ack_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0xAC, /* IDE command Id */
-		0xFA, 0xAE, /* reserved[2] */
-		0x65, /* stream_id */
-		0x66, /* status */
-		0xCB, /* sub_stream_info */
-		0x8F /* port_index */
+		0xAC,		/* IDE command Id */
+		0xFA, 0xAE,	/* reserved[2] */
+		0x65,		/* stream_id */
+		0x66,		/* status */
+		0xCB,		/* sub_stream_info */
+		0x8F		/* port_index */
 	};
 
-	struct ide_km_kp_ack *kp_ack =  (struct ide_km_kp_ack*) raw_buffer;
+	struct ide_km_kp_ack *kp_ack = (struct ide_km_kp_ack*) raw_buffer;
 
 	TEST_START;
 
@@ -222,15 +223,15 @@ static void ide_commands_test_ide_km_kp_ack_format (CuTest *test)
 static void ide_commands_test_ide_km_k_set_go_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0xBC, /* IDE command Id */
-		0xBA, 0xAB, /* reserved[2] */
-		0x66, /* stream_id */
-		0x67, /* reserved2 */
-		0xFF, /* sub_stream_info */
-		0x9F /* port_index */
+		0xBC,		/* IDE command Id */
+		0xBA, 0xAB,	/* reserved[2] */
+		0x66,		/* stream_id */
+		0x67,		/* reserved2 */
+		0xFF,		/* sub_stream_info */
+		0x9F		/* port_index */
 	};
 
-	struct ide_km_k_set_go *k_set_go =  (struct ide_km_k_set_go*) raw_buffer;
+	struct ide_km_k_set_go *k_set_go = (struct ide_km_k_set_go*) raw_buffer;
 
 	TEST_START;
 
@@ -251,15 +252,15 @@ static void ide_commands_test_ide_km_k_set_go_format (CuTest *test)
 static void ide_commands_test_ide_km_k_set_stop_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0xEC, /* IDE command Id */
-		0xEA, 0xEB, /* reserved[2] */
-		0xE6, /* stream_id */
-		0xE7, /* reserved2 */
-		0xEE, /* sub_stream_info */
-		0xEF /* port_index */
+		0xEC,		/* IDE command Id */
+		0xEA, 0xEB,	/* reserved[2] */
+		0xE6,		/* stream_id */
+		0xE7,		/* reserved2 */
+		0xEE,		/* sub_stream_info */
+		0xEF		/* port_index */
 	};
 
-	struct ide_km_k_set_stop *k_set_stop =  (struct ide_km_k_set_stop*) raw_buffer;
+	struct ide_km_k_set_stop *k_set_stop = (struct ide_km_k_set_stop*) raw_buffer;
 
 	TEST_START;
 
@@ -280,15 +281,15 @@ static void ide_commands_test_ide_km_k_set_stop_format (CuTest *test)
 static void ide_commands_test_ide_km_k_gostop_ack_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0xBC, /* IDE command Id */
-		0xBA, 0xEB, /* reserved[2] */
-		0xB6, /* stream_id */
-		0xB7, /* reserved2 */
-		0xBD, /* sub_stream_info */
-		0xBF /* port_index */
+		0xBC,		/* IDE command Id */
+		0xBA, 0xEB,	/* reserved[2] */
+		0xB6,		/* stream_id */
+		0xB7,		/* reserved2 */
+		0xBD,		/* sub_stream_info */
+		0xBF		/* port_index */
 	};
 
-	struct ide_km_k_gostop_ack *k_set_stop =  (struct ide_km_k_gostop_ack*) raw_buffer;
+	struct ide_km_k_gostop_ack *k_set_stop = (struct ide_km_k_gostop_ack*) raw_buffer;
 
 	TEST_START;
 
@@ -364,7 +365,8 @@ static void ide_commands_test_ide_link_ide_stream_control_register_format (CuTes
 
 	TEST_START;
 
-	CuAssertIntEquals (test, sizeof (raw_buffer), sizeof (struct ide_link_ide_stream_control_register));
+	CuAssertIntEquals (test, sizeof (raw_buffer),
+		sizeof (struct ide_link_ide_stream_control_register));
 
 	CuAssertIntEquals (test, 0xEFDEADBA, control_register->value);
 	CuAssertIntEquals (test, 0, control_register->link_ide_stream_enable);
@@ -391,7 +393,8 @@ static void ide_commands_test_ide_link_ide_stream_status_register_format (CuTest
 
 	TEST_START;
 
-	CuAssertIntEquals (test, sizeof (raw_buffer), sizeof (struct ide_link_ide_stream_status_register));
+	CuAssertIntEquals (test, sizeof (raw_buffer),
+		sizeof (struct ide_link_ide_stream_status_register));
 
 	CuAssertIntEquals (test, 0xFDF0ADBA, status_register->value);
 
@@ -516,12 +519,13 @@ static void ide_commands_test_ide_selective_ide_rid_association_register_2_forma
 	CuAssertIntEquals (test, 0xBA, reg->reserved2);
 }
 
-static void ide_commands_test_ide_selective_ide_address_association_register_block_format (CuTest *test)
+static void ide_commands_test_ide_selective_ide_address_association_register_block_format (
+	CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0xDE, 0xAD, 0xB0, 0xBA, /* register_1 */
-		0xDE, 0xAD, 0xBE, 0xEF, /* register_2 */
-		0xCA, 0xFE, 0xB0, 0xBA, /* register_3 */
+		0xDE, 0xAD, 0xB0, 0xBA,	/* register_1 */
+		0xDE, 0xAD, 0xBE, 0xEF,	/* register_2 */
+		0xCA, 0xFE, 0xB0, 0xBA,	/* register_3 */
 	};
 
 	struct ide_selective_ide_address_association_register_block *register_block =
@@ -586,10 +590,10 @@ static void ide_commands_test_ide_km_query (CuTest *test)
 		sizeof (uint8_t), -1);
 
 	capability_register.link_ide_stream_supported = 1;
-	capability_register.number_of_tcs_supported_for_link_ide = 7; /* 8 tcs supported */
+	capability_register.number_of_tcs_supported_for_link_ide = 7;	/* 8 tcs supported */
 	capability_register.selective_ide_streams_supported = 1;
 	capability_register.number_of_selective_ide_streams_supported =
-	 selective_ide_stream_register_block_count - 1; /* 100 streams supported. */
+		selective_ide_stream_register_block_count - 1;				/* 100 streams supported. */
 
 	status |= mock_expect (&testing.ide_driver_mock.mock,
 		testing.ide_driver_mock.base.get_capability_register, &testing.ide_driver_mock, 0,
@@ -605,7 +609,6 @@ static void ide_commands_test_ide_km_query (CuTest *test)
 		sizeof (control_register), -1);
 
 	for (i = 0; i < (capability_register.number_of_tcs_supported_for_link_ide + 1); i++) {
-
 		link_ide_reg_block[i].stream_control_register.value = rand ();
 		link_ide_reg_block[i].stream_status_register.value = rand ();
 
@@ -618,10 +621,10 @@ static void ide_commands_test_ide_km_query (CuTest *test)
 	}
 
 	for (i = 0; i < (capability_register.number_of_selective_ide_streams_supported + 1); i++) {
-
 		selective_ide_reg_block[i].sel_ide_stream_cap_reg.value = rand ();
-		selective_ide_reg_block[i].sel_ide_stream_cap_reg.number_of_address_association_register_blocks
-			= SELECTIVE_IDE_ADDRESS_ASSOCIATION_REGISTER_BLOCK_MAX_COUNT;
+		selective_ide_reg_block[i].sel_ide_stream_cap_reg.
+		number_of_address_association_register_blocks =
+			SELECTIVE_IDE_ADDRESS_ASSOCIATION_REGISTER_BLOCK_MAX_COUNT;
 		selective_ide_reg_block[i].sel_ide_stream_control_reg.value = rand ();
 		selective_ide_reg_block[i].sel_ide_stream_status_reg.value = rand ();
 		selective_ide_reg_block[i].ide_rid_assoc_reg_1.value = rand ();
@@ -656,7 +659,7 @@ static void ide_commands_test_ide_km_query (CuTest *test)
 	CuAssertIntEquals (test, control_register.value, rsp->control_register);
 
 	/* Validate the Link IDE Register Block array. */
-	rsp_link_ide_stream_register_block = (struct ide_link_ide_stream_register_block *) (rsp + 1);
+	rsp_link_ide_stream_register_block = (struct ide_link_ide_stream_register_block*) (rsp + 1);
 
 	for (i = 0; i < (capability_register.number_of_tcs_supported_for_link_ide + 1); i++) {
 		CuAssertIntEquals (test, link_ide_reg_block[i].stream_control_register.value,
@@ -667,9 +670,9 @@ static void ide_commands_test_ide_km_query (CuTest *test)
 	}
 
 	/* Validate the Selective IDE Register Block array. */
-	rsp_selective_ide_stream_register_block = (struct ide_selective_ide_stream_register_block *)
+	rsp_selective_ide_stream_register_block = (struct ide_selective_ide_stream_register_block*)
 		(rsp_link_ide_stream_register_block +
-		(capability_register.number_of_tcs_supported_for_link_ide + 1));
+			(capability_register.number_of_tcs_supported_for_link_ide + 1));
 
 	for (i = 0; i < (capability_register.number_of_selective_ide_streams_supported + 1); i++) {
 		CuAssertIntEquals (test, selective_ide_reg_block[i].sel_ide_stream_cap_reg.value,
@@ -710,10 +713,10 @@ static void ide_commands_test_ide_km_query_invalid_params (CuTest *test)
 
 	TEST_START;
 
-	status = ide_km_query ((struct ide_driver*) NULL, (struct cmd_interface_msg *) 0xDEADBEEF);
+	status = ide_km_query ((struct ide_driver*) NULL, (struct cmd_interface_msg*) 0xDEADBEEF);
 	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_ARGUMENT, status);
 
-	status = ide_km_query ((struct ide_driver*) 0xDEADBEEF, (struct cmd_interface_msg *) NULL);
+	status = ide_km_query ((struct ide_driver*) 0xDEADBEEF, (struct cmd_interface_msg*) NULL);
 	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_ARGUMENT, status);
 }
 
@@ -798,9 +801,8 @@ static void ide_commands_test_ide_km_query_get_capability_register_fail (
 	ide_commands_testing_init_dependencies (test, &testing);
 
 	status = mock_expect (&testing.ide_driver_mock.mock,
-		testing.ide_driver_mock.base.get_bus_device_segment_info, &testing.ide_driver_mock,
-		0, MOCK_ARG (1), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		testing.ide_driver_mock.base.get_bus_device_segment_info, &testing.ide_driver_mock,	0,
+		MOCK_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.ide_driver_mock.mock,
 		testing.ide_driver_mock.base.get_capability_register, &testing.ide_driver_mock,
@@ -837,13 +839,12 @@ static void ide_commands_test_ide_km_query_get_control_register_fail (
 	ide_commands_testing_init_dependencies (test, &testing);
 
 	status = mock_expect (&testing.ide_driver_mock.mock,
-		testing.ide_driver_mock.base.get_bus_device_segment_info, &testing.ide_driver_mock,
-		0, MOCK_ARG (1), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		testing.ide_driver_mock.base.get_bus_device_segment_info, &testing.ide_driver_mock,	0,
+		MOCK_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.ide_driver_mock.mock,
-		testing.ide_driver_mock.base.get_capability_register, &testing.ide_driver_mock,
-		0, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+		testing.ide_driver_mock.base.get_capability_register, &testing.ide_driver_mock,	0,
+		MOCK_ARG (1), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.ide_driver_mock.mock,
 		testing.ide_driver_mock.base.get_control_register, &testing.ide_driver_mock,
@@ -879,17 +880,16 @@ static void ide_commands_test_ide_km_query_insufficient_output_buffer (CuTest *t
 	ide_commands_testing_init_dependencies (test, &testing);
 
 	status = mock_expect (&testing.ide_driver_mock.mock,
-		testing.ide_driver_mock.base.get_bus_device_segment_info, &testing.ide_driver_mock,
-		0, MOCK_ARG (1), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		testing.ide_driver_mock.base.get_bus_device_segment_info, &testing.ide_driver_mock,	0,
+		MOCK_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.ide_driver_mock.mock,
-		testing.ide_driver_mock.base.get_capability_register, &testing.ide_driver_mock,
-		0, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+		testing.ide_driver_mock.base.get_capability_register, &testing.ide_driver_mock,	0,
+		MOCK_ARG (1), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.ide_driver_mock.mock,
-		testing.ide_driver_mock.base.get_control_register, &testing.ide_driver_mock,0, MOCK_ARG (1),
-		MOCK_ARG_NOT_NULL);
+		testing.ide_driver_mock.base.get_control_register, &testing.ide_driver_mock, 0,
+		MOCK_ARG (1), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1001,9 +1001,9 @@ static void ide_commands_test_ide_km_query_get_link_ide_register_block_fail (
 		sizeof (control_register), -1);
 
 	status |= mock_expect (&testing.ide_driver_mock.mock,
-			testing.ide_driver_mock.base.get_link_ide_register_block, &testing.ide_driver_mock,
-			IDE_DRIVER_GET_LINK_IDE_REGISTER_BLOCK_FAILED, MOCK_ARG (1), MOCK_ARG (0),
-			MOCK_ARG_NOT_NULL);
+		testing.ide_driver_mock.base.get_link_ide_register_block, &testing.ide_driver_mock,
+		IDE_DRIVER_GET_LINK_IDE_REGISTER_BLOCK_FAILED, MOCK_ARG (1), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1014,7 +1014,8 @@ static void ide_commands_test_ide_km_query_get_link_ide_register_block_fail (
 	ide_commands_testing_release_dependencies (test, &testing);
 }
 
-static void ide_commands_test_ide_km_query_get_selective_ide_stream_register_insufficient_output_buffer (
+static void
+ide_commands_test_ide_km_query_get_selective_ide_stream_register_insufficient_output_buffer (
 	CuTest *test)
 {
 	struct ide_commands_testing testing;
@@ -1060,8 +1061,8 @@ static void ide_commands_test_ide_km_query_get_selective_ide_stream_register_ins
 		sizeof (capability_register), -1);
 
 	status |= mock_expect (&testing.ide_driver_mock.mock,
-			testing.ide_driver_mock.base.get_link_ide_register_block, &testing.ide_driver_mock,
-			0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+		testing.ide_driver_mock.base.get_link_ide_register_block, &testing.ide_driver_mock,	0,
+		MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1116,21 +1117,19 @@ static void ide_commands_test_ide_km_query_get_selective_ide_stream_register_blo
 		sizeof (capability_register), -1);
 
 	status |= mock_expect (&testing.ide_driver_mock.mock,
-			testing.ide_driver_mock.base.get_link_ide_register_block, &testing.ide_driver_mock,
-			0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+		testing.ide_driver_mock.base.get_link_ide_register_block, &testing.ide_driver_mock,	0,
+		MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.ide_driver_mock.mock,
-			testing.ide_driver_mock.base.get_selective_ide_stream_register_block,
-			&testing.ide_driver_mock,
-			IDE_DRIVER_GET_SELECTIVE_IDE_STREAM_REGISTER_BLOCK_FAILED, MOCK_ARG (1),
-			MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+		testing.ide_driver_mock.base.get_selective_ide_stream_register_block,
+		&testing.ide_driver_mock, IDE_DRIVER_GET_SELECTIVE_IDE_STREAM_REGISTER_BLOCK_FAILED,
+		MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = ide_km_query (&testing.ide_driver_mock.base, &msg);
 
-	CuAssertIntEquals (test, IDE_DRIVER_GET_SELECTIVE_IDE_STREAM_REGISTER_BLOCK_FAILED,
-		status);
+	CuAssertIntEquals (test, IDE_DRIVER_GET_SELECTIVE_IDE_STREAM_REGISTER_BLOCK_FAILED,	status);
 
 	ide_commands_testing_release_dependencies (test, &testing);
 }
@@ -1164,12 +1163,12 @@ static void ide_commands_test_ide_km_key_prog (CuTest *test)
 
 	ide_commands_testing_init_dependencies (test, &testing);
 
-	status = mock_expect (&testing.ide_driver_mock.mock,
-		testing.ide_driver_mock.base.key_prog, &testing.ide_driver_mock, 0,
-		MOCK_ARG (rq->port_index), MOCK_ARG (rq->stream_id), MOCK_ARG (rq->sub_stream_info.key_set),
-		MOCK_ARG (rq->sub_stream_info.rx_tx), MOCK_ARG (rq->sub_stream_info.key_sub_stream),
-		MOCK_ARG_PTR (&key_buffer->key), MOCK_ARG (sizeof (key_buffer->key)),
-		MOCK_ARG_PTR (&key_buffer->iv), MOCK_ARG (sizeof (key_buffer->iv)));
+	status = mock_expect (&testing.ide_driver_mock.mock, testing.ide_driver_mock.base.key_prog,
+		&testing.ide_driver_mock, 0, MOCK_ARG (rq->port_index), MOCK_ARG (rq->stream_id),
+		MOCK_ARG (rq->sub_stream_info.key_set),	MOCK_ARG (rq->sub_stream_info.rx_tx),
+		MOCK_ARG (rq->sub_stream_info.key_sub_stream), MOCK_ARG_PTR (&key_buffer->key),
+		MOCK_ARG (sizeof (key_buffer->key)), MOCK_ARG_PTR (&key_buffer->iv),
+		MOCK_ARG (sizeof (key_buffer->iv)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1195,10 +1194,10 @@ static void ide_commands_test_ide_km_key_prog_invalid_params (CuTest *test)
 
 	TEST_START;
 
-	status = ide_km_key_prog ((struct ide_driver*) NULL, (struct cmd_interface_msg *) 0xDEADBEEF);
+	status = ide_km_key_prog ((struct ide_driver*) NULL, (struct cmd_interface_msg*) 0xDEADBEEF);
 	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_ARGUMENT, status);
 
-	status = ide_km_key_prog ((struct ide_driver*) 0xDEADBEEF, (struct cmd_interface_msg *) NULL);
+	status = ide_km_key_prog ((struct ide_driver*) 0xDEADBEEF, (struct cmd_interface_msg*) NULL);
 	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_ARGUMENT, status);
 }
 
@@ -1229,7 +1228,7 @@ static void ide_commands_test_ide_km_key_prog_invalid_msg_size (CuTest *test)
 	ide_commands_testing_init_dependencies (test, &testing);
 
 	status = ide_km_key_prog (&testing.ide_driver_mock.base, &msg);
-	
+
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct ide_km_kp_ack), msg.payload_length);
 	CuAssertIntEquals (test, IDE_KM_OBJECT_ID_KP_ACK, rsp->header.object_id);
@@ -1273,9 +1272,9 @@ static void ide_commands_test_ide_km_key_prog_key_prog_fail (CuTest *test)
 
 	ide_commands_testing_init_dependencies (test, &testing);
 
-	status = mock_expect (&testing.ide_driver_mock.mock,
-		testing.ide_driver_mock.base.key_prog, &testing.ide_driver_mock, IDE_DRIVER_KEY_PROG_FAILED,
-		MOCK_ARG (rq->port_index), MOCK_ARG (rq->stream_id), MOCK_ARG (rq->sub_stream_info.key_set),
+	status = mock_expect (&testing.ide_driver_mock.mock, testing.ide_driver_mock.base.key_prog,
+		&testing.ide_driver_mock, IDE_DRIVER_KEY_PROG_FAILED, MOCK_ARG (rq->port_index),
+		MOCK_ARG (rq->stream_id), MOCK_ARG (rq->sub_stream_info.key_set),
 		MOCK_ARG (rq->sub_stream_info.rx_tx), MOCK_ARG (rq->sub_stream_info.key_sub_stream),
 		MOCK_ARG_PTR (&key_buffer->key), MOCK_ARG (sizeof (key_buffer->key)),
 		MOCK_ARG_PTR (&key_buffer->iv), MOCK_ARG (sizeof (key_buffer->iv)));
@@ -1323,10 +1322,10 @@ static void ide_commands_test_ide_km_key_set_go (CuTest *test)
 
 	ide_commands_testing_init_dependencies (test, &testing);
 
-	status = mock_expect (&testing.ide_driver_mock.mock,
-		testing.ide_driver_mock.base.key_set_go, &testing.ide_driver_mock, 0,
-		MOCK_ARG (rq->port_index), MOCK_ARG (rq->stream_id), MOCK_ARG (rq->sub_stream_info.key_set),
-		MOCK_ARG (rq->sub_stream_info.rx_tx), MOCK_ARG (rq->sub_stream_info.key_sub_stream));
+	status = mock_expect (&testing.ide_driver_mock.mock, testing.ide_driver_mock.base.key_set_go,
+		&testing.ide_driver_mock, 0, MOCK_ARG (rq->port_index), MOCK_ARG (rq->stream_id),
+		MOCK_ARG (rq->sub_stream_info.key_set),	MOCK_ARG (rq->sub_stream_info.rx_tx),
+		MOCK_ARG (rq->sub_stream_info.key_sub_stream));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1351,10 +1350,10 @@ static void ide_commands_test_ide_km_key_set_go_invalid_params (CuTest *test)
 
 	TEST_START;
 
-	status = ide_km_key_set_go ((struct ide_driver*) NULL, (struct cmd_interface_msg *) 0xDEADBEEF);
+	status = ide_km_key_set_go ((struct ide_driver*) NULL, (struct cmd_interface_msg*) 0xDEADBEEF);
 	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_ARGUMENT, status);
 
-	status = ide_km_key_set_go ((struct ide_driver*) 0xDEADBEEF, (struct cmd_interface_msg *) NULL);
+	status = ide_km_key_set_go ((struct ide_driver*) 0xDEADBEEF, (struct cmd_interface_msg*) NULL);
 	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_ARGUMENT, status);
 }
 
@@ -1408,11 +1407,10 @@ static void ide_commands_test_ide_km_key_set_go_fail (CuTest *test)
 
 	ide_commands_testing_init_dependencies (test, &testing);
 
-	status = mock_expect (&testing.ide_driver_mock.mock,
-		testing.ide_driver_mock.base.key_set_go, &testing.ide_driver_mock,
-		IDE_DRIVER_KEY_SET_GO_FAILED, MOCK_ARG (rq->port_index), MOCK_ARG (rq->stream_id),
-		MOCK_ARG (rq->sub_stream_info.key_set), MOCK_ARG (rq->sub_stream_info.rx_tx),
-		MOCK_ARG (rq->sub_stream_info.key_sub_stream));
+	status = mock_expect (&testing.ide_driver_mock.mock, testing.ide_driver_mock.base.key_set_go,
+		&testing.ide_driver_mock, IDE_DRIVER_KEY_SET_GO_FAILED, MOCK_ARG (rq->port_index),
+		MOCK_ARG (rq->stream_id), MOCK_ARG (rq->sub_stream_info.key_set),
+		MOCK_ARG (rq->sub_stream_info.rx_tx), MOCK_ARG (rq->sub_stream_info.key_sub_stream));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1448,10 +1446,10 @@ static void ide_commands_test_ide_km_key_set_stop (CuTest *test)
 
 	ide_commands_testing_init_dependencies (test, &testing);
 
-	status = mock_expect (&testing.ide_driver_mock.mock,
-		testing.ide_driver_mock.base.key_set_stop, &testing.ide_driver_mock, 0,
-		MOCK_ARG (rq->port_index), MOCK_ARG (rq->stream_id), MOCK_ARG (rq->sub_stream_info.key_set),
-		MOCK_ARG (rq->sub_stream_info.rx_tx), MOCK_ARG (rq->sub_stream_info.key_sub_stream));
+	status = mock_expect (&testing.ide_driver_mock.mock, testing.ide_driver_mock.base.key_set_stop,
+		&testing.ide_driver_mock, 0, MOCK_ARG (rq->port_index), MOCK_ARG (rq->stream_id),
+		MOCK_ARG (rq->sub_stream_info.key_set),	MOCK_ARG (rq->sub_stream_info.rx_tx),
+		MOCK_ARG (rq->sub_stream_info.key_sub_stream));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1477,11 +1475,11 @@ static void ide_commands_test_ide_km_key_set_stop_invalid_params (CuTest *test)
 	TEST_START;
 
 	status = ide_km_key_set_stop ((struct ide_driver*) NULL,
-		(struct cmd_interface_msg *) 0xDEADBEEF);
+		(struct cmd_interface_msg*) 0xDEADBEEF);
 	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_ARGUMENT, status);
 
 	status = ide_km_key_set_stop ((struct ide_driver*) 0xDEADBEEF,
-		(struct cmd_interface_msg *) NULL);
+		(struct cmd_interface_msg*) NULL);
 	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_ARGUMENT, status);
 }
 
@@ -1505,7 +1503,7 @@ static void ide_commands_test_ide_km_key_set_stop_invalid_msg_size (CuTest *test
 	ide_commands_testing_init_dependencies (test, &testing);
 
 	status = ide_km_key_set_stop (&testing.ide_driver_mock.base, &msg);
-	
+
 	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_MSG_SIZE, status);
 
 	ide_commands_testing_release_dependencies (test, &testing);
@@ -1535,11 +1533,10 @@ static void ide_commands_test_ide_km_key_set_stop_fail (CuTest *test)
 
 	ide_commands_testing_init_dependencies (test, &testing);
 
-	status = mock_expect (&testing.ide_driver_mock.mock,
-		testing.ide_driver_mock.base.key_set_stop, &testing.ide_driver_mock,
-		IDE_DRIVER_KEY_SET_STOP_FAILED, MOCK_ARG (rq->port_index), MOCK_ARG (rq->stream_id),
-		MOCK_ARG (rq->sub_stream_info.key_set), MOCK_ARG (rq->sub_stream_info.rx_tx),
-		MOCK_ARG (rq->sub_stream_info.key_sub_stream));
+	status = mock_expect (&testing.ide_driver_mock.mock, testing.ide_driver_mock.base.key_set_stop,
+		&testing.ide_driver_mock, IDE_DRIVER_KEY_SET_STOP_FAILED, MOCK_ARG (rq->port_index),
+		MOCK_ARG (rq->stream_id), MOCK_ARG (rq->sub_stream_info.key_set),
+		MOCK_ARG (rq->sub_stream_info.rx_tx), MOCK_ARG (rq->sub_stream_info.key_sub_stream));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1550,6 +1547,7 @@ static void ide_commands_test_ide_km_key_set_stop_fail (CuTest *test)
 	ide_commands_testing_release_dependencies (test, &testing);
 }
 
+// *INDENT-OFF*
 TEST_SUITE_START (ide_commands);
 
 TEST (ide_commands_test_ide_km_header_format);
@@ -1596,3 +1594,4 @@ TEST (ide_commands_test_ide_km_key_set_stop_invalid_msg_size);
 TEST (ide_commands_test_ide_km_key_set_stop_fail);
 
 TEST_SUITE_END;
+// *INDENT-ON*

@@ -37,4 +37,4 @@ int ocp_recovery_device_variable_cms_log_get_data (
 	}
 
 
-#endif /* OCP_RECOVERY_DEVICE_VARIABLE_CMS_LOG_STATIC_H_ */
+#endif	/* OCP_RECOVERY_DEVICE_VARIABLE_CMS_LOG_STATIC_H_ */

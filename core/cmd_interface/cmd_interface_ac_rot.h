@@ -4,30 +4,30 @@
 #ifndef CMD_INTERFACE_AC_ROT_H_
 #define CMD_INTERFACE_AC_ROT_H_
 
-#include <stdint.h>
 #include <stdbool.h>
-#include "attestation/attestation_responder.h"
+#include <stdint.h>
+#include "cmd_authorization.h"
+#include "cmd_background.h"
+#include "cmd_device.h"
 #include "cmd_interface.h"
 #include "device_manager.h"
 #include "session_manager.h"
-#include "cmd_background.h"
-#include "cmd_authorization.h"
+#include "attestation/attestation_responder.h"
 #include "riot/riot_key_manager.h"
-#include "cmd_device.h"
 
 
 /**
  * Command interface for processing received requests from system.
  */
 struct cmd_interface_ac_rot {
-	struct cmd_interface base;								/**< Base command interface */
-	const struct cmd_background *background;				/**< Context for completing background commands */
-	struct riot_key_manager *riot;							/**< RIoT key manager */
-	struct attestation_responder *attestation;				/**< Attestation responder instance */
-	const struct cmd_interface_fw_version *fw_version;		/**< FW version numbers */
-	struct device_manager *device_manager;					/**< Device manager instance */
-	const struct cmd_device *cmd_device;					/**< Device command handler instance */
-	struct cmd_interface_device_id device_id;				/**< Device ID information */
+	struct cmd_interface base;							/**< Base command interface */
+	const struct cmd_background *background;			/**< Context for completing background commands */
+	struct riot_key_manager *riot;						/**< RIoT key manager */
+	struct attestation_responder *attestation;			/**< Attestation responder instance */
+	const struct cmd_interface_fw_version *fw_version;	/**< FW version numbers */
+	struct device_manager *device_manager;				/**< Device manager instance */
+	const struct cmd_device *cmd_device;				/**< Device command handler instance */
+	struct cmd_interface_device_id device_id;			/**< Device ID information */
 };
 
 
@@ -40,4 +40,4 @@ int cmd_interface_ac_rot_init (struct cmd_interface_ac_rot *intf,
 void cmd_interface_ac_rot_deinit (const struct cmd_interface_ac_rot *intf);
 
 
-#endif /* CMD_INTERFACE_AC_ROT_H_ */
+#endif	/* CMD_INTERFACE_AC_ROT_H_ */

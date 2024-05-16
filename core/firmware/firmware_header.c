@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "platform_api.h"
 #include "firmware_header.h"
+#include "platform_api.h"
 
 
 #pragma pack(push,1)
@@ -14,28 +14,29 @@
  */
 union firmware_header_format {
 	struct {
-		uint16_t recovery_revision;			/**< The image revision ID for recovery updates. */
+		uint16_t recovery_revision;	/**< The image revision ID for recovery updates. */
 	} format0;
 
 	struct {
-		uint16_t recovery_revision;			/**< The image revision ID for recovery updates. */
-		uint8_t extra_images;				/**< The number of additional app images included. */
+		uint16_t recovery_revision;	/**< The image revision ID for recovery updates. */
+		uint8_t extra_images;		/**< The number of additional app images included. */
 	} format1;
 
 	struct {
-		uint16_t recovery_revision;			/**< The image revision ID for recovery updates. */
-		uint8_t extra_images;				/**< The number of additional app images included. */
-		uint16_t allowed_rollback;			/**< Earliest revision ID allowed for updates. */
+		uint16_t recovery_revision;	/**< The image revision ID for recovery updates. */
+		uint8_t extra_images;		/**< The number of additional app images included. */
+		uint16_t allowed_rollback;	/**< Earliest revision ID allowed for updates. */
 	} format2;
 
 	struct {
-		uint16_t recovery_revision;			/**< The image revision ID for recovery updates. */
-		uint8_t extra_images;				/**< The number of additional app images included. */
-		uint16_t allowed_rollback;			/**< Earliest revision ID allowed for updates. */
-		uint32_t signed_length;				/**< Total length of data that has been signed. */
-		uint16_t sig_length;				/**< Length of the additional signature. */
+		uint16_t recovery_revision;	/**< The image revision ID for recovery updates. */
+		uint8_t extra_images;		/**< The number of additional app images included. */
+		uint16_t allowed_rollback;	/**< Earliest revision ID allowed for updates. */
+		uint32_t signed_length;		/**< Total length of data that has been signed. */
+		uint16_t sig_length;		/**< Length of the additional signature. */
 	} format3;
 };
+
 #pragma pack(pop)
 
 /**

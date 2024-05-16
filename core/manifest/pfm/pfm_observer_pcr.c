@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "pfm_observer_pcr.h"
 #include "manifest/manifest_logging.h"
@@ -87,6 +87,7 @@ void pfm_observer_pcr_record_measurement (const struct pfm_observer_pcr *observe
 	if ((observer == NULL) || (manager == NULL)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 			MANIFEST_LOGGING_PFM_RECORD_INVALID, PFM_OBSERVER_INVALID_ARGUMENT, 0);
+
 		return;
 	}
 

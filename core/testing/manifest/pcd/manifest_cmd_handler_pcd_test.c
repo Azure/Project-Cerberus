@@ -8,10 +8,10 @@
 #include "manifest/manifest_logging.h"
 #include "manifest/pcd/manifest_cmd_handler_pcd.h"
 #include "manifest/pcd/manifest_cmd_handler_pcd_static.h"
+#include "testing/logging/debug_log_testing.h"
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/manifest/manifest_manager_mock.h"
 #include "testing/mock/system/event_task_mock.h"
-#include "testing/logging/debug_log_testing.h"
 
 
 TEST_SUITE_LABEL ("manifest_cmd_handler_pcd");
@@ -186,8 +186,9 @@ static void manifest_cmd_handler_pcd_test_init_null (CuTest *test)
 static void manifest_cmd_handler_pcd_test_static_init (CuTest *test)
 {
 	struct manifest_cmd_handler_pcd_testing handler;
-	struct manifest_cmd_handler_pcd test_static = manifest_cmd_handler_pcd_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base);
+	struct manifest_cmd_handler_pcd test_static =
+		manifest_cmd_handler_pcd_static_init (&handler.state, &handler.manifest.base,
+		&handler.task.base);
 	int status;
 
 	TEST_START;
@@ -218,8 +219,9 @@ static void manifest_cmd_handler_pcd_test_static_init (CuTest *test)
 static void manifest_cmd_handler_pcd_test_static_init_null (CuTest *test)
 {
 	struct manifest_cmd_handler_pcd_testing handler;
-	struct manifest_cmd_handler_pcd test_static = manifest_cmd_handler_pcd_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base);
+	struct manifest_cmd_handler_pcd test_static =
+		manifest_cmd_handler_pcd_static_init (&handler.state, &handler.manifest.base,
+		&handler.task.base);
 	int status;
 
 	TEST_START;
@@ -277,8 +279,9 @@ static void manifest_cmd_handler_pcd_test_get_status (CuTest *test)
 static void manifest_cmd_handler_pcd_test_get_status_static_init (CuTest *test)
 {
 	struct manifest_cmd_handler_pcd_testing handler;
-	struct manifest_cmd_handler_pcd test_static = manifest_cmd_handler_pcd_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base);
+	struct manifest_cmd_handler_pcd test_static =
+		manifest_cmd_handler_pcd_static_init (&handler.state, &handler.manifest.base,
+		&handler.task.base);
 	int status;
 
 	TEST_START;
@@ -330,8 +333,9 @@ static void manifest_cmd_handler_pcd_test_activation (CuTest *test)
 static void manifest_cmd_handler_pcd_test_activation_static_init (CuTest *test)
 {
 	struct manifest_cmd_handler_pcd_testing handler;
-	struct manifest_cmd_handler_pcd test_static = manifest_cmd_handler_pcd_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base);
+	struct manifest_cmd_handler_pcd test_static =
+		manifest_cmd_handler_pcd_static_init (&handler.state, &handler.manifest.base,
+		&handler.task.base);
 	int status;
 	bool reset = false;
 	struct debug_log_entry_info entry = {
@@ -361,6 +365,7 @@ static void manifest_cmd_handler_pcd_test_activation_static_init (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (manifest_cmd_handler_pcd);
 
 TEST (manifest_cmd_handler_pcd_test_init);
@@ -374,3 +379,4 @@ TEST (manifest_cmd_handler_pcd_test_activation);
 TEST (manifest_cmd_handler_pcd_test_activation_static_init);
 
 TEST_SUITE_END;
+// *INDENT-ON*

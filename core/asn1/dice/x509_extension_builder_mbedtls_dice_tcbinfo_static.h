@@ -72,4 +72,4 @@ void x509_extension_builder_mbedtls_dice_tcbinfo_free_static (
 	}
 
 
-#endif /* X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_STATIC_H_ */
+#endif	/* X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_STATIC_H_ */

@@ -49,4 +49,4 @@
 	}
 
 
-#endif /* SPDM_DISCOVERY_STATIC_H_ */
+#endif	/* SPDM_DISCOVERY_STATIC_H_ */

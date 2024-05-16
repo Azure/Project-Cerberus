@@ -59,4 +59,4 @@ enum {
 };
 
 
-#endif /* DOE_CMD_CHANNEL_H_ */
+#endif	/* DOE_CMD_CHANNEL_H_ */

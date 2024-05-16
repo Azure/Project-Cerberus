@@ -4,14 +4,14 @@
 #ifndef HOST_FW_UTIL_H_
 #define HOST_FW_UTIL_H_
 
-#include <stdint.h>
 #include <stdbool.h>
-#include "status/rot_status.h"
-#include "manifest/pfm/pfm.h"
-#include "flash/spi_flash.h"
-#include "spi_filter/spi_filter_interface.h"
+#include <stdint.h>
 #include "crypto/hash.h"
 #include "crypto/rsa.h"
+#include "flash/spi_flash.h"
+#include "manifest/pfm/pfm.h"
+#include "spi_filter/spi_filter_interface.h"
+#include "status/rot_status.h"
 
 
 int host_fw_determine_version (const struct spi_flash *flash,
@@ -84,4 +84,4 @@ enum {
 };
 
 
-#endif /* HOST_FW_UTIL_H_ */
+#endif	/* HOST_FW_UTIL_H_ */

@@ -4,8 +4,8 @@
 #ifndef AUTHORIZATION_H_
 #define AUTHORIZATION_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 
 
@@ -61,4 +61,4 @@ enum {
 };
 
 
-#endif /* AUTHORIZATION_H_ */
+#endif	/* AUTHORIZATION_H_ */

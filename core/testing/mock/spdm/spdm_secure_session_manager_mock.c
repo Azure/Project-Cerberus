@@ -18,11 +18,12 @@ static struct spdm_secure_session* spdm_secure_session_manager_mock_create_sessi
 
 	MOCK_RETURN_CAST_PTR (&mock->mock, struct spdm_secure_session*,
 		spdm_secure_session_manager_mock_create_session, session_manager,
-		MOCK_ARG_CALL (session_id), MOCK_ARG_CALL (is_requester), MOCK_ARG_PTR_CALL (connection_info));
+		MOCK_ARG_CALL (session_id), MOCK_ARG_CALL (is_requester),
+		MOCK_ARG_PTR_CALL (connection_info));
 }
 
 static void spdm_secure_session_manager_mock_release_session (
-		const struct spdm_secure_session_manager *session_manager, uint32_t session_id)
+	const struct spdm_secure_session_manager *session_manager, uint32_t session_id)
 {
 	struct spdm_secure_session_manager_mock *mock =
 		(struct spdm_secure_session_manager_mock*) session_manager;
@@ -36,8 +37,8 @@ static void spdm_secure_session_manager_mock_release_session (
 }
 
 static void spdm_secure_session_set_session_state (
-		const struct spdm_secure_session_manager *session_manager, uint32_t session_id,
-		enum spdm_secure_session_state session_state)
+	const struct spdm_secure_session_manager *session_manager, uint32_t session_id,
+	enum spdm_secure_session_state session_state)
 {
 	struct spdm_secure_session_manager_mock *mock =
 		(struct spdm_secure_session_manager_mock*) session_manager;
@@ -46,8 +47,8 @@ static void spdm_secure_session_set_session_state (
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, spdm_secure_session_set_session_state,
-		session_manager, MOCK_ARG_CALL (session_id), MOCK_ARG_CALL (session_state));
+	MOCK_VOID_RETURN (&mock->mock, spdm_secure_session_set_session_state, session_manager,
+		MOCK_ARG_CALL (session_id), MOCK_ARG_CALL (session_state));
 }
 
 static void spdm_secure_session_manager_mock_reset (
@@ -64,8 +65,7 @@ static void spdm_secure_session_manager_mock_reset (
 }
 
 static struct spdm_secure_session* spdm_secure_session_manager_mock_get_session (
-		const struct spdm_secure_session_manager *session_manager, 
-		uint32_t session_id)
+	const struct spdm_secure_session_manager *session_manager, uint32_t session_id)
 {
 	struct spdm_secure_session_manager_mock *mock =
 		(struct spdm_secure_session_manager_mock*) session_manager;
@@ -75,14 +75,12 @@ static struct spdm_secure_session* spdm_secure_session_manager_mock_get_session 
 	}
 
 	MOCK_RETURN_CAST_PTR (&mock->mock, struct spdm_secure_session*,
-		spdm_secure_session_manager_mock_get_session, session_manager,
-		MOCK_ARG_CALL (session_id));
+		spdm_secure_session_manager_mock_get_session, session_manager, MOCK_ARG_CALL (session_id));
 }
 
 static int spdm_secure_session_manager_mock_generate_shared_secret (
-		const struct spdm_secure_session_manager *session_manager,
-		struct spdm_secure_session* session,
-		const struct ecc_point_public_key *peer_pub_key_point, uint8_t *local_pub_key_point)
+	const struct spdm_secure_session_manager *session_manager, struct spdm_secure_session *session,
+	const struct ecc_point_public_key *peer_pub_key_point, uint8_t *local_pub_key_point)
 {
 	struct spdm_secure_session_manager_mock *mock =
 		(struct spdm_secure_session_manager_mock*) session_manager;
@@ -97,8 +95,7 @@ static int spdm_secure_session_manager_mock_generate_shared_secret (
 }
 
 static int spdm_secure_session_manager_mock_generate_session_handshake_keys (
-	const struct spdm_secure_session_manager *session_manager,
-	struct spdm_secure_session *session)
+	const struct spdm_secure_session_manager *session_manager, struct spdm_secure_session *session)
 {
 	struct spdm_secure_session_manager_mock *mock =
 		(struct spdm_secure_session_manager_mock*) session_manager;
@@ -112,8 +109,7 @@ static int spdm_secure_session_manager_mock_generate_session_handshake_keys (
 }
 
 static int spdm_secure_session_manager_mock_generate_session_data_keys (
-	const struct spdm_secure_session_manager *session_manager,
-	struct spdm_secure_session *session)
+	const struct spdm_secure_session_manager *session_manager, struct spdm_secure_session *session)
 {
 	struct spdm_secure_session_manager_mock *mock =
 		(struct spdm_secure_session_manager_mock*) session_manager;
@@ -164,7 +160,7 @@ static void spdm_secure_session_manager_mock_reset_last_session_id_validity (
 		return;
 	}
 
-	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, 
+	MOCK_VOID_RETURN_NO_ARGS (&mock->mock,
 		spdm_secure_session_manager_mock_reset_last_session_id_validity, session_manager);
 }
 
@@ -172,7 +168,8 @@ static int spdm_secure_session_manager_mock_func_arg_count (void *func)
 {
 	if (func == spdm_secure_session_manager_mock_create_session) {
 		return 3;
-	}else if (func == spdm_secure_session_manager_mock_release_session) {
+	}
+	else if (func == spdm_secure_session_manager_mock_release_session) {
 		return 1;
 	}
 	else if (func == spdm_secure_session_manager_mock_get_session) {
@@ -202,8 +199,9 @@ static int spdm_secure_session_manager_mock_func_arg_count (void *func)
 	else if (func == spdm_secure_session_manager_mock_reset_last_session_id_validity) {
 		return 0;
 	}
-	else
+	else {
 		return 0;
+	}
 }
 
 static const char* spdm_secure_session_manager_mock_func_name_map (void *func)
@@ -241,8 +239,9 @@ static const char* spdm_secure_session_manager_mock_func_name_map (void *func)
 	else if (func == spdm_secure_session_manager_mock_reset_last_session_id_validity) {
 		return "reset_last_session_id_validity";
 	}
-	else
+	else {
 		return "unknown";
+	}
 }
 
 static const char* spdm_secure_session_manager_mock_arg_name_map (void *func, int arg)
@@ -251,8 +250,10 @@ static const char* spdm_secure_session_manager_mock_arg_name_map (void *func, in
 		switch (arg) {
 			case 0:
 				return "session_id";
+
 			case 1:
 				return "is_requester";
+
 			case 2:
 				return "connection_info";
 		}
@@ -273,6 +274,7 @@ static const char* spdm_secure_session_manager_mock_arg_name_map (void *func, in
 		switch (arg) {
 			case 0:
 				return "session_id";
+
 			case 1:
 				return "session_state";
 		}
@@ -287,8 +289,10 @@ static const char* spdm_secure_session_manager_mock_arg_name_map (void *func, in
 		switch (arg) {
 			case 0:
 				return "session";
+
 			case 1:
 				return "peer_pub_key_point";
+
 			case 2:
 				return "local_pub_key_point";
 		}
@@ -317,6 +321,7 @@ static const char* spdm_secure_session_manager_mock_arg_name_map (void *func, in
 				return "session_manager";
 		}
 	}
+
 	return "unknown";
 }
 
@@ -385,7 +390,8 @@ void spdm_secure_session_manager_mock_release (struct spdm_secure_session_manage
  *
  * @return 0 if all expectations were met or 1 if not.
  */
-int spdm_secure_session_manager_mock_validate_and_release (struct spdm_secure_session_manager_mock *mock)
+int spdm_secure_session_manager_mock_validate_and_release (
+	struct spdm_secure_session_manager_mock *mock)
 {
 	int status = 1;
 

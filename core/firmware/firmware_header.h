@@ -5,9 +5,9 @@
 #define FIRMWARE_HEADER_H_
 
 #include <stdint.h>
-#include "status/rot_status.h"
 #include "common/image_header.h"
 #include "flash/flash.h"
+#include "status/rot_status.h"
 
 
 #define	FIRMWARE_HEADER_MARKER			0x43494d47
@@ -18,7 +18,7 @@
  * Interface for a firmware header that provides information about the image.
  */
 struct firmware_header {
-	struct image_header base;			/**< The base firmware header instance. */
+	struct image_header base;	/**< The base firmware header instance. */
 };
 
 
@@ -51,4 +51,4 @@ enum {
 };
 
 
-#endif /* FIRMWARE_HEADER_H_ */
+#endif	/* FIRMWARE_HEADER_H_ */

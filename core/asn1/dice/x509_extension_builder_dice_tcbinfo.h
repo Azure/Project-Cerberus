@@ -13,10 +13,10 @@
  * components or libraries.
  */
 struct x509_extension_builder_dice_tcbinfo {
-	struct x509_extension_builder base;		/**< Base extension builder API. */
-	const struct tcg_dice_tcbinfo *tcb;		/**< The TCB information to encode in the extension. */
-	uint8_t *ext_buffer;					/**< Buffer to use for building the extension data. */
-	size_t ext_length;						/**< Length of the extension data duffer. */
+	struct x509_extension_builder base;	/**< Base extension builder API. */
+	const struct tcg_dice_tcbinfo *tcb;	/**< The TCB information to encode in the extension. */
+	uint8_t *ext_buffer;				/**< Buffer to use for building the extension data. */
+	size_t ext_length;					/**< Length of the extension data duffer. */
 };
 
 
@@ -52,4 +52,4 @@ enum {
 };
 
 
-#endif /* X509_EXTENSION_BUILDER_DICE_TCBINFO_H_ */
+#endif	/* X509_EXTENSION_BUILDER_DICE_TCBINFO_H_ */

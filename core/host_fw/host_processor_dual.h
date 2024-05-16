@@ -4,10 +4,10 @@
 #ifndef HOST_PROCESSOR_DUAL_H_
 #define HOST_PROCESSOR_DUAL_H_
 
-#include "platform_api.h"
+#include "host_flash_manager_dual.h"
 #include "host_processor.h"
 #include "host_processor_filtered.h"
-#include "host_flash_manager_dual.h"
+#include "platform_api.h"
 
 
 /**
@@ -44,4 +44,4 @@ int host_processor_dual_init_internal (struct host_processor_filtered *host,
 	bool reset_flash);
 
 
-#endif /* HOST_PROCESSOR_DUAL_H_ */
+#endif	/* HOST_PROCESSOR_DUAL_H_ */

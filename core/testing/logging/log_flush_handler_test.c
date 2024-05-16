@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include "testing.h"
 #include "platform_api.h"
+#include "testing.h"
 #include "logging/log_flush_handler.h"
 #include "logging/log_flush_handler_static.h"
 #include "testing/mock/logging/logging_mock.h"
@@ -174,7 +174,7 @@ static void log_flush_handler_test_init_null (CuTest *test)
 	status = log_flush_handler_init (&handler.test, &handler.state, log_list, 0, 100);
 	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
 
-	log_flush_handler_testing_release_dependencies(test, &handler);
+	log_flush_handler_testing_release_dependencies (test, &handler);
 }
 
 static void log_flush_handler_test_static_init (CuTest *test)
@@ -422,6 +422,7 @@ static void log_flush_handler_test_execute_static_init (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (log_flush_handler);
 
 TEST (log_flush_handler_test_init);
@@ -437,3 +438,4 @@ TEST (log_flush_handler_test_execute_multiple_logs);
 TEST (log_flush_handler_test_execute_static_init);
 
 TEST_SUITE_END;
+// *INDENT-ON*

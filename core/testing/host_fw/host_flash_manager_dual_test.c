@@ -12755,6 +12755,7 @@ static void host_flash_manager_dual_test_reset_flash_cs1_error (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_flash_manager_dual);
 
 TEST (host_flash_manager_dual_test_init);
@@ -12939,3 +12940,4 @@ TEST (host_flash_manager_dual_test_reset_flash_cs0_error);
 TEST (host_flash_manager_dual_test_reset_flash_cs1_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

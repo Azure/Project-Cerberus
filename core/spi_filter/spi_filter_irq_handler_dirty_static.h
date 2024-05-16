@@ -28,4 +28,4 @@ void spi_filter_irq_handler_dirty_ro_flash_dirty (const struct spi_filter_irq_ha
 	}
 
 
-#endif /* SPI_FILTER_IRQ_HANDLER_DIRTY_STATIC_H_ */
+#endif	/* SPI_FILTER_IRQ_HANDLER_DIRTY_STATIC_H_ */

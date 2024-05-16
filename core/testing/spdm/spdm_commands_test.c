@@ -24983,6 +24983,7 @@ static void spdm_test_generate_respond_if_ready_request_buf_too_small (CuTest *t
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (spdm_commands);
 
 TEST (spdm_test_mctp_header_format);
@@ -25305,3 +25306,4 @@ TEST (spdm_test_generate_respond_if_ready_request_null);
 TEST (spdm_test_generate_respond_if_ready_request_buf_too_small);
 
 TEST_SUITE_END;
+// *INDENT-ON*

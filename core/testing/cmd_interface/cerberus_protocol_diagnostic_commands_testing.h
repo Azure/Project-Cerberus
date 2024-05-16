@@ -17,4 +17,4 @@ void cerberus_protocol_diagnostic_commands_testing_process_heap_stats_fail (CuTe
 	struct cmd_interface *cmd, struct cmd_device_mock *device);
 
 
-#endif /* CERBERUS_PROTOCOL_DIAGNOSTIC_COMMANDS_TESTING_H_ */
+#endif	/* CERBERUS_PROTOCOL_DIAGNOSTIC_COMMANDS_TESTING_H_ */

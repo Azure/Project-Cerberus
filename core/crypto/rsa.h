@@ -4,11 +4,11 @@
 #ifndef RSA_H_
 #define RSA_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
-#include "status/rot_status.h"
 #include "hash.h"
+#include "status/rot_status.h"
 
 
 #define	RSA_KEY_LENGTH_4K		(4096 / 8)
@@ -40,6 +40,7 @@ struct rsa_public_key {
 	size_t mod_length;						/**< The length of the modulus. */
 	uint32_t exponent;						/**< The RSA public exponent. */
 };
+
 #pragma pack(pop)
 
 /**
@@ -196,4 +197,4 @@ enum {
 };
 
 
-#endif /* RSA_H_ */
+#endif	/* RSA_H_ */

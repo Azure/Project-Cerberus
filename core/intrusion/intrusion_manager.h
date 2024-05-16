@@ -4,23 +4,23 @@
 #ifndef INTRUSION_MANAGER_H_
 #define INTRUSION_MANAGER_H_
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "platform_api.h"
-#include "status/rot_status.h"
+#include "attestation/pcr_store.h"
+#include "crypto/hash.h"
 #include "intrusion/intrusion_state.h"
 #include "intrusion/intrusion_state_observer.h"
-#include "crypto/hash.h"
-#include "attestation/pcr_store.h"
+#include "status/rot_status.h"
 
 
 /**
  * Values that are measured to report intrusion state.
  */
 enum {
-	INTRUSION_MANAGER_NO_INTRUSION = 0,		/**< No intrusion has been been detected. */
-	INTRUSION_MANAGER_INTRUSION = 1,		/**< Intrusion has been detected. */
-	INTRUSION_MANAGER_UNKNOWN = 2			/**< The intrusion state is not known. */
+	INTRUSION_MANAGER_NO_INTRUSION = 0,	/**< No intrusion has been been detected. */
+	INTRUSION_MANAGER_INTRUSION = 1,	/**< Intrusion has been detected. */
+	INTRUSION_MANAGER_UNKNOWN = 2,		/**< The intrusion state is not known. */
 };
 
 /**
@@ -89,12 +89,12 @@ int intrusion_manager_handle_intrusion (struct intrusion_manager *manager);
  * Note: Commented error codes have been deprecated.
  */
 enum {
-	INTRUSION_MANAGER_INVALID_ARGUMENT = INTRUSION_MANAGER_ERROR (0x00),		/**< Input parameter is null or not valid. */
-	INTRUSION_MANAGER_NO_MEMORY = INTRUSION_MANAGER_ERROR (0x01),				/**< Memory allocation failed. */
-	INTRUSION_MANAGER_INTRUSION_FAILED = INTRUSION_MANAGER_ERROR (0x02),		/**< Intrusion event handling failed. */
-	INTRUSION_MANAGER_RESET_FAILED = INTRUSION_MANAGER_ERROR (0x03),			/**< Intrusion state was not reset. */
-	INTRUSION_MANAGER_CHECK_FAILED = INTRUSION_MANAGER_ERROR (0x04),			/**< Failed to check the intrusion state. */
+	INTRUSION_MANAGER_INVALID_ARGUMENT = INTRUSION_MANAGER_ERROR (0x00),	/**< Input parameter is null or not valid. */
+	INTRUSION_MANAGER_NO_MEMORY = INTRUSION_MANAGER_ERROR (0x01),			/**< Memory allocation failed. */
+	INTRUSION_MANAGER_INTRUSION_FAILED = INTRUSION_MANAGER_ERROR (0x02),	/**< Intrusion event handling failed. */
+	INTRUSION_MANAGER_RESET_FAILED = INTRUSION_MANAGER_ERROR (0x03),		/**< Intrusion state was not reset. */
+	INTRUSION_MANAGER_CHECK_FAILED = INTRUSION_MANAGER_ERROR (0x04),		/**< Failed to check the intrusion state. */
 };
 
 
-#endif /* INTRUSION_MANAGER_H_ */
+#endif	/* INTRUSION_MANAGER_H_ */

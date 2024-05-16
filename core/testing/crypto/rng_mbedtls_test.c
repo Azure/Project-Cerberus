@@ -2,8 +2,8 @@
 // Licensed under the MIT license.
 
 #include <stddef.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include "testing.h"
 #include "crypto/rng_mbedtls.h"
@@ -194,6 +194,7 @@ static void rng_mbedtls_test_generate_random_buffer_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (rng_mbedtls);
 
 TEST (rng_mbedtls_test_init);
@@ -207,3 +208,4 @@ TEST (rng_mbedtls_test_generate_random_buffer_no_data);
 TEST (rng_mbedtls_test_generate_random_buffer_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

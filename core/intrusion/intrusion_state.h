@@ -82,4 +82,4 @@ enum {
 };
 
 
-#endif /* INTRUSION_STATE_H_ */
+#endif	/* INTRUSION_STATE_H_ */

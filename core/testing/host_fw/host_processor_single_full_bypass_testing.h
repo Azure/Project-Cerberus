@@ -4,9 +4,12 @@
 #ifndef HOST_PROCESSOR_SINGLE_FULL_BYPASS_TESTING_H_
 #define HOST_PROCESSOR_SINGLE_FULL_BYPASS_TESTING_H_
 
-#include "host_fw/host_processor_single_full_bypass.h"
 #include "host_fw/host_fw_util.h"
+#include "host_fw/host_processor_single_full_bypass.h"
 #include "host_fw/host_state_manager.h"
+#include "testing/crypto/rsa_testing.h"
+#include "testing/engines/hash_testing_engine.h"
+#include "testing/engines/rsa_testing_engine.h"
 #include "testing/mock/flash/flash_master_mock.h"
 #include "testing/mock/host_fw/host_control_mock.h"
 #include "testing/mock/host_fw/host_flash_manager_single_mock.h"
@@ -15,9 +18,6 @@
 #include "testing/mock/manifest/pfm/pfm_manager_mock.h"
 #include "testing/mock/manifest/pfm/pfm_mock.h"
 #include "testing/mock/spi_filter/spi_filter_interface_mock.h"
-#include "testing/engines/hash_testing_engine.h"
-#include "testing/engines/rsa_testing_engine.h"
-#include "testing/crypto/rsa_testing.h"
 
 
 /**
@@ -53,4 +53,4 @@ void host_processor_single_full_bypass_testing_validate_and_release (CuTest *tes
 	struct host_processor_single_full_bypass_testing *host);
 
 
-#endif /* HOST_PROCESSOR_SINGLE_FULL_BYPASS_TESTING_H_ */
+#endif	/* HOST_PROCESSOR_SINGLE_FULL_BYPASS_TESTING_H_ */

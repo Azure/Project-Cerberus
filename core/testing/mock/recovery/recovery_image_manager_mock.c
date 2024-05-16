@@ -184,13 +184,15 @@ int recovery_image_manager_mock_init (struct recovery_image_manager_mock *mock)
 	status = mock_init (&mock->mock);
 	if (status != 0) {
 		recovery_image_manager_release (&mock->base);
+
 		return status;
 	}
 
 	mock_set_name (&mock->mock, "recovery_image_manager");
 
 	mock->base.get_active_recovery_image = recovery_image_manager_mock_get_active_recovery_image;
-	mock->base.clear_recovery_image_region = recovery_image_manager_mock_clear_recovery_image_region;
+	mock->base.clear_recovery_image_region =
+		recovery_image_manager_mock_clear_recovery_image_region;
 	mock->base.free_recovery_image = recovery_image_manager_mock_free_recovery_image;
 	mock->base.activate_recovery_image = recovery_image_manager_mock_activate_recovery_image;
 	mock->base.write_recovery_image_data = recovery_image_manager_mock_write_recovery_image_data;

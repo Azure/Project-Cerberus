@@ -4,8 +4,8 @@
 #ifndef BUFFER_UTIL_H_
 #define BUFFER_UTIL_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 
 
@@ -64,4 +64,4 @@ enum {
 };
 
 
-#endif /* BUFFER_UTIL_H_ */
+#endif	/* BUFFER_UTIL_H_ */

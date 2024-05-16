@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
 #include "cmd_interface/cerberus_protocol.h"
@@ -11,12 +11,12 @@
 #include "cmd_interface/cerberus_protocol_required_commands.h"
 #include "flash/flash_updater.h"
 #include "manifest/pcd/pcd_flash.h"
-#include "testing/mock/crypto/rng_mock.h"
-#include "testing/mock/manifest/cfm/cfm_mock.h"
-#include "testing/mock/manifest/pcd/pcd_mock.h"
 #include "testing/cmd_interface/cerberus_protocol_master_commands_testing.h"
 #include "testing/manifest/cfm/cfm_testing.h"
 #include "testing/manifest/pcd/pcd_testing.h"
+#include "testing/mock/crypto/rng_mock.h"
+#include "testing/mock/manifest/cfm/cfm_mock.h"
+#include "testing/mock/manifest/pcd/pcd_mock.h"
 
 
 TEST_SUITE_LABEL ("cerberus_protocol_master_commands");
@@ -57,7 +57,8 @@ void cerberus_protocol_master_commands_testing_process_response_get_certificate_
 	CuAssertIntEquals (test, 0, status);
 }
 
-void cerberus_protocol_master_commands_testing_process_response_get_certificate_digest_invalid_buf_len (
+void
+cerberus_protocol_master_commands_testing_process_response_get_certificate_digest_invalid_buf_len (
 	CuTest *test, struct cmd_interface *cmd)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -296,7 +297,8 @@ void cerberus_protocol_master_commands_testing_process_response_device_capabilit
 	CuAssertIntEquals (test, 0, status);
 }
 
-void cerberus_protocol_master_commands_testing_process_response_device_capabilities_invalid_buf_len (
+void cerberus_protocol_master_commands_testing_process_response_device_capabilities_invalid_buf_len
+(
 	CuTest *test, struct cmd_interface *cmd)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -791,8 +793,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_region0 (CuTes
 
 	status = mock_expect (&cfm_manager->mock, cfm_manager->base.get_active_cfm, cfm_manager,
 		MOCK_RETURN_PTR (&cfm_mock.base));
-	status |= mock_expect (&cfm_manager->mock, cfm_manager->base.free_cfm, cfm_manager,
-		0, MOCK_ARG_PTR (&cfm_mock.base));
+	status |= mock_expect (&cfm_manager->mock, cfm_manager->base.free_cfm, cfm_manager,	0,
+		MOCK_ARG_PTR (&cfm_mock.base));
 
 	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.base.get_id, &cfm_mock, 0,
 		MOCK_ARG_NOT_NULL);
@@ -852,8 +854,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_region1 (CuTes
 
 	status = mock_expect (&cfm_manager->mock, cfm_manager->base.get_pending_cfm, cfm_manager,
 		MOCK_RETURN_PTR (&cfm_mock.base));
-	status |= mock_expect (&cfm_manager->mock, cfm_manager->base.free_cfm, cfm_manager,
-		0, MOCK_ARG_PTR (&cfm_mock.base));
+	status |= mock_expect (&cfm_manager->mock, cfm_manager->base.free_cfm, cfm_manager,	0,
+		MOCK_ARG_PTR (&cfm_mock.base));
 
 	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.base.get_id, &cfm_mock, 0,
 		MOCK_ARG_NOT_NULL);
@@ -912,8 +914,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_no_id_type (Cu
 
 	status = mock_expect (&cfm_manager->mock, cfm_manager->base.get_active_cfm, cfm_manager,
 		MOCK_RETURN_PTR (&cfm_mock.base));
-	status |= mock_expect (&cfm_manager->mock, cfm_manager->base.free_cfm, cfm_manager,
-		0, MOCK_ARG_PTR (&cfm_mock.base));
+	status |= mock_expect (&cfm_manager->mock, cfm_manager->base.free_cfm, cfm_manager,	0,
+		MOCK_ARG_PTR (&cfm_mock.base));
 
 	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.base.get_id, &cfm_mock, 0,
 		MOCK_ARG_NOT_NULL);
@@ -1032,8 +1034,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_fail (CuTest *
 
 	status = mock_expect (&cfm_manager->mock, cfm_manager->base.get_active_cfm, cfm_manager,
 		MOCK_RETURN_PTR (&cfm_mock.base));
-	status |= mock_expect (&cfm_manager->mock, cfm_manager->base.free_cfm, cfm_manager,
-		0, MOCK_ARG_PTR (&cfm_mock.base));
+	status |= mock_expect (&cfm_manager->mock, cfm_manager->base.free_cfm, cfm_manager,	0,
+		MOCK_ARG_PTR (&cfm_mock.base));
 
 	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.base.get_id, &cfm_mock, CFM_NO_MEMORY,
 		MOCK_ARG_NOT_NULL);
@@ -1075,8 +1077,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_no_cfm (CuTest
 
 	status = mock_expect (&cfm_manager->mock, cfm_manager->base.get_active_cfm, cfm_manager,
 		MOCK_RETURN_PTR (NULL));
-	status |= mock_expect (&cfm_manager->mock, cfm_manager->base.free_cfm, cfm_manager,
-		0, MOCK_ARG_PTR (NULL));
+	status |= mock_expect (&cfm_manager->mock, cfm_manager->base.free_cfm, cfm_manager,	0,
+		MOCK_ARG_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1199,8 +1201,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_regio
 
 	status = mock_expect (&cfm_manager->mock, cfm_manager->base.get_active_cfm, cfm_manager,
 		MOCK_RETURN_PTR (&cfm_mock.base));
-	status |= mock_expect (&cfm_manager->mock, cfm_manager->base.free_cfm, cfm_manager,
-		0, MOCK_ARG_PTR (&cfm_mock.base));
+	status |= mock_expect (&cfm_manager->mock, cfm_manager->base.free_cfm, cfm_manager,	0,
+		MOCK_ARG_PTR (&cfm_mock.base));
 
 	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.base.get_platform_id, &cfm_mock, 0,
 		MOCK_ARG_PTR_PTR_NOT_NULL, MOCK_ARG (max));
@@ -1212,8 +1214,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_regio
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test,
-		cerberus_protocol_get_cfm_id_platform_response_length (id_length), request.length);
+	CuAssertIntEquals (test, cerberus_protocol_get_cfm_id_platform_response_length (id_length),
+		request.length);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
@@ -1262,8 +1264,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_regio
 
 	status = mock_expect (&cfm_manager->mock, cfm_manager->base.get_pending_cfm, cfm_manager,
 		MOCK_RETURN_PTR (&cfm_mock.base));
-	status |= mock_expect (&cfm_manager->mock, cfm_manager->base.free_cfm, cfm_manager,
-		0, MOCK_ARG_PTR (&cfm_mock.base));
+	status |= mock_expect (&cfm_manager->mock, cfm_manager->base.free_cfm, cfm_manager,	0,
+		MOCK_ARG_PTR (&cfm_mock.base));
 
 	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.base.get_platform_id, &cfm_mock, 0,
 		MOCK_ARG_PTR_PTR_NOT_NULL, MOCK_ARG (max));
@@ -1275,8 +1277,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_regio
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test,
-		cerberus_protocol_get_cfm_id_platform_response_length (id_length), request.length);
+	CuAssertIntEquals (test, cerberus_protocol_get_cfm_id_platform_response_length (id_length),
+		request.length);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
@@ -1319,8 +1321,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_no_cf
 
 	status = mock_expect (&cfm_manager->mock, cfm_manager->base.get_active_cfm, cfm_manager,
 		MOCK_RETURN_PTR (NULL));
-	status |= mock_expect (&cfm_manager->mock, cfm_manager->base.free_cfm, cfm_manager,
-		0, MOCK_ARG_PTR (NULL));
+	status |= mock_expect (&cfm_manager->mock, cfm_manager->base.free_cfm, cfm_manager,	0,
+		MOCK_ARG_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1413,8 +1415,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_fail 
 
 	status = mock_expect (&cfm_manager->mock, cfm_manager->base.get_active_cfm, cfm_manager,
 		MOCK_RETURN_PTR (&cfm_mock.base));
-	status |= mock_expect (&cfm_manager->mock, cfm_manager->base.free_cfm, cfm_manager,
-		0, MOCK_ARG_PTR (&cfm_mock.base));
+	status |= mock_expect (&cfm_manager->mock, cfm_manager->base.free_cfm, cfm_manager,	0,
+		MOCK_ARG_PTR (&cfm_mock.base));
 
 	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.base.get_platform_id, &cfm_mock,
 		CFM_NO_MEMORY, MOCK_ARG_PTR_PTR_NOT_NULL, MOCK_ARG (max));
@@ -2187,8 +2189,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_inv
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test,
-		sizeof (struct cerberus_protocol_get_cfm_component_ids_response), request.length);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_cfm_component_ids_response),
+		request.length);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
@@ -2555,8 +2557,8 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_id_platform (CuTe
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test,
-		cerberus_protocol_get_pcd_id_platform_response_length (id_length), request.length);
+	CuAssertIntEquals (test, cerberus_protocol_get_pcd_id_platform_response_length (id_length),
+		request.length);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
@@ -2759,7 +2761,8 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids (Cu
 
 	status |= mock_expect (&pcd_mock.mock, pcd_mock.base.buffer_supported_components, &pcd_mock,
 		resp_length, MOCK_ARG (offset), MOCK_ARG (length), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pcd_mock.mock, 2, (uint8_t*) supported_component, sizeof (supported_component), -1);
+	status |= mock_expect_output (&pcd_mock.mock, 2, (uint8_t*) supported_component,
+		sizeof (supported_component), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2840,7 +2843,8 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_non
 
 	status |= mock_expect (&pcd_mock.mock, pcd_mock.base.buffer_supported_components, &pcd_mock,
 		resp_length, MOCK_ARG (offset), MOCK_ARG (length), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pcd_mock.mock, 2, ((uint8_t*) supported_component + offset), resp_length, -1);
+	status |= mock_expect_output (&pcd_mock.mock, 2, ((uint8_t*) supported_component + offset),
+		resp_length, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2862,7 +2866,6 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_non
 	CuAssertIntEquals (test, 1, resp->valid);
 	CuAssertIntEquals (test, 0xAABBCCDD, resp->version);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
-
 
 	status = testing_validate_array ((uint8_t*) supported_component + offset,
 		(uint8_t*) cerberus_protocol_pcd_component_ids (resp), resp_length);
@@ -2922,7 +2925,8 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_lim
 
 	status |= mock_expect (&pcd_mock.mock, pcd_mock.base.buffer_supported_components, &pcd_mock,
 		resp_length, MOCK_ARG (offset), MOCK_ARG (length), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pcd_mock.mock, 2, (uint8_t*) supported_component, sizeof (supported_component), -1);
+	status |= mock_expect_output (&pcd_mock.mock, 2, (uint8_t*) supported_component,
+		sizeof (supported_component), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3238,8 +3242,8 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_inv
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test,
-		sizeof (struct cerberus_protocol_get_pcd_component_ids_response), request.length);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pcd_component_ids_response),
+		request.length);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
@@ -4090,7 +4094,8 @@ void cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verific
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
-void cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_port0_null (
+void
+cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_port0_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -4118,7 +4123,8 @@ void cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verific
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
-void cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_port1_null (
+void
+cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_port1_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -4146,7 +4152,9 @@ void cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verific
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
-void cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_invalid_port (
+void
+cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_invalid_port
+(
 	CuTest *test, struct cmd_interface *cmd)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -4354,7 +4362,8 @@ void cerberus_protocol_master_commands_testing_process_get_recovery_image_update
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
-void cerberus_protocol_master_commands_testing_process_get_recovery_image_update_status_bad_port_index (
+void
+cerberus_protocol_master_commands_testing_process_get_recovery_image_update_status_bad_port_index (
 	CuTest *test, struct cmd_interface *cmd)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -4704,7 +4713,8 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_ext_update_status
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
-void cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_ext_status_port0 (
+void
+cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_ext_status_port0 (
 	CuTest *test, struct cmd_interface *cmd)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -4733,7 +4743,8 @@ void cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verific
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
-void cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_ext_status_port1 (
+void
+cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_ext_status_port1 (
 	CuTest *test, struct cmd_interface *cmd)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -4886,7 +4897,8 @@ void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_up
 	flash_updater_release (&updater);
 }
 
-void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port0_null (
+void
+cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port0_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -4915,7 +4927,9 @@ void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_up
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
-void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port0_cmd_intf_null (
+void
+cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port0_cmd_intf_null
+(
 	CuTest *test, struct cmd_interface *cmd)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -4944,7 +4958,8 @@ void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_up
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
-void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port1_null (
+void
+cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port1_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -4973,7 +4988,9 @@ void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_up
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
-void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port1_cmd_intf_null (
+void
+cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port1_cmd_intf_null
+(
 	CuTest *test, struct cmd_interface *cmd)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -5002,7 +5019,9 @@ void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_up
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
-void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_bad_port_index (
+void
+cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_bad_port_index
+(
 	CuTest *test, struct cmd_interface *cmd)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -5082,7 +5101,6 @@ void cerberus_protocol_master_commands_testing_process_get_ext_update_status_inv
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
@@ -5131,17 +5149,17 @@ void cerberus_protocol_master_commands_testing_process_get_ext_update_status_inv
 static void cerberus_protocol_master_commands_test_get_cfm_id_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x14,0x13,0x03,0x5e,
-		0x01,0x02
+		0x7e, 0x14, 0x13, 0x03, 0x5e,
+		0x01, 0x02
 	};
 	uint8_t raw_buffer_resp_version[] = {
-		0x7e,0x14,0x13,0x03,0x5e,
-		0x03,0x04,0x05,0x06,0x07
+		0x7e, 0x14, 0x13, 0x03, 0x5e,
+		0x03, 0x04, 0x05, 0x06, 0x07
 	};
 	uint8_t raw_buffer_resp_platform[] = {
-		0x7e,0x14,0x13,0x03,0x5e,
+		0x7e, 0x14, 0x13, 0x03, 0x5e,
 		0x08,
-		0x30,0x31,0x32,0x33,0x34,0x35,0x00
+		0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x00
 	};
 	struct cerberus_protocol_get_cfm_id *req;
 	struct cerberus_protocol_get_cfm_id_version_response *resp1;
@@ -5196,8 +5214,8 @@ static void cerberus_protocol_master_commands_test_get_cfm_id_format (CuTest *te
 static void cerberus_protocol_master_commands_test_prepare_cfm_update_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x14,0x13,0x03,0x5f,
-		0x01,0x02,0x03,0x04
+		0x7e, 0x14, 0x13, 0x03, 0x5f,
+		0x01, 0x02, 0x03, 0x04
 	};
 	struct cerberus_protocol_prepare_cfm_update *req;
 
@@ -5222,8 +5240,8 @@ static void cerberus_protocol_master_commands_test_prepare_cfm_update_format (Cu
 static void cerberus_protocol_master_commands_test_cfm_update_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x14,0x13,0x03,0x60,
-		0x01,0x02,0x03,0x04
+		0x7e, 0x14, 0x13, 0x03, 0x60,
+		0x01, 0x02, 0x03, 0x04
 	};
 	struct cerberus_protocol_cfm_update *req;
 
@@ -5245,7 +5263,7 @@ static void cerberus_protocol_master_commands_test_cfm_update_format (CuTest *te
 static void cerberus_protocol_master_commands_test_complete_cfm_update_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x14,0x13,0x03,0x61,
+		0x7e, 0x14, 0x13, 0x03, 0x61,
 		0x01
 	};
 	struct cerberus_protocol_complete_cfm_update *req;
@@ -5271,13 +5289,13 @@ static void cerberus_protocol_master_commands_test_complete_cfm_update_format (C
 static void cerberus_protocol_master_commands_test_get_cfm_component_ids_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x14,0x13,0x03,0x8d,
-		0x01,0x02,0x03,0x04,0x05
+		0x7e, 0x14, 0x13, 0x03, 0x8d,
+		0x01, 0x02, 0x03, 0x04, 0x05
 	};
 	uint8_t raw_buffer_resp[] = {
-		0x7e,0x14,0x13,0x03,0x8d,
-		0x03,0x04,0x05,0x06,0x07,
-		0x30,0x31,0x32,0x33,0x34,0x35,0x00
+		0x7e, 0x14, 0x13, 0x03, 0x8d,
+		0x03, 0x04, 0x05, 0x06, 0x07,
+		0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x00
 	};
 	struct cerberus_protocol_get_cfm_component_ids *req;
 	struct cerberus_protocol_get_cfm_component_ids_response *resp;
@@ -5320,17 +5338,17 @@ static void cerberus_protocol_master_commands_test_get_cfm_component_ids_format 
 static void cerberus_protocol_master_commands_test_get_pcd_id_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x14,0x13,0x03,0x62,
+		0x7e, 0x14, 0x13, 0x03, 0x62,
 		0x01
 	};
 	uint8_t raw_buffer_resp_version[] = {
-		0x7e,0x14,0x13,0x03,0x62,
-		0x03,0x04,0x05,0x06,0x07
+		0x7e, 0x14, 0x13, 0x03, 0x62,
+		0x03, 0x04, 0x05, 0x06, 0x07
 	};
 	uint8_t raw_buffer_resp_platform[] = {
-		0x7e,0x14,0x13,0x03,0x62,
+		0x7e, 0x14, 0x13, 0x03, 0x62,
 		0x08,
-		0x30,0x31,0x32,0x33,0x34,0x35,0x00
+		0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x00
 	};
 	struct cerberus_protocol_get_pcd_id *req;
 	struct cerberus_protocol_get_pcd_id_version_response *resp1;
@@ -5384,8 +5402,8 @@ static void cerberus_protocol_master_commands_test_get_pcd_id_format (CuTest *te
 static void cerberus_protocol_master_commands_test_prepare_pcd_update_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x14,0x13,0x03,0x63,
-		0x01,0x02,0x03,0x04
+		0x7e, 0x14, 0x13, 0x03, 0x63,
+		0x01, 0x02, 0x03, 0x04
 	};
 	struct cerberus_protocol_prepare_pcd_update *req;
 
@@ -5410,8 +5428,8 @@ static void cerberus_protocol_master_commands_test_prepare_pcd_update_format (Cu
 static void cerberus_protocol_master_commands_test_pcd_update_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x14,0x13,0x03,0x64,
-		0x01,0x02,0x03,0x04
+		0x7e, 0x14, 0x13, 0x03, 0x64,
+		0x01, 0x02, 0x03, 0x04
 	};
 	struct cerberus_protocol_pcd_update *req;
 
@@ -5433,13 +5451,13 @@ static void cerberus_protocol_master_commands_test_pcd_update_format (CuTest *te
 static void cerberus_protocol_master_commands_test_get_pcd_component_ids_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x14,0x13,0x03,0x8c,
-		0x02,0x03,0x04,0x05
+		0x7e, 0x14, 0x13, 0x03, 0x8c,
+		0x02, 0x03, 0x04, 0x05
 	};
 	uint8_t raw_buffer_resp[] = {
-		0x7e,0x14,0x13,0x03,0x8c,
-		0x03,0x04,0x05,0x06,0x07,
-		0x30,0x31,0x32,0x33,0x34,0x35,0x00
+		0x7e, 0x14, 0x13, 0x03, 0x8c,
+		0x03, 0x04, 0x05, 0x06, 0x07,
+		0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x00
 	};
 	struct cerberus_protocol_get_pcd_component_ids *req;
 	struct cerberus_protocol_get_pcd_component_ids_response *resp;
@@ -5481,7 +5499,7 @@ static void cerberus_protocol_master_commands_test_get_pcd_component_ids_format 
 static void cerberus_protocol_master_commands_test_complete_pcd_update_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x14,0x13,0x03,0x65
+		0x7e, 0x14, 0x13, 0x03, 0x65
 	};
 	struct cerberus_protocol_complete_pcd_update *req;
 
@@ -5504,12 +5522,12 @@ static void cerberus_protocol_master_commands_test_complete_pcd_update_format (C
 static void cerberus_protocol_master_commands_test_update_status_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x14,0x13,0x03,0x68,
-		0x01,0x02
+		0x7e, 0x14, 0x13, 0x03, 0x68,
+		0x01, 0x02
 	};
 	uint8_t raw_buffer_resp[] = {
-		0x7e,0x14,0x13,0x03,0x68,
-		0x03,0x04,0x05,0x06
+		0x7e, 0x14, 0x13, 0x03, 0x68,
+		0x03, 0x04, 0x05, 0x06
 	};
 	struct cerberus_protocol_update_status *req;
 	struct cerberus_protocol_update_status_response *resp;
@@ -5550,12 +5568,12 @@ static void cerberus_protocol_master_commands_test_update_status_format (CuTest 
 static void cerberus_protocol_master_commands_test_extended_update_status_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x14,0x13,0x03,0x8e,
-		0x01,0x02
+		0x7e, 0x14, 0x13, 0x03, 0x8e,
+		0x01, 0x02
 	};
 	uint8_t raw_buffer_resp[] = {
-		0x7e,0x14,0x13,0x03,0x8e,
-		0x03,0x04,0x05,0x06,0x7,0x08,0x09,0x0a
+		0x7e, 0x14, 0x13, 0x03, 0x8e,
+		0x03, 0x04, 0x05, 0x06, 0x7, 0x08, 0x09, 0x0a
 	};
 	struct cerberus_protocol_extended_update_status *req;
 	struct cerberus_protocol_extended_update_status_response *resp;
@@ -5597,22 +5615,31 @@ static void cerberus_protocol_master_commands_test_extended_update_status_format
 static void cerberus_protocol_master_commands_test_get_configuration_ids_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x14,0x13,0x03,0x70,
-		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
-		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+		0x7e, 0x14, 0x13, 0x03, 0x70,
+		0x88, 0x69, 0xde, 0x57, 0x9d, 0xd0, 0xe9, 0x05, 0xe0, 0xa7, 0x11, 0x24, 0x57, 0x55, 0x94,
+		0xf5,
+		0x0a, 0x03, 0xd3, 0xd9, 0xcd, 0xf1, 0x6e, 0x9a, 0x3f, 0x9d, 0x6c, 0x60, 0xc0, 0x32, 0x4b,
+		0x54
 	};
 	uint8_t raw_buffer_resp[] = {
-		0x7e,0x14,0x13,0x03,0x70,
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
-		0x02,0x01,
-		0x11,0x11,0x11,0x11,0x22,0x22,0x22,0x22,0x33,0x33,0x33,0x33,0x44,0x44,0x44,0x44,
-		0x30,0x31,0x00,0x32,0x33,0x00,0x34,0x35,0x00,0x36,0x37,0x00,
-		0x30,0x46,0x02,0x21,0x00,0x86,0x1d,0x0e,0x39,0x20,0xdc,0xae,0x77,0xcc,0xb0,0x33,
-		0x38,0xb7,0xd8,0x47,0xb9,0x7a,0x6b,0x65,0x3b,0xe2,0x72,0x52,0x8f,0x77,0x82,0x00,
-		0x82,0x8f,0x6f,0xc5,0x9e,0x02,0x21,0x00,0xf8,0xf9,0x96,0xaf,0xd5,0xc5,0x50,0x16,
-		0xa9,0x31,0x2d,0xad,0x1e,0xec,0x61,0x3a,0x80,0xe5,0x7a,0x1f,0xa0,0xc3,0x0c,0x35,
-		0x41,0x00,0x96,0xcf,0x71,0x24,0x08,0x43
+		0x7e, 0x14, 0x13, 0x03, 0x70,
+		0xf1, 0x3b, 0x43, 0x16, 0x2c, 0xe4, 0x05, 0x75, 0x73, 0xc5, 0x54, 0x10, 0xad, 0xd5, 0xc5,
+		0xc6,
+		0x0e, 0x9a, 0x37, 0xff, 0x3e, 0xa0, 0x02, 0x34, 0xd6, 0x41, 0x80, 0xfa, 0x1a, 0x0e, 0x0a,
+		0x04,
+		0x02, 0x01,
+		0x11, 0x11, 0x11, 0x11, 0x22, 0x22, 0x22, 0x22, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44,
+		0x44,
+		0x30, 0x31, 0x00, 0x32, 0x33, 0x00, 0x34, 0x35, 0x00, 0x36, 0x37, 0x00,
+		0x30, 0x46, 0x02, 0x21, 0x00, 0x86, 0x1d, 0x0e, 0x39, 0x20, 0xdc, 0xae, 0x77, 0xcc, 0xb0,
+		0x33,
+		0x38, 0xb7, 0xd8, 0x47, 0xb9, 0x7a, 0x6b, 0x65, 0x3b, 0xe2, 0x72, 0x52, 0x8f, 0x77, 0x82,
+		0x00,
+		0x82, 0x8f, 0x6f, 0xc5, 0x9e, 0x02, 0x21, 0x00, 0xf8, 0xf9, 0x96, 0xaf, 0xd5, 0xc5, 0x50,
+		0x16,
+		0xa9, 0x31, 0x2d, 0xad, 0x1e, 0xec, 0x61, 0x3a, 0x80, 0xe5, 0x7a, 0x1f, 0xa0, 0xc3, 0x0c,
+		0x35,
+		0x41, 0x00, 0x96, 0xcf, 0x71, 0x24, 0x08, 0x43
 	};
 	struct cerberus_protocol_get_configuration_ids *req;
 	struct cerberus_protocol_get_configuration_ids_response *resp;
@@ -5648,7 +5675,8 @@ static void cerberus_protocol_master_commands_test_get_configuration_ids_format 
 	CuAssertIntEquals (test, 0x02, resp->pfm_count);
 	CuAssertIntEquals (test, 0x01, resp->cfm_count);
 	CuAssertIntEquals (test, 0x11111111, resp->version_id);
-	CuAssertStrEquals (test, "01", (char*) cerberus_protocol_configuration_ids_get_platform_ids (resp));
+	CuAssertStrEquals (test, "01",
+		(char*) cerberus_protocol_configuration_ids_get_platform_ids (resp));
 }
 
 static void cerberus_protocol_master_commands_test_generate_get_device_capabilities_request (
@@ -5699,7 +5727,8 @@ static void cerberus_protocol_master_commands_test_generate_get_device_capabilit
 	device_manager_release (&device_mgr);
 }
 
-static void cerberus_protocol_master_commands_test_generate_get_device_capabilities_request_buf_too_small (
+static void
+cerberus_protocol_master_commands_test_generate_get_device_capabilities_request_buf_too_small (
 	CuTest *test)
 {
 	uint8_t buf[sizeof (struct cerberus_protocol_device_capabilities) - 1];
@@ -5777,7 +5806,8 @@ static void cerberus_protocol_master_commands_test_generate_get_certificate_dige
 	CuAssertIntEquals (test, ATTESTATION_KEY_EXCHANGE_NONE, req->key_alg);
 }
 
-static void cerberus_protocol_master_commands_test_generate_get_certificate_digest_request_buf_too_small (
+static void
+cerberus_protocol_master_commands_test_generate_get_certificate_digest_request_buf_too_small (
 	CuTest *test)
 {
 	uint8_t buf[sizeof (struct cerberus_protocol_get_certificate_digest) - 1];
@@ -5790,7 +5820,8 @@ static void cerberus_protocol_master_commands_test_generate_get_certificate_dige
 	CuAssertIntEquals (test, CMD_HANDLER_BUF_TOO_SMALL, status);
 }
 
-static void cerberus_protocol_master_commands_test_generate_get_certificate_digest_request_out_of_range (
+static void
+cerberus_protocol_master_commands_test_generate_get_certificate_digest_request_out_of_range (
 	CuTest *test)
 {
 	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG];
@@ -5798,8 +5829,8 @@ static void cerberus_protocol_master_commands_test_generate_get_certificate_dige
 
 	TEST_START;
 
-	status = cerberus_protocol_generate_get_certificate_digest_request (
-		ATTESTATION_MAX_SLOT_NUM + 1, ATTESTATION_KEY_EXCHANGE_NONE, buf, sizeof (buf));
+	status = cerberus_protocol_generate_get_certificate_digest_request (ATTESTATION_MAX_SLOT_NUM +
+		1, ATTESTATION_KEY_EXCHANGE_NONE, buf, sizeof (buf));
 	CuAssertIntEquals (test, CMD_HANDLER_OUT_OF_RANGE, status);
 
 	status = cerberus_protocol_generate_get_certificate_digest_request (0,
@@ -5814,8 +5845,8 @@ static void cerberus_protocol_master_commands_test_generate_get_certificate_dige
 
 	TEST_START;
 
-	status = cerberus_protocol_generate_get_certificate_digest_request (0, ATTESTATION_KEY_EXCHANGE_NONE, NULL,
-		CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG);
+	status = cerberus_protocol_generate_get_certificate_digest_request (0,
+		ATTESTATION_KEY_EXCHANGE_NONE, NULL, CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 }
 
@@ -5979,8 +6010,8 @@ static void cerberus_protocol_master_commands_test_generate_challenge_request_fa
 	status = rng_mock_init (&rng);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng,
-		RNG_ENGINE_NO_MEMORY, MOCK_ARG (ATTESTATION_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng,	RNG_ENGINE_NO_MEMORY,
+		MOCK_ARG (ATTESTATION_NONCE_LEN), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -6011,6 +6042,7 @@ static void cerberus_protocol_master_commands_test_generate_challenge_request_nu
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cerberus_protocol_master_commands);
 
 TEST (cerberus_protocol_master_commands_test_get_cfm_id_format);
@@ -6044,3 +6076,4 @@ TEST (cerberus_protocol_master_commands_test_generate_challenge_request_fail);
 TEST (cerberus_protocol_master_commands_test_generate_challenge_request_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

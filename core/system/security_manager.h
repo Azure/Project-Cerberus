@@ -4,8 +4,8 @@
 #ifndef SECURITY_MANAGER_H_
 #define SECURITY_MANAGER_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 #include "system/security_policy.h"
 
@@ -143,4 +143,4 @@ enum {
 };
 
 
-#endif /* SECURITY_MANAGER_H_ */
+#endif	/* SECURITY_MANAGER_H_ */

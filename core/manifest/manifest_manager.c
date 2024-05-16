@@ -2,9 +2,9 @@
 // Licensed under the MIT license.
 
 #include <string.h>
-#include "common/common_math.h"
 #include "manifest_manager.h"
 #include "platform_api.h"
+#include "common/common_math.h"
 
 
 /**
@@ -200,6 +200,7 @@ exit:
 	if (active) {
 		active->free_platform_id (active, id);
 	}
+
 	return bytes_read;
 }
 
@@ -277,7 +278,7 @@ int manifest_manager_get_manifest_measured_data (struct manifest_manager *manage
 		return 0;
 	}
 
-	bytes_read = min (hash_length - offset,  length);
+	bytes_read = min (hash_length - offset, length);
 	memcpy (buffer, hash_out + offset, bytes_read);
 
 	return bytes_read;

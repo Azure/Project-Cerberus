@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "platform_io.h"
 #include "ecc_mock.h"
+#include "platform_io.h"
 #include "testing.h"
 
 
@@ -482,8 +482,8 @@ int ecc_mock_validate_point_public_key (const char *arg_info, void *expected, vo
 	int fail = 0;
 
 	if (pk_expected->key_length != pk_actual->key_length) {
-		platform_printf ("%sUnexpected key length: expected=0x%x, actual=0x%x" NEWLINE,
-			arg_info, pk_expected->key_length, pk_actual->key_length);
+		platform_printf ("%sUnexpected key length: expected=0x%x, actual=0x%x" NEWLINE,	arg_info,
+			pk_expected->key_length, pk_actual->key_length);
 		fail |= 1;
 	}
 

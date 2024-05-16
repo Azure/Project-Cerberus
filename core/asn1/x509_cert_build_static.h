@@ -18,7 +18,7 @@ int x509_cert_build_create_self_signed_certificate (struct x509_engine *engine,
 	int type, const struct x509_extension_builder *const *extra_extensions, size_t ext_count);
 int x509_cert_build_create_ca_signed_certificate (struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *key, size_t key_length, const uint8_t *serial_num,
-	size_t serial_length, const char *name, int type, const uint8_t* ca_priv_key,
+	size_t serial_length, const char *name, int type, const uint8_t *ca_priv_key,
 	size_t ca_key_length, enum hash_type sig_hash, const struct x509_certificate *ca_cert,
 	const struct x509_extension_builder *const *extra_extensions, size_t ext_count);
 int x509_cert_build_load_certificate (struct x509_engine *engine, struct x509_certificate *cert,
@@ -33,7 +33,7 @@ int x509_cert_build_get_certificate_der (struct x509_engine *engine,
  * Constant initializer for certificate generation APIs.
  */
 #ifdef X509_ENABLE_CREATE_CERTIFICATES
-#define	X509_CERT_BUILD_CREATE_CERTIFICATES	\
+#define	X509_CERT_BUILD_CREATE_CERTIFICATES \
 	.create_csr = x509_cert_build_create_csr, \
 	.create_self_signed_certificate = x509_cert_build_create_self_signed_certificate, \
 	.create_ca_signed_certificate = x509_cert_build_create_ca_signed_certificate,
@@ -74,4 +74,4 @@ int x509_cert_build_get_certificate_der (struct x509_engine *engine,
 	}
 
 
-#endif /* X509_CERT_BUILD_STATIC_H_ */
+#endif	/* X509_CERT_BUILD_STATIC_H_ */

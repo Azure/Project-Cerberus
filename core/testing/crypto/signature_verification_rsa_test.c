@@ -7,9 +7,9 @@
 #include "testing.h"
 #include "crypto/signature_verification_rsa.h"
 #include "crypto/signature_verification_rsa_static.h"
-#include "testing/engines/rsa_testing_engine.h"
 #include "testing/crypto/rsa_testing.h"
 #include "testing/crypto/signature_testing.h"
+#include "testing/engines/rsa_testing_engine.h"
 
 
 TEST_SUITE_LABEL ("signature_verification_rsa");
@@ -667,12 +667,10 @@ static void signature_verification_rsa_test_is_key_valid_null (CuTest *test)
 		sizeof (RSA_PUBLIC_KEY));
 	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
 
-	status = verification.base.is_key_valid (&verification.base, NULL,
-		sizeof (RSA_PUBLIC_KEY));
+	status = verification.base.is_key_valid (&verification.base, NULL, sizeof (RSA_PUBLIC_KEY));
 	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
 
-	status = verification.base.is_key_valid (&verification.base, (uint8_t*) &RSA_PUBLIC_KEY,
-		0);
+	status = verification.base.is_key_valid (&verification.base, (uint8_t*) &RSA_PUBLIC_KEY, 0);
 	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
 
 	status = verification.base.verify_signature (&verification.base, SIG_HASH_TEST, SIG_HASH_LEN,
@@ -721,6 +719,7 @@ static void signature_verification_rsa_test_is_key_valid_not_rsa_key (CuTest *te
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (signature_verification_rsa);
 
 TEST (signature_verification_rsa_test_init_api);
@@ -750,3 +749,4 @@ TEST (signature_verification_rsa_test_is_key_valid_null);
 TEST (signature_verification_rsa_test_is_key_valid_not_rsa_key);
 
 TEST_SUITE_END;
+// *INDENT-ON*

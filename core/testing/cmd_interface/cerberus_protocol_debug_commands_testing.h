@@ -4,8 +4,8 @@
 #ifndef CERBERUS_PROTOCOL_DEBUG_COMMANDS_TESTING_H_
 #define CERBERUS_PROTOCOL_DEBUG_COMMANDS_TESTING_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "testing.h"
 #include "cmd_interface/cmd_interface.h"
 #include "cmd_interface/device_manager.h"
@@ -18,4 +18,4 @@ void cerberus_protocol_debug_commands_testing_process_debug_fill_log (CuTest *te
 	struct cmd_interface *cmd, struct cmd_background_mock *background);
 
 
-#endif /* CERBERUS_PROTOCOL_DEBUG_COMMANDS_TESTING_H_ */
+#endif	/* CERBERUS_PROTOCOL_DEBUG_COMMANDS_TESTING_H_ */

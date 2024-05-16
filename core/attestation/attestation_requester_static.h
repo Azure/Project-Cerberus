@@ -99,7 +99,7 @@ void attestation_requester_on_mctp_get_routing_table_entries_response (
 #define ATTESTATION_REQUESTER_SPDM_RSP_OBSERVER_API_INIT
 #endif
 
- /**
+/**
  * Initialize a static attestation requester instance.
  * There is no validation done on the arguments.
  *
@@ -137,4 +137,4 @@ void attestation_requester_on_mctp_get_routing_table_entries_response (
 	}
 
 
-#endif /* ATTESTATION_REQUESTER_STATIC_H_ */
+#endif	/* ATTESTATION_REQUESTER_STATIC_H_ */

@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "logging_flash.h"
 
@@ -42,6 +42,7 @@ static int logging_flash_save_buffer (const struct logging_flash *logging)
 
 			if (logging->state->log_start == curr_sector_num) {
 				int next_sector = (logging->state->log_start + 1) % LOGGING_FLASH_SECTORS;
+
 				if (logging->state->flash_used[next_sector] != 0) {
 					logging->state->log_start = next_sector;
 				}
@@ -67,7 +68,7 @@ static int logging_flash_save_buffer (const struct logging_flash *logging)
 		if (status == 0) {
 			if ((FLASH_SECTOR_OFFSET (logging->state->next_addr) != 0) &&
 				((logging->state->write_remain < (int) sizeof (struct logging_entry_header)) ||
-					logging->state->terminated)) {
+				logging->state->terminated)) {
 				logging->state->next_addr =
 					FLASH_SECTOR_BASE (logging->state->next_addr) + FLASH_SECTOR_SIZE;
 			}
@@ -128,7 +129,7 @@ int logging_flash_create_entry (const struct logging *logging, uint8_t *entry, s
 
 	if ((length == 0) ||
 		((length + sizeof (struct logging_entry_header) >
-			sizeof (flash_log->state->entry_buffer)))) {
+		sizeof (flash_log->state->entry_buffer)))) {
 		return LOGGING_BAD_ENTRY_LENGTH;
 	}
 
@@ -136,7 +137,6 @@ int logging_flash_create_entry (const struct logging *logging, uint8_t *entry, s
 
 	if (flash_log->state->terminated ||
 		(flash_log->state->write_remain < (int) (sizeof (struct logging_entry_header) + length))) {
-
 		if (!flash_log->state->terminated &&
 			(flash_log->state->write_remain >= (int) sizeof (struct logging_entry_header))) {
 			logging_flash_write_header (flash_log, LOGGING_FLASH_TERMINATOR, 0);
@@ -146,6 +146,7 @@ int logging_flash_create_entry (const struct logging *logging, uint8_t *entry, s
 		status = logging_flash_save_buffer (flash_log);
 		if (status != 0) {
 			platform_mutex_unlock (&flash_log->state->lock);
+
 			return status;
 		}
 	}
@@ -202,6 +203,7 @@ int logging_flash_clear (const struct logging *logging)
 
 exit:
 	platform_mutex_unlock (&flash_log->state->lock);
+
 	return status;
 }
 
@@ -253,17 +255,17 @@ int logging_flash_read_contents (const struct logging *logging, uint32_t offset,
 
 	while ((length != 0) && (sectors < LOGGING_FLASH_SECTORS) &&
 		(flash_log->state->flash_used[i] != 0)) {
-
 		read_offset = (offset < flash_log->state->flash_used[i]) ?
-			offset : flash_log->state->flash_used[i];
+				offset : flash_log->state->flash_used[i];
 		read_len = (length < (flash_log->state->flash_used[i] - read_offset)) ?
-			length : (flash_log->state->flash_used[i] - read_offset);
+				length : (flash_log->state->flash_used[i] - read_offset);
 
 		if (read_len != 0) {
 			status = spi_flash_read (flash_log->flash,
 				flash_log->base_addr + (FLASH_SECTOR_SIZE * i) + read_offset, contents, read_len);
 			if (status != 0) {
 				platform_mutex_unlock (&flash_log->state->lock);
+
 				return status;
 			}
 		}

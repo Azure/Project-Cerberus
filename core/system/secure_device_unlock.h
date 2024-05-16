@@ -4,8 +4,8 @@
 #ifndef SECURE_DEVICE_UNLOCK_H_
 #define SECURE_DEVICE_UNLOCK_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 
 
@@ -73,4 +73,4 @@ enum {
 };
 
 
-#endif /* SECURE_DEVICE_UNLOCK_H_ */
+#endif	/* SECURE_DEVICE_UNLOCK_H_ */

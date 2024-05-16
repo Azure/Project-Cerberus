@@ -4,16 +4,16 @@
 #ifndef OCP_RECOVERY_DEVICE_HW_MOCK_H_
 #define OCP_RECOVERY_DEVICE_HW_MOCK_H_
 
-#include "recovery/ocp_recovery_device.h"
 #include "mock.h"
+#include "recovery/ocp_recovery_device.h"
 
 
 /**
  * A mock for a OCP Recovery device handler HW interface.
  */
 struct ocp_recovery_device_hw_mock {
-	struct ocp_recovery_device_hw base;		/**< The base HW recovery instance. */
-	struct mock mock;						/**< The base mock interface. */
+	struct ocp_recovery_device_hw base;	/**< The base HW recovery instance. */
+	struct mock mock;					/**< The base mock interface. */
 };
 
 
@@ -23,4 +23,4 @@ void ocp_recovery_device_hw_mock_release (struct ocp_recovery_device_hw_mock *mo
 int ocp_recovery_device_hw_mock_validate_and_release (struct ocp_recovery_device_hw_mock *mock);
 
 
-#endif /* OCP_RECOVERY_DEVICE_HW_MOCK_H_ */
+#endif	/* OCP_RECOVERY_DEVICE_HW_MOCK_H_ */

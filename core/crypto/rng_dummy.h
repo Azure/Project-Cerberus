@@ -14,8 +14,8 @@
  * environments.
  */
 struct rng_engine_dummy {
-	struct rng_engine base;			/**< Base RNG instance. */
-	uint32_t random;				/**< The next random value. */
+	struct rng_engine base;	/**< Base RNG instance. */
+	uint32_t random;		/**< The next random value. */
 };
 
 
@@ -23,4 +23,4 @@ int rng_dummy_init (struct rng_engine_dummy *rng, uint32_t seed);
 void rng_dummy_release (struct rng_engine_dummy *rng);
 
 
-#endif /* RNG_DUMMY_H_ */
+#endif	/* RNG_DUMMY_H_ */

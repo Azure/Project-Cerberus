@@ -21,4 +21,4 @@ int kdf_kat_run_self_test_hkdf_expand_sha512 (struct hash_engine *hash);
 /* KDF self-tests use KDF error codes. */
 
 
-#endif /* KDF_KAT_H_ */
+#endif	/* KDF_KAT_H_ */

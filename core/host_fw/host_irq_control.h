@@ -59,4 +59,4 @@ enum {
 };
 
 
-#endif /* HOST_IRQ_CONTROL_H_ */
+#endif	/* HOST_IRQ_CONTROL_H_ */

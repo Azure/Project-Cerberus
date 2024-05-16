@@ -68,4 +68,4 @@ int host_irq_handler_mask_irqs_assert_cs1 (const struct host_irq_handler *handle
 	}
 
 
-#endif /* HOST_IRQ_HANDLER_MASK_IRQS_STATIC_H_ */
+#endif	/* HOST_IRQ_HANDLER_MASK_IRQS_STATIC_H_ */

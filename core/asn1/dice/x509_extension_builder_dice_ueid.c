@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
 #include "x509_extension_builder_dice_ueid.h"
@@ -22,7 +22,7 @@
  * The encoded OID for the TCG DICE Ueid extension:  2.23.133.5.4.4
  */
 const uint8_t X509_EXTENSION_BUILDER_DICE_UEID_OID[] = {
-	0x67,0x81,0x05,0x05,0x04,0x04
+	0x67, 0x81, 0x05, 0x05, 0x04, 0x04
 };
 
 /**
@@ -53,7 +53,7 @@ int x509_extension_builder_dice_ueid_create_extension (
 
 	/* TODO:  Not each of these error checks is tested.  Add tests when refactoring DER encoding. */
 	DER_CHK_ENCODE (DERStartSequenceOrSet (&der, true));
-		DER_CHK_ENCODE (DERAddOctetString (&der, dice->ueid, dice->ueid_length));
+	DER_CHK_ENCODE (DERAddOctetString (&der, dice->ueid, dice->ueid_length));
 	DER_CHK_ENCODE (DERPopNesting (&der));
 
 	x509_extension_builder_init_extension_descriptor (extension, false,
@@ -63,6 +63,7 @@ int x509_extension_builder_dice_ueid_create_extension (
 	return 0;
 
 error:
+
 	return DICE_UEID_EXTENSION_SMALL_EXT_BUFFER;
 }
 

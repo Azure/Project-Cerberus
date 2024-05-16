@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "cerberus_protocol_debug_commands.h"
 
@@ -54,6 +54,7 @@ int cerberus_protocol_get_attestation_state (struct device_manager *device_mgr,
 
 	request->data[CERBERUS_PROTOCOL_MIN_MSG_LEN] = (uint8_t) status;
 	request->length = CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (uint8_t);
+
 	return 0;
 }
 #endif

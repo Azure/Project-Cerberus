@@ -32,11 +32,11 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
  * Constant initializer for the unseal operation.
  */
 #ifdef CMD_ENABLE_UNSEAL
-#define	CMD_BACKGROUND_HANDLER_UNSEAL_API	\
+#define	CMD_BACKGROUND_HANDLER_UNSEAL_API   \
 	.unseal_start = cmd_background_handler_unseal_start, \
 	.unseal_result = cmd_background_handler_unseal_result,
 
-#define	CMD_BACKGROUND_HANDLER_UNSEAL_DEPENDENCIES(a, h)	\
+#define	CMD_BACKGROUND_HANDLER_UNSEAL_DEPENDENCIES(a, h)    \
 	.attestation = a, \
 	.hash = h,
 #else
@@ -48,7 +48,7 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
  * Constant initializer for the configuration reset operations.
  */
 #ifdef CMD_ENABLE_RESET_CONFIG
-#define	CMD_BACKGROUND_HANDLER_CONFIG_RESET_API	\
+#define	CMD_BACKGROUND_HANDLER_CONFIG_RESET_API \
 	.reset_bypass = cmd_background_handler_reset_bypass, \
 	.restore_defaults = cmd_background_handler_restore_defaults, \
 	.clear_platform_config = cmd_background_handler_clear_platform_config, \
@@ -61,7 +61,7 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
  * Constant initializer for the intrusion reset operation.
  */
 #ifdef CMD_ENABLE_INTRUSION
-#define	CMD_BACKGROUND_HANDLER_INTRUSION_API	\
+#define	CMD_BACKGROUND_HANDLER_INTRUSION_API    \
 	.reset_intrusion = cmd_background_handler_reset_intrusion,
 #else
 #define	CMD_BACKGROUND_HANDLER_INTRUSION_API
@@ -71,7 +71,7 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
  * Constant initializer for the configuration reset status operation.
  */
 #if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
-#define	CMD_BACKGROUND_HANDLER_CONFIG_STATUS_API	\
+#define	CMD_BACKGROUND_HANDLER_CONFIG_STATUS_API    \
 	.get_config_reset_status = cmd_background_handler_get_config_reset_status,
 
 #define	CMD_BACKGROUND_HANDLER_CONFIG_RESET_DEPENDENCIES(r) \
@@ -148,4 +148,4 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
 	}
 
 
-#endif /* CMD_BACKGROUND_HANDLER_STATIC_H_ */
+#endif	/* CMD_BACKGROUND_HANDLER_STATIC_H_ */

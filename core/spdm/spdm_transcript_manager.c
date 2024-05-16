@@ -2,12 +2,12 @@
 // Licensed under the MIT license.
 
 #include <string.h>
-#include "common/unused.h"
-#include "common/common_math.h"
-#include "common/array_size.h"
-#include "spdm_protocol.h"
 #include "spdm_commands.h"
+#include "spdm_protocol.h"
 #include "spdm_transcript_manager.h"
+#include "common/array_size.h"
+#include "common/common_math.h"
+#include "common/unused.h"
 
 
 /**
@@ -46,7 +46,8 @@ static int spdm_transcript_manager_add_msg (
 		 * and only if the hash was just started.
 		 */
 		if (add_vca == true) {
-			status = hash_engine->update (hash_engine, transcript_manager->state->message_vca.buffer,
+			status = hash_engine->update (hash_engine,
+				transcript_manager->state->message_vca.buffer,
 				transcript_manager->state->message_vca.buffer_size);
 			if (status != 0) {
 				goto exit;
@@ -61,6 +62,7 @@ static int spdm_transcript_manager_add_msg (
 	}
 
 exit:
+
 	return status;
 }
 
@@ -92,6 +94,7 @@ static int spdm_transcript_manager_update_vca (
 	message_vca->buffer_size += message_size;
 
 exit:
+
 	return status;
 }
 
@@ -122,6 +125,7 @@ static int spdm_transcript_manager_update_m1m2 (
 	}
 
 exit:
+
 	return status;
 }
 
@@ -159,6 +163,7 @@ static int spdm_transcript_manager_update_l1l2 (
 	}
 
 exit:
+
 	return status;
 }
 
@@ -192,6 +197,7 @@ static int spdm_transcript_manager_update_th (
 	}
 
 exit:
+
 	return status;
 }
 
@@ -252,7 +258,7 @@ static void spdm_transcript_manager_reset_l1l2 (
 	struct spdm_transcript_manager_state *state = transcript_manager->state;
 
 	hash_context = (use_session_context == true) ?
-		&state->session_transcript[session_idx].l1l2 : &state->l1l2;
+			&state->session_transcript[session_idx].l1l2 : &state->l1l2;
 
 	if (hash_context->hash_started == true) {
 		l1l2 = transcript_manager->hash_engine[hash_context->hash_engine_idx];
@@ -336,8 +342,8 @@ void spdm_transcript_manager_reset_context (
 			case TRANSCRIPT_CONTEXT_TYPE_L1L2:
 			case TRANSCRIPT_CONTEXT_TYPE_TH:
 				if (context_type == TRANSCRIPT_CONTEXT_TYPE_L1L2) {
-					spdm_transcript_manager_reset_l1l2 (transcript_manager,
-						use_session_context, session_idx);
+					spdm_transcript_manager_reset_l1l2 (transcript_manager,	use_session_context,
+						session_idx);
 				}
 				else {
 					spdm_transcript_manager_reset_th (transcript_manager, session_idx);
@@ -393,6 +399,7 @@ int spdm_transcript_manager_set_hash_algo (
 	transcript_manager->state->hash_algo = hash_algo;
 
 exit:
+
 	return status;
 }
 
@@ -451,6 +458,7 @@ int spdm_transcript_manager_update (
 	}
 
 exit:
+
 	return status;
 }
 
@@ -493,7 +501,7 @@ int spdm_transcript_manager_get_hash (
 
 			if (context_type == TRANSCRIPT_CONTEXT_TYPE_L1L2) {
 				hash_context = (use_session_context == true) ?
-					&state->session_transcript[session_idx].l1l2 : &state->l1l2;
+						&state->session_transcript[session_idx].l1l2 : &state->l1l2;
 			}
 			else {
 				hash_context = &state->session_transcript[session_idx].th;
@@ -514,14 +522,15 @@ int spdm_transcript_manager_get_hash (
 
 	hash_engine = transcript_manager->hash_engine[hash_context->hash_engine_idx];
 	status = finish_hash ?
-		hash_engine->finish (hash_engine, hash, hash_size) :
-		hash_engine->get_hash (hash_engine, hash, hash_size);
+			hash_engine->finish (hash_engine, hash, hash_size) :
+			hash_engine->get_hash (hash_engine, hash, hash_size);
 	if (status != 0) {
 		goto exit;
 	}
 	hash_context->hash_started = !finish_hash;
 
 exit:
+
 	return status;
 }
 
@@ -569,6 +578,7 @@ int spdm_transcript_manager_init (struct spdm_transcript_manager *transcript_man
 	status = spdm_transcript_manager_init_state (transcript_manager);
 
 exit:
+
 	return status;
 }
 
@@ -589,8 +599,9 @@ int spdm_transcript_manager_init_state (const struct spdm_transcript_manager *tr
 	struct spdm_transcript_manager_state *state;
 
 	if ((transcript_manager == NULL) || (transcript_manager->state == NULL) ||
-		(transcript_manager->hash_engine_count < SPDM_TRANSCRIPT_MANAGER_HASH_ENGINE_REQUIRED_COUNT)
-		|| (transcript_manager->hash_engine == NULL)) {
+		(transcript_manager->hash_engine_count <
+		SPDM_TRANSCRIPT_MANAGER_HASH_ENGINE_REQUIRED_COUNT)	||
+		(transcript_manager->hash_engine == NULL)) {
 		status = SPDM_TRANSCRIPT_MANAGER_INVALID_ARGUMENT;
 		goto exit;
 	}
@@ -629,6 +640,7 @@ int spdm_transcript_manager_init_state (const struct spdm_transcript_manager *tr
 	}
 
 exit:
+
 	return status;
 }
 

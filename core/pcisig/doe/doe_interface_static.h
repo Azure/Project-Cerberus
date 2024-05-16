@@ -21,4 +21,4 @@
 	}
 
 
-#endif /* DOE_INTERFACE_STATIC_H_ */
+#endif	/* DOE_INTERFACE_STATIC_H_ */

@@ -4,8 +4,8 @@
 #ifndef ECC_H_
 #define ECC_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 
 
@@ -29,14 +29,14 @@
  * An ECC private key.  A key instance is only usable by the engine that initialized it.
  */
 struct ecc_private_key {
-	void *context;		/**< The implementation context for the private key. */
+	void *context;	/**< The implementation context for the private key. */
 };
 
 /**
  * An ECC public key.  A key instance is only usable by the engine that initialized it.
  */
 struct ecc_public_key {
-	void *context;		/**< The implementation context for the public key. */
+	void *context;	/**< The implementation context for the public key. */
 };
 
 #pragma pack(push,1)
@@ -45,8 +45,8 @@ struct ecc_public_key {
  * No curve information is stored.  The curve is implied based on the key length.
  */
 struct ecc_raw_private_key {
-	uint8_t d[ECC_MAX_KEY_LENGTH];			/**< The integer used as the private key. */
-	size_t key_length;						/**< Length of the private key. */
+	uint8_t d[ECC_MAX_KEY_LENGTH];	/**< The integer used as the private key. */
+	size_t key_length;				/**< Length of the private key. */
 };
 
 /**
@@ -54,9 +54,9 @@ struct ecc_raw_private_key {
  * public key.  No curve information is stored.  The curve is implied based on the key length.
  */
 struct ecc_point_public_key {
-	uint8_t x[ECC_MAX_KEY_LENGTH];			/**< X coordinate for the ECC public key. */
-	uint8_t y[ECC_MAX_KEY_LENGTH];			/**< Y coordinate for the ECC public key. */
-	size_t key_length;						/**< Length of each coordinate in the public key. */
+	uint8_t x[ECC_MAX_KEY_LENGTH];	/**< X coordinate for the ECC public key. */
+	uint8_t y[ECC_MAX_KEY_LENGTH];	/**< Y coordinate for the ECC public key. */
+	size_t key_length;				/**< Length of each coordinate in the public key. */
 };
 
 /**
@@ -65,10 +65,11 @@ struct ecc_point_public_key {
  * with 0's when necessary.
  */
 struct ecc_ecdsa_signature {
-	uint8_t r[ECC_MAX_KEY_LENGTH];			/**< r value for the ECDSA signature. */
-	uint8_t s[ECC_MAX_KEY_LENGTH];			/**< s value for the ECDSA signature. */
-	size_t length;							/**< Length of each integer in the ECDSA signature. */
+	uint8_t r[ECC_MAX_KEY_LENGTH];	/**< r value for the ECDSA signature. */
+	uint8_t s[ECC_MAX_KEY_LENGTH];	/**< s value for the ECDSA signature. */
+	size_t length;					/**< Length of each integer in the ECDSA signature. */
 };
+
 #pragma pack(pop)
 
 /**
@@ -305,4 +306,4 @@ enum {
 };
 
 
-#endif /* ECC_H_ */
+#endif	/* ECC_H_ */

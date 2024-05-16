@@ -4,8 +4,8 @@
 #ifndef PCISIG_ALL_TESTS_H_
 #define PCISIG_ALL_TESTS_H_
 
-#include "testing.h"
 #include "platform_all_tests.h"
+#include "testing.h"
 #include "common/unused.h"
 #include "doe/doe_all_tests.h"
 #include "ide/ide_all_tests.h"
@@ -30,4 +30,4 @@ static void add_all_pcisig_tests (CuSuite *suite)
 }
 
 
-#endif /* PCISIG_ALL_TESTS_H_ */
+#endif	/* PCISIG_ALL_TESTS_H_ */

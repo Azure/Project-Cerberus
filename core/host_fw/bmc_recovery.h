@@ -5,21 +5,21 @@
 #define BMC_RECOVERY_H_
 
 #include <stdbool.h>
-#include "status/rot_status.h"
+#include "host_control.h"
 #include "host_irq_control.h"
 #include "host_processor.h"
+#include "platform_api.h"
 #include "crypto/hash.h"
 #include "crypto/rsa.h"
-#include "platform_api.h"
-#include "host_control.h"
+#include "status/rot_status.h"
 
 
 /*
  * Control settings for host rollback and recovery.
  */
 struct bmc_recovery_control {
-	int min_wdt;		/**< The minimum number of watchdog events to wait before starting recovery. */
-	uint32_t msec;		/**< The number of milliseconds to use for the timeout clock. */
+	int min_wdt;	/**< The minimum number of watchdog events to wait before starting recovery. */
+	uint32_t msec;	/**< The number of milliseconds to use for the timeout clock. */
 };
 
 /**
@@ -105,8 +105,7 @@ enum {
 	BMC_RECOVERY_CS0_FAILED = BMC_RECOVERY_ERROR (0x04),				/**< Failure while processing CS0 event. */
 	BMC_RECOVERY_CS1_FAILED = BMC_RECOVERY_ERROR (0x05),				/**< Host firmware could not be recovered to a previous state. */
 	// BMC_RECOVERY_INVALID_MIN_WDT = BMC_RECOVERY_ERROR (0x06),		/**< Invalid minimum watchdog event value. */
-
 };
 
 
-#endif /* BMC_RECOVERY_H_ */
+#endif	/* BMC_RECOVERY_H_ */

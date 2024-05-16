@@ -13,8 +13,8 @@
  * dirty flash is detected.
  */
 struct spi_filter_irq_handler_dirty {
-	struct spi_filter_irq_handler base;		/**< The base handler instance. */
-	const struct host_control *control;		/**< The control interface for host resets. */
+	struct spi_filter_irq_handler base;	/**< The base handler instance. */
+	const struct host_control *control;	/**< The control interface for host resets. */
 };
 
 
@@ -23,4 +23,4 @@ int spi_filter_irq_handler_dirty_init (struct spi_filter_irq_handler_dirty *hand
 void spi_filter_irq_handler_dirty_release (const struct spi_filter_irq_handler_dirty *handler);
 
 
-#endif /* SPI_FILTER_IRQ_HANDLER_DIRTY_H_ */
+#endif	/* SPI_FILTER_IRQ_HANDLER_DIRTY_H_ */

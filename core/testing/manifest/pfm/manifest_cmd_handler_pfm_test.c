@@ -11,15 +11,15 @@
 #include "manifest/pfm/manifest_cmd_handler_pfm.h"
 #include "manifest/pfm/manifest_cmd_handler_pfm_static.h"
 #include "spi_filter/spi_filter_logging.h"
+#include "testing/engines/hash_testing_engine.h"
+#include "testing/engines/rsa_testing_engine.h"
+#include "testing/logging/debug_log_testing.h"
 #include "testing/mock/flash/flash_mock.h"
 #include "testing/mock/host_fw/host_processor_mock.h"
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/manifest/manifest_manager_mock.h"
 #include "testing/mock/spi_filter/spi_filter_interface_mock.h"
 #include "testing/mock/system/event_task_mock.h"
-#include "testing/engines/hash_testing_engine.h"
-#include "testing/engines/rsa_testing_engine.h"
-#include "testing/logging/debug_log_testing.h"
 
 
 TEST_SUITE_LABEL ("manifest_cmd_handler_pfm");
@@ -416,28 +416,22 @@ static void manifest_cmd_handler_pfm_testing_log_filter_config (CuTest *test,
 
 	status |= mock_expect (&handler->log.mock, handler->log.base.create_entry, &handler->log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry_region1,
-			LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry_region1)));
+		LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), MOCK_ARG (sizeof (entry_region1)));
 	status |= mock_expect (&handler->log.mock, handler->log.base.create_entry, &handler->log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry_region2,
-			LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry_region2)));
+		LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), MOCK_ARG (sizeof (entry_region2)));
 	status |= mock_expect (&handler->log.mock, handler->log.base.create_entry, &handler->log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry_region3,
-			LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry_region3)));
+		LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), MOCK_ARG (sizeof (entry_region3)));
 	status |= mock_expect (&handler->log.mock, handler->log.base.create_entry, &handler->log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry_region4,
-			LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry_region4)));
+		LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), MOCK_ARG (sizeof (entry_region4)));
 	status |= mock_expect (&handler->log.mock, handler->log.base.create_entry, &handler->log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry_region5,
-			LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry_region5)));
+		LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), MOCK_ARG (sizeof (entry_region5)));
 	status |= mock_expect (&handler->log.mock, handler->log.base.create_entry, &handler->log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry_region6,
-			LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry_region6)));
+		LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), MOCK_ARG (sizeof (entry_region6)));
 
 	CuAssertIntEquals (test, 0, status);
 }
@@ -514,34 +508,34 @@ static void manifest_cmd_handler_pfm_test_init_null (CuTest *test)
 		&handler.rsa.base, &handler.filter.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = manifest_cmd_handler_pfm_init (&handler.test, &handler.state, NULL,
-		&handler.task.base, &handler.host.base, &handler.host_state, &handler.hash.base,
-		&handler.rsa.base, &handler.filter.base);
+	status = manifest_cmd_handler_pfm_init (&handler.test, &handler.state, NULL, &handler.task.base,
+		&handler.host.base, &handler.host_state, &handler.hash.base, &handler.rsa.base,
+		&handler.filter.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
 	status = manifest_cmd_handler_pfm_init (&handler.test, &handler.state, &handler.manifest.base,
-		NULL, &handler.host.base, &handler.host_state, &handler.hash.base,
-		&handler.rsa.base, &handler.filter.base);
+		NULL, &handler.host.base, &handler.host_state, &handler.hash.base, &handler.rsa.base,
+		&handler.filter.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
 	status = manifest_cmd_handler_pfm_init (&handler.test, &handler.state, &handler.manifest.base,
-		&handler.task.base, NULL, &handler.host_state, &handler.hash.base,
-		&handler.rsa.base, &handler.filter.base);
+		&handler.task.base, NULL, &handler.host_state, &handler.hash.base, &handler.rsa.base,
+		&handler.filter.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
 	status = manifest_cmd_handler_pfm_init (&handler.test, &handler.state, &handler.manifest.base,
-		&handler.task.base, &handler.host.base, NULL, &handler.hash.base,
-		&handler.rsa.base, &handler.filter.base);
+		&handler.task.base, &handler.host.base, NULL, &handler.hash.base, &handler.rsa.base,
+		&handler.filter.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
 	status = manifest_cmd_handler_pfm_init (&handler.test, &handler.state, &handler.manifest.base,
-		&handler.task.base, &handler.host.base, &handler.host_state, NULL,
-		&handler.rsa.base, &handler.filter.base);
+		&handler.task.base, &handler.host.base, &handler.host_state, NULL, &handler.rsa.base,
+		&handler.filter.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
 	status = manifest_cmd_handler_pfm_init (&handler.test, &handler.state, &handler.manifest.base,
-		&handler.task.base, &handler.host.base, &handler.host_state, &handler.hash.base,
-		NULL, &handler.filter.base);
+		&handler.task.base, &handler.host.base, &handler.host_state, &handler.hash.base, NULL,
+		&handler.filter.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
 	manifest_cmd_handler_pfm_testing_release_dependencies (test, &handler);
@@ -550,9 +544,10 @@ static void manifest_cmd_handler_pfm_test_init_null (CuTest *test)
 static void manifest_cmd_handler_pfm_test_static_init (CuTest *test)
 {
 	struct manifest_cmd_handler_pfm_testing handler;
-	struct manifest_cmd_handler_pfm test_static = manifest_cmd_handler_pfm_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base, &handler.host.base,
-		&handler.host_state, &handler.hash.base, &handler.rsa.base, &handler.filter.base);
+	struct manifest_cmd_handler_pfm test_static =
+		manifest_cmd_handler_pfm_static_init (&handler.state, &handler.manifest.base,
+		&handler.task.base, &handler.host.base,	&handler.host_state, &handler.hash.base,
+		&handler.rsa.base, &handler.filter.base);
 	int status;
 
 	TEST_START;
@@ -583,9 +578,10 @@ static void manifest_cmd_handler_pfm_test_static_init (CuTest *test)
 static void manifest_cmd_handler_pfm_test_static_init_no_spi_filter (CuTest *test)
 {
 	struct manifest_cmd_handler_pfm_testing handler;
-	struct manifest_cmd_handler_pfm test_static = manifest_cmd_handler_pfm_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base, &handler.host.base,
-		&handler.host_state, &handler.hash.base, &handler.rsa.base, NULL);
+	struct manifest_cmd_handler_pfm test_static =
+		manifest_cmd_handler_pfm_static_init (&handler.state, &handler.manifest.base,
+		&handler.task.base, &handler.host.base,	&handler.host_state, &handler.hash.base,
+		&handler.rsa.base, NULL);
 	int status;
 
 	TEST_START;
@@ -602,9 +598,10 @@ static void manifest_cmd_handler_pfm_test_static_init_no_spi_filter (CuTest *tes
 static void manifest_cmd_handler_pfm_test_static_init_null (CuTest *test)
 {
 	struct manifest_cmd_handler_pfm_testing handler;
-	struct manifest_cmd_handler_pfm test_static = manifest_cmd_handler_pfm_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base, &handler.host.base,
-		&handler.host_state, &handler.hash.base, &handler.rsa.base, &handler.filter.base);
+	struct manifest_cmd_handler_pfm test_static =
+		manifest_cmd_handler_pfm_static_init (&handler.state, &handler.manifest.base,
+		&handler.task.base, &handler.host.base,	&handler.host_state, &handler.hash.base,
+		&handler.rsa.base, &handler.filter.base);
 	int status;
 
 	TEST_START;
@@ -682,9 +679,10 @@ static void manifest_cmd_handler_pfm_test_get_status (CuTest *test)
 static void manifest_cmd_handler_pfm_test_get_status_static_init (CuTest *test)
 {
 	struct manifest_cmd_handler_pfm_testing handler;
-	struct manifest_cmd_handler_pfm test_static = manifest_cmd_handler_pfm_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base, &handler.host.base,
-		&handler.host_state, &handler.hash.base, &handler.rsa.base, &handler.filter.base);
+	struct manifest_cmd_handler_pfm test_static =
+		manifest_cmd_handler_pfm_static_init (&handler.state, &handler.manifest.base,
+		&handler.task.base, &handler.host.base,	&handler.host_state, &handler.hash.base,
+		&handler.rsa.base, &handler.filter.base);
 	int status;
 
 	TEST_START;
@@ -824,10 +822,8 @@ static void manifest_cmd_handler_pfm_test_activation_nothing_to_verify (CuTest *
 	manifest_cmd_handler_pfm_testing_log_filter_config (test, &handler);
 
 	status = handler.test.base.activation (&handler.test.base, &reset);
-	CuAssertIntEquals (test,
-		(((HOST_PROCESSOR_NOTHING_TO_VERIFY & 0x00ffffff) << 8) |
-			MANIFEST_CMD_STATUS_ACTIVATION_FAIL),
-		status);
+	CuAssertIntEquals (test, (((HOST_PROCESSOR_NOTHING_TO_VERIFY & 0x00ffffff) << 8) |
+			MANIFEST_CMD_STATUS_ACTIVATION_FAIL), status);
 	CuAssertIntEquals (test, 0, reset);
 
 	manifest_cmd_handler_pfm_testing_validate_and_release (test, &handler);
@@ -872,10 +868,8 @@ static void manifest_cmd_handler_pfm_test_activation_verify_failure_no_config_re
 	manifest_cmd_handler_pfm_testing_log_filter_config (test, &handler);
 
 	status = handler.test.base.activation (&handler.test.base, &reset);
-	CuAssertIntEquals (test,
-		(((HOST_PROCESSOR_RUN_TIME_FAILED & 0x00ffffff) << 8) |
-			MANIFEST_CMD_STATUS_ACTIVATION_FAIL),
-		status);
+	CuAssertIntEquals (test, (((HOST_PROCESSOR_RUN_TIME_FAILED & 0x00ffffff) << 8) |
+			MANIFEST_CMD_STATUS_ACTIVATION_FAIL), status);
 	CuAssertIntEquals (test, 0, reset);
 
 	manifest_cmd_handler_pfm_testing_validate_and_release (test, &handler);
@@ -944,10 +938,8 @@ static void manifest_cmd_handler_pfm_test_activation_verify_failure_with_config_
 	manifest_cmd_handler_pfm_testing_log_filter_config (test, &handler);
 
 	status = handler.test.base.activation (&handler.test.base, &reset);
-	CuAssertIntEquals (test,
-		(((HOST_PROCESSOR_RUN_TIME_FAILED & 0x00ffffff) << 8) |
-			MANIFEST_CMD_STATUS_ACTIVATION_FAIL),
-		status);
+	CuAssertIntEquals (test, (((HOST_PROCESSOR_RUN_TIME_FAILED & 0x00ffffff) << 8) |
+			MANIFEST_CMD_STATUS_ACTIVATION_FAIL), status);
 	CuAssertIntEquals (test, 0, reset);
 
 	manifest_cmd_handler_pfm_testing_validate_and_release (test, &handler);
@@ -1016,10 +1008,8 @@ static void manifest_cmd_handler_pfm_test_activation_verify_failure_with_config_
 	manifest_cmd_handler_pfm_testing_log_filter_config (test, &handler);
 
 	status = handler.test.base.activation (&handler.test.base, &reset);
-	CuAssertIntEquals (test,
-		(((HOST_PROCESSOR_RUN_TIME_FAILED & 0x00ffffff) << 8) |
-			MANIFEST_CMD_STATUS_ACTIVATION_FAIL),
-		status);
+	CuAssertIntEquals (test, (((HOST_PROCESSOR_RUN_TIME_FAILED & 0x00ffffff) << 8) |
+			MANIFEST_CMD_STATUS_ACTIVATION_FAIL), status);
 	CuAssertIntEquals (test, 0, reset);
 
 	manifest_cmd_handler_pfm_testing_validate_and_release (test, &handler);
@@ -1081,8 +1071,7 @@ static void manifest_cmd_handler_pfm_test_activation_success_after_config_recove
 
 	/* Retry success */
 	status |= mock_expect (&handler.host.mock, handler.host.base.run_time_verification,
-		&handler.host, 0, MOCK_ARG_PTR (&handler.hash),
-		MOCK_ARG_PTR (&handler.rsa));
+		&handler.host, 0, MOCK_ARG_PTR (&handler.hash),	MOCK_ARG_PTR (&handler.rsa));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1098,9 +1087,10 @@ static void manifest_cmd_handler_pfm_test_activation_success_after_config_recove
 static void manifest_cmd_handler_pfm_test_activation_static_init (CuTest *test)
 {
 	struct manifest_cmd_handler_pfm_testing handler;
-	struct manifest_cmd_handler_pfm test_static = manifest_cmd_handler_pfm_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base, &handler.host.base,
-		&handler.host_state, &handler.hash.base, &handler.rsa.base, &handler.filter.base);
+	struct manifest_cmd_handler_pfm test_static =
+		manifest_cmd_handler_pfm_static_init (&handler.state, &handler.manifest.base,
+		&handler.task.base, &handler.host.base,	&handler.host_state, &handler.hash.base,
+		&handler.rsa.base, &handler.filter.base);
 	int status;
 	bool reset = false;
 
@@ -1127,9 +1117,10 @@ static void manifest_cmd_handler_pfm_test_activation_static_init (CuTest *test)
 static void manifest_cmd_handler_pfm_test_activation_static_init_no_spi_filter (CuTest *test)
 {
 	struct manifest_cmd_handler_pfm_testing handler;
-	struct manifest_cmd_handler_pfm test_static = manifest_cmd_handler_pfm_static_init (
-		&handler.state, &handler.manifest.base, &handler.task.base, &handler.host.base,
-		&handler.host_state, &handler.hash.base, &handler.rsa.base, NULL);
+	struct manifest_cmd_handler_pfm test_static =
+		manifest_cmd_handler_pfm_static_init (&handler.state, &handler.manifest.base,
+		&handler.task.base, &handler.host.base,	&handler.host_state, &handler.hash.base,
+		&handler.rsa.base, NULL);
 	int status;
 	bool reset = false;
 
@@ -1150,6 +1141,7 @@ static void manifest_cmd_handler_pfm_test_activation_static_init_no_spi_filter (
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (manifest_cmd_handler_pfm);
 
 TEST (manifest_cmd_handler_pfm_test_init);
@@ -1174,3 +1166,4 @@ TEST (manifest_cmd_handler_pfm_test_activation_static_init);
 TEST (manifest_cmd_handler_pfm_test_activation_static_init_no_spi_filter);
 
 TEST_SUITE_END;
+// *INDENT-ON*

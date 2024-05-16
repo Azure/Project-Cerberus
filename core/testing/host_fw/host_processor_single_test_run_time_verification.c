@@ -15291,6 +15291,7 @@ static void host_processor_single_test_run_time_verification_pending_pfm_with_ac
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_processor_single_run_time_verification);
 
 TEST (host_processor_single_test_run_time_verification_no_pfm);
@@ -15497,3 +15498,4 @@ TEST (host_processor_single_test_run_time_verification_pending_pfm_with_active_d
 TEST (host_processor_single_test_run_time_verification_pending_pfm_with_active_dirty_bypass_active_filter_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

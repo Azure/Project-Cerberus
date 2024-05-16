@@ -16,4 +16,4 @@ extern const uint32_t RECOVERY_IMAGE_SIGNATURE_OFFSET;
 extern const uint8_t *RECOVERY_IMAGE_SIGNATURE;
 
 
-#endif /* RECOVERY_IMAGE_TESTING_H_ */
+#endif	/* RECOVERY_IMAGE_TESTING_H_ */

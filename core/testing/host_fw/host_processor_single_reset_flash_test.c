@@ -220,7 +220,7 @@ static void host_processor_single_test_init_reset_flash_pulse_reset (CuTest *tes
 	host_processor_single_release (&host);
 
 	host_state_manager_release (&host_state);
-	spi_flash_release (&flash_state);	
+	spi_flash_release (&flash_state);
 }
 
 static void host_processor_single_test_init_reset_flash_pulse_reset_null (CuTest *test)
@@ -401,8 +401,8 @@ static void host_processor_single_test_soft_reset_no_pfm_reset_flash (CuTest *te
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
 		MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS0));
@@ -438,7 +438,7 @@ static void host_processor_single_test_soft_reset_no_pfm_reset_flash (CuTest *te
 		host_state_manager_get_run_time_validation (&host.host_state));
 
 	status = host_state_manager_is_bypass_mode (&host.host_state);
-	CuAssertIntEquals (test, true, status);	
+	CuAssertIntEquals (test, true, status);
 
 	host_processor_single_testing_validate_and_release (test, &host);
 }
@@ -486,8 +486,8 @@ static void host_processor_single_test_soft_reset_no_pfm_dirty_reset_flash (CuTe
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
 		MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS0));
@@ -564,8 +564,8 @@ static void host_processor_single_test_soft_reset_no_pfm_pulse_reset_reset_flash
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
 		MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS0));
@@ -654,7 +654,6 @@ static void host_processor_single_test_soft_reset_no_pfm_bypass_reset_flash (CuT
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
-
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
@@ -852,6 +851,7 @@ static void host_processor_single_test_soft_reset_active_pfm_dirty_reset_flash (
 		.arg1 = 0,
 		.arg2 = 0
 	};
+
 	TEST_START;
 
 	host_processor_single_testing_init_reset_flash (test, &host);
@@ -1499,8 +1499,8 @@ static void host_processor_single_test_soft_reset_no_pfm_reset_not_supported_res
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
 		MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS0));
@@ -1595,8 +1595,8 @@ static void host_processor_single_test_soft_reset_no_pfm_reset_error_reset_flash
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
 		MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS0));
@@ -1685,8 +1685,8 @@ static void host_processor_single_test_soft_reset_no_pfm_reset_error_succeed_on_
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region,
-		&host.filter, 0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0), MOCK_ARG (0xffff0000));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
 		MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS0));
@@ -1895,7 +1895,8 @@ static void host_processor_single_test_soft_reset_no_pfm_bypass_reset_error_rese
 	host_processor_single_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_single_test_soft_reset_no_pfm_bypass_reset_error_succeed_on_retry_reset_flash (
+static void
+host_processor_single_test_soft_reset_no_pfm_bypass_reset_error_succeed_on_retry_reset_flash (
 	CuTest *test)
 {
 	struct host_processor_single_testing host;
@@ -2185,7 +2186,8 @@ static void host_processor_single_test_soft_reset_no_pfm_bypass_rot_access_error
 	host_processor_single_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_single_test_soft_reset_no_pfm_bypass_rot_access_error_pulse_reset_reset_flash (
+static void
+host_processor_single_test_soft_reset_no_pfm_bypass_rot_access_error_pulse_reset_reset_flash (
 	CuTest *test)
 {
 	struct host_processor_single_testing host;
@@ -2245,6 +2247,7 @@ static void host_processor_single_test_soft_reset_no_pfm_bypass_rot_access_error
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (host_processor_single_reset_flash);
 
 TEST (host_processor_single_test_init_reset_flash);
@@ -2278,3 +2281,4 @@ TEST (host_processor_single_test_soft_reset_no_pfm_bypass_rot_access_error_pulse
 
 
 TEST_SUITE_END;
+// *INDENT-ON*

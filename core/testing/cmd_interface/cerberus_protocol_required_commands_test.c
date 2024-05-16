@@ -4703,11 +4703,12 @@ static void cerberus_protocol_required_commands_test_build_error_response_null (
 {
 	TEST_START;
 
-	cerberus_protocol_build_error_response (NULL, CERBERUS_PROTOCOL_ERROR_UNSPECIFIED,
-		0x12345678, 0, 0x01);
+	cerberus_protocol_build_error_response (NULL, CERBERUS_PROTOCOL_ERROR_UNSPECIFIED, 0x12345678,
+		0, 0x01);
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cerberus_protocol_required_commands);
 
 TEST (cerberus_protocol_required_commands_test_msft_header_format);
@@ -4730,3 +4731,4 @@ TEST (cerberus_protocol_required_commands_test_build_error_response_payload_offs
 TEST (cerberus_protocol_required_commands_test_build_error_response_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

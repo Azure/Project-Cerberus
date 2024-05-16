@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
 #include <stdbool.h>
-#include "platform_api.h"
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 #include "ecc_riot.h"
-#include "riot/riot_core.h"
-#include "reference/include/RiotEcc.h"
-#include "reference/include/RiotDerEnc.h"
-#include "reference/include/RiotX509Bldr.h"
+#include "platform_api.h"
 #include "reference/include/RiotDerDec.h"
+#include "reference/include/RiotDerEnc.h"
+#include "reference/include/RiotEcc.h"
+#include "reference/include/RiotX509Bldr.h"
+#include "riot/riot_core.h"
 
 /**
  * Get the riot ECC key pair instance for a public or private key instance.
@@ -28,7 +28,7 @@
  * @return The initialized key context or null.
  */
 
-static ecc_keypair *ecc_riot_alloc_key_context ()
+static ecc_keypair* ecc_riot_alloc_key_context ()
 {
 	ecc_keypair *key_ctx = platform_malloc (sizeof (ecc_keypair));
 
@@ -52,8 +52,8 @@ static void ecc_riot_free_key_context (void *key_ctx)
 	platform_free (key_ctx);
 }
 
-static int ecc_riot_init_key_pair (struct ecc_engine *engine, const uint8_t *key,
-	size_t key_length, struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
+static int ecc_riot_init_key_pair (struct ecc_engine *engine, const uint8_t *key, size_t key_length,
+	struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
 	ecc_keypair *public_key;
 	ecc_keypair *private_key;
@@ -85,13 +85,14 @@ static int ecc_riot_init_key_pair (struct ecc_engine *engine, const uint8_t *key
 	private_key = ecc_riot_alloc_key_context ();
 	if (private_key == NULL) {
 		ecc_riot_free_key_context (public_key);
+
 		return ECC_ENGINE_NO_MEMORY;
 	}
 
 	status = DERDECGetPrivKey (der_priv_key, &der_priv_key_len, key, key_length);
 	if (status != RIOT_SUCCESS) {
 		status = (status == RIOT_INVALID_PARAMETER) ?
-			ECC_ENGINE_UNSUPPORTED_KEY_LENGTH : ECC_ENGINE_NOT_PRIVATE_KEY;
+				ECC_ENGINE_UNSUPPORTED_KEY_LENGTH : ECC_ENGINE_NOT_PRIVATE_KEY;
 		goto error;
 	}
 
@@ -161,6 +162,7 @@ static int ecc_riot_generate_derived_key_pair (struct ecc_engine *engine, const 
 	private_key = ecc_riot_alloc_key_context ();
 	if (private_key == NULL) {
 		ecc_riot_free_key_context (public_key);
+
 		return ECC_ENGINE_NO_MEMORY;
 	}
 
@@ -194,8 +196,8 @@ error:
 	return ECC_ENGINE_DERIVED_KEY_FAILED;
 }
 
-static void ecc_riot_release_key_pair (struct ecc_engine *engine,
-	struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
+static void ecc_riot_release_key_pair (struct ecc_engine *engine, struct ecc_private_key *priv_key,
+	struct ecc_public_key *pub_key)
 {
 	if (priv_key) {
 		ecc_riot_free_key_context (priv_key->context);
@@ -216,7 +218,7 @@ static int ecc_riot_get_signature_max_length (struct ecc_engine *engine,
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	return  (((RIOT_DSA_size ((ecc_keypair*) key->context) + 3) * 2) + 2);
+	return (((RIOT_DSA_size ((ecc_keypair*) key->context) + 3) * 2) + 2);
 }
 
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
@@ -265,7 +267,7 @@ static int ecc_riot_get_private_key_der (struct ecc_engine *engine,
 }
 
 static int ecc_riot_get_public_key_der (struct ecc_engine *engine, const struct ecc_public_key *key,
-	 uint8_t **der, size_t *length)
+	uint8_t **der, size_t *length)
 {
 	uint8_t tmp_der[30 + (4 * RIOT_ECC_COORD_BYTES)];
 	int status;
@@ -345,7 +347,7 @@ static int ecc_riot_sign (struct ecc_engine *engine, const struct ecc_private_ke
 static int ecc_riot_verify (struct ecc_engine *engine, const struct ecc_public_key *key,
 	const uint8_t *digest, size_t length, const uint8_t *signature, size_t sig_length)
 {
- 	int status;
+	int status;
 	ecc_signature ecc_sig;
 	ecc_keypair *ec;
 

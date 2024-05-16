@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
-#include "cmd_interface/device_manager.h"
 #include "cmd_interface/cerberus_protocol_required_commands.h"
+#include "cmd_interface/device_manager.h"
 #include "mctp/mctp_base_protocol.h"
 #include "rma/cmd_interface_rma.h"
 #include "rma/cmd_interface_rma_static.h"
@@ -21,8 +21,8 @@ TEST_SUITE_LABEL ("cmd_interface_rma");
  * Dependencies for testing the slave command interface.
  */
 struct cmd_interface_rma_testing {
-	struct device_manager device_manager;				/**< Device manager. */
-	struct cmd_interface_rma handler;					/**< Command handler instance. */
+	struct device_manager device_manager;	/**< Device manager. */
+	struct cmd_interface_rma handler;		/**< Command handler instance. */
 };
 
 
@@ -84,8 +84,7 @@ static void cmd_interface_rma_testing_init (CuTest *test, struct cmd_interface_r
  * @param test The test framework.
  * @param cmd The testing instance to release.
  */
- static void cmd_interface_rma_testing_release (CuTest *test,
-	struct cmd_interface_rma_testing *cmd)
+static void cmd_interface_rma_testing_release (CuTest *test, struct cmd_interface_rma_testing *cmd)
 {
 	cmd_interface_rma_testing_release_dependencies (test, cmd);
 
@@ -462,6 +461,7 @@ static void cmd_interface_rma_test_generate_error_packet_error (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_rma);
 
 TEST (cmd_interface_rma_test_init);
@@ -484,3 +484,4 @@ TEST (cmd_interface_rma_test_generate_error_packet_static_init);
 TEST (cmd_interface_rma_test_generate_error_packet_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

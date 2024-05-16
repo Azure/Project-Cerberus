@@ -4,19 +4,20 @@
 #ifndef I2C_MASTER_MOCK_H_
 #define I2C_MASTER_MOCK_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "i2c/i2c_master_interface.h"
+#include <stdint.h>
 #include "mock.h"
+#include "i2c/i2c_master_interface.h"
 
 
 /**
  * I2C master API mock
  */
 struct i2c_master_mock {
-	struct i2c_master_interface master;         /**< I2C communication instance*/
-	struct mock mock;                           /**< Mock instance*/
+	struct i2c_master_interface master;	/**< I2C communication instance*/
+	struct mock mock;					/**< Mock instance*/
 };
+
 
 int i2c_master_mock_init (struct i2c_master_mock *mock);
 void i2c_master_mock_release (struct i2c_master_mock *mock);
@@ -29,4 +30,4 @@ int i2c_master_mock_expect_rx_xfer (struct i2c_master_mock *mock, intptr_t retur
 	size_t reg_addr_len, uint8_t *data, size_t len);
 
 
-#endif /* I2C_MASTER_MOCK_H_ */
+#endif	/* I2C_MASTER_MOCK_H_ */

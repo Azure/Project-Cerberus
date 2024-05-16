@@ -13,10 +13,10 @@
  * extension builder uses mbedTLS ASN.1/DER encoding functions.
  */
 struct x509_extension_builder_mbedtls_dme {
-	struct x509_extension_builder base;		/**< Base extension builder API. */
-	const struct dme_structure *dme;		/**< The DME structure being encoded in the extension. */
-	uint8_t *ext_buffer;					/**< Buffer to use for building the extension data. */
-	size_t ext_length;						/**< Length of the extension data duffer. */
+	struct x509_extension_builder base;	/**< Base extension builder API. */
+	const struct dme_structure *dme;	/**< The DME structure being encoded in the extension. */
+	uint8_t *ext_buffer;				/**< Buffer to use for building the extension data. */
+	size_t ext_length;					/**< Length of the extension data duffer. */
 };
 
 
@@ -29,4 +29,4 @@ void x509_extension_builder_mbedtls_dme_release (
 	const struct x509_extension_builder_mbedtls_dme *builder);
 
 
-#endif /* X509_EXTENSION_BUILDER_MBEDTLS_DME_H_ */
+#endif	/* X509_EXTENSION_BUILDER_MBEDTLS_DME_H_ */

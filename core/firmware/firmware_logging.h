@@ -27,4 +27,4 @@ enum {
 };
 
 
-#endif /* FIRMWARE_LOGGING_H_ */
+#endif	/* FIRMWARE_LOGGING_H_ */

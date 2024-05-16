@@ -365,8 +365,8 @@ static void event_task_test_submit_event (CuTest *test)
 
 	event_task_testing_init_dependencies (test, &event);
 
-	status = mock_expect (&event.task.mock, event.task.base.get_event_context, &event.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&event.task.mock, event.task.base.get_event_context, &event.task,	0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&event.task.mock, 0, &event.context_ptr,
 		sizeof (event.context_ptr), -1);
 
@@ -401,8 +401,8 @@ static void event_task_test_submit_event_cast_value (CuTest *test)
 
 	event_task_testing_init_dependencies (test, &event);
 
-	status = mock_expect (&event.task.mock, event.task.base.get_event_context, &event.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&event.task.mock, event.task.base.get_event_context, &event.task,	0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&event.task.mock, 0, &event.context_ptr,
 		sizeof (event.context_ptr), -1);
 
@@ -434,8 +434,8 @@ static void event_task_test_submit_event_no_data (CuTest *test)
 
 	event_task_testing_init_dependencies (test, &event);
 
-	status = mock_expect (&event.task.mock, event.task.base.get_event_context, &event.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&event.task.mock, event.task.base.get_event_context, &event.task,	0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&event.task.mock, 0, &event.context_ptr,
 		sizeof (event.context_ptr), -1);
 
@@ -466,8 +466,8 @@ static void event_task_test_submit_event_no_status_out (CuTest *test)
 
 	event_task_testing_init_dependencies (test, &event);
 
-	status = mock_expect (&event.task.mock, event.task.base.get_event_context, &event.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&event.task.mock, event.task.base.get_event_context, &event.task,	0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&event.task.mock, 0, &event.context_ptr,
 		sizeof (event.context_ptr), -1);
 
@@ -501,12 +501,12 @@ static void event_task_test_submit_event_null (CuTest *test)
 
 	event_task_testing_init_dependencies (test, &event);
 
-	status = event_task_submit_event (NULL, &event.handler1.base, action, data,
-		sizeof (data), 1234, &event_status);
+	status = event_task_submit_event (NULL, &event.handler1.base, action, data,	sizeof (data), 1234,
+		&event_status);
 	CuAssertIntEquals (test, EVENT_TASK_INVALID_ARGUMENT, status);
 
-	status = event_task_submit_event (&event.task.base, NULL, action, data,
-		sizeof (data), 1234, &event_status);
+	status = event_task_submit_event (&event.task.base, NULL, action, data,	sizeof (data), 1234,
+		&event_status);
 	CuAssertIntEquals (test, EVENT_TASK_INVALID_ARGUMENT, status);
 
 	event_task_testing_validate_and_release_dependencies (test, &event);
@@ -625,8 +625,8 @@ static void event_task_test_submit_event_notify_error (CuTest *test)
 
 	event_task_testing_init_dependencies (test, &event);
 
-	status = mock_expect (&event.task.mock, event.task.base.get_event_context, &event.task,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&event.task.mock, event.task.base.get_event_context, &event.task,	0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&event.task.mock, 0, &event.context_ptr,
 		sizeof (event.context_ptr), -1);
 
@@ -644,6 +644,7 @@ static void event_task_test_submit_event_notify_error (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (event_task);
 
 TEST (event_task_test_prepare_handlers);
@@ -671,3 +672,4 @@ TEST (event_task_test_submit_event_get_context_error);
 TEST (event_task_test_submit_event_notify_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

@@ -8,10 +8,10 @@
 
 
 /* Internal functions declared to allow for static initialization. */
-int flash_store_contiguous_blocks_encrypted_write (const struct flash_store *flash_store,
-	int id, const uint8_t *data, size_t length);
-int flash_store_contiguous_blocks_encrypted_read (const struct flash_store *flash_store,
-	int id, uint8_t *data, size_t length);
+int flash_store_contiguous_blocks_encrypted_write (const struct flash_store *flash_store, int id,
+	const uint8_t *data, size_t length);
+int flash_store_contiguous_blocks_encrypted_read (const struct flash_store *flash_store, int id,
+	uint8_t *data, size_t length);
 
 
 /**
@@ -119,4 +119,4 @@ int flash_store_contiguous_blocks_encrypted_read (const struct flash_store *flas
 	}
 
 
-#endif /* FLASH_STORE_CONTIGUOUS_BLOCKS_ENCRYPTED_STATIC_H_ */
+#endif	/* FLASH_STORE_CONTIGUOUS_BLOCKS_ENCRYPTED_STATIC_H_ */

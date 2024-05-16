@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "host_processor_filtered.h"
-#include "host_processor.h"
 #include "host_logging.h"
+#include "host_processor.h"
+#include "host_processor_filtered.h"
 
 
 /**
@@ -21,7 +21,7 @@
  * @param recovery The manager for recovery of the host processor.
  * @param reset_pulse Length of the reset pulse to use after authentication has completed, in
  * milliseconds.  If 0, the processor is held in reset during authentication.
- * @param reset_flash The flag to indicate that host flash should be reset based on every 
+ * @param reset_flash The flag to indicate that host flash should be reset based on every
  * host processor reset.
  *
  * @return 0 if the host processor interface was successfully initialized or an error code.
@@ -100,6 +100,7 @@ static int host_processor_filtered_initial_rot_flash_access (struct host_process
 			(status == SPI_FLASH_SFDP_4BYTE_INCOMPATIBLE) ||
 			(status == SPI_FLASH_SFDP_QUAD_ENABLE_UNKNOWN)) {
 			host_state_manager_set_unsupported_flash (host->state, true);
+
 			return status;
 		}
 
@@ -127,6 +128,7 @@ static int host_processor_filtered_initial_rot_flash_access (struct host_process
 			(status == HOST_FLASH_MGR_MISMATCH_SIZES) ||
 			(status == HOST_FLASH_MGR_MISMATCH_ADDR_MODE)) {
 			host_state_manager_set_unsupported_flash (host->state, true);
+
 			return status;
 		}
 
@@ -143,6 +145,7 @@ static int host_processor_filtered_initial_rot_flash_access (struct host_process
 	}
 
 	host_state_manager_set_unsupported_flash (host->state, false);
+
 	return 0;
 }
 
@@ -388,6 +391,7 @@ int host_processor_filtered_restore_read_write_data (struct host_processor_filte
 		if (status != 0) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
 				HOST_LOGGING_RW_RESTORE_START, host->base.port, status);
+
 			return status;
 		}
 	}
@@ -397,11 +401,11 @@ int host_processor_filtered_restore_read_write_data (struct host_processor_filte
 		 * prevalidated state. */
 		host_state_manager_set_run_time_validation (host->state, HOST_STATE_PREVALIDATED_NONE);
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
-				HOST_LOGGING_RW_RESTORE_START, host->base.port, 0);
+			HOST_LOGGING_RW_RESTORE_START, host->base.port, 0);
 
 		status = host->flash->restore_flash_read_write_regions (host->flash, rw_list);
 
-		debug_log_create_entry ((status == 0) ? DEBUG_LOG_SEVERITY_INFO: DEBUG_LOG_SEVERITY_ERROR,
+		debug_log_create_entry ((status == 0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_ERROR,
 			DEBUG_LOG_COMPONENT_HOST_FW, HOST_LOGGING_RW_RESTORE_FINISH, host->base.port, status);
 	} while ((status != 0) && (--retries > 0));
 
@@ -461,22 +465,18 @@ static int host_processor_filtered_validate_flash (struct host_processor_filtere
 		}
 
 		if (is_pending) {
-			debug_log_create_entry (
-				(status == 0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_WARNING,
-				DEBUG_LOG_COMPONENT_HOST_FW,
-				(is_validated) ?
+			debug_log_create_entry ((status ==
+				0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_WARNING,
+				DEBUG_LOG_COMPONENT_HOST_FW, (is_validated) ?
 					HOST_LOGGING_PENDING_ACTIVATE_FW_UPDATE :
-					HOST_LOGGING_PENDING_VERIFY_FW_UPDATE,
-				host->base.port, status);
+					HOST_LOGGING_PENDING_VERIFY_FW_UPDATE, host->base.port, status);
 		}
 		else {
-			debug_log_create_entry (
-				(status == 0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_WARNING,
-				DEBUG_LOG_COMPONENT_HOST_FW,
-				(is_validated) ?
+			debug_log_create_entry ((status ==
+				0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_WARNING,
+				DEBUG_LOG_COMPONENT_HOST_FW, (is_validated) ?
 					HOST_LOGGING_ACTIVE_ACTIVATE_FW_UPDATE :
-					HOST_LOGGING_ACTIVE_VERIFY_FW_UPDATE,
-				host->base.port, status);
+					HOST_LOGGING_ACTIVE_VERIFY_FW_UPDATE, host->base.port, status);
 		}
 
 		if (status == 0) {
@@ -546,16 +546,16 @@ static int host_processor_filtered_validate_flash (struct host_processor_filtere
 			is_bypass, &rw_list);
 
 		if (is_pending) {
-			debug_log_create_entry (
-				(status == 0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_WARNING,
-				DEBUG_LOG_COMPONENT_HOST_FW,
-				HOST_LOGGING_PENDING_VERIFY_CURRENT, host->base.port, status);
+			debug_log_create_entry ((status ==
+				0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_WARNING,
+				DEBUG_LOG_COMPONENT_HOST_FW, HOST_LOGGING_PENDING_VERIFY_CURRENT, host->base.port,
+				status);
 		}
 		else {
-			debug_log_create_entry (
-				(status == 0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_ERROR,
-				DEBUG_LOG_COMPONENT_HOST_FW,
-				HOST_LOGGING_ACTIVE_VERIFY_CURRENT, host->base.port, status);
+			debug_log_create_entry ((status ==
+				0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_ERROR,
+				DEBUG_LOG_COMPONENT_HOST_FW, HOST_LOGGING_ACTIVE_VERIFY_CURRENT, host->base.port,
+				status);
 		}
 
 		if (status == 0) {
@@ -596,8 +596,8 @@ static int host_processor_filtered_validate_flash (struct host_processor_filtere
 	 * modified and needed authentication. */
 	if ((dirty_fail != 0) &&
 		(!single && checked_rw &&
-			(!is_pending || is_validated || (status == 0) ||
-				(is_pending && !active && skip_ro_config)))) {
+		(!is_pending || is_validated || (status == 0) ||
+		(is_pending && !active && skip_ro_config)))) {
 		dirty_fail = host->filter->clear_flash_dirty_state (host->filter);
 		if (dirty_fail == 0) {
 			host_state_manager_save_inactive_dirty (host->state, false);
@@ -605,6 +605,7 @@ static int host_processor_filtered_validate_flash (struct host_processor_filtere
 	}
 
 exit:
+
 	return status;
 }
 
@@ -652,6 +653,7 @@ static int host_processor_filtered_check_force_bypass_mode (struct host_processo
 	}
 
 	*empty_status = status;
+
 	return 0;
 }
 
@@ -762,6 +764,7 @@ exit:
 	}
 	if (status != 0) {
 		platform_mutex_unlock (&host->lock);
+
 		return status;
 	}
 
@@ -769,6 +772,7 @@ exit_host:
 	host_processor_filtered_set_host_flash_access (host);
 
 	platform_mutex_unlock (&host->lock);
+
 	return status;
 }
 
@@ -922,7 +926,7 @@ int host_processor_filtered_update_verification (struct host_processor_filtered 
 						if (!host_state_manager_is_pfm_dirty (host->state)) {
 							status = HOST_PROCESSOR_NOTHING_TO_VERIFY;
 						}
-						/* fall through */ /* no break */
+					/* fall through */ /* no break */
 
 					default:
 						prevalidated = false;
@@ -1004,6 +1008,7 @@ exit:
 	}
 
 	platform_mutex_unlock (&host->lock);
+
 	return status;
 }
 
@@ -1033,7 +1038,7 @@ int host_processor_filtered_get_next_reset_verification_actions (struct host_pro
 						break;
 
 					case HOST_STATE_PREVALIDATED_FLASH:
-							action = HOST_PROCESSOR_ACTION_ACTIVATE_UPDATE;
+						action = HOST_PROCESSOR_ACTION_ACTIVATE_UPDATE;
 						break;
 
 					case HOST_STATE_PREVALIDATED_NONE:
@@ -1072,6 +1077,7 @@ int host_processor_filtered_get_next_reset_verification_actions (struct host_pro
 	if (pending_pfm) {
 		filtered->pfm->free_pfm (filtered->pfm, pending_pfm);
 	}
+
 	return action;
 }
 
@@ -1213,5 +1219,6 @@ free_lock:
 	}
 
 	platform_mutex_unlock (&filtered->lock);
+
 	return status;
 }

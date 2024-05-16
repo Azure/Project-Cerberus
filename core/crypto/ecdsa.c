@@ -66,7 +66,7 @@ int ecdsa_deterministic_k_drbg_instantiate (struct hash_engine *hash, enum hmac_
 		}
 
 		status = hash_hmac_update (&hmac, priv_key, key_length);
-		if (status != 0 ) {
+		if (status != 0) {
 			goto hmac_cancel;
 		}
 
@@ -148,12 +148,14 @@ int ecdsa_deterministic_k_drbg_generate (struct hash_engine *hash,
 		status = hash_hmac_update (&hmac, drbg->value, hash_length);
 		if (status != 0) {
 			hash_hmac_cancel (&hmac);
+
 			return status;
 		}
 
 		status = hash_hmac_update (&hmac, &zero, 1);
 		if (status != 0) {
 			hash_hmac_cancel (&hmac);
+
 			return status;
 		}
 

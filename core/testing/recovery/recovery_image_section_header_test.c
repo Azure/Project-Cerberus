@@ -5,8 +5,8 @@
 #include <string.h>
 #include "testing.h"
 #include "recovery/recovery_image_section_header.h"
-#include "testing/mock/flash/flash_mock.h"
 #include "testing/common/image_header_testing.h"
+#include "testing/mock/flash/flash_mock.h"
 #include "testing/recovery/recovery_image_section_header_testing.h"
 
 
@@ -17,7 +17,7 @@ TEST_SUITE_LABEL ("recovery_image_section_header");
  * Example section header using format 0.
  */
 const uint8_t RECOVERY_IMAGE_SECTION_HEADER_FORMAT_0[] = {
-	0x10,0x00,0x00,0x00,0x31,0x2f,0x17,0x4b,0x00,0x04,0x00,0x00,0x00,0x00,0x08,0x00
+	0x10, 0x00, 0x00, 0x00, 0x31, 0x2f, 0x17, 0x4b, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00
 };
 
 const size_t RECOVERY_IMAGE_SECTION_HEADER_FORMAT_0_TOTAL_LEN =
@@ -402,7 +402,8 @@ static void recovery_image_section_header_test_get_section_image_length_format0 
 	recovery_image_section_header_release (&header);
 }
 
-static void recovery_image_section_header_test_get_section_image_length_unknown_format (CuTest *test)
+static void recovery_image_section_header_test_get_section_image_length_unknown_format (
+	CuTest *test)
 {
 	struct flash_mock flash;
 	struct recovery_image_section_header header;
@@ -706,6 +707,7 @@ static void recovery_image_section_header_test_get_length_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (recovery_image_section_header);
 
 TEST (recovery_image_section_header_test_init_format0);
@@ -730,3 +732,4 @@ TEST (recovery_image_section_header_test_get_length);
 TEST (recovery_image_section_header_test_get_length_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

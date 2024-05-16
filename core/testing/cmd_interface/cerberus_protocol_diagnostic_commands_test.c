@@ -8,8 +8,8 @@
 #include "cmd_interface/cerberus_protocol.h"
 #include "cmd_interface/cerberus_protocol_diagnostic_commands.h"
 #include "cmd_interface/cmd_device.h"
-#include "testing/mock/cmd_interface/cmd_interface_mock.h"
 #include "testing/cmd_interface/cerberus_protocol_diagnostic_commands_testing.h"
+#include "testing/mock/cmd_interface/cmd_interface_mock.h"
 
 
 TEST_SUITE_LABEL ("cerberus_protocol_diagnostic_commands");
@@ -144,24 +144,23 @@ void cerberus_protocol_diagnostic_commands_testing_process_heap_stats_fail (CuTe
 static void cerberus_protocol_diagnostic_commands_test_heap_stats_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e,0x14,0x13,0x03,0xd0
+		0x7e, 0x14, 0x13, 0x03, 0xd0
 	};
 	uint8_t raw_buffer_resp[] = {
-		0x7e,0x14,0x13,0x03,0xd0,
-		0x01,0x02,0x03,0x04,
-		0x05,0x06,0x07,0x08,
-		0x09,0x0a,0x0b,0x0c,
-		0x0d,0x0e,0x0f,0x10,
-		0x11,0x12,0x13,0x14,
-		0x15,0x16,0x17,0x18
+		0x7e, 0x14, 0x13, 0x03, 0xd0,
+		0x01, 0x02, 0x03, 0x04,
+		0x05, 0x06, 0x07, 0x08,
+		0x09, 0x0a, 0x0b, 0x0c,
+		0x0d, 0x0e, 0x0f, 0x10,
+		0x11, 0x12, 0x13, 0x14,
+		0x15, 0x16, 0x17, 0x18
 	};
 	struct cerberus_protocol_heap_stats *req;
 	struct cerberus_protocol_heap_stats_response *resp;
 
 	TEST_START;
 
-	CuAssertIntEquals (test, sizeof (raw_buffer_req),
-		sizeof (struct cerberus_protocol_heap_stats));
+	CuAssertIntEquals (test, sizeof (raw_buffer_req), sizeof (struct cerberus_protocol_heap_stats));
 
 	req = (struct cerberus_protocol_heap_stats*) raw_buffer_req;
 	CuAssertIntEquals (test, 0, req->header.integrity_check);
@@ -195,8 +194,10 @@ static void cerberus_protocol_diagnostic_commands_test_heap_stats_format (CuTest
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (cerberus_protocol_diagnostic_commands);
 
 TEST (cerberus_protocol_diagnostic_commands_test_heap_stats_format);
 
 TEST_SUITE_END;
+// *INDENT-ON*

@@ -11,7 +11,7 @@
  * Protocol handler for MCTP messages.
  */
 struct cmd_interface_protocol_mctp {
-	struct cmd_interface_protocol base;			/**< Base protocol handling API. */
+	struct cmd_interface_protocol base;	/**< Base protocol handling API. */
 };
 
 
@@ -19,4 +19,4 @@ int cmd_interface_protocol_mctp_init (struct cmd_interface_protocol_mctp *mctp);
 void cmd_interface_protocol_mctp_release (const struct cmd_interface_protocol_mctp *mctp);
 
 
-#endif /* CMD_INTERFACE_PROTOCOL_MCTP_H_ */
+#endif	/* CMD_INTERFACE_PROTOCOL_MCTP_H_ */

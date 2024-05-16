@@ -39,10 +39,9 @@ struct pfm_flash_v2_testing {
 };
 
 
-void pfm_flash_v2_testing_init (CuTest *test, struct pfm_flash_v2_testing *pfm,
-	uint32_t address);
+void pfm_flash_v2_testing_init (CuTest *test, struct pfm_flash_v2_testing *pfm,	uint32_t address);
 
 void pfm_flash_v2_testing_validate_and_release (CuTest *test, struct pfm_flash_v2_testing *pfm);
 
 
-#endif /* PFM_FLASH_V2_TESTING_H_ */
+#endif	/* PFM_FLASH_V2_TESTING_H_ */

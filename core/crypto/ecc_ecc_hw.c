@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "platform_api.h"
 #include "ecc_ecc_hw.h"
+#include "platform_api.h"
 #include "asn1/ecc_der_util.h"
 #include "common/buffer_util.h"
 #include "common/unused.h"
@@ -406,8 +406,8 @@ int ecc_ecc_hw_sign (struct ecc_engine *engine, const struct ecc_private_key *ke
 		return status;
 	}
 
-	status = ecc_der_encode_ecdsa_signature (raw_signature.r, raw_signature.s,
-		raw_signature.length, signature, sig_length);
+	status = ecc_der_encode_ecdsa_signature (raw_signature.r, raw_signature.s, raw_signature.length,
+		signature, sig_length);
 	if (status == ECC_DER_UTIL_SMALL_DER_BUFFER) {
 		status = ECC_ENGINE_SIG_BUFFER_TOO_SMALL;
 	}

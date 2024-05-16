@@ -11,19 +11,19 @@
  * Status codes for recovery image operations.
  */
 enum recovery_image_cmd_status {
-	RECOVERY_IMAGE_CMD_STATUS_SUCCESS = 0,				/**< Successful operation. */
-	RECOVERY_IMAGE_CMD_STATUS_STARTING,					/**< The recovery image operation is starting. */
-	RECOVERY_IMAGE_CMD_STATUS_REQUEST_BLOCKED,			/**< A request has been made before the previous one finished. */
-	RECOVERY_IMAGE_CMD_STATUS_PREPARE,					/**< The recovery image is being prepared for updating. */
-	RECOVERY_IMAGE_CMD_STATUS_PREPARE_FAIL,				/**< There was an error preparing the recovery image for updating. */
-	RECOVERY_IMAGE_CMD_STATUS_UPDATE_DATA,				/**< New recovery image data is being stored. */
-	RECOVERY_IMAGE_CMD_STATUS_UPDATE_FAIL,				/**< There was an error storing the recovery image data. */
-	RECOVERY_IMAGE_CMD_STATUS_ACTIVATING,				/**< Activation is being attempted for a new recovery image. */
-	RECOVERY_IMAGE_CMD_STATUS_ACTIVATION_FAIL,			/**< There was an error activating the new recovery image. */
-	RECOVERY_IMAGE_CMD_STATUS_INTERNAL_ERROR,			/**< An unspecified, internal error occurred. */
-	RECOVERY_IMAGE_CMD_STATUS_NONE_STARTED,				/**< No recovery image operation has been started. */
-	RECOVERY_IMAGE_CMD_STATUS_TASK_NOT_RUNNING,			/**< The task servicing recovery image operations is not running. */
-	RECOVERY_IMAGE_CMD_STATUS_UNKNOWN,					/**< The recovery image update status could not be determined. */
+	RECOVERY_IMAGE_CMD_STATUS_SUCCESS = 0,		/**< Successful operation. */
+	RECOVERY_IMAGE_CMD_STATUS_STARTING,			/**< The recovery image operation is starting. */
+	RECOVERY_IMAGE_CMD_STATUS_REQUEST_BLOCKED,	/**< A request has been made before the previous one finished. */
+	RECOVERY_IMAGE_CMD_STATUS_PREPARE,			/**< The recovery image is being prepared for updating. */
+	RECOVERY_IMAGE_CMD_STATUS_PREPARE_FAIL,		/**< There was an error preparing the recovery image for updating. */
+	RECOVERY_IMAGE_CMD_STATUS_UPDATE_DATA,		/**< New recovery image data is being stored. */
+	RECOVERY_IMAGE_CMD_STATUS_UPDATE_FAIL,		/**< There was an error storing the recovery image data. */
+	RECOVERY_IMAGE_CMD_STATUS_ACTIVATING,		/**< Activation is being attempted for a new recovery image. */
+	RECOVERY_IMAGE_CMD_STATUS_ACTIVATION_FAIL,	/**< There was an error activating the new recovery image. */
+	RECOVERY_IMAGE_CMD_STATUS_INTERNAL_ERROR,	/**< An unspecified, internal error occurred. */
+	RECOVERY_IMAGE_CMD_STATUS_NONE_STARTED,		/**< No recovery image operation has been started. */
+	RECOVERY_IMAGE_CMD_STATUS_TASK_NOT_RUNNING,	/**< The task servicing recovery image operations is not running. */
+	RECOVERY_IMAGE_CMD_STATUS_UNKNOWN,			/**< The recovery image update status could not be determined. */
 };
 
 /**
@@ -87,4 +87,4 @@ struct recovery_image_cmd_interface {
 };
 
 
-#endif /* RECOVERY_IMAGE_CMD_INTERFACE_H_ */
+#endif	/* RECOVERY_IMAGE_CMD_INTERFACE_H_ */

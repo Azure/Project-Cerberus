@@ -26,4 +26,4 @@ enum {
 };
 
 
-#endif /* INTRUSION_LOGGING_H_ */
+#endif	/* INTRUSION_LOGGING_H_ */

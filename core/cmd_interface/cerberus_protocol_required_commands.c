@@ -4,18 +4,18 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "common/buffer_util.h"
-#include "common/certificate.h"
-#include "common/common_math.h"
-#include "attestation/attestation_responder.h"
-#include "mctp/mctp_logging.h"
 #include "cerberus_protocol.h"
-#include "cmd_interface.h"
+#include "cerberus_protocol_required_commands.h"
 #include "cmd_background.h"
+#include "cmd_interface.h"
 #include "cmd_logging.h"
 #include "device_manager.h"
 #include "session_manager.h"
-#include "cerberus_protocol_required_commands.h"
+#include "attestation/attestation_responder.h"
+#include "common/buffer_util.h"
+#include "common/certificate.h"
+#include "common/common_math.h"
+#include "mctp/mctp_logging.h"
 
 
 /**
@@ -58,8 +58,7 @@ void cerberus_protocol_build_error_response (struct cmd_interface_msg *message, 
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
 			CMD_LOGGING_CERBERUS_REQUEST_FAIL,
 			((error_code << 24) | (command_code << 16) | (message->source_eid << 8) |
-				message->channel_id),
-			error_data);
+					message->channel_id), error_data);
 	}
 }
 
@@ -96,6 +95,7 @@ int cerberus_protocol_get_fw_version (const struct cmd_interface_fw_version *fw_
 	}
 
 	request->length = sizeof (struct cerberus_protocol_get_fw_version_response);
+
 	return 0;
 }
 
@@ -229,6 +229,7 @@ int cerberus_protocol_get_certificate (struct attestation_responder *attestation
 	rsp->cert_num = cert_num;
 
 	request->length = cerberus_protocol_get_certificate_response_length (length);
+
 	return 0;
 }
 
@@ -281,8 +282,7 @@ int cerberus_protocol_get_challenge_response (struct attestation_responder *atte
  *
  * @return 0 if processing completed successfully or an error code.
  */
-int cerberus_protocol_export_csr (struct riot_key_manager *riot,
-	struct cmd_interface_msg *request)
+int cerberus_protocol_export_csr (struct riot_key_manager *riot, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_export_csr *rq = (struct cerberus_protocol_export_csr*) request->data;
 	struct cerberus_protocol_export_csr_response *rsp =
@@ -317,6 +317,7 @@ int cerberus_protocol_export_csr (struct riot_key_manager *riot,
 
 exit:
 	riot_key_manager_release_riot_keys (riot, keys);
+
 	return status;
 }
 
@@ -377,6 +378,7 @@ int cerberus_protocol_import_ca_signed_cert (struct riot_key_manager *riot,
 	}
 
 	request->length = 0;
+
 	return 0;
 }
 
@@ -401,6 +403,7 @@ int cerberus_protocol_get_signed_cert_state (const struct cmd_background *backgr
 	rsp->cert_state = background->get_riot_cert_chain_state (background);
 
 	request->length = sizeof (struct cerberus_protocol_get_certificate_state_response);
+
 	return 0;
 }
 
@@ -444,6 +447,7 @@ int cerberus_protocol_get_device_capabilities (struct device_manager *device_mgr
 	}
 
 	request->length = sizeof (struct cerberus_protocol_device_capabilities_response);
+
 	return 0;
 }
 
@@ -505,6 +509,7 @@ int cerberus_protocol_get_device_id (const struct cmd_interface_device_id *id,
 	rsp->subsystem_id = id->subsystem_id;
 
 	request->length = sizeof (struct cerberus_protocol_get_device_id_response);
+
 	return 0;
 }
 
@@ -535,6 +540,7 @@ int cerberus_protocol_reset_counter (const struct cmd_device *device,
 	}
 
 	request->length = sizeof (struct cerberus_protocol_reset_counter_response);
+
 	return 0;
 }
 
@@ -554,7 +560,7 @@ int cerberus_protocol_process_error_response (struct cmd_interface_msg *response
 			CMD_LOGGING_CHANNEL, response->channel_id, 0);
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
 			CMD_LOGGING_ERROR_MESSAGE, (error_msg->error_code << 24 | response->source_eid << 16 |
-			response->target_eid << 8),	error_msg->error_data);
+					response->target_eid << 8),	error_msg->error_data);
 	}
 	else {
 		return CMD_HANDLER_INVALID_ERROR_MSG;

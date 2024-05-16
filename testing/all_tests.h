@@ -4,8 +4,8 @@
 #ifndef ALL_TESTS_H_
 #define ALL_TESTS_H_
 
-#include "testing.h"
 #include "platform_all_tests.h"
+#include "testing.h"
 #include "testing/core_all_tests.h"
 
 
@@ -25,4 +25,4 @@ void add_all_tests (CuSuite *suite)
 }
 
 
-#endif /* ALL_TESTS_H_ */
+#endif	/* ALL_TESTS_H_ */

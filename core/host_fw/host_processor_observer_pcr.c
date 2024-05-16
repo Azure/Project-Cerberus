@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "host_processor_observer_pcr.h"
 #include "host_logging.h"
+#include "host_processor_observer_pcr.h"
 #include "common/type_cast.h"
 #include "common/unused.h"
 
@@ -53,8 +53,8 @@ static void host_processor_observer_pcr_on_inactive_dirty (struct host_state_obs
 	struct host_state_manager *manager)
 {
 	if (host_state_manager_is_inactive_dirty (manager)) {
-		host_processor_observer_pcr_update (
-			TO_DERIVED_TYPE (observer, struct host_processor_observer_pcr, base_state),
+		host_processor_observer_pcr_update (TO_DERIVED_TYPE (observer,
+			struct host_processor_observer_pcr, base_state),
 			HOST_PROCESSOR_OBSERVER_PCR_NOT_VALIDATED);
 	}
 }

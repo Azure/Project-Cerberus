@@ -4,15 +4,15 @@
 #ifndef LOGGING_H_
 #define LOGGING_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 
 
 /**
  * Marker to indicate the start of a log entry.
  */
-#define LOGGING_MAGIC_START  		0xCB
+#define LOGGING_MAGIC_START			0xCB
 
 /**
  * Determine if an entry marker indicates the start of a valid log entry.
@@ -32,9 +32,9 @@
  * versions of this header only add fields and not modify the order or size of existing fields.
  */
 struct logging_entry_header {
-	uint8_t log_magic;				/**< Start of entry marker. */
-	uint16_t length;				/**< Length of the entry. */
-	uint32_t entry_id;				/**< Unique entry identifier. */
+	uint8_t log_magic;	/**< Start of entry marker. */
+	uint16_t length;	/**< Length of the entry. */
+	uint32_t entry_id;	/**< Unique entry identifier. */
 };
 
 /**
@@ -42,10 +42,10 @@ struct logging_entry_header {
  * provide forward compatibility for log parsing.
  */
 struct logging_entry_header_cc {
-	uint8_t log_magic;				/**< Start of entry marker. */
-	uint16_t length;				/**< Length of the entry. */
-	uint32_t entry_id;				/**< Unique entry identifier. */
-	uint8_t data_offset;			/**< Offset within the entry where the log entry data starts. */
+	uint8_t log_magic;		/**< Start of entry marker. */
+	uint16_t length;		/**< Length of the entry. */
+	uint32_t entry_id;		/**< Unique entry identifier. */
+	uint8_t data_offset;	/**< Offset within the entry where the log entry data starts. */
 };
 
 #pragma pack(pop)
@@ -139,4 +139,4 @@ enum {
 };
 
 
-#endif /* LOGGING_H_ */
+#endif	/* LOGGING_H_ */

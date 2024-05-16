@@ -5,8 +5,8 @@
 #define TESTING_H_
 
 #include <stdint.h>
-#include "CuTest/CuTest.h"
 #include "platform_io.h"
+#include "CuTest/CuTest.h"
 
 
 /**
@@ -64,4 +64,4 @@ int testing_validate_array_prefix_with_extra_info (const uint8_t *expected, cons
 	size_t length, const char *prefix, const char *extra);
 
 
-#endif /* TESTING_H_ */
+#endif	/* TESTING_H_ */

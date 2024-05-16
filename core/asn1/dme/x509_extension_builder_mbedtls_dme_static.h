@@ -72,4 +72,4 @@ void x509_extension_builder_mbedtls_dme_free_static (const struct x509_extension
 	}
 
 
-#endif /* X509_EXTENSION_BUILDER_MBEDTLS_DME_STATIC_H_ */
+#endif	/* X509_EXTENSION_BUILDER_MBEDTLS_DME_STATIC_H_ */

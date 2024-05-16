@@ -35,4 +35,4 @@ int host_processor_dual_full_bypass_init_reset_flash_pulse_reset (
 void host_processor_dual_full_bypass_release (struct host_processor_filtered *host);
 
 
-#endif /* HOST_PROCESSOR_DUAL_FULL_BYPASS_H_ */
+#endif	/* HOST_PROCESSOR_DUAL_FULL_BYPASS_H_ */

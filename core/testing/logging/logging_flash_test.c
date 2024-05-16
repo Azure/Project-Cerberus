@@ -21571,6 +21571,7 @@ static void logging_flash_test_clear_erase_error (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (logging_flash);
 
 TEST (logging_flash_test_init_empty);
@@ -21788,3 +21789,4 @@ TEST (logging_flash_test_clear_null);
 TEST (logging_flash_test_clear_erase_error);
 
 TEST_SUITE_END;
+// *INDENT-ON*

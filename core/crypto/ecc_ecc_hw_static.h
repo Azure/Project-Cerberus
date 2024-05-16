@@ -39,7 +39,7 @@ int ecc_ecc_hw_compute_shared_secret (struct ecc_engine *engine,
  * Constant initializer for key generation APIs.
  */
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
-#define	ECC_ECC_HW_GENERATE_API	\
+#define	ECC_ECC_HW_GENERATE_API \
 	.generate_derived_key_pair = ecc_ecc_hw_generate_derived_key_pair, \
 	.generate_key_pair = ecc_ecc_hw_generate_key_pair,
 
@@ -55,7 +55,7 @@ int ecc_ecc_hw_compute_shared_secret (struct ecc_engine *engine,
  * Constant initializer for ECDH APIs.
  */
 #ifdef ECC_ENABLE_ECDH
-#define	ECC_ECC_HW_ECDH_API	\
+#define	ECC_ECC_HW_ECDH_API \
 	.get_shared_secret_max_length = ecc_ecc_hw_get_shared_secret_max_length, \
 	.compute_shared_secret = ecc_ecc_hw_compute_shared_secret,
 #else
@@ -91,4 +91,4 @@ int ecc_ecc_hw_compute_shared_secret (struct ecc_engine *engine,
 	}
 
 
-#endif /* ECC_ECC_HW_STATIC_H_ */
+#endif	/* ECC_ECC_HW_STATIC_H_ */

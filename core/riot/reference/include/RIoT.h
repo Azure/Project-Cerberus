@@ -2,6 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See LICENSE in the project root.
  */
+
 #ifndef _RIOT_H
 #define _RIOT_H
 
@@ -9,8 +10,8 @@
 extern "C" {
 #endif
 
-#include "RiotStatus.h"
 #include "RiotCrypt.h"
+#include "RiotStatus.h"
 
 #define RIOT_SUCCESS(a) (a == (RIOT_OK))
 
@@ -34,5 +35,6 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+
 
 #endif

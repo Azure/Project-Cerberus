@@ -4,8 +4,8 @@
 #ifndef FIRMWARE_LOADER_MOCK_H_
 #define FIRMWARE_LOADER_MOCK_H_
 
-#include "firmware/firmware_loader.h"
 #include "mock.h"
+#include "firmware/firmware_loader.h"
 
 
 /**
@@ -23,4 +23,4 @@ void firmware_loader_mock_release (struct firmware_loader_mock *mock);
 int firmware_loader_mock_validate_and_release (struct firmware_loader_mock *mock);
 
 
-#endif /* FIRMWARE_LOADER_MOCK_H_ */
+#endif	/* FIRMWARE_LOADER_MOCK_H_ */

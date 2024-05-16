@@ -127,4 +127,4 @@ enum {
 };
 
 
-#endif /* MSG_TRANSPORT_H_ */
+#endif	/* MSG_TRANSPORT_H_ */

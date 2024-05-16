@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
 #include "asn1/dme/dme_structure_raw_ecc_le.h"
-#include "testing/asn1/x509_testing.h"
 #include "testing/asn1/dme/dme_structure_testing.h"
+#include "testing/asn1/x509_testing.h"
 #include "testing/crypto/ecc_testing.h"
 
 
@@ -173,9 +173,9 @@ static void dme_structure_raw_ecc_le_test_init_sha384_null (CuTest *test)
 		DME_STRUCTURE_TESTING_TYPE1_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
-	status = dme_structure_raw_ecc_le_init_sha384 (&dme, NULL,
-		DME_STRUCTURE_TESTING_TYPE1_DATA_LEN, ECC_PUBKEY2_LE, &ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256],
-		ECC_KEY_LENGTH_256, DME_STRUCTURE_TESTING_TYPE1_SIG_ECC256_SHA256_RAW_R_LE,
+	status = dme_structure_raw_ecc_le_init_sha384 (&dme, NULL, DME_STRUCTURE_TESTING_TYPE1_DATA_LEN,
+		ECC_PUBKEY2_LE, &ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
+		DME_STRUCTURE_TESTING_TYPE1_SIG_ECC256_SHA256_RAW_R_LE,
 		DME_STRUCTURE_TESTING_TYPE1_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
@@ -186,21 +186,21 @@ static void dme_structure_raw_ecc_le_test_init_sha384_null (CuTest *test)
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
 	status = dme_structure_raw_ecc_le_init_sha384 (&dme, DME_STRUCTURE_TESTING_TYPE1_DATA,
-		DME_STRUCTURE_TESTING_TYPE1_DATA_LEN, ECC_PUBKEY2_LE, NULL,
-		ECC_KEY_LENGTH_256, DME_STRUCTURE_TESTING_TYPE1_SIG_ECC256_SHA256_RAW_R_LE,
+		DME_STRUCTURE_TESTING_TYPE1_DATA_LEN, ECC_PUBKEY2_LE, NULL,	ECC_KEY_LENGTH_256,
+		DME_STRUCTURE_TESTING_TYPE1_SIG_ECC256_SHA256_RAW_R_LE,
 		DME_STRUCTURE_TESTING_TYPE1_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
 	status = dme_structure_raw_ecc_le_init_sha384 (&dme, DME_STRUCTURE_TESTING_TYPE1_DATA,
 		DME_STRUCTURE_TESTING_TYPE1_DATA_LEN, ECC_PUBKEY2_LE, &ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256],
-		ECC_KEY_LENGTH_256, NULL,
-		DME_STRUCTURE_TESTING_TYPE1_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
+		ECC_KEY_LENGTH_256, NULL, DME_STRUCTURE_TESTING_TYPE1_SIG_ECC256_SHA256_RAW_S_LE,
+		HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
 	status = dme_structure_raw_ecc_le_init_sha384 (&dme, DME_STRUCTURE_TESTING_TYPE1_DATA,
 		DME_STRUCTURE_TESTING_TYPE1_DATA_LEN, ECC_PUBKEY2_LE, &ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256],
-		ECC_KEY_LENGTH_256, DME_STRUCTURE_TESTING_TYPE1_SIG_ECC256_SHA256_RAW_R_LE,
-		NULL, HASH_TYPE_SHA256);
+		ECC_KEY_LENGTH_256, DME_STRUCTURE_TESTING_TYPE1_SIG_ECC256_SHA256_RAW_R_LE,	NULL,
+		HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 }
 
@@ -423,10 +423,9 @@ static void dme_structure_raw_ecc_le_test_init_sha384_with_challenge_null (CuTes
 		DME_STRUCTURE_TESTING_TYPE2_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
-	status = dme_structure_raw_ecc_le_init_sha384_with_challenge (&dme,
-		NULL, DME_STRUCTURE_TESTING_TYPE2_DATA_LEN, ECC_PUBKEY2_LE,
-		&ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
-		DME_STRUCTURE_TESTING_TYPE2_SIG_ECC256_SHA256_RAW_R_LE,
+	status = dme_structure_raw_ecc_le_init_sha384_with_challenge (&dme,	NULL,
+		DME_STRUCTURE_TESTING_TYPE2_DATA_LEN, ECC_PUBKEY2_LE, &ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256,	DME_STRUCTURE_TESTING_TYPE2_SIG_ECC256_SHA256_RAW_R_LE,
 		DME_STRUCTURE_TESTING_TYPE2_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
@@ -439,23 +438,20 @@ static void dme_structure_raw_ecc_le_test_init_sha384_with_challenge_null (CuTes
 
 	status = dme_structure_raw_ecc_le_init_sha384_with_challenge (&dme,
 		DME_STRUCTURE_TESTING_TYPE2_DATA, DME_STRUCTURE_TESTING_TYPE2_DATA_LEN, ECC_PUBKEY2_LE,
-		NULL, ECC_KEY_LENGTH_256,
-		DME_STRUCTURE_TESTING_TYPE2_SIG_ECC256_SHA256_RAW_R_LE,
+		NULL, ECC_KEY_LENGTH_256, DME_STRUCTURE_TESTING_TYPE2_SIG_ECC256_SHA256_RAW_R_LE,
+		DME_STRUCTURE_TESTING_TYPE2_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
+
+	status = dme_structure_raw_ecc_le_init_sha384_with_challenge (&dme,
+		DME_STRUCTURE_TESTING_TYPE2_DATA, DME_STRUCTURE_TESTING_TYPE2_DATA_LEN, ECC_PUBKEY2_LE,
+		&ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, NULL,
 		DME_STRUCTURE_TESTING_TYPE2_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
 	status = dme_structure_raw_ecc_le_init_sha384_with_challenge (&dme,
 		DME_STRUCTURE_TESTING_TYPE2_DATA, DME_STRUCTURE_TESTING_TYPE2_DATA_LEN, ECC_PUBKEY2_LE,
 		&ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
-		NULL,
-		DME_STRUCTURE_TESTING_TYPE2_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
-	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
-
-	status = dme_structure_raw_ecc_le_init_sha384_with_challenge (&dme,
-		DME_STRUCTURE_TESTING_TYPE2_DATA, DME_STRUCTURE_TESTING_TYPE2_DATA_LEN, ECC_PUBKEY2_LE,
-		&ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
-		DME_STRUCTURE_TESTING_TYPE2_SIG_ECC256_SHA256_RAW_R_LE,
-		NULL, HASH_TYPE_SHA256);
+		DME_STRUCTURE_TESTING_TYPE2_SIG_ECC256_SHA256_RAW_R_LE,	NULL, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 }
 
@@ -682,9 +678,9 @@ static void dme_structure_raw_ecc_le_test_init_sha256_null (CuTest *test)
 		DME_STRUCTURE_TESTING_TYPE3_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
-	status = dme_structure_raw_ecc_le_init_sha256 (&dme, NULL,
-		DME_STRUCTURE_TESTING_TYPE3_DATA_LEN, ECC_PUBKEY2_LE, &ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256],
-		ECC_KEY_LENGTH_256, DME_STRUCTURE_TESTING_TYPE3_SIG_ECC256_SHA256_RAW_R_LE,
+	status = dme_structure_raw_ecc_le_init_sha256 (&dme, NULL, DME_STRUCTURE_TESTING_TYPE3_DATA_LEN,
+		ECC_PUBKEY2_LE, &ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
+		DME_STRUCTURE_TESTING_TYPE3_SIG_ECC256_SHA256_RAW_R_LE,
 		DME_STRUCTURE_TESTING_TYPE3_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
@@ -695,21 +691,21 @@ static void dme_structure_raw_ecc_le_test_init_sha256_null (CuTest *test)
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
 	status = dme_structure_raw_ecc_le_init_sha256 (&dme, DME_STRUCTURE_TESTING_TYPE3_DATA,
-		DME_STRUCTURE_TESTING_TYPE3_DATA_LEN, ECC_PUBKEY2_LE, NULL,
-		ECC_KEY_LENGTH_256, DME_STRUCTURE_TESTING_TYPE3_SIG_ECC256_SHA256_RAW_R_LE,
+		DME_STRUCTURE_TESTING_TYPE3_DATA_LEN, ECC_PUBKEY2_LE, NULL,	ECC_KEY_LENGTH_256,
+		DME_STRUCTURE_TESTING_TYPE3_SIG_ECC256_SHA256_RAW_R_LE,
 		DME_STRUCTURE_TESTING_TYPE3_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
 	status = dme_structure_raw_ecc_le_init_sha256 (&dme, DME_STRUCTURE_TESTING_TYPE3_DATA,
 		DME_STRUCTURE_TESTING_TYPE3_DATA_LEN, ECC_PUBKEY2_LE, &ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256],
-		ECC_KEY_LENGTH_256, NULL,
-		DME_STRUCTURE_TESTING_TYPE3_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
+		ECC_KEY_LENGTH_256, NULL, DME_STRUCTURE_TESTING_TYPE3_SIG_ECC256_SHA256_RAW_S_LE,
+		HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
 	status = dme_structure_raw_ecc_le_init_sha256 (&dme, DME_STRUCTURE_TESTING_TYPE3_DATA,
 		DME_STRUCTURE_TESTING_TYPE3_DATA_LEN, ECC_PUBKEY2_LE, &ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256],
-		ECC_KEY_LENGTH_256, DME_STRUCTURE_TESTING_TYPE3_SIG_ECC256_SHA256_RAW_R_LE,
-		NULL, HASH_TYPE_SHA256);
+		ECC_KEY_LENGTH_256, DME_STRUCTURE_TESTING_TYPE3_SIG_ECC256_SHA256_RAW_R_LE,	NULL,
+		HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 }
 
@@ -932,10 +928,9 @@ static void dme_structure_raw_ecc_le_test_init_sha256_with_challenge_null (CuTes
 		DME_STRUCTURE_TESTING_TYPE4_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
-	status = dme_structure_raw_ecc_le_init_sha256_with_challenge (&dme,
-		NULL, DME_STRUCTURE_TESTING_TYPE4_DATA_LEN, ECC_PUBKEY2_LE,
-		&ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
-		DME_STRUCTURE_TESTING_TYPE4_SIG_ECC256_SHA256_RAW_R_LE,
+	status = dme_structure_raw_ecc_le_init_sha256_with_challenge (&dme,	NULL,
+		DME_STRUCTURE_TESTING_TYPE4_DATA_LEN, ECC_PUBKEY2_LE, &ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256,	DME_STRUCTURE_TESTING_TYPE4_SIG_ECC256_SHA256_RAW_R_LE,
 		DME_STRUCTURE_TESTING_TYPE4_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
@@ -948,23 +943,20 @@ static void dme_structure_raw_ecc_le_test_init_sha256_with_challenge_null (CuTes
 
 	status = dme_structure_raw_ecc_le_init_sha256_with_challenge (&dme,
 		DME_STRUCTURE_TESTING_TYPE4_DATA, DME_STRUCTURE_TESTING_TYPE4_DATA_LEN, ECC_PUBKEY2_LE,
-		NULL, ECC_KEY_LENGTH_256,
-		DME_STRUCTURE_TESTING_TYPE4_SIG_ECC256_SHA256_RAW_R_LE,
+		NULL, ECC_KEY_LENGTH_256, DME_STRUCTURE_TESTING_TYPE4_SIG_ECC256_SHA256_RAW_R_LE,
+		DME_STRUCTURE_TESTING_TYPE4_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
+
+	status = dme_structure_raw_ecc_le_init_sha256_with_challenge (&dme,
+		DME_STRUCTURE_TESTING_TYPE4_DATA, DME_STRUCTURE_TESTING_TYPE4_DATA_LEN, ECC_PUBKEY2_LE,
+		&ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, NULL,
 		DME_STRUCTURE_TESTING_TYPE4_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
 	status = dme_structure_raw_ecc_le_init_sha256_with_challenge (&dme,
 		DME_STRUCTURE_TESTING_TYPE4_DATA, DME_STRUCTURE_TESTING_TYPE4_DATA_LEN, ECC_PUBKEY2_LE,
 		&ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
-		NULL,
-		DME_STRUCTURE_TESTING_TYPE4_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
-	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
-
-	status = dme_structure_raw_ecc_le_init_sha256_with_challenge (&dme,
-		DME_STRUCTURE_TESTING_TYPE4_DATA, DME_STRUCTURE_TESTING_TYPE4_DATA_LEN, ECC_PUBKEY2_LE,
-		&ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
-		DME_STRUCTURE_TESTING_TYPE4_SIG_ECC256_SHA256_RAW_R_LE,
-		NULL, HASH_TYPE_SHA256);
+		DME_STRUCTURE_TESTING_TYPE4_SIG_ECC256_SHA256_RAW_R_LE,	NULL, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 }
 
@@ -1191,9 +1183,9 @@ static void dme_structure_raw_ecc_le_test_init_sha512_null (CuTest *test)
 		DME_STRUCTURE_TESTING_TYPE5_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
-	status = dme_structure_raw_ecc_le_init_sha512 (&dme, NULL,
-		DME_STRUCTURE_TESTING_TYPE5_DATA_LEN, ECC_PUBKEY2_LE, &ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256],
-		ECC_KEY_LENGTH_256, DME_STRUCTURE_TESTING_TYPE5_SIG_ECC256_SHA256_RAW_R_LE,
+	status = dme_structure_raw_ecc_le_init_sha512 (&dme, NULL, DME_STRUCTURE_TESTING_TYPE5_DATA_LEN,
+		ECC_PUBKEY2_LE, &ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
+		DME_STRUCTURE_TESTING_TYPE5_SIG_ECC256_SHA256_RAW_R_LE,
 		DME_STRUCTURE_TESTING_TYPE5_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
@@ -1204,21 +1196,21 @@ static void dme_structure_raw_ecc_le_test_init_sha512_null (CuTest *test)
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
 	status = dme_structure_raw_ecc_le_init_sha512 (&dme, DME_STRUCTURE_TESTING_TYPE5_DATA,
-		DME_STRUCTURE_TESTING_TYPE5_DATA_LEN, ECC_PUBKEY2_LE, NULL,
-		ECC_KEY_LENGTH_256, DME_STRUCTURE_TESTING_TYPE5_SIG_ECC256_SHA256_RAW_R_LE,
+		DME_STRUCTURE_TESTING_TYPE5_DATA_LEN, ECC_PUBKEY2_LE, NULL,	ECC_KEY_LENGTH_256,
+		DME_STRUCTURE_TESTING_TYPE5_SIG_ECC256_SHA256_RAW_R_LE,
 		DME_STRUCTURE_TESTING_TYPE5_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
 	status = dme_structure_raw_ecc_le_init_sha512 (&dme, DME_STRUCTURE_TESTING_TYPE5_DATA,
 		DME_STRUCTURE_TESTING_TYPE5_DATA_LEN, ECC_PUBKEY2_LE, &ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256],
-		ECC_KEY_LENGTH_256, NULL,
-		DME_STRUCTURE_TESTING_TYPE5_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
+		ECC_KEY_LENGTH_256, NULL, DME_STRUCTURE_TESTING_TYPE5_SIG_ECC256_SHA256_RAW_S_LE,
+		HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
 	status = dme_structure_raw_ecc_le_init_sha512 (&dme, DME_STRUCTURE_TESTING_TYPE5_DATA,
 		DME_STRUCTURE_TESTING_TYPE5_DATA_LEN, ECC_PUBKEY2_LE, &ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256],
-		ECC_KEY_LENGTH_256, DME_STRUCTURE_TESTING_TYPE5_SIG_ECC256_SHA256_RAW_R_LE,
-		NULL, HASH_TYPE_SHA256);
+		ECC_KEY_LENGTH_256, DME_STRUCTURE_TESTING_TYPE5_SIG_ECC256_SHA256_RAW_R_LE,	NULL,
+		HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 }
 
@@ -1441,10 +1433,9 @@ static void dme_structure_raw_ecc_le_test_init_sha512_with_challenge_null (CuTes
 		DME_STRUCTURE_TESTING_TYPE6_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
-	status = dme_structure_raw_ecc_le_init_sha512_with_challenge (&dme,
-		NULL, DME_STRUCTURE_TESTING_TYPE6_DATA_LEN, ECC_PUBKEY2_LE,
-		&ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
-		DME_STRUCTURE_TESTING_TYPE6_SIG_ECC256_SHA256_RAW_R_LE,
+	status = dme_structure_raw_ecc_le_init_sha512_with_challenge (&dme,	NULL,
+		DME_STRUCTURE_TESTING_TYPE6_DATA_LEN, ECC_PUBKEY2_LE, &ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256,	DME_STRUCTURE_TESTING_TYPE6_SIG_ECC256_SHA256_RAW_R_LE,
 		DME_STRUCTURE_TESTING_TYPE6_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
@@ -1457,23 +1448,20 @@ static void dme_structure_raw_ecc_le_test_init_sha512_with_challenge_null (CuTes
 
 	status = dme_structure_raw_ecc_le_init_sha512_with_challenge (&dme,
 		DME_STRUCTURE_TESTING_TYPE6_DATA, DME_STRUCTURE_TESTING_TYPE6_DATA_LEN, ECC_PUBKEY2_LE,
-		NULL, ECC_KEY_LENGTH_256,
-		DME_STRUCTURE_TESTING_TYPE6_SIG_ECC256_SHA256_RAW_R_LE,
+		NULL, ECC_KEY_LENGTH_256, DME_STRUCTURE_TESTING_TYPE6_SIG_ECC256_SHA256_RAW_R_LE,
+		DME_STRUCTURE_TESTING_TYPE6_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
+
+	status = dme_structure_raw_ecc_le_init_sha512_with_challenge (&dme,
+		DME_STRUCTURE_TESTING_TYPE6_DATA, DME_STRUCTURE_TESTING_TYPE6_DATA_LEN, ECC_PUBKEY2_LE,
+		&ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, NULL,
 		DME_STRUCTURE_TESTING_TYPE6_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
 	status = dme_structure_raw_ecc_le_init_sha512_with_challenge (&dme,
 		DME_STRUCTURE_TESTING_TYPE6_DATA, DME_STRUCTURE_TESTING_TYPE6_DATA_LEN, ECC_PUBKEY2_LE,
 		&ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
-		NULL,
-		DME_STRUCTURE_TESTING_TYPE6_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
-	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
-
-	status = dme_structure_raw_ecc_le_init_sha512_with_challenge (&dme,
-		DME_STRUCTURE_TESTING_TYPE6_DATA, DME_STRUCTURE_TESTING_TYPE6_DATA_LEN, ECC_PUBKEY2_LE,
-		&ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
-		DME_STRUCTURE_TESTING_TYPE6_SIG_ECC256_SHA256_RAW_R_LE,
-		NULL, HASH_TYPE_SHA256);
+		DME_STRUCTURE_TESTING_TYPE6_SIG_ECC256_SHA256_RAW_R_LE,	NULL, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 }
 
@@ -1546,7 +1534,8 @@ static void dme_structure_raw_ecc_le_test_init_sha512_with_challenge_unsupported
 	CuAssertIntEquals (test, DME_STRUCTURE_UNSUPPORTED_KEY_LENGTH, status);
 }
 
-static void dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_challenge_dme_key_ecc256 (
+static void
+dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_challenge_dme_key_ecc256 (
 	CuTest *test)
 {
 	struct dme_structure_raw_ecc_le dme;
@@ -1591,7 +1580,8 @@ static void dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_c
 	CuAssertIntEquals (test, 0, dme.base.base.counter_length);
 }
 
-static void dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_challenge_dme_key_ecc384 (
+static void
+dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_challenge_dme_key_ecc384 (
 	CuTest *test)
 {
 	struct dme_structure_raw_ecc_le dme;
@@ -1641,7 +1631,8 @@ static void dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_c
 #endif
 }
 
-static void dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_challenge_dme_key_ecc521 (
+static void
+dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_challenge_dme_key_ecc521 (
 	CuTest *test)
 {
 	struct dme_structure_raw_ecc_le dme;
@@ -1706,10 +1697,9 @@ static void dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_c
 		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
-	status = dme_structure_raw_ecc_le_init_le_ecc384_with_sha512_nonce_and_challenge (&dme,
-		NULL, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, ECC_PUBKEY2_LE,
-		&ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
-		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_R_LE,
+	status = dme_structure_raw_ecc_le_init_le_ecc384_with_sha512_nonce_and_challenge (&dme,	NULL,
+		DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, ECC_PUBKEY2_LE, &ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256,	DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_R_LE,
 		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
@@ -1722,27 +1712,25 @@ static void dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_c
 
 	status = dme_structure_raw_ecc_le_init_le_ecc384_with_sha512_nonce_and_challenge (&dme,
 		DME_STRUCTURE_TESTING_TYPE7_DATA, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, ECC_PUBKEY2_LE,
-		NULL, ECC_KEY_LENGTH_256,
-		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_R_LE,
+		NULL, ECC_KEY_LENGTH_256, DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_R_LE,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
+
+	status = dme_structure_raw_ecc_le_init_le_ecc384_with_sha512_nonce_and_challenge (&dme,
+		DME_STRUCTURE_TESTING_TYPE7_DATA, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, ECC_PUBKEY2_LE,
+		&ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, NULL,
 		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 
 	status = dme_structure_raw_ecc_le_init_le_ecc384_with_sha512_nonce_and_challenge (&dme,
 		DME_STRUCTURE_TESTING_TYPE7_DATA, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, ECC_PUBKEY2_LE,
 		&ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
-		NULL,
-		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
-	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
-
-	status = dme_structure_raw_ecc_le_init_le_ecc384_with_sha512_nonce_and_challenge (&dme,
-		DME_STRUCTURE_TESTING_TYPE7_DATA, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, ECC_PUBKEY2_LE,
-		&ECC_PUBKEY2_LE[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
-		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_R_LE,
-		NULL, HASH_TYPE_SHA256);
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_R_LE,	NULL, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
 }
 
-static void dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_challenge_bad_structure_length (
+static void
+dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_challenge_bad_structure_length (
 	CuTest *test)
 {
 	struct dme_structure_raw_ecc_le dme;
@@ -1765,7 +1753,9 @@ static void dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_c
 	CuAssertIntEquals (test, DME_STRUCTURE_BAD_LENGTH, status);
 }
 
-static void dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_challenge_unsupported_signature_hash (
+static void
+dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_challenge_unsupported_signature_hash
+(
 	CuTest *test)
 {
 	struct dme_structure_raw_ecc_le dme;
@@ -1788,7 +1778,9 @@ static void dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_c
 	CuAssertIntEquals (test, DME_STRUCTURE_UNSUPPORTED_SIGNATURE, status);
 }
 
-static void dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_challenge_unsupported_key_length (
+static void
+dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_challenge_unsupported_key_length
+(
 	CuTest *test)
 {
 	struct dme_structure_raw_ecc_le dme;
@@ -1812,6 +1804,7 @@ static void dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_c
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (dme_structure_raw_ecc_le);
 
 TEST (dme_structure_raw_ecc_le_test_init_sha384_dme_key_ecc256);
@@ -1865,3 +1858,4 @@ TEST (dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_challen
 TEST (dme_structure_raw_ecc_le_test_init_le_ecc384_with_sha512_nonce_and_challenge_unsupported_key_length);
 
 TEST_SUITE_END;
+// *INDENT-ON*

@@ -41,4 +41,4 @@
 #define	ROT_GET_ERROR(status)		((status < 0) ? status : (status & 0x000000ff))
 
 
-#endif /* ROT_STATUS_H_ */
+#endif	/* ROT_STATUS_H_ */

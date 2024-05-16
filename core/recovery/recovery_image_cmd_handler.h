@@ -22,7 +22,7 @@ enum {
  * Variable context for the recovery image command handler.
  */
 struct recovery_image_cmd_handler_state {
-	int status;									/**< The recovery image operation status. */
+	int status;	/**< The recovery image operation status. */
 };
 
 
@@ -49,4 +49,4 @@ void recovery_image_cmd_handler_release (const struct recovery_image_cmd_handler
  * RECOVERY_IMAGE_MANAGER_* error codes. */
 
 
-#endif /* RECOVERY_IMAGE_CMD_HANDLER_H_ */
+#endif	/* RECOVERY_IMAGE_CMD_HANDLER_H_ */

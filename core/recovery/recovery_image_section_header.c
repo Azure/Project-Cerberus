@@ -11,11 +11,12 @@
  * Define all different formats of the recovery image section header.
  */
 union recovery_image_section_header_format {
-	struct __attribute__ ((__packed__)) {
-		uint32_t addr;			/**< The host address to store the section image. */
-		uint32_t length;		/**< The length of the section image. */
+	struct __attribute__((__packed__)) {
+		uint32_t addr;		/**< The host address to store the section image. */
+		uint32_t length;	/**< The length of the section image. */
 	} format0;
-} __attribute__ ((__packed__));
+} __attribute__((__packed__));
+
 
 /**
  * Get the expected length of a section header format version.
@@ -134,4 +135,3 @@ int recovery_image_section_header_get_host_write_addr (struct recovery_image_sec
 
 	return 0;
 }
-

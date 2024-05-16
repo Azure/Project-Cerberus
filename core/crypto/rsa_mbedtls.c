@@ -3,13 +3,13 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "rsa_mbedtls.h"
+#include "crypto_logging.h"
 #include "platform_api.h"
+#include "rsa_mbedtls.h"
+#include "logging/debug_log.h"
 #include "mbedtls/pk.h"
 #include "mbedtls/pk_internal.h"
 #include "mbedtls/rsa.h"
-#include "logging/debug_log.h"
-#include "crypto_logging.h"
 
 
 #define	RSA_PRIV_DER_MAX_SIZE	47 + (3 * MBEDTLS_MPI_MAX_SIZE) + \
@@ -92,8 +92,9 @@ static int rsa_mbedtls_generate_key (struct rsa_engine *engine, struct rsa_priva
 error:
 	rsa_mbedtls_free_key_context (rsa);
 
-	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-		msg_code, status, 0);
+	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO, msg_code, status,
+		0);
+
 	return status;
 }
 
@@ -133,6 +134,7 @@ static int rsa_mbedtls_init_private_key (struct rsa_engine *engine, struct rsa_p
 
 error:
 	rsa_mbedtls_free_key_context (rsa);
+
 	return status;
 }
 
@@ -230,6 +232,7 @@ static int rsa_mbedtls_decrypt (struct rsa_engine *engine, const struct rsa_priv
 
 	/* Restore the padding hash algorithm to the default. */
 	mbedtls_rsa_set_padding (rsa_mbedtls_get_rsa_key (key), MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA1);
+
 	return status;
 }
 #endif
@@ -302,6 +305,7 @@ static int rsa_mbedtls_init_public_key (struct rsa_engine *engine, struct rsa_pu
 
 exit:
 	rsa_mbedtls_free_key_context (pk);
+
 	return status;
 }
 
@@ -389,8 +393,9 @@ static int rsa_mbedtls_load_pubkey (mbedtls_rsa_context *rsa, const struct rsa_p
 exit:
 	mbedtls_rsa_free (rsa);
 
-	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-		msg_code, status, 0);
+	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO, msg_code, status,
+		0);
+
 	return status;
 }
 
@@ -432,6 +437,7 @@ static int rsa_mbedtls_sig_verify (struct rsa_engine *engine, const struct rsa_p
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_RSA_PUBKEY_LOAD_EC, status, 0);
+
 		return status;
 	}
 
@@ -451,6 +457,7 @@ static int rsa_mbedtls_sig_verify (struct rsa_engine *engine, const struct rsa_p
 	}
 
 	mbedtls_rsa_free (&rsa);
+
 	return status;
 }
 
@@ -500,6 +507,7 @@ int rsa_mbedtls_init (struct rsa_engine_mbedtls *engine)
 exit:
 	mbedtls_entropy_free (&engine->entropy);
 	mbedtls_ctr_drbg_free (&engine->ctr_drbg);
+
 	return status;
 }
 

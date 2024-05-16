@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "platform_api.h"
 #include "firmware_component.h"
+#include "platform_api.h"
 #include "common/buffer_util.h"
 #include "flash/flash_util.h"
 
@@ -15,8 +15,8 @@
  * Format 0 of the firmware component header.
  */
 struct firmware_component_header_format0 {
-	uint32_t length;				/**< Length of the component image data. */
-	uint16_t sig_length;			/**< Length of the image signature. */
+	uint32_t length;		/**< Length of the component image data. */
+	uint16_t sig_length;	/**< Length of the image signature. */
 };
 
 /**
@@ -35,31 +35,32 @@ struct firmware_component_header {
 	struct firmware_component_header_format0 format0;	/**< Header format 0 fields. */
 	struct firmware_component_header_format1 format1;	/**< Header format 1 fields. */
 };
+
 #pragma pack(pop)
 
 /**
  * Accessor for component header data.
  */
-#define FW_COMPONENT_HDR(img, x)		\
+#define FW_COMPONENT_HDR(img, x)        \
 	((struct firmware_component_header*) (img->header.data))->format##x
 
 /**
  * The expected length for a format 0 firmware component header.
  */
-#define	FW_COMPONENT_HDR_LENGTH_V0		\
+#define	FW_COMPONENT_HDR_LENGTH_V0      \
 	((sizeof (struct firmware_component_header_format0)) + (sizeof (struct image_header_info)))
 
 /**
  * The expected length for a format 1 firmware component header.
  */
-#define	FW_COMPONENT_HDR_LENGTH_V1		\
+#define	FW_COMPONENT_HDR_LENGTH_V1      \
 	(FW_COMPONENT_HDR_LENGTH_V0 + sizeof (struct firmware_component_header_format1))
 
 /**
  * Minimum length for a component header with an unknown format.  It must be at least as long as the
  * known formats.
  */
-#define	FW_COMPONENT_HDR_MIN_LENGTH		\
+#define	FW_COMPONENT_HDR_MIN_LENGTH     \
 	((sizeof (struct firmware_component_header)) + (sizeof (struct image_header_info)))
 
 /**
@@ -283,8 +284,7 @@ static int firmware_component_start_component_hash (const struct firmware_compon
 		status = image_header_hash_update_header (header, hash);
 	}
 	else if (image->offset) {
-		status = flash_hash_update_contents (image->flash, image->start_addr, image->offset,
-			hash);
+		status = flash_hash_update_contents (image->flash, image->start_addr, image->offset, hash);
 	}
 	if (status != 0) {
 		goto exit;
@@ -356,6 +356,7 @@ static int firmware_component_finish_verification (const struct firmware_compone
 
 exit:
 	platform_free (signature);
+
 	return status;
 }
 
@@ -406,6 +407,7 @@ int firmware_component_verification (const struct firmware_component *image,
 	}
 
 	platform_free (signature);
+
 	return status;
 }
 
@@ -446,6 +448,7 @@ int firmware_component_load (const struct firmware_component *image, uint8_t *lo
 	if (load_length != NULL) {
 		*load_length = FW_COMPONENT_HDR (image, 0).length;
 	}
+
 	return 0;
 }
 
@@ -564,6 +567,7 @@ hash_fail:
 	hash->cancel (hash);
 error_exit:
 	platform_free (signature);
+
 	return status;
 }
 
@@ -620,6 +624,7 @@ int firmware_component_load_to_memory (const struct firmware_component *image,
 	if (load_length != NULL) {
 		*load_length = FW_COMPONENT_HDR (image, 0).length;
 	}
+
 	return 0;
 }
 
@@ -761,6 +766,7 @@ hash_fail:
 	hash->cancel (hash);
 error_exit:
 	platform_free (signature);
+
 	return status;
 }
 
@@ -988,6 +994,7 @@ int firmware_component_get_hash (const struct firmware_component *image, struct 
 	if (hash_type) {
 		*hash_type = digest_type;
 	}
+
 	return digest_length;
 }
 

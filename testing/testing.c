@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include "testing.h"
 #include "platform_io.h"
+#include "testing.h"
 
 
 /**
@@ -58,6 +58,7 @@ int testing_validate_array_prefix_with_extra_info (const uint8_t *expected, cons
 
 	if (actual == NULL) {
 		platform_printf ("Null array unexpected" NEWLINE);
+
 		return 1;
 	}
 

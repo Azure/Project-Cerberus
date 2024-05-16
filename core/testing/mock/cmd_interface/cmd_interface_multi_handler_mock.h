@@ -4,10 +4,10 @@
 #ifndef CMD_INTERFACE_MULTI_HANDLER_MOCK_H_
 #define CMD_INTERFACE_MULTI_HANDLER_MOCK_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "cmd_interface/cmd_interface_multi_handler.h"
+#include <stdint.h>
 #include "mock.h"
+#include "cmd_interface/cmd_interface_multi_handler.h"
 
 
 /**
@@ -26,4 +26,4 @@ int cmd_interface_multi_handler_mock_validate_and_release (
 	struct cmd_interface_multi_handler_mock *mock);
 
 
-#endif /* CMD_INTERFACE_MULTI_HANDLER_MOCK_H_ */
+#endif	/* CMD_INTERFACE_MULTI_HANDLER_MOCK_H_ */

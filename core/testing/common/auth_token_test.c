@@ -4045,6 +4045,7 @@ static void auth_token_test_invalidate_null (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (auth_token);
 
 TEST (auth_token_test_init);
@@ -4157,3 +4158,4 @@ TEST (auth_token_test_invalidate_dynamic_buffer_static_init);
 TEST (auth_token_test_invalidate_null);
 
 TEST_SUITE_END;
+// *INDENT-ON*

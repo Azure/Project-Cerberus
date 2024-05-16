@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "aes_mock.h"
 
@@ -69,9 +69,9 @@ static int aes_mock_decrypt_data (struct aes_engine *engine, const uint8_t *ciph
 }
 
 static int aes_mock_decrypt_with_add_data (struct aes_engine *engine, const uint8_t *ciphertext,
-	size_t length, const uint8_t *tag, const uint8_t *iv, size_t iv_length, 
-	const uint8_t *additional_data, size_t additional_data_length,
-	uint8_t *plaintext, size_t out_length)
+	size_t length, const uint8_t *tag, const uint8_t *iv, size_t iv_length,
+	const uint8_t *additional_data, size_t additional_data_length, uint8_t *plaintext,
+	size_t out_length)
 {
 	struct aes_engine_mock *mock = (struct aes_engine_mock*) engine;
 
@@ -79,9 +79,9 @@ static int aes_mock_decrypt_with_add_data (struct aes_engine *engine, const uint
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, aes_mock_decrypt_with_add_data, engine, MOCK_ARG_PTR_CALL (ciphertext),
-		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (tag), MOCK_ARG_PTR_CALL (iv),
-		MOCK_ARG_CALL (iv_length), MOCK_ARG_PTR_CALL (additional_data),
+	MOCK_RETURN (&mock->mock, aes_mock_decrypt_with_add_data, engine,
+		MOCK_ARG_PTR_CALL (ciphertext),	MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (tag),
+		MOCK_ARG_PTR_CALL (iv),	MOCK_ARG_CALL (iv_length), MOCK_ARG_PTR_CALL (additional_data),
 		MOCK_ARG_CALL (additional_data_length), MOCK_ARG_PTR_CALL (plaintext),
 		MOCK_ARG_CALL (out_length));
 }
@@ -139,7 +139,6 @@ static const char* aes_mock_arg_name_map (void *func, int arg)
 
 			case 1:
 				return "length";
-
 		}
 	}
 	else if (func == aes_mock_encrypt_data) {
@@ -167,7 +166,6 @@ static const char* aes_mock_arg_name_map (void *func, int arg)
 
 			case 7:
 				return "tag_length";
-
 		}
 	}
 	else if (func == aes_mock_encrypt_with_add_data) {
@@ -201,7 +199,6 @@ static const char* aes_mock_arg_name_map (void *func, int arg)
 
 			case 9:
 				return "tag_length";
-
 		}
 	}
 	else if (func == aes_mock_decrypt_data) {

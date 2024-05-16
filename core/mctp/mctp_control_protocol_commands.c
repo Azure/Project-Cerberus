@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <math.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
-#include <math.h>
-#include "platform_api.h"
-#include "cmd_interface/device_manager.h"
 #include "mctp_base_protocol.h"
-#include "mctp_logging.h"
 #include "mctp_control_protocol.h"
 #include "mctp_control_protocol_commands.h"
+#include "mctp_logging.h"
+#include "platform_api.h"
+#include "cmd_interface/device_manager.h"
 
 
 /**
@@ -327,7 +327,7 @@ int mctp_control_protocol_process_get_message_type_support_response (
 
 	if ((response->length <= sizeof (struct mctp_control_get_message_type_response)) ||
 		(response->length !=
-			mctp_control_get_message_type_response_length (rsp->message_type_count))) {
+		mctp_control_get_message_type_response_length (rsp->message_type_count))) {
 		return CMD_HANDLER_MCTP_CTRL_BAD_LENGTH;
 	}
 
@@ -446,7 +446,6 @@ int mctp_control_protocol_process_get_vendor_def_msg_support_response (
 
 		default:
 			return CMD_HANDLER_MCTP_CTRL_OUT_OF_RANGE;
-
 	}
 
 	if (response->length != expected_len) {
@@ -509,7 +508,7 @@ int mctp_control_protocol_process_get_routing_table_entries_response (
 
 	if ((response->length <= sizeof (struct mctp_control_get_routing_table_entries_response)) ||
 		(response->length !=
-			mctp_control_get_routing_table_entries_response_length (rsp->num_entries))) {
+		mctp_control_get_routing_table_entries_response_length (rsp->num_entries))) {
 		return CMD_HANDLER_MCTP_CTRL_BAD_LENGTH;
 	}
 

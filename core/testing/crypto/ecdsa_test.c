@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
 #include "crypto/ecdsa.h"
 #include "testing/crypto/ecc_testing.h"
 #include "testing/crypto/hash_testing.h"
-#include "testing/mock/crypto/hash_mock.h"
 #include "testing/engines/hash_testing_engine.h"
+#include "testing/mock/crypto/hash_mock.h"
 
 
 TEST_SUITE_LABEL ("ecdsa");
@@ -421,8 +421,8 @@ int ecdsa_testing_expect_deterministic_k_drbg_instantiate (struct hash_engine_mo
 
 	length = hash_get_hash_length (hmac_algo);
 
-	status = hash_mock_expect_hmac_init (hash, ECDSA_TESTING_DETERMINISTIC_K_DRBG_INITIAL_K,
-		length, hmac_algo);
+	status = hash_mock_expect_hmac_init (hash, ECDSA_TESTING_DETERMINISTIC_K_DRBG_INITIAL_K, length,
+		hmac_algo);
 
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
 		MOCK_ARG_PTR_CONTAINS (ECDSA_TESTING_DETERMINISTIC_K_DRBG_INITIAL_V, length),
@@ -1723,8 +1723,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_second_k_key_hmac_update_v_
 
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_UPDATE_FAILED,
 		MOCK_ARG_PTR_CONTAINS (ECDSA_TESTING_DETERMINISTIC_K_DRBG_ECC256_K_OUT_0,
-			SHA256_HASH_LENGTH),
-		MOCK_ARG (SHA256_HASH_LENGTH));
+		SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 
 	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
 
@@ -1774,8 +1773,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_second_k_key_hmac_update_oc
 
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (ECDSA_TESTING_DETERMINISTIC_K_DRBG_ECC256_K_OUT_0,
-			SHA256_HASH_LENGTH),
-		MOCK_ARG (SHA256_HASH_LENGTH));
+		SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_UPDATE_FAILED,
 		MOCK_ARG_PTR_CONTAINS (&octet, 1), MOCK_ARG (1));
@@ -1827,8 +1825,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_second_k_key_hmac_finish_er
 
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (ECDSA_TESTING_DETERMINISTIC_K_DRBG_ECC256_K_OUT_0,
-			SHA256_HASH_LENGTH),
-		MOCK_ARG (SHA256_HASH_LENGTH));
+		SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&octet, 1), MOCK_ARG (1));
@@ -1883,8 +1880,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_second_k_value_hmac_error (
 
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (ECDSA_TESTING_DETERMINISTIC_K_DRBG_ECC256_K_OUT_0,
-			SHA256_HASH_LENGTH),
-		MOCK_ARG (SHA256_HASH_LENGTH));
+		SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&octet, 1), MOCK_ARG (1));

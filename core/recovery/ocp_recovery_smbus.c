@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "ocp_recovery_smbus.h"
 #include "recovery_logging.h"
@@ -117,11 +117,9 @@ void ocp_recovery_smbus_stop (const struct ocp_recovery_smbus *smbus)
 
 	/* If no data was received, this was a block read command and there is nothing to do here. */
 	if (smbus->state->rx_bytes > 0) {
-
 		/* In order to have received a valid command, there needs to be at least the specified
 		 * number of bytes plus an extra byte for the byte count value. */
 		if (smbus->state->rx_bytes > smbus->state->cmd.block_cmd.byte_count) {
-
 			/* If there is at least one extra byte, the command has a PEC byte. */
 			if (smbus->state->rx_bytes >= (smbus->state->cmd.block_cmd.byte_count + 2)) {
 				smbus->state->crc = checksum_update_smbus_crc8 (smbus->state->crc,
@@ -195,6 +193,7 @@ int ocp_recovery_smbus_receive_byte (const struct ocp_recovery_smbus *smbus, uin
 		if (status != 0) {
 			/* Mark the current command as invalid. */
 			smbus->state->rx_bytes = OCP_RECOVERY_SMBUS_COMMAND_CODE_INVALID;
+
 			return (status == OCP_RECOVERY_DEVICE_NACK) ? OCP_RECOVERY_SMBUS_NACK : 0;
 		}
 	}

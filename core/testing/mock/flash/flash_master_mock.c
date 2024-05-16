@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "flash_master_mock.h"
 #include "flash/flash_common.h"
@@ -517,8 +517,7 @@ static int flash_master_mock_expect_erase_flash_ext (struct flash_master_mock *m
 {
 	int status;
 
-	status = flash_master_mock_expect_rx_xfer (mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
+	status = flash_master_mock_expect_rx_xfer (mock, 0, &WIP_STATUS, 1,	FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_xfer (mock, 0, FLASH_EXP_WRITE_ENABLE);
 	if (!addr4) {
 		status |= flash_master_mock_expect_xfer (mock, 0, FLASH_EXP_ERASE_CMD (0xd8, addr));
@@ -527,8 +526,7 @@ static int flash_master_mock_expect_erase_flash_ext (struct flash_master_mock *m
 		status |= flash_master_mock_expect_xfer (mock, 0,
 			FLASH_EXP_ERASE_4B_CMD ((addr4 == 1) ? 0xd8 : 0xdc, addr));
 	}
-	status |= flash_master_mock_expect_rx_xfer (mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (mock, 0, &WIP_STATUS, 1, FLASH_EXP_READ_STATUS_REG);
 
 	return status;
 }
@@ -588,8 +586,7 @@ static int flash_master_mock_expect_erase_flash_sector_ext (struct flash_master_
 {
 	int status;
 
-	status = flash_master_mock_expect_rx_xfer (mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
+	status = flash_master_mock_expect_rx_xfer (mock, 0, &WIP_STATUS, 1,	FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_xfer (mock, 0, FLASH_EXP_WRITE_ENABLE);
 	if (!addr4) {
 		status |= flash_master_mock_expect_xfer (mock, 0, FLASH_EXP_ERASE_CMD (0x20, addr));
@@ -598,8 +595,7 @@ static int flash_master_mock_expect_erase_flash_sector_ext (struct flash_master_
 		status |= flash_master_mock_expect_xfer (mock, 0,
 			FLASH_EXP_ERASE_4B_CMD ((addr4 == 1) ? 0x20 : 0x21, addr));
 	}
-	status |= flash_master_mock_expect_rx_xfer (mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (mock, 0, &WIP_STATUS, 1, FLASH_EXP_READ_STATUS_REG);
 
 	return status;
 }
@@ -794,12 +790,10 @@ int flash_master_mock_expect_chip_erase (struct flash_master_mock *mock)
 {
 	int status;
 
-	status = flash_master_mock_expect_rx_xfer (mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
+	status = flash_master_mock_expect_rx_xfer (mock, 0, &WIP_STATUS, 1,	FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_xfer (mock, 0, FLASH_EXP_WRITE_ENABLE);
 	status |= flash_master_mock_expect_xfer (mock, 0, FLASH_EXP_OPCODE (0xc7));
-	status |= flash_master_mock_expect_rx_xfer (mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (mock, 0, &WIP_STATUS, 1, FLASH_EXP_READ_STATUS_REG);
 
 	return status;
 }
@@ -1263,9 +1257,7 @@ int flash_master_mock_expect_write_ext (struct flash_master_mock *flash, uint32_
 	int status;
 	int idx;
 
-
-	status = flash_master_mock_expect_rx_xfer (flash, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
+	status = flash_master_mock_expect_rx_xfer (flash, 0, &WIP_STATUS, 1, FLASH_EXP_READ_STATUS_REG);
 
 	for (idx = 0; remaining > 0; ++idx) {
 		end = address + remaining;

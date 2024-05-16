@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "attestation_requester_handler.h"
 #include "common/unused.h"
@@ -22,7 +22,7 @@ void attestation_requester_handler_execute (const struct periodic_task_handler *
 		(const struct attestation_requester_handler*) handler;
 
 	attestation_requester_discovery_and_attestation_loop (task->attestation, task->pcr,
-			task->measurement, task->measurement_version);
+		task->measurement, task->measurement_version);
 
 	attestation_requestor_wait_for_next_action (task->attestation);
 }

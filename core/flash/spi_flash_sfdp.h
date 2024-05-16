@@ -4,10 +4,10 @@
 #ifndef SPI_FLASH_SFDP_H_
 #define SPI_FLASH_SFDP_H_
 
-#include <stdint.h>
 #include <stdbool.h>
-#include "status/rot_status.h"
+#include <stdint.h>
 #include "flash_master.h"
+#include "status/rot_status.h"
 
 
 #pragma pack(push,1)
@@ -15,12 +15,12 @@
  * SFDP parameter header format.
  */
 struct spi_flash_sfdp_parameter_header {
-	uint8_t id_lsb;					/**< LSB of the parameter identifier. */
-	uint8_t minor_revision;			/**< Minor revision of the parameter table. */
-	uint8_t major_revision;			/**< Major revision of the parameter table. */
-	uint8_t length;					/**< Length of the parameter table, in dwords. */
-	uint8_t table_pointer[3];		/**< Address of the parameter table. */
-	uint8_t id_msb;					/**< MSB of the parameter identifier. */
+	uint8_t id_lsb;				/**< LSB of the parameter identifier. */
+	uint8_t minor_revision;		/**< Minor revision of the parameter table. */
+	uint8_t major_revision;		/**< Major revision of the parameter table. */
+	uint8_t length;				/**< Length of the parameter table, in dwords. */
+	uint8_t table_pointer[3];	/**< Address of the parameter table. */
+	uint8_t id_msb;				/**< MSB of the parameter identifier. */
 };
 
 /**
@@ -34,6 +34,7 @@ struct spi_flash_sfdp_header {
 	uint8_t access_protocol;							/**< SFDP access protocol. */
 	struct spi_flash_sfdp_parameter_header parameter0;	/**< Header for the first parameter table. */
 };
+
 #pragma pack(pop)
 
 /**
@@ -70,9 +71,9 @@ struct spi_flash_sfdp_basic_table {
  * Details necessary to execute read commands.
  */
 struct spi_flash_sfdp_read_cmd {
-	uint8_t opcode;								/**< The opcode to use for the read. */
-	uint8_t dummy_bytes;						/**< The number of dummy bytes. */
-	uint8_t mode_bytes;							/**< The number of mode bytes. */
+	uint8_t opcode;			/**< The opcode to use for the read. */
+	uint8_t dummy_bytes;	/**< The number of dummy bytes. */
+	uint8_t mode_bytes;		/**< The number of mode bytes. */
 };
 
 /**
@@ -101,13 +102,13 @@ enum spi_flash_sfdp_4byte_addressing {
  * Mechanisms defined for enabling QSPI.
  */
 enum spi_flash_sfdp_quad_enable {
-	SPI_FLASH_SFDP_QUAD_NO_QE_BIT = 0,				/**< No quad enable bit is necessary. */
-	SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2,				/**< Quad enable is bit 1 in status register 2. */
-	SPI_FLASH_SFDP_QUAD_QE_BIT6_SR1,				/**< Quad enable is bit 6 in status register 1. */
-	SPI_FLASH_SFDP_QUAD_QE_BIT7_SR2,				/**< Quad enable is bit 7 in status register 2. */
-	SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_NO_CLR,			/**< Quad enable is bit 1 in status register 2, without inadvertent clearing. */
-	SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35,				/**< Quad enable is bit 1 in status register 2, using 35 to read. */
-	SPI_FLASH_SFDP_QUAD_NO_QE_HOLD_DISABLE = 8,		/**< No quad enable bit, but HOLD/RESET can be disabled. */
+	SPI_FLASH_SFDP_QUAD_NO_QE_BIT = 0,			/**< No quad enable bit is necessary. */
+	SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2,			/**< Quad enable is bit 1 in status register 2. */
+	SPI_FLASH_SFDP_QUAD_QE_BIT6_SR1,			/**< Quad enable is bit 6 in status register 1. */
+	SPI_FLASH_SFDP_QUAD_QE_BIT7_SR2,			/**< Quad enable is bit 7 in status register 2. */
+	SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_NO_CLR,		/**< Quad enable is bit 1 in status register 2, without inadvertent clearing. */
+	SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35,			/**< Quad enable is bit 1 in status register 2, using 35 to read. */
+	SPI_FLASH_SFDP_QUAD_NO_QE_HOLD_DISABLE = 8,	/**< No quad enable bit, but HOLD/RESET can be disabled. */
 };
 
 
@@ -160,4 +161,4 @@ enum {
 };
 
 
-#endif /* SPI_FLASH_SFDP_H_ */
+#endif	/* SPI_FLASH_SFDP_H_ */

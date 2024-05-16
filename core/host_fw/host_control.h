@@ -4,8 +4,8 @@
 #ifndef HOST_CONTROL_H_
 #define HOST_CONTROL_H_
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "status/rot_status.h"
 
 
@@ -81,4 +81,4 @@ enum {
 };
 
 
-#endif /* HOST_CONTROL_H_ */
+#endif	/* HOST_CONTROL_H_ */

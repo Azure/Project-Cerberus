@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See LICENSE in the project root.
  */
 
-#include <string.h>
 #include <stdbool.h>
+#include <string.h>
 #include "asn1/base64.h"
 #pragma once
 
@@ -21,11 +21,10 @@ extern "C" {
 // length array for nested SEQUENCES (which imposes a nesting limit).
 // The buffer use for encoded data is caller-allocated.
 //
-typedef struct
-{
-	uint8_t *Buffer;      // Encoded data
-	size_t Length;        // Size, in bytes, of Buffer
-	size_t Position;      // Current buffer position
+typedef struct {
+	uint8_t *Buffer;	// Encoded data
+	size_t Length;		// Size, in bytes, of Buffer
+	size_t Position;	// Current buffer position
 
 	// SETS, SEQUENCES, etc. can be nested. This array contains the start of
 	// the payload for collection types and is set by  DERStartSequenceOrSet().
@@ -36,202 +35,106 @@ typedef struct
 
 // We only have a small subset of potential PEM encodings
 enum CertType {
-    CERT_TYPE = 0,
-    PUBLICKEY_TYPE,
-    ECC_PRIVATEKEY_TYPE,
-    CERT_REQ_TYPE,
-    LAST_CERT_TYPE
+	CERT_TYPE = 0,
+	PUBLICKEY_TYPE,
+	ECC_PRIVATEKEY_TYPE,
+	CERT_REQ_TYPE,
+	LAST_CERT_TYPE,
 };
 
-void
-DERInitContext(
-    DERBuilderContext   *Context,
-    uint8_t             *Buffer,
-    size_t              Length
-);
 
-size_t
-DERGetEncodedLength(
-    DERBuilderContext   *Context
-);
+void DERInitContext (
+	DERBuilderContext *Context, uint8_t *Buffer, size_t Length);
+
+size_t DERGetEncodedLength (
+	DERBuilderContext *Context);
 
 
-int
-DERAddOID(
-    DERBuilderContext   *Context,
-    const int           *Values
-);
+int DERAddOID (
+	DERBuilderContext *Context, const int *Values);
 
-int
-DERAddEncodedOID(
-    DERBuilderContext   *Context,
-    const uint8_t       *Oid,
-    size_t               OidLength
-);
+int DERAddEncodedOID (
+	DERBuilderContext *Context, const uint8_t *Oid, size_t OidLength);
 
-int
-DERAddString(
-    DERBuilderContext   *Context,
-    const char          *Str,
-    uint8_t              Tag
-);
+int DERAddString (
+	DERBuilderContext *Context, const char *Str, uint8_t Tag);
 
-int
-DERAddUTF8String(
-    DERBuilderContext   *Context,
-    const char          *Str
-);
+int DERAddUTF8String (
+	DERBuilderContext *Context, const char *Str);
 
-int
-DERAddPrintableString(
-    DERBuilderContext   *Context,
-    const char          *Str
-);
+int DERAddPrintableString (
+	DERBuilderContext *Context, const char *Str);
 
-int
-DERAddIA5String(
-    DERBuilderContext   *Context,
-    const char          *Str
-);
+int DERAddIA5String (
+	DERBuilderContext *Context, const char *Str);
 
-int
-DERAddTime(
-    DERBuilderContext   *Context,
-    const char          *Str
-);
+int DERAddTime (
+	DERBuilderContext *Context, const char *Str);
 
-int
-DERAddIntegerFromArray(
-    DERBuilderContext   *Context,
-    const uint8_t       *Val,
-    uint32_t            NumBytes
-);
+int DERAddIntegerFromArray (
+	DERBuilderContext *Context, const uint8_t *Val, uint32_t NumBytes);
 
-int
-DERAddTaggedInteger(
-    DERBuilderContext   *Context,
-    int                  Val,
-    uint8_t              Tag
-);
+int DERAddTaggedInteger (
+	DERBuilderContext *Context, int Val, uint8_t Tag);
 
-int
-DERAddInteger(
-    DERBuilderContext   *Context,
-    int                 Val
-);
+int DERAddInteger (
+	DERBuilderContext *Context, int Val);
 
-int
-DERAddShortExplicitInteger(
-    DERBuilderContext   *Context,
-    int                  Val
-);
+int DERAddShortExplicitInteger (
+	DERBuilderContext *Context, int Val);
 
-int
-DERAddBoolean(
-    DERBuilderContext   *Context,
-    bool                 Val
-);
+int DERAddBoolean (
+	DERBuilderContext *Context, bool Val);
 
 
-int
-DERAddBitString(
-    DERBuilderContext   *Context,
-    const uint8_t       *BitString,
-    size_t              BitStringNumBytes
-);
+int DERAddBitString (
+	DERBuilderContext *Context, const uint8_t *BitString, size_t BitStringNumBytes);
 
-int
-DERAddNamedBitString(
-    DERBuilderContext   *Context,
-    const uint8_t       *BitString,
-    size_t              BitStringNumBytes,
-	size_t				bits
-);
+int DERAddNamedBitString (
+	DERBuilderContext *Context, const uint8_t *BitString, size_t BitStringNumBytes,	size_t bits);
 
-int
-DERAddOctetString(
-    DERBuilderContext   *Context,
-    const uint8_t       *OctetString,
-    size_t              OctetStringLen
-);
+int DERAddOctetString (
+	DERBuilderContext *Context, const uint8_t *OctetString, size_t OctetStringLen);
 
-int
-DERStartConstructed(
-    DERBuilderContext   *Context,
-    uint8_t              Tag
-);
+int DERStartConstructed (
+	DERBuilderContext *Context, uint8_t Tag);
 
-int
-DERStartSequenceOrSet(
-    DERBuilderContext   *Context,
-    bool                 Sequence
-);
+int DERStartSequenceOrSet (
+	DERBuilderContext *Context, bool Sequence);
 
-int
-DERStartExplicit(
-    DERBuilderContext   *Context,
-    uint32_t             Num
-);
+int DERStartExplicit (
+	DERBuilderContext *Context, uint32_t Num);
 
-int
-DERAddAuthKeyBitString(
-    DERBuilderContext   *Context,
-    const uint8_t       *BitString,
-    size_t              BitStringLen
-);
+int DERAddAuthKeyBitString (
+	DERBuilderContext *Context, const uint8_t *BitString, size_t BitStringLen);
 
-int
-DERStartEnvelopingOctetString(
-    DERBuilderContext   *Context
-);
+int DERStartEnvelopingOctetString (
+	DERBuilderContext *Context);
 
-int
-DERStartEnvelopingBitString(
-    DERBuilderContext   *Context
-);
+int DERStartEnvelopingBitString (
+	DERBuilderContext *Context);
 
-int
-DERPopNesting(
-    DERBuilderContext   *Context
-);
+int DERPopNesting (
+	DERBuilderContext *Context);
 
-int
-DERGetNestingDepth(
-    DERBuilderContext   *Context
-);
+int DERGetNestingDepth (
+	DERBuilderContext *Context);
 
-int
-DERTbsToCert(
-    DERBuilderContext   *Context
-);
+int DERTbsToCert (
+	DERBuilderContext *Context);
 
-int
-DERtoPEM(
-	DERBuilderContext	 *Context,
-	uint32_t			 Type,
-	char				 *PEM,
-	uint32_t			 *Length,
-	struct base64_engine *base64
-);
+int DERtoPEM (
+	DERBuilderContext *Context,	uint32_t Type, char *PEM, uint32_t *Length,
+	struct base64_engine *base64);
 
-int
-DERAddNull(
-    DERBuilderContext   *Context
-);
+int DERAddNull (
+	DERBuilderContext *Context);
 
-int
-DERAddPublicKey(
-	DERBuilderContext	*Context,
-	const uint8_t		*key,
-	size_t				key_len
-);
+int DERAddPublicKey (
+	DERBuilderContext *Context,	const uint8_t *key,	size_t key_len);
 
-int
-DERAddDER(
-    DERBuilderContext   *Context,
-    const uint8_t       *der,
-    size_t              length
-);
+int DERAddDER (
+	DERBuilderContext *Context, const uint8_t *der, size_t length);
 
 #ifdef __cplusplus
 }

@@ -11,7 +11,7 @@
  * Handler for firmware update requests.  No revocation flows will be executed.
  */
 struct firmware_update_handler_no_revocation {
-	struct firmware_update_handler base;			/**< Base update handler. */
+	struct firmware_update_handler base;	/**< Base update handler. */
 };
 
 
@@ -27,4 +27,4 @@ void firmware_update_handler_no_revocation_release (
 	const struct firmware_update_handler_no_revocation *handler);
 
 
-#endif /* FIRMWARE_UPDATE_HANDLER_NO_REVOCATION_H_ */
+#endif	/* FIRMWARE_UPDATE_HANDLER_NO_REVOCATION_H_ */

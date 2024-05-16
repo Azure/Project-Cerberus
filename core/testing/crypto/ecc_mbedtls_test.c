@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
 #include "crypto/ecc_mbedtls.h"
 #include "testing/crypto/ecc_testing.h"
-#include "testing/crypto/signature_testing.h"
 #include "testing/crypto/rsa_testing.h"
+#include "testing/crypto/signature_testing.h"
 
 
 TEST_SUITE_LABEL ("ecc_mbedtls");
@@ -128,8 +128,7 @@ static void ecc_mbedtls_test_public_key_init_key_pair_and_verify_extra_buffer (C
 	status = ecc_mbedtls_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_key_pair (&engine.base, privkey, sizeof (privkey), NULL,
-		&pub_key);
+	status = engine.base.init_key_pair (&engine.base, privkey, sizeof (privkey), NULL, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, pub_key.context);
 
@@ -210,8 +209,7 @@ static void ecc_mbedtls_test_public_key_init_key_pair_and_verify_p384_extra_buff
 	status = ecc_mbedtls_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_key_pair (&engine.base, privkey, sizeof (privkey), NULL,
-		&pub_key);
+	status = engine.base.init_key_pair (&engine.base, privkey, sizeof (privkey), NULL, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, pub_key.context);
 
@@ -293,8 +291,7 @@ static void ecc_mbedtls_test_public_key_init_key_pair_and_verify_p521_extra_buff
 	status = ecc_mbedtls_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_key_pair (&engine.base, privkey, sizeof (privkey), NULL,
-		&pub_key);
+	status = engine.base.init_key_pair (&engine.base, privkey, sizeof (privkey), NULL, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, pub_key.context);
 
@@ -817,16 +814,15 @@ static void ecc_mbedtls_test_init_key_pair_null (CuTest *test)
 	status = ecc_mbedtls_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_key_pair (NULL, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		&priv_key, &pub_key);
+	status = engine.base.init_key_pair (NULL, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,	&priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_key_pair (&engine.base, NULL,
-		ECC_PRIVKEY_DER_LEN, &priv_key, &pub_key);
+	status = engine.base.init_key_pair (&engine.base, NULL,	ECC_PRIVKEY_DER_LEN, &priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, 0,
-		&priv_key, &pub_key);
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, 0, &priv_key, &pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	ecc_mbedtls_release (&engine);
@@ -1069,20 +1065,16 @@ static void ecc_mbedtls_test_init_public_key_null (CuTest *test)
 	status = ecc_mbedtls_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_public_key (NULL, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
-		&pub_key);
+	status = engine.base.init_public_key (NULL, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,	&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_public_key (&engine.base, NULL, ECC_PUBKEY_DER_LEN,
-		&pub_key);
+	status = engine.base.init_public_key (&engine.base, NULL, ECC_PUBKEY_DER_LEN, &pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, 0,
-		&pub_key);
+	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, 0, &pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
-		NULL);
+	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,	NULL);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	ecc_mbedtls_release (&engine);
@@ -1324,6 +1316,7 @@ static void ecc_mbedtls_test_generate_derived_key_pair_and_sign_and_verify_p384 
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
+
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 	int out_len;
 	uint8_t out[ECC_TESTING_ECC384_DSA_MAX_LENGTH * 2];
@@ -1364,6 +1357,7 @@ static void ecc_mbedtls_test_generate_derived_key_pair_and_sign_and_verify_p521 
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
+
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 	int out_len;
 	uint8_t out[ECC_TESTING_ECC521_DSA_MAX_LENGTH * 2];
@@ -1455,16 +1449,16 @@ static void ecc_mbedtls_test_generate_derived_key_pair_null (CuTest *test)
 	status = ecc_mbedtls_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_derived_key_pair (NULL, ECC_PRIVKEY, ECC_PRIVKEY_LEN,
-		&priv_key, &pub_key);
+	status = engine.base.generate_derived_key_pair (NULL, ECC_PRIVKEY, ECC_PRIVKEY_LEN,	&priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.generate_derived_key_pair (&engine.base, NULL, ECC_PRIVKEY_LEN,
-		&priv_key, &pub_key);
+	status = engine.base.generate_derived_key_pair (&engine.base, NULL, ECC_PRIVKEY_LEN, &priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.generate_derived_key_pair (&engine.base, ECC_PRIVKEY, 0,
-		&priv_key, &pub_key);
+	status = engine.base.generate_derived_key_pair (&engine.base, ECC_PRIVKEY, 0, &priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	ecc_mbedtls_release (&engine);
@@ -1598,6 +1592,7 @@ static void ecc_mbedtls_test_generate_key_pair_and_sign_and_verify_p384 (CuTest 
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
+
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 	int out_len;
 	uint8_t out[ECC_TESTING_ECC384_DSA_MAX_LENGTH * 2];
@@ -1637,6 +1632,7 @@ static void ecc_mbedtls_test_generate_key_pair_and_sign_and_verify_p521 (CuTest 
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
+
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 	int out_len;
 	uint8_t out[ECC_TESTING_ECC521_DSA_MAX_LENGTH * 2];
@@ -1766,20 +1762,16 @@ static void ecc_mbedtls_test_sign_null (CuTest *test)
 		&priv_key, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.sign (NULL, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
-		sizeof (out));
+	status = engine.base.sign (NULL, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sign (&engine.base, NULL, SIG_HASH_TEST, SIG_HASH_LEN, out,
-		sizeof (out));
+	status = engine.base.sign (&engine.base, NULL, SIG_HASH_TEST, SIG_HASH_LEN, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sign (&engine.base, &priv_key, NULL, SIG_HASH_LEN, out,
-		sizeof (out));
+	status = engine.base.sign (&engine.base, &priv_key, NULL, SIG_HASH_LEN, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, 0, out,
-		sizeof (out));
+	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, 0, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL,
@@ -1859,24 +1851,24 @@ static void ecc_mbedtls_test_verify_null (CuTest *test)
 		&priv_key, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.verify (NULL, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
-		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+	status = engine.base.verify (NULL, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.verify (&engine.base, NULL, SIG_HASH_TEST, SIG_HASH_LEN,
 		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.verify (&engine.base, &pub_key, NULL, SIG_HASH_LEN,
-		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+	status = engine.base.verify (&engine.base, &pub_key, NULL, SIG_HASH_LEN, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, 0,
-		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, 0, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
-		NULL, ECC_SIG_TEST_LEN);
+	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
@@ -1903,13 +1895,13 @@ static void ecc_mbedtls_test_verify_corrupt_signature (CuTest *test)
 	status = ecc_mbedtls_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		NULL, &pub_key);
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,	NULL,
+		&pub_key);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
-		bad_sig, sizeof (bad_sig));
+	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, bad_sig,
+		sizeof (bad_sig));
 	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
 
 	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
@@ -2443,16 +2435,13 @@ static void ecc_mbedtls_test_compute_shared_secret_null (CuTest *test)
 		&priv_key, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.compute_shared_secret (NULL, &priv_key, &pub_key, out,
-		sizeof (out));
+	status = engine.base.compute_shared_secret (NULL, &priv_key, &pub_key, out,	sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.compute_shared_secret (&engine.base, NULL, &pub_key, out,
-		sizeof (out));
+	status = engine.base.compute_shared_secret (&engine.base, NULL, &pub_key, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.compute_shared_secret (&engine.base, &priv_key, NULL, out,
-		sizeof (out));
+	status = engine.base.compute_shared_secret (&engine.base, &priv_key, NULL, out,	sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.compute_shared_secret (&engine.base, &priv_key, &pub_key, NULL,
@@ -2966,6 +2955,7 @@ static void ecc_mbedtls_test_get_public_key_der_private_key (CuTest *test)
 }
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (ecc_mbedtls);
 
 TEST (ecc_mbedtls_test_init);
@@ -3105,3 +3095,4 @@ TEST (ecc_mbedtls_test_get_public_key_der_null);
 TEST (ecc_mbedtls_test_get_public_key_der_private_key);
 
 TEST_SUITE_END;
+// *INDENT-ON*

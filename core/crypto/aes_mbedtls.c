@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "aes_mbedtls.h"
-#include "logging/debug_log.h"
 #include "crypto_logging.h"
+#include "logging/debug_log.h"
 
 
 static int aes_mbedtls_set_key (struct aes_engine *engine, const uint8_t *key, size_t length)
@@ -123,8 +123,8 @@ static int aes_mbedtls_decrypt_data (struct aes_engine *engine, const uint8_t *c
 	size_t length, const uint8_t *tag, const uint8_t *iv, size_t iv_length, uint8_t *plaintext,
 	size_t out_length)
 {
-	return aes_mbedtls_decrypt_with_add_data (engine, ciphertext, length, tag, iv, iv_length,
-		NULL, 0, plaintext, out_length);
+	return aes_mbedtls_decrypt_with_add_data (engine, ciphertext, length, tag, iv, iv_length, NULL,
+		0, plaintext, out_length);
 }
 
 /**

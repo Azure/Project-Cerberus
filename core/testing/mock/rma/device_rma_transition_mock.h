@@ -4,8 +4,8 @@
 #ifndef DEVICE_RMA_TRANSITION_MOCK_H_
 #define DEVICE_RMA_TRANSITION_MOCK_H_
 
-#include "rma/device_rma_transition.h"
 #include "mock.h"
+#include "rma/device_rma_transition.h"
 
 
 /**
@@ -23,4 +23,4 @@ void device_rma_transition_mock_release (struct device_rma_transition_mock *mock
 int device_rma_transition_mock_validate_and_release (struct device_rma_transition_mock *mock);
 
 
-#endif /* DEVICE_RMA_TRANSITION_MOCK_H_ */
+#endif	/* DEVICE_RMA_TRANSITION_MOCK_H_ */

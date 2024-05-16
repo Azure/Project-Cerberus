@@ -6,8 +6,8 @@
 
 #include <stdint.h>
 #include "manifest.h"
-#include "crypto/hash.h"
 #include "attestation/pcr_store.h"
+#include "crypto/hash.h"
 
 
 /**
@@ -15,16 +15,16 @@
  * as part of a parent module.
  */
 struct manifest_pcr {
-	struct hash_engine *hash;						/**< The hash engine for generating measurements. */
-	struct pcr_store *store;						/**< Storage for PCR measurements. */
-	uint16_t manifest_measurement;					/**< The identifier for the manifest measurement. */
-	uint16_t manifest_id_measurement;				/**< The identifier for manifest ID measurement. */
-	uint16_t manifest_platform_id_measurement;		/**< The identifier for manifest platform ID measurement. */
+	struct hash_engine *hash;					/**< The hash engine for generating measurements. */
+	struct pcr_store *store;					/**< Storage for PCR measurements. */
+	uint16_t manifest_measurement;				/**< The identifier for the manifest measurement. */
+	uint16_t manifest_id_measurement;			/**< The identifier for manifest ID measurement. */
+	uint16_t manifest_platform_id_measurement;	/**< The identifier for manifest platform ID measurement. */
 };
 
 
-int manifest_pcr_init (struct manifest_pcr *pcr, struct hash_engine *hash,
-	struct pcr_store *store, uint16_t manifest_measurement, uint16_t manifest_id_measurement,
+int manifest_pcr_init (struct manifest_pcr *pcr, struct hash_engine *hash, struct pcr_store *store,
+	uint16_t manifest_measurement, uint16_t manifest_id_measurement,
 	uint16_t manifest_platform_id_measurement, int error);
 void manifest_pcr_release (struct manifest_pcr *pcr);
 
@@ -32,4 +32,4 @@ void manifest_pcr_record_manifest_measurement (const struct manifest_pcr *pcr,
 	struct manifest *active);
 
 
-#endif /* MANIFEST_PCR_H_ */
+#endif	/* MANIFEST_PCR_H_ */

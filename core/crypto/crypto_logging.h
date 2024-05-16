@@ -15,18 +15,18 @@ enum {
 	CRYPTO_LOG_MSG_MBEDTLS_AES_GCM_CRYPT_EC,				/**< mbedTLS failure during AES GCM buffer encryt/decrypt */
 	CRYPTO_LOG_MSG_MBEDTLS_AES_GCM_AUTH_DECRYPT_EC,			/**< mbedTLS failure during AES GCM buffer authenticated decryption */
 	CRYPTO_LOG_MSG_MBEDTLS_PK_INIT_EC,						/**< mbedTLS failure during public key context init */
-	CRYPTO_LOG_MSG_MBEDTLS_PK_PARSE_EC, 					/**< mbedTLS failure during private key parsing */
-	CRYPTO_LOG_MSG_MBEDTLS_PK_PARSE_PUB_EC, 				/**< mbedTLS failure during public key parsing */
-	CRYPTO_LOG_MSG_MBEDTLS_PK_WRITE_KEY_DER_EC, 			/**< mbedTLS failure during private key export to DER structure */
-	CRYPTO_LOG_MSG_MBEDTLS_PK_WRITE_PUBKEY_DER_EC, 			/**< mbedTLS failure during public key export to DER structure */
-	CRYPTO_LOG_MSG_MBEDTLS_PK_SIGN_EC, 						/**< mbedTLS failure during signing */
+	CRYPTO_LOG_MSG_MBEDTLS_PK_PARSE_EC,						/**< mbedTLS failure during private key parsing */
+	CRYPTO_LOG_MSG_MBEDTLS_PK_PARSE_PUB_EC,					/**< mbedTLS failure during public key parsing */
+	CRYPTO_LOG_MSG_MBEDTLS_PK_WRITE_KEY_DER_EC,				/**< mbedTLS failure during private key export to DER structure */
+	CRYPTO_LOG_MSG_MBEDTLS_PK_WRITE_PUBKEY_DER_EC,			/**< mbedTLS failure during public key export to DER structure */
+	CRYPTO_LOG_MSG_MBEDTLS_PK_SIGN_EC,						/**< mbedTLS failure during signing */
 	CRYPTO_LOG_MSG_MBEDTLS_PK_VERIFY_EC,					/**< mbedTLS failure during signature verification */
 	CRYPTO_LOG_MSG_MBEDTLS_ECP_GROUP_COPY_EC,				/**< mbedTLS failure during ECP group copy */
 	CRYPTO_LOG_MSG_MBEDTLS_ECP_COPY_EC,						/**< mbedTLS failure during ECP copy */
-	CRYPTO_LOG_MSG_MBEDTLS_ECP_CHECK_PUB_PRV_EC, 			/**< mbedTLS failure during ECP keypair check */
+	CRYPTO_LOG_MSG_MBEDTLS_ECP_CHECK_PUB_PRV_EC,			/**< mbedTLS failure during ECP keypair check */
 	CRYPTO_LOG_MSG_MBEDTLS_ECP_GROUP_LOAD_EC,				/**< mbedTLS failure during ECP group load */
 	CRYPTO_LOG_MSG_MBEDTLS_ECP_MUL_EC,						/**< mbedTLS failure during ECP multiplication */
-	CRYPTO_LOG_MSG_MBEDTLS_ECP_GEN_KEY_EC, 					/**< mbedTLS failure during ECP key pair generation */
+	CRYPTO_LOG_MSG_MBEDTLS_ECP_GEN_KEY_EC,					/**< mbedTLS failure during ECP key pair generation */
 	CRYPTO_LOG_MSG_MBEDTLS_MPI_READ_BIN_EC,					/**< mbedTLS failure during MPI import from binary */
 	CRYPTO_LOG_MSG_MBEDTLS_MPI_WRITE_BIN_EC,				/**< mbedTLS failure during MPI export from binary */
 	CRYPTO_LOG_MSG_MBEDTLS_ECDH_COMPUTE_SHARED_SECRET_EC,	/**< mbedTLS failure during ECDH shared secret computation */
@@ -59,4 +59,4 @@ enum {
 };
 
 
-#endif //CRYPTO_LOGGING_H_
+#endif	//CRYPTO_LOGGING_H_

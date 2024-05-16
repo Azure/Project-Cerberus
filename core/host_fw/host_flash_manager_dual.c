@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "host_flash_manager_dual.h"
 #include "host_fw_util.h"
@@ -86,11 +86,9 @@ static int host_flash_manager_dual_get_flash_read_write_regions (struct host_fla
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
 	}
 
-	return host_flash_manager_get_flash_read_write_regions (
-		(rw_flash) ?
+	return host_flash_manager_get_flash_read_write_regions ((rw_flash) ?
 			host_flash_manager_dual_get_read_write_flash (manager) :
-			host_flash_manager_dual_get_read_only_flash (manager),
-		pfm, host_rw);
+			host_flash_manager_dual_get_read_only_flash (manager), pfm, host_rw);
 }
 
 static int host_flash_manager_dual_config_spi_filter_flash_type (struct host_flash_manager *manager)
@@ -116,6 +114,7 @@ static int host_flash_manager_dual_config_spi_filter_flash_devices (
 	}
 
 	ro = host_state_manager_get_read_only_flash (dual->host_state);
+
 	return dual->filter->set_ro_cs (dual->filter, ro);
 }
 
@@ -164,7 +163,7 @@ static int host_flash_manager_dual_swap_flash_devices (struct host_flash_manager
 
 	/* Configure the SPI filter to switch the read and write flashes. */
 	rw = (host_state_manager_get_read_only_flash (dual->host_state) == SPI_FILTER_CS_0) ?
-		SPI_FILTER_CS_1 : SPI_FILTER_CS_0;
+			SPI_FILTER_CS_1 : SPI_FILTER_CS_0;
 	status = dual->filter->set_ro_cs (dual->filter, rw);
 	if (status != 0) {
 		return status;

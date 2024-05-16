@@ -30,4 +30,4 @@ int cmd_interface_protocol_mctp_vdm_pci_parse_message (
 	}
 
 
-#endif /* CMD_INTERFACE_PROTOCOL_MCTP_VDM_PCI_STATIC_H_ */
+#endif	/* CMD_INTERFACE_PROTOCOL_MCTP_VDM_PCI_STATIC_H_ */

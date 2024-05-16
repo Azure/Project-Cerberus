@@ -3,8 +3,8 @@
 
 #include <stdbool.h>
 #include <string.h>
-#include "common/common_math.h"
 #include "heap_with_defrag.h"
+#include "common/common_math.h"
 
 
 #define HEAP_WITH_DEFRAG_BLOCK_MAGIC_NUM				0xAA920221
@@ -14,7 +14,7 @@
  *
  * @param ptr Pointer to control block of type struct heap_with_defrag_ctrl_block
  */
-#define HEAP_WITH_DEFRAG_BLOCK_CONTENTS(ptr)			\
+#define HEAP_WITH_DEFRAG_BLOCK_CONTENTS(ptr)            \
 	(((uint8_t*) ptr) + HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN)
 
 /**
@@ -22,7 +22,7 @@
  *
  * @param ptr Pointer to control block of type struct heap_with_defrag_ctrl_block
  */
-#define HEAP_WITH_DEFRAG_BLOCK_END(ptr)					\
+#define HEAP_WITH_DEFRAG_BLOCK_END(ptr)                 \
 	((struct heap_with_defrag_ctrl_block*) (HEAP_WITH_DEFRAG_BLOCK_CONTENTS(ptr) + ptr->size))
 
 /**
@@ -155,6 +155,7 @@ void* heap_with_defrag_allocate_zeroize (size_t num_items, size_t size)
 {
 	size_t total_size = num_items * size;
 	void *block = heap_with_defrag_allocate (total_size);
+
 	if (block != NULL) {
 		memset (block, 0, total_size);
 	}

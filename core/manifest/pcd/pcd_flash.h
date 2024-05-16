@@ -5,10 +5,10 @@
 #define PCD_FLASH_H_
 
 #include <stdint.h>
-#include "platform_config.h"
 #include "pcd.h"
-#include "manifest/manifest_flash.h"
+#include "platform_config.h"
 #include "flash/flash.h"
+#include "manifest/manifest_flash.h"
 
 
 /* Configurable default PCD timeout and retry values.
@@ -36,15 +36,15 @@
 #endif
 #ifndef PCD_FLASH_ATTESTATION_RSP_NOT_READY_MAX_RETRY_DEFAULT
 #define PCD_FLASH_ATTESTATION_RSP_NOT_READY_MAX_RETRY_DEFAULT			3
-#endif /* PCD_FLASH_H_ */
+#endif	/* PCD_FLASH_H_ */
 
 
 /**
  * Defines a PCD that is stored in flash memory.
  */
 struct pcd_flash {
-	struct pcd base;							/**< The base PCD instance. */
-	struct manifest_flash base_flash;			/**< The base PCD flash instance. */
+	struct pcd base;					/**< The base PCD instance. */
+	struct manifest_flash base_flash;	/**< The base PCD flash instance. */
 };
 
 
@@ -54,4 +54,4 @@ int pcd_flash_init (struct pcd_flash *pcd, const struct flash *flash, struct has
 void pcd_flash_release (struct pcd_flash *pcd);
 
 
-#endif //PCD_FLASH_H
+#endif	//PCD_FLASH_H

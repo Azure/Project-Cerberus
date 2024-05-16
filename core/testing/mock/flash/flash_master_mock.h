@@ -4,11 +4,11 @@
 #ifndef FLASH_MASTER_MOCK_H_
 #define FLASH_MASTER_MOCK_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
+#include "mock.h"
 #include "flash/flash_master.h"
 #include "flash/flash_util.h"
-#include "mock.h"
 
 
 /**
@@ -264,7 +264,7 @@ int flash_master_mock_expect_verify_copy_4byte_explicit (struct flash_master_moc
 /**
  * Helper to define an expected command to write data.
  */
-#define	FLASH_EXP_WRITE_CMD(code, addr, dummy, buf, len)	\
+#define	FLASH_EXP_WRITE_CMD(code, addr, dummy, buf, len)    \
 	FLASH_EXP_WRITE_EXT_CMD (code, addr, dummy, 0, buf, len, 0)
 
 /**
@@ -331,7 +331,7 @@ int flash_master_mock_expect_verify_copy_4byte_explicit (struct flash_master_moc
 /**
  * Helper to define an expected command to write data with 4 byte address.
  */
-#define	FLASH_EXP_WRITE_4B_CMD(code, addr, dummy, buf, len)	\
+#define	FLASH_EXP_WRITE_4B_CMD(code, addr, dummy, buf, len) \
 	FLASH_EXP_WRITE_EXT_CMD (code, addr, dummy, 0, buf, len, FLASH_FLAG_4BYTE_ADDRESS)
 
 /**
@@ -348,4 +348,4 @@ int flash_master_mock_expect_verify_copy_4byte_explicit (struct flash_master_moc
 }
 
 
-#endif /* FLASH_MASTER_MOCK_H_ */
+#endif	/* FLASH_MASTER_MOCK_H_ */

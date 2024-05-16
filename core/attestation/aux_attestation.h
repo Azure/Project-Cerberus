@@ -4,21 +4,21 @@
 #ifndef AUX_ATTESTATION_H_
 #define AUX_ATTESTATION_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "platform_config.h"
-#include "status/rot_status.h"
 #include "asn1/x509.h"
 #include "attestation/pcr_store.h"
 #include "cmd_interface/cerberus_protocol_optional_commands.h"
-#include "crypto/rsa.h"
+#include "common/certificate.h"
 #include "crypto/ecc.h"
 #include "crypto/hash.h"
 #include "crypto/rng.h"
-#include "common/certificate.h"
+#include "crypto/rsa.h"
 #include "keystore/keystore.h"
 #include "riot/riot_key_manager.h"
+#include "status/rot_status.h"
 
 
 /* Configurable auxiliary attestation protocol parameters.
@@ -37,7 +37,7 @@
  */
 enum aux_attestation_seed_type {
 	AUX_ATTESTATION_SEED_RSA = CERBERUS_PROTOCOL_UNSEAL_SEED_RSA,	/**< Attestation seed is RSA encrypted. */
-	AUX_ATTESTATION_SEED_ECDH = CERBERUS_PROTOCOL_UNSEAL_SEED_ECDH	/**< Attestation seed is an ECC public key. */
+	AUX_ATTESTATION_SEED_ECDH = CERBERUS_PROTOCOL_UNSEAL_SEED_ECDH,	/**< Attestation seed is an ECC public key. */
 };
 
 /**
@@ -55,7 +55,7 @@ enum aux_attestation_seed_param {
  * Supported encryption and signing key lengths that can be generated.
  */
 enum aux_attestation_key_length {
-	AUX_ATTESTATION_KEY_256BIT = SHA256_HASH_LENGTH		/**< Generate 256-bit signing and encryption keys. */
+	AUX_ATTESTATION_KEY_256BIT = SHA256_HASH_LENGTH,	/**< Generate 256-bit signing and encryption keys. */
 };
 
 /**
@@ -85,6 +85,7 @@ int aux_attestation_set_certificate (struct aux_attestation *aux, uint8_t *cert,
 int aux_attestation_set_static_certificate (struct aux_attestation *aux, const uint8_t *cert,
 	size_t length);
 const struct der_cert* aux_attestation_get_certificate (struct aux_attestation *aux);
+
 
 int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *hash,
 	struct pcr_store *pcr, enum aux_attestation_key_length key_type, const uint8_t *seed,
@@ -121,4 +122,4 @@ enum {
 };
 
 
-#endif /* AUX_ATTESTATION_H_ */
+#endif	/* AUX_ATTESTATION_H_ */

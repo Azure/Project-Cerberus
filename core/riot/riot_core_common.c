@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
 #include "riot_core_common.h"
@@ -78,6 +78,7 @@ int riot_core_common_create_device_id_certificate (const struct riot_core_common
 	}
 
 	riot->state->dev_id_cert_valid = true;
+
 	return 0;
 }
 
@@ -145,6 +146,7 @@ int riot_core_common_generate_device_id (const struct riot_core *riot, const uin
 
 cdi_error:
 	core->hash->cancel (core->hash);
+
 	return status;
 }
 
@@ -258,6 +260,7 @@ int riot_core_common_generate_alias_key (const struct riot_core *riot, const uin
 	}
 
 	core->state->alias_cert_valid = true;
+
 	return 0;
 }
 

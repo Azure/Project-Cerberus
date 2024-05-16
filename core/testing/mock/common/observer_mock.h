@@ -26,7 +26,7 @@ struct observer_mock {
 	 */
 	void (*event_ptr_arg) (struct observer_mock *observer, void *arg);
 
-	struct mock mock;					/**< The base mock interface. */
+	struct mock mock;	/**< The base mock interface. */
 };
 
 
@@ -36,4 +36,4 @@ void observer_mock_release (struct observer_mock *mock);
 int observer_mock_validate_and_release (struct observer_mock *mock);
 
 
-#endif /* OBSERVER_MOCK_H_ */
+#endif	/* OBSERVER_MOCK_H_ */

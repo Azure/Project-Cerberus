@@ -41,4 +41,4 @@ extern const uint8_t PCR0_VALUE[];
 extern const size_t PCR0_VALUE_LEN;
 
 
-#endif /* AUX_ATTESTATION_TESTING_H_ */
+#endif	/* AUX_ATTESTATION_TESTING_H_ */

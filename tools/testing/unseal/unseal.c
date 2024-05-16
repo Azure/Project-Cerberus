@@ -1,16 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include "asn1/x509_mbedtls.h"
 #include "attestation/aux_attestation.h"
 #include "attestation/pcr_store.h"
-#include "asn1/x509_mbedtls.h"
 #include "common/array_size.h"
 #include "crypto/ecc_mbedtls.h"
 #include "crypto/hash_mbedtls.h"
@@ -75,8 +75,7 @@ struct aux_attestation unseal;
  */
 void print_usage (int code)
 {
-	printf (
-		"Usage:  unseal -[0|1|2|3|4] <base64 pcr> <privkey.der> <RSA|ECDH> <None|SHA1|SHA256> "
+	printf ("Usage:  unseal -[0|1|2|3|4] <base64 pcr> <privkey.der> <RSA|ECDH> <None|SHA1|SHA256> "
 		"<seed.bin> <cipher.bin> <sealing.bin> <hmac.bin>\n");
 	exit (code);
 }
@@ -85,9 +84,10 @@ void print_usage (int code)
  * Container for unseal data read from an input file.
  */
 struct unseal_data {
-	uint8_t *data;		/**< The unseal data read from the file. */
-	size_t length;		/**< The data length. */
+	uint8_t *data;	/**< The unseal data read from the file. */
+	size_t length;	/**< The data length. */
 };
+
 
 /**
  * Read the contents of a binary file.  The application exits on an error.
@@ -139,6 +139,7 @@ struct unseal_data* read_file (const char *file)
 	}
 
 	close (fd);
+
 	return file_data;
 }
 
@@ -169,7 +170,7 @@ void init_unseal (const struct unseal_data *alias_key)
 		exit (1);
 	}
 
-	status = x509_mbedtls_init  (&x509);
+	status = x509_mbedtls_init (&x509);
 	if (status != 0) {
 		printf ("x509_mbedtls_init failed: 0x%x\n", status);
 		exit (1);
@@ -232,6 +233,7 @@ int main (int argc, char *argv[])
 					&pcr_length[0], (uint8_t*) optarg, strlen (optarg));
 				if (status != 0) {
 					printf ("Failed to decode PCR0 value: -0x%x\n", -status);
+
 					return 1;
 				}
 				break;
@@ -241,6 +243,7 @@ int main (int argc, char *argv[])
 					&pcr_length[1], (uint8_t*) optarg, strlen (optarg));
 				if (status != 0) {
 					printf ("Failed to decode PCR1 value: -0x%x\n", -status);
+
 					return 1;
 				}
 				break;
@@ -250,6 +253,7 @@ int main (int argc, char *argv[])
 					&pcr_length[2], (uint8_t*) optarg, strlen (optarg));
 				if (status != 0) {
 					printf ("Failed to decode PCR2 value: -0x%x\n", -status);
+
 					return 1;
 				}
 				break;
@@ -259,6 +263,7 @@ int main (int argc, char *argv[])
 					&pcr_length[3], (uint8_t*) optarg, strlen (optarg));
 				if (status != 0) {
 					printf ("Failed to decode PCR3 value: -0x%x\n", -status);
+
 					return 1;
 				}
 				break;
@@ -268,6 +273,7 @@ int main (int argc, char *argv[])
 					&pcr_length[4], (uint8_t*) optarg, strlen (optarg));
 				if (status != 0) {
 					printf ("Failed to decode PCR4 value: -0x%x\n", -status);
+
 					return 1;
 				}
 				break;
@@ -291,6 +297,7 @@ int main (int argc, char *argv[])
 	}
 	else {
 		printf ("Invalid unseal seed type: %s\n", argv[optind + 1]);
+
 		return 1;
 	}
 
@@ -306,6 +313,7 @@ int main (int argc, char *argv[])
 		}
 		else {
 			printf ("Invalid RSA seed parameter type: %s\n", argv[optind + 2]);
+
 			return 1;
 		}
 	}
@@ -318,12 +326,14 @@ int main (int argc, char *argv[])
 		}
 		else {
 			printf ("Invalid ECDH seed parameter type: %s\n", argv[optind + 2]);
+
 			return 1;
 		}
 	}
 
 	if (type == AUX_ATTESTATION_SEED_RSA) {
 		printf ("RSA unsealing unsupported\n");
+
 		return 1;
 	}
 
@@ -335,11 +345,13 @@ int main (int argc, char *argv[])
 
 	if (hmac->length != SHA256_HASH_LENGTH) {
 		printf ("HMAC length is not valid for HMAC-SHA256: %d\n", hmac->length);
+
 		return 1;
 	}
 
 	if ((sealing->length % 64) != 0) {
 		printf ("Sealing data must be a multiple of 64: %d\n", sealing->length);
+
 		return 1;
 	}
 
@@ -351,6 +363,7 @@ int main (int argc, char *argv[])
 		sizeof (unseal_out));
 	if (status != 0) {
 		printf ("Unseal FAILED: 0x%x\n", status);
+
 		return 1;
 	}
 

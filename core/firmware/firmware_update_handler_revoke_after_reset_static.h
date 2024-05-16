@@ -77,4 +77,4 @@ void firmware_update_handler_revoke_after_reset_prepare (const struct event_task
 	}
 
 
-#endif /* FIRMWARE_UPDATE_HANDLER_REVOKE_AFTER_RESET_STATIC_H_ */
+#endif	/* FIRMWARE_UPDATE_HANDLER_REVOKE_AFTER_RESET_STATIC_H_ */

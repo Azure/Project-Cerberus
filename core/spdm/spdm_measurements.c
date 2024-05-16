@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "spdm_measurements.h"
 #include "common/unused.h"
@@ -396,8 +396,8 @@ int spdm_measurements_get_measurement_summary_hash (const struct spdm_measuremen
 {
 	int status;
 
-	status = spdm_measurements_start_summary_hash (handler, summary_hash,
-		summary_hash_type, measurement_hash, buffer, length);
+	status = spdm_measurements_start_summary_hash (handler, summary_hash, summary_hash_type,
+		measurement_hash, buffer, length);
 	if (status != 0) {
 		return status;
 	}
