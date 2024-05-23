@@ -11,7 +11,10 @@
 #include "testing/crypto/ecc_testing.h"
 #include "testing/crypto/hash_testing.h"
 #include "testing/engines/hash_testing_engine.h"
+#include "testing/mock/crypto/ecc_hw_mock.h"
+#include "testing/mock/crypto/ecc_mock.h"
 #include "testing/mock/crypto/hash_mock.h"
+#include "testing/mock/crypto/rng_mock.h"
 
 
 TEST_SUITE_LABEL ("ecdsa");
@@ -391,6 +394,59 @@ const uint8_t ECDSA_TESTING_DETERMINISTIC_K_RFC6979_ECC521_K_OUT_SHIFTED[] = {
 	0xe9, 0xcb
 };
 
+
+/**
+ * Test dependencies for ECDSA.
+ */
+struct ecdsa_testing {
+	HASH_TESTING_ENGINE hash;				/**< Hash engine for test. */
+	struct hash_engine_mock hash_mock;		/**< Mock for the hash engine. */
+	struct ecc_hw_mock ecc_hw;				/**< Mock for the ECC HW driver. */
+	struct rng_engine_mock rng;				/**< Mock for the RNG. */
+};
+
+
+/**
+ * Helper to initialize all dependencies for testing.
+ *
+ * @param test The test framework.
+ * @param ecdsa Testing dependencies to initialize.
+ */
+static void ecdsa_testing_init_dependencies (CuTest *test, struct ecdsa_testing *ecdsa)
+{
+	int status;
+
+	status = HASH_TESTING_ENGINE_INIT (&ecdsa->hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_init (&ecdsa->hash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_hw_mock_init (&ecdsa->ecc_hw);
+	CuAssertIntEquals (test, 0, status);
+
+	status = rng_mock_init (&ecdsa->rng);
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Helper to release all testing dependencies.
+ *
+ * @param test The test framework.
+ * @param ecdsa Testing dependencies to release.
+ */
+static void ecdsa_testing_release_dependencies (CuTest *test, struct ecdsa_testing *ecdsa)
+{
+	int status;
+
+	status = hash_mock_validate_and_release (&ecdsa->hash_mock);
+	status |= ecc_hw_mock_validate_and_release (&ecdsa->ecc_hw);
+	status |= rng_mock_validate_and_release (&ecdsa->rng);
+
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&ecdsa->hash);
+}
 
 /**
  * Set up mock expectations to instantiate a deterministic k DRBG.
@@ -2014,6 +2070,1672 @@ static void ecdsa_test_deterministic_k_drbg_rfc6979_test_vector_ecc521 (CuTest *
 }
 #endif
 
+static void ecdsa_test_ecc_hw_sign_message_sha256 (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	struct ecc_ecdsa_signature expected;
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	memset (expected.r, 0x55, sizeof (expected.r));
+	memset (expected.s, 0xaa, sizeof (expected.s));
+	expected.length = ECC_KEY_LENGTH_256;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_sign, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
+		MOCK_ARG_PTR_CONTAINS (SHA256_FULL_BLOCK_1024_HASH, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR (&ecdsa.rng), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&ecdsa.ecc_hw.mock, 5, &expected, sizeof (expected), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_message (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, &signature);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_256, signature.length);
+
+	status = testing_validate_array (expected.r, signature.r, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected.s, signature.s, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_message_sha384 (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	struct ecc_ecdsa_signature expected;
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	memset (expected.r, 0x55, sizeof (expected.r));
+	memset (expected.s, 0xaa, sizeof (expected.s));
+	expected.length = ECC_KEY_LENGTH_256;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_sign, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
+		MOCK_ARG_PTR_CONTAINS (SHA384_FULL_BLOCK_1024_HASH, SHA384_HASH_LENGTH),
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (&ecdsa.rng), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&ecdsa.ecc_hw.mock, 5, &expected, sizeof (expected), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_message (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA384,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, &signature);
+#ifdef HASH_ENABLE_SHA384
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_256, signature.length);
+
+	status = testing_validate_array (expected.r, signature.r, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected.s, signature.s, signature.length);
+	CuAssertIntEquals (test, 0, status);
+#else
+	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_HASH, status);
+#endif
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_message_sha512 (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	struct ecc_ecdsa_signature expected;
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	memset (expected.r, 0x55, sizeof (expected.r));
+	memset (expected.s, 0xaa, sizeof (expected.s));
+	expected.length = ECC_KEY_LENGTH_256;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_sign, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
+		MOCK_ARG_PTR_CONTAINS (SHA512_FULL_BLOCK_1024_HASH, SHA512_HASH_LENGTH),
+		MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_PTR (&ecdsa.rng), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&ecdsa.ecc_hw.mock, 5, &expected, sizeof (expected), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_message (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA512,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, &signature);
+#ifdef HASH_ENABLE_SHA512
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_256, signature.length);
+
+	status = testing_validate_array (expected.r, signature.r, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected.s, signature.s, signature.length);
+	CuAssertIntEquals (test, 0, status);
+#else
+	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_HASH, status);
+#endif
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_message_no_rng (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	struct ecc_ecdsa_signature expected;
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	memset (expected.r, 0x55, sizeof (expected.r));
+	memset (expected.s, 0xaa, sizeof (expected.s));
+	expected.length = ECC_KEY_LENGTH_256;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_sign, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
+		MOCK_ARG_PTR_CONTAINS (SHA256_FULL_BLOCK_1024_HASH, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&ecdsa.ecc_hw.mock, 5, &expected, sizeof (expected), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_message (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		NULL, ECC_PRIVKEY, ECC_PRIVKEY_LEN, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, &signature);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_256, signature.length);
+
+	status = testing_validate_array (expected.r, signature.r, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected.s, signature.s, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_message_null (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa_ecc_hw_sign_message (NULL, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, &signature);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	status = ecdsa_ecc_hw_sign_message (&ecdsa.ecc_hw.base, NULL, HASH_TYPE_SHA256,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, &signature);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	status = ecdsa_ecc_hw_sign_message (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		&ecdsa.rng.base, NULL, ECC_PRIVKEY_LEN, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, &signature);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	status = ecdsa_ecc_hw_sign_message (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, NULL,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, &signature);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	status = ecdsa_ecc_hw_sign_message (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, NULL);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_message_unknown_hash_algorithm (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa_ecc_hw_sign_message (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_INVALID,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, &signature);
+	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_message_hash_start_error (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.start_sha256,
+		&ecdsa.hash_mock, HASH_ENGINE_START_SHA256_FAILED);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_message (&ecdsa.ecc_hw.base, &ecdsa.hash_mock.base, HASH_TYPE_SHA256,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, &signature);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_message_hash_update_error (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.start_sha256,
+		&ecdsa.hash_mock, 0);
+
+	status |= mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.update, &ecdsa.hash_mock,
+		HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (HASH_TESTING_FULL_BLOCK_1024, HASH_TESTING_FULL_BLOCK_1024_LEN),
+		MOCK_ARG (HASH_TESTING_FULL_BLOCK_1024_LEN));
+
+	status |= mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.cancel, &ecdsa.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_message (&ecdsa.ecc_hw.base, &ecdsa.hash_mock.base, HASH_TYPE_SHA256,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, &signature);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_message_hash_finish_error (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.start_sha256,
+		&ecdsa.hash_mock, 0);
+
+	status |= mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.update, &ecdsa.hash_mock,
+		0, MOCK_ARG_PTR_CONTAINS (HASH_TESTING_FULL_BLOCK_1024, HASH_TESTING_FULL_BLOCK_1024_LEN),
+		MOCK_ARG (HASH_TESTING_FULL_BLOCK_1024_LEN));
+
+	status |= mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.finish, &ecdsa.hash_mock,
+		HASH_ENGINE_FINISH_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+
+	status |= mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.cancel, &ecdsa.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_message (&ecdsa.ecc_hw.base, &ecdsa.hash_mock.base, HASH_TYPE_SHA256,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, &signature);
+	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_message_sign_error (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_sign, &ecdsa.ecc_hw,
+		ECC_HW_ECDSA_SIGN_FAILED, MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN),
+		MOCK_ARG (ECC_PRIVKEY_LEN),
+		MOCK_ARG_PTR_CONTAINS (SHA256_FULL_BLOCK_1024_HASH, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR (&ecdsa.rng), MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_message (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, &signature);
+	CuAssertIntEquals (test, ECC_HW_ECDSA_SIGN_FAILED, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_hash_sha256 (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	struct ecc_ecdsa_signature expected;
+	const char *message = "Test";
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+	uint8_t digest[SHA256_HASH_LENGTH];
+
+	TEST_START;
+
+	memset (expected.r, 0x55, sizeof (expected.r));
+	memset (expected.s, 0xaa, sizeof (expected.s));
+	expected.length = ECC_KEY_LENGTH_256;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa.hash.base.start_sha256 (&ecdsa.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_sign, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
+		MOCK_ARG_PTR_CONTAINS (SHA256_TEST_HASH, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR (&ecdsa.rng), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&ecdsa.ecc_hw.mock, 5, &expected, sizeof (expected), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_hash (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_256, signature.length);
+
+	status = testing_validate_array (expected.r, signature.r, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected.s, signature.s, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.finish (&ecdsa.hash.base, digest, sizeof (digest));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA256_TEST_TEST_HASH, digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+#ifdef HASH_ENABLE_SHA384
+static void ecdsa_test_ecc_hw_sign_hash_sha384 (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	struct ecc_ecdsa_signature expected;
+	const char *message = "Test";
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+	uint8_t digest[SHA384_HASH_LENGTH];
+
+	TEST_START;
+
+	memset (expected.r, 0x55, sizeof (expected.r));
+	memset (expected.s, 0xaa, sizeof (expected.s));
+	expected.length = ECC_KEY_LENGTH_256;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa.hash.base.start_sha384 (&ecdsa.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_sign, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
+		MOCK_ARG_PTR_CONTAINS (SHA384_TEST_HASH, SHA384_HASH_LENGTH),
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (&ecdsa.rng), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&ecdsa.ecc_hw.mock, 5, &expected, sizeof (expected), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_hash (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA384,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_256, signature.length);
+
+	status = testing_validate_array (expected.r, signature.r, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected.s, signature.s, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.finish (&ecdsa.hash.base, digest, sizeof (digest));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA384_TEST_TEST_HASH, digest, SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+#endif
+
+#ifdef HASH_ENABLE_SHA512
+static void ecdsa_test_ecc_hw_sign_hash_sha512 (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	struct ecc_ecdsa_signature expected;
+	const char *message = "Test";
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+	uint8_t digest[SHA512_HASH_LENGTH];
+
+	TEST_START;
+
+	memset (expected.r, 0x55, sizeof (expected.r));
+	memset (expected.s, 0xaa, sizeof (expected.s));
+	expected.length = ECC_KEY_LENGTH_256;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa.hash.base.start_sha512 (&ecdsa.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_sign, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
+		MOCK_ARG_PTR_CONTAINS (SHA512_TEST_HASH, SHA512_HASH_LENGTH),
+		MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_PTR (&ecdsa.rng), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&ecdsa.ecc_hw.mock, 5, &expected, sizeof (expected), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_hash (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA512,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_256, signature.length);
+
+	status = testing_validate_array (expected.r, signature.r, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected.s, signature.s, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.finish (&ecdsa.hash.base, digest, sizeof (digest));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA512_TEST_TEST_HASH, digest, SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+#endif
+
+static void ecdsa_test_ecc_hw_sign_hash_no_rng (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	struct ecc_ecdsa_signature expected;
+	const char *message = "Test";
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+	uint8_t digest[SHA256_HASH_LENGTH];
+
+	TEST_START;
+
+	memset (expected.r, 0x55, sizeof (expected.r));
+	memset (expected.s, 0xaa, sizeof (expected.s));
+	expected.length = ECC_KEY_LENGTH_256;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa.hash.base.start_sha256 (&ecdsa.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_sign, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
+		MOCK_ARG_PTR_CONTAINS (SHA256_TEST_HASH, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&ecdsa.ecc_hw.mock, 5, &expected, sizeof (expected), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_hash (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		NULL, ECC_PRIVKEY, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_256, signature.length);
+
+	status = testing_validate_array (expected.r, signature.r, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected.s, signature.s, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.finish (&ecdsa.hash.base, digest, sizeof (digest));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA256_TEST_TEST_HASH, digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_hash_null (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa_ecc_hw_sign_hash (NULL, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	status = ecdsa_ecc_hw_sign_hash (&ecdsa.ecc_hw.base, NULL, HASH_TYPE_SHA256,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	status = ecdsa_ecc_hw_sign_hash (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		&ecdsa.rng.base, NULL, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	status = ecdsa_ecc_hw_sign_hash (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, NULL);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_hash_unknown_hash_algorithm (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa_ecc_hw_sign_hash (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_INVALID,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_hash_get_hash_error (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.get_hash, &ecdsa.hash_mock,
+		HASH_ENGINE_GET_HASH_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_hash (&ecdsa.ecc_hw.base, &ecdsa.hash_mock.base, HASH_TYPE_SHA256,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, HASH_ENGINE_GET_HASH_FAILED, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_hash_sign_error (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	struct ecc_ecdsa_signature expected;
+	const char *message = "Test";
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	memset (expected.r, 0x55, sizeof (expected.r));
+	memset (expected.s, 0xaa, sizeof (expected.s));
+	expected.length = ECC_KEY_LENGTH_256;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa.hash.base.start_sha256 (&ecdsa.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_sign, &ecdsa.ecc_hw,
+		ECC_HW_ECDSA_SIGN_FAILED, MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN),
+		MOCK_ARG (ECC_PRIVKEY_LEN), MOCK_ARG_PTR_CONTAINS (SHA256_TEST_HASH, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR (&ecdsa.rng), MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_hash (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		&ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, ECC_HW_ECDSA_SIGN_FAILED, status);
+
+	ecdsa.hash.base.cancel (&ecdsa.hash.base);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_hash_and_finish_sha256 (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	struct ecc_ecdsa_signature expected;
+	const char *message = "Test";
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	memset (expected.r, 0x55, sizeof (expected.r));
+	memset (expected.s, 0xaa, sizeof (expected.s));
+	expected.length = ECC_KEY_LENGTH_256;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa.hash.base.start_sha256 (&ecdsa.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_sign, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
+		MOCK_ARG_PTR_CONTAINS (SHA256_TEST_HASH, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR (&ecdsa.rng), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&ecdsa.ecc_hw.mock, 5, &expected, sizeof (expected), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_hash_and_finish (&ecdsa.ecc_hw.base, &ecdsa.hash.base,
+		HASH_TYPE_SHA256, &ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_256, signature.length);
+
+	status = testing_validate_array (expected.r, signature.r, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected.s, signature.s, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+#ifdef HASH_ENABLE_SHA384
+static void ecdsa_test_ecc_hw_sign_hash_and_finish_sha384 (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	struct ecc_ecdsa_signature expected;
+	const char *message = "Test";
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	memset (expected.r, 0x55, sizeof (expected.r));
+	memset (expected.s, 0xaa, sizeof (expected.s));
+	expected.length = ECC_KEY_LENGTH_256;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa.hash.base.start_sha384 (&ecdsa.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_sign, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
+		MOCK_ARG_PTR_CONTAINS (SHA384_TEST_HASH, SHA384_HASH_LENGTH),
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (&ecdsa.rng), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&ecdsa.ecc_hw.mock, 5, &expected, sizeof (expected), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_hash_and_finish (&ecdsa.ecc_hw.base, &ecdsa.hash.base,
+		HASH_TYPE_SHA384, &ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_256, signature.length);
+
+	status = testing_validate_array (expected.r, signature.r, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected.s, signature.s, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+#endif
+
+#ifdef HASH_ENABLE_SHA512
+static void ecdsa_test_ecc_hw_sign_hash_and_finish_sha512 (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	struct ecc_ecdsa_signature expected;
+	const char *message = "Test";
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	memset (expected.r, 0x55, sizeof (expected.r));
+	memset (expected.s, 0xaa, sizeof (expected.s));
+	expected.length = ECC_KEY_LENGTH_256;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa.hash.base.start_sha512 (&ecdsa.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_sign, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
+		MOCK_ARG_PTR_CONTAINS (SHA512_TEST_HASH, SHA512_HASH_LENGTH),
+		MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_PTR (&ecdsa.rng), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&ecdsa.ecc_hw.mock, 5, &expected, sizeof (expected), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_hash_and_finish (&ecdsa.ecc_hw.base, &ecdsa.hash.base,
+		HASH_TYPE_SHA512, &ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_256, signature.length);
+
+	status = testing_validate_array (expected.r, signature.r, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected.s, signature.s, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+#endif
+
+static void ecdsa_test_ecc_hw_sign_hash_and_finish_no_rng (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	struct ecc_ecdsa_signature expected;
+	const char *message = "Test";
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	memset (expected.r, 0x55, sizeof (expected.r));
+	memset (expected.s, 0xaa, sizeof (expected.s));
+	expected.length = ECC_KEY_LENGTH_256;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa.hash.base.start_sha256 (&ecdsa.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_sign, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
+		MOCK_ARG_PTR_CONTAINS (SHA256_TEST_HASH, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&ecdsa.ecc_hw.mock, 5, &expected, sizeof (expected), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_hash_and_finish (&ecdsa.ecc_hw.base, &ecdsa.hash.base,
+		HASH_TYPE_SHA256, NULL, ECC_PRIVKEY, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_256, signature.length);
+
+	status = testing_validate_array (expected.r, signature.r, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected.s, signature.s, signature.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_hash_and_finish_null (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	/* NULL ECC */
+	status = mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.cancel, &ecdsa.hash_mock, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_hash_and_finish (NULL, &ecdsa.hash_mock.base,
+		HASH_TYPE_SHA256, &ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	status = mock_validate (&ecdsa.hash_mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* NULL Key */
+	status = mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.cancel, &ecdsa.hash_mock, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_hash_and_finish (&ecdsa.ecc_hw.base, &ecdsa.hash_mock.base,
+		HASH_TYPE_SHA256, &ecdsa.rng.base, NULL, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	status = mock_validate (&ecdsa.hash_mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* NULL Signature */
+	status = mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.cancel, &ecdsa.hash_mock, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_hash_and_finish (&ecdsa.ecc_hw.base, &ecdsa.hash_mock.base,
+		HASH_TYPE_SHA256, &ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, NULL);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_hash_and_finish_null_hash (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa_ecc_hw_sign_hash_and_finish (&ecdsa.ecc_hw.base, NULL,
+		HASH_TYPE_SHA256, &ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_hash_and_finish_unknown_hash_algorithm (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.cancel, &ecdsa.hash_mock, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_hash_and_finish (&ecdsa.ecc_hw.base, &ecdsa.hash_mock.base,
+		HASH_TYPE_INVALID, &ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_hash_and_finish_hash_finish_error (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.finish, &ecdsa.hash_mock,
+		HASH_ENGINE_FINISH_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+
+	status |= mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.cancel, &ecdsa.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_hash_and_finish (&ecdsa.ecc_hw.base, &ecdsa.hash_mock.base,
+		HASH_TYPE_SHA256, &ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_sign_hash_and_finish_sign_error (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	const char *message = "Test";
+	int status;
+	struct ecc_ecdsa_signature signature = {0};
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa.hash.base.start_sha256 (&ecdsa.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_sign, &ecdsa.ecc_hw,
+		ECC_HW_ECDSA_SIGN_FAILED, MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN),
+		MOCK_ARG (ECC_PRIVKEY_LEN), MOCK_ARG_PTR_CONTAINS (SHA256_TEST_HASH, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR (&ecdsa.rng), MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_sign_hash_and_finish (&ecdsa.ecc_hw.base, &ecdsa.hash.base,
+		HASH_TYPE_SHA256, &ecdsa.rng.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN, &signature);
+	CuAssertIntEquals (test, ECC_HW_ECDSA_SIGN_FAILED, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_verify_message_sha256 (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	const char *message = "Test";
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_verify, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR (&ECC_PUBKEY_POINT), MOCK_ARG_PTR (&ECC_SIGNATURE_TEST_STRUCT),
+		MOCK_ARG_PTR_CONTAINS (SHA256_TEST_HASH, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_message (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		(uint8_t*) message, strlen (message), &ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, 0, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_verify_message_sha384 (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	const char *message = "Test";
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_verify, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR (&ECC_PUBKEY_POINT), MOCK_ARG_PTR (&ECC_SIGNATURE_TEST_STRUCT),
+		MOCK_ARG_PTR_CONTAINS (SHA384_TEST_HASH, SHA384_HASH_LENGTH),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_message (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA384,
+		(uint8_t*) message, strlen (message), &ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+#ifdef HASH_ENABLE_SHA384
+	CuAssertIntEquals (test, 0, status);
+#else
+	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_HASH, status);
+#endif
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_verify_message_sha512 (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	const char *message = "Test";
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_verify, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR (&ECC_PUBKEY_POINT), MOCK_ARG_PTR (&ECC_SIGNATURE_TEST_STRUCT),
+		MOCK_ARG_PTR_CONTAINS (SHA512_TEST_HASH, SHA512_HASH_LENGTH),
+		MOCK_ARG (SHA512_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_message (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA512,
+		(uint8_t*) message, strlen (message), &ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+#ifdef HASH_ENABLE_SHA512
+	CuAssertIntEquals (test, 0, status);
+#else
+	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_HASH, status);
+#endif
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_verify_message_null (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	const char *message = "Test";
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa_ecc_hw_verify_message (NULL, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		(uint8_t*) message, strlen (message), &ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	status = ecdsa_ecc_hw_verify_message (&ecdsa.ecc_hw.base, NULL, HASH_TYPE_SHA256,
+		(uint8_t*) message, strlen (message), &ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	status = ecdsa_ecc_hw_verify_message (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		NULL, strlen (message), &ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	status = ecdsa_ecc_hw_verify_message (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		(uint8_t*) message, strlen (message), NULL, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	status = ecdsa_ecc_hw_verify_message (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		(uint8_t*) message, strlen (message), &ECC_PUBKEY_POINT, NULL);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_verify_message_unknown_hash_algorithm (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	const char *message = "Test";
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa_ecc_hw_verify_message (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_INVALID,
+		(uint8_t*) message, strlen (message), &ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_verify_message_hash_start_error (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	const char *message = "Test";
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.start_sha256,
+		&ecdsa.hash_mock, HASH_ENGINE_START_SHA256_FAILED);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_message (&ecdsa.ecc_hw.base, &ecdsa.hash_mock.base,
+		HASH_TYPE_SHA256, (uint8_t*) message, strlen (message), &ECC_PUBKEY_POINT,
+		&ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_verify_message_hash_update_error (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	const char *message = "Test";
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.start_sha256,
+		&ecdsa.hash_mock, 0);
+
+	status |= mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.update, &ecdsa.hash_mock,
+		HASH_ENGINE_UPDATE_FAILED, MOCK_ARG_PTR_CONTAINS (message, strlen (message)),
+		MOCK_ARG (strlen (message)));
+
+	status |= mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.cancel, &ecdsa.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_message (&ecdsa.ecc_hw.base, &ecdsa.hash_mock.base,
+		HASH_TYPE_SHA256, (uint8_t*) message, strlen (message), &ECC_PUBKEY_POINT,
+		&ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_verify_message_hash_finish_error (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	const char *message = "Test";
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.start_sha256,
+		&ecdsa.hash_mock, 0);
+
+	status |= mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.update, &ecdsa.hash_mock,
+		0, MOCK_ARG_PTR_CONTAINS (message, strlen (message)), MOCK_ARG (strlen (message)));
+
+	status |= mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.finish, &ecdsa.hash_mock,
+		HASH_ENGINE_FINISH_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+
+	status |= mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.cancel, &ecdsa.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_message (&ecdsa.ecc_hw.base, &ecdsa.hash_mock.base,
+		HASH_TYPE_SHA256, (uint8_t*) message, strlen (message), &ECC_PUBKEY_POINT,
+		&ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_verify_message_verify_error (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	const char *message = "Test";
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_verify, &ecdsa.ecc_hw,
+		ECC_HW_ECDSA_VERIFY_FAILED, MOCK_ARG_PTR (&ECC_PUBKEY_POINT),
+		MOCK_ARG_PTR (&ECC_SIGNATURE_TEST_STRUCT),
+		MOCK_ARG_PTR_CONTAINS (SHA256_TEST_HASH, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_message (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		(uint8_t*) message, strlen (message), &ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, ECC_HW_ECDSA_VERIFY_FAILED, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_verify_hash_sha256 (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	const char *message = "Test";
+	int status;
+	uint8_t digest[SHA256_HASH_LENGTH];
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa.hash.base.start_sha256 (&ecdsa.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_verify, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR (&ECC_PUBKEY_POINT), MOCK_ARG_PTR (&ECC_SIGNATURE_TEST_STRUCT),
+		MOCK_ARG_PTR_CONTAINS (SHA256_TEST_HASH, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_hash (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		&ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.finish (&ecdsa.hash.base, digest, sizeof (digest));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA256_TEST_TEST_HASH, digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+#ifdef HASH_ENABLE_SHA384
+static void ecdsa_test_ecc_hw_verify_hash_sha384 (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	const char *message = "Test";
+	int status;
+	uint8_t digest[SHA384_HASH_LENGTH];
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa.hash.base.start_sha384 (&ecdsa.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_verify, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR (&ECC_PUBKEY_POINT), MOCK_ARG_PTR (&ECC_SIGNATURE_TEST_STRUCT),
+		MOCK_ARG_PTR_CONTAINS (SHA384_TEST_HASH, SHA384_HASH_LENGTH),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_hash (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA384,
+		&ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.finish (&ecdsa.hash.base, digest, sizeof (digest));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA384_TEST_TEST_HASH, digest, SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+#endif
+
+#ifdef HASH_ENABLE_SHA512
+static void ecdsa_test_ecc_hw_verify_hash_sha512 (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	const char *message = "Test";
+	int status;
+	uint8_t digest[SHA512_HASH_LENGTH];
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa.hash.base.start_sha512 (&ecdsa.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_verify, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR (&ECC_PUBKEY_POINT), MOCK_ARG_PTR (&ECC_SIGNATURE_TEST_STRUCT),
+		MOCK_ARG_PTR_CONTAINS (SHA512_TEST_HASH, SHA512_HASH_LENGTH),
+		MOCK_ARG (SHA512_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_hash (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA512,
+		&ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.finish (&ecdsa.hash.base, digest, sizeof (digest));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA512_TEST_TEST_HASH, digest, SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+#endif
+
+static void ecdsa_test_ecc_hw_verify_hash_null (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa_ecc_hw_verify_hash (NULL, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		&ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	status = ecdsa_ecc_hw_verify_hash (&ecdsa.ecc_hw.base, NULL, HASH_TYPE_SHA256,
+		&ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	status = ecdsa_ecc_hw_verify_hash (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		NULL, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	status = ecdsa_ecc_hw_verify_hash (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		&ECC_PUBKEY_POINT, NULL);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_verify_hash_unknown_hash_algorithm (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa_ecc_hw_verify_hash (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_INVALID,
+		&ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_verify_hash_get_hash_error (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.get_hash, &ecdsa.hash_mock,
+		HASH_ENGINE_GET_HASH_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_hash (&ecdsa.ecc_hw.base, &ecdsa.hash_mock.base, HASH_TYPE_SHA256,
+		&ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, HASH_ENGINE_GET_HASH_FAILED, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_verify_hash_verify_error (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	const char *message = "Test";
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa.hash.base.start_sha256 (&ecdsa.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_verify, &ecdsa.ecc_hw,
+		ECC_HW_ECDSA_VERIFY_FAILED, MOCK_ARG_PTR (&ECC_PUBKEY_POINT),
+		MOCK_ARG_PTR (&ECC_SIGNATURE_TEST_STRUCT),
+		MOCK_ARG_PTR_CONTAINS (SHA256_TEST_HASH, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_hash (&ecdsa.ecc_hw.base, &ecdsa.hash.base, HASH_TYPE_SHA256,
+		&ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, ECC_HW_ECDSA_VERIFY_FAILED, status);
+
+	ecdsa.hash.base.cancel (&ecdsa.hash.base);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_verify_hash_and_finish_sha256 (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	const char *message = "Test";
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa.hash.base.start_sha256 (&ecdsa.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_verify, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR (&ECC_PUBKEY_POINT), MOCK_ARG_PTR (&ECC_SIGNATURE_TEST_STRUCT),
+		MOCK_ARG_PTR_CONTAINS (SHA256_TEST_HASH, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_hash_and_finish (&ecdsa.ecc_hw.base, &ecdsa.hash.base,
+		HASH_TYPE_SHA256, &ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+#ifdef HASH_ENABLE_SHA384
+static void ecdsa_test_ecc_hw_verify_hash_and_finish_sha384 (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	const char *message = "Test";
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa.hash.base.start_sha384 (&ecdsa.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_verify, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR (&ECC_PUBKEY_POINT), MOCK_ARG_PTR (&ECC_SIGNATURE_TEST_STRUCT),
+		MOCK_ARG_PTR_CONTAINS (SHA384_TEST_HASH, SHA384_HASH_LENGTH),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_hash_and_finish (&ecdsa.ecc_hw.base, &ecdsa.hash.base,
+		HASH_TYPE_SHA384, &ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+#endif
+
+#ifdef HASH_ENABLE_SHA512
+static void ecdsa_test_ecc_hw_verify_hash_and_finish_sha512 (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	const char *message = "Test";
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa.hash.base.start_sha512 (&ecdsa.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_verify, &ecdsa.ecc_hw, 0,
+		MOCK_ARG_PTR (&ECC_PUBKEY_POINT), MOCK_ARG_PTR (&ECC_SIGNATURE_TEST_STRUCT),
+		MOCK_ARG_PTR_CONTAINS (SHA512_TEST_HASH, SHA512_HASH_LENGTH),
+		MOCK_ARG (SHA512_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_hash_and_finish (&ecdsa.ecc_hw.base, &ecdsa.hash.base,
+		HASH_TYPE_SHA512, &ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+#endif
+
+static void ecdsa_test_ecc_hw_verify_hash_and_finish_null (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	/* NULL ECC */
+	status = mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.cancel, &ecdsa.hash_mock, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_hash_and_finish (NULL, &ecdsa.hash_mock.base,
+		HASH_TYPE_SHA256, &ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	status = mock_validate (&ecdsa.hash_mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* NULL Key */
+	status = mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.cancel, &ecdsa.hash_mock, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_hash_and_finish (&ecdsa.ecc_hw.base, &ecdsa.hash_mock.base,
+		HASH_TYPE_SHA256, NULL, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	status = mock_validate (&ecdsa.hash_mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* NULL Signature */
+	status = mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.cancel, &ecdsa.hash_mock, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_hash_and_finish (&ecdsa.ecc_hw.base, &ecdsa.hash_mock.base,
+		HASH_TYPE_SHA256, &ECC_PUBKEY_POINT, NULL);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_verify_hash_and_finish_null_hash (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa_ecc_hw_verify_hash_and_finish (&ecdsa.ecc_hw.base, NULL,
+		HASH_TYPE_SHA256, &ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_verify_hash_and_finish_unknown_hash_algorithm (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.cancel, &ecdsa.hash_mock, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_hash_and_finish (&ecdsa.ecc_hw.base, &ecdsa.hash_mock.base,
+		HASH_TYPE_INVALID, &ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_verify_hash_and_finish_hash_finish_error (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.finish, &ecdsa.hash_mock,
+		HASH_ENGINE_FINISH_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+
+	status |= mock_expect (&ecdsa.hash_mock.mock, ecdsa.hash_mock.base.cancel, &ecdsa.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_hash_and_finish (&ecdsa.ecc_hw.base, &ecdsa.hash_mock.base,
+		HASH_TYPE_SHA256, &ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
+static void ecdsa_test_ecc_hw_verify_hash_and_finish_verify_error (CuTest *test)
+{
+	struct ecdsa_testing ecdsa;
+	const char *message = "Test";
+	int status;
+
+	TEST_START;
+
+	ecdsa_testing_init_dependencies (test, &ecdsa);
+
+	status = ecdsa.hash.base.start_sha256 (&ecdsa.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecdsa.ecc_hw.mock, ecdsa.ecc_hw.base.ecdsa_verify, &ecdsa.ecc_hw,
+		ECC_HW_ECDSA_VERIFY_FAILED, MOCK_ARG_PTR (&ECC_PUBKEY_POINT),
+		MOCK_ARG_PTR (&ECC_SIGNATURE_TEST_STRUCT),
+		MOCK_ARG_PTR_CONTAINS (SHA256_TEST_HASH, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_ecc_hw_verify_hash_and_finish (&ecdsa.ecc_hw.base, &ecdsa.hash.base,
+		HASH_TYPE_SHA256, &ECC_PUBKEY_POINT, &ECC_SIGNATURE_TEST_STRUCT);
+	CuAssertIntEquals (test, ECC_HW_ECDSA_VERIFY_FAILED, status);
+
+	status = ecdsa.hash.base.update (&ecdsa.hash.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	ecdsa_testing_release_dependencies (test, &ecdsa);
+}
+
 
 TEST_SUITE_START (ecdsa);
 
@@ -2063,5 +3785,72 @@ TEST (ecdsa_test_deterministic_k_drbg_rfc6979_test_vector_ecc384);
 #ifdef HASH_ENABLE_SHA512
 TEST (ecdsa_test_deterministic_k_drbg_rfc6979_test_vector_ecc521);
 #endif
+TEST (ecdsa_test_ecc_hw_sign_message_sha256);
+TEST (ecdsa_test_ecc_hw_sign_message_sha384);
+TEST (ecdsa_test_ecc_hw_sign_message_sha512);
+TEST (ecdsa_test_ecc_hw_sign_message_no_rng);
+TEST (ecdsa_test_ecc_hw_sign_message_null);
+TEST (ecdsa_test_ecc_hw_sign_message_unknown_hash_algorithm);
+TEST (ecdsa_test_ecc_hw_sign_message_hash_start_error);
+TEST (ecdsa_test_ecc_hw_sign_message_hash_update_error);
+TEST (ecdsa_test_ecc_hw_sign_message_hash_finish_error);
+TEST (ecdsa_test_ecc_hw_sign_message_sign_error);
+TEST (ecdsa_test_ecc_hw_sign_hash_sha256);
+#ifdef HASH_ENABLE_SHA384
+TEST (ecdsa_test_ecc_hw_sign_hash_sha384);
+#endif
+#ifdef HASH_ENABLE_SHA512
+TEST (ecdsa_test_ecc_hw_sign_hash_sha512);
+#endif
+TEST (ecdsa_test_ecc_hw_sign_hash_no_rng);
+TEST (ecdsa_test_ecc_hw_sign_hash_null);
+TEST (ecdsa_test_ecc_hw_sign_hash_unknown_hash_algorithm);
+TEST (ecdsa_test_ecc_hw_sign_hash_get_hash_error);
+TEST (ecdsa_test_ecc_hw_sign_hash_sign_error);
+TEST (ecdsa_test_ecc_hw_sign_hash_and_finish_sha256);
+#ifdef HASH_ENABLE_SHA384
+TEST (ecdsa_test_ecc_hw_sign_hash_and_finish_sha384);
+#endif
+#ifdef HASH_ENABLE_SHA512
+TEST (ecdsa_test_ecc_hw_sign_hash_and_finish_sha512);
+#endif
+TEST (ecdsa_test_ecc_hw_sign_hash_and_finish_no_rng);
+TEST (ecdsa_test_ecc_hw_sign_hash_and_finish_null);
+TEST (ecdsa_test_ecc_hw_sign_hash_and_finish_null_hash);
+TEST (ecdsa_test_ecc_hw_sign_hash_and_finish_unknown_hash_algorithm);
+TEST (ecdsa_test_ecc_hw_sign_hash_and_finish_hash_finish_error);
+TEST (ecdsa_test_ecc_hw_sign_hash_and_finish_sign_error);
+TEST (ecdsa_test_ecc_hw_verify_message_sha256);
+TEST (ecdsa_test_ecc_hw_verify_message_sha384);
+TEST (ecdsa_test_ecc_hw_verify_message_sha512);
+TEST (ecdsa_test_ecc_hw_verify_message_null);
+TEST (ecdsa_test_ecc_hw_verify_message_unknown_hash_algorithm);
+TEST (ecdsa_test_ecc_hw_verify_message_hash_start_error);
+TEST (ecdsa_test_ecc_hw_verify_message_hash_update_error);
+TEST (ecdsa_test_ecc_hw_verify_message_hash_finish_error);
+TEST (ecdsa_test_ecc_hw_verify_message_verify_error);
+TEST (ecdsa_test_ecc_hw_verify_hash_sha256);
+#ifdef HASH_ENABLE_SHA384
+TEST (ecdsa_test_ecc_hw_verify_hash_sha384);
+#endif
+#ifdef HASH_ENABLE_SHA512
+TEST (ecdsa_test_ecc_hw_verify_hash_sha512);
+#endif
+TEST (ecdsa_test_ecc_hw_verify_hash_null);
+TEST (ecdsa_test_ecc_hw_verify_hash_unknown_hash_algorithm);
+TEST (ecdsa_test_ecc_hw_verify_hash_get_hash_error);
+TEST (ecdsa_test_ecc_hw_verify_hash_verify_error);
+TEST (ecdsa_test_ecc_hw_verify_hash_and_finish_sha256);
+#ifdef HASH_ENABLE_SHA384
+TEST (ecdsa_test_ecc_hw_verify_hash_and_finish_sha384);
+#endif
+#ifdef HASH_ENABLE_SHA512
+TEST (ecdsa_test_ecc_hw_verify_hash_and_finish_sha512);
+#endif
+TEST (ecdsa_test_ecc_hw_verify_hash_and_finish_null);
+TEST (ecdsa_test_ecc_hw_verify_hash_and_finish_null_hash);
+TEST (ecdsa_test_ecc_hw_verify_hash_and_finish_unknown_hash_algorithm);
+TEST (ecdsa_test_ecc_hw_verify_hash_and_finish_hash_finish_error);
+TEST (ecdsa_test_ecc_hw_verify_hash_and_finish_verify_error);
 
 TEST_SUITE_END;

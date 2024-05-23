@@ -36,7 +36,7 @@ static int ecc_hw_mock_generate_ecc_key_pair (const struct ecc_hw *ecc_hw, size_
 }
 
 static int ecc_hw_mock_ecdsa_sign (const struct ecc_hw *ecc_hw, const uint8_t *priv_key,
-	size_t key_length, const uint8_t *digest, size_t digest_length,
+	size_t key_length, const uint8_t *digest, size_t digest_length, struct rng_engine *rng,
 	struct ecc_ecdsa_signature *signature)
 {
 	struct ecc_hw_mock *mock = (struct ecc_hw_mock*) ecc_hw;
@@ -47,7 +47,7 @@ static int ecc_hw_mock_ecdsa_sign (const struct ecc_hw *ecc_hw, const uint8_t *p
 
 	MOCK_RETURN (&mock->mock, ecc_hw_mock_ecdsa_sign, ecc_hw, MOCK_ARG_PTR_CALL (priv_key),
 		MOCK_ARG_CALL (key_length), MOCK_ARG_PTR_CALL (digest), MOCK_ARG_CALL (digest_length),
-		MOCK_ARG_PTR_CALL (signature));
+		MOCK_ARG_PTR_CALL (rng), MOCK_ARG_PTR_CALL (signature));
 }
 
 static int ecc_hw_mock_ecdsa_verify (const struct ecc_hw *ecc_hw,
@@ -91,7 +91,10 @@ static int ecc_hw_mock_is_free (const struct ecc_hw *ecc_hw)
 
 static int ecc_hw_mock_func_arg_count (void *func)
 {
-	if ((func == ecc_hw_mock_ecdsa_sign) || (func == ecc_hw_mock_ecdh_compute)) {
+	if (func == ecc_hw_mock_ecdsa_sign) {
+		return 6;
+	}
+	else if (func == ecc_hw_mock_ecdh_compute) {
 		return 5;
 	}
 	else if (func == ecc_hw_mock_ecdsa_verify) {
@@ -172,6 +175,9 @@ static const char* ecc_hw_mock_arg_name_map (void *func, int arg)
 				return "digest_length";
 
 			case 4:
+				return "rng";
+
+			case 5:
 				return "signature";
 		}
 	}

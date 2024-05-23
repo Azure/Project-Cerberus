@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include "platform_api.h"
 #include "crypto/ecc.h"
+#include "crypto/rng.h"
 #include "status/rot_status.h"
 
 
@@ -50,12 +51,16 @@ struct ecc_hw {
 	 * @param key_length Length of the private key.  This will determine the curve to use.
 	 * @param digest The digest to generate the signature for.
 	 * @param digest_length Length of the digest.
+	 * @param rng The random number generator to use for generating the random 'r' value in the
+	 * signature.  If this is null, the ECC instance will use a default RNG for this operation, if
+	 * one is available to the instance.
 	 * @param signature Output buffer for the ECDSA signature.
 	 *
 	 * @return 0 if the signature was successfully generated or an error code.
 	 */
 	int (*ecdsa_sign) (const struct ecc_hw *ecc_hw, const uint8_t *priv_key, size_t key_length,
-		const uint8_t *digest, size_t digest_length, struct ecc_ecdsa_signature *signature);
+		const uint8_t *digest, size_t digest_length, struct rng_engine *rng,
+		struct ecc_ecdsa_signature *signature);
 
 	/**
 	 * Verify an ECDSA signature for a digest using an ECC public key.

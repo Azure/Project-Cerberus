@@ -119,7 +119,7 @@ extern const size_t ECC_PRIVKEY2_LEN;
 
 extern const uint8_t ECC_PUBKEY2[];
 extern const uint8_t ECC_PUBKEY2_LE[];
-extern const size_t ECC_PUBEY2_LEN;
+extern const size_t ECC_PUBKEY2_LEN;
 
 extern const uint8_t ECC_PUBKEY2_SHA1[];
 extern const uint8_t ECC_PUBKEY2_SHA256[];
@@ -152,7 +152,7 @@ extern const size_t ECC_PRIVKEY3_LEN;
 
 extern const uint8_t ECC_PUBKEY3[];
 extern const uint8_t ECC_PUBKEY3_LE[];
-extern const size_t ECC_PUBEY3_LEN;
+extern const size_t ECC_PUBKEY3_LEN;
 
 extern const uint8_t ECC_PUBKEY3_SHA1[];
 extern const uint8_t ECC_PUBKEY3_SHA256[];
@@ -182,7 +182,7 @@ extern const size_t ECC_PRIVKEY4_LEN;
 
 extern const uint8_t ECC_PUBKEY4[];
 extern const uint8_t ECC_PUBKEY4_LE[];
-extern const size_t ECC_PUBEY4_LEN;
+extern const size_t ECC_PUBKEY4_LEN;
 
 extern const uint8_t ECC_PUBKEY4_SHA1[];
 extern const uint8_t ECC_PUBKEY4_SHA256[];
@@ -212,7 +212,7 @@ extern const size_t ECC_PRIVKEY5_LEN;
 
 extern const uint8_t ECC_PUBKEY5[];
 extern const uint8_t ECC_PUBKEY5_LE[];
-extern const size_t ECC_PUBEY5_LEN;
+extern const size_t ECC_PUBKEY5_LEN;
 
 extern const uint8_t ECC_PUBKEY5_SHA1[];
 extern const uint8_t ECC_PUBKEY5_SHA256[];
@@ -242,7 +242,7 @@ extern const size_t ECC_PRIVKEY6_LEN;
 
 extern const uint8_t ECC_PUBKEY6[];
 extern const uint8_t ECC_PUBKEY6_LE[];
-extern const size_t ECC_PUBEY6_LEN;
+extern const size_t ECC_PUBKEY6_LEN;
 
 extern const uint8_t ECC_PUBKEY6_SHA1[];
 extern const uint8_t ECC_PUBKEY6_SHA256[];
@@ -272,7 +272,7 @@ extern const size_t ECC_PRIVKEY7_LEN;
 
 extern const uint8_t ECC_PUBKEY7[];
 extern const uint8_t ECC_PUBKEY7_LE[];
-extern const size_t ECC_PUBEY7_LEN;
+extern const size_t ECC_PUBKEY7_LEN;
 
 extern const uint8_t ECC_PUBKEY7_SHA1[];
 extern const uint8_t ECC_PUBKEY7_SHA256[];
@@ -302,7 +302,7 @@ extern const size_t ECC_PRIVKEY8_LEN;
 
 extern const uint8_t ECC_PUBKEY8[];
 extern const uint8_t ECC_PUBKEY8_LE[];
-extern const size_t ECC_PUBEY8_LEN;
+extern const size_t ECC_PUBKEY8_LEN;
 
 extern const uint8_t ECC_PUBKEY8_SHA1[];
 extern const uint8_t ECC_PUBKEY8_SHA256[];
@@ -332,7 +332,7 @@ extern const size_t ECC_PRIVKEY9_LEN;
 
 extern const uint8_t ECC_PUBKEY9[];
 extern const uint8_t ECC_PUBKEY9_LE[];
-extern const size_t ECC_PUBEY9_LEN;
+extern const size_t ECC_PUBKEY9_LEN;
 
 extern const uint8_t ECC_PUBKEY9_SHA1[];
 extern const uint8_t ECC_PUBKEY9_SHA256[];
@@ -362,7 +362,7 @@ extern const size_t ECC_PRIVKEY10_LEN;
 
 extern const uint8_t ECC_PUBKEY10[];
 extern const uint8_t ECC_PUBKEY10_LE[];
-extern const size_t ECC_PUBEY10_LEN;
+extern const size_t ECC_PUBKEY10_LEN;
 
 extern const uint8_t ECC_PUBKEY10_SHA1[];
 extern const uint8_t ECC_PUBKEY10_SHA256[];
@@ -431,6 +431,13 @@ extern const size_t ECC384_SIG_TEST_RAW_LEN;
 
 extern const uint8_t ECC384_SIGNATURE_TEST2[];
 extern const size_t ECC384_SIG_TEST2_LEN;
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+extern const struct ecc_ecdsa_signature ECC384_SIGNATURE_TEST2_STRUCT;
+#endif
+
+extern const uint8_t ECC384_SIGNATURE_TEST2_RAW[];
+extern const size_t ECC384_SIG_TEST2_RAW_LEN;
 
 extern const uint8_t ECC384_SIGNATURE_NOPE[];
 extern const size_t ECC384_SIG_NOPE_LEN;

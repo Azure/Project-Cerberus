@@ -6,7 +6,9 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "crypto/ecc_hw.h"
 #include "crypto/hash.h"
+#include "crypto/rng.h"
 #include "status/rot_status.h"
 
 
@@ -29,6 +31,26 @@ int ecdsa_deterministic_k_drbg_generate (struct hash_engine *hash,
 	struct ecdsa_deterministic_k_drbg *drbg, uint8_t *k, size_t k_length);
 void ecdsa_deterministic_k_drbg_clear (struct ecdsa_deterministic_k_drbg *drbg);
 
+int ecdsa_ecc_hw_sign_message (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
+	enum hash_type hash_algo, struct rng_engine *rng, const uint8_t *priv_key, size_t key_length,
+	const uint8_t *message, size_t msg_length, struct ecc_ecdsa_signature *signature);
+int ecdsa_ecc_hw_sign_hash (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
+	enum hash_type hash_algo, struct rng_engine *rng, const uint8_t *priv_key, size_t key_length,
+	struct ecc_ecdsa_signature *signature);
+int ecdsa_ecc_hw_sign_hash_and_finish (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
+	enum hash_type hash_algo, struct rng_engine *rng, const uint8_t *priv_key, size_t key_length,
+	struct ecc_ecdsa_signature *signature);
+
+int ecdsa_ecc_hw_verify_message (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
+	enum hash_type hash_algo, const uint8_t *message, size_t msg_length,
+	const struct ecc_point_public_key *pub_key, const struct ecc_ecdsa_signature *signature);
+int ecdsa_ecc_hw_verify_hash (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
+	enum hash_type hash_algo, const struct ecc_point_public_key *pub_key,
+	const struct ecc_ecdsa_signature *signature);
+int ecdsa_ecc_hw_verify_hash_and_finish (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
+	enum hash_type hash_algo, const struct ecc_point_public_key *pub_key,
+	const struct ecc_ecdsa_signature *signature);
+
 
 #define	ECDSA_ERROR(code)		ROT_ERROR (ROT_MODULE_ECDSA, code)
 
@@ -36,8 +58,15 @@ void ecdsa_deterministic_k_drbg_clear (struct ecdsa_deterministic_k_drbg *drbg);
  * Error codes that can be generated during ECDSA processing.
  */
 enum {
-	ECDSA_INVALID_ARGUMENT = ECDSA_ERROR (0x00),	/**< Input parameter is null or not valid. */
-	ECDSA_NO_MEMORY = ECDSA_ERROR (0x01),			/**< Memory allocation failed. */
+	ECDSA_INVALID_ARGUMENT = ECDSA_ERROR (0x00),				/**< Input parameter is null or not valid. */
+	ECDSA_NO_MEMORY = ECDSA_ERROR (0x01),						/**< Memory allocation failed. */
+	ECDSA_P256_SIGN_SELF_TEST_FAILED = ECDSA_ERROR (0x02),		/**< Failed a self-test for ECDSA sign for the P-256 curve. */
+	ECDSA_P384_SIGN_SELF_TEST_FAILED = ECDSA_ERROR (0x03),		/**< Failed a self-test for ECDSA sign for the P-384 curve. */
+	ECDSA_P521_SIGN_SELF_TEST_FAILED = ECDSA_ERROR (0x04),		/**< Failed a self-test for ECDSA sign for the P-521 curve. */
+	ECDSA_P256_VERIFY_SELF_TEST_FAILED = ECDSA_ERROR (0x05),	/**< Failed a self-test for ECDSA verify for the P-256 curve. */
+	ECDSA_P384_VERIFY_SELF_TEST_FAILED = ECDSA_ERROR (0x06),	/**< Failed a self-test for ECDSA verify for the P-384 curve. */
+	ECDSA_P521_VERIFY_SELF_TEST_FAILED = ECDSA_ERROR (0x07),	/**< Failed a self-test for ECDSA verify for the P-521 curve. */
+	ECDSA_UNSUPPORTED_SELF_TEST = ECDSA_ERROR (0x08),			/**< The curve or hash algorithm is not supported. */
 };
 
 

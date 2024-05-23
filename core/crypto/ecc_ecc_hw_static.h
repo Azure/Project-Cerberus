@@ -84,10 +84,13 @@ int ecc_ecc_hw_compute_shared_secret (struct ecc_engine *engine,
  * There is no validation done on the arguments.
  *
  * @param hw_ptr The hardware accelerator that should be used for ECC operations.
+ * @param rng_ptr An optional random number generator to use during ECC signature generation.  If
+ * this is not provided, the default RNG for the hardware accelerator will be used.
  */
-#define	ecc_ecc_hw_static_init(hw_ptr)	{ \
+#define	ecc_ecc_hw_static_init(hw_ptr, rng_ptr)	{ \
 		.base = ECC_ECC_HW_API_INIT, \
-		.hw = hw_ptr \
+		.hw = hw_ptr, \
+		.rng = rng_ptr, \
 	}
 
 

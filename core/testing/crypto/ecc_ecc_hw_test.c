@@ -14,6 +14,7 @@
 #include "testing/crypto/signature_testing.h"
 #include "testing/mock/crypto/ecc_hw_mock.h"
 #include "testing/mock/crypto/ecc_mock.h"
+#include "testing/mock/crypto/rng_mock.h"
 
 
 TEST_SUITE_LABEL ("ecc_ecc_hw");
@@ -34,7 +35,7 @@ static void ecc_ecc_hw_test_init (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, engine.base.init_key_pair);
@@ -67,10 +68,10 @@ static void ecc_ecc_hw_test_init_null (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (NULL, &hw.base);
+	status = ecc_ecc_hw_init (NULL, &hw.base, NULL);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = ecc_ecc_hw_init (&engine, NULL);
+	status = ecc_ecc_hw_init (&engine, NULL, NULL);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = ecc_hw_mock_validate_and_release (&hw);
@@ -96,7 +97,7 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -147,7 +148,7 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_no_pubkey (CuTes
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -200,7 +201,7 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_extra_buffer (Cu
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -250,7 +251,7 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_p384 (CuTest *te
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -301,7 +302,7 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_p384_no_pubkey (
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -355,7 +356,7 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_p384_extra_buffe
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -407,7 +408,7 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_p521 (CuTest *te
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -458,7 +459,7 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_p521_no_pubkey (
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -512,7 +513,7 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_p521_extra_buffe
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -563,7 +564,7 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_verify_bad_sig (CuTest 
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -612,7 +613,7 @@ static void ecc_ecc_hw_test_private_key_init_key_pair_and_sign (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -625,8 +626,9 @@ static void ecc_ecc_hw_test_private_key_init_key_pair_and_sign (CuTest *test)
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -658,7 +660,7 @@ static void ecc_ecc_hw_test_public_key_init_key_pair_and_sign (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -704,7 +706,7 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -725,8 +727,9 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify (CuTest *test)
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -775,7 +778,7 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_no_pubkey (CuTest 
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -796,8 +799,9 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_no_pubkey (CuTest 
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -849,7 +853,7 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_extra_buffer (CuTe
 
 	memcpy (privkey, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -870,8 +874,9 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_extra_buffer (CuTe
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -921,7 +926,7 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p384 (CuTest *test
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -943,8 +948,9 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p384 (CuTest *test
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC384_PRIVKEY, ECC384_PRIVKEY_LEN), MOCK_ARG (ECC384_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC384_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC384_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC384_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -994,7 +1000,7 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p384_no_pubkey (Cu
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -1016,8 +1022,9 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p384_no_pubkey (Cu
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC384_PRIVKEY, ECC384_PRIVKEY_LEN), MOCK_ARG (ECC384_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC384_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC384_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC384_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1070,7 +1077,7 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p384_extra_buffer 
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -1092,8 +1099,9 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p384_extra_buffer 
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC384_PRIVKEY, ECC384_PRIVKEY_LEN), MOCK_ARG (ECC384_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC384_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC384_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC384_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1145,7 +1153,7 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p521 (CuTest *test
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -1167,8 +1175,9 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p521 (CuTest *test
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC521_PRIVKEY, ECC521_PRIVKEY_LEN), MOCK_ARG (ECC521_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC521_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC521_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC521_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1218,7 +1227,7 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p521_no_pubkey (Cu
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -1240,8 +1249,9 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p521_no_pubkey (Cu
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC521_PRIVKEY, ECC521_PRIVKEY_LEN), MOCK_ARG (ECC521_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC521_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC521_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC521_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1291,7 +1301,7 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p521_no_leading_ze
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -1313,8 +1323,9 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p521_no_leading_ze
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC521_PRIVKEY, ECC521_PRIVKEY_LEN), MOCK_ARG (ECC521_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC521_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC521_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC521_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1367,7 +1378,7 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p521_extra_buffer 
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -1389,8 +1400,9 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_p521_extra_buffer 
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC521_PRIVKEY, ECC521_PRIVKEY_LEN), MOCK_ARG (ECC521_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC521_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC521_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC521_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1440,7 +1452,7 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_with_public_key (CuTest *test
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -1481,7 +1493,7 @@ static void ecc_ecc_hw_test_init_key_pair_no_keys (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, NULL,
@@ -1507,7 +1519,7 @@ static void ecc_ecc_hw_test_init_key_pair_null (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (NULL, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,	&priv_key,
@@ -1539,7 +1551,7 @@ static void ecc_ecc_hw_test_init_key_pair_with_public_key (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, NULL,
@@ -1564,7 +1576,7 @@ static void ecc_ecc_hw_test_init_key_pair_with_rsa_key (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, NULL,
@@ -1589,7 +1601,7 @@ static void ecc_ecc_hw_test_init_public_key_and_verify (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
@@ -1637,7 +1649,7 @@ static void ecc_ecc_hw_test_init_public_key_and_verify_extra_buffer (CuTest *tes
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_public_key (&engine.base, pubkey, sizeof (pubkey), &pub_key);
@@ -1680,7 +1692,7 @@ static void ecc_ecc_hw_test_init_public_key_and_verify_p384 (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_public_key (&engine.base, ECC384_PUBKEY_DER, ECC384_PUBKEY_DER_LEN,
@@ -1728,7 +1740,7 @@ static void ecc_ecc_hw_test_init_public_key_and_verify_p384_extra_buffer (CuTest
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_public_key (&engine.base, pubkey, sizeof (pubkey), &pub_key);
@@ -1772,7 +1784,7 @@ static void ecc_ecc_hw_test_init_public_key_and_verify_p521 (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_public_key (&engine.base, ECC521_PUBKEY_DER, ECC521_PUBKEY_DER_LEN,
@@ -1820,7 +1832,7 @@ static void ecc_ecc_hw_test_init_public_key_and_verify_p521_extra_buffer (CuTest
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_public_key (&engine.base, pubkey, sizeof (pubkey), &pub_key);
@@ -1863,7 +1875,7 @@ static void ecc_ecc_hw_test_init_public_key_and_verify_bad_sig (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
@@ -1905,7 +1917,7 @@ static void ecc_ecc_hw_test_init_public_key_null (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_public_key (NULL, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,	&pub_key);
@@ -1938,7 +1950,7 @@ static void ecc_ecc_hw_test_init_public_key_with_private_key (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_public_key (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -1963,7 +1975,7 @@ static void ecc_ecc_hw_test_init_public_key_with_rsa_key (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_public_key (&engine.base, RSA_PUBKEY_DER, RSA_PUBKEY_DER_LEN,
@@ -1988,7 +2000,7 @@ static void ecc_ecc_hw_test_public_key_generate_derived_key_pair_and_verify (CuT
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -2038,7 +2050,7 @@ static void ecc_ecc_hw_test_public_key_generate_derived_key_pair_and_verify_p384
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
@@ -2095,7 +2107,7 @@ static void ecc_ecc_hw_test_public_key_generate_derived_key_pair_and_verify_p521
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
@@ -2152,7 +2164,7 @@ static void ecc_ecc_hw_test_public_key_generate_derived_key_pair_and_verify_bad_
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -2202,7 +2214,7 @@ static void ecc_ecc_hw_test_private_key_generate_derived_key_pair_and_sign (CuTe
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_derived_key_pair (&engine.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN,
@@ -2215,8 +2227,9 @@ static void ecc_ecc_hw_test_private_key_generate_derived_key_pair_and_sign (CuTe
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2247,7 +2260,7 @@ static void ecc_ecc_hw_test_public_key_generate_derived_key_pair_and_sign (CuTes
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -2289,7 +2302,7 @@ static void ecc_ecc_hw_test_generate_derived_key_pair_and_sign_and_verify (CuTes
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -2310,8 +2323,9 @@ static void ecc_ecc_hw_test_generate_derived_key_pair_and_sign_and_verify (CuTes
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2361,7 +2375,7 @@ static void ecc_ecc_hw_test_generate_derived_key_pair_and_sign_and_verify_p384 (
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
@@ -2386,8 +2400,9 @@ static void ecc_ecc_hw_test_generate_derived_key_pair_and_sign_and_verify_p384 (
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC384_PRIVKEY, ECC384_PRIVKEY_LEN), MOCK_ARG (ECC384_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC384_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC384_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC384_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2441,7 +2456,7 @@ static void ecc_ecc_hw_test_generate_derived_key_pair_and_sign_and_verify_p521 (
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
@@ -2466,8 +2481,9 @@ static void ecc_ecc_hw_test_generate_derived_key_pair_and_sign_and_verify_p521 (
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC521_PRIVKEY, ECC521_PRIVKEY_LEN), MOCK_ARG (ECC521_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC521_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC521_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC521_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2517,7 +2533,7 @@ static void ecc_ecc_hw_test_generate_derived_key_pair_and_sign_with_public_key (
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -2556,7 +2572,7 @@ static void ecc_ecc_hw_test_generate_derived_key_pair_no_keys (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_derived_key_pair (&engine.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN,
@@ -2582,7 +2598,7 @@ static void ecc_ecc_hw_test_generate_derived_key_pair_null (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_derived_key_pair (NULL, ECC_PRIVKEY, ECC_PRIVKEY_LEN,	&priv_key,
@@ -2616,7 +2632,7 @@ static void ecc_ecc_hw_test_generate_derived_key_pair_unsupported_key_length (Cu
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_derived_key_pair (&engine.base, ECC_PRIVKEY, 16, &priv_key,
@@ -2641,7 +2657,7 @@ static void ecc_ecc_hw_test_public_key_generate_key_pair (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.generate_ecc_key_pair, &hw, 0,
@@ -2676,7 +2692,7 @@ static void ecc_ecc_hw_test_private_key_generate_key_pair_and_sign (CuTest *test
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.generate_ecc_key_pair, &hw, 0,
@@ -2695,8 +2711,9 @@ static void ecc_ecc_hw_test_private_key_generate_key_pair_and_sign (CuTest *test
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY2, ECC_PRIVKEY2_LEN), MOCK_ARG (ECC_PRIVKEY2_LEN),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2727,7 +2744,7 @@ static void ecc_ecc_hw_test_public_key_generate_key_pair_and_sign (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.generate_ecc_key_pair, &hw, 0,
@@ -2768,7 +2785,7 @@ static void ecc_ecc_hw_test_generate_key_pair_and_sign_and_verify (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.generate_ecc_key_pair, &hw, 0,
@@ -2788,8 +2805,9 @@ static void ecc_ecc_hw_test_generate_key_pair_and_sign_and_verify (CuTest *test)
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2839,7 +2857,7 @@ static void ecc_ecc_hw_test_generate_key_pair_and_sign_and_verify_p384 (CuTest *
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
@@ -2863,8 +2881,9 @@ static void ecc_ecc_hw_test_generate_key_pair_and_sign_and_verify_p384 (CuTest *
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC384_PRIVKEY, ECC384_PRIVKEY_LEN), MOCK_ARG (ECC384_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC384_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SHA384_TEST_HASH), MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC384_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC384_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2918,7 +2937,7 @@ static void ecc_ecc_hw_test_generate_key_pair_and_sign_and_verify_p521 (CuTest *
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
@@ -2942,8 +2961,9 @@ static void ecc_ecc_hw_test_generate_key_pair_and_sign_and_verify_p521 (CuTest *
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC521_PRIVKEY, ECC521_PRIVKEY_LEN), MOCK_ARG (ECC521_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC521_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SHA512_TEST_HASH), MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC521_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC521_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2993,7 +3013,7 @@ static void ecc_ecc_hw_test_generate_key_pair_and_sign_with_public_key (CuTest *
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.generate_ecc_key_pair, &hw, 0,
@@ -3031,7 +3051,7 @@ static void ecc_ecc_hw_test_generate_key_pair_no_keys (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.generate_ecc_key_pair, &hw, 0,
@@ -3063,7 +3083,7 @@ static void ecc_ecc_hw_test_generate_key_pair_null (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_key_pair (NULL, ECC_KEY_LENGTH_256, &priv_key, &pub_key);
@@ -3088,7 +3108,7 @@ static void ecc_ecc_hw_test_generate_key_pair_unsupported_key_length (CuTest *te
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_key_pair (&engine.base, 16, &priv_key, &pub_key);
@@ -3114,7 +3134,7 @@ static void ecc_ecc_hw_test_sign_null (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -3166,7 +3186,7 @@ static void ecc_ecc_hw_test_sign_small_buffer (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -3185,8 +3205,9 @@ static void ecc_ecc_hw_test_sign_small_buffer (CuTest *test)
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -3217,7 +3238,7 @@ static void ecc_ecc_hw_test_sign_unknown_hash (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -3256,7 +3277,7 @@ static void ecc_ecc_hw_test_verify_null (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -3318,7 +3339,7 @@ static void ecc_ecc_hw_test_verify_corrupt_signature (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -3358,7 +3379,7 @@ static void ecc_ecc_hw_test_get_signature_max_length (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -3389,7 +3410,7 @@ static void ecc_ecc_hw_test_get_signature_max_length_p384 (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN,
@@ -3421,7 +3442,7 @@ static void ecc_ecc_hw_test_get_signature_max_length_p521 (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, ECC521_PRIVKEY_DER, ECC521_PRIVKEY_DER_LEN,
@@ -3452,7 +3473,7 @@ static void ecc_ecc_hw_test_get_signature_max_length_derived_key (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_derived_key_pair (&engine.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN,
@@ -3482,7 +3503,7 @@ static void ecc_ecc_hw_test_get_signature_max_length_random_key (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.generate_ecc_key_pair, &hw, 0,
@@ -3518,7 +3539,7 @@ static void ecc_ecc_hw_test_get_signature_max_length_null (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -3551,7 +3572,7 @@ static void ecc_ecc_hw_test_get_shared_secret_max_length (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -3582,7 +3603,7 @@ static void ecc_ecc_hw_test_get_shared_secret_max_length_p384 (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN,
@@ -3614,7 +3635,7 @@ static void ecc_ecc_hw_test_get_shared_secret_max_length_p521 (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, ECC521_PRIVKEY_DER, ECC521_PRIVKEY_DER_LEN,
@@ -3645,7 +3666,7 @@ static void ecc_ecc_hw_test_get_shared_secret_max_length_derived_key (CuTest *te
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_derived_key_pair (&engine.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN,
@@ -3675,7 +3696,7 @@ static void ecc_ecc_hw_test_get_shared_secret_max_length_random_key (CuTest *tes
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.generate_ecc_key_pair, &hw, 0,
@@ -3711,7 +3732,7 @@ static void ecc_ecc_hw_test_get_shared_secret_max_length_null (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -3747,7 +3768,7 @@ static void ecc_ecc_hw_test_compute_shared_secret (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -3803,7 +3824,7 @@ static void ecc_ecc_hw_test_compute_shared_secret_p384 (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -3861,7 +3882,7 @@ static void ecc_ecc_hw_test_compute_shared_secret_p521 (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -3918,7 +3939,7 @@ static void ecc_ecc_hw_test_compute_shared_secret_leading_zero (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_LEADING_ZERO_DER,
@@ -3972,7 +3993,7 @@ static void ecc_ecc_hw_test_compute_shared_secret_derived_key (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -4026,7 +4047,7 @@ static void ecc_ecc_hw_test_compute_shared_secret_null (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -4076,7 +4097,7 @@ static void ecc_ecc_hw_test_compute_shared_secret_small_buffer (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -4116,7 +4137,7 @@ static void ecc_ecc_hw_test_get_private_key_der (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -4162,7 +4183,7 @@ static void ecc_ecc_hw_test_get_private_key_der_p384 (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN,
@@ -4210,7 +4231,7 @@ static void ecc_ecc_hw_test_get_private_key_der_p521 (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, ECC521_PRIVKEY_DER, ECC521_PRIVKEY_DER_LEN,
@@ -4257,7 +4278,7 @@ static void ecc_ecc_hw_test_get_private_key_der_derived_key_pair (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_derived_key_pair (&engine.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN,
@@ -4302,7 +4323,7 @@ static void ecc_ecc_hw_test_get_private_key_der_generated_key_pair (CuTest *test
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.generate_ecc_key_pair, &hw, 0,
@@ -4355,7 +4376,7 @@ static void ecc_ecc_hw_test_get_private_key_der_null (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -4402,7 +4423,7 @@ static void ecc_ecc_hw_test_get_private_key_der_public_key_from_private (CuTest 
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -4443,7 +4464,7 @@ static void ecc_ecc_hw_test_get_private_key_der_public_key (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
@@ -4477,7 +4498,7 @@ static void ecc_ecc_hw_test_get_public_key_der (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -4523,7 +4544,7 @@ static void ecc_ecc_hw_test_get_public_key_der_p384 (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -4571,7 +4592,7 @@ static void ecc_ecc_hw_test_get_public_key_der_p521 (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -4618,7 +4639,7 @@ static void ecc_ecc_hw_test_get_public_key_der_derived_key_pair (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -4663,7 +4684,7 @@ static void ecc_ecc_hw_test_get_public_key_der_generated_key_pair (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.generate_ecc_key_pair, &hw, 0,
@@ -4708,7 +4729,7 @@ static void ecc_ecc_hw_test_get_public_key_der_null (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -4762,7 +4783,7 @@ static void ecc_ecc_hw_test_get_public_key_der_private_key (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -4785,7 +4806,7 @@ static void ecc_ecc_hw_test_get_public_key_der_private_key (CuTest *test)
 static void ecc_ecc_hw_test_static_init (CuTest *test)
 {
 	struct ecc_hw_mock hw;
-	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base);
+	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base, NULL);
 
 	TEST_START;
 
@@ -4808,7 +4829,7 @@ static void ecc_ecc_hw_test_static_init (CuTest *test)
 static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_static_init (CuTest *test)
 {
 	struct ecc_hw_mock hw;
-	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base);
+	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base, NULL);
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
@@ -4838,8 +4859,9 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_static_init (CuTes
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -4875,7 +4897,7 @@ static void ecc_ecc_hw_test_init_key_pair_and_sign_and_verify_static_init (CuTes
 static void ecc_ecc_hw_test_init_public_key_and_verify_static_init (CuTest *test)
 {
 	struct ecc_hw_mock hw;
-	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base);
+	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base, NULL);
 	struct ecc_public_key pub_key;
 	int status;
 
@@ -4915,7 +4937,7 @@ static void ecc_ecc_hw_test_init_public_key_and_verify_static_init (CuTest *test
 static void ecc_ecc_hw_test_generate_derived_key_pair_and_sign_and_verify_static_init (CuTest *test)
 {
 	struct ecc_hw_mock hw;
-	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base);
+	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base, NULL);
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
@@ -4945,8 +4967,9 @@ static void ecc_ecc_hw_test_generate_derived_key_pair_and_sign_and_verify_static
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -4980,7 +5003,7 @@ static void ecc_ecc_hw_test_generate_derived_key_pair_and_sign_and_verify_static
 static void ecc_ecc_hw_test_generate_key_pair_and_sign_and_verify_static_init (CuTest *test)
 {
 	struct ecc_hw_mock hw;
-	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base);
+	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base, NULL);
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
@@ -5009,8 +5032,9 @@ static void ecc_ecc_hw_test_generate_key_pair_and_sign_and_verify_static_init (C
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&hw.mock, 4, &ECC_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC_SIGNATURE_TEST_STRUCT,
 		sizeof (ECC_SIGNATURE_TEST_STRUCT), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -5044,7 +5068,7 @@ static void ecc_ecc_hw_test_generate_key_pair_and_sign_and_verify_static_init (C
 static void ecc_ecc_hw_test_get_signature_max_length_static_init (CuTest *test)
 {
 	struct ecc_hw_mock hw;
-	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base);
+	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base, NULL);
 	struct ecc_private_key priv_key;
 	int status;
 
@@ -5071,7 +5095,7 @@ static void ecc_ecc_hw_test_get_signature_max_length_static_init (CuTest *test)
 static void ecc_ecc_hw_test_get_shared_secret_max_length_static_init (CuTest *test)
 {
 	struct ecc_hw_mock hw;
-	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base);
+	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base, NULL);
 	struct ecc_private_key priv_key;
 	int status;
 
@@ -5098,7 +5122,7 @@ static void ecc_ecc_hw_test_get_shared_secret_max_length_static_init (CuTest *te
 static void ecc_ecc_hw_test_compute_shared_secret_static_init (CuTest *test)
 {
 	struct ecc_hw_mock hw;
-	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base);
+	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base, NULL);
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
@@ -5150,7 +5174,7 @@ static void ecc_ecc_hw_test_compute_shared_secret_static_init (CuTest *test)
 static void ecc_ecc_hw_test_get_private_key_der_static_init (CuTest *test)
 {
 	struct ecc_hw_mock hw;
-	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base);
+	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base, NULL);
 	struct ecc_private_key priv_key;
 	int status;
 	uint8_t *der = NULL;
@@ -5192,7 +5216,7 @@ static void ecc_ecc_hw_test_get_private_key_der_static_init (CuTest *test)
 static void ecc_ecc_hw_test_get_public_key_der_static_init (CuTest *test)
 {
 	struct ecc_hw_mock hw;
-	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base);
+	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base, NULL);
 	struct ecc_public_key pub_key;
 	int status;
 	uint8_t *der = NULL;
@@ -5244,7 +5268,7 @@ static void ecc_ecc_hw_test_init_key_pair_hw_public_key_error (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, ECC_HW_ECC_PUBLIC_FAILED,
@@ -5278,7 +5302,7 @@ static void ecc_ecc_hw_test_generate_key_pair_hw_error (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.generate_ecc_key_pair, &hw, ECC_HW_ECC_GENERATE_FAILED,
@@ -5290,6 +5314,107 @@ static void ecc_ecc_hw_test_generate_key_pair_hw_error (CuTest *test)
 	CuAssertIntEquals (test, ECC_HW_ECC_GENERATE_FAILED, status);
 
 	status = ecc_hw_mock_validate_and_release (&hw);
+	CuAssertIntEquals (test, 0, status);
+
+	ecc_ecc_hw_release (&engine);
+}
+
+static void ecc_ecc_hw_test_sign_with_rng (CuTest *test)
+{
+	struct ecc_hw_mock hw;
+	struct rng_engine_mock rng;
+	struct ecc_engine_ecc_hw engine;
+	struct ecc_private_key priv_key;
+	int status;
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
+
+	TEST_START;
+
+	status = ecc_hw_mock_init (&hw);
+	CuAssertIntEquals (test, 0, status);
+
+	status = rng_mock_init (&rng);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_ecc_hw_init (&engine, &hw.base, &rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		&priv_key, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, priv_key.context);
+
+	status = mock_validate (&hw.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
+		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR (&rng),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC_SIGNATURE_TEST_STRUCT,
+		sizeof (ECC_SIGNATURE_TEST_STRUCT), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
+		sizeof (out));
+	// The output is deterministic for this implementation.
+	CuAssertIntEquals (test, ECC_SIG_TEST_LEN, status);
+
+	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
+	CuAssertPtrEquals (test, NULL, priv_key.context);
+
+	status = ecc_hw_mock_validate_and_release (&hw);
+	status |= rng_mock_validate_and_release (&rng);
+	CuAssertIntEquals (test, 0, status);
+
+	ecc_ecc_hw_release (&engine);
+}
+
+static void ecc_ecc_hw_test_sign_with_rng_static_init (CuTest *test)
+{
+	struct ecc_hw_mock hw;
+	struct rng_engine_mock rng;
+	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base, &rng.base);
+	struct ecc_private_key priv_key;
+	int status;
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
+
+	TEST_START;
+
+	status = ecc_hw_mock_init (&hw);
+	CuAssertIntEquals (test, 0, status);
+
+	status = rng_mock_init (&rng);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		&priv_key, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, priv_key.context);
+
+	status = mock_validate (&hw.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
+		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR (&rng),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 5, &ECC_SIGNATURE_TEST_STRUCT,
+		sizeof (ECC_SIGNATURE_TEST_STRUCT), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
+		sizeof (out));
+	// The output is deterministic for this implementation.
+	CuAssertIntEquals (test, ECC_SIG_TEST_LEN, status);
+
+	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
+	CuAssertPtrEquals (test, NULL, priv_key.context);
+
+	status = ecc_hw_mock_validate_and_release (&hw);
+	status |= rng_mock_validate_and_release (&rng);
 	CuAssertIntEquals (test, 0, status);
 
 	ecc_ecc_hw_release (&engine);
@@ -5308,7 +5433,7 @@ static void ecc_ecc_hw_test_sign_hw_error (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -5321,7 +5446,8 @@ static void ecc_ecc_hw_test_sign_hw_error (CuTest *test)
 
 	status = mock_expect (&hw.mock, hw.base.ecdsa_sign, &hw, ECC_HW_ECDSA_SIGN_FAILED,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5350,7 +5476,7 @@ static void ecc_ecc_hw_test_verify_hw_error (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -5404,7 +5530,7 @@ static void ecc_ecc_hw_test_compute_shared_secret_hw_error (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
@@ -5454,7 +5580,7 @@ static void ecc_ecc_hw_test_get_private_key_der_hw_error (CuTest *test)
 	status = ecc_hw_mock_init (&hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_ecc_hw_init (&engine, &hw.base);
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -5635,6 +5761,8 @@ TEST (ecc_ecc_hw_test_get_public_key_der_static_init);
 /* Additional tests specific to this implementation. */
 TEST (ecc_ecc_hw_test_init_key_pair_hw_public_key_error);
 TEST (ecc_ecc_hw_test_generate_key_pair_hw_error);
+TEST (ecc_ecc_hw_test_sign_with_rng);
+TEST (ecc_ecc_hw_test_sign_with_rng_static_init);
 TEST (ecc_ecc_hw_test_sign_hw_error);
 TEST (ecc_ecc_hw_test_verify_hw_error);
 TEST (ecc_ecc_hw_test_compute_shared_secret_hw_error);

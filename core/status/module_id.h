@@ -16,7 +16,7 @@ enum {
 	ROT_MODULE_RSA_ENGINE = 0x0004,						/**< An RSA crypto engine.  All engines use the same ID. */
 	ROT_MODULE_X509_ENGINE = 0x0005,					/**< An X.509 crypto engine.  All engines use the same ID. */
 	ROT_MODULE_BASE64_ENGINE = 0x0006,					/**< A base64 crypto engine.  All engines use the same ID. */
-	ROT_MODULE_FLASH_MASTER = 0x0007,					/**< A driver for SPI flash.  All drivers us the same ID. */
+	ROT_MODULE_FLASH_MASTER = 0x0007,					/**< A driver for SPI flash.  All drivers use the same ID. */
 	ROT_MODULE_SPI_FLASH = 0x0008,						/**< The interface to accessing SPI flash. */
 	ROT_MODULE_FLASH_COMMON = 0x0009,					/**< Common components for SPI flash commands. */
 	ROT_MODULE_FLASH_UTIL = 0x000a,						/**< Utilities for programming and verifying flash. */

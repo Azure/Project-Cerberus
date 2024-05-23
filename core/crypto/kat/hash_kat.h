@@ -29,7 +29,7 @@ int hash_kat_hmac_run_self_test_sha512 (struct hash_engine *hash);
 int hash_kat_hmac_run_all_self_tests (struct hash_engine *hash);
 
 
-/* Hash and HMAC self tests leverage hash error codes. */
+/* Hash and HMAC self-tests leverage hash error codes. */
 
 
 #endif	/* HASH_KAT_H_ */

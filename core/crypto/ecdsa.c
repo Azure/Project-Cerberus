@@ -203,3 +203,279 @@ void ecdsa_deterministic_k_drbg_clear (struct ecdsa_deterministic_k_drbg *drbg)
 {
 	buffer_zeroize (drbg, sizeof (*drbg));
 }
+
+/**
+ * Generate an ECDSA signature for a specified message using an ECC hardware implementation.
+ *
+ * @param ecc_hw The ECC hardware instance to use for signature generation.
+ * @param hash The hash engine that will be used to calculate the message digest.
+ * @param hash_algo Algorithm that should be used for message hashing.
+ * @param rng The random number generator that will be used to generate the random 'r' value in the
+ * signature.  If this is null, the ECC hardware instance will use a default RNG, if one is
+ * available.
+ * @param priv_key Raw ECC private key to use for signing.
+ * @param key_length Length of the ECC private key.  This will determine the curve to use.
+ * @param message The raw message data that should be signed.
+ * @param msg_length Length of the message.
+ * @param signature Output buffer for the ECDSA signature.
+ *
+ * @return 0 if the signature was generated successfully or an error code.
+ */
+int ecdsa_ecc_hw_sign_message (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
+	enum hash_type hash_algo, struct rng_engine *rng, const uint8_t *priv_key, size_t key_length,
+	const uint8_t *message, size_t msg_length, struct ecc_ecdsa_signature *signature)
+{
+	int status;
+
+	if ((ecc_hw == NULL) || (hash == NULL) || (priv_key == NULL) || (message == NULL) ||
+		(signature == NULL)) {
+		return ECDSA_INVALID_ARGUMENT;
+	}
+
+	status = hash_start_new_hash (hash, hash_algo);
+	if (status != 0) {
+		return status;
+	}
+
+	status = hash->update (hash, message, msg_length);
+	if (status != 0) {
+		hash->cancel (hash);
+		return status;
+	}
+
+	return ecdsa_ecc_hw_sign_hash_and_finish (ecc_hw, hash, hash_algo, rng, priv_key, key_length,
+		signature);
+}
+
+/**
+ * Generate an ECDSA signature for an active hash context using an ECC hardware implementation.
+ *
+ * The hash context will remain active after signature generation, allowing additional updates to be
+ * made.  Not all hash implementations support this type of behavior, so it should only be used in
+ * scenarios which require it.  Most scenarios should use ecdsa_ecc_hw_sign_hash_and_finish instead.
+ *
+ * @param ecc_hw The ECC hardware instance to use for signature generation.
+ * @param hash The hash engine that contains the active context to sign.
+ * @param hash_algo Hash algorithm being used by the active context.
+ * @param rng The random number generator that will be used to generate the random 'r' value in the
+ * signature.  If this is null, the ECC hardware instance will use a default RNG, if one is
+ * available.
+ * @param priv_key Raw ECC private key to use for signing.
+ * @param key_length Length of the ECC private key.  This will determine the curve to use.
+ * @param signature Output buffer for the ECDSA signature.
+ *
+ * @return 0 if the signature was generated successfully or an error code.
+ */
+int ecdsa_ecc_hw_sign_hash (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
+	enum hash_type hash_algo, struct rng_engine *rng, const uint8_t *priv_key, size_t key_length,
+	struct ecc_ecdsa_signature *signature)
+{
+	uint8_t digest[HASH_MAX_HASH_LEN];
+	size_t digest_length;
+	int status;
+
+	if ((ecc_hw == NULL) || (hash == NULL) || (priv_key == NULL) || (signature == NULL)) {
+		return ECDSA_INVALID_ARGUMENT;
+	}
+
+	digest_length = hash_get_hash_length (hash_algo);
+	if (digest_length == HASH_ENGINE_UNKNOWN_HASH) {
+		return HASH_ENGINE_UNKNOWN_HASH;
+	}
+
+	status = hash->get_hash (hash, digest, sizeof (digest));
+	if (status != 0) {
+		return status;
+	}
+
+	return ecc_hw->ecdsa_sign (ecc_hw, priv_key, key_length, digest, digest_length, rng, signature);
+}
+
+/**
+ * Generate an ECDSA signature for an active hash context using an ECC hardware implementation.
+ *
+ * The hash context will be finished as part of signature generation.  No additional updates can be
+ * made to the hash context, regardless of whether the signature generation was successful or not.
+ *
+ * @param ecc_hw The ECC hardware instance to use for signature generation.
+ * @param hash The hash engine that contains the active context to sign.  The active context will
+ * always be terminated upon returning from this call.
+ * @param hash_algo Hash algorithm being used by the active context.
+ * @param rng The random number generator that will be used to generate the random 'r' value in the
+ * signature.  If this is null, the ECC hardware instance will use a default RNG, if one is
+ * available.
+ * @param priv_key Raw ECC private key to use for signing.
+ * @param key_length Length of the ECC private key.  This will determine the curve to use.
+ * @param signature Output buffer for the ECDSA signature.
+ *
+ * @return 0 if the signature was generated successfully or an error code.
+ */
+int ecdsa_ecc_hw_sign_hash_and_finish (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
+	enum hash_type hash_algo, struct rng_engine *rng, const uint8_t *priv_key, size_t key_length,
+	struct ecc_ecdsa_signature *signature)
+{
+	uint8_t digest[HASH_MAX_HASH_LEN];
+	size_t digest_length;
+	int status;
+
+	if (hash == NULL) {
+		return ECDSA_INVALID_ARGUMENT;
+	}
+
+	if ((ecc_hw == NULL) || (priv_key == NULL) || (signature == NULL)) {
+		status = ECDSA_INVALID_ARGUMENT;
+		goto hash_cancel;
+	}
+
+	digest_length = hash_get_hash_length (hash_algo);
+	if (digest_length == HASH_ENGINE_UNKNOWN_HASH) {
+		status = digest_length;
+		goto hash_cancel;
+	}
+
+	status = hash->finish (hash, digest, sizeof (digest));
+	if (status != 0) {
+		goto hash_cancel;
+	}
+
+	return ecc_hw->ecdsa_sign (ecc_hw, priv_key, key_length, digest, digest_length, rng, signature);
+
+hash_cancel:
+	hash->cancel (hash);
+
+	return status;
+}
+
+/**
+ * Verify a specified message with an ECDSA signature using an ECC hardware implementation.
+ *
+ * @param ecc_hw The ECC hardware instance to use for signature verification.
+ * @param hash The hash engine that will be used to calculate the message digest.
+ * @param hash_algo Algorithm that should be used for message hashing.
+ * @param message The raw message data that should be verified.
+ * @param msg_length Length of the message.
+ * @param pub_key Public key to use for verification.  The key length will determine the curve to
+ * use.
+ * @param signature The ECDSA signature for the message data.
+ *
+ * @return 0 if the message was verified successfully or an error code.
+ */
+int ecdsa_ecc_hw_verify_message (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
+	enum hash_type hash_algo, const uint8_t *message, size_t msg_length,
+	const struct ecc_point_public_key *pub_key, const struct ecc_ecdsa_signature *signature)
+{
+	int status;
+
+	if ((ecc_hw == NULL) || (hash == NULL) || (message == NULL) || (pub_key == NULL) ||
+		(signature == NULL)) {
+		return ECDSA_INVALID_ARGUMENT;
+	}
+
+	status = hash_start_new_hash (hash, hash_algo);
+	if (status != 0) {
+		return status;
+	}
+
+	status = hash->update (hash, message, msg_length);
+	if (status != 0) {
+		hash->cancel (hash);
+		return status;
+	}
+
+	return ecdsa_ecc_hw_verify_hash_and_finish (ecc_hw, hash, hash_algo, pub_key, signature);
+}
+
+/**
+ * Verify an active hash context with an ECDSA signature using an ECC hardware implementation.
+ *
+ * The hash context will remain active after signature verification, allowing additional updates to
+ * be made.  Not all hash implementations support this type of behavior, so it should only be used
+ * in scenarios which require it.  Most scenarios should use ecdsa_ecc_hw_verify_hash_and_finish
+ * instead.
+ *
+ * @param ecc_hw The ECC hardware instance to use for signature verification.
+ * @param hash The hash engine that contains the active context to verify.
+ * @param hash_algo Hash algorithm being used by the active context.
+ * @param pub_key Public key to use for verification.  The key length will determine the curve to
+ * use.
+ * @param signature The ECDSA signature for the hash context.
+ *
+ * @return 0 if the hash was verified successfully or an error code.
+ */
+int ecdsa_ecc_hw_verify_hash (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
+	enum hash_type hash_algo, const struct ecc_point_public_key *pub_key,
+	const struct ecc_ecdsa_signature *signature)
+{
+	uint8_t digest[HASH_MAX_HASH_LEN];
+	size_t digest_length;
+	int status;
+
+	if ((ecc_hw == NULL) || (hash == NULL) || (pub_key == NULL) || (signature == NULL)) {
+		return ECDSA_INVALID_ARGUMENT;
+	}
+
+	digest_length = hash_get_hash_length (hash_algo);
+	if (digest_length == HASH_ENGINE_UNKNOWN_HASH) {
+		return HASH_ENGINE_UNKNOWN_HASH;
+	}
+
+	status = hash->get_hash (hash, digest, sizeof (digest));
+	if (status != 0) {
+		return status;
+	}
+
+	return ecc_hw->ecdsa_verify (ecc_hw, pub_key, signature, digest, digest_length);
+}
+
+/**
+ * Verify an active hash context with an ECDSA signature using an ECC hardware implementation.
+ *
+ * The hash context will be finished as part of signature verification.  No additional updates can
+ * be made to the hash context, regardless of whether the signature verification was successful or
+ * not.
+ *
+ * @param ecc_hw The ECC hardware instance to use for signature verification.
+ * @param hash The hash engine that contains the active context to verify.  The active context will
+ * always be terminated upon returning from this call.
+ * @param hash_algo Hash algorithm being used by the active context.
+ * @param pub_key Public key to use for verification.  The key length will determine the curve to
+ * use.
+ * @param signature The ECDSA signature for the hash context.
+ *
+ * @return 0 if the hash was verified successfully or an error code.
+ */
+int ecdsa_ecc_hw_verify_hash_and_finish (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
+	enum hash_type hash_algo, const struct ecc_point_public_key *pub_key,
+	const struct ecc_ecdsa_signature *signature)
+{
+	uint8_t digest[HASH_MAX_HASH_LEN];
+	size_t digest_length;
+	int status;
+
+	if (hash == NULL) {
+		return ECDSA_INVALID_ARGUMENT;
+	}
+
+	if ((ecc_hw == NULL) || (pub_key == NULL) || (signature == NULL)) {
+		status = ECDSA_INVALID_ARGUMENT;
+		goto hash_cancel;
+	}
+
+	digest_length = hash_get_hash_length (hash_algo);
+	if (digest_length == HASH_ENGINE_UNKNOWN_HASH) {
+		status = digest_length;
+		goto hash_cancel;
+	}
+
+	status = hash->finish (hash, digest, sizeof (digest));
+	if (status != 0) {
+		goto hash_cancel;
+	}
+
+	return ecc_hw->ecdsa_verify (ecc_hw, pub_key, signature, digest, digest_length);
+
+hash_cancel:
+	hash->cancel (hash);
+
+	return status;
+}

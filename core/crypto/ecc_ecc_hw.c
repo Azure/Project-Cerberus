@@ -401,7 +401,7 @@ int ecc_ecc_hw_sign (struct ecc_engine *engine, const struct ecc_private_key *ke
 	}
 
 	status = ecc->hw->ecdsa_sign (ecc->hw, ecc_ecc_hw_private_key (key).d,
-		ecc_ecc_hw_private_key (key).key_length, digest, length, &raw_signature);
+		ecc_ecc_hw_private_key (key).key_length, digest, length, ecc->rng, &raw_signature);
 	if (status != 0) {
 		return status;
 	}
@@ -489,10 +489,13 @@ int ecc_ecc_hw_compute_shared_secret (struct ecc_engine *engine,
  *
  * @param engine The ECC context to initialize.
  * @param hw The hardware accelerator that should be used for ECC operations.
+ * @param rng An optional random number generator to use during ECC signature generation.  If this
+ * is not provided, the default RNG for the hardware accelerator will be used.
  *
  * @return 0 if initialization was successful or an error code.
  */
-int ecc_ecc_hw_init (struct ecc_engine_ecc_hw *engine, const struct ecc_hw *hw)
+int ecc_ecc_hw_init (struct ecc_engine_ecc_hw *engine, const struct ecc_hw *hw,
+	struct rng_engine *rng)
 {
 	if ((engine == NULL) || (hw == NULL)) {
 		return ECC_ENGINE_INVALID_ARGUMENT;
@@ -520,6 +523,7 @@ int ecc_ecc_hw_init (struct ecc_engine_ecc_hw *engine, const struct ecc_hw *hw)
 #endif
 
 	engine->hw = hw;
+	engine->rng = rng;
 
 	return 0;
 }
