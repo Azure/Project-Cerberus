@@ -56,7 +56,7 @@ const uint8_t SHA512_HMAC_KAT_CALCULATE_KEY_HASH[] = {
  * Test cases
  *******************/
 
-static void hash_kat_test_run_self_test_sha1 (CuTest *test)
+static void hash_kat_test_run_self_test_calculate_sha1 (CuTest *test)
 {
 	HASH_TESTING_ENGINE engine;
 	int status;
@@ -66,7 +66,7 @@ static void hash_kat_test_run_self_test_sha1 (CuTest *test)
 	status = HASH_TESTING_ENGINE_INIT (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_self_test_sha1 (&engine.base);
+	status = hash_kat_run_self_test_calculate_sha1 (&engine.base);
 #ifdef HASH_ENABLE_SHA1
 	CuAssertIntEquals (test, 0, status);
 #else
@@ -77,7 +77,7 @@ static void hash_kat_test_run_self_test_sha1 (CuTest *test)
 }
 
 #ifdef HASH_ENABLE_SHA1
-static void hash_kat_test_run_self_test_sha1_mismatch_data_calculate (CuTest *test)
+static void hash_kat_test_run_self_test_calculate_sha1_mismatch_data (CuTest *test)
 {
 	struct hash_engine_mock engine;
 	int status;
@@ -95,52 +95,14 @@ static void hash_kat_test_run_self_test_sha1_mismatch_data_calculate (CuTest *te
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_self_test_sha1 (&engine.base);
+	status = hash_kat_run_self_test_calculate_sha1 (&engine.base);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA1_SELF_TEST_FAILED, status);
 
 	status = hash_mock_validate_and_release (&engine);
 	CuAssertIntEquals (test, 0, status);
 }
 
-static void hash_kat_test_run_self_test_sha1_mismatch_data_update (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha1, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA1_DIGEST,
-		SHA1_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha1, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 0, SHA1_TEST2_HASH, SHA1_HASH_LENGTH, 1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha1 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_SHA1_SELF_TEST_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha1_null (CuTest *test)
+static void hash_kat_test_run_self_test_calculate_sha1_null (CuTest *test)
 {
 	HASH_TESTING_ENGINE engine;
 	int status;
@@ -150,13 +112,13 @@ static void hash_kat_test_run_self_test_sha1_null (CuTest *test)
 	status = HASH_TESTING_ENGINE_INIT (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_self_test_sha1 (NULL);
+	status = hash_kat_run_self_test_calculate_sha1 (NULL);
 	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
 
 	HASH_TESTING_ENGINE_RELEASE (&engine);
 }
 
-static void hash_kat_test_run_self_test_sha1_calculate_fail (CuTest *test)
+static void hash_kat_test_run_self_test_calculate_sha1_calculate_fail (CuTest *test)
 {
 	struct hash_engine_mock engine;
 	int status;
@@ -173,152 +135,15 @@ static void hash_kat_test_run_self_test_sha1_calculate_fail (CuTest *test)
 		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_self_test_sha1 (&engine.base);
+	status = hash_kat_run_self_test_calculate_sha1 (&engine.base);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA1_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha1_start_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha1, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA1_DIGEST,
-		SHA1_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha1, &engine,
-		HASH_ENGINE_START_SHA1_FAILED);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha1 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_START_SHA1_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha1_update_first_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha1, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA1_DIGEST,
-		SHA1_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha1, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha1 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha1_update_second_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha1, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA1_DIGEST,
-		SHA1_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha1, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha1 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha1_finish_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha1, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA1_DIGEST,
-		SHA1_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha1, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.finish, &engine, HASH_ENGINE_FINISH_FAILED,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha1 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
 
 	status = hash_mock_validate_and_release (&engine);
 	CuAssertIntEquals (test, 0, status);
 }
 #endif
 
-static void hash_kat_test_run_self_test_sha256 (CuTest *test)
+static void hash_kat_test_run_self_test_calculate_sha256 (CuTest *test)
 {
 	HASH_TESTING_ENGINE engine;
 	int status;
@@ -328,13 +153,13 @@ static void hash_kat_test_run_self_test_sha256 (CuTest *test)
 	status = HASH_TESTING_ENGINE_INIT (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_self_test_sha256 (&engine.base);
+	status = hash_kat_run_self_test_calculate_sha256 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
 	HASH_TESTING_ENGINE_RELEASE (&engine);
 }
 
-static void hash_kat_test_run_self_test_sha256_mismatch_data_calculate (CuTest *test)
+static void hash_kat_test_run_self_test_calculate_sha256_mismatch_data (CuTest *test)
 {
 	struct hash_engine_mock engine;
 	int status;
@@ -352,52 +177,14 @@ static void hash_kat_test_run_self_test_sha256_mismatch_data_calculate (CuTest *
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_self_test_sha256 (&engine.base);
+	status = hash_kat_run_self_test_calculate_sha256 (&engine.base);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA256_SELF_TEST_FAILED, status);
 
 	status = hash_mock_validate_and_release (&engine);
 	CuAssertIntEquals (test, 0, status);
 }
 
-static void hash_kat_test_run_self_test_sha256_mismatch_data_update (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha256, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA256_DIGEST,
-		SHA256_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha256, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 0, SHA256_TEST2_HASH, SHA256_HASH_LENGTH, 1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha256 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_SHA256_SELF_TEST_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha256_null (CuTest *test)
+static void hash_kat_test_run_self_test_calculate_sha256_null (CuTest *test)
 {
 	HASH_TESTING_ENGINE engine;
 	int status;
@@ -407,13 +194,13 @@ static void hash_kat_test_run_self_test_sha256_null (CuTest *test)
 	status = HASH_TESTING_ENGINE_INIT (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_self_test_sha256 (NULL);
+	status = hash_kat_run_self_test_calculate_sha256 (NULL);
 	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
 
 	HASH_TESTING_ENGINE_RELEASE (&engine);
 }
 
-static void hash_kat_test_run_self_test_sha256_calculate_fail (CuTest *test)
+static void hash_kat_test_run_self_test_calculate_sha256_calculate_fail (CuTest *test)
 {
 	struct hash_engine_mock engine;
 	int status;
@@ -430,151 +217,14 @@ static void hash_kat_test_run_self_test_sha256_calculate_fail (CuTest *test)
 		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_self_test_sha256 (&engine.base);
+	status = hash_kat_run_self_test_calculate_sha256 (&engine.base);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
 
 	status = hash_mock_validate_and_release (&engine);
 	CuAssertIntEquals (test, 0, status);
 }
 
-static void hash_kat_test_run_self_test_sha256_start_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha256, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA256_DIGEST,
-		SHA256_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha256, &engine,
-		HASH_ENGINE_START_SHA256_FAILED);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha256 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha256_update_first_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha256, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA256_DIGEST,
-		SHA256_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha256, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha256 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha256_update_second_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha256, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA256_DIGEST,
-		SHA256_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha256, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha256 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha256_finish_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha256, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA256_DIGEST,
-		SHA256_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha256, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.finish, &engine, HASH_ENGINE_FINISH_FAILED,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha256 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha384 (CuTest *test)
+static void hash_kat_test_run_self_test_calculate_sha384 (CuTest *test)
 {
 	HASH_TESTING_ENGINE engine;
 	int status;
@@ -584,7 +234,7 @@ static void hash_kat_test_run_self_test_sha384 (CuTest *test)
 	status = HASH_TESTING_ENGINE_INIT (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_self_test_sha384 (&engine.base);
+	status = hash_kat_run_self_test_calculate_sha384 (&engine.base);
 #ifdef HASH_ENABLE_SHA384
 	CuAssertIntEquals (test, 0, status);
 #else
@@ -595,7 +245,7 @@ static void hash_kat_test_run_self_test_sha384 (CuTest *test)
 }
 
 #ifdef HASH_ENABLE_SHA384
-static void hash_kat_test_run_self_test_sha384_mismatch_data_calculate (CuTest *test)
+static void hash_kat_test_run_self_test_calculate_sha384_mismatch_data (CuTest *test)
 {
 	struct hash_engine_mock engine;
 	int status;
@@ -613,52 +263,14 @@ static void hash_kat_test_run_self_test_sha384_mismatch_data_calculate (CuTest *
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_self_test_sha384 (&engine.base);
+	status = hash_kat_run_self_test_calculate_sha384 (&engine.base);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA384_SELF_TEST_FAILED, status);
 
 	status = hash_mock_validate_and_release (&engine);
 	CuAssertIntEquals (test, 0, status);
 }
 
-static void hash_kat_test_run_self_test_sha384_mismatch_data_update (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha384, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA384_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA384_DIGEST,
-		SHA384_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha384, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA384_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 0, SHA384_TEST2_HASH, SHA384_HASH_LENGTH, 1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha384 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_SHA384_SELF_TEST_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha384_null (CuTest *test)
+static void hash_kat_test_run_self_test_calculate_sha384_null (CuTest *test)
 {
 	HASH_TESTING_ENGINE engine;
 	int status;
@@ -668,13 +280,13 @@ static void hash_kat_test_run_self_test_sha384_null (CuTest *test)
 	status = HASH_TESTING_ENGINE_INIT (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_self_test_sha384 (NULL);
+	status = hash_kat_run_self_test_calculate_sha384 (NULL);
 	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
 
 	HASH_TESTING_ENGINE_RELEASE (&engine);
 }
 
-static void hash_kat_test_run_self_test_sha384_calculate_fail (CuTest *test)
+static void hash_kat_test_run_self_test_calculate_sha384_calculate_fail (CuTest *test)
 {
 	struct hash_engine_mock engine;
 	int status;
@@ -691,152 +303,15 @@ static void hash_kat_test_run_self_test_sha384_calculate_fail (CuTest *test)
 		MOCK_ARG_AT_LEAST (SHA384_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_self_test_sha384 (&engine.base);
+	status = hash_kat_run_self_test_calculate_sha384 (&engine.base);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA384_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha384_start_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha384, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA384_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA384_DIGEST,
-		SHA384_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha384, &engine,
-		HASH_ENGINE_START_SHA384_FAILED);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha384 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_START_SHA384_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha384_update_first_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha384, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA384_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA384_DIGEST,
-		SHA384_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha384, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha384 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha384_update_second_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha384, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA384_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA384_DIGEST,
-		SHA384_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha384, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha384 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha384_finish_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha384, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA384_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA384_DIGEST,
-		SHA384_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha384, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.finish, &engine, HASH_ENGINE_FINISH_FAILED,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA384_HASH_LENGTH));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha384 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
 
 	status = hash_mock_validate_and_release (&engine);
 	CuAssertIntEquals (test, 0, status);
 }
 #endif
 
-static void hash_kat_test_run_self_test_sha512 (CuTest *test)
+static void hash_kat_test_run_self_test_calculate_sha512 (CuTest *test)
 {
 	HASH_TESTING_ENGINE engine;
 	int status;
@@ -846,7 +321,7 @@ static void hash_kat_test_run_self_test_sha512 (CuTest *test)
 	status = HASH_TESTING_ENGINE_INIT (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_self_test_sha512 (&engine.base);
+	status = hash_kat_run_self_test_calculate_sha512 (&engine.base);
 #ifdef HASH_ENABLE_SHA512
 	CuAssertIntEquals (test, 0, status);
 #else
@@ -857,7 +332,7 @@ static void hash_kat_test_run_self_test_sha512 (CuTest *test)
 }
 
 #ifdef HASH_ENABLE_SHA512
-static void hash_kat_test_run_self_test_sha512_mismatch_data_calculate (CuTest *test)
+static void hash_kat_test_run_self_test_calculate_sha512_mismatch_data (CuTest *test)
 {
 	struct hash_engine_mock engine;
 	int status;
@@ -875,52 +350,14 @@ static void hash_kat_test_run_self_test_sha512_mismatch_data_calculate (CuTest *
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_self_test_sha512 (&engine.base);
+	status = hash_kat_run_self_test_calculate_sha512 (&engine.base);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA512_SELF_TEST_FAILED, status);
 
 	status = hash_mock_validate_and_release (&engine);
 	CuAssertIntEquals (test, 0, status);
 }
 
-static void hash_kat_test_run_self_test_sha512_mismatch_data_update (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha512, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA512_DIGEST,
-		SHA512_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha512, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 0, SHA512_TEST2_HASH, SHA512_HASH_LENGTH, 1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha512 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_SHA512_SELF_TEST_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha512_null (CuTest *test)
+static void hash_kat_test_run_self_test_calculate_sha512_null (CuTest *test)
 {
 	HASH_TESTING_ENGINE engine;
 	int status;
@@ -930,13 +367,13 @@ static void hash_kat_test_run_self_test_sha512_null (CuTest *test)
 	status = HASH_TESTING_ENGINE_INIT (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_self_test_sha512 (NULL);
+	status = hash_kat_run_self_test_calculate_sha512 (NULL);
 	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
 
 	HASH_TESTING_ENGINE_RELEASE (&engine);
 }
 
-static void hash_kat_test_run_self_test_sha512_calculate_fail (CuTest *test)
+static void hash_kat_test_run_self_test_calculate_sha512_calculate_fail (CuTest *test)
 {
 	struct hash_engine_mock engine;
 	int status;
@@ -953,152 +390,15 @@ static void hash_kat_test_run_self_test_sha512_calculate_fail (CuTest *test)
 		MOCK_ARG_AT_LEAST (SHA512_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_self_test_sha512 (&engine.base);
+	status = hash_kat_run_self_test_calculate_sha512 (&engine.base);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA512_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha512_start_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha512, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA512_DIGEST,
-		SHA512_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha512, &engine,
-		HASH_ENGINE_START_SHA512_FAILED);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha512 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_START_SHA512_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha512_update_first_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha512, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA512_DIGEST,
-		SHA512_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha512, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha512 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha512_update_second_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha512, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA512_DIGEST,
-		SHA512_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha512, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha512 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_run_self_test_sha512_finish_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&engine.mock, engine.base.calculate_sha512, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA512_DIGEST,
-		SHA512_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha512, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.finish, &engine, HASH_ENGINE_FINISH_FAILED,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA512_HASH_LENGTH));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_run_self_test_sha512 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
 
 	status = hash_mock_validate_and_release (&engine);
 	CuAssertIntEquals (test, 0, status);
 }
 #endif
 
-static void hash_kat_test_run_all_self_tests (CuTest *test)
+static void hash_kat_test_run_all_calculate_self_tests (CuTest *test)
 {
 	HASH_TESTING_ENGINE engine;
 	int status;
@@ -1108,13 +408,13 @@ static void hash_kat_test_run_all_self_tests (CuTest *test)
 	status = HASH_TESTING_ENGINE_INIT (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_all_self_tests (&engine.base);
+	status = hash_kat_run_all_calculate_self_tests (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
 	HASH_TESTING_ENGINE_RELEASE (&engine);
 }
 
-static void hash_kat_test_run_all_self_tests_mock (CuTest *test)
+static void hash_kat_test_run_all_calculate_self_tests_mock (CuTest *test)
 {
 	struct hash_engine_mock engine;
 	int status;
@@ -1131,19 +431,6 @@ static void hash_kat_test_run_all_self_tests_mock (CuTest *test)
 		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
 	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA1_DIGEST,
 		SHA1_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha1, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 0, SHA_KAT_VECTORS_UPDATE_SHA1_DIGEST,
-		SHA1_HASH_LENGTH, 1);
 #endif
 
 	status |= mock_expect (&engine.mock, engine.base.calculate_sha256, &engine, 0,
@@ -1153,39 +440,13 @@ static void hash_kat_test_run_all_self_tests_mock (CuTest *test)
 	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA256_DIGEST,
 		SHA256_HASH_LENGTH, 3);
 
-	status |= mock_expect (&engine.mock, engine.base.start_sha256, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 0, SHA_KAT_VECTORS_UPDATE_SHA256_DIGEST,
-		SHA256_HASH_LENGTH, 1);
-
 #ifdef HASH_ENABLE_SHA384
-	status = mock_expect (&engine.mock, engine.base.calculate_sha384, &engine, 0,
+	status |= mock_expect (&engine.mock, engine.base.calculate_sha384, &engine, 0,
 		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
 		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
 	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA384_DIGEST,
 		SHA384_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha384, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA384_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 0, SHA_KAT_VECTORS_UPDATE_SHA384_DIGEST,
-		SHA384_HASH_LENGTH, 1);
 #endif
 
 #ifdef HASH_ENABLE_SHA512
@@ -1195,31 +456,18 @@ static void hash_kat_test_run_all_self_tests_mock (CuTest *test)
 		MOCK_ARG_AT_LEAST (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA512_DIGEST,
 		SHA512_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha512, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 0, SHA_KAT_VECTORS_UPDATE_SHA512_DIGEST,
-		SHA512_HASH_LENGTH, 1);
 #endif
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_all_self_tests (&engine.base);
+	status = hash_kat_run_all_calculate_self_tests (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_mock_validate_and_release (&engine);
 	CuAssertIntEquals (test, 0, status);
 }
 
-static void hash_kat_test_run_all_self_tests_null (CuTest *test)
+static void hash_kat_test_run_all_calculate_self_tests_null (CuTest *test)
 {
 	HASH_TESTING_ENGINE engine;
 	int status;
@@ -1229,14 +477,14 @@ static void hash_kat_test_run_all_self_tests_null (CuTest *test)
 	status = HASH_TESTING_ENGINE_INIT (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_all_self_tests (NULL);
+	status = hash_kat_run_all_calculate_self_tests (NULL);
 	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
 
 	HASH_TESTING_ENGINE_RELEASE (&engine);
 }
 
 #ifdef HASH_ENABLE_SHA1
-static void hash_kat_test_run_all_self_tests_sha1_fail (CuTest *test)
+static void hash_kat_test_run_all_calculate_self_tests_sha1_fail (CuTest *test)
 {
 	struct hash_engine_mock engine;
 	int status;
@@ -1253,7 +501,7 @@ static void hash_kat_test_run_all_self_tests_sha1_fail (CuTest *test)
 		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_all_self_tests (&engine.base);
+	status = hash_kat_run_all_calculate_self_tests (&engine.base);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA1_FAILED, status);
 
 	status = hash_mock_validate_and_release (&engine);
@@ -1261,7 +509,7 @@ static void hash_kat_test_run_all_self_tests_sha1_fail (CuTest *test)
 }
 #endif
 
-static void hash_kat_test_run_all_self_tests_sha256_fail (CuTest *test)
+static void hash_kat_test_run_all_calculate_self_tests_sha256_fail (CuTest *test)
 {
 	struct hash_engine_mock engine;
 	int status;
@@ -1278,19 +526,6 @@ static void hash_kat_test_run_all_self_tests_sha256_fail (CuTest *test)
 		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
 	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA1_DIGEST,
 		SHA1_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha1, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 0, SHA_KAT_VECTORS_UPDATE_SHA1_DIGEST,
-		SHA1_HASH_LENGTH, 1);
 #endif
 
 	status |= mock_expect (&engine.mock, engine.base.calculate_sha256, &engine,
@@ -1301,7 +536,7 @@ static void hash_kat_test_run_all_self_tests_sha256_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_all_self_tests (&engine.base);
+	status = hash_kat_run_all_calculate_self_tests (&engine.base);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
 
 	status = hash_mock_validate_and_release (&engine);
@@ -1309,7 +544,7 @@ static void hash_kat_test_run_all_self_tests_sha256_fail (CuTest *test)
 }
 
 #ifdef HASH_ENABLE_SHA384
-static void hash_kat_test_run_all_self_tests_sha384_fail (CuTest *test)
+static void hash_kat_test_run_all_calculate_self_tests_sha384_fail (CuTest *test)
 {
 	struct hash_engine_mock engine;
 	int status;
@@ -1326,19 +561,6 @@ static void hash_kat_test_run_all_self_tests_sha384_fail (CuTest *test)
 		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
 	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA1_DIGEST,
 		SHA1_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha1, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 0, SHA_KAT_VECTORS_UPDATE_SHA1_DIGEST,
-		SHA1_HASH_LENGTH, 1);
 #endif
 
 	status |= mock_expect (&engine.mock, engine.base.calculate_sha256, &engine, 0,
@@ -1347,19 +569,6 @@ static void hash_kat_test_run_all_self_tests_sha384_fail (CuTest *test)
 		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA256_DIGEST,
 		SHA256_HASH_LENGTH, 3);
-
-	status |= mock_expect (&engine.mock, engine.base.start_sha256, &engine, 0);
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 0, SHA_KAT_VECTORS_UPDATE_SHA256_DIGEST,
-		SHA256_HASH_LENGTH, 1);
 
 	status |= mock_expect (&engine.mock, engine.base.calculate_sha384, &engine,
 		HASH_ENGINE_SHA384_FAILED,
@@ -1369,7 +578,7 @@ static void hash_kat_test_run_all_self_tests_sha384_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_all_self_tests (&engine.base);
+	status = hash_kat_run_all_calculate_self_tests (&engine.base);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA384_FAILED, status);
 
 	status = hash_mock_validate_and_release (&engine);
@@ -1378,7 +587,7 @@ static void hash_kat_test_run_all_self_tests_sha384_fail (CuTest *test)
 #endif
 
 #ifdef HASH_ENABLE_SHA512
-static void hash_kat_test_run_all_self_tests_sha512_fail (CuTest *test)
+static void hash_kat_test_run_all_calculate_self_tests_sha512_fail (CuTest *test)
 {
 	struct hash_engine_mock engine;
 	int status;
@@ -1395,8 +604,774 @@ static void hash_kat_test_run_all_self_tests_sha512_fail (CuTest *test)
 		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
 	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA1_DIGEST,
 		SHA1_HASH_LENGTH, 3);
+#endif
 
-	status |= mock_expect (&engine.mock, engine.base.start_sha1, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.calculate_sha256, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA256_DIGEST,
+		SHA256_HASH_LENGTH, 3);
+
+#ifdef HASH_ENABLE_SHA384
+	status |= mock_expect (&engine.mock, engine.base.calculate_sha384, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
+	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA384_DIGEST,
+		SHA384_HASH_LENGTH, 3);
+#endif
+
+	status |= mock_expect (&engine.mock, engine.base.calculate_sha512, &engine,
+		HASH_ENGINE_SHA512_FAILED,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (SHA512_HASH_LENGTH));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_all_calculate_self_tests (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_SHA512_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+#endif
+
+static void hash_kat_test_run_self_test_update_sha1 (CuTest *test)
+{
+	HASH_TESTING_ENGINE engine;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha1 (&engine.base);
+#ifdef HASH_ENABLE_SHA1
+	CuAssertIntEquals (test, 0, status);
+#else
+	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_HASH, status);
+#endif
+
+	HASH_TESTING_ENGINE_RELEASE (&engine);
+}
+
+#ifdef HASH_ENABLE_SHA1
+static void hash_kat_test_run_self_test_update_sha1_mismatch_data (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha1, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
+	status |= mock_expect_output (&engine.mock, 0, SHA1_TEST2_HASH, SHA1_HASH_LENGTH, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha1 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_SHA1_SELF_TEST_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_kat_test_run_self_test_update_sha1_null (CuTest *test)
+{
+	HASH_TESTING_ENGINE engine;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha1 (NULL);
+	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&engine);
+}
+
+static void hash_kat_test_run_self_test_update_sha1_start_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha1, &engine,
+		HASH_ENGINE_START_SHA1_FAILED);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha1 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA1_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_kat_test_run_self_test_update_sha1_update_first_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha1, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha1 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_kat_test_run_self_test_update_sha1_update_second_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha1, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha1 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_kat_test_run_self_test_update_sha1_finish_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha1, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.finish, &engine, HASH_ENGINE_FINISH_FAILED,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
+
+	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha1 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+#endif
+
+static void hash_kat_test_run_self_test_update_sha256 (CuTest *test)
+{
+	HASH_TESTING_ENGINE engine;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha256 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&engine);
+}
+
+static void hash_kat_test_run_self_test_update_sha256_mismatch_data (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha256, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&engine.mock, 0, SHA256_TEST2_HASH, SHA256_HASH_LENGTH, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha256 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_SHA256_SELF_TEST_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_kat_test_run_self_test_update_sha256_null (CuTest *test)
+{
+	HASH_TESTING_ENGINE engine;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha256 (NULL);
+	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&engine);
+}
+
+static void hash_kat_test_run_self_test_update_sha256_start_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha256, &engine,
+		HASH_ENGINE_START_SHA256_FAILED);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha256 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_kat_test_run_self_test_update_sha256_update_first_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha256, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha256 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_kat_test_run_self_test_update_sha256_update_second_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha256, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha256 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_kat_test_run_self_test_update_sha256_finish_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha256, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.finish, &engine, HASH_ENGINE_FINISH_FAILED,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+
+	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha256 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_kat_test_run_self_test_update_sha384 (CuTest *test)
+{
+	HASH_TESTING_ENGINE engine;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha384 (&engine.base);
+#ifdef HASH_ENABLE_SHA384
+	CuAssertIntEquals (test, 0, status);
+#else
+	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_HASH, status);
+#endif
+
+	HASH_TESTING_ENGINE_RELEASE (&engine);
+}
+
+#ifdef HASH_ENABLE_SHA384
+static void hash_kat_test_run_self_test_update_sha384_mismatch_data (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha384, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (SHA384_HASH_LENGTH));
+	status |= mock_expect_output (&engine.mock, 0, SHA384_TEST2_HASH, SHA384_HASH_LENGTH, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha384 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_SHA384_SELF_TEST_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_kat_test_run_self_test_update_sha384_null (CuTest *test)
+{
+	HASH_TESTING_ENGINE engine;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha384 (NULL);
+	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&engine);
+}
+
+static void hash_kat_test_run_self_test_update_sha384_start_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha384, &engine,
+		HASH_ENGINE_START_SHA384_FAILED);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha384 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA384_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_kat_test_run_self_test_update_sha384_update_first_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha384, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha384 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_kat_test_run_self_test_update_sha384_update_second_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha384, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha384 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_kat_test_run_self_test_update_sha384_finish_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha384, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.finish, &engine, HASH_ENGINE_FINISH_FAILED,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha384 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+#endif
+
+static void hash_kat_test_run_self_test_update_sha512 (CuTest *test)
+{
+	HASH_TESTING_ENGINE engine;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha512 (&engine.base);
+#ifdef HASH_ENABLE_SHA512
+	CuAssertIntEquals (test, 0, status);
+#else
+	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_HASH, status);
+#endif
+
+	HASH_TESTING_ENGINE_RELEASE (&engine);
+}
+
+#ifdef HASH_ENABLE_SHA512
+static void hash_kat_test_run_self_test_update_sha512_mismatch_data (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha512, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&engine.mock, 0, SHA512_TEST2_HASH, SHA512_HASH_LENGTH, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha512 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_SHA512_SELF_TEST_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_kat_test_run_self_test_update_sha512_null (CuTest *test)
+{
+	HASH_TESTING_ENGINE engine;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha512 (NULL);
+	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&engine);
+}
+
+static void hash_kat_test_run_self_test_update_sha512_start_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha512, &engine,
+		HASH_ENGINE_START_SHA512_FAILED);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha512 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA512_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_kat_test_run_self_test_update_sha512_update_first_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha512, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha512 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_kat_test_run_self_test_update_sha512_update_second_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha512, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha512 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_kat_test_run_self_test_update_sha512_finish_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha512, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.finish, &engine, HASH_ENGINE_FINISH_FAILED,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA512_HASH_LENGTH));
+
+	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_self_test_update_sha512 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+#endif
+
+static void hash_kat_test_run_all_update_self_tests (CuTest *test)
+{
+	HASH_TESTING_ENGINE engine;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_all_update_self_tests (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&engine);
+}
+
+static void hash_kat_test_run_all_update_self_tests_mock (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+#ifdef HASH_ENABLE_SHA1
+	status = mock_expect (&engine.mock, engine.base.start_sha1, &engine, 0);
 	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
 		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
 		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
@@ -1409,13 +1384,6 @@ static void hash_kat_test_run_all_self_tests_sha512_fail (CuTest *test)
 	status |= mock_expect_output (&engine.mock, 0, SHA_KAT_VECTORS_UPDATE_SHA1_DIGEST,
 		SHA1_HASH_LENGTH, 1);
 #endif
-
-	status |= mock_expect (&engine.mock, engine.base.calculate_sha256, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA256_DIGEST,
-		SHA256_HASH_LENGTH, 3);
 
 	status |= mock_expect (&engine.mock, engine.base.start_sha256, &engine, 0);
 	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
@@ -1431,13 +1399,6 @@ static void hash_kat_test_run_all_self_tests_sha512_fail (CuTest *test)
 		SHA256_HASH_LENGTH, 1);
 
 #ifdef HASH_ENABLE_SHA384
-	status = mock_expect (&engine.mock, engine.base.calculate_sha384, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
-	status |= mock_expect_output (&engine.mock, 2, SHA_KAT_VECTORS_CALCULATE_SHA384_DIGEST,
-		SHA384_HASH_LENGTH, 3);
-
 	status |= mock_expect (&engine.mock, engine.base.start_sha384, &engine, 0);
 	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
 		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
@@ -1452,16 +1413,220 @@ static void hash_kat_test_run_all_self_tests_sha512_fail (CuTest *test)
 		SHA384_HASH_LENGTH, 1);
 #endif
 
-	status |= mock_expect (&engine.mock, engine.base.calculate_sha512, &engine,
-		HASH_ENGINE_SHA512_FAILED,
-		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_CALCULATE_DATA, SHA_KAT_VECTORS_CALCULATE_DATA_LEN),
-		MOCK_ARG (SHA_KAT_VECTORS_CALCULATE_DATA_LEN), MOCK_ARG_NOT_NULL,
+#ifdef HASH_ENABLE_SHA512
+	status |= mock_expect (&engine.mock, engine.base.start_sha512, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&engine.mock, 0, SHA_KAT_VECTORS_UPDATE_SHA512_DIGEST,
+		SHA512_HASH_LENGTH, 1);
+#endif
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_kat_run_all_self_tests (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_SHA512_FAILED, status);
+	status = hash_kat_run_all_update_self_tests (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_kat_test_run_all_update_self_tests_null (CuTest *test)
+{
+	HASH_TESTING_ENGINE engine;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_all_update_self_tests (NULL);
+	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&engine);
+}
+
+#ifdef HASH_ENABLE_SHA1
+static void hash_kat_test_run_all_update_self_tests_sha1_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.start_sha1, &engine,
+		HASH_ENGINE_START_SHA1_FAILED);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_all_update_self_tests (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA1_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+#endif
+
+static void hash_kat_test_run_all_update_self_tests_sha256_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+#ifdef HASH_ENABLE_SHA1
+	status = mock_expect (&engine.mock, engine.base.start_sha1, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
+	status |= mock_expect_output (&engine.mock, 0, SHA_KAT_VECTORS_UPDATE_SHA1_DIGEST,
+		SHA1_HASH_LENGTH, 1);
+#endif
+
+	status |= mock_expect (&engine.mock, engine.base.start_sha256, &engine,
+		HASH_ENGINE_START_SHA256_FAILED);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_all_update_self_tests (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+#ifdef HASH_ENABLE_SHA384
+static void hash_kat_test_run_all_update_self_tests_sha384_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+#ifdef HASH_ENABLE_SHA1
+	status = mock_expect (&engine.mock, engine.base.start_sha1, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
+	status |= mock_expect_output (&engine.mock, 0, SHA_KAT_VECTORS_UPDATE_SHA1_DIGEST,
+		SHA1_HASH_LENGTH, 1);
+#endif
+
+	status |= mock_expect (&engine.mock, engine.base.start_sha256, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&engine.mock, 0, SHA_KAT_VECTORS_UPDATE_SHA256_DIGEST,
+		SHA256_HASH_LENGTH, 1);
+
+	status |= mock_expect (&engine.mock, engine.base.start_sha384, &engine,
+		HASH_ENGINE_START_SHA384_FAILED);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_all_update_self_tests (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA384_FAILED, status);
+
+	status = hash_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+#endif
+
+#ifdef HASH_ENABLE_SHA512
+static void hash_kat_test_run_all_update_self_tests_sha512_fail (CuTest *test)
+{
+	struct hash_engine_mock engine;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+#ifdef HASH_ENABLE_SHA1
+	status = mock_expect (&engine.mock, engine.base.start_sha1, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
+	status |= mock_expect_output (&engine.mock, 0, SHA_KAT_VECTORS_UPDATE_SHA1_DIGEST,
+		SHA1_HASH_LENGTH, 1);
+#endif
+
+	status |= mock_expect (&engine.mock, engine.base.start_sha256, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&engine.mock, 0, SHA_KAT_VECTORS_UPDATE_SHA256_DIGEST,
+		SHA256_HASH_LENGTH, 1);
+
+#ifdef HASH_ENABLE_SHA384
+	status |= mock_expect (&engine.mock, engine.base.start_sha384, &engine, 0);
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_1_LEN));
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
+		MOCK_ARG_PTR_CONTAINS (SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN),
+		MOCK_ARG (SHA_KAT_VECTORS_UPDATE_DATA_2_LEN));
+
+	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (SHA384_HASH_LENGTH));
+	status |= mock_expect_output (&engine.mock, 0, SHA_KAT_VECTORS_UPDATE_SHA384_DIGEST,
+		SHA384_HASH_LENGTH, 1);
+#endif
+
+	status |= mock_expect (&engine.mock, engine.base.start_sha512, &engine,
+		HASH_ENGINE_START_SHA512_FAILED);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_kat_run_all_update_self_tests (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA512_FAILED, status);
 
 	status = hash_mock_validate_and_release (&engine);
 	CuAssertIntEquals (test, 0, status);
@@ -1489,7 +1654,7 @@ static void hash_kat_test_hmac_run_self_test_sha1 (CuTest *test)
 }
 
 #ifdef HASH_ENABLE_SHA1
-static void hash_kat_test_hmac_run_self_test_sha1_mismatch_data_calculate (CuTest *test)
+static void hash_kat_test_hmac_run_self_test_sha1_mismatch_data (CuTest *test)
 {
 	struct hash_engine_mock engine;
 	int status;
@@ -1503,44 +1668,6 @@ static void hash_kat_test_hmac_run_self_test_sha1_mismatch_data_calculate (CuTes
 		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA1_HMAC_KAT_CALCULATE_KEY_HASH,
 		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
 		HASH_TYPE_SHA1, SHA1_TEST_HMAC, SHA1_HASH_LENGTH);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha1 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_HMAC_SHA1_SELF_TEST_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_hmac_run_self_test_sha1_mismatch_data_update (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA1_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA1, HMAC_KAT_VECTORS_CALCULATE_SHA1_MAC, SHA1_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA1);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= hash_mock_expect_hmac_finish (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, NULL, 0, HASH_TYPE_SHA1, SHA1_FULL_BLOCK_1024_HMAC,
-		SHA1_HASH_LENGTH);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_kat_hmac_run_self_test_sha1 (&engine.base);
@@ -1589,141 +1716,6 @@ static void hash_kat_test_hmac_run_self_test_sha1_calculate_fail (CuTest *test)
 	status = hash_mock_validate_and_release (&engine);
 	CuAssertIntEquals (test, 0, status);
 }
-
-static void hash_kat_test_hmac_run_self_test_sha1_hmac_init_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA1_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA1, HMAC_KAT_VECTORS_CALCULATE_SHA1_MAC, SHA1_HASH_LENGTH);
-
-	status = mock_expect (&engine.mock, engine.base.start_sha1, &engine,
-		HASH_ENGINE_START_SHA1_FAILED);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha1 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_START_SHA1_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_hmac_run_self_test_sha1_update_first_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA1_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA1, HMAC_KAT_VECTORS_CALCULATE_SHA1_MAC, SHA1_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA1);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha1 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_hmac_run_self_test_sha1_update_second_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA1_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA1, HMAC_KAT_VECTORS_CALCULATE_SHA1_MAC, SHA1_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA1);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha1 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_hmac_run_self_test_sha1_finish_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA1_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA1, HMAC_KAT_VECTORS_CALCULATE_SHA1_MAC, SHA1_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA1);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.finish, &engine, HASH_ENGINE_FINISH_FAILED,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha1 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
 #endif
 
 static void hash_kat_test_hmac_run_self_test_sha256 (CuTest *test)
@@ -1742,7 +1734,7 @@ static void hash_kat_test_hmac_run_self_test_sha256 (CuTest *test)
 	HASH_TESTING_ENGINE_RELEASE (&engine);
 }
 
-static void hash_kat_test_hmac_run_self_test_sha256_mismatch_data_calculate (CuTest *test)
+static void hash_kat_test_hmac_run_self_test_sha256_mismatch_data (CuTest *test)
 {
 	struct hash_engine_mock engine;
 	int status;
@@ -1756,44 +1748,6 @@ static void hash_kat_test_hmac_run_self_test_sha256_mismatch_data_calculate (CuT
 		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA256_HMAC_KAT_CALCULATE_KEY_HASH,
 		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
 		HASH_TYPE_SHA256, SHA256_TEST_HMAC, SHA256_HASH_LENGTH);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha256 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_HMAC_SHA256_SELF_TEST_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_hmac_run_self_test_sha256_mismatch_data_update (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA256_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA256, HMAC_KAT_VECTORS_CALCULATE_SHA256_MAC, SHA256_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA256);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= hash_mock_expect_hmac_finish (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, NULL, 0, HASH_TYPE_SHA256, SHA256_FULL_BLOCK_1024_HMAC,
-		SHA256_HASH_LENGTH);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_kat_hmac_run_self_test_sha256 (&engine.base);
@@ -1843,141 +1797,6 @@ static void hash_kat_test_hmac_run_self_test_sha256_calculate_fail (CuTest *test
 	CuAssertIntEquals (test, 0, status);
 }
 
-static void hash_kat_test_hmac_run_self_test_sha256_hmac_init_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA256_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA256, HMAC_KAT_VECTORS_CALCULATE_SHA256_MAC, SHA256_HASH_LENGTH);
-
-	status = mock_expect (&engine.mock, engine.base.start_sha256, &engine,
-		HASH_ENGINE_START_SHA256_FAILED);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha256 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_hmac_run_self_test_sha256_update_first_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA256_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA256, HMAC_KAT_VECTORS_CALCULATE_SHA256_MAC, SHA256_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA256);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha256 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_hmac_run_self_test_sha256_update_second_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA256_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA256, HMAC_KAT_VECTORS_CALCULATE_SHA256_MAC, SHA256_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA256);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha256 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_hmac_run_self_test_sha256_finish_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA256_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA256, HMAC_KAT_VECTORS_CALCULATE_SHA256_MAC, SHA256_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA256);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.finish, &engine, HASH_ENGINE_FINISH_FAILED,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha256 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
 static void hash_kat_test_hmac_run_self_test_sha384 (CuTest *test)
 {
 	HASH_TESTING_ENGINE engine;
@@ -1999,7 +1818,7 @@ static void hash_kat_test_hmac_run_self_test_sha384 (CuTest *test)
 }
 
 #ifdef HASH_ENABLE_SHA384
-static void hash_kat_test_hmac_run_self_test_sha384_mismatch_data_calculate (CuTest *test)
+static void hash_kat_test_hmac_run_self_test_sha384_mismatch_data (CuTest *test)
 {
 	struct hash_engine_mock engine;
 	int status;
@@ -2013,44 +1832,6 @@ static void hash_kat_test_hmac_run_self_test_sha384_mismatch_data_calculate (CuT
 		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA384_HMAC_KAT_CALCULATE_KEY_HASH,
 		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
 		HASH_TYPE_SHA384, SHA384_TEST_HMAC, SHA384_HASH_LENGTH);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha384 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_HMAC_SHA384_SELF_TEST_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_hmac_run_self_test_sha384_mismatch_data_update (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA384_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA384, HMAC_KAT_VECTORS_CALCULATE_SHA384_MAC, SHA384_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA384);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= hash_mock_expect_hmac_finish (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, NULL, 0, HASH_TYPE_SHA384, SHA384_FULL_BLOCK_1024_HMAC,
-		SHA384_HASH_LENGTH);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_kat_hmac_run_self_test_sha384 (&engine.base);
@@ -2099,141 +1880,6 @@ static void hash_kat_test_hmac_run_self_test_sha384_calculate_fail (CuTest *test
 	status = hash_mock_validate_and_release (&engine);
 	CuAssertIntEquals (test, 0, status);
 }
-
-static void hash_kat_test_hmac_run_self_test_sha384_hmac_init_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA384_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA384, HMAC_KAT_VECTORS_CALCULATE_SHA384_MAC, SHA384_HASH_LENGTH);
-
-	status = mock_expect (&engine.mock, engine.base.start_sha384, &engine,
-		HASH_ENGINE_START_SHA384_FAILED);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha384 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_START_SHA384_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_hmac_run_self_test_sha384_update_first_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA384_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA384, HMAC_KAT_VECTORS_CALCULATE_SHA384_MAC, SHA384_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA384);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha384 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_hmac_run_self_test_sha384_update_second_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA384_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA384, HMAC_KAT_VECTORS_CALCULATE_SHA384_MAC, SHA384_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA384);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha384 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_hmac_run_self_test_sha384_finish_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA384_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA384, HMAC_KAT_VECTORS_CALCULATE_SHA384_MAC, SHA384_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA384);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.finish, &engine, HASH_ENGINE_FINISH_FAILED,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA384_HASH_LENGTH));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha384 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
 #endif
 
 static void hash_kat_test_hmac_run_self_test_sha512 (CuTest *test)
@@ -2257,7 +1903,7 @@ static void hash_kat_test_hmac_run_self_test_sha512 (CuTest *test)
 }
 
 #ifdef HASH_ENABLE_SHA512
-static void hash_kat_test_hmac_run_self_test_sha512_mismatch_data_calculate (CuTest *test)
+static void hash_kat_test_hmac_run_self_test_sha512_mismatch_data (CuTest *test)
 {
 	struct hash_engine_mock engine;
 	int status;
@@ -2271,44 +1917,6 @@ static void hash_kat_test_hmac_run_self_test_sha512_mismatch_data_calculate (CuT
 		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA512_HMAC_KAT_CALCULATE_KEY_HASH,
 		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
 		HASH_TYPE_SHA512, SHA512_TEST_HMAC, SHA512_HASH_LENGTH);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha512 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_HMAC_SHA512_SELF_TEST_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_hmac_run_self_test_sha512_mismatch_data_update (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA512_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA512, HMAC_KAT_VECTORS_CALCULATE_SHA512_MAC, SHA512_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA512);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= hash_mock_expect_hmac_finish (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, NULL, 0, HASH_TYPE_SHA512, SHA512_FULL_BLOCK_1024_HMAC,
-		SHA512_HASH_LENGTH);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_kat_hmac_run_self_test_sha512 (&engine.base);
@@ -2357,141 +1965,6 @@ static void hash_kat_test_hmac_run_self_test_sha512_calculate_fail (CuTest *test
 	status = hash_mock_validate_and_release (&engine);
 	CuAssertIntEquals (test, 0, status);
 }
-
-static void hash_kat_test_hmac_run_self_test_sha512_hmac_init_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA512_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA512, HMAC_KAT_VECTORS_CALCULATE_SHA512_MAC, SHA512_HASH_LENGTH);
-
-	status = mock_expect (&engine.mock, engine.base.start_sha512, &engine,
-		HASH_ENGINE_START_SHA512_FAILED);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha512 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_START_SHA512_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_hmac_run_self_test_sha512_update_first_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA512_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA512, HMAC_KAT_VECTORS_CALCULATE_SHA512_MAC, SHA512_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA512);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha512 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_hmac_run_self_test_sha512_update_second_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA512_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA512, HMAC_KAT_VECTORS_CALCULATE_SHA512_MAC, SHA512_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA512);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha512 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void hash_kat_test_hmac_run_self_test_sha512_finish_fail (CuTest *test)
-{
-	struct hash_engine_mock engine;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
-		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA512_HMAC_KAT_CALCULATE_KEY_HASH,
-		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
-		HASH_TYPE_SHA512, HMAC_KAT_VECTORS_CALCULATE_SHA512_MAC, SHA512_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA512);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= mock_expect (&engine.mock, engine.base.finish, &engine, HASH_ENGINE_FINISH_FAILED,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA512_HASH_LENGTH));
-
-	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_kat_hmac_run_self_test_sha512 (&engine.base);
-	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
-
-	status = hash_mock_validate_and_release (&engine);
-	CuAssertIntEquals (test, 0, status);
-}
 #endif
 
 static void hash_kat_test_hmac_run_all_self_tests (CuTest *test)
@@ -2525,20 +1998,6 @@ static void hash_kat_test_hmac_run_all_self_tests_mock (CuTest *test)
 		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA1_HMAC_KAT_CALCULATE_KEY_HASH,
 		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
 		HASH_TYPE_SHA1, HMAC_KAT_VECTORS_CALCULATE_SHA1_MAC, SHA1_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA1);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= hash_mock_expect_hmac_finish (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, NULL, 0, HASH_TYPE_SHA1, HMAC_KAT_VECTORS_UPDATE_SHA1_MAC,
-		SHA1_HASH_LENGTH);
 #endif
 
 	status |= hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
@@ -2546,39 +2005,11 @@ static void hash_kat_test_hmac_run_all_self_tests_mock (CuTest *test)
 		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
 		HASH_TYPE_SHA256, HMAC_KAT_VECTORS_CALCULATE_SHA256_MAC, SHA256_HASH_LENGTH);
 
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA256);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= hash_mock_expect_hmac_finish (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, NULL, 0, HASH_TYPE_SHA256,
-		HMAC_KAT_VECTORS_UPDATE_SHA256_MAC, SHA256_HASH_LENGTH);
-
 #ifdef HASH_ENABLE_SHA384
 	status |= hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
 		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA384_HMAC_KAT_CALCULATE_KEY_HASH,
 		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
 		HASH_TYPE_SHA384, HMAC_KAT_VECTORS_CALCULATE_SHA384_MAC, SHA384_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA384);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= hash_mock_expect_hmac_finish (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, NULL, 0, HASH_TYPE_SHA384,
-		HMAC_KAT_VECTORS_UPDATE_SHA384_MAC, SHA384_HASH_LENGTH);
 #endif
 
 #ifdef HASH_ENABLE_SHA512
@@ -2586,20 +2017,6 @@ static void hash_kat_test_hmac_run_all_self_tests_mock (CuTest *test)
 		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA512_HMAC_KAT_CALCULATE_KEY_HASH,
 		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
 		HASH_TYPE_SHA512, HMAC_KAT_VECTORS_CALCULATE_SHA512_MAC, SHA512_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA512);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= hash_mock_expect_hmac_finish (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, NULL, 0, HASH_TYPE_SHA512,
-		HMAC_KAT_VECTORS_UPDATE_SHA512_MAC, SHA512_HASH_LENGTH);
 #endif
 
 	CuAssertIntEquals (test, 0, status);
@@ -2668,20 +2085,6 @@ static void hash_kat_test_hmac_run_all_self_tests_sha256_fail (CuTest *test)
 		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA1_HMAC_KAT_CALCULATE_KEY_HASH,
 		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
 		HASH_TYPE_SHA1, HMAC_KAT_VECTORS_CALCULATE_SHA1_MAC, SHA1_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA1);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= hash_mock_expect_hmac_finish (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, NULL, 0, HASH_TYPE_SHA1, HMAC_KAT_VECTORS_UPDATE_SHA1_MAC,
-		SHA1_HASH_LENGTH);
 #endif
 
 	status = mock_expect (&engine.mock, engine.base.calculate_sha256, &engine,
@@ -2715,40 +2118,12 @@ static void hash_kat_test_hmac_run_all_self_tests_sha384_fail (CuTest *test)
 		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA1_HMAC_KAT_CALCULATE_KEY_HASH,
 		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
 		HASH_TYPE_SHA1, HMAC_KAT_VECTORS_CALCULATE_SHA1_MAC, SHA1_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA1);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= hash_mock_expect_hmac_finish (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, NULL, 0, HASH_TYPE_SHA1, HMAC_KAT_VECTORS_UPDATE_SHA1_MAC,
-		SHA1_HASH_LENGTH);
 #endif
 
 	status |= hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
 		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA256_HMAC_KAT_CALCULATE_KEY_HASH,
 		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
 		HASH_TYPE_SHA256, HMAC_KAT_VECTORS_CALCULATE_SHA256_MAC, SHA256_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA256);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= hash_mock_expect_hmac_finish (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, NULL, 0, HASH_TYPE_SHA256,
-		HMAC_KAT_VECTORS_UPDATE_SHA256_MAC, SHA256_HASH_LENGTH);
 
 	status = mock_expect (&engine.mock, engine.base.calculate_sha384, &engine,
 		HASH_ENGINE_SHA384_FAILED,
@@ -2782,20 +2157,6 @@ static void hash_kat_test_hmac_run_all_self_tests_sha512_fail (CuTest *test)
 		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA1_HMAC_KAT_CALCULATE_KEY_HASH,
 		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
 		HASH_TYPE_SHA1, HMAC_KAT_VECTORS_CALCULATE_SHA1_MAC, SHA1_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA1);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= hash_mock_expect_hmac_finish (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, NULL, 0, HASH_TYPE_SHA1, HMAC_KAT_VECTORS_UPDATE_SHA1_MAC,
-		SHA1_HASH_LENGTH);
 #endif
 
 	status |= hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
@@ -2803,39 +2164,11 @@ static void hash_kat_test_hmac_run_all_self_tests_sha512_fail (CuTest *test)
 		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
 		HASH_TYPE_SHA256, HMAC_KAT_VECTORS_CALCULATE_SHA256_MAC, SHA256_HASH_LENGTH);
 
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA256);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= hash_mock_expect_hmac_finish (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, NULL, 0, HASH_TYPE_SHA256,
-		HMAC_KAT_VECTORS_UPDATE_SHA256_MAC, SHA256_HASH_LENGTH);
-
 #ifdef HASH_ENABLE_SHA384
 	status |= hash_mock_expect_hmac_large_key (&engine, HMAC_KAT_VECTORS_CALCULATE_KEY,
 		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, SHA384_HMAC_KAT_CALCULATE_KEY_HASH,
 		HMAC_KAT_VECTORS_CALCULATE_DATA, HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, NULL, 0,
 		HASH_TYPE_SHA384, HMAC_KAT_VECTORS_CALCULATE_SHA384_MAC, SHA384_HASH_LENGTH);
-
-	status |= hash_mock_expect_hmac_init (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, HASH_TYPE_SHA384);
-
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_1, HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_1_LEN));
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
-		MOCK_ARG_PTR_CONTAINS (HMAC_KAT_VECTORS_UPDATE_DATA_2, HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN),
-		MOCK_ARG (HMAC_KAT_VECTORS_UPDATE_DATA_2_LEN));
-
-	status |= hash_mock_expect_hmac_finish (&engine, HMAC_KAT_VECTORS_UPDATE_KEY,
-		HMAC_KAT_VECTORS_UPDATE_KEY_LEN, NULL, 0, HASH_TYPE_SHA384,
-		HMAC_KAT_VECTORS_UPDATE_SHA384_MAC, SHA384_HASH_LENGTH);
 #endif
 
 	status = mock_expect (&engine.mock, engine.base.calculate_sha512, &engine,
@@ -2857,102 +2190,109 @@ static void hash_kat_test_hmac_run_all_self_tests_sha512_fail (CuTest *test)
 
 TEST_SUITE_START (hash_kat);
 
-TEST (hash_kat_test_run_self_test_sha1);
+TEST (hash_kat_test_run_self_test_calculate_sha1);
 #ifdef HASH_ENABLE_SHA1
-TEST (hash_kat_test_run_self_test_sha1_mismatch_data_calculate);
-TEST (hash_kat_test_run_self_test_sha1_mismatch_data_update);
-TEST (hash_kat_test_run_self_test_sha1_null);
-TEST (hash_kat_test_run_self_test_sha1_calculate_fail);
-TEST (hash_kat_test_run_self_test_sha1_start_fail);
-TEST (hash_kat_test_run_self_test_sha1_update_first_fail);
-TEST (hash_kat_test_run_self_test_sha1_update_second_fail);
-TEST (hash_kat_test_run_self_test_sha1_finish_fail);
+TEST (hash_kat_test_run_self_test_calculate_sha1_mismatch_data);
+TEST (hash_kat_test_run_self_test_calculate_sha1_null);
+TEST (hash_kat_test_run_self_test_calculate_sha1_calculate_fail);
 #endif
-TEST (hash_kat_test_run_self_test_sha256);
-TEST (hash_kat_test_run_self_test_sha256_mismatch_data_calculate);
-TEST (hash_kat_test_run_self_test_sha256_mismatch_data_update);
-TEST (hash_kat_test_run_self_test_sha256_null);
-TEST (hash_kat_test_run_self_test_sha256_calculate_fail);
-TEST (hash_kat_test_run_self_test_sha256_start_fail);
-TEST (hash_kat_test_run_self_test_sha256_update_first_fail);
-TEST (hash_kat_test_run_self_test_sha256_update_second_fail);
-TEST (hash_kat_test_run_self_test_sha256_finish_fail);
-TEST (hash_kat_test_run_self_test_sha384);
+TEST (hash_kat_test_run_self_test_calculate_sha256);
+TEST (hash_kat_test_run_self_test_calculate_sha256_mismatch_data);
+TEST (hash_kat_test_run_self_test_calculate_sha256_null);
+TEST (hash_kat_test_run_self_test_calculate_sha256_calculate_fail);
+TEST (hash_kat_test_run_self_test_calculate_sha384);
 #ifdef HASH_ENABLE_SHA384
-TEST (hash_kat_test_run_self_test_sha384_mismatch_data_calculate);
-TEST (hash_kat_test_run_self_test_sha384_mismatch_data_update);
-TEST (hash_kat_test_run_self_test_sha384_null);
-TEST (hash_kat_test_run_self_test_sha384_calculate_fail);
-TEST (hash_kat_test_run_self_test_sha384_start_fail);
-TEST (hash_kat_test_run_self_test_sha384_update_first_fail);
-TEST (hash_kat_test_run_self_test_sha384_update_second_fail);
-TEST (hash_kat_test_run_self_test_sha384_finish_fail);
+TEST (hash_kat_test_run_self_test_calculate_sha384_mismatch_data);
+TEST (hash_kat_test_run_self_test_calculate_sha384_null);
+TEST (hash_kat_test_run_self_test_calculate_sha384_calculate_fail);
 #endif
-TEST (hash_kat_test_run_self_test_sha512);
+TEST (hash_kat_test_run_self_test_calculate_sha512);
 #ifdef HASH_ENABLE_SHA512
-TEST (hash_kat_test_run_self_test_sha512_mismatch_data_calculate);
-TEST (hash_kat_test_run_self_test_sha512_mismatch_data_update);
-TEST (hash_kat_test_run_self_test_sha512_null);
-TEST (hash_kat_test_run_self_test_sha512_calculate_fail);
-TEST (hash_kat_test_run_self_test_sha512_start_fail);
-TEST (hash_kat_test_run_self_test_sha512_update_first_fail);
-TEST (hash_kat_test_run_self_test_sha512_update_second_fail);
-TEST (hash_kat_test_run_self_test_sha512_finish_fail);
+TEST (hash_kat_test_run_self_test_calculate_sha512_mismatch_data);
+TEST (hash_kat_test_run_self_test_calculate_sha512_null);
+TEST (hash_kat_test_run_self_test_calculate_sha512_calculate_fail);
 #endif
-TEST (hash_kat_test_run_all_self_tests);
-TEST (hash_kat_test_run_all_self_tests_mock);
-TEST (hash_kat_test_run_all_self_tests_null);
+TEST (hash_kat_test_run_all_calculate_self_tests);
+TEST (hash_kat_test_run_all_calculate_self_tests_mock);
+TEST (hash_kat_test_run_all_calculate_self_tests_null);
 #ifdef HASH_ENABLE_SHA1
-TEST (hash_kat_test_run_all_self_tests_sha1_fail);
+TEST (hash_kat_test_run_all_calculate_self_tests_sha1_fail);
 #endif
-TEST (hash_kat_test_run_all_self_tests_sha256_fail);
+TEST (hash_kat_test_run_all_calculate_self_tests_sha256_fail);
 #ifdef HASH_ENABLE_SHA384
-TEST (hash_kat_test_run_all_self_tests_sha384_fail);
+TEST (hash_kat_test_run_all_calculate_self_tests_sha384_fail);
 #endif
 #ifdef HASH_ENABLE_SHA512
-TEST (hash_kat_test_run_all_self_tests_sha512_fail);
+TEST (hash_kat_test_run_all_calculate_self_tests_sha512_fail);
+#endif
+TEST (hash_kat_test_run_self_test_update_sha1);
+#ifdef HASH_ENABLE_SHA1
+TEST (hash_kat_test_run_self_test_update_sha1_mismatch_data);
+TEST (hash_kat_test_run_self_test_update_sha1_null);
+TEST (hash_kat_test_run_self_test_update_sha1_start_fail);
+TEST (hash_kat_test_run_self_test_update_sha1_update_first_fail);
+TEST (hash_kat_test_run_self_test_update_sha1_update_second_fail);
+TEST (hash_kat_test_run_self_test_update_sha1_finish_fail);
+#endif
+TEST (hash_kat_test_run_self_test_update_sha256);
+TEST (hash_kat_test_run_self_test_update_sha256_mismatch_data);
+TEST (hash_kat_test_run_self_test_update_sha256_null);
+TEST (hash_kat_test_run_self_test_update_sha256_start_fail);
+TEST (hash_kat_test_run_self_test_update_sha256_update_first_fail);
+TEST (hash_kat_test_run_self_test_update_sha256_update_second_fail);
+TEST (hash_kat_test_run_self_test_update_sha256_finish_fail);
+TEST (hash_kat_test_run_self_test_update_sha384);
+#ifdef HASH_ENABLE_SHA384
+TEST (hash_kat_test_run_self_test_update_sha384_mismatch_data);
+TEST (hash_kat_test_run_self_test_update_sha384_null);
+TEST (hash_kat_test_run_self_test_update_sha384_start_fail);
+TEST (hash_kat_test_run_self_test_update_sha384_update_first_fail);
+TEST (hash_kat_test_run_self_test_update_sha384_update_second_fail);
+TEST (hash_kat_test_run_self_test_update_sha384_finish_fail);
+#endif
+TEST (hash_kat_test_run_self_test_update_sha512);
+#ifdef HASH_ENABLE_SHA512
+TEST (hash_kat_test_run_self_test_update_sha512_mismatch_data);
+TEST (hash_kat_test_run_self_test_update_sha512_null);
+TEST (hash_kat_test_run_self_test_update_sha512_start_fail);
+TEST (hash_kat_test_run_self_test_update_sha512_update_first_fail);
+TEST (hash_kat_test_run_self_test_update_sha512_update_second_fail);
+TEST (hash_kat_test_run_self_test_update_sha512_finish_fail);
+#endif
+TEST (hash_kat_test_run_all_update_self_tests);
+TEST (hash_kat_test_run_all_update_self_tests_mock);
+TEST (hash_kat_test_run_all_update_self_tests_null);
+#ifdef HASH_ENABLE_SHA1
+TEST (hash_kat_test_run_all_update_self_tests_sha1_fail);
+#endif
+TEST (hash_kat_test_run_all_update_self_tests_sha256_fail);
+#ifdef HASH_ENABLE_SHA384
+TEST (hash_kat_test_run_all_update_self_tests_sha384_fail);
+#endif
+#ifdef HASH_ENABLE_SHA512
+TEST (hash_kat_test_run_all_update_self_tests_sha512_fail);
 #endif
 TEST (hash_kat_test_hmac_run_self_test_sha1);
 #ifdef HASH_ENABLE_SHA1
-TEST (hash_kat_test_hmac_run_self_test_sha1_mismatch_data_calculate);
-TEST (hash_kat_test_hmac_run_self_test_sha1_mismatch_data_update);
+TEST (hash_kat_test_hmac_run_self_test_sha1_mismatch_data);
 TEST (hash_kat_test_hmac_run_self_test_sha1_null);
 TEST (hash_kat_test_hmac_run_self_test_sha1_calculate_fail);
-TEST (hash_kat_test_hmac_run_self_test_sha1_hmac_init_fail);
-TEST (hash_kat_test_hmac_run_self_test_sha1_update_first_fail);
-TEST (hash_kat_test_hmac_run_self_test_sha1_update_second_fail);
-TEST (hash_kat_test_hmac_run_self_test_sha1_finish_fail);
 #endif
 TEST (hash_kat_test_hmac_run_self_test_sha256);
-TEST (hash_kat_test_hmac_run_self_test_sha256_mismatch_data_calculate);
-TEST (hash_kat_test_hmac_run_self_test_sha256_mismatch_data_update);
+TEST (hash_kat_test_hmac_run_self_test_sha256_mismatch_data);
 TEST (hash_kat_test_hmac_run_self_test_sha256_null);
 TEST (hash_kat_test_hmac_run_self_test_sha256_calculate_fail);
-TEST (hash_kat_test_hmac_run_self_test_sha256_hmac_init_fail);
-TEST (hash_kat_test_hmac_run_self_test_sha256_update_first_fail);
-TEST (hash_kat_test_hmac_run_self_test_sha256_update_second_fail);
-TEST (hash_kat_test_hmac_run_self_test_sha256_finish_fail);
 TEST (hash_kat_test_hmac_run_self_test_sha384);
 #ifdef HASH_ENABLE_SHA384
-TEST (hash_kat_test_hmac_run_self_test_sha384_mismatch_data_calculate);
-TEST (hash_kat_test_hmac_run_self_test_sha384_mismatch_data_update);
+TEST (hash_kat_test_hmac_run_self_test_sha384_mismatch_data);
 TEST (hash_kat_test_hmac_run_self_test_sha384_null);
 TEST (hash_kat_test_hmac_run_self_test_sha384_calculate_fail);
-TEST (hash_kat_test_hmac_run_self_test_sha384_hmac_init_fail);
-TEST (hash_kat_test_hmac_run_self_test_sha384_update_first_fail);
-TEST (hash_kat_test_hmac_run_self_test_sha384_update_second_fail);
-TEST (hash_kat_test_hmac_run_self_test_sha384_finish_fail);
 #endif
 TEST (hash_kat_test_hmac_run_self_test_sha512);
 #ifdef HASH_ENABLE_SHA512
-TEST (hash_kat_test_hmac_run_self_test_sha512_mismatch_data_calculate);
-TEST (hash_kat_test_hmac_run_self_test_sha512_mismatch_data_update);
+TEST (hash_kat_test_hmac_run_self_test_sha512_mismatch_data);
 TEST (hash_kat_test_hmac_run_self_test_sha512_null);
 TEST (hash_kat_test_hmac_run_self_test_sha512_calculate_fail);
-TEST (hash_kat_test_hmac_run_self_test_sha512_hmac_init_fail);
-TEST (hash_kat_test_hmac_run_self_test_sha512_update_first_fail);
-TEST (hash_kat_test_hmac_run_self_test_sha512_update_second_fail);
-TEST (hash_kat_test_hmac_run_self_test_sha512_finish_fail);
 #endif
 TEST (hash_kat_test_hmac_run_all_self_tests);
 TEST (hash_kat_test_hmac_run_all_self_tests_mock);
