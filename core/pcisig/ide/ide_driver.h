@@ -146,6 +146,9 @@ enum {
 	IDE_DRIVER_KEY_SET_GO_FAILED = IDE_DRIVER_ERROR (0x07),									/**< The driver failed to set the IDE host key. */
 	IDE_DRIVER_KEY_SET_STOP_FAILED = IDE_DRIVER_ERROR (0x08),								/**< The driver failed to stop using the IDE host key. */
 	IDE_DRIVER_GET_BUS_DEVICE_SEGMENT_INFO_FAILED = IDE_DRIVER_ERROR (0x09),				/**< The driver failed to get the bus, device/function, and segment information. */
+	IDE_DRIVER_KEY_SET_GO_RX_KEY_FAILED = IDE_DRIVER_ERROR (0x0A),							/**< The driver failed to set the IDE Rx key for a given key_set, stream and sub-stream. */
+	IDE_DRIVER_KEY_SET_GO_TX_KEY_FAILED = IDE_DRIVER_ERROR (0x0B),							/**< The driver failed to set the IDE Tx key for a given key_set, stream and sub-stream. */
+	IDE_DRIVER_INVALID_STREAM_ID = IDE_DRIVER_ERROR (0x0C),									/**< The driver failed due to invalid stream ID. */
 };
 
 
