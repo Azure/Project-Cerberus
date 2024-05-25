@@ -146,6 +146,7 @@ static void setup_cmd_interface_recovery_mock_test (CuTest *test,
 	debug_log = NULL;
 
 	status = firmware_update_control_mock_validate_and_release (&cmd->update);
+	status |= logging_mock_validate_and_release (&cmd->debug);
 	CuAssertIntEquals (test, 0, status);
 
 	device_manager_release (&cmd->device_manager);

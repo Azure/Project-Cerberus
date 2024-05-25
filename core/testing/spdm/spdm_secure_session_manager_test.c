@@ -452,7 +452,7 @@ static void spdm_secure_session_manager_test_create_session (CuTest *test)
 	int status;
 	struct spdm_secure_session_manager_testing testing;
 	struct spdm_secure_session_manager *session_manager;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
 
 	TEST_START;
@@ -471,10 +471,118 @@ static void spdm_secure_session_manager_test_create_session (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	connection_info.version.major_version = 1;
+	connection_info.version.minor_version = 2;
+	connection_info.version.alpha = 0;
+	connection_info.version.update_version_number = 0;
+	connection_info.secure_message_version.alpha = 0;
+	connection_info.secure_message_version.major_version = 1;
+	connection_info.secure_message_version.minor_version = 2;;
+	connection_info.secure_message_version.update_version_number = 0;
+
+	connection_info.peer_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	connection_info.peer_algorithms.dhe_named_group = SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
+	connection_info.peer_algorithms.aead_cipher_suite = SPDM_ALG_AEAD_CIPHER_SUITE_AES_256_GCM;
+	connection_info.peer_algorithms.key_schedule = SPDM_ALG_KEY_SCHEDULE_HMAC_HASH;
+
 	struct spdm_secure_session *session = session_manager->create_session (session_manager,
 		session_id, false, &connection_info);
 
 	CuAssertPtrNotNull (test, session);
+	CuAssertIntEquals (test, SPDM_SESSION_TYPE_NONE, session->session_type);
+	CuAssertIntEquals (test, session_id, session->session_id);
+	CuAssertIntEquals (test, 0, session->session_index);
+	CuAssertIntEquals (test, false, session->is_requester);
+	CuAssertIntEquals (test, 1, session->version.major_version);
+	CuAssertIntEquals (test, 2, session->version.minor_version);
+	CuAssertIntEquals (test, 0, session->version.alpha);
+	CuAssertIntEquals (test, 0, session->version.update_version_number);
+	CuAssertIntEquals (test, 1, session->secure_message_version.major_version);
+	CuAssertIntEquals (test, 2, session->secure_message_version.minor_version);
+	CuAssertIntEquals (test, 0, session->secure_message_version.alpha);
+	CuAssertIntEquals (test, 0, session->secure_message_version.update_version_number);
+	CuAssertIntEquals (test, SPDM_TPM_ALG_SHA_384, session->base_hash_algo);
+	CuAssertIntEquals (test, SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1, session->dhe_named_group);
+	CuAssertIntEquals (test, SPDM_ALG_AEAD_CIPHER_SUITE_AES_256_GCM, session->aead_cipher_suite);
+	CuAssertIntEquals (test, SPDM_ALG_KEY_SCHEDULE_HMAC_HASH, session->key_schedule);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_create_session_enc_mac (CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	struct spdm_connection_info connection_info = {0};
+	uint32_t session_id = 0xDEADBEEF;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	connection_info.peer_capabilities = testing.local_capabilities;
+
+	struct spdm_secure_session *session = session_manager->create_session (session_manager,
+		session_id, false, &connection_info);
+
+	CuAssertPtrNotNull (test, session);
+	CuAssertIntEquals (test, SPDM_SESSION_TYPE_ENC_MAC, session->session_type);
+	CuAssertIntEquals (test, 0, testing_validate_array (&testing.local_capabilities, 
+		&session->peer_capabilities, sizeof(testing.local_capabilities)));
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_create_session_mac_only (CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	struct spdm_connection_info connection_info = {0};
+	uint32_t session_id = 0xDEADBEEF;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	connection_info.peer_capabilities.flags.encrypt_cap = 0;
+	connection_info.peer_capabilities.flags.mac_cap = 1;
+	testing.local_capabilities.flags.encrypt_cap = 0;
+
+	struct spdm_secure_session *session = session_manager->create_session (session_manager,
+		session_id, false, &connection_info);
+
+	CuAssertPtrNotNull (test, session);
+	CuAssertIntEquals (test, SPDM_SESSION_TYPE_MAC_ONLY, session->session_type);
 
 	session_manager->release_session (session_manager, session_id);
 
@@ -485,7 +593,7 @@ static void spdm_secure_session_manager_test_create_session_invalid_params (CuTe
 {
 	struct spdm_secure_session_manager_testing testing;
 	struct spdm_secure_session_manager *session_manager;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 
@@ -513,7 +621,7 @@ static void spdm_secure_session_manager_test_create_session_count_gt_max (CuTest
 {
 	struct spdm_secure_session_manager_testing testing;
 	struct spdm_secure_session_manager *session_manager;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 
@@ -535,7 +643,7 @@ static void spdm_secure_session_manager_test_create_session_duplicate_session (C
 	int status;
 	struct spdm_secure_session_manager_testing testing;
 	struct spdm_secure_session_manager *session_manager;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 
@@ -567,7 +675,7 @@ static void spdm_secure_session_manager_test_release_session (CuTest *test)
 	int status;
 	struct spdm_secure_session_manager_testing testing;
 	struct spdm_secure_session_manager *session_manager;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 
@@ -621,7 +729,7 @@ static void spdm_secure_session_manager_test_get_session (CuTest *test)
 	int status;
 	struct spdm_secure_session_manager_testing testing;
 	struct spdm_secure_session_manager *session_manager;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session, *session2;
 
@@ -701,7 +809,7 @@ static void spdm_secure_session_manager_test_set_session_state (CuTest *test)
 	int status;
 	struct spdm_secure_session_manager_testing testing;
 	struct spdm_secure_session_manager *session_manager;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 
@@ -744,7 +852,7 @@ static void spdm_secure_session_manager_test_set_session_state_invalid_param (Cu
 	int status;
 	struct spdm_secure_session_manager_testing testing;
 	struct spdm_secure_session_manager *session_manager;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 
@@ -789,7 +897,7 @@ static void spdm_secure_session_manager_test_reset (CuTest *test)
 	int status;
 	struct spdm_secure_session_manager_testing testing;
 	struct spdm_secure_session_manager *session_manager;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 
@@ -825,7 +933,7 @@ static void spdm_secure_session_manager_test_reset_invalid_param (CuTest *test)
 	int status;
 	struct spdm_secure_session_manager_testing testing;
 	struct spdm_secure_session_manager *session_manager;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 
@@ -857,7 +965,7 @@ static void spdm_secure_session_manager_test_generate_shared_secret (CuTest *tes
 	int status;
 	struct spdm_secure_session_manager_testing testing;
 	struct spdm_secure_session_manager *session_manager;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	ECC_TESTING_ENGINE ecc_engine_real;
@@ -961,7 +1069,7 @@ static void spdm_secure_session_manager_test_generate_shared_secret_invalid_para
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	struct ecc_point_public_key req_pub_key_point;
 	uint8_t resp_pub_key_point[ECC_KEY_LENGTH_384 << 1];
 
@@ -1017,7 +1125,7 @@ static void spdm_secure_session_manager_test_generate_shared_secret_ecc_der_enco
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	struct ecc_point_public_key req_pub_key_point = {0};
 	uint8_t resp_pub_key_point[ECC_KEY_LENGTH_384 << 1];
 
@@ -1059,7 +1167,7 @@ static void spdm_secure_session_manager_test_generate_shared_secret_init_public_
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	uint8_t resp_pub_key_point[ECC_KEY_LENGTH_384 << 1];
 
 	TEST_START;
@@ -1104,7 +1212,7 @@ static void spdm_secure_session_manager_test_generate_shared_secret_generate_key
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	uint8_t resp_pub_key_point[ECC_KEY_LENGTH_384 << 1];
 
 	TEST_START;
@@ -1155,7 +1263,7 @@ static void spdm_secure_session_manager_test_generate_shared_secret_get_public_k
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	uint8_t resp_pub_key_point[ECC_KEY_LENGTH_384 << 1];
 
 	TEST_START;
@@ -1216,7 +1324,7 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_inv
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 
 	TEST_START;
 
@@ -1259,7 +1367,7 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_get
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 
 	TEST_START;
 
@@ -1305,7 +1413,7 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_has
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 
 	TEST_START;
 
@@ -1350,7 +1458,7 @@ static void spdm_secure_session_manager_test_generate_session_data_key (CuTest *
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	uint8_t idx;
 
 	TEST_START;
@@ -1457,7 +1565,7 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_invalid_
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 
 	TEST_START;
 
@@ -1500,7 +1608,7 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_kdf_hkdf
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 
 	TEST_START;
 
@@ -1539,7 +1647,7 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_get_hash
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	uint8_t idx;
 
 	TEST_START;
@@ -1620,7 +1728,7 @@ static void spdm_secure_session_manager_test_decode_secure_message (CuTest *test
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	size_t aead_tag_size = 16;
 	size_t encrypted_payload_length = 64;
 	struct spdm_secured_message_data_header_1 *record_header_1;
@@ -1772,7 +1880,7 @@ spdm_secure_session_manager_test_decode_secure_message_sequence_number_overflow_
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 
 	TEST_START;
 
@@ -1822,7 +1930,7 @@ spdm_secure_session_manager_test_decode_secure_message_sequence_number_overflow_
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 
 	TEST_START;
 
@@ -1869,7 +1977,7 @@ static void spdm_secure_session_manager_test_decode_secure_message_payload_incor
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	size_t aead_tag_size = 16;
 
 	TEST_START;
@@ -1920,7 +2028,7 @@ static void spdm_secure_session_manager_test_decode_secure_message_payload_incor
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	size_t aead_tag_size = 16;
 	size_t encrypted_payload_length = 64;
 	struct spdm_secured_message_data_header_1 *record_header_1;
@@ -1980,7 +2088,7 @@ static void spdm_secure_session_manager_test_decode_secure_message_payload_incor
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	size_t aead_tag_size = 16;
 	size_t encrypted_payload_length = 64;
 	struct spdm_secured_message_data_header_1 *record_header_1;
@@ -2040,7 +2148,7 @@ static void spdm_secure_session_manager_test_decode_secure_message_payload_incor
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	size_t aead_tag_size = 16;
 	size_t encrypted_payload_length = 64;
 	struct spdm_secured_message_data_header_1 *record_header_1;
@@ -2099,7 +2207,7 @@ static void spdm_secure_session_manager_test_decode_secure_message_set_key_fail 
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	size_t aead_tag_size = 16;
 	size_t encrypted_payload_length = 64;
 	struct spdm_secured_message_data_header_1 *record_header_1;
@@ -2172,7 +2280,7 @@ static void spdm_secure_session_manager_test_decode_secure_message_decrypt_with_
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	size_t aead_tag_size = 16;
 	size_t encrypted_payload_length = 64;
 	struct spdm_secured_message_data_header_1 *record_header_1;
@@ -2251,7 +2359,7 @@ static void spdm_secure_session_manager_test_decode_secure_message_plaintext_siz
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	size_t aead_tag_size = 16;
 	size_t encrypted_payload_length = 64;
 	struct spdm_secured_message_data_header_1 *record_header_1;
@@ -2332,7 +2440,7 @@ static void spdm_secure_session_manager_test_encode_secure_message_finish_respon
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	size_t plaintext_payload_length = 64;
 	size_t aead_tag_size = 16;
 	uint8_t aes_key[] = {
@@ -2411,7 +2519,7 @@ static void spdm_secure_session_manager_test_encode_secure_message_end_session_r
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	size_t plaintext_payload_length = 64;
 	size_t aead_tag_size = 16;
 	uint8_t aes_key[] = {
@@ -2552,7 +2660,7 @@ spdm_secure_session_manager_test_encode_secure_message_sequence_number_overflow_
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 
 	TEST_START;
 
@@ -2598,7 +2706,7 @@ spdm_secure_session_manager_test_encode_secure_message_sequence_number_overflow_
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 
 	TEST_START;
 
@@ -2644,7 +2752,7 @@ static void spdm_secure_session_manager_test_encode_secure_message_max_response_
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	size_t plaintext_payload_length = 64;
 	size_t aead_tag_size = 16;
 
@@ -2699,7 +2807,7 @@ static void spdm_secure_session_manager_test_encode_secure_message_set_key_fail 
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	size_t plaintext_payload_length = 64;
 	size_t aead_tag_size = 16;
 	uint8_t aes_key[] = {
@@ -2768,7 +2876,7 @@ static void spdm_secure_session_manager_test_encode_secure_message_encrypt_with_
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info;
+	struct spdm_connection_info connection_info = {0};
 	size_t plaintext_payload_length = 64;
 	size_t aead_tag_size = 16;
 	uint8_t aes_key[] = {
@@ -2833,6 +2941,7 @@ static void spdm_secure_session_manager_test_encode_secure_message_encrypt_with_
 	spdm_secure_session_manager_testing_release (test, &testing);
 }
 
+// *INDENT-OFF*
 TEST_SUITE_START (spdm_secure_session_manager);
 
 TEST (spdm_secure_session_manager_test_static_init);
@@ -2841,6 +2950,8 @@ TEST (spdm_secure_session_manager_test_init);
 TEST (spdm_secure_session_manager_test_init_invalid_params);
 TEST (spdm_secure_session_manager_test_release_null);
 TEST (spdm_secure_session_manager_test_create_session);
+TEST (spdm_secure_session_manager_test_create_session_enc_mac);
+TEST (spdm_secure_session_manager_test_create_session_mac_only);
 TEST (spdm_secure_session_manager_test_create_session_invalid_params);
 TEST (spdm_secure_session_manager_test_create_session_count_gt_max);
 TEST (spdm_secure_session_manager_test_create_session_duplicate_session);
@@ -2870,10 +2981,8 @@ TEST (spdm_secure_session_manager_test_decode_secure_message);
 TEST (spdm_secure_session_manager_test_decode_secure_message_invalid_param);
 TEST (spdm_secure_session_manager_test_decode_secure_message_payload_lt_min);
 TEST (spdm_secure_session_manager_test_decode_secure_message_no_session);
-TEST (
-	spdm_secure_session_manager_test_decode_secure_message_sequence_number_overflow_session_state_handshaking);
-TEST (
-	spdm_secure_session_manager_test_decode_secure_message_sequence_number_overflow_session_state_established);
+TEST (spdm_secure_session_manager_test_decode_secure_message_sequence_number_overflow_session_state_handshaking);
+TEST (spdm_secure_session_manager_test_decode_secure_message_sequence_number_overflow_session_state_established);
 TEST (spdm_secure_session_manager_test_decode_secure_message_payload_incorrect_length);
 TEST (spdm_secure_session_manager_test_decode_secure_message_payload_incorrect_length_2);
 TEST (spdm_secure_session_manager_test_decode_secure_message_payload_incorrect_length_3);
@@ -2884,15 +2993,13 @@ TEST (spdm_secure_session_manager_test_decode_secure_message_plaintext_size_gt_c
 TEST (spdm_secure_session_manager_test_encode_secure_message_finish_response);
 TEST (spdm_secure_session_manager_test_encode_secure_message_end_session_response);
 TEST (spdm_secure_session_manager_test_encode_secure_message_invalid_param);
-TEST (
-	spdm_secure_session_manager_test_encode_secure_message_last_spdm_request_secure_session_id_invalid);
+TEST (spdm_secure_session_manager_test_encode_secure_message_last_spdm_request_secure_session_id_invalid);
 TEST (spdm_secure_session_manager_test_encode_secure_message_no_session);
-TEST (
-	spdm_secure_session_manager_test_encode_secure_message_sequence_number_overflow_session_state_handshaking);
-TEST (
-	spdm_secure_session_manager_test_encode_secure_message_sequence_number_overflow_session_state_established);
+TEST (spdm_secure_session_manager_test_encode_secure_message_sequence_number_overflow_session_state_handshaking);
+TEST (spdm_secure_session_manager_test_encode_secure_message_sequence_number_overflow_session_state_established);
 TEST (spdm_secure_session_manager_test_encode_secure_message_max_response_size_lt_required);
 TEST (spdm_secure_session_manager_test_encode_secure_message_set_key_fail);
 TEST (spdm_secure_session_manager_test_encode_secure_message_encrypt_with_add_data_fail);
 
 TEST_SUITE_END;
+// *INDENT-ON*
