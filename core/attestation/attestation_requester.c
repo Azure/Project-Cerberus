@@ -88,6 +88,7 @@ static int attestation_requester_send_request_and_get_response (
 	uint32_t max_rsp_not_ready_timeout_ms;
 	uint8_t max_rsp_not_ready_retries;
 	bool rsp_ready = false;
+	int device_state;
 	int status;
 
 	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_IDLE;
@@ -122,10 +123,36 @@ static int attestation_requester_send_request_and_get_response (
 			attestation->state->txn.msg_buffer,	sizeof (attestation->state->txn.msg_buffer),
 			timeout_ms);
 		if (status != 0) {
+			if (status == MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT) {
+				device_state = device_manager_get_device_state_by_eid (attestation->device_mgr,
+					dest_eid);
+
+				if (device_state == DEVICE_MANAGER_AUTHENTICATED) {
+					device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+						DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
+				}
+				else if (device_state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS) {
+					device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+						DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT);
+				}
+				else {
+					device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+						DEVICE_MANAGER_ATTESTATION_INTERRUPTED);
+				}
+			}
+			else if ((status == MCTP_BASE_PROTOCOL_ERROR_RESPONSE) || (status == MCTP_BASE_PROTOCOL_FAIL_RESPONSE)) {
+
+				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+					DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
+			}
+
 			return status;
 		}
 
 		if (attestation->state->txn.request_status != ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL) {
+			device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+				DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
+
 			return ATTESTATION_REQUEST_FAILED;
 		}
 
@@ -135,6 +162,9 @@ static int attestation_requester_send_request_and_get_response (
 		 * send a RESPOND_IF_READY request to retrieve response to original request. */
 		if (attestation->state->txn.sleep_duration_ms != 0) {
 			if (max_rsp_not_ready_retries == 0) {
+				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+					DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
+
 				return ATTESTATION_TOO_MANY_RETRIES_REQUESTED;
 			}
 
@@ -234,6 +264,11 @@ static int attestation_requester_verify_pmr (const struct attestation_requester 
 		status = attestation_requester_verify_digest_in_allowable_list (attestation,
 			&pmr_digest.digests, NULL, attestation->state->txn.transcript_hash_type);
 
+		if (status != 0) {
+			device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+				DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH);
+		}
+
 		active_cfm->free_component_pmr_digest (active_cfm, &pmr_digest);
 	}
 
@@ -304,6 +339,9 @@ static int attestation_requester_verify_and_load_leaf_key (
 		status = attestation_requester_verify_digest_in_allowable_list (attestation,
 			&root_ca_digests.digests, digest, root_ca_digests.digests.hash_type);
 		if (status != 0) {
+			device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+				DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS);
+
 			active_cfm->free_root_ca_digest (active_cfm, &root_ca_digests);
 			goto release_cert_buffer;
 		}
@@ -384,6 +422,9 @@ static int attestation_requester_verify_and_load_leaf_key (
 
 	status = attestation->x509->authenticate (attestation->x509, &cert, &certs_chain);
 	if (status != 0) {
+		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+			DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS);
+
 		goto release_leaf_cert;
 	}
 
@@ -393,6 +434,11 @@ static int attestation_requester_verify_and_load_leaf_key (
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 			ATTESTATION_LOGGING_CERT_CHAIN_COMPUTED_DIGEST_MISMATCH,
 			(eid << 8) | attestation->state->txn.slot_num, status);
+
+		if (status != 0) {
+			device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+				DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS);
+		}
 
 		goto release_leaf_cert;
 	}
@@ -1121,30 +1167,60 @@ static int attestation_requester_send_spdm_request_and_get_response (
 	switch (command) {
 		case SPDM_REQUEST_GET_VERSION:
 			status = attestation_requester_get_version_rsp_post_processing (attestation, dest_eid);
+
+			if (status != 0) {
+				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+					DEVICE_MANAGER_ATTESTATION_INVALID_VERSION);
+			}
 			break;
 
 		case SPDM_REQUEST_GET_CAPABILITIES:
 			status = attestation_requester_get_capabilities_rsp_post_processing (attestation,
 				dest_eid);
+
+			if (status != 0) {
+				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+					DEVICE_MANAGER_ATTESTATION_INVALID_CAPS);
+			}
 			break;
 
 		case SPDM_REQUEST_NEGOTIATE_ALGORITHMS:
 			status = attestation_requester_negotiate_algorithms_rsp_post_processing (attestation,
 				dest_eid);
+
+			if (status != 0) {
+				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+					DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM);
+			}
 			break;
 
 		case SPDM_REQUEST_GET_DIGESTS:
 			status = attestation_requester_get_digests_rsp_post_processing (attestation, dest_eid);
+
+			if (status != 0) {
+				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+					DEVICE_MANAGER_ATTESTATION_INVALID_DIGESTS);
+			}
 			break;
 
 		case SPDM_REQUEST_GET_CERTIFICATE:
 			status = attestation_requester_get_certificate_rsp_post_processing (attestation,
 				dest_eid);
+
+			if (status != 0) {
+				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+					DEVICE_MANAGER_ATTESTATION_INVALID_CERTS);
+			}
 			break;
 
 		case SPDM_REQUEST_CHALLENGE:
 			status = attestation_requester_spdm_challenge_rsp_post_processing (attestation,
 				dest_eid);
+
+			if (status != 0) {
+				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+					DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE);
+			}
 
 			rsp_to_hash_len = spdm_get_challenge_resp_length (challenge_rsp, transcript_hash_len,
 				transcript_hash_len);
@@ -1154,6 +1230,11 @@ static int attestation_requester_send_spdm_request_and_get_response (
 		case SPDM_REQUEST_GET_MEASUREMENTS:
 			status = attestation_requester_spdm_get_measurements_rsp_post_processing (attestation,
 				dest_eid);
+
+			if (status != 0) {
+				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+					DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT);
+			}
 
 			rsp_to_hash_len = spdm_get_measurements_resp_length (get_meas_rsp);
 
@@ -2255,6 +2336,9 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
 			status =
 				attestation_requester_spdm_process_get_measurements_response (attestation, eid);
 			if (status != 0) {
+				device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+					DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT);
+
 				return status;
 			}
 
@@ -2279,7 +2363,13 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
 		return status;
 	}
 
-	return attestation_requester_spdm_process_get_measurements_response (attestation, eid);
+	status = attestation_requester_spdm_process_get_measurements_response (attestation, eid);
+	if (status != 0) {
+		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+			DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT);
+	}
+
+	return status;
 }
 
 /**
@@ -2325,6 +2415,11 @@ static int attestation_requester_get_and_verify_all_spdm_measurement_blocks (
 
 	status = attestation_requester_verify_digest_in_allowable_list (attestation,
 		&pmr_digest.digests, digest, attestation->state->txn.measurement_hash_type);
+
+	if (status != 0) {
+		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+			DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH);
+	}
 
 free_pmr_digest:
 	active_cfm->free_component_pmr_digest (active_cfm, &pmr_digest);
@@ -2660,6 +2755,11 @@ static int attestation_requester_get_and_verify_cfm_contents (
 		return 0;
 	}
 
+	if (status != 0) {
+		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+			DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH);
+	}
+
 	return status;
 }
 
@@ -2873,6 +2973,7 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 	uint32_t component_id;
 	enum cfm_attestation_type attestation_protocol;
 	int device_addr;
+	int device_state;
 	int status;
 
 	if (attestation == NULL) {
@@ -2913,10 +3014,15 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 
 	active_cfm->free_component_device (active_cfm, &component_device);
 
-	status = device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
-		DEVICE_MANAGER_READY_FOR_ATTESTATION);
-	if (status != 0) {
-		goto free_cfm;
+
+	device_state = device_manager_get_device_state_by_eid (attestation->device_mgr, eid);
+
+	if (!(device_state == DEVICE_MANAGER_AUTHENTICATED) || (device_state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS)) {
+		status = device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+			DEVICE_MANAGER_READY_FOR_ATTESTATION);
+		if (status != 0) {
+			goto free_cfm;
+		}
 	}
 
 	switch (attestation_protocol) {
@@ -2960,8 +3066,13 @@ free_cfm:
 		}
 	}
 	else {
-		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
-			DEVICE_MANAGER_ATTESTATION_FAILED);
+		device_state = device_manager_get_device_state_by_eid (attestation->device_mgr, eid);
+
+		if ((device_state == DEVICE_MANAGER_NEVER_ATTESTED) ||
+			(device_state == DEVICE_MANAGER_READY_FOR_ATTESTATION)) {
+			device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+				DEVICE_MANAGER_ATTESTATION_FAILED);
+		}
 	}
 
 	return status;

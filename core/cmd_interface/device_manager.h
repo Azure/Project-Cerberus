@@ -53,14 +53,30 @@
  * Device states
  */
 enum device_manager_device_state {
-	DEVICE_MANAGER_AUTHENTICATED = 0,			/**< Authenticated state */
-	DEVICE_MANAGER_UNIDENTIFIED,				/**< Communication with device not established */
-	DEVICE_MANAGER_NEVER_ATTESTED,				/**< Device ready for attestation start, but never attested before */
-	DEVICE_MANAGER_READY_FOR_ATTESTATION,		/**< Device ready for attestation start */
-	DEVICE_MANAGER_ATTESTATION_FAILED,			/**< Previous attestation attempt failed */
-	DEVICE_MANAGER_NOT_ATTESTABLE,				/**< Not an attestable device */
-	DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS,	/**< Authenticated without state */
-	NUM_DEVICE_MANAGER_STATES,					/**< Number of device states */
+	DEVICE_MANAGER_AUTHENTICATED = 0x0,							/**< Authenticated state */
+	DEVICE_MANAGER_UNIDENTIFIED,								/**< Communication with device not established */
+	DEVICE_MANAGER_NEVER_ATTESTED,								/**< Device ready for attestation start, but never attested before */
+	DEVICE_MANAGER_READY_FOR_ATTESTATION,						/**< Device ready for attestation start */
+	DEVICE_MANAGER_ATTESTATION_FAILED,							/**< Previous attestation attempt failed due to other error */
+	DEVICE_MANAGER_NOT_ATTESTABLE,								/**< Not an attestable device */
+	DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS,					/**< Authenticated without certs */
+	DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT,					/**< Autenticated with timeout */
+	DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT,	/**< Autenticated without certs with timeout */
+	DEVICE_MANAGER_ATTESTATION_INTERRUPTED,						/**< Communication with device is interrupted */
+
+	DEVICE_MANAGER_ATTESTATION_INVALID_VERSION = 0x10,			/**< Previous attestation attempt failed due to invalid version */
+	DEVICE_MANAGER_ATTESTATION_INVALID_CAPS,					/**< Previous attestation attempt failed due to invalid capabilities */
+	DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM,				/**< Previous attestation attempt failed due to invalid algorithm */
+	DEVICE_MANAGER_ATTESTATION_INVALID_DIGESTS,					/**< Previous attestation attempt failed due to invalid digests */
+	DEVICE_MANAGER_ATTESTATION_INVALID_CERTS,					/**< Previous attestation attempt failed due to invalid certificates */
+	DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE,				/**< Previous attestation attempt failed due to invalid challenge */
+	DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT,				/**< Previous attestation attempt failed due to invalid measurement */
+	DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE,				/**< Communication with device is unexpected */
+
+	DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH = 0x20,		/**< Previous attestation attempt failed due to measurement mismatch */
+	DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS,					/**< Previous attestation attempt failed due to untrusted certificates */
+
+	MAX_DEVICE_MANAGER_STATES									/**< Max number of device states */
 };
 
 

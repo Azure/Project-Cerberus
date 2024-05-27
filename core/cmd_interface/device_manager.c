@@ -25,7 +25,18 @@
  */
 #define device_manager_is_device_unauthenticated(state)         \
 	((state == DEVICE_MANAGER_READY_FOR_ATTESTATION) ||  \
-	(state == DEVICE_MANAGER_ATTESTATION_FAILED))
+	(state == DEVICE_MANAGER_ATTESTATION_FAILED) || \
+	(state == DEVICE_MANAGER_ATTESTATION_INTERRUPTED) || \
+	(state == DEVICE_MANAGER_ATTESTATION_INVALID_VERSION) || \
+	(state == DEVICE_MANAGER_ATTESTATION_INVALID_CAPS) || \
+	(state == DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM) || \
+	(state == DEVICE_MANAGER_ATTESTATION_INVALID_DIGESTS) || \
+	(state == DEVICE_MANAGER_ATTESTATION_INVALID_CERTS) || \
+	(state == DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE) || \
+	(state == DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT) || \
+	(state == DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH) || \
+	(state == DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS) || \
+	(state == DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE))
 
 /**
  * Determine if device is ready to be attested
@@ -35,6 +46,8 @@
 #define device_manager_can_device_be_attested(state)            \
 	(device_manager_is_device_unauthenticated(state) || (state == DEVICE_MANAGER_AUTHENTICATED) || \
 	(state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS) || \
+	(state == DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT) || \
+	(state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT) || \
 	(state == DEVICE_MANAGER_NEVER_ATTESTED))
 
 
@@ -53,7 +66,7 @@ int device_manager_update_device_state (struct device_manager *mgr, int device_n
 	enum device_manager_device_state prev_state;
 	uint32_t timeout = 0;
 
-	if ((mgr == NULL) || (state >= NUM_DEVICE_MANAGER_STATES)) {
+	if ((mgr == NULL) || (state >= MAX_DEVICE_MANAGER_STATES)) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
