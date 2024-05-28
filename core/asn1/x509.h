@@ -319,6 +319,23 @@ struct x509_engine {
 		size_t length);
 
 	/**
+	 * Add the certificate for a certificate authority that should be implicitly trusted when
+	 * authenticating other certificates.  This certificate must be for a CA that is not self
+	 * signed, making it a trusted intermediate CA certificate.  No validation will be done on the
+	 * certificate prior to adding it as a trusted certificate.  Validation of this certificate must
+	 * be handled externally prior to this call.
+	 *
+	 * @param engine The X.509 engine used to initialize the certificate store.
+	 * @param store The certificate store to add the CA to.
+	 * @param der The DER formatted certificate for the trusted intermediate CA.
+	 * @param length The length of the certificate data.
+	 *
+	 * @return 0 if the certificate was successfully added to the store or an error code.
+	 */
+	int (*add_trusted_ca) (struct x509_engine *engine, struct x509_ca_certs *store,
+		const uint8_t *der, size_t length);
+
+	/**
 	 * Add the certificate for a certificate authority that can be used in path validation.  The
 	 * certificate must be for a CA that is not self signed.  No verification is done on the
 	 * certificate until it is used for path validation.
@@ -398,6 +415,7 @@ enum {
 	// X509_ENGINE_DICE_NO_UEID = X509_ENGINE_ERROR (0x22),				/**< No UEID information for the DICE extension. */
 	X509_ENGINE_INVALID_SERIAL_NUM = X509_ENGINE_ERROR (0x23),		/**< Provided serial number is an invalid value. */
 	X509_ENGINE_UNSUPPORTED_SIG_HASH = X509_ENGINE_ERROR (0x24),	/**< The certificate signature uses an unsupported digest. */
+	X509_ENGINE_TRUSTED_CA_FAILED = X509_ENGINE_ERROR (0x25),		/**< The trusted intermediate CA was not added for path validation. */
 };
 
 

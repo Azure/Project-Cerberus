@@ -45,6 +45,7 @@ static void x509_thread_safe_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, engine.base.get_public_key_length);
 	CuAssertPtrNotNull (test, engine.base.get_public_key);
 	CuAssertPtrNotNull (test, engine.base.add_root_ca);
+	CuAssertPtrNotNull (test, engine.base.add_trusted_ca);
 	CuAssertPtrNotNull (test, engine.base.init_ca_cert_store);
 	CuAssertPtrNotNull (test, engine.base.release_ca_cert_store);
 	CuAssertPtrNotNull (test, engine.base.add_intermediate_ca);
@@ -1386,6 +1387,102 @@ static void x509_thread_safe_test_add_root_ca_null (CuTest *test)
 	x509_thread_safe_release (&engine);
 }
 
+static void x509_thread_safe_test_add_trusted_ca (CuTest *test)
+{
+	struct x509_engine_thread_safe engine;
+	struct x509_engine_mock mock;
+	int status;
+	struct x509_ca_certs store;
+
+	TEST_START;
+
+	status = x509_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = x509_thread_safe_init (&engine, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.add_trusted_ca, &mock, 0, MOCK_ARG_PTR (&store),
+		MOCK_ARG_PTR (X509_CERTCA_ECC_CA_DER), MOCK_ARG (X509_CERTCA_ECC_CA_DER_LEN));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.add_trusted_ca (&engine.base, &store, X509_CERTCA_ECC_CA_DER,
+		X509_CERTCA_ECC_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.release_certificate (&engine.base, NULL);
+
+	x509_mock_release (&mock);
+	x509_thread_safe_release (&engine);
+}
+
+static void x509_thread_safe_test_add_trusted_ca_error (CuTest *test)
+{
+	struct x509_engine_thread_safe engine;
+	struct x509_engine_mock mock;
+	int status;
+	struct x509_ca_certs store;
+
+	TEST_START;
+
+	status = x509_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = x509_thread_safe_init (&engine, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.add_trusted_ca, &mock,
+		X509_ENGINE_TRUSTED_CA_FAILED, MOCK_ARG_PTR (&store), MOCK_ARG_PTR (X509_CERTCA_ECC_CA_DER),
+		MOCK_ARG (X509_CERTCA_ECC_CA_DER_LEN));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.add_trusted_ca (&engine.base, &store, X509_CERTCA_ECC_CA_DER,
+		X509_CERTCA_ECC_CA_DER_LEN);
+	CuAssertIntEquals (test, X509_ENGINE_TRUSTED_CA_FAILED, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.release_certificate (&engine.base, NULL);
+
+	x509_mock_release (&mock);
+	x509_thread_safe_release (&engine);
+}
+
+static void x509_thread_safe_test_add_trusted_ca_null (CuTest *test)
+{
+	struct x509_engine_thread_safe engine;
+	struct x509_engine_mock mock;
+	int status;
+	struct x509_ca_certs store;
+
+	TEST_START;
+
+	status = x509_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = x509_thread_safe_init (&engine, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.add_trusted_ca (NULL, &store, X509_CERTCA_ECC_CA_DER,
+		X509_CERTCA_ECC_CA_DER_LEN);
+	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.release_certificate (&engine.base, NULL);
+
+	x509_mock_release (&mock);
+	x509_thread_safe_release (&engine);
+}
+
 static void x509_thread_safe_test_add_intermediate_ca (CuTest *test)
 {
 	struct x509_engine_thread_safe engine;
@@ -1625,6 +1722,9 @@ TEST (x509_thread_safe_test_release_ca_cert_store_null);
 TEST (x509_thread_safe_test_add_root_ca);
 TEST (x509_thread_safe_test_add_root_ca_error);
 TEST (x509_thread_safe_test_add_root_ca_null);
+TEST (x509_thread_safe_test_add_trusted_ca);
+TEST (x509_thread_safe_test_add_trusted_ca_error);
+TEST (x509_thread_safe_test_add_trusted_ca_null);
 TEST (x509_thread_safe_test_add_intermediate_ca);
 TEST (x509_thread_safe_test_add_intermediate_ca_error);
 TEST (x509_thread_safe_test_add_intermediate_ca_null);

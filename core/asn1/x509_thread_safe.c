@@ -255,6 +255,23 @@ static int x509_thread_safe_add_root_ca (struct x509_engine *engine, struct x509
 	return status;
 }
 
+static int x509_thread_safe_add_trusted_ca (struct x509_engine *engine, struct x509_ca_certs *store,
+	const uint8_t *der, size_t length)
+{
+	struct x509_engine_thread_safe *x509 = (struct x509_engine_thread_safe*) engine;
+	int status;
+
+	if (engine == NULL) {
+		return X509_ENGINE_INVALID_ARGUMENT;
+	}
+
+	platform_mutex_lock (&x509->lock);
+	status = x509->engine->add_trusted_ca (x509->engine, store, der, length);
+	platform_mutex_unlock (&x509->lock);
+
+	return status;
+}
+
 static int x509_thread_safe_add_intermediate_ca (struct x509_engine *engine,
 	struct x509_ca_certs *store, const uint8_t *der, size_t length)
 {
@@ -325,6 +342,7 @@ int x509_thread_safe_init (struct x509_engine_thread_safe *engine, struct x509_e
 	engine->base.init_ca_cert_store = x509_thread_safe_init_ca_cert_store;
 	engine->base.release_ca_cert_store = x509_thread_safe_release_ca_cert_store;
 	engine->base.add_root_ca = x509_thread_safe_add_root_ca;
+	engine->base.add_trusted_ca = x509_thread_safe_add_trusted_ca;
 	engine->base.add_intermediate_ca = x509_thread_safe_add_intermediate_ca;
 	engine->base.authenticate = x509_thread_safe_authenticate;
 #endif

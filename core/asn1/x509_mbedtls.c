@@ -977,17 +977,23 @@ static void x509_mbedtls_release_ca_cert_store (struct x509_engine *engine,
 	}
 }
 
-static int x509_mbedtls_add_root_ca (struct x509_engine *engine, struct x509_ca_certs *store,
-	const uint8_t *der, size_t length)
+/**
+ * Load a CA certificate and add it to a certificate chain.
+ *
+ * @param engine The X.509 instance to use for loading the certificate.
+ * @param chain The certificate chain to update with the CA certificate.
+ * @param der DER encoded data for the CA certificate.
+ * @param length Length of the DER encoded data.
+ * @param is_root Flag indicating if the certificate is a root CA.
+ *
+ * @return 0 if the certificate chain was updated successfully or an error code.
+ */
+static int x509_mbedtls_add_ca_to_cert_chain (struct x509_engine *engine, mbedtls_x509_crt **chain,
+	const uint8_t *der, size_t length, bool is_root)
 {
-	struct x509_mbedtls_ca_store_context *store_ctx;
 	struct x509_certificate cert;
 	mbedtls_x509_crt *x509;
 	int status;
-
-	if (store == NULL) {
-		return X509_ENGINE_INVALID_ARGUMENT;
-	}
 
 	status = x509_mbedtls_load_certificate (engine, &cert, der, length);
 	if (status != 0) {
@@ -1001,20 +1007,29 @@ static int x509_mbedtls_add_root_ca (struct x509_engine *engine, struct x509_ca_
 		goto err_free_cert;
 	}
 
-	if (!x509_mbedtls_is_self_signed (x509)) {
-		status = X509_ENGINE_NOT_SELF_SIGNED;
-		goto err_free_cert;
+	if (is_root) {
+		/* Root CAs must be self signed and have a valid signature. */
+		if (!x509_mbedtls_is_self_signed (x509)) {
+			status = X509_ENGINE_NOT_SELF_SIGNED;
+			goto err_free_cert;
+		}
+
+		status = x509_mbedtls_verify_cert_signature (x509, &x509->pk);
+		if (status != 0) {
+			status = X509_ENGINE_BAD_SIGNATURE;
+			goto err_free_cert;
+		}
+	}
+	else {
+		/* ICAs must not be self signed. */
+		if (x509_mbedtls_is_self_signed (x509)) {
+			status = X509_ENGINE_IS_SELF_SIGNED;
+			goto err_free_cert;
+		}
 	}
 
-	status = x509_mbedtls_verify_cert_signature (x509, &x509->pk);
-	if (status != 0) {
-		status = X509_ENGINE_BAD_SIGNATURE;
-		goto err_free_cert;
-	}
-
-	store_ctx = store->context;
-	x509->next = store_ctx->root_ca;
-	store_ctx->root_ca = x509;
+	x509->next = *chain;
+	*chain = x509;
 
 	return 0;
 
@@ -1025,46 +1040,38 @@ err_exit:
 	return status;
 }
 
-static int x509_mbedtls_add_intermediate_ca (struct x509_engine *engine,
-	struct x509_ca_certs *store, const uint8_t *der, size_t length)
+static int x509_mbedtls_add_root_ca (struct x509_engine *engine, struct x509_ca_certs *store,
+	const uint8_t *der, size_t length)
 {
-	struct x509_mbedtls_ca_store_context *store_ctx;
-	struct x509_certificate cert;
-	mbedtls_x509_crt *x509;
-	int status;
-
 	if (store == NULL) {
 		return X509_ENGINE_INVALID_ARGUMENT;
 	}
 
-	status = x509_mbedtls_load_certificate (engine, &cert, der, length);
-	if (status != 0) {
-		goto err_exit;
+	return x509_mbedtls_add_ca_to_cert_chain (engine,
+		&((struct x509_mbedtls_ca_store_context*) store->context)->root_ca, der, length, true);
+}
+
+static int x509_mbedtls_add_trusted_ca (struct x509_engine *engine, struct x509_ca_certs *store,
+	const uint8_t *der, size_t length)
+{
+	if (store == NULL) {
+		return X509_ENGINE_INVALID_ARGUMENT;
 	}
 
-	x509 = (mbedtls_x509_crt*) cert.context;
+	return x509_mbedtls_add_ca_to_cert_chain (engine,
+		&((struct x509_mbedtls_ca_store_context*) store->context)->root_ca, der, length, false);
+}
 
-	if (!x509->ca_istrue) {
-		status = X509_ENGINE_NOT_CA_CERT;
-		goto err_free_cert;
+static int x509_mbedtls_add_intermediate_ca (struct x509_engine *engine,
+	struct x509_ca_certs *store, const uint8_t *der, size_t length)
+{
+	if (store == NULL) {
+		return X509_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (x509_mbedtls_is_self_signed (x509)) {
-		status = X509_ENGINE_IS_SELF_SIGNED;
-		goto err_free_cert;
-	}
-
-	store_ctx = store->context;
-	x509->next = store_ctx->intermediate;
-	store_ctx->intermediate = x509;
-
-	return 0;
-
-err_free_cert:
-	x509_mbedtls_release_certificate (engine, &cert);
-err_exit:
-
-	return status;
+	return x509_mbedtls_add_ca_to_cert_chain (engine,
+		&((struct x509_mbedtls_ca_store_context*) store->context)->intermediate, der, length,
+		false);
 }
 
 static int x509_mbedtls_authenticate (struct x509_engine *engine,
@@ -1149,6 +1156,7 @@ int x509_mbedtls_init (struct x509_engine_mbedtls *engine)
 	engine->base.init_ca_cert_store = x509_mbedtls_init_ca_cert_store;
 	engine->base.release_ca_cert_store = x509_mbedtls_release_ca_cert_store;
 	engine->base.add_root_ca = x509_mbedtls_add_root_ca;
+	engine->base.add_trusted_ca = x509_mbedtls_add_trusted_ca;
 	engine->base.add_intermediate_ca = x509_mbedtls_add_intermediate_ca;
 	engine->base.authenticate = x509_mbedtls_authenticate;
 #endif

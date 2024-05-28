@@ -22,6 +22,7 @@
 struct x509_openssl_ca_store_context {
 	X509_STORE *trusted;			/**< Store for Root CAs. */
 	STACK_OF (X509) *intermediate;	/**< Store for intermediate CAs. */
+	unsigned long flags;			/**< Verification flags to apply when verifying. */
 };
 
 
@@ -1052,6 +1053,8 @@ static int x509_openssl_init_ca_cert_store (struct x509_engine *engine, struct x
 		return X509_ENGINE_NO_MEMORY;
 	}
 
+	memset (store_ctx, 0, sizeof (*store_ctx));
+
 	ERR_clear_error ();
 
 	store_ctx->trusted = X509_STORE_new ();
@@ -1154,6 +1157,55 @@ err_cert:
 	return status;
 }
 
+static int x509_openssl_add_trusted_ca (struct x509_engine *engine, struct x509_ca_certs *store,
+	const uint8_t *der, size_t length)
+{
+	struct x509_openssl_ca_store_context *store_ctx;
+	struct x509_certificate cert;
+	int status;
+
+	if (store == NULL) {
+		return X509_ENGINE_INVALID_ARGUMENT;
+	}
+
+	status = x509_openssl_load_certificate (engine, &cert, der, length);
+	if (status != 0) {
+		goto err_cert;
+	}
+
+	ERR_clear_error ();
+
+	status = X509_check_ca ((X509*) cert.context);
+	if (status == 0) {
+		status = X509_ENGINE_NOT_CA_CERT;
+		goto err_chk;
+	}
+
+	status = X509_check_issued ((X509*) cert.context, (X509*) cert.context);
+	if (status == X509_V_OK) {
+		status = X509_ENGINE_IS_SELF_SIGNED;
+		goto err_chk;
+	}
+
+	store_ctx = (struct x509_openssl_ca_store_context*) store->context;
+
+	status = X509_STORE_add_cert (store_ctx->trusted, (X509*) cert.context);
+	if (status == 0) {
+		status = -ERR_get_error ();
+		goto err_chk;
+	}
+
+	/* There is an ICA in the trusted store, so allow partial chain verification. */
+	store_ctx->flags = X509_V_FLAG_PARTIAL_CHAIN;
+
+	status = 0;
+
+err_chk:
+	x509_openssl_release_certificate (engine, &cert);
+err_cert:
+	return status;
+}
+
 static int x509_openssl_add_intermediate_ca (struct x509_engine *engine,
 	struct x509_ca_certs *store, const uint8_t *der, size_t length)
 {
@@ -1202,6 +1254,7 @@ static int x509_openssl_authenticate (struct x509_engine *engine,
 	struct x509_engine_openssl *openssl = (struct x509_engine_openssl*) engine;
 	struct x509_openssl_ca_store_context *store_ctx = NULL;
 	X509_STORE_CTX *auth_ctx;
+	X509_VERIFY_PARAM *verify_param;
 	int status;
 
 	if ((openssl == NULL) || (cert == NULL) || (store == NULL)) {
@@ -1227,9 +1280,16 @@ static int x509_openssl_authenticate (struct x509_engine *engine,
 		goto err_init;
 	}
 
+	/* Apply any verification flags that are configured for this cert store. */
+	verify_param = X509_STORE_CTX_get0_param (auth_ctx);
+	status = X509_VERIFY_PARAM_set_flags (verify_param, store_ctx->flags);
+	if (status == 0) {
+		status = -ERR_get_error ();
+		goto err_init;
+	}
+
 	X509_verify_cert (auth_ctx);
 	status = X509_STORE_CTX_get_error (auth_ctx);
-
 	if (status != 0) {
 		status = X509_ENGINE_CERT_NOT_VALID;
 	}
@@ -1275,6 +1335,7 @@ int x509_openssl_init (struct x509_engine_openssl *engine)
 	engine->base.init_ca_cert_store = x509_openssl_init_ca_cert_store;
 	engine->base.release_ca_cert_store = x509_openssl_release_ca_cert_store;
 	engine->base.add_root_ca = x509_openssl_add_root_ca;
+	engine->base.add_trusted_ca = x509_openssl_add_trusted_ca;
 	engine->base.add_intermediate_ca = x509_openssl_add_intermediate_ca;
 	engine->base.authenticate = x509_openssl_authenticate;
 #endif

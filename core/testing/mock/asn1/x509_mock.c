@@ -200,6 +200,19 @@ static int x509_mock_add_root_ca (struct x509_engine *engine, struct x509_ca_cer
 		MOCK_ARG_PTR_CALL (der), MOCK_ARG_CALL (length));
 }
 
+static int x509_mock_add_trusted_ca (struct x509_engine *engine, struct x509_ca_certs *store,
+	const uint8_t *der, size_t length)
+{
+	struct x509_engine_mock *mock = (struct x509_engine_mock*) engine;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, x509_mock_add_trusted_ca, engine, MOCK_ARG_PTR_CALL (store),
+		MOCK_ARG_PTR_CALL (der), MOCK_ARG_CALL (length));
+}
+
 static int x509_mock_add_intermediate_ca (struct x509_engine *engine, struct x509_ca_certs *store,
 	const uint8_t *der, size_t length)
 {
@@ -239,7 +252,8 @@ static int x509_mock_func_arg_count (void *func)
 	}
 	else if ((func == x509_mock_load_certificate) || (func == x509_mock_get_certificate_der) ||
 		(func == x509_mock_get_serial_number) || (func == x509_mock_get_public_key) ||
-		(func == x509_mock_add_root_ca) || (func == x509_mock_add_intermediate_ca)) {
+		(func == x509_mock_add_root_ca) || (func == x509_mock_add_trusted_ca) ||
+		(func == x509_mock_add_intermediate_ca)) {
 		return 3;
 	}
 	else if (func == x509_mock_authenticate) {
@@ -299,6 +313,9 @@ static const char* x509_mock_func_name_map (void *func)
 	}
 	else if (func == x509_mock_add_root_ca) {
 		return "add_root_ca";
+	}
+	else if (func == x509_mock_add_trusted_ca) {
+		return "add_trusted_ca";
 	}
 	else if (func == x509_mock_add_intermediate_ca) {
 		return "add_intermediate_ca";
@@ -520,6 +537,18 @@ static const char* x509_mock_arg_name_map (void *func, int arg)
 				return "length";
 		}
 	}
+	else if (func == x509_mock_add_trusted_ca) {
+		switch (arg) {
+			case 0:
+				return "store";
+
+			case 1:
+				return "der";
+
+			case 2:
+				return "length";
+		}
+	}
 	else if (func == x509_mock_add_intermediate_ca) {
 		switch (arg) {
 			case 0:
@@ -583,6 +612,7 @@ int x509_mock_init (struct x509_engine_mock *mock)
 	mock->base.init_ca_cert_store = x509_mock_init_ca_cert_store;
 	mock->base.release_ca_cert_store = x509_mock_release_ca_cert_store;
 	mock->base.add_root_ca = x509_mock_add_root_ca;
+	mock->base.add_trusted_ca = x509_mock_add_trusted_ca;
 	mock->base.add_intermediate_ca = x509_mock_add_intermediate_ca;
 	mock->base.authenticate = x509_mock_authenticate;
 

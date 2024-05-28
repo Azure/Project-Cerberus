@@ -284,6 +284,8 @@ extern const uint8_t X509_CA2_SERIAL_NUM[];
 extern const size_t X509_CA2_SERIAL_NUM_LEN;
 
 extern const char *X509_CA3_SUBJECT_NAME;
+extern const uint8_t X509_CA3_SERIAL_NUM[];
+extern const size_t X509_CA3_SERIAL_NUM_LEN;
 
 /* Certificate Signing Request */
 extern const uint8_t X509_CSR_ECC_CA_DER[];
@@ -349,7 +351,7 @@ extern const uint8_t X509_CERTCA_RSA_CA_DER[];
 extern const size_t X509_CERTCA_RSA_CA_DER_LEN;
 
 /* CA-signed certificate
- * ECC certificate signed by a self-signed ECC CA. */
+ * ECC certificate signed by a self-signed ECC CA (CERTSS_ECC*_CA). */
 extern const uint8_t X509_CERTCA_ECC_CA2_DER[];
 extern const size_t X509_CERTCA_ECC_CA2_DER_LEN;
 extern const uint8_t X509_CERTCA_ECC384_CA2_DER[];
@@ -358,7 +360,7 @@ extern const uint8_t X509_CERTCA_ECC521_CA2_DER[];
 extern const size_t X509_CERTCA_ECC521_CA2_DER_LEN;
 
 /* CA-signed certificate
- * ECC certificate signed by an intermediate ECC CA. */
+ * ECC certificate signed by an intermediate ECC CA (CERTCA_ECC*_CA). */
 extern const uint8_t X509_CERTCA_ECC_CA2_ICA_DER[];
 extern const size_t X509_CERTCA_ECC_CA2_ICA_DER_LEN;
 extern const uint8_t X509_CERTCA_ECC384_CA2_ICA_DER[];
@@ -431,7 +433,7 @@ extern const uint8_t X509_CERTCA_RSA_EE_DER[];
 extern const size_t X509_CERTCA_RSA_EE_DER_LEN;
 
 /* CA-signed certificate
- * ECC certificate signed by a self-signed ECC CA. */
+ * ECC certificate signed by a self-signed ECC CA (CERTSS_ECC_CA). */
 extern const uint8_t X509_CERTCA_ECC_EE2_DER[];
 extern const size_t X509_CERTCA_ECC_EE2_DER_LEN;
 extern const uint8_t X509_CERTCA_ECC384_EE2_DER[];
@@ -440,6 +442,15 @@ extern const uint8_t X509_CERTCA_ECC384_SHA256_EE2_DER[];
 extern const size_t X509_CERTCA_ECC384_SHA256_EE2_DER_LEN;
 extern const uint8_t X509_CERTCA_ECC521_EE2_DER[];
 extern const size_t X509_CERTCA_ECC521_EE2_DER_LEN;
+
+/* CA-signed certificate
+ * ECC certificate signed by an intermediate ECC CA (CERTCA_ECC_CA2). */
+extern const uint8_t X509_CERTCA_ECC_EE3_ICA_DER[];
+extern const size_t X509_CERTCA_ECC_EE3_ICA_DER_LEN;
+extern const uint8_t X509_CERTCA_ECC384_EE3_ICA_DER[];
+extern const size_t X509_CERTCA_ECC384_EE3_ICA_DER_LEN;
+extern const uint8_t X509_CERTCA_ECC521_EE3_ICA_DER[];
+extern const size_t X509_CERTCA_ECC521_EE3_ICA_DER_LEN;
 
 
 /* RIoT extension certificates */
