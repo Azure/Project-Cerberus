@@ -19,7 +19,8 @@
 /* Configurable parameters. Defaults can be overridden in platform_config.h. */
 
 /**
- * Maximum exponent for cryptographic processing time as described in section 10.3 of the DSP0274 SPDM spec.
+ * Maximum exponent for cryptographic processing time as described in section 10.3 of the DSP0274
+ * SPDM spec.
  */
 #ifndef SPDM_MAX_CT_EXPONENT
 #define SPDM_MAX_CT_EXPONENT						31
@@ -258,12 +259,13 @@ struct spdm_get_capabilities {
 #define SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE			5
 
 /**
- * SPDM negotiate alorithms maximum request size, from section 10.4 in DSP0274 SPDM spec.
+ * SPDM negotiate algorithms maximum request size, from section 10.4 in DSP0274 SPDM spec.
  */
 #define SPDM_NEGOTIATE_ALGORITHMS_REQUEST_MAX_LENGTH	0x80
 
 /**
- * SPDM negotiate alorithms maximum extension algorithm count, from section 10.4 in DSP0274 SPDM spec.
+ * SPDM negotiate algorithms maximum extension algorithm count, from section 10.4 in DSP0274 SPDM
+ * spec.
  */
 #define SPDM_NEGOTIATE_ALGORITHMS_REQUEST_MAX_EXT_ALG_COUNT_VERSION		0x14
 

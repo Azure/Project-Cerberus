@@ -100,7 +100,7 @@ enum {
 	ATTESTATION_UNSUPPORTED_PROTOCOL_VERSION = ATTESTATION_ERROR (0x07),		/**< Unsupported protocol version. */
 	ATTESTATION_INVALID_CERT_CHAIN = ATTESTATION_ERROR (0x08),					/**< Invalid certificate chain. */
 	ATTESTATION_UNSUPPORTED_ALGORITHM = ATTESTATION_ERROR (0x09),				/**< Unsupported algorithm. */
-	// ATTESTATION_INVALID_MEASUREMENT = ATTESTATION_ERROR (0x0A),			/**< Invalid platform measurement. */
+	// ATTESTATION_INVALID_MEASUREMENT = ATTESTATION_ERROR (0x0A),				/**< Invalid platform measurement. */
 	ATTESTATION_BUF_TOO_SMALL = ATTESTATION_ERROR (0x0B),						/**< Provided buffer too small for output. */
 	ATTESTATION_CERT_NOT_AVAILABLE = ATTESTATION_ERROR (0x0C),					/**< Certificate queried not found. */
 	ATTESTATION_BAD_LENGTH = ATTESTATION_ERROR (0x0D),							/**< The payload length is wrong for the request. */
@@ -121,7 +121,7 @@ enum {
 	ATTESTATION_DEVICE_NOT_INTEROPERABLE = ATTESTATION_ERROR (0x1C),			/**< Device SPDM version not supported. */
 	ATTESTATION_UNEXPECTED_ALG_IN_RESPONSE = ATTESTATION_ERROR (0x1D),			/**< Device response utilizes unexpected algorithm. */
 	ATTESTATION_UNSUPPORTED_MEASUREMENT_SPEC = ATTESTATION_ERROR (0x1E),		/**< Unsupported measurement spec utilized by device. */
-	// ATTESTATION_GET_CERT_NOT_SUPPORTED_BY_DEVICE = ATTESTATION_ERROR (0x1F),/**< Device does not support required Get Certificates command.*/
+	// ATTESTATION_GET_CERT_NOT_SUPPORTED_BY_DEVICE = ATTESTATION_ERROR (0x1F),	/**< Device does not support required Get Certificates command.*/
 	ATTESTATION_GET_MEAS_NOT_SUPPORTED_BY_DEVICE = ATTESTATION_ERROR (0x20),	/**< Device does not support required Get Measurements command.*/
 	ATTESTATION_REQUESTED_SLOT_NUM_EMPTY = ATTESTATION_ERROR (0x21),			/**< Requested certificate slot number empty in response. */
 	ATTESTATION_UNEXPECTED_SLOT_NUM = ATTESTATION_ERROR (0x22),					/**< Certificate slot number in response unexpected. */
@@ -130,6 +130,7 @@ enum {
 	ATTESTATION_FAILED_TO_SELECT_VERSION_SET = ATTESTATION_ERROR (0x25),		/**< Failed to determine device version set using CFM version set selector entry. */
 	ATTESTATION_GET_MEAS_CAP_MISMATCH_BY_DEVICE = ATTESTATION_ERROR (0x26),		/**< Target device support mismatched measurement response capabilities. */
 	ATTESTATION_CHAL_CAP_MISMATCH_BY_DEVICE = ATTESTATION_ERROR (0x27),			/**< Target device support mismatched challenge response capabilities. */
+	ATTESTATION_CERT_TOO_LARGE = ATTESTATION_ERROR (0x28),						/**< A single device cert cannot fit into the message buffer. */
 };
 
 

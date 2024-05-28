@@ -302,7 +302,7 @@ int device_manager_update_cert_chain_digest (struct device_manager *mgr, uint8_t
 	uint8_t slot_num, const uint8_t *buf, size_t buf_len);
 int device_manager_clear_cert_chain_digest (struct device_manager *mgr, uint8_t eid);
 int device_manager_compare_cert_chain_digest (struct device_manager *mgr, uint8_t eid,
-	uint8_t *digest, size_t digest_len);
+	const uint8_t *digest, size_t digest_len);
 
 int device_manager_update_alias_key (struct device_manager *mgr, uint8_t eid, const uint8_t *key,
 	size_t key_len, int key_type);

@@ -901,7 +901,7 @@ int device_manager_clear_cert_chain_digest (struct device_manager *mgr, uint8_t 
  * @return 0 if digests match or an error code.
  */
 int device_manager_compare_cert_chain_digest (struct device_manager *mgr, uint8_t eid,
-	uint8_t *digest, size_t digest_len)
+	const uint8_t *digest, size_t digest_len)
 {
 	int device_num;
 	int status;

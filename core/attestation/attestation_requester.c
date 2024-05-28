@@ -175,9 +175,9 @@ static int attestation_requester_send_request_and_get_response (
 			platform_msleep (attestation->state->txn.sleep_duration_ms);
 			attestation->state->txn.sleep_duration_ms = 0;
 
-			request_len =
-				spdm_generate_respond_if_ready_request (attestation->state->spdm_msg_buffer,
-				ATTESTATION_REQUESTER_MAX_SPDM_REQUEST,	attestation->state->txn.requested_command,
+			request_len = spdm_generate_respond_if_ready_request (
+				attestation->state->spdm_msg_buffer, ATTESTATION_REQUESTER_MAX_SPDM_REQUEST,
+				attestation->state->txn.requested_command,
 				attestation->state->txn.respond_if_ready_token,
 				attestation->state->txn.spdm_minor_version);
 			if (ROT_IS_ERROR ((int) request_len)) {
@@ -276,64 +276,88 @@ static int attestation_requester_verify_pmr (const struct attestation_requester 
 }
 #endif
 
-
-
 #if defined (ATTESTATION_SUPPORT_SPDM) || defined (ATTESTATION_SUPPORT_CERBERUS_CHALLENGE)
 /**
- * Verify certificate chain received from device and if successful store alias key.
+ * Update the cached certificate chain digest for a device.
  *
- * @param attestation Attestation requester instance to utilize.
- * @param eid EID of device that sent certificate chain.
- * @param active_cfm Active CFM to utilize.
- * @param component_id The component ID of the device.
+ * @param attestation Attestation requester processing the received digest.
+ * @param device_eid EID of the device reporting the digest.
+ * @param digest Reported digest of the certificate chain.
+ * @param digest_length Length of the cert chain digest.
  *
- * @return 0 if completed successfully, or an error code
+ * @return 0 if the cert chain digest was updated successfully or an error code.
  */
-static int attestation_requester_verify_and_load_leaf_key (
-	const struct attestation_requester *attestation, uint8_t eid, struct cfm *active_cfm,
-	uint32_t component_id)
+static int attestation_requester_update_cert_chain_digest (
+	const struct attestation_requester *attestation, uint8_t device_eid, const uint8_t *digest,
+	size_t digest_length)
 {
-	uint8_t digest[HASH_MAX_HASH_LEN];
-	struct x509_ca_certs certs_chain;
-	struct x509_certificate cert;
-	struct cfm_root_ca_digests root_ca_digests;
-	const struct der_cert *root_ca = riot_key_manager_get_root_ca (attestation->riot);
-	uint8_t *leaf_key;
-	size_t leaf_key_len;
-	size_t cert_offset = 0;
-	size_t transcript_hash_len =
-		hash_get_hash_length (attestation->state->txn.transcript_hash_type);
-	size_t cert_len;
-	bool cfm_root_ca = false;
-	int leaf_key_type;
+	const struct device_manager_key *alias_key;
 	int status;
 
-	if (attestation->state->txn.protocol == ATTESTATION_PROTOCOL_DMTF_SPDM) {
-		cert_offset = sizeof (struct spdm_certificate_chain) + transcript_hash_len;
+	alias_key = device_manager_get_alias_key (attestation->device_mgr, device_eid);
+	if (alias_key == NULL) {
+		status = device_manager_update_cert_chain_digest (attestation->device_mgr, device_eid,
+			attestation->state->txn.slot_num, digest, digest_length);
+	}
+	else {
+		status = device_manager_compare_cert_chain_digest (attestation->device_mgr, device_eid,
+			digest, digest_length);
+		if ((status == DEVICE_MGR_DIGEST_MISMATCH) || (status == DEVICE_MGR_DIGEST_LEN_MISMATCH)) {
+			status = device_manager_clear_alias_key (attestation->device_mgr, device_eid);
+			if (status != 0) {
+				return status;
+			}
+
+			status = device_manager_update_cert_chain_digest (attestation->device_mgr, device_eid,
+				attestation->state->txn.slot_num, digest, digest_length);
+		}
 	}
 
-	status = asn1_get_der_item_len (&attestation->state->txn.cert_buffer[cert_offset],
-		attestation->state->txn.cert_buffer_len - cert_offset);
-	if (ROT_IS_ERROR (status)) {
-		goto release_cert_buffer;
-	}
+	return status;
+}
 
-	cert_len = (size_t) status;
+/**
+ * Verify that the root certificate is trusted.  If so, load it into the certificate store for cert
+ * chain authentication.
+ *
+ * @param attestation Attestation requester validating the root CA.
+ * @param eid EID of the device that provided the certificate.
+ * @param active_cfm Active CFM being used for attestation.
+ * @param component_id The component ID of the device being attested.
+ * @param root_ca Certificate data for the root CA to verify.
+ * @param root_ca_length Length of the root CA certificate data.
+ * @param header_data Additional header data that needs to be included in the certificate chain
+ * hash.  Set to null if there is no header data.
+ * @param header_length Length of the additional certificate chain header.
+ * @param certs_chain CA certificate storage that will be initialized and updated with the validated
+ * root CA.
+ *
+ * @return 0 if the root cert is trusted or an error code.
+ */
+static int attestation_requester_verify_and_load_root_cert (
+	const struct attestation_requester *attestation, uint8_t eid, struct cfm *active_cfm,
+	uint32_t component_id, const uint8_t *root_ca, size_t root_ca_length,
+	const uint8_t *header_data, size_t header_length, struct x509_ca_certs *certs_chain)
+{
+	uint8_t digest[HASH_MAX_HASH_LEN];
+	struct cfm_root_ca_digests root_ca_digests;
+	const struct der_cert *local_root_ca = riot_key_manager_get_root_ca (attestation->riot);
+	bool cfm_root_ca = false;
+	int status;
 
-	/*
-	 *	1) If CFM has an alternate allowed root CA, make sure root CA provided by device matches
-	 *	2) If CFM has no alternate root CA, and requester has no provisioned root CA, then just use
-	 *		device's root CA provided. The requester with no root CA will ultimately fail
-	 *		attestation but device's attestation can succeed, useful for testing.
-	 *	3) If CFM has no alternate root CA, but requester has a provisioned root CA, use the
-	 * 		requester's root CA then skip over root CA provided by device. */
+	/* 1) If CFM has an alternate allowed root CA, make sure root CA provided by device matches
+	 * 2) If CFM has no alternate root CA, and requester has no provisioned root CA, then just use
+	 *    device's root CA provided. The requester with no root CA will ultimately fail
+	 *    attestation but device's attestation can succeed, useful for testing.
+	 * 3) If CFM has no alternate root CA, but requester has a provisioned root CA, use the
+	 *    requester's root CA then skip over root CA provided by device. */
 	status = active_cfm->get_root_ca_digest (active_cfm, component_id, &root_ca_digests);
 	if (status == 0) {
 		status = hash_calculate (attestation->primary_hash, root_ca_digests.digests.hash_type,
-			&attestation->state->txn.cert_buffer[cert_offset], cert_len, digest, sizeof (digest));
+			root_ca, root_ca_length, digest, sizeof (digest));
 		if (ROT_IS_ERROR (status)) {
 			active_cfm->free_root_ca_digest (active_cfm, &root_ca_digests);
-			goto release_cert_buffer;
+			return status;
 		}
 
 		status = attestation_requester_verify_digest_in_allowable_list (attestation,
@@ -343,130 +367,220 @@ static int attestation_requester_verify_and_load_leaf_key (
 				DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS);
 
 			active_cfm->free_root_ca_digest (active_cfm, &root_ca_digests);
-			goto release_cert_buffer;
+			return status;
 		}
 
 		active_cfm->free_root_ca_digest (active_cfm, &root_ca_digests);
 		cfm_root_ca = true;
 	}
 	else if (status != CFM_ROOT_CA_NOT_FOUND) {
-		goto release_cert_buffer;
+		return status;
 	}
 
-	status = attestation->x509->init_ca_cert_store (attestation->x509, &certs_chain);
+	status = attestation->x509->init_ca_cert_store (attestation->x509, certs_chain);
 	if (status != 0) {
-		goto release_cert_buffer;
+		return status;
 	}
 
-	if (cfm_root_ca || (root_ca == NULL)) {
-		status = attestation->x509->add_root_ca (attestation->x509, &certs_chain,
-			&attestation->state->txn.cert_buffer[cert_offset],
-			attestation->state->txn.cert_buffer_len - cert_offset);
+	if (cfm_root_ca || (local_root_ca == NULL)) {
+		status = attestation->x509->add_root_ca (attestation->x509, certs_chain, root_ca,
+			root_ca_length);
+	}
+	else {
+		status = attestation->x509->add_root_ca (attestation->x509, certs_chain,
+			local_root_ca->cert, local_root_ca->length);
+	}
+
+	if (status != 0) {
+		goto release_cert_store;
+	}
+
+	/* Begin hashing the received certificate chain, starting with the certificate header and root
+	 * certificate. */
+	status = hash_start_new_hash (attestation->primary_hash,
+		attestation->state->txn.transcript_hash_type);
+	if (status != 0) {
+		goto release_cert_store;
+	}
+
+	if (header_data != NULL) {
+		status = attestation->primary_hash->update (attestation->primary_hash, header_data,
+			header_length);
+		if (status != 0) {
+			goto cancel_hash;
+		}
+	}
+
+	status = attestation->primary_hash->update (attestation->primary_hash, root_ca, root_ca_length);
+	if (status != 0) {
+		goto cancel_hash;
+	}
+
+	return 0;
+
+cancel_hash:
+	attestation->primary_hash->cancel (attestation->primary_hash);
+
+release_cert_store:
+	attestation->x509->release_ca_cert_store (attestation->x509, certs_chain);
+
+	return status;
+}
+
+/**
+ * Verify that a received certificate is trusted.  The trust anchor for this certificate must
+ * already be present in the certificate store.  If the certificate is valid and is a CA, the
+ * certificate store will be updated to make this certificate the new trust anchor for future certs.
+ *
+ * In error scenarios, the active hash for the current certificate chain will be cancelled and all
+ * allocated certificate components will be released.
+ *
+ * For CA certs, the provided cert store will be valid upon successful return and the certificate
+ * instance will always be released.
+ * For leaf certs, the provided certificate instance will contain the parsed cert upon successful
+ * return and the cert store will always be released.
+ *
+ * @param attestation Attestation requester validating the certificate.
+ * @param eid EID of the device that provided the certificate.
+ * @param cert_data Certificate data for the to verify.
+ * @param cert_length Length of the certificate data.
+ * @param is_leaf Flag to indicate if this is the last cert in the chain or if it's expected to be a
+ * CA certificate.
+ * @param cert Certificate container to use for parsing the received certificate.  This must not
+ * currently be in use for a different certificate.  This will only contain a certificate upon
+ * successfully verification of the leaf certificate.  In all other cases, this instance will be
+ * empty.
+ * @param certs_chain CA certificate storage that will be used to verify the received cert.  This
+ * will be updated with the new trust anchor for CA certificates.  If verifying the leaf cert, this
+ * instance will always be released upon return.
+ *
+ * @return 0 if the certificate was parsed and validated successfully or an error code.
+ */
+static int attestation_requester_verify_and_load_certificate (
+	const struct attestation_requester *attestation, uint8_t eid, const uint8_t *cert_data,
+	size_t cert_length, bool is_leaf, struct x509_certificate *cert,
+	struct x509_ca_certs *certs_chain)
+{
+	int status;
+
+	status = attestation->primary_hash->update (attestation->primary_hash, cert_data, cert_length);
+	if (status != 0) {
+		goto release_cert_store;
+	}
+
+	/* Authenticate the received certificate against the trusted CA already in the certificate
+	 * store. */
+	status = attestation->x509->load_certificate (attestation->x509, cert, cert_data, cert_length);
+	if (status != 0) {
+		goto release_cert_store;
+	}
+
+	status = attestation->x509->authenticate (attestation->x509, cert, certs_chain);
+	if (status != 0) {
+		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+			DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS);
+
+		goto release_cert;
+	}
+
+	if (!is_leaf) {
+		/* If this is not the last certificate in the chain, initialize a new certificate store to
+		 * use for authenticating the next cert. */
+		attestation->x509->release_certificate (attestation->x509, cert);
+		attestation->x509->release_ca_cert_store (attestation->x509, certs_chain);
+
+		status = attestation->x509->init_ca_cert_store (attestation->x509, certs_chain);
+		if (status != 0) {
+			goto cancel_hash;
+		}
+
+		status = attestation->x509->add_trusted_ca (attestation->x509, certs_chain, cert_data,
+			cert_length);
 		if (status != 0) {
 			goto release_cert_store;
 		}
 	}
 	else {
-		status = attestation->x509->add_root_ca (attestation->x509, &certs_chain, root_ca->cert,
-			root_ca->length);
-		if (status != 0) {
-			goto release_cert_store;
-		}
+		/* If this is the last cert, release the cert store since it won't be needed anymore. */
+		attestation->x509->release_ca_cert_store (attestation->x509, certs_chain);
 	}
 
-	cert_offset += cert_len;
-	status = asn1_get_der_item_len (&attestation->state->txn.cert_buffer[cert_offset],
-		attestation->state->txn.cert_buffer_len - cert_offset);
+	return 0;
+
+release_cert:
+	attestation->x509->release_certificate (attestation->x509, cert);
+
+release_cert_store:
+	attestation->x509->release_ca_cert_store (attestation->x509, certs_chain);
+
+cancel_hash:
+	attestation->primary_hash->cancel (attestation->primary_hash);
+
+	return status;
+}
+
+/**
+ * Parse the alias key from a leaf certificate and set the alias key for the device.  This will only
+ * happen if the certificate chain digest matches the expected digest.
+ *
+ * Upon returning from this call, in all cases, the certificate chain hash will be finished and the
+ * leaf certificate instance will be released.
+ *
+ * @param attestation The attestation requester processing a received alias certificate.
+ * @param eid EID of the device associated with the key.
+ * @param digest_length Length of the certificate chain digest.
+ * @param cert Certificate for the alias key.  This must have already been authenticated.  Upon
+ * returning from this call, this instance will always be released.
+ *
+ * @return 0 if the alias key was updated successfully or an error code.
+ */
+static int attestation_requester_update_alias_key (const struct attestation_requester *attestation,
+	uint8_t eid, size_t digest_length, struct x509_certificate *cert)
+{
+	uint8_t digest[HASH_MAX_HASH_LEN];
+	int leaf_key_type;
+	uint8_t *leaf_key;
+	size_t leaf_key_len;
+	int status;
+
+	status = attestation->primary_hash->finish (attestation->primary_hash, digest, sizeof (digest));
 	if (ROT_IS_ERROR (status)) {
-		goto release_cert_store;
-	}
+		attestation->primary_hash->cancel (attestation->primary_hash);
 
-	cert_len = (size_t) status;
-
-	while ((cert_offset < attestation->state->txn.cert_buffer_len) &&
-		((attestation->state->txn.cert_buffer_len - cert_offset) > cert_len)) {
-		status = attestation->x509->add_intermediate_ca (attestation->x509, &certs_chain,
-			&attestation->state->txn.cert_buffer[cert_offset],
-			attestation->state->txn.cert_buffer_len - cert_offset);
-		if (status != 0) {
-			goto release_cert_store;
-		}
-
-		cert_offset += cert_len;
-		status = asn1_get_der_item_len (&attestation->state->txn.cert_buffer[cert_offset],
-			attestation->state->txn.cert_buffer_len - cert_offset);
-		if (ROT_IS_ERROR (status)) {
-			goto release_cert_store;
-		}
-
-		cert_len = (size_t) status;
-	}
-
-	status = attestation->x509->load_certificate (attestation->x509, &cert,
-		&attestation->state->txn.cert_buffer[cert_offset],
-		attestation->state->txn.cert_buffer_len - cert_offset);
-	if (status != 0) {
-		goto release_cert_store;
-	}
-
-	status = hash_calculate (attestation->primary_hash,
-		attestation->state->txn.transcript_hash_type, attestation->state->txn.cert_buffer,
-		attestation->state->txn.cert_buffer_len, digest, sizeof (digest));
-	if (ROT_IS_ERROR (status)) {
 		goto release_leaf_cert;
 	}
 
-	platform_free (attestation->state->txn.cert_buffer);
-	attestation->state->txn.cert_buffer = NULL;
-	attestation->state->txn.cert_buffer_len = 0;
-
-	status = attestation->x509->authenticate (attestation->x509, &cert, &certs_chain);
+	status = device_manager_compare_cert_chain_digest (attestation->device_mgr, eid, digest,
+		digest_length);
 	if (status != 0) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_CERT_CHAIN_COMPUTED_DIGEST_MISMATCH,
+			(eid << 8) | attestation->state->txn.slot_num, status);
+
 		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
 			DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS);
 
 		goto release_leaf_cert;
 	}
 
-	status = device_manager_compare_cert_chain_digest (attestation->device_mgr, eid, digest,
-		transcript_hash_len);
-	if (status != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_CERT_CHAIN_COMPUTED_DIGEST_MISMATCH,
-			(eid << 8) | attestation->state->txn.slot_num, status);
-
-		if (status != 0) {
-			device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
-				DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS);
-		}
-
-		goto release_leaf_cert;
-	}
-
-	leaf_key_type = attestation->x509->get_public_key_type (attestation->x509, &cert);
+	leaf_key_type = attestation->x509->get_public_key_type (attestation->x509, cert);
 	if (ROT_IS_ERROR (leaf_key_type)) {
 		status = leaf_key_type;
 		goto release_leaf_cert;
 	}
 
-	status = attestation->x509->get_public_key (attestation->x509, &cert, &leaf_key, &leaf_key_len);
+	status = attestation->x509->get_public_key (attestation->x509, cert, &leaf_key, &leaf_key_len);
 	if (status != 0) {
 		goto release_leaf_cert;
 	}
 
 	status = device_manager_update_alias_key (attestation->device_mgr, eid, leaf_key, leaf_key_len,
 		leaf_key_type);
+
 	platform_free (leaf_key);
 
 release_leaf_cert:
-	attestation->x509->release_certificate (attestation->x509, &cert);
-
-release_cert_store:
-	attestation->x509->release_ca_cert_store (attestation->x509, &certs_chain);
-
-release_cert_buffer:
-	platform_free (attestation->state->txn.cert_buffer);
-	attestation->state->txn.cert_buffer_len = 0;
+	attestation->x509->release_certificate (attestation->x509, cert);
 
 	return status;
 }
@@ -577,8 +691,8 @@ static int attestation_requester_verify_signature (const struct attestation_requ
 			signature_len, digest, transcript_hash_len, alias_key);
 
 		/* The endianess of the signature is not clearly declared in the SPDM 1.0 and 1.1
-		 * specification. It's not possible to programatically identify the endianess used.
-		 * To cover the case where the siguature fails due to the endianess,
+		 * specification. It's not possible to programmatically identify the endianess used.
+		 * To cover the case where the signature fails due to the endianess,
 		 * this code swaps the signature endianess, and retries the verification. */
 		if ((status == ECC_ENGINE_BAD_SIGNATURE) &&
 			(attestation->state->txn.spdm_minor_version < ATTESTATION_PROTOCOL_DMTF_SPDM_1_2) &&
@@ -819,10 +933,8 @@ static int attestation_requester_negotiate_algorithms_rsp_post_processing (
 		}
 	}
 	else {
-		/*
-		 * DSP0274 SPDM spec indicates base_asym_sel and base_hash_sel shall be 0 if they are not supported
-		 * by the device.
-		 */
+		/* DSP0274 SPDM spec indicates base_asym_sel and base_hash_sel shall be 0 if they are not
+		 * supported by the device. */
 		if (rsp->base_asym_sel != 0) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 				ATTESTATION_LOGGING_BASE_ASYM_KEY_SIG_ALG_UNSUPPORTED, device_eid,
@@ -895,7 +1007,6 @@ static int attestation_requester_get_digests_rsp_post_processing (
 {
 	struct spdm_get_digests_response *rsp =
 		(struct spdm_get_digests_response*) attestation->state->txn.msg_buffer;
-	const struct device_manager_key *alias_key;
 	size_t transcript_hash_len;
 	size_t rsp_len;
 	uint8_t *digest;
@@ -918,43 +1029,17 @@ static int attestation_requester_get_digests_rsp_post_processing (
 			ATTESTATION_LOGGING_SLOT_NUMBER_EMPTY, device_eid,
 			(attestation->state->txn.slot_num << 8) | rsp->slot_mask);
 
-		return ATTESTATION_REQUESTED_SLOT_NUM_EMPTY;
+		status = ATTESTATION_REQUESTED_SLOT_NUM_EMPTY;
 	}
 	else {
 		digest = spdm_get_digests_resp_digest (rsp, attestation->state->txn.slot_num,
 			transcript_hash_len);
 
-		alias_key = device_manager_get_alias_key (attestation->device_mgr, device_eid);
-		if (alias_key == NULL) {
-			status = device_manager_update_cert_chain_digest (attestation->device_mgr, device_eid,
-				attestation->state->txn.slot_num, digest, transcript_hash_len);
-			if (status != 0) {
-				return status;
-			}
-		}
-		else {
-			status = device_manager_compare_cert_chain_digest (attestation->device_mgr, device_eid,
-				digest, transcript_hash_len);
-			if ((status == DEVICE_MGR_DIGEST_MISMATCH) ||
-				(status == DEVICE_MGR_DIGEST_LEN_MISMATCH)) {
-				status = device_manager_clear_alias_key (attestation->device_mgr, device_eid);
-				if (status != 0) {
-					return status;
-				}
-
-				status = device_manager_update_cert_chain_digest (attestation->device_mgr,
-					device_eid, attestation->state->txn.slot_num, digest, transcript_hash_len);
-				if (status != 0) {
-					return status;
-				}
-			}
-			else {
-				return status;
-			}
-		}
+		status = attestation_requester_update_cert_chain_digest (attestation, device_eid, digest,
+			transcript_hash_len);
 	}
 
-	return 0;
+	return status;
 }
 
 /**
@@ -977,34 +1062,6 @@ static int attestation_requester_get_certificate_rsp_post_processing (
 			(attestation->state->txn.slot_num << 8) | rsp->slot_num);
 
 		return ATTESTATION_UNEXPECTED_SLOT_NUM;
-	}
-	else {
-		/* If first response in a Get Certificate transaction, allocate buffer to hold entire
-		 * certificate chain
-		 *
-		 * TODO: Optimize cert chain retrieval, get one cert at a time. */
-		if (attestation->state->txn.cert_buffer_len == 0) {
-			attestation->state->txn.cert_total_len = rsp->portion_len + rsp->remainder_len;
-			attestation->state->txn.cert_buffer =
-				platform_malloc (attestation->state->txn.cert_total_len);
-			if (attestation->state->txn.cert_buffer == NULL) {
-				return ATTESTATION_NO_MEMORY;
-			}
-		}
-
-		if ((rsp->portion_len + attestation->state->txn.cert_buffer_len) >
-			attestation->state->txn.cert_total_len) {
-			if (attestation->state->txn.cert_buffer != NULL) {
-				platform_free (attestation->state->txn.cert_buffer);
-				attestation->state->txn.cert_buffer = NULL;
-			}
-
-			return ATTESTATION_NO_MEMORY;
-		}
-
-		memcpy (&attestation->state->txn.cert_buffer[attestation->state->txn.cert_buffer_len],
-			spdm_get_certificate_resp_cert_chain (rsp), rsp->portion_len);
-		attestation->state->txn.cert_buffer_len += rsp->portion_len;
 	}
 
 	return 0;
@@ -1259,7 +1316,7 @@ static int attestation_requester_send_spdm_request_and_get_response (
  * Copy received response to internal buffer.
  *
  * @param observer The observer instance being notified.
- * @param reponse The response container received.
+ * @param response The response container received.
  * @param command Incoming command.
  */
 static void attestation_requester_copy_spdm_response (const struct spdm_protocol_observer *observer,
@@ -1272,8 +1329,8 @@ static void attestation_requester_copy_spdm_response (const struct spdm_protocol
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
 			((attestation->state->txn.protocol << 24) |
-						(attestation->state->txn.requested_command << 16) |
-						(ATTESTATION_PROTOCOL_DMTF_SPDM << 8) |	command));
+				(attestation->state->txn.requested_command << 16) |
+				(ATTESTATION_PROTOCOL_DMTF_SPDM << 8) |	command));
 
 		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
 
@@ -1483,8 +1540,8 @@ void attestation_requester_on_cerberus_get_certificate_response (
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
 			((attestation->state->txn.protocol << 24) |
-						(attestation->state->txn.requested_command << 16) |
-						(ATTESTATION_PROTOCOL_CERBERUS << 8) | CERBERUS_PROTOCOL_GET_CERTIFICATE));
+				(attestation->state->txn.requested_command << 16) |
+				(ATTESTATION_PROTOCOL_CERBERUS << 8) | CERBERUS_PROTOCOL_GET_CERTIFICATE));
 		goto fail;
 	}
 
@@ -1494,31 +1551,21 @@ void attestation_requester_on_cerberus_get_certificate_response (
 			(attestation->state->txn.slot_num << 8) | rsp->slot_num);
 		goto fail;
 	}
-	else {
-		if (attestation->state->txn.cert_buffer_len == 0) {
-			attestation->state->txn.cert_buffer =
-				platform_malloc (CERBERUS_PROTOCOL_MAX_CERT_CHAIN_LEN);
-			if (attestation->state->txn.cert_buffer == NULL) {
-				goto fail;
-			}
-		}
 
-		cert_portion_len =
-			cerberus_protocol_get_certificate_response_cert_length (response->payload_length);
+	cert_portion_len =
+		cerberus_protocol_get_certificate_response_cert_length (response->payload_length);
 
-		if ((attestation->state->txn.cert_buffer_len + cert_portion_len) >
-			CERBERUS_PROTOCOL_MAX_CERT_CHAIN_LEN) {
-			goto fail;
-		}
-
-		memcpy (&attestation->state->txn.cert_buffer[attestation->state->txn.cert_buffer_len],
-			cerberus_protocol_certificate (rsp), cert_portion_len);
-		attestation->state->txn.cert_buffer_len += cert_portion_len;
-
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
-
-		return;
+	/* TODO:  Is there a better error that could be reported here? */
+	if (cert_portion_len > sizeof (attestation->state->txn.msg_buffer)) {
+		goto fail;
 	}
+
+	memcpy (attestation->state->txn.msg_buffer, cerberus_protocol_certificate (rsp),
+		cert_portion_len);
+	attestation->state->txn.msg_buffer_len = cert_portion_len;
+	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
+
+	return;
 
 fail:
 	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
@@ -1831,6 +1878,64 @@ void attestation_requester_deinit (const struct attestation_requester *attestati
 
 #ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
 /**
+ * Retrieve and verify the certificate chain from the device using Cerberus challenge protocol.  If
+ * the certs are valid, store the alias key of the device.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param device_addr Physical address of the device to query for certificates.
+ * @param eid EID of the device to query for certificates.
+ * @param active_cfm Active CFM to utilize.
+ * @param component_id The component ID of the device.
+ *
+ * @return 0 if completed successfully, or an error code
+ */
+static int attestation_requester_verify_and_load_leaf_key_cerberus (
+	const struct attestation_requester *attestation, uint8_t device_addr, uint8_t eid,
+	struct cfm *active_cfm, uint32_t component_id)
+{
+	struct x509_ca_certs certs_chain;
+	struct x509_certificate cert;
+	size_t transcript_hash_len =
+		hash_get_hash_length (attestation->state->txn.transcript_hash_type);
+	size_t cert_idx;
+	int status;
+
+	for (cert_idx = 0; cert_idx < attestation->state->txn.num_certs; ++cert_idx) {
+		status = cerberus_protocol_generate_get_certificate_request (
+			attestation->state->txn.slot_num, cert_idx, attestation->state->txn.msg_buffer,
+			sizeof (attestation->state->txn.msg_buffer), 0, 0);
+		if (ROT_IS_ERROR (status)) {
+			return status;
+		}
+
+		status = attestation_requester_send_request_and_get_response (attestation, status,
+			device_addr, eid, false, false, CERBERUS_PROTOCOL_GET_CERTIFICATE);
+		if (status != 0) {
+			return status;
+		}
+
+		if (cert_idx == 0) {
+			/* Handle the Root CA. */
+			status = attestation_requester_verify_and_load_root_cert (attestation, eid, active_cfm,
+				component_id, attestation->state->txn.msg_buffer,
+				attestation->state->txn.msg_buffer_len, NULL, 0, &certs_chain);
+		}
+		else {
+			/* Handle any other cert. */
+			status = attestation_requester_verify_and_load_certificate (attestation, eid,
+				attestation->state->txn.msg_buffer, attestation->state->txn.msg_buffer_len,
+				((cert_idx + 1) == attestation->state->txn.num_certs), &cert, &certs_chain);
+		}
+
+		if (status != 0) {
+			return status;
+		}
+	}
+
+	return attestation_requester_update_alias_key (attestation, eid, transcript_hash_len, &cert);
+}
+
+/**
  * Perform an attestation cycle on a provided device using Cerberus Protocol.
  *
  * @param attestation Attestation requester instance to utilize.
@@ -1851,7 +1956,6 @@ static int attestation_requester_attest_device_cerberus_protocol (
 		(struct cerberus_protocol_challenge_response*) attestation->state->txn.msg_buffer;
 	const struct device_manager_key *alias_key;
 	uint8_t digest[SHA256_HASH_LENGTH];
-	uint8_t i_cert;
 	int challenge_rq_len;
 	int status;
 
@@ -1871,10 +1975,9 @@ static int attestation_requester_attest_device_cerberus_protocol (
 		return status;
 	}
 
-	status =
-		cerberus_protocol_generate_get_certificate_digest_request (attestation->state->txn.slot_num,
-		ATTESTATION_ECDHE_KEY_EXCHANGE,	attestation->state->txn.msg_buffer,
-		sizeof (attestation->state->txn.msg_buffer));
+	status = cerberus_protocol_generate_get_certificate_digest_request (
+		attestation->state->txn.slot_num, ATTESTATION_ECDHE_KEY_EXCHANGE,
+		attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer));
 	if (ROT_IS_ERROR (status)) {
 		return status;
 	}
@@ -1892,62 +1995,19 @@ static int attestation_requester_attest_device_cerberus_protocol (
 		return status;
 	}
 
+	status = attestation_requester_update_cert_chain_digest (attestation, eid, digest,
+		SHA256_HASH_LENGTH);
+	if (status != 0) {
+		return status;
+	}
+
+	attestation->state->txn.num_certs = attestation->state->txn.msg_buffer_len / SHA256_HASH_LENGTH;
 	alias_key = device_manager_get_alias_key (attestation->device_mgr, eid);
-	if (alias_key == NULL) {
-		status = device_manager_update_cert_chain_digest (attestation->device_mgr, eid,
-			attestation->state->txn.slot_num, digest, SHA256_HASH_LENGTH);
-		if (status != 0) {
-			return status;
-		}
-
-		attestation->state->txn.num_certs =
-			attestation->state->txn.msg_buffer_len / SHA256_HASH_LENGTH;
-	}
-	else {
-		status = device_manager_compare_cert_chain_digest (attestation->device_mgr, eid, digest,
-			SHA256_HASH_LENGTH);
-		if ((status == DEVICE_MGR_DIGEST_MISMATCH) || (status == DEVICE_MGR_DIGEST_LEN_MISMATCH)) {
-			status = device_manager_clear_alias_key (attestation->device_mgr, eid);
-			if (status != 0) {
-				return status;
-			}
-
-			status = device_manager_update_cert_chain_digest (attestation->device_mgr, eid,
-				attestation->state->txn.slot_num, digest, SHA256_HASH_LENGTH);
-			if (status != 0) {
-				return status;
-			}
-
-			attestation->state->txn.num_certs =
-				attestation->state->txn.msg_buffer_len / SHA256_HASH_LENGTH;
-		}
-		else {
-			return status;
-		}
-	}
 
 	// If certificate chain digest retrieved does not match cached certificate, refresh chain
 	if (alias_key == NULL) {
-		attestation->state->txn.cert_buffer_len = 0;
-
-		for (i_cert = 0; i_cert < attestation->state->txn.num_certs; ++i_cert) {
-			status =
-				cerberus_protocol_generate_get_certificate_request (
-				attestation->state->txn.slot_num, i_cert, attestation->state->txn.msg_buffer,
-				sizeof (attestation->state->txn.msg_buffer), 0, 0);
-			if (ROT_IS_ERROR (status)) {
-				return status;
-			}
-
-			status = attestation_requester_send_request_and_get_response (attestation, status,
-				device_addr, eid, false, false, CERBERUS_PROTOCOL_GET_CERTIFICATE);
-			if (status != 0) {
-				goto clear_cert_chain;
-			}
-		}
-
-		status = attestation_requester_verify_and_load_leaf_key (attestation, eid, active_cfm,
-			component_id);
+		status = attestation_requester_verify_and_load_leaf_key_cerberus (attestation, device_addr,
+			eid, active_cfm, component_id);
 		if (status != 0) {
 			goto clear_cert_chain;
 		}
@@ -2800,6 +2860,217 @@ static int attestation_requester_spdm_process_challenge_response (
 }
 
 /**
+ * Retrieve a specified portion of the complete certificate chain data.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param eid EID of device that sent certificate chain.
+ * @param device_addr Slave address of device.
+ * @param offset Offset within the certificate chain of the requested data.
+ * @param length Total length of data to retrieve.
+ * @param portion_data Output for the received certificate chain data.
+ *
+ * @return 0 if completed successfully, or an error code
+ */
+static int attestation_requester_retrieve_spdm_certificate_chain_portion (
+	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
+	uint32_t offset, size_t length, uint8_t **portion_data)
+{
+	struct spdm_get_certificate_response *rsp =
+		(struct spdm_get_certificate_response*) attestation->state->txn.msg_buffer;
+	uint8_t *cert_buffer = NULL;
+	size_t rx_data = 0;
+	int rq_len;
+	int status;
+
+	/* Assume that no single certificate will be larger than the the total size of the message
+	 * buffer. */
+	if (length > sizeof (attestation->state->txn.msg_buffer)) {
+		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+			DEVICE_MANAGER_ATTESTATION_INVALID_CERTS);
+
+		return ATTESTATION_CERT_TOO_LARGE;
+	}
+
+	while (length > 0) {
+		rq_len = spdm_generate_get_certificate_request (attestation->state->spdm_msg_buffer,
+			ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.slot_num,
+			offset + rx_data, length, attestation->state->txn.spdm_minor_version);
+		if (ROT_IS_ERROR (rq_len)) {
+			status = rq_len;
+			goto exit;
+		}
+
+		status = attestation_requester_send_spdm_request_and_get_response (attestation,
+			rq_len,	device_addr, eid, true, SPDM_REQUEST_GET_CERTIFICATE);
+		if (status != 0) {
+			goto exit;
+		}
+
+		if (cert_buffer == NULL) {
+			/* If all the requested data did not get returned in a single request, allocate a memory
+			 * buffer to accumulate the data. */
+			if (rsp->portion_len < length) {
+				cert_buffer = platform_malloc (length);
+				if (cert_buffer == NULL) {
+					return ATTESTATION_NO_MEMORY;
+				}
+			}
+		}
+
+		/* Handle the response data, copying as necessary.  Extra data beyond what was requested
+		 * will be discarded. */
+		if (cert_buffer != NULL) {
+			rx_data += buffer_copy (spdm_get_certificate_resp_cert_chain (rsp), rsp->portion_len,
+				NULL, &length, &cert_buffer[rx_data]);
+		}
+		else {
+			/* All the requested data is in the message buffer. */
+			*portion_data = spdm_get_certificate_resp_cert_chain (rsp);
+			length = 0;
+		}
+	}
+
+	if (cert_buffer != NULL) {
+		/* It is guaranteed that the message buffer is large enough for the accumulated data based
+		 * on the length check made before requesting the data. */
+		memcpy (attestation->state->txn.msg_buffer, cert_buffer, rx_data);
+		*portion_data = attestation->state->txn.msg_buffer;
+	}
+
+exit:
+	if (cert_buffer != NULL) {
+		platform_free (cert_buffer);
+	}
+
+	return status;
+}
+
+/**
+ * Retrieve a single certificate from an SPDM certificate chain.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param dest_addr SMBus address of destination device.
+ * @param dest_eid MCTP EID of destination device.
+ * @param offset Offset within the certificate chain for the requested certificate.
+ * @param cert_data Output for the retrieved certificate data.
+ * @param cert_len Output for the total length of the certificate that it retrieved from response.
+ *
+ * @return 0 if completed successfully, or an error code
+ */
+static int attestation_requester_retrieve_individual_spdm_certificate (
+	const struct attestation_requester *attestation, uint8_t dest_addr, uint8_t dest_eid,
+	uint32_t offset, uint8_t **cert_data, size_t *cert_len)
+{
+	uint8_t *portion_data;
+	size_t portion_size;
+	int status;
+
+	/* First determine the size of the next certificate at the specified offset by retrieving just
+	 * the ASN.1 header of the X.509 certificate. */
+	portion_size = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+
+	status = attestation_requester_retrieve_spdm_certificate_chain_portion (attestation, dest_eid,
+		dest_addr, offset, portion_size, &portion_data);
+	if (status != 0) {
+		return status;
+	}
+
+	status = asn1_get_der_item_len (portion_data, portion_size);
+	if (ROT_IS_ERROR (status)) {
+		return status;
+	}
+
+	/* Then issue a request to retrieve the entire certificate. */
+	portion_size = status;
+
+	status = attestation_requester_retrieve_spdm_certificate_chain_portion (attestation, dest_eid,
+		dest_addr, offset, portion_size, &portion_data);
+	if (status != 0) {
+		return status;
+	}
+
+	*cert_data = portion_data;
+	*cert_len = portion_size;
+
+	return 0;
+}
+
+/**
+ * Retrieve and verify the certificate chain from the device using SPDM protocol.  If the certs are
+ * valid, store the alias key of the device.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param eid EID of device that sent certificate chain.
+ * @param active_cfm Active CFM to utilize.
+ * @param component_id The component ID of the device.
+ *
+ * @return 0 if completed successfully, or an error code
+ */
+static int attestation_requester_verify_and_load_leaf_key_spdm (
+	const struct attestation_requester *attestation, uint8_t dest_addr, uint8_t eid,
+	struct cfm *active_cfm, uint32_t component_id)
+{
+	struct x509_ca_certs certs_chain;
+	struct x509_certificate cert;
+	uint8_t cert_chain_header[sizeof (struct spdm_certificate_chain) + HASH_MAX_HASH_LEN];
+	struct spdm_certificate_chain *spdm_cert_chain;
+	size_t transcript_hash_len =
+		hash_get_hash_length (attestation->state->txn.transcript_hash_type);
+	size_t cert_offset = 0;
+	uint8_t *cert_data;
+	size_t cert_len;
+	int status;
+
+	/* Determine the length of the SPDM certificate header and request just the header data. */
+	cert_len = sizeof (struct spdm_certificate_chain) + transcript_hash_len;
+
+	status = attestation_requester_retrieve_spdm_certificate_chain_portion (attestation, eid,
+		dest_addr, cert_offset, cert_len, &cert_data);
+	if (status != 0) {
+		return status;
+	}
+
+	memcpy (cert_chain_header, cert_data, cert_len);
+	spdm_cert_chain = (struct spdm_certificate_chain*) cert_chain_header;
+
+	/* Get root CA certificate. */
+	cert_offset = cert_len;
+
+	status = attestation_requester_retrieve_individual_spdm_certificate (attestation,
+		dest_addr, eid, cert_offset, &cert_data, &cert_len);
+	if (status != 0) {
+		return status;
+	}
+
+	status = attestation_requester_verify_and_load_root_cert (attestation, eid, active_cfm,
+		component_id, cert_data, cert_len, cert_chain_header, cert_offset, &certs_chain);
+	if (status != 0) {
+		return status;
+	}
+
+	cert_offset += cert_len;
+
+	while (cert_offset < spdm_cert_chain->length) {
+		/* Retrieve, hash, and validate each certificate in the chain. */
+		status = attestation_requester_retrieve_individual_spdm_certificate (attestation,
+			dest_addr, eid, cert_offset, &cert_data, &cert_len);
+		if (status != 0) {
+			return status;
+		}
+
+		cert_offset += cert_len;
+
+		status = attestation_requester_verify_and_load_certificate (attestation, eid, cert_data,
+			cert_len, (cert_offset >= spdm_cert_chain->length), &cert, &certs_chain);
+		if (status != 0) {
+			return status;
+		}
+	}
+
+	return attestation_requester_update_alias_key (attestation, eid, transcript_hash_len, &cert);
+}
+
+/**
  * Perform an attestation cycle on a provided device using SPDM.
  *
  * @param attestation Attestation requester instance to utilize.
@@ -2856,32 +3127,8 @@ static int attestation_requester_attest_device_spdm (
 		// If certificate chain digest retrieved does not match cached certificate, refresh chain
 		alias_key = device_manager_get_alias_key (attestation->device_mgr, eid);
 		if (alias_key == NULL) {
-			attestation->state->txn.cert_buffer_len = 0;
-			attestation->state->txn.cert_total_len = SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER;
-
-			while ((attestation->state->txn.cert_total_len -
-				attestation->state->txn.cert_buffer_len) > 0) {
-				rq_len = spdm_generate_get_certificate_request (attestation->state->spdm_msg_buffer,
-					ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.slot_num,
-					attestation->state->txn.cert_buffer_len,
-					attestation->state->txn.cert_total_len -
-					attestation->state->txn.cert_buffer_len,
-					attestation->state->txn.spdm_minor_version);
-				if (ROT_IS_ERROR (rq_len)) {
-					status = rq_len;
-					goto clear_cert_chain;
-				}
-
-				status = attestation_requester_send_spdm_request_and_get_response (attestation,
-					rq_len,	device_addr, eid, true, SPDM_REQUEST_GET_CERTIFICATE);
-				if (status != 0) {
-					platform_free (attestation->state->txn.cert_buffer);
-					goto clear_cert_chain;
-				}
-			}
-
-			status = attestation_requester_verify_and_load_leaf_key (attestation, eid, active_cfm,
-				component_id);
+			status = attestation_requester_verify_and_load_leaf_key_spdm (attestation, device_addr,
+				eid, active_cfm, component_id);
 			if (status != 0) {
 				goto clear_cert_chain;
 			}
