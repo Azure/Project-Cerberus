@@ -43,11 +43,6 @@ int spdm_get_command_id (struct cmd_interface_msg *message, uint8_t *command_id)
 		return CMD_HANDLER_SPDM_PAYLOAD_TOO_SHORT;
 	}
 
-	/* [TODO] Remove this check from here for compliance with the SPDM device validator. */
-	if (header->spdm_major_version != SPDM_MAJOR_VERSION) {
-		return CMD_HANDLER_SPDM_NOT_INTEROPERABLE;
-	}
-
 	*command_id = header->req_rsp_code;
 
 	return 0;
@@ -133,41 +128,34 @@ static void spdm_set_connection_state (struct spdm_state *state,
 }
 
 /**
- * Handle the erroneous response state and create a corresponding error message.
+ * Handle the erroneous response state and return the corresponding SPDM error code.
  *
  * @param state SPDM state.
- * @param request SPDM request.
- * @param req_code Request code.
+ * @param spdm_error Error code.
  */
-static void spdm_handle_response_state (struct spdm_state *state, struct cmd_interface_msg *request,
-	uint8_t req_code)
+static void spdm_handle_response_state (struct spdm_state *state, int *spdm_error)
 {
 	switch (state->response_state) {
 		case SPDM_RESPONSE_STATE_BUSY:
-			spdm_generate_error_response (request, state->connection_info.version.minor_version,
-				SPDM_ERROR_BUSY, 0x00, NULL, 0, req_code, 0);
+			*spdm_error = SPDM_ERROR_BUSY;
 			break;
 
 		case SPDM_RESPONSE_STATE_NEED_RESYNC:
-			spdm_generate_error_response (request, state->connection_info.version.minor_version,
-				SPDM_ERROR_REQUEST_RESYNCH, 0x00, NULL, 0, req_code, 0);
+			*spdm_error = SPDM_ERROR_REQUEST_RESYNCH;
 
 			/* Reset connection state. */
 			spdm_set_connection_state (state, SPDM_CONNECTION_STATE_NOT_STARTED);
 			break;
 
 		case SPDM_RESPONSE_STATE_PROCESSING_ENCAP:
-			spdm_generate_error_response (request, state->connection_info.version.minor_version,
-				SPDM_ERROR_REQUEST_IN_FLIGHT, 0x00, NULL, 0, req_code, 0);
+			*spdm_error = SPDM_ERROR_REQUEST_IN_FLIGHT;
 			break;
 
 		case SPDM_RESPONSE_STATE_NOT_READY:
 			/* [TODO] Implement this case in later messages. */
-			break;
 
 		default:
-			spdm_generate_error_response (request, state->connection_info.version.minor_version,
-				SPDM_ERROR_UNSPECIFIED, 0x00, NULL, 0, req_code, 0);
+			*spdm_error = SPDM_ERROR_UNSPECIFIED;
 			break;
 	}
 }
@@ -1528,11 +1516,13 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct cmd_interface_msg *request)
 {
 	int status;
+	int spdm_error;
 	struct spdm_get_version_request *rq;
 	struct spdm_get_version_response *rsp;
 	const struct spdm_transcript_manager *transcript_manager;
 	struct spdm_state *state;
 	struct spdm_secure_session_manager *session_manager;
+	uint16_t minor_ver_in_error_msg;
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
 		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
@@ -1542,12 +1532,11 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 	state = spdm_responder->state;
 	transcript_manager = spdm_responder->transcript_manager;
 	session_manager = spdm_responder->session_manager;
+	minor_ver_in_error_msg = state->connection_info.version.minor_version;
 
 	if (request->payload_length < sizeof (struct spdm_get_version_request)) {
-		/* [TODO] Look into the possiblity of having a common place to encode the error msg. */
-		spdm_generate_error_response (request, state->connection_info.version.minor_version,
-			SPDM_ERROR_INVALID_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_VERSION,
-			CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST);
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
 		goto exit;
 	}
 
@@ -1556,8 +1545,9 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 	 * must be 1.0, regardless of what the negotiated version is. */
 	if (SPDM_MAKE_VERSION (rq->header.spdm_major_version, rq->header.spdm_minor_version) !=
 		SPDM_VERSION_1_0) {
-		spdm_generate_error_response (request, 0, SPDM_ERROR_VERSION_MISMATCH, 0x00, NULL, 0,
-			SPDM_REQUEST_GET_VERSION, CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH);
+		minor_ver_in_error_msg = 0;
+		status = CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH;
+		spdm_error = SPDM_ERROR_VERSION_MISMATCH;
 		goto exit;
 	}
 
@@ -1568,7 +1558,8 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 	}
 
 	if (state->response_state != SPDM_RESPONSE_STATE_NORMAL) {
-		spdm_handle_response_state (state, request, SPDM_REQUEST_GET_VERSION);
+		spdm_handle_response_state (state, &spdm_error);
+		status = CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR;
 		goto exit;
 	}
 
@@ -1582,8 +1573,7 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 		(const uint8_t*) rq, sizeof (struct spdm_get_version_request), false,
 		SPDM_MAX_SESSION_COUNT);
 	if (status != 0) {
-		spdm_generate_error_response (request, state->connection_info.version.minor_version,
-			SPDM_ERROR_UNSPECIFIED, 0x00, NULL, 0, SPDM_REQUEST_GET_VERSION, status);
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
 	}
 
@@ -1613,8 +1603,7 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_VCA,
 		(const uint8_t*) rsp, request->payload_length, false, SPDM_MAX_SESSION_COUNT);
 	if (status != 0) {
-		spdm_generate_error_response (request, state->connection_info.version.minor_version,
-			SPDM_ERROR_UNSPECIFIED, 0x00, NULL, 0, SPDM_REQUEST_GET_VERSION, status);
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
 	}
 
@@ -1622,6 +1611,10 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 	spdm_set_connection_state (state, SPDM_CONNECTION_STATE_AFTER_VERSION);
 
 exit:
+	if (status != 0) {
+		spdm_generate_error_response (request, minor_ver_in_error_msg, spdm_error, 0x00, NULL, 0,
+		SPDM_REQUEST_GET_VERSION, status);
+	}
 
 	return 0;
 }
@@ -1690,14 +1683,16 @@ int spdm_process_get_version_response (struct cmd_interface_msg *response)
 int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct cmd_interface_msg *request)
 {
+	int status;
+	int spdm_error;
 	struct spdm_protocol_header *header;
 	struct spdm_get_capabilities *req_resp;
-	int status;
 	uint8_t spdm_version;
 	size_t req_resp_size;
 	const struct spdm_transcript_manager *transcript_manager;
 	struct spdm_state *state;
 	const struct spdm_device_capability *local_capabilities;
+	uint16_t minor_ver_in_error_msg;
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
 		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
@@ -1706,17 +1701,17 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 	transcript_manager = spdm_responder->transcript_manager;
 	state = spdm_responder->state;
 	local_capabilities = spdm_responder->local_capabilities;
+	minor_ver_in_error_msg = state->connection_info.version.minor_version;
 
 	/* Verify the state. */
 	if (state->response_state != SPDM_RESPONSE_STATE_NORMAL) {
-		spdm_handle_response_state (state, request, SPDM_REQUEST_GET_CAPABILITIES);
+		spdm_handle_response_state (state, &spdm_error);
+		status = CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR;
 		goto exit;
 	}
 	if (state->connection_info.connection_state != SPDM_CONNECTION_STATE_AFTER_VERSION) {
-		/* [TODO] Consolidate error reporting. */
-		spdm_generate_error_response (request, state->connection_info.version.minor_version,
-			SPDM_ERROR_UNEXPECTED_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES,
-			CMD_HANDLER_SPDM_RESPONDER_UNEXPECTED_REQUEST);
+		status = CMD_HANDLER_SPDM_RESPONDER_UNEXPECTED_REQUEST;
+		spdm_error = SPDM_ERROR_UNEXPECTED_REQUEST;
 		goto exit;
 	}
 
@@ -1725,8 +1720,9 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 	spdm_version = SPDM_MAKE_VERSION (header->spdm_major_version, header->spdm_minor_version);
 	if (spdm_check_request_version_compatibility (state, spdm_responder->version_num,
 		spdm_responder->version_num_count, spdm_version) == false) {
-		spdm_generate_error_response (request, 0, SPDM_ERROR_VERSION_MISMATCH, 0x00, NULL, 0,
-			SPDM_REQUEST_GET_CAPABILITIES, CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH);
+		minor_ver_in_error_msg = 0;
+		status = CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH;
+		spdm_error = SPDM_ERROR_VERSION_MISMATCH;
 		goto exit;
 	}
 
@@ -1740,9 +1736,8 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 		req_resp_size = sizeof (struct spdm_get_capabilities_1_1);
 	}
 	else {
-		spdm_generate_error_response (request, state->connection_info.version.minor_version,
-			SPDM_ERROR_INVALID_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES,
-			CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST);
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
 		goto exit;
 	}
 
@@ -1752,9 +1747,8 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 	/* Check for request flag compatibility. */
 	if (spdm_check_request_flag_compatibility (req_resp->base_capabilities.flags, spdm_version) ==
 		false) {
-		spdm_generate_error_response (request, state->connection_info.version.minor_version,
-			SPDM_ERROR_INVALID_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES,
-			CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST);
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
 		goto exit;
 	}
 
@@ -1762,16 +1756,14 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 	if (spdm_version >= SPDM_VERSION_1_2) {
 		if ((req_resp->data_transfer_size < SPDM_MIN_DATA_TRANSFER_SIZE_VERSION_1_2) ||
 			(req_resp->data_transfer_size > req_resp->max_spdm_msg_size)) {
-			spdm_generate_error_response (request, state->connection_info.version.minor_version,
-				SPDM_ERROR_INVALID_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES,
-				CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST);
+			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+			spdm_error = SPDM_ERROR_INVALID_REQUEST;
 			goto exit;
 		}
 		if ((req_resp->base_capabilities.flags.chunk_cap == 0) &&
 			(req_resp->data_transfer_size != req_resp->max_spdm_msg_size)) {
-			spdm_generate_error_response (request, state->connection_info.version.minor_version,
-				SPDM_ERROR_INVALID_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES,
-				CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST);
+			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+			spdm_error = SPDM_ERROR_INVALID_REQUEST;
 			goto exit;
 		}
 	}
@@ -1779,9 +1771,8 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 	/* Check the CT Exponent. */
 	if (spdm_version >= SPDM_VERSION_1_1) {
 		if (req_resp->base_capabilities.ct_exponent > SPDM_MAX_CT_EXPONENT) {
-			spdm_generate_error_response (request, state->connection_info.version.minor_version,
-				SPDM_ERROR_INVALID_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES,
-				CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST);
+			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+			spdm_error = SPDM_ERROR_INVALID_REQUEST;
 			goto exit;
 		}
 	}
@@ -1797,8 +1788,7 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_VCA,
 		(const uint8_t*) req_resp, req_resp_size, false, SPDM_MAX_SESSION_COUNT);
 	if (status != 0) {
-		spdm_generate_error_response (request, state->connection_info.version.minor_version,
-			SPDM_ERROR_UNSPECIFIED, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES, status);
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
 	}
 
@@ -1839,8 +1829,7 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_VCA,
 		(const uint8_t*) req_resp, req_resp_size, false, SPDM_MAX_SESSION_COUNT);
 	if (status != 0) {
-		spdm_generate_error_response (request, state->connection_info.version.minor_version,
-			SPDM_ERROR_UNSPECIFIED, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES, status);
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
 	}
 
@@ -1851,6 +1840,10 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 	spdm_set_connection_state (state, SPDM_CONNECTION_STATE_AFTER_CAPABILITIES);
 
 exit:
+	if (status != 0) {
+		spdm_generate_error_response (request, minor_ver_in_error_msg, spdm_error, 0x00, NULL, 0,
+		SPDM_REQUEST_GET_CAPABILITIES, status);
+	}
 
 	return 0;
 }
@@ -2169,7 +2162,7 @@ exit:
 int spdm_negotiate_algorithms (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct cmd_interface_msg *request)
 {
-	int status = 0;
+	int status;
 	int spdm_error;
 	struct spdm_protocol_header *header;
 	struct spdm_negotiate_algorithms_request *rq;
@@ -2205,7 +2198,8 @@ int spdm_negotiate_algorithms (const struct cmd_interface_spdm_responder *spdm_r
 
 	/* Verify the state */
 	if (state->response_state != SPDM_RESPONSE_STATE_NORMAL) {
-		spdm_handle_response_state (state, request, SPDM_REQUEST_NEGOTIATE_ALGORITHMS);
+		spdm_handle_response_state (state, &spdm_error);
+		status = CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR;
 		goto exit;
 	}
 	if (state->connection_info.connection_state != SPDM_CONNECTION_STATE_AFTER_CAPABILITIES) {
@@ -2448,7 +2442,7 @@ int spdm_process_negotiate_algorithms_response (struct cmd_interface_msg *respon
 int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct cmd_interface_msg *request)
 {
-	int status = 0;
+	int status;
 	int spdm_error;
 	struct spdm_get_digests_request *spdm_request;
 	struct spdm_get_digests_response *spdm_response;
@@ -2493,7 +2487,8 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 
 	/* Verify SPDM state. */
 	if (state->response_state != SPDM_RESPONSE_STATE_NORMAL) {
-		spdm_handle_response_state (state, request, SPDM_REQUEST_GET_DIGESTS);
+		spdm_handle_response_state (state, &spdm_error);
+		status = CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR;
 		goto exit;
 	}
 	if (state->connection_info.connection_state < SPDM_CONNECTION_STATE_NEGOTIATED) {
@@ -2659,7 +2654,7 @@ int spdm_process_get_digests_response (struct cmd_interface_msg *response)
 int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct cmd_interface_msg *request)
 {
-	int status = 0;
+	int status;
 	int spdm_error;
 	uint8_t spdm_version;
 	uint8_t slot_id;
@@ -2717,7 +2712,8 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 
 	/* Verify SPDM state. */
 	if (state->response_state != SPDM_RESPONSE_STATE_NORMAL) {
-		spdm_handle_response_state (state, request, SPDM_REQUEST_GET_CERTIFICATE);
+		spdm_handle_response_state (state, &spdm_error);
+		status = CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR;
 		goto exit;
 	}
 	if (state->connection_info.connection_state < SPDM_CONNECTION_STATE_NEGOTIATED) {
@@ -3030,7 +3026,7 @@ int spdm_process_challenge_response (struct cmd_interface_msg *response)
 int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct cmd_interface_msg *request)
 {
-	int status = 0;
+	int status;
 	int spdm_error;
 	const struct spdm_get_measurements_request *spdm_request;
 	struct spdm_get_measurements_response *spdm_response;
@@ -3077,7 +3073,7 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 			 * is not known. This behavior is per libSPDM. */
 			spdm_generate_error_response (request, state->connection_info.version.minor_version,
 				SPDM_ERROR_UNEXPECTED_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_MEASUREMENTS,
-				status);
+				CMD_HANDLER_SPDM_RESPONDER_UNEXPECTED_REQUEST);
 
 			return 0;
 		}
@@ -3112,12 +3108,8 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 	if (state->response_state != SPDM_RESPONSE_STATE_NORMAL) {
 		/* [TODO] Handle RESPOND_IF_READY condition when supported. */
 
-		/* [TODO] Remove error response building from this function. */
-		spdm_handle_response_state (state, request, SPDM_REQUEST_GET_MEASUREMENTS);
-
-		/* Reset L1L2 hash context. */
-		transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,
-			(session != NULL), session_idx);
+		spdm_handle_response_state (state, &spdm_error);
+		status = CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR;
 		goto exit;
 	}
 	if (state->connection_info.connection_state < SPDM_CONNECTION_STATE_NEGOTIATED) {
@@ -3510,7 +3502,8 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 
 	/* Verify SPDM state. */
 	if (state->response_state != SPDM_RESPONSE_STATE_NORMAL) {
-		spdm_handle_response_state (state, request, SPDM_REQUEST_KEY_EXCHANGE);
+		spdm_handle_response_state (state, &spdm_error);
+		status = CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR;
 		goto exit;
 	}
 	if (state->connection_info.connection_state < SPDM_CONNECTION_STATE_NEGOTIATED) {
@@ -3825,7 +3818,7 @@ exit:
 int spdm_finish (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct cmd_interface_msg *request)
 {
-	int status = 0;
+	int status;
 	int spdm_error;
 	uint8_t spdm_version;
 	struct spdm_finish_request *spdm_request;
@@ -3873,7 +3866,8 @@ int spdm_finish (const struct cmd_interface_spdm_responder *spdm_responder,
 
 	/* Verify SPDM state. */
 	if (state->response_state != SPDM_RESPONSE_STATE_NORMAL) {
-		spdm_handle_response_state (state, request, SPDM_REQUEST_FINISH);
+		spdm_handle_response_state (state, &spdm_error);
+		status = CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR;
 		goto exit;
 	}
 	if (state->connection_info.connection_state < SPDM_CONNECTION_STATE_NEGOTIATED) {
@@ -4064,7 +4058,8 @@ int spdm_end_session (const struct cmd_interface_spdm_responder *spdm_responder,
 
 	/* Verify SPDM state. */
 	if (state->response_state != SPDM_RESPONSE_STATE_NORMAL) {
-		spdm_handle_response_state (state, request, SPDM_REQUEST_END_SESSION);
+		spdm_handle_response_state (state, &spdm_error);
+		status = CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR;
 		goto exit;
 	}
 	if (state->connection_info.connection_state < SPDM_CONNECTION_STATE_NEGOTIATED) {

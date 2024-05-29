@@ -2786,45 +2786,6 @@ cmd_interface_spdm_responder_test_process_request_spdm_get_command_id_failure_sh
 	cmd_interface_spdm_responder_testing_release (test, &testing);
 }
 
-static void
-cmd_interface_spdm_responder_test_process_request_spdm_get_command_id_failure_unsupported_major_version
-(
-	CuTest *test)
-{
-	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
-	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) buf;
-	struct cmd_interface_msg request;
-	int status;
-	struct cmd_interface_spdm_responder_testing testing;
-
-	TEST_START;
-
-	cmd_interface_spdm_responder_testing_init (test, &testing);
-
-	memset (&request, 0, sizeof (request));
-	request.data = buf;
-	request.payload = (uint8_t*) rq;
-	request.max_response = sizeof (buf);
-	request.payload_length = sizeof (struct spdm_get_version_request);
-	request.length = request.payload_length;
-
-	rq->header.spdm_minor_version = 0;
-	rq->header.spdm_major_version = SPDM_MAJOR_VERSION + 1;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
-	rq->reserved = 0;
-	rq->reserved2 = 0;
-
-	status = mock_expect (&testing.session_manager_mock.mock,
-		testing.session_manager_mock.base.reset_last_session_id_validity,
-		&testing.session_manager_mock.base, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_NOT_INTEROPERABLE, status);
-
-	cmd_interface_spdm_responder_testing_release (test, &testing);
-}
-
 static void cmd_interface_spdm_responder_test_process_request_unsupported_request_code (
 	CuTest *test)
 {
@@ -2946,7 +2907,6 @@ TEST (cmd_interface_spdm_responder_test_process_request_end_session);
 TEST (cmd_interface_spdm_responder_test_process_request_end_session_fail);
 TEST (cmd_interface_spdm_responder_test_process_request_invalid_arg);
 TEST (cmd_interface_spdm_responder_test_process_request_spdm_get_command_id_failure_short_payload);
-TEST (cmd_interface_spdm_responder_test_process_request_spdm_get_command_id_failure_unsupported_major_version);
 TEST (cmd_interface_spdm_responder_test_process_request_unsupported_request_code);
 TEST (cmd_interface_spdm_responder_test_process_response);
 TEST (cmd_interface_spdm_responder_test_generate_error_packet);

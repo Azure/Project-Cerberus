@@ -1463,51 +1463,6 @@ static void cmd_interface_spdm_test_process_response_payload_too_short (CuTest *
 	complete_cmd_interface_spdm_mock_test (test, &cmd);
 }
 
-static void cmd_interface_spdm_test_process_response_not_interoperable (CuTest *test)
-{
-	struct cmd_interface_spdm_testing cmd;
-	struct cmd_interface_msg response;
-	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
-	struct spdm_protocol_header *header = (struct spdm_protocol_header*) &data[8];
-	int status;
-
-	TEST_START;
-
-	memset (&response, 0, sizeof (response));
-	memset (data, 0, sizeof (data));
-	response.data = data;
-
-	header->spdm_major_version = SPDM_MAJOR_VERSION + 1;
-	header->req_rsp_code = SPDM_RESPONSE_GET_VERSION;
-
-	response.payload = (uint8_t*) header;
-	response.payload_length = sizeof (struct spdm_protocol_header);
-	response.length = 8 + response.payload_length;
-	response.max_response = 512;
-	response.source_eid = 0x55;
-	response.source_addr = 0x66;
-	response.target_eid = 0x77;
-	response.channel_id = 9;
-
-	setup_cmd_interface_spdm_mock_test (test, &cmd, true);
-
-	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_NOT_INTEROPERABLE, status);
-	CuAssertPtrEquals (test, data, response.data);
-	CuAssertIntEquals (test, 8 + sizeof (struct spdm_protocol_header), response.length);
-	CuAssertPtrEquals (test, header, response.payload);
-	CuAssertIntEquals (test, sizeof (struct spdm_protocol_header), response.payload_length);
-	CuAssertIntEquals (test, 512, response.max_response);
-	CuAssertIntEquals (test, 0x55, response.source_eid);
-	CuAssertIntEquals (test, 0x66, response.source_addr);
-	CuAssertIntEquals (test, 0x77, response.target_eid);
-	CuAssertIntEquals (test, false, response.is_encrypted);
-	CuAssertIntEquals (test, false, response.crypto_timeout);
-	CuAssertIntEquals (test, 9, response.channel_id);
-
-	complete_cmd_interface_spdm_mock_test (test, &cmd);
-}
-
 static void cmd_interface_spdm_test_process_response_unknown_command (CuTest *test)
 {
 	struct cmd_interface_spdm_testing cmd;
@@ -1641,7 +1596,6 @@ TEST (cmd_interface_spdm_test_process_response_error_response_response_not_ready
 TEST (cmd_interface_spdm_test_process_response_error_response_incorrect_len);
 TEST (cmd_interface_spdm_test_process_response_invalid_arg);
 TEST (cmd_interface_spdm_test_process_response_payload_too_short);
-TEST (cmd_interface_spdm_test_process_response_not_interoperable);
 TEST (cmd_interface_spdm_test_process_response_unknown_command);
 TEST (cmd_interface_spdm_test_generate_error_packet);
 TEST (cmd_interface_spdm_test_add_spdm_protocol_observer_invalid_arg);
