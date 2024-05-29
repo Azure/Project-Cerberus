@@ -95,7 +95,8 @@ int spdm_secure_session_manager_encode_secure_message (
 		.hash_engine = hash_engine_ptr, \
 		.rng_engine = rng_engine_ptr, \
 		.ecc_engine = ecc_engine_ptr, \
-		.transcript_manager = transcript_manager_ptr \
+		.transcript_manager = transcript_manager_ptr, \
+		.max_spdm_session_sequence_number = SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER, \
 	}
 
 

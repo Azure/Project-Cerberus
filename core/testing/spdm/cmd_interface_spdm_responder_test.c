@@ -1233,6 +1233,12 @@ static void cmd_interface_spdm_responder_test_process_request_get_capabilities (
 		&testing.session_manager_mock.base, 0);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.set_spdm_version,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (
+		SPDM_MAKE_VERSION(rq.base_capabilities.header.spdm_major_version,
+		rq.base_capabilities.header.spdm_minor_version)));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));

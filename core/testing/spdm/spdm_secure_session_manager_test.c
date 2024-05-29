@@ -339,6 +339,16 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 	status = spdm_secure_session_manager_init_state (&session_manager8);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
+	struct spdm_secure_session_manager session_manager9 =
+		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
+		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
+		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
+		&testing.transcript_manager_mock.base);
+	session_manager9.max_spdm_session_sequence_number = 0;
+
+	status = spdm_secure_session_manager_init_state (&session_manager9);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
+
 	spdm_secure_session_manager_testing_release_dependencies (test, &testing);
 }
 

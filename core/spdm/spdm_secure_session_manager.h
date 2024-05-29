@@ -400,7 +400,7 @@ struct spdm_secure_session_manager {
 	struct hash_engine *hash_engine;							/**< Hashing engine. */
 	struct rng_engine *rng_engine;								/**< RNG engine. */
 	struct ecc_engine *ecc_engine;								/**< ECC engine. */
-	struct spdm_transcript_manager *transcript_manager;			/**< Transcript Manager. */
+	const struct spdm_transcript_manager *transcript_manager;	/**< Transcript Manager. */
 	struct spdm_secure_session_manager_state *state;			/**< Session Manager State. */
 	uint64_t max_spdm_session_sequence_number;					/**< Max SPDM session sequence number. */
 };
@@ -411,7 +411,7 @@ int spdm_secure_session_manager_init (struct spdm_secure_session_manager *sessio
 	const struct spdm_device_capability *local_capabilities,
 	const struct spdm_device_algorithms *local_algorithms, struct aes_engine *aes_engine,
 	struct hash_engine *hash_engine, struct rng_engine *rng_engine, struct ecc_engine *ecc_engine,
-	struct spdm_transcript_manager *transcript_manager);
+	const struct spdm_transcript_manager *transcript_manager);
 
 void spdm_secure_session_manager_release (
 	const struct spdm_secure_session_manager *session_manager);

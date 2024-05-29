@@ -23,7 +23,7 @@ static void spdm_secure_session_manager_init_session_state (
 	struct spdm_get_capabilities_flags_format req_capability;
 	struct spdm_get_capabilities_flags_format resp_capability;
 	struct spdm_secure_session *session;
-	struct spdm_transcript_manager *transcript_manager;
+	const struct spdm_transcript_manager *transcript_manager;
 
 	session = &session_manager->state->sessions[session_index];
 	transcript_manager = session_manager->transcript_manager;
@@ -108,7 +108,7 @@ void spdm_secure_session_manager_release_session (
 	const struct spdm_secure_session_manager *session_manager, uint32_t session_id)
 {
 	struct spdm_secure_session *sessions;
-	struct spdm_transcript_manager *transcript_manager;
+	const struct spdm_transcript_manager *transcript_manager;
 	size_t session_index;
 
 	if ((session_manager == NULL) || (session_id == SPDM_INVALID_SESSION_ID)) {
@@ -465,7 +465,7 @@ int spdm_secure_session_manager_generate_session_handshake_keys (
 	const struct spdm_secure_session_manager *session_manager, struct spdm_secure_session *session)
 {
 	int status;
-	struct spdm_transcript_manager *transcript_manager;
+	const struct spdm_transcript_manager *transcript_manager;
 	struct hash_engine *hash_engine;
 	uint8_t th1_hash[HASH_MAX_HASH_LEN];
 	size_t hash_size;
@@ -609,7 +609,7 @@ int spdm_secure_session_manager_generate_session_data_keys (
 	uint8_t zero_filled_buffer[HASH_MAX_HASH_LEN];
 	enum hmac_hash hmac_hash_type;
 	struct hash_engine *hash_engine;
-	struct spdm_transcript_manager *transcript_manager;
+	const struct spdm_transcript_manager *transcript_manager;
 	uint8_t th2_hash[HASH_MAX_HASH_LEN];
 
 	if ((session_manager == NULL) || (session == NULL)) {
@@ -770,6 +770,9 @@ int spdm_secure_session_manager_decrypt_message (
 	size_t ciphertext_size;
 	const uint8_t *tag;
 	struct aes_engine *aes_engine;
+
+	UNUSED (sequence_number);
+	UNUSED (salt);
 
 	aead_tag_size = session->aead_tag_size;
 	aead_key_size = session->aead_key_size;
@@ -1162,7 +1165,7 @@ int spdm_secure_session_manager_init (struct spdm_secure_session_manager *sessio
 	const struct spdm_device_capability *local_capabilities,
 	const struct spdm_device_algorithms *local_algorithms, struct aes_engine *aes_engine,
 	struct hash_engine *hash_engine, struct rng_engine *rng_engine, struct ecc_engine *ecc_engine,
-	struct spdm_transcript_manager *transcript_manager)
+	const struct spdm_transcript_manager *transcript_manager)
 {
 	int status;
 
@@ -1236,7 +1239,8 @@ int spdm_secure_session_manager_init_state (
 		(session_manager->local_algorithms == NULL) ||
 		(session_manager->aes_engine == NULL) || (session_manager->hash_engine == NULL) ||
 		(session_manager->rng_engine == NULL) || (session_manager->ecc_engine == NULL) ||
-		(session_manager->transcript_manager == NULL)) {
+		(session_manager->transcript_manager == NULL) ||
+		(session_manager->max_spdm_session_sequence_number == 0)) {
 		status = SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
 		goto exit;
 	}

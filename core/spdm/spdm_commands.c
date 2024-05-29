@@ -781,6 +781,7 @@ static int spdm_process_opaque_data_supported_version_data (struct spdm_state *s
 	*opaque_element_support_version;
 	const struct spdm_version_number *versions_list;
 	struct spdm_version_number common_version = {0};
+	struct spdm_version_number temp_version;
 	uint8_t version_count;
 	const void *get_element_ptr;
 	size_t get_element_len;
@@ -854,11 +855,11 @@ static int spdm_process_opaque_data_supported_version_data (struct spdm_state *s
 			secure_message_version_num[local_ver_idx].minor_version);
 
 		for (peer_ver_idx = 0; peer_ver_idx < version_count; peer_ver_idx++) {
-			peer_ver = SPDM_MAKE_VERSION (versions_list[peer_ver_idx].major_version,
-				versions_list[peer_ver_idx].minor_version);
+			memcpy (&temp_version, &versions_list[peer_ver_idx], sizeof (temp_version));
+			peer_ver = SPDM_MAKE_VERSION (temp_version.major_version, temp_version.minor_version);
 
 			if (local_ver == peer_ver) {
-				common_version = versions_list[peer_ver_idx];
+				memcpy (&common_version, &versions_list[peer_ver_idx], sizeof (common_version));
 				break;
 			}
 		}
@@ -1784,6 +1785,9 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 			goto exit;
 		}
 	}
+
+	/* Update SPDM version in transcript manager to make sure proper behavior */
+	transcript_manager->set_spdm_version (spdm_responder->transcript_manager, spdm_version);
 
 	/* Reset the transcript manager state as per the request code. */
 	spdm_reset_transcript_via_request_code (state, transcript_manager,
@@ -3532,6 +3536,15 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 
 	/* Check the type of measurement summary hash. */
 	meas_summary_hash_type = spdm_request->measurement_summary_hash_type;
+
+	if ((meas_summary_hash_type != SPDM_MEASUREMENT_SUMMARY_HASH_NONE) &&
+		(meas_summary_hash_type != SPDM_MEASUREMENT_SUMMARY_HASH_TCB) &&
+		(meas_summary_hash_type != SPDM_MEASUREMENT_SUMMARY_HASH_ALL)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+
 	if ((meas_summary_hash_type > SPDM_MEASUREMENT_SUMMARY_HASH_NONE) &&
 		((local_capabilities->flags.meas_cap == 0) ||
 		(state->connection_info.peer_algorithms.measurement_spec == 0) ||
