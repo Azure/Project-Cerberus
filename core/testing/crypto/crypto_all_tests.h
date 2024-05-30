@@ -54,6 +54,12 @@ static void add_all_crypto_tests (CuSuite *suite)
 	!defined TESTING_SKIP_ECDSA_SUITE
 	TESTING_RUN_SUITE (ecdsa);
 #endif
+#if (defined TESTING_RUN_EPHEMERAL_KEY_GENERATION_RSA || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_EPHEMERAL_KEY_GENERATION_RSA
+	TESTING_RUN_SUITE (ephemeral_key_generation_rsa);
+#endif
 #if (defined TESTING_RUN_HASH_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

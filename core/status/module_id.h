@@ -146,6 +146,9 @@ enum {
 	ROT_MODULE_MCTP_NOTIFIER = 0x0086,					/**< MCTP Notifier module. */
 	ROT_MODULE_SPDM_SECURE_SESSION_MANAGER = 0x0087,	/**< SPDM Secure Session Manager. */
 	ROT_MODULE_ECDSA = 0x0088,							/**< ECDSA signature handling. */
+	ROT_MODULE_KEY_CACHE = 0x0089,						/**< Key cache to handle rsa key management */
+	ROT_MODULE_EPHEMERAL_KEY_MANAGER = 0x008a,			/**< Ephemeral key manager */
+	ROT_MODULE_EPHEMERAL_KEY_GENERATION = 0x008b,		/**< Ephemeral key generation */
 };
 
 
