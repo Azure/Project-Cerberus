@@ -8,7 +8,8 @@
 
 
 static int ephemeral_key_generation_mock_generate_key (
-	const struct ephemeral_key_generation *key_gen,	int bits, uint8_t **key, size_t *key_length)
+	const struct ephemeral_key_generation *key_gen,	size_t key_size, uint8_t **key,
+	size_t *key_length)
 {
 	struct ephemeral_key_generation_mock *mock = (struct ephemeral_key_generation_mock*) key_gen;
 
@@ -17,7 +18,7 @@ static int ephemeral_key_generation_mock_generate_key (
 	}
 
 	MOCK_RETURN (&mock->mock, ephemeral_key_generation_mock_generate_key, key_gen,
-		MOCK_ARG_CALL (bits), MOCK_ARG_PTR_CALL (key), MOCK_ARG_PTR_CALL (key_length));
+		MOCK_ARG_CALL (key_size), MOCK_ARG_PTR_CALL (key), MOCK_ARG_PTR_CALL (key_length));
 }
 
 
@@ -47,7 +48,7 @@ static const char* ephemeral_key_generation_mock_arg_name_map (void *func, int a
 	if (func == ephemeral_key_generation_mock_generate_key) {
 		switch (arg) {
 			case 0:
-				return "bits";
+				return "key_size";
 
 			case 1:
 				return "key";
@@ -61,7 +62,7 @@ static const char* ephemeral_key_generation_mock_arg_name_map (void *func, int a
 }
 
 /**
- * Initialize a mock for the RSA API.
+ * Initialize a mock for an ephemeral key generator.
  *
  * @param mock The mock to initialize.
  *
@@ -94,7 +95,7 @@ int ephemeral_key_generation_mock_init (struct ephemeral_key_generation_mock *mo
 }
 
 /**
- * Release a mock RSA API instance.
+ * Release a mock ephemeral key generator.
  *
  * @param mock The mock to release.
  */

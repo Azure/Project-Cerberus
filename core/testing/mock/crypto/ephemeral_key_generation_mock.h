@@ -9,10 +9,10 @@
 
 
 /**
- * A mock for the ephemeral_key_generation API.
+ * A mock for on ephemeral key generator.
  */
 struct ephemeral_key_generation_mock {
-	struct ephemeral_key_generation base;	/**< The base ephemeral_key_generation API instance. */
+	struct ephemeral_key_generation base;	/**< The base ephemeral key generator API. */
 	struct mock mock;						/**< The base mock interface. */
 };
 

@@ -10,23 +10,23 @@
 
 
 /**
- * Define Ephemeral Key Generation.
+ * Interface for generating random ephemeral key pairs at run-time.
  */
 struct ephemeral_key_generation {
 	/**
 	 * Generate an ephemeral key for a given key length in bits
 	 *
 	 * @param key_gen A pointer to ephemeral key generation.
-	 * @param key_size - Defines key size in number of bits.
-	 * @param key - Output buffer for the DER encoded cryptographic key.  This is a dynamically
+	 * @param key_size Specify the  key size to generate in number of bits.
+	 * @param key Output buffer for the DER encoded cryptographic key.  This is a dynamically
 	 * allocated buffer, and caller API must free it using platform_free() when this pointer is not
 	 * null.  This will return null in the case of an error.
 	 * @param key_length Output for the length of the DER encoded key.
 	 *
 	 * @return 0 if the key was successfully encoded or an error code.
 	 */
-	int (*generate_key) (const struct ephemeral_key_generation *key_gen, int key_size, uint8_t **key,
-		size_t *key_length);
+	int (*generate_key) (const struct ephemeral_key_generation *key_gen, size_t key_size,
+		uint8_t **key, size_t *key_length);
 };
 
 
