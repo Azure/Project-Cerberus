@@ -1432,6 +1432,161 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_null (CuTest 
 	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
+static void cmd_interface_protocol_mctp_test_add_header (CuTest *test)
+{
+	struct cmd_interface_protocol_mctp_testing mctp;
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
+	struct cmd_interface_msg message;
+	struct mctp_base_protocol_message_header *header =
+		(struct mctp_base_protocol_message_header*) data;
+	int status;
+	uint32_t message_type = 0x76;
+
+	TEST_START;
+
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
+
+	header->msg_type = 0x13;
+	header->integrity_check = 1;
+
+	memset (&message, 0, sizeof (message));
+	message.data = data;
+	message.length = sizeof (data);
+	message.max_response = sizeof (data);
+	message.payload = &data[1];
+	message.payload_length = sizeof (data) - 1;
+
+	status = cmd_interface_protocol_mctp_add_header (&mctp.test, message_type, &message);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, data, message.data);
+	CuAssertIntEquals (test, sizeof (data), message.length);
+	CuAssertIntEquals (test, sizeof (data), message.max_response);
+	CuAssertPtrEquals (test, message.data, message.payload);
+	CuAssertIntEquals (test, message.length, message.payload_length);
+
+	CuAssertIntEquals (test, message_type, header->msg_type);
+	CuAssertIntEquals (test, 0, header->integrity_check);
+
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
+}
+
+static void cmd_interface_protocol_mctp_test_add_header_static_init (CuTest *test)
+{
+	struct cmd_interface_protocol_mctp_testing mctp = {
+		.test = cmd_interface_protocol_mctp_static_init
+	};
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
+	struct cmd_interface_msg message;
+	struct mctp_base_protocol_message_header *header =
+		(struct mctp_base_protocol_message_header*) data;
+	int status;
+	uint32_t message_type = 0x21;
+
+	TEST_START;
+
+	cmd_interface_protocol_mctp_testing_init_dependencies (test, &mctp);
+
+	header->msg_type = 0x13;
+	header->integrity_check = 1;
+
+	memset (&message, 0, sizeof (message));
+	message.data = data;
+	message.length = sizeof (data);
+	message.max_response = sizeof (data);
+	message.payload = &data[1];
+	message.payload_length = sizeof (data) - 1;
+
+	status = cmd_interface_protocol_mctp_add_header (&mctp.test, message_type, &message);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, data, message.data);
+	CuAssertIntEquals (test, sizeof (data), message.length);
+	CuAssertIntEquals (test, sizeof (data), message.max_response);
+	CuAssertPtrEquals (test, message.data, message.payload);
+	CuAssertIntEquals (test, message.length, message.payload_length);
+
+	CuAssertIntEquals (test, message_type, header->msg_type);
+	CuAssertIntEquals (test, 0, header->integrity_check);
+
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
+}
+
+static void cmd_interface_protocol_mctp_test_add_header_null (CuTest *test)
+{
+	struct cmd_interface_protocol_mctp_testing mctp;
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
+	struct cmd_interface_msg message;
+	struct mctp_base_protocol_message_header *header =
+		(struct mctp_base_protocol_message_header*) data;
+	int status;
+	uint32_t message_type = 0x76;
+
+	TEST_START;
+
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
+
+	header->msg_type = 0x13;
+	header->integrity_check = 1;
+
+	memset (&message, 0, sizeof (message));
+	message.data = data;
+	message.length = sizeof (data);
+	message.max_response = sizeof (data);
+	message.payload = &data[1];
+	message.payload_length = sizeof (data) - 1;
+
+	status = cmd_interface_protocol_mctp_add_header (NULL, message_type, &message);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
+
+	status = cmd_interface_protocol_mctp_add_header (&mctp.test, message_type, NULL);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
+
+	CuAssertPtrEquals (test, data, message.data);
+	CuAssertIntEquals (test, sizeof (data), message.length);
+	CuAssertIntEquals (test, sizeof (data), message.max_response);
+	CuAssertPtrEquals (test, &message.data[1], message.payload);
+	CuAssertIntEquals (test, message.length - 1, message.payload_length);
+
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
+}
+
+static void cmd_interface_protocol_mctp_test_add_header_insufficient_space (CuTest *test)
+{
+	struct cmd_interface_protocol_mctp_testing mctp;
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
+	struct cmd_interface_msg message;
+	struct mctp_base_protocol_message_header *header =
+		(struct mctp_base_protocol_message_header*) data;
+	int status;
+	uint32_t message_type = 0x76;
+
+	TEST_START;
+
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
+
+	header->msg_type = 0x13;
+	header->integrity_check = 1;
+
+	memset (&message, 0, sizeof (message));
+	message.data = data;
+	message.length = sizeof (data);
+	message.max_response = sizeof (data);
+	message.payload = data;
+	message.payload_length = sizeof (data);
+
+	status = cmd_interface_protocol_mctp_add_header (&mctp.test, message_type, &message);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_NO_HEADER_SPACE, status);
+
+	CuAssertPtrEquals (test, data, message.data);
+	CuAssertIntEquals (test, sizeof (data), message.length);
+	CuAssertIntEquals (test, sizeof (data), message.max_response);
+	CuAssertPtrEquals (test, message.data, message.payload);
+	CuAssertIntEquals (test, message.length, message.payload_length);
+
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_protocol_mctp);
@@ -1467,6 +1622,10 @@ TEST (cmd_interface_protocol_mctp_test_handle_request_result_spdm);
 TEST (cmd_interface_protocol_mctp_test_handle_request_result_spdm_request_failure);
 TEST (cmd_interface_protocol_mctp_test_handle_request_result_static_init);
 TEST (cmd_interface_protocol_mctp_test_handle_request_result_null);
+TEST (cmd_interface_protocol_mctp_test_add_header);
+TEST (cmd_interface_protocol_mctp_test_add_header_static_init);
+TEST (cmd_interface_protocol_mctp_test_add_header_null);
+TEST (cmd_interface_protocol_mctp_test_add_header_insufficient_space);
 
 TEST_SUITE_END;
 // *INDENT-ON*

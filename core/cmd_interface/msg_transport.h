@@ -97,9 +97,6 @@ struct msg_transport {
 };
 
 
-/* TODO:  Create a variant of this function that will take an expected length parameter or use the
- * buffer size to allocate appropriate transport headroom.  Otherwise, the worst-case space will
- * always be used, even for requests and buffers that are small. */
 int msg_transport_create_empty_request (const struct msg_transport *transport, uint8_t *msg_buffer,
 	size_t length, uint8_t dest_id, struct cmd_interface_msg *request);
 int msg_transport_create_empty_response (uint8_t *msg_buffer, size_t length,
@@ -124,6 +121,8 @@ enum {
 	MSG_TRANSPORT_OVERHEAD_MORE_THAN_BUFFER = MSG_TRANSPORT_ERROR (0x09),	/**< The request buffer is smaller than the transport overhead. */
 	MSG_TRANSPORT_REQUEST_TOO_LARGE = MSG_TRANSPORT_ERROR (0x0a),			/**< The request payload exceeds the transport maximum. */
 	MSG_TRANSPORT_RESPONSE_TOO_LARGE = MSG_TRANSPORT_ERROR (0x0b),			/**< The response payload exceeds the provided buffer space. */
+	MSG_TRANSPORT_UNEXPECTED_RESPONSE = MSG_TRANSPORT_ERROR (0x0c),			/**< The response does not match the request. */
+	MSG_TRANSPORT_RESPONSE_TOO_SHORT = MSG_TRANSPORT_ERROR (0x0d),			/**< A response message does not contain enough data. */
 };
 
 

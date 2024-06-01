@@ -9,6 +9,23 @@
 #include "common/unused.h"
 
 
+/**
+ * Populate the MCTP message header on a message.  The message payload pointer must already have
+ * been adjusted to provide room for the header.
+ *
+ * @param message_type The message type to assign in the header.
+ * @param message The message descriptor for the the message needing a header.
+ */
+static void cmd_interface_protocol_mctp_populate_header (uint32_t message_type,
+	struct cmd_interface_msg *message)
+{
+	struct mctp_base_protocol_message_header *header =
+		(struct mctp_base_protocol_message_header*) message->payload;
+
+	header->msg_type = message_type;
+	header->integrity_check = 0;
+}
+
 int cmd_interface_protocol_mctp_parse_message (const struct cmd_interface_protocol *protocol,
 	struct cmd_interface_msg *message, uint32_t *message_type)
 {
@@ -63,8 +80,6 @@ int cmd_interface_protocol_mctp_handle_request_result (
 	const struct cmd_interface_protocol *protocol, int result, uint32_t message_type,
 	struct cmd_interface_msg *message)
 {
-	struct mctp_base_protocol_message_header *header;
-
 	if ((protocol == NULL) || (message == NULL)) {
 		return MCTP_BASE_PROTOCOL_INVALID_ARGUMENT;
 	}
@@ -73,15 +88,13 @@ int cmd_interface_protocol_mctp_handle_request_result (
 		/* TODO:  Just like in the pre-processing phase, this exception needs to be eliminated and
 		 * the protocol header added back to MCTP control messages. */
 		if (message_type != MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG) {
-			cmd_interface_msg_add_protocol_header (message, sizeof (*header));
+			cmd_interface_msg_add_protocol_header (message,
+				sizeof (struct mctp_base_protocol_message_header));
 		}
 
 		/* Only update the header in the case of a successful response. */
 		if (result == 0) {
-			header = (struct mctp_base_protocol_message_header*) message->payload;
-
-			header->msg_type = message_type;
-			header->integrity_check = 0;
+			cmd_interface_protocol_mctp_populate_header (message_type, message);
 		}
 		else if (message_type == MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
@@ -126,4 +139,34 @@ int cmd_interface_protocol_mctp_init (struct cmd_interface_protocol_mctp *mctp)
 void cmd_interface_protocol_mctp_release (const struct cmd_interface_protocol_mctp *mctp)
 {
 	UNUSED (mctp);
+}
+
+/**
+ * Add an MCTP message protocol header to the message buffer.
+ *
+ * @param mctp The MCTP message protocol handler.
+ * @param message_type The message type to assign in the MCTP header.
+ * @param message The message descriptor containing the payload that should be encapsulated with an
+ * MCTP message header.
+ *
+ * @return 0 if the MCTP message header was added successfully or an error code.
+ */
+int cmd_interface_protocol_mctp_add_header (const struct cmd_interface_protocol_mctp *mctp,
+	uint8_t message_type, struct cmd_interface_msg *message)
+{
+	const size_t header_len = sizeof (struct mctp_base_protocol_message_header);
+
+	if ((mctp == NULL) || (message == NULL)) {
+		return MCTP_BASE_PROTOCOL_INVALID_ARGUMENT;
+	}
+
+	if (cmd_interface_msg_get_protocol_length (message) < header_len) {
+		return MCTP_BASE_PROTOCOL_NO_HEADER_SPACE;
+	}
+
+	cmd_interface_msg_add_protocol_header (message, header_len);
+
+	cmd_interface_protocol_mctp_populate_header (message_type, message);
+
+	return 0;
 }
