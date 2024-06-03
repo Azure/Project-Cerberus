@@ -2147,66 +2147,6 @@ static void spdm_secure_session_manager_test_decode_secure_message_payload_incor
 	spdm_secure_session_manager_testing_release (test, &testing);
 }
 
-static void spdm_secure_session_manager_test_decode_secure_message_payload_incorrect_length_4 (
-	CuTest *test)
-{
-	int status;
-	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
-	struct spdm_secured_message_data_header_1 *secured_message_data_header_1 = (void*) buf;
-	struct cmd_interface_msg request = {0};
-	struct spdm_secure_session_manager_testing testing;
-	struct spdm_secure_session_manager *session_manager;
-	uint32_t session_id = 0xDEADBEEF;
-	struct spdm_secure_session *session;
-	struct spdm_connection_info connection_info = {0};
-	size_t aead_tag_size = 16;
-	size_t encrypted_payload_length = 64;
-	struct spdm_secured_message_data_header_1 *record_header_1;
-	struct spdm_secured_message_data_header_2 *record_header_2;
-
-	TEST_START;
-
-	spdm_secure_session_manager_testing_init (test, &testing);
-	session_manager = &testing.session_manager;
-
-	status = mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.reset_transcript,
-		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
-		MOCK_ARG (true), MOCK_ARG (0));
-
-	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.reset_session_transcript,
-		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
-
-	CuAssertIntEquals (test, 0, status);
-
-	session = session_manager->create_session (session_manager, session_id, false,
-		&connection_info);
-	CuAssertPtrNotNull (test, session);
-	session->session_state = SPDM_SESSION_STATE_ESTABLISHED;
-	session->data_secret.request_data_sequence_number = SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER - 1;
-	session->aead_tag_size = aead_tag_size;
-	session->session_type = SPDM_SESSION_TYPE_ENC_MAC;
-
-	secured_message_data_header_1->session_id = 0xDEADBEEF;
-	request.payload_length = (sizeof (struct spdm_secured_message_data_header_1) +
-		sizeof (struct spdm_secured_message_data_header_2) + aead_tag_size) +
-		encrypted_payload_length;
-	request.payload = buf;
-
-	record_header_1 = (void*) request.payload;
-	record_header_2 = (void*) ((uint8_t*) record_header_1 +
-		sizeof (struct spdm_secured_message_data_header_1));
-	record_header_2->length = encrypted_payload_length + aead_tag_size - 1;
-
-	status = session_manager->decode_secure_message (session_manager, &request);
-	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_MESSAGE_SIZE, status);
-
-	session_manager->release_session (session_manager, session_id);
-
-	spdm_secure_session_manager_testing_release (test, &testing);
-}
-
 static void spdm_secure_session_manager_test_decode_secure_message_set_key_fail (CuTest *test)
 {
 	int status;
@@ -2996,7 +2936,6 @@ TEST (spdm_secure_session_manager_test_decode_secure_message_sequence_number_ove
 TEST (spdm_secure_session_manager_test_decode_secure_message_payload_incorrect_length);
 TEST (spdm_secure_session_manager_test_decode_secure_message_payload_incorrect_length_2);
 TEST (spdm_secure_session_manager_test_decode_secure_message_payload_incorrect_length_3);
-TEST (spdm_secure_session_manager_test_decode_secure_message_payload_incorrect_length_4);
 TEST (spdm_secure_session_manager_test_decode_secure_message_set_key_fail);
 TEST (spdm_secure_session_manager_test_decode_secure_message_decrypt_with_add_data_fail);
 TEST (spdm_secure_session_manager_test_decode_secure_message_plaintext_size_gt_ciphertext_size);

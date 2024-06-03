@@ -800,7 +800,7 @@ int spdm_secure_session_manager_decrypt_message (
 		goto exit;
 	}
 	ciphertext_size = (record_header_2->length - aead_tag_size);
-	if (ciphertext_size != (request->payload_length - (record_header_size + aead_tag_size))) {
+	if (ciphertext_size > (request->payload_length - (record_header_size + aead_tag_size))) {
 		status = SPDM_SECURE_SESSION_MANAGER_INVALID_MESSAGE_SIZE;
 		goto exit;
 	}

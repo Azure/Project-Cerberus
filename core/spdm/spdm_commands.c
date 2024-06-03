@@ -1331,12 +1331,17 @@ exit:
 static int spdm_generate_measurement_signature (
 	const struct spdm_transcript_manager *transcript_manager, struct spdm_state *state,
 	struct riot_key_manager *key_manager, struct ecc_engine *ecc_engine,
-	struct hash_engine *hash_engine, void *session_info, uint8_t *signature, size_t sig_size)
+	struct hash_engine *hash_engine, struct spdm_secure_session *session_info, uint8_t *signature,
+	size_t sig_size)
 {
 	int status;
 	uint8_t l1l2_hash[HASH_MAX_HASH_LEN];
 	int l1l2_hash_size;
 	uint8_t session_idx = SPDM_MAX_SESSION_COUNT;
+
+	if (session_info != NULL) {
+		session_idx = session_info->session_index;
+	}
 
 	l1l2_hash_size =
 		hash_get_hash_length (spdm_get_hash_type (
@@ -1701,6 +1706,17 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 	transcript_manager = spdm_responder->transcript_manager;
 	state = spdm_responder->state;
 	local_capabilities = spdm_responder->local_capabilities;
+
+	/* Validate request version and save it in the connection info. */
+	header = (struct spdm_protocol_header*) request->payload;
+	spdm_version = SPDM_MAKE_VERSION (header->spdm_major_version, header->spdm_minor_version);
+	if (spdm_check_request_version_compatibility (state, spdm_responder->version_num,
+		spdm_responder->version_num_count, spdm_version) == false) {
+		minor_ver_in_error_msg = 0;
+		status = CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH;
+		spdm_error = SPDM_ERROR_VERSION_MISMATCH;
+		goto exit;
+	}
 	minor_ver_in_error_msg = state->connection_info.version.minor_version;
 
 	/* Verify the state. */
@@ -1712,17 +1728,6 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 	if (state->connection_info.connection_state != SPDM_CONNECTION_STATE_AFTER_VERSION) {
 		status = CMD_HANDLER_SPDM_RESPONDER_UNEXPECTED_REQUEST;
 		spdm_error = SPDM_ERROR_UNEXPECTED_REQUEST;
-		goto exit;
-	}
-
-	/* Validate request version and save it in the connection info. */
-	header = (struct spdm_protocol_header*) request->payload;
-	spdm_version = SPDM_MAKE_VERSION (header->spdm_major_version, header->spdm_minor_version);
-	if (spdm_check_request_version_compatibility (state, spdm_responder->version_num,
-		spdm_responder->version_num_count, spdm_version) == false) {
-		minor_ver_in_error_msg = 0;
-		status = CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH;
-		spdm_error = SPDM_ERROR_VERSION_MISMATCH;
 		goto exit;
 	}
 
@@ -3187,7 +3192,7 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 
 	/* Construct the response. */
 	spdm_response = (struct spdm_get_measurements_response*) request->payload;
-	memset (spdm_response, 0, sizeof (struct spdm_get_measurements_response));
+	memset (spdm_response, 0, response_size);
 
 	spdm_populate_header (&spdm_response->header, SPDM_RESPONSE_GET_MEASUREMENTS,
 		SPDM_GET_MINOR_VERSION (spdm_version));
@@ -3252,6 +3257,10 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
 	}
+
+	/* Set opaque data size to 0 */
+	buffer_unaligned_write16 (
+		(uint16_t*) (spdm_get_measurements_resp_nonce (spdm_response) + SPDM_NONCE_LEN), 0);
 
 	/* Add response to L1L2 hash context. Signature is not included in the hash. */
 	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,

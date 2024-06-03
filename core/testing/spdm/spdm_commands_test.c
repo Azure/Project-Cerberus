@@ -2110,6 +2110,7 @@ static void spdm_test_get_capabilities_response_state_busy (CuTest *test)
 	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
+	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
 	struct spdm_state *spdm_state;
@@ -2129,6 +2130,9 @@ static void spdm_test_get_capabilities_response_state_busy (CuTest *test)
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_BUSY;
 
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 1;
+
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2145,6 +2149,7 @@ static void spdm_test_get_capabilities_response_state_need_resync (CuTest *test)
 	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
+	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
 	struct spdm_state *spdm_state;
@@ -2164,6 +2169,9 @@ static void spdm_test_get_capabilities_response_state_need_resync (CuTest *test)
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NEED_RESYNC;
 
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 1;
+
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2180,6 +2188,7 @@ static void spdm_test_get_capabilities_response_state_processing_encap (CuTest *
 	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
+	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
 	struct spdm_state *spdm_state;
@@ -2198,6 +2207,9 @@ static void spdm_test_get_capabilities_response_state_processing_encap (CuTest *
 	msg.length = msg.payload_length;
 	spdm_state->response_state = SPDM_RESPONSE_STATE_PROCESSING_ENCAP;
 
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 1;
+
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2214,6 +2226,7 @@ static void spdm_test_get_capabilities_incorrect_connection_state (CuTest *test)
 	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
+	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
 	struct spdm_state *spdm_state;
@@ -2233,6 +2246,9 @@ static void spdm_test_get_capabilities_incorrect_connection_state (CuTest *test)
 	msg.length = msg.payload_length;
 
 	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NOT_STARTED;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 1;
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
