@@ -593,12 +593,17 @@ static void intrusion_manager_test_reset_intrusion (CuTest *test)
 	struct intrusion_manager_testing manager;
 	int status;
 	struct pcr_measurement measurement;
+	uint32_t active_state = 0;
 
 	TEST_START;
 
 	intrusion_manager_testing_init (test, &manager, PCR_MEASUREMENT (0, 0));
 
-	status = mock_expect (&manager.state.mock, manager.state.base.clear, &manager.state, 0);
+	status = mock_expect (&manager.state.mock, manager.state.base.is_active, &manager.state,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.state.mock, 0, &active_state, sizeof (active_state), -1);
+
+	status |= mock_expect (&manager.state.mock, manager.state.base.clear, &manager.state, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.reset_intrusion (&manager.test);
@@ -614,6 +619,53 @@ static void intrusion_manager_test_reset_intrusion (CuTest *test)
 	CuAssertIntEquals (test, 0, measurement.measured_data->data.value_1byte);
 
 	status = testing_validate_array (INTRUSION_MANAGER_TESTING_NO_INTRUSION, measurement.digest,
+		INTRUSION_MANAGER_TESTING_DIGEST_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	intrusion_manager_testing_validate_dependencies (test, &manager);
+
+	/* Check for proper unlocking */
+	manager.test.handle_intrusion (&manager.test);
+
+	intrusion_manager_testing_release (test, &manager);
+}
+
+static void intrusion_manager_test_reset_intrusion_in_active (CuTest *test)
+{
+	struct intrusion_manager_testing manager;
+	int status;
+	struct pcr_measurement measurement;
+	uint32_t active_state = 1;
+
+	TEST_START;
+
+	intrusion_manager_testing_init (test, &manager, PCR_MEASUREMENT (0, 0));
+
+	status = mock_expect (&manager.state.mock, manager.state.base.check, &manager.state, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.check_state (&manager.test);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.state.mock, manager.state.base.is_active, &manager.state,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.state.mock, 0, &active_state, sizeof (active_state), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.reset_intrusion (&manager.test);
+	CuAssertIntEquals (test, INTRUSION_MANAGER_INTRUSION_STILL_ACTIVE, status);
+
+	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
+	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
+	CuAssertPtrNotNull (test, measurement.measured_data);
+	CuAssertIntEquals (test, PCR_DATA_TYPE_1BYTE, measurement.measured_data->type);
+	CuAssertIntEquals (test, 1, measurement.measured_data->data.value_1byte);
+
+	status = testing_validate_array (INTRUSION_MANAGER_TESTING_INTRUSION, measurement.digest,
 		INTRUSION_MANAGER_TESTING_DIGEST_LEN);
 	CuAssertIntEquals (test, 0, status);
 
@@ -664,12 +716,17 @@ static void intrusion_manager_test_reset_intrusion_state_error (CuTest *test)
 	struct intrusion_manager_testing manager;
 	int status;
 	struct pcr_measurement measurement;
+	uint32_t active_state = 0;
 
 	TEST_START;
 
 	intrusion_manager_testing_init (test, &manager, PCR_MEASUREMENT (0, 1));
 
-	status = mock_expect (&manager.state.mock, manager.state.base.clear, &manager.state,
+	status = mock_expect (&manager.state.mock, manager.state.base.is_active, &manager.state,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.state.mock, 0, &active_state, sizeof (active_state), -1);
+
+	status |= mock_expect (&manager.state.mock, manager.state.base.clear, &manager.state,
 		INTRUSION_STATE_CLEAR_FAILED);
 	CuAssertIntEquals (test, 0, status);
 
@@ -707,11 +764,13 @@ static void intrusion_manager_test_reset_intrusion_hash_error (CuTest *test)
 
 	intrusion_manager_testing_init_with_hash_mock (test, &manager, PCR_MEASUREMENT (0, 0));
 
-	status = mock_expect (&manager.state.mock, manager.state.base.clear, &manager.state, 0);
+	status = mock_expect (&manager.state.mock, manager.state.base.is_active, &manager.state,
+		0, MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&manager.state.mock, manager.state.base.clear, &manager.state, 0);
 
 	status |= mock_expect (&manager.hash_mock.mock, manager.hash_mock.base.start_sha256,
 		&manager.hash_mock, HASH_ENGINE_START_SHA256_FAILED);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.reset_intrusion (&manager.test);
@@ -914,13 +973,18 @@ static void intrusion_manager_test_check_state_check_error_from_no_intrusion (Cu
 	struct intrusion_manager_testing manager;
 	int status;
 	struct pcr_measurement measurement;
+	uint32_t active_state = 0;
 
 	TEST_START;
 
 	intrusion_manager_testing_init (test, &manager, PCR_MEASUREMENT (0, 0));
 
-	/* Set the no intrusion state. */
-	status = mock_expect (&manager.state.mock, manager.state.base.clear, &manager.state, 0);
+	status = mock_expect (&manager.state.mock, manager.state.base.is_active, &manager.state,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.state.mock, 0, &active_state, sizeof (active_state), -1);
+
+	/* Set no intrusion state. */
+	status |= mock_expect (&manager.state.mock, manager.state.base.clear, &manager.state, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.reset_intrusion (&manager.test);
@@ -973,13 +1037,18 @@ static void intrusion_manager_test_check_state_deferred (CuTest *test)
 	struct intrusion_manager_testing manager;
 	int status;
 	struct pcr_measurement measurement;
+	uint32_t active_state = 0;
 
 	TEST_START;
 
 	intrusion_manager_testing_init (test, &manager, PCR_MEASUREMENT (0, 0));
 
-	/* Set the intrusion state. */
-	status = mock_expect (&manager.state.mock, manager.state.base.clear, &manager.state, 0);
+	status = mock_expect (&manager.state.mock, manager.state.base.is_active, &manager.state,
+		active_state, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.state.mock, 0, &active_state, sizeof (active_state), -1);
+
+	/* Set no intrusion state. */
+	status |= mock_expect (&manager.state.mock, manager.state.base.clear, &manager.state, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.reset_intrusion (&manager.test);
@@ -1244,6 +1313,7 @@ TEST (intrusion_manager_test_handle_intrusion_hash_error);
 TEST (intrusion_manager_test_handle_intrusion_state_error);
 TEST (intrusion_manager_test_handle_intrusion_hash_error_and_state_error);
 TEST (intrusion_manager_test_reset_intrusion);
+TEST (intrusion_manager_test_reset_intrusion_in_active);
 TEST (intrusion_manager_test_reset_intrusion_null);
 TEST (intrusion_manager_test_reset_intrusion_state_error);
 TEST (intrusion_manager_test_reset_intrusion_hash_error);

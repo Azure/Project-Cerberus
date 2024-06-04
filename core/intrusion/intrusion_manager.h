@@ -89,11 +89,12 @@ int intrusion_manager_handle_intrusion (struct intrusion_manager *manager);
  * Note: Commented error codes have been deprecated.
  */
 enum {
-	INTRUSION_MANAGER_INVALID_ARGUMENT = INTRUSION_MANAGER_ERROR (0x00),	/**< Input parameter is null or not valid. */
-	INTRUSION_MANAGER_NO_MEMORY = INTRUSION_MANAGER_ERROR (0x01),			/**< Memory allocation failed. */
-	INTRUSION_MANAGER_INTRUSION_FAILED = INTRUSION_MANAGER_ERROR (0x02),	/**< Intrusion event handling failed. */
-	INTRUSION_MANAGER_RESET_FAILED = INTRUSION_MANAGER_ERROR (0x03),		/**< Intrusion state was not reset. */
-	INTRUSION_MANAGER_CHECK_FAILED = INTRUSION_MANAGER_ERROR (0x04),		/**< Failed to check the intrusion state. */
+	INTRUSION_MANAGER_INVALID_ARGUMENT = INTRUSION_MANAGER_ERROR (0x00),		/**< Input parameter is null or not valid. */
+	INTRUSION_MANAGER_NO_MEMORY = INTRUSION_MANAGER_ERROR (0x01),				/**< Memory allocation failed. */
+	INTRUSION_MANAGER_INTRUSION_FAILED = INTRUSION_MANAGER_ERROR (0x02),		/**< Intrusion event handling failed. */
+	INTRUSION_MANAGER_RESET_FAILED = INTRUSION_MANAGER_ERROR (0x03),			/**< Intrusion state was not reset. */
+	INTRUSION_MANAGER_CHECK_FAILED = INTRUSION_MANAGER_ERROR (0x04),			/**< Failed to check the intrusion state. */
+	INTRUSION_MANAGER_INTRUSION_STILL_ACTIVE = INTRUSION_MANAGER_ERROR (0x05),	/**< Intrusion state was still active once intrusion reset was issued. */
 };
 
 

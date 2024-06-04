@@ -64,6 +64,7 @@ int intrusion_manager_handle_intrusion (struct intrusion_manager *manager)
 
 static int intrusion_manager_reset_intrusion (struct intrusion_manager *manager)
 {
+	uint32_t active_state = 0;
 	int status;
 
 	if (manager == NULL) {
@@ -72,10 +73,19 @@ static int intrusion_manager_reset_intrusion (struct intrusion_manager *manager)
 
 	platform_mutex_lock (&manager->lock);
 
-	status = manager->state->clear (manager->state);
+	status = manager->state->is_active (manager->state, &active_state);
 	if (status == 0) {
-		status = intrusion_manager_update_measurement (manager, INTRUSION_MANAGER_NO_INTRUSION,
-			false, INTRUSION_LOGGING_NO_INTRUSION_NOTIFICATION);
+		/* Once intrusion state is still active, the intrusion is not allowed to be cleared. */
+		if (active_state) {
+			status = INTRUSION_MANAGER_INTRUSION_STILL_ACTIVE;
+		}
+		else {
+			status = manager->state->clear (manager->state);
+			if (status == 0) {
+				status = intrusion_manager_update_measurement (manager, INTRUSION_MANAGER_NO_INTRUSION,
+					false, INTRUSION_LOGGING_NO_INTRUSION_NOTIFICATION);
+			}
+		}
 	}
 
 	platform_mutex_unlock (&manager->lock);
