@@ -22,7 +22,7 @@ TEST_SUITE_LABEL ("debug_log");
  * @param rtc The real time clock instance to initialize, if needed, and to use as the logger
  * timestamp.
  */
-static void setup_debug_log_mock_test (CuTest *test, struct logging_mock *logger,
+static void debug_log_testing_init_dependencies (CuTest *test, struct logging_mock *logger,
 	struct real_time_clock_mock *rtc)
 {
 	int status;
@@ -46,21 +46,22 @@ static void setup_debug_log_mock_test (CuTest *test, struct logging_mock *logger
  * @param logger The logger instance to release.
  * @param rtc The real time clock instance to release, if used.
  */
-static void complete_debug_log_mock_test (CuTest *test, struct logging_mock *logger,
+static void debug_log_testing_validate_and_release_dependencies (CuTest *test, struct logging_mock *logger,
 	struct real_time_clock_mock *rtc)
 {
 	int status;
 
-	if (rtc != NULL) {
-		status = real_time_clock_mock_validate_and_release (rtc);
-		CuAssertIntEquals (test, 0, status);
-	}
-
-	status = logging_mock_validate_and_release (logger);
-	CuAssertIntEquals (test, 0, status);
-
 	debug_timestamp = NULL;
 	debug_log = NULL;
+	
+	status = 0;
+
+	if (rtc != NULL) {
+		status |= real_time_clock_mock_validate_and_release (rtc);
+	}
+
+	status |= logging_mock_validate_and_release (logger);
+	CuAssertIntEquals (test, 0, status);
 }
 
 /**
@@ -70,6 +71,7 @@ static void complete_debug_log_mock_test (CuTest *test, struct logging_mock *log
  */
 static void debug_log_testing_suite_tear_down (CuTest *test)
 {
+	debug_timestamp = NULL;
 	debug_log = NULL;
 }
 
@@ -95,7 +97,7 @@ static void debug_log_test_create_entry (CuTest *test)
 
 	TEST_START;
 
-	setup_debug_log_mock_test (test, &logger, &rtc);
+	debug_log_testing_init_dependencies (test, &logger, &rtc);
 
 	status = mock_expect (&rtc.mock, rtc.base.get_time, &rtc, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&rtc.mock, 0, &timestamp, sizeof (timestamp), -1);
@@ -107,7 +109,7 @@ static void debug_log_test_create_entry (CuTest *test)
 	status = debug_log_create_entry (1, 2, 3, 4, 5);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_debug_log_mock_test (test, &logger, &rtc);
+	debug_log_testing_validate_and_release_dependencies (test, &logger, &rtc);
 }
 
 static void debug_log_test_create_entry_no_log (CuTest *test)
@@ -138,7 +140,7 @@ static void debug_log_test_create_entry_no_timestamp (CuTest *test)
 
 	TEST_START;
 
-	setup_debug_log_mock_test (test, &logger, NULL);
+	debug_log_testing_init_dependencies (test, &logger, NULL);
 
 	status = mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
 		MOCK_ARG_PTR_CONTAINS (&entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
@@ -147,7 +149,7 @@ static void debug_log_test_create_entry_no_timestamp (CuTest *test)
 	status = debug_log_create_entry (1, 2, 3, 4, 5);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_debug_log_mock_test (test, &logger, NULL);
+	debug_log_testing_validate_and_release_dependencies (test, &logger, NULL);
 }
 
 static void debug_log_test_create_entry_invalid_severity (CuTest *test)
@@ -157,12 +159,12 @@ static void debug_log_test_create_entry_invalid_severity (CuTest *test)
 
 	TEST_START;
 
-	setup_debug_log_mock_test (test, &logger, NULL);
+	debug_log_testing_init_dependencies (test, &logger, NULL);
 
 	status = debug_log_create_entry (DEBUG_LOG_NUM_SEVERITY, 2, 3, 4, 5);
 	CuAssertIntEquals (test, LOGGING_UNSUPPORTED_SEVERITY, status);
 
-	complete_debug_log_mock_test (test, &logger, NULL);
+	debug_log_testing_validate_and_release_dependencies (test, &logger, NULL);
 }
 
 static void debug_log_test_create_entry_timestamp_error (CuTest *test)
@@ -182,7 +184,7 @@ static void debug_log_test_create_entry_timestamp_error (CuTest *test)
 
 	TEST_START;
 
-	setup_debug_log_mock_test (test, &logger, &rtc);
+	debug_log_testing_init_dependencies (test, &logger, &rtc);
 
 	status = mock_expect (&rtc.mock, rtc.base.get_time, &rtc, REAL_TIME_CLOCK_GET_TIME_FAILED,
 		MOCK_ARG_NOT_NULL);
@@ -194,7 +196,7 @@ static void debug_log_test_create_entry_timestamp_error (CuTest *test)
 	status = debug_log_create_entry (1, 2, 3, 4, 5);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_debug_log_mock_test (test, &logger, &rtc);
+	debug_log_testing_validate_and_release_dependencies (test, &logger, &rtc);
 }
 
 static void debug_log_test_flush (CuTest *test)
@@ -204,7 +206,7 @@ static void debug_log_test_flush (CuTest *test)
 
 	TEST_START;
 
-	setup_debug_log_mock_test (test, &logger, NULL);
+	debug_log_testing_init_dependencies (test, &logger, NULL);
 
 	status = mock_expect (&logger.mock, logger.base.flush, &logger, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -212,7 +214,7 @@ static void debug_log_test_flush (CuTest *test)
 	status = debug_log_flush ();
 	CuAssertIntEquals (test, 0, status);
 
-	complete_debug_log_mock_test (test, &logger, NULL);
+	debug_log_testing_validate_and_release_dependencies (test, &logger, NULL);
 }
 
 static void debug_log_test_flush_no_log (CuTest *test)
@@ -234,7 +236,7 @@ static void debug_log_test_clear (CuTest *test)
 
 	TEST_START;
 
-	setup_debug_log_mock_test (test, &logger, NULL);
+	debug_log_testing_init_dependencies (test, &logger, NULL);
 
 	status = mock_expect (&logger.mock, logger.base.clear, &logger, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -242,7 +244,7 @@ static void debug_log_test_clear (CuTest *test)
 	status = debug_log_clear ();
 	CuAssertIntEquals (test, 0, status);
 
-	complete_debug_log_mock_test (test, &logger, NULL);
+	debug_log_testing_validate_and_release_dependencies (test, &logger, NULL);
 }
 
 static void debug_log_test_clear_no_log (CuTest *test)
@@ -264,7 +266,7 @@ static void debug_log_test_get_size (CuTest *test)
 
 	TEST_START;
 
-	setup_debug_log_mock_test (test, &logger, NULL);
+	debug_log_testing_init_dependencies (test, &logger, NULL);
 
 	status = mock_expect (&logger.mock, logger.base.get_size, &logger, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -272,7 +274,7 @@ static void debug_log_test_get_size (CuTest *test)
 	status = debug_log_get_size ();
 	CuAssertIntEquals (test, 0, status);
 
-	complete_debug_log_mock_test (test, &logger, NULL);
+	debug_log_testing_validate_and_release_dependencies (test, &logger, NULL);
 }
 
 static void debug_log_test_get_size_no_log (CuTest *test)
@@ -295,7 +297,7 @@ static void debug_log_test_read_contents (CuTest *test)
 
 	TEST_START;
 
-	setup_debug_log_mock_test (test, &logger, NULL);
+	debug_log_testing_init_dependencies (test, &logger, NULL);
 
 	status = mock_expect (&logger.mock, logger.base.read_contents, &logger, 0, MOCK_ARG (0),
 		MOCK_ARG_PTR (contents), MOCK_ARG (sizeof (contents)));
@@ -304,7 +306,7 @@ static void debug_log_test_read_contents (CuTest *test)
 	status = debug_log_read_contents (0, contents, sizeof (contents));
 	CuAssertIntEquals (test, 0, status);
 
-	complete_debug_log_mock_test (test, &logger, NULL);
+	debug_log_testing_validate_and_release_dependencies (test, &logger, NULL);
 }
 
 static void debug_log_test_read_contents_no_log (CuTest *test)
