@@ -8,7 +8,7 @@
 #include "common/unused.h"
 
 
-static int authorization_disallowed_authorize (struct authorization *auth, uint8_t **token,
+int authorization_disallowed_authorize (const struct authorization *auth, const uint8_t **token,
 	size_t *length)
 {
 	UNUSED (auth);

@@ -746,7 +746,7 @@ int cerberus_protocol_unseal_message_result (const struct cmd_background *backgr
  *
  * @return 0 if processing completed successfully or an error code.
  */
-int cerberus_protocol_reset_config (struct cmd_authorization *cmd_auth,
+int cerberus_protocol_reset_config (const struct cmd_authorization *cmd_auth,
 	const struct cmd_background *background, struct cmd_interface_msg *request)
 {
 #if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
@@ -754,11 +754,11 @@ int cerberus_protocol_reset_config (struct cmd_authorization *cmd_auth,
 		(struct cerberus_protocol_reset_config*) request->data;
 	struct cerberus_protocol_reset_config_response *rsp =
 		(struct cerberus_protocol_reset_config_response*) request->data;
-	uint8_t *nonce = NULL;
+	const uint8_t *nonce = NULL;
 	size_t length;
 	int status;
 
-	int (*auth) (struct cmd_authorization*, uint8_t**, size_t*);
+	int (*auth) (const struct cmd_authorization*, const uint8_t**, size_t*);
 	int (*action) (const struct cmd_background*);
 
 	request->crypto_timeout = true;

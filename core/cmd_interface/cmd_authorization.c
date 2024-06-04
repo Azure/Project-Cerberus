@@ -4,112 +4,105 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include "cerberus_protocol_optional_commands.h"
 #include "cmd_authorization.h"
 #include "common/unused.h"
 
 
-static int cmd_authorization_authorize_revert_bypass (struct cmd_authorization *auth,
-	uint8_t **token, size_t *length)
+int cmd_authorization_authorize_operation (const struct cmd_authorization *auth,
+	uint32_t operation_id, const uint8_t **token, size_t *length)
 {
+	const struct cmd_authorization_operation *operation = NULL;
+	size_t i = 0;
+	int status;
+
 	if (auth == NULL) {
 		return CMD_AUTHORIZATION_INVALID_ARGUMENT;
 	}
 
-	if (auth->bypass) {
-		return auth->bypass->authorize (auth->bypass, token, length);
+	/* Find the requested operation in the list of supported descriptors. */
+	while ((operation == NULL) && (i < auth->op_count)) {
+		if (auth->op_list[i].id == operation_id) {
+			operation = &auth->op_list[i];
+		}
+
+		i++;
+	}
+
+	/* Authorize the operation. */
+	if (operation) {
+		if (operation->authorization) {
+			status = operation->authorization->authorize (operation->authorization, token, length);
+		}
+		else {
+			status = AUTHORIZATION_NOT_AUTHORIZED;
+		}
 	}
 	else {
-		return AUTHORIZATION_NOT_AUTHORIZED;
+		status = CMD_AUTHORIZATION_UNSUPPORTED_OP;
 	}
+
+	return status;
 }
 
-static int cmd_authorization_authorize_reset_defaults (struct cmd_authorization *auth,
-	uint8_t **token, size_t *length)
+int cmd_authorization_authorize_revert_bypass (const struct cmd_authorization *auth,
+	const uint8_t **token, size_t *length)
 {
-	if (auth == NULL) {
-		return CMD_AUTHORIZATION_INVALID_ARGUMENT;
-	}
-
-	if (auth->defaults) {
-		return auth->defaults->authorize (auth->defaults, token, length);
-	}
-	else {
-		return AUTHORIZATION_NOT_AUTHORIZED;
-	}
+	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_REVERT_BYPASS, token,
+		length);
 }
 
-static int cmd_authorization_authorize_clear_platform_config (struct cmd_authorization *auth,
-	uint8_t **token, size_t *length)
+int cmd_authorization_authorize_reset_defaults (const struct cmd_authorization *auth,
+	const uint8_t **token, size_t *length)
 {
-	if (auth == NULL) {
-		return CMD_AUTHORIZATION_INVALID_ARGUMENT;
-	}
-
-	if (auth->platform) {
-		return auth->platform->authorize (auth->platform, token, length);
-	}
-	else {
-		return AUTHORIZATION_NOT_AUTHORIZED;
-	}
+	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_FACTORY_RESET, token,
+		length);
 }
 
-static int cmd_authorization_authorize_clear_component_manifests (struct cmd_authorization *auth,
-	uint8_t **token, size_t *length)
+int cmd_authorization_authorize_clear_platform_config (const struct cmd_authorization *auth,
+	const uint8_t **token, size_t *length)
 {
-	if (auth == NULL) {
-		return CMD_AUTHORIZATION_INVALID_ARGUMENT;
-	}
-
-	if (auth->components) {
-		return auth->components->authorize (auth->components, token, length);
-	}
-	else {
-		return AUTHORIZATION_NOT_AUTHORIZED;
-	}
+	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_CLEAR_PCD, token,
+		length);
 }
 
-static int cmd_authorization_authorize_reset_intrusion (struct cmd_authorization *auth,
-	uint8_t **token, size_t *length)
+int cmd_authorization_authorize_clear_component_manifests (const struct cmd_authorization *auth,
+	const uint8_t **token, size_t *length)
 {
-	if (auth == NULL) {
-		return CMD_AUTHORIZATION_INVALID_ARGUMENT;
-	}
+	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_CLEAR_CFM, token,
+		length);
+}
 
-	if (auth->intrusion) {
-		return auth->intrusion->authorize (auth->intrusion, token, length);
-	}
-	else {
-		return AUTHORIZATION_NOT_AUTHORIZED;
-	}
+int cmd_authorization_authorize_reset_intrusion (const struct cmd_authorization *auth,
+	const uint8_t **token, size_t *length)
+{
+	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_RESET_INTRUSION, token,
+		length);
 }
 
 /**
  * Initialize the handler for authorizing requested operations.
  *
  * @param auth The authorization handler to initialize.
- * @param bypass The authorization context to revert to bypass mode.  Set to null to disallow this
+ * @param op_list The list of operations supported by the handler for authorization.  A supported
+ * operation is one that is known to the handler, not necessarily one that is allowed.  It's
+ * possible for a supported operation to have an authorization context that always disallows the
  * operation.
- * @param defaults The authorization context to restore default configuration.  Set to null to
- * disallow this operation.
- * @param platform The authorization context to clear platform-specific configuration.  Set to null
- * to disallow this operation.
- * @param components The authorization context to clear component manifests.  Set to null to
- * disallow this operation.
- * @param intrusion The authorization context to reset intrusion state.  Set to null to disallow
- * this operation.
+ * @param op_count The number of operations in the list.  This list can be empty to support no
+ * operations.
  *
  * @return 0 if the handler was successfully initialized or an error code.
  */
-int cmd_authorization_init (struct cmd_authorization *auth, struct authorization *bypass,
-	struct authorization *defaults, struct authorization *platform,
-	struct authorization *components, struct authorization *intrusion)
+int cmd_authorization_init (struct cmd_authorization *auth,
+	const struct cmd_authorization_operation *const op_list, size_t op_count)
 {
-	if (auth == NULL) {
+	if ((auth == NULL) || ((op_count != 0) && (op_list == NULL))) {
 		return CMD_AUTHORIZATION_INVALID_ARGUMENT;
 	}
 
 	memset (auth, 0, sizeof (struct cmd_authorization));
 
+	auth->authorize_operation = cmd_authorization_authorize_operation;
 	auth->authorize_revert_bypass = cmd_authorization_authorize_revert_bypass;
 	auth->authorize_reset_defaults = cmd_authorization_authorize_reset_defaults;
 	auth->authorize_clear_platform_config = cmd_authorization_authorize_clear_platform_config;
@@ -117,11 +110,8 @@ int cmd_authorization_init (struct cmd_authorization *auth, struct authorization
 		cmd_authorization_authorize_clear_component_manifests;
 	auth->authorize_reset_intrusion = cmd_authorization_authorize_reset_intrusion;
 
-	auth->bypass = bypass;
-	auth->defaults = defaults;
-	auth->platform = platform;
-	auth->components = components;
-	auth->intrusion = intrusion;
+	auth->op_list = op_list;
+	auth->op_count = op_count;
 
 	return 0;
 }
@@ -131,7 +121,7 @@ int cmd_authorization_init (struct cmd_authorization *auth, struct authorization
  *
  * @param auth The authorization handler to release.
  */
-void cmd_authorization_release (struct cmd_authorization *auth)
+void cmd_authorization_release (const struct cmd_authorization *auth)
 {
 	UNUSED (auth);
 }

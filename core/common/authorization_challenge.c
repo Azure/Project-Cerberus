@@ -9,75 +9,44 @@
 #include "crypto/rsa.h"
 
 
-static int authorization_challenge_authorize (struct authorization *auth, uint8_t **token,
+int authorization_challenge_authorize (const struct authorization *auth, const uint8_t **token,
 	size_t *length)
 {
-	struct authorization_challenge *challenge = (struct authorization_challenge*) auth;
-	uint8_t hash[SHA256_HASH_LENGTH];
+	const struct authorization_challenge *challenge = (const struct authorization_challenge*) auth;
+	const uint8_t *token_data = NULL;
+	size_t data_length = 0;
 	int status;
 
 	if ((challenge == NULL) || (token == NULL) || (length == NULL)) {
 		return AUTHORIZATION_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&challenge->lock);
+	platform_mutex_lock (&challenge->state->lock);
 
 	if (*token == NULL) {
-		challenge->token_length = 0;
-
-		status = challenge->rng->generate_random_buffer (challenge->rng,
-			AUTH_CHALLENGE_NONCE_LENGTH, &challenge->token[challenge->nonce_offset]);
-		if (status != 0) {
-			goto exit;
+		if (challenge->include_tag) {
+			token_data = (const uint8_t*) &challenge->token_tag;
+			data_length = AUTHORIZATION_CHALLENGE_TAG_LENGTH;
 		}
 
-		status = challenge->hash->calculate_sha256 (challenge->hash, challenge->token,
-			challenge->nonce_offset + AUTH_CHALLENGE_NONCE_LENGTH, hash, sizeof (hash));
-		if (status != 0) {
-			goto exit;
-		}
-
-		status = challenge->ecc->sign (challenge->ecc, &challenge->key, hash, SHA256_HASH_LENGTH,
-			challenge->token + challenge->nonce_offset + AUTH_CHALLENGE_NONCE_LENGTH,
-			challenge->sig_length);
-		if (ROT_IS_ERROR (status)) {
-			goto exit;
-		}
-
-		challenge->token_length = challenge->nonce_offset + AUTH_CHALLENGE_NONCE_LENGTH + status;
-
-		*token = challenge->token;
-		*length = challenge->token_length;
-		status = AUTHORIZATION_CHALLENGE;
-	}
-	else if ((challenge->token_length != 0) && (*length > challenge->token_length)) {
-		status = challenge->hash->calculate_sha256 (challenge->hash, *token,
-			challenge->token_length, hash, sizeof (hash));
-		if (status != 0) {
-			goto exit;
-		}
-
-		status = challenge->verification->verify_signature (challenge->verification, hash,
-			SHA256_HASH_LENGTH, (*token) + challenge->token_length,
-			*length - challenge->token_length);
+		status = challenge->token->new_token (challenge->token, token_data, data_length, token,
+			length);
 		if (status == 0) {
-			if (buffer_compare (*token, challenge->token, challenge->token_length) == 0) {
-				challenge->token_length = 0;
-			}
-			else {
-				status = AUTHORIZATION_NOT_AUTHORIZED;
-			}
-		}
-		else if (status == SIG_VERIFICATION_BAD_SIGNATURE) {
-			status = AUTHORIZATION_NOT_AUTHORIZED;
+			status = AUTHORIZATION_CHALLENGE;
 		}
 	}
 	else {
-		status = AUTHORIZATION_NOT_AUTHORIZED;
+		status = challenge->token->verify_data (challenge->token, *token, *length, 0, 0,
+			challenge->auth_hash);
+		if (status == 0) {
+			status = challenge->token->invalidate (challenge->token);
+		}
+		else if (status == AUTH_TOKEN_NOT_VALID) {
+			status = AUTHORIZATION_NOT_AUTHORIZED;
+		}
 	}
 
-exit:
-	platform_mutex_unlock (&challenge->lock);
+	platform_mutex_unlock (&challenge->state->lock);
 
 	return status;
 }
@@ -86,118 +55,80 @@ exit:
  * Initialize an authorization manager that will generate a challenge to authorize operations.
  *
  * @param auth The authorization manager to initialize.
- * @param rng Random number generator to use for generating authorization nonces.
- * @param hash The hash engine to use for nonce validation.
- * @param ecc The ECC engine to use for signing authorization challenges.
- * @param device_key DER encoded device-specific ECC key for signing authorization challenges.
- * @param length Length of the device-specific key.
- * @param verification Signature verification for authorization responses.
- * @param header Static header data to add to any authorization token.
- * @param header_length Length of the static token header.
+ * @param state Variable context for authorization.  This must be uninitialized.
+ * @param token Token manager to use for authorization tokens.  This must have been initialized to
+ * use a nonce of AUTHORIZATION_CHALLENGE_NONCE_LENGTH bytes and no additional data.
+ * @param auth_hash Hash algorithm to use for signature verification of authorized tokens.
  *
  * @return 0 if the authorization manager was successfully initialized or an error code.
  */
-int authorization_challenge_init_common (struct authorization_challenge *auth,
-	struct rng_engine *rng, struct hash_engine *hash, struct ecc_engine *ecc,
-	const uint8_t *device_key, size_t length, struct signature_verification *verification,
-	const uint8_t *header, size_t header_length)
+int authorization_challenge_init (struct authorization_challenge *auth,
+	struct authorization_challenge_state *state, const struct auth_token *token,
+	enum hash_type auth_hash)
 {
-	int status;
-
-	if ((auth == NULL) || (rng == NULL) || (hash == NULL) || (ecc == NULL) ||
-		(device_key == NULL) || (verification == NULL)) {
+	if (auth == NULL) {
 		return AUTHORIZATION_INVALID_ARGUMENT;
 	}
 
-	memset (auth, 0, sizeof (struct authorization_challenge));
-
-	status = platform_mutex_init (&auth->lock);
-	if (status != 0) {
-		return status;
-	}
-
-	status = ecc->init_key_pair (ecc, device_key, length, &auth->key, NULL);
-	if (status != 0) {
-		goto exit_lock;
-	}
-
-	status = ecc->get_signature_max_length (ecc, &auth->key);
-	if (ROT_IS_ERROR (status)) {
-		goto exit_key;
-	}
-
-	auth->sig_length = status;
-	auth->token = platform_malloc (header_length + AUTH_CHALLENGE_NONCE_LENGTH + auth->sig_length);
-	if (auth->token == NULL) {
-		status = AUTHORIZATION_NO_MEMORY;
-		goto exit_key;
-	}
-
-	if (header) {
-		memcpy (auth->token, header, header_length);
-		auth->nonce_offset = header_length;
-	}
+	memset (auth, 0, sizeof (*auth));
 
 	auth->base.authorize = authorization_challenge_authorize;
 
-	auth->rng = rng;
-	auth->hash = hash;
-	auth->ecc = ecc;
-	auth->verification = verification;
+	auth->state = state;
+	auth->token = token;
+	auth->auth_hash = auth_hash;
 
-	return 0;
-
-exit_key:
-	ecc->release_key_pair (ecc, &auth->key, NULL);
-exit_lock:
-	platform_mutex_free (&auth->lock);
-
-	return status;
-}
-
-/**
- * Initialize an authorization manager that will generate a challenge to authorize operations.
- *
- * @param auth The authorization manager to initialize.
- * @param rng Random number generator to use for generating authorization nonces.
- * @param hash The hash engine to use for nonce validation.
- * @param ecc The ECC engine to use for signing authorization challenges.
- * @param device_key DER encoded device-specific ECC key for signing authorization challenges.
- * @param length Length of the device-specific key.
- * @param verification Signature verification for authorization responses.
- *
- * @return 0 if the authorization manager was successfully initialized or an error code.
- */
-int authorization_challenge_init (struct authorization_challenge *auth, struct rng_engine *rng,
-	struct hash_engine *hash, struct ecc_engine *ecc, const uint8_t *device_key, size_t length,
-	struct signature_verification *verification)
-{
-	return authorization_challenge_init_common (auth, rng, hash, ecc, device_key, length,
-		verification, NULL, 0);
+	return authorization_challenge_init_state (auth);
 }
 
 /**
  * Initialize an authorization manager that will generate a challenge to authorize operations.  The
- * challenge token will contain a identifying tag before the nonce.
+ * challenge token will contain an identifying tag before the nonce.
  *
  * @param auth The authorization manager to initialize.
- * @param rng Random number generator to use for generating authorization nonces.
- * @param hash The hash engine to use for nonce validation.
- * @param ecc The ECC engine to use for signing authorization challenges.
- * @param device_key DER encoded device-specific ECC key for signing authorization challenges.
- * @param length Length of the device-specific key.
- * @param verification Signature verification for authorization responses.
- * @param tag A tag value to include as part of the challenge token.
+ * @param state Variable context for authorization.  This must be uninitialized.
+ * @param token Token manager to use for authorization tokens.  This must have been initialized to
+ * use a nonce of AUTHORIZATION_CHALLENGE_NONCE_LENGTH bytes and an additional
+ * AUTHORIZATION_CHALLENGE_TAG_LENGTH bytes of data for the tag.
+ * @param auth_hash Hash algorithm to use for signature verification of authorized tokens.
+ * @param tag The identifying tag value to include as part of the authorization token.
  *
  * @return 0 if the authorization manager was successfully initialized or an error code.
  */
 int authorization_challenge_init_with_tag (struct authorization_challenge *auth,
-	struct rng_engine *rng, struct hash_engine *hash, struct ecc_engine *ecc,
-	const uint8_t *device_key, size_t length, struct signature_verification *verification,
-	uint32_t tag)
+	struct authorization_challenge_state *state, const struct auth_token *token,
+	enum hash_type auth_hash, uint32_t tag)
 {
-	return authorization_challenge_init_common (auth, rng, hash, ecc, device_key, length,
-		verification, (uint8_t*) &tag, sizeof (tag));
+	int status;
+
+	status = authorization_challenge_init (auth, state, token, auth_hash);
+	if (status == 0) {
+		auth->token_tag = tag;
+		auth->include_tag = true;
+	}
+
+	return status;
+}
+
+/**
+ * Initialize only the variable state of a challenge authorization manager.  The rest of the
+ * instance is assumed to already have been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param auth The authorization manager that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int authorization_challenge_init_state (const struct authorization_challenge *auth)
+{
+	if ((auth == NULL) || (auth->state == NULL) || (auth->token == NULL)) {
+		return AUTHORIZATION_INVALID_ARGUMENT;
+	}
+
+	memset (auth->state, 0, sizeof (*auth->state));
+
+	return platform_mutex_init (&auth->state->lock);
 }
 
 /**
@@ -205,11 +136,9 @@ int authorization_challenge_init_with_tag (struct authorization_challenge *auth,
  *
  * @param auth The authorization manager to release.
  */
-void authorization_challenge_release (struct authorization_challenge *auth)
+void authorization_challenge_release (const struct authorization_challenge *auth)
 {
 	if (auth != NULL) {
-		platform_mutex_free (&auth->lock);
-		auth->ecc->release_key_pair (auth->ecc, &auth->key, NULL);
-		platform_free (auth->token);
+		platform_mutex_free (&auth->state->lock);
 	}
 }

@@ -983,7 +983,7 @@ int cerberus_protocol_unseal_message (const struct cmd_background *background,
 int cerberus_protocol_unseal_message_result (const struct cmd_background *background,
 	struct cmd_interface_msg *request);
 
-int cerberus_protocol_reset_config (struct cmd_authorization *cmd_auth,
+int cerberus_protocol_reset_config (const struct cmd_authorization *cmd_auth,
 	const struct cmd_background *background, struct cmd_interface_msg *request);
 
 const struct recovery_image_cmd_interface* cerberus_protocol_get_recovery_image_cmd_interface (

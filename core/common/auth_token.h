@@ -74,6 +74,8 @@ struct auth_token {
 	 * Invalidate any active authorization token.  Any future checks against this token will fail.
 	 *
 	 * @param auth The token handler for the token to invalidate.
+	 *
+	 * @return 0 if the token was successfully invalidated or error code.
 	 */
 	int (*invalidate) (const struct auth_token *auth);
 

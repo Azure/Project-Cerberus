@@ -7,7 +7,7 @@
 #include "authorization_mock.h"
 
 
-static int authorization_mock_authorize (struct authorization *auth, uint8_t **token,
+static int authorization_mock_authorize (const struct authorization *auth, const uint8_t **token,
 	size_t *length)
 {
 	struct authorization_mock *mock = (struct authorization_mock*) auth;

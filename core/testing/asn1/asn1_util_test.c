@@ -11,6 +11,10 @@
 TEST_SUITE_LABEL ("asn1_util");
 
 
+/*******************
+ * Test cases
+ *******************/
+
 static void asn1_get_der_item_len_test_single_byte_length (CuTest *test)
 {
 	int status;

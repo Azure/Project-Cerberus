@@ -43,7 +43,7 @@ struct authorization {
 	 * @return 0 if the operation is authorized or an error code.  If a token was generated,
 	 * AUTHORIZATION_CHALLENGE will be returned.
 	 */
-	int (*authorize) (struct authorization *auth, uint8_t **token, size_t *length);
+	int (*authorize) (const struct authorization *auth, const uint8_t **token, size_t *length);
 };
 
 
