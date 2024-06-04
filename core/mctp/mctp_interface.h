@@ -65,13 +65,13 @@ struct mctp_interface {
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 	struct msg_transport base;								/**< Base transport API for sending requests. */
 	const struct cmd_channel *channel;						/**< Command channel to use for sending requests. */
+	const struct cmd_interface *cmd_cerberus;				/**< Deprecated handler for Cerberus responses. */
 	const struct cmd_interface *cmd_mctp;					/**< Deprecated handler for MCTP responses. */
 	const struct cmd_interface *cmd_spdm;					/**< Deprecated handler for SPDM responses. */
 #endif
 	struct mctp_interface_state *state;						/**< Variable context for the handler. */
 	const struct cmd_interface_multi_handler *req_handler;	/**< Handler for processing MCTP requests. */
 	struct device_manager *device_manager;					/**< Device manager linked to command interface */
-	const struct cmd_interface *cmd_cerberus;				/**< Deprecated handler for Cerberus responses and error messages. */
 };
 
 

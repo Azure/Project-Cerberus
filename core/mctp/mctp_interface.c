@@ -585,7 +585,7 @@ static int mctp_interface_handle_request_message (const struct mctp_interface *m
  * @param channel The channel to use for sending request messages.  This can be null if sending
  * requests is not necessary.
  * @param cmd_cerberus The command interface for legacy processing of Cerberus response messages.
- * This will also be used for creating error messages.
+ * This can be null if sending requests is not necessary.
  * @param cmd_mctp The command interface for legacy processing of MCTP response messages.  This can
  * be null if sending requests is not necessary.
  * @param cmd_spdm The command interface for legacy processing of SPDM response messages. This is
@@ -613,10 +613,12 @@ int mctp_interface_init (struct mctp_interface *mctp, struct mctp_interface_stat
 	mctp->base.send_request_message = mctp_interface_send_request_message;
 
 	mctp->channel = channel;
+	mctp->cmd_cerberus = cmd_cerberus;
 	mctp->cmd_mctp = cmd_mctp;
 	mctp->cmd_spdm = cmd_spdm;
 #else
 	UNUSED (channel);
+	UNUSED (cmd_cerberus);
 	UNUSED (cmd_mctp);
 	UNUSED (cmd_spdm);
 #endif
@@ -624,7 +626,6 @@ int mctp_interface_init (struct mctp_interface *mctp, struct mctp_interface_stat
 	mctp->state = state;
 	mctp->req_handler = req_handler;
 	mctp->device_manager = device_mgr;
-	mctp->cmd_cerberus = cmd_cerberus;
 
 	return mctp_interface_init_state (mctp);
 }
@@ -646,7 +647,7 @@ int mctp_interface_init_state (const struct mctp_interface *mctp)
 #endif
 
 	if ((mctp == NULL) || (mctp->state == NULL) || (mctp->req_handler == NULL) ||
-		(mctp->device_manager == NULL) || (mctp->cmd_cerberus == NULL)) {
+		(mctp->device_manager == NULL)) {
 		return MCTP_BASE_PROTOCOL_INVALID_ARGUMENT;
 	}
 

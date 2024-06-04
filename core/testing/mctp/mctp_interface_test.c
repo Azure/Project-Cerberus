@@ -303,6 +303,22 @@ static void mctp_interface_test_init (CuTest *test)
 	mctp_interface_testing_release (test, &mctp);
 }
 
+static void mctp_interface_test_init_cerberus_resp_not_supported (CuTest *test)
+{
+	struct mctp_interface_testing mctp;
+	int status;
+
+	TEST_START;
+
+	mctp_interface_testing_init_dependencies (test, &mctp);
+
+	status = mctp_interface_init (&mctp.test, &mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+		&mctp.channel.base, NULL, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base);
+	CuAssertIntEquals (test, 0, status);
+
+	mctp_interface_testing_release (test, &mctp);
+}
+
 static void mctp_interface_test_init_mctp_resp_not_supported (CuTest *test)
 {
 	struct mctp_interface_testing mctp;
@@ -376,10 +392,6 @@ static void mctp_interface_test_init_null (CuTest *test)
 		&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
 
-	status = mctp_interface_init (&mctp.test, &mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
-		&mctp.channel.base, NULL, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
-
 	mctp_interface_testing_release_dependencies (test, &mctp);
 }
 
@@ -400,6 +412,24 @@ static void mctp_interface_test_static_init (CuTest *test)
 	CuAssertPtrNotNull (test, mctp.test.base.get_buffer_overhead);
 	CuAssertPtrNotNull (test, mctp.test.base.send_request_message);
 #endif
+
+	mctp_interface_testing_init_dependencies (test, &mctp);
+
+	status = mctp_interface_init_state (&mctp.test);
+	CuAssertIntEquals (test, 0, status);
+
+	mctp_interface_testing_release (test, &mctp);
+}
+
+static void mctp_interface_test_static_init_cerberus_resp_not_supported (CuTest *test)
+{
+	struct mctp_interface_testing mctp = {
+		.test = mctp_interface_static_init (&mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+			&mctp.channel.base, NULL, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base)
+	};
+	int status;
+
+	TEST_START;
 
 	mctp_interface_testing_init_dependencies (test, &mctp);
 
@@ -475,9 +505,6 @@ static void mctp_interface_test_static_init_null (CuTest *test)
 	struct mctp_interface no_dev_mgr = mctp_interface_static_init (&mctp.state,
 		&mctp.req_handler.base, NULL, &mctp.channel.base, &mctp.cmd_cerberus.base,
 		&mctp.cmd_mctp.base, &mctp.cmd_spdm.base);
-	struct mctp_interface no_cerberus = mctp_interface_static_init (&mctp.state,
-		&mctp.req_handler.base, &mctp.device_mgr, &mctp.channel.base, NULL, &mctp.cmd_mctp.base,
-		&mctp.cmd_spdm.base);
 	int status;
 
 	TEST_START;
@@ -494,9 +521,6 @@ static void mctp_interface_test_static_init_null (CuTest *test)
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
 
 	status = mctp_interface_init_state (&no_dev_mgr);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
-
-	status = mctp_interface_init_state (&no_cerberus);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
 
 	mctp_interface_testing_release_dependencies (test, &mctp);
@@ -15544,11 +15568,13 @@ static void mctp_interface_test_issue_request_spdm_then_process_packet_response_
 TEST_SUITE_START (mctp_interface);
 
 TEST (mctp_interface_test_init);
+TEST (mctp_interface_test_init_cerberus_resp_not_supported);
 TEST (mctp_interface_test_init_mctp_resp_not_supported);
 TEST (mctp_interface_test_init_spdm_not_supported);
 TEST (mctp_interface_test_init_no_cmd_channel);
 TEST (mctp_interface_test_init_null);
 TEST (mctp_interface_test_static_init);
+TEST (mctp_interface_test_static_init_cerberus_resp_not_supported);
 TEST (mctp_interface_test_static_init_mctp_resp_not_supported);
 TEST (mctp_interface_test_static_init_spdm_not_supported);
 TEST (mctp_interface_test_static_init_no_cmd_channel);

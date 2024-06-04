@@ -35,13 +35,15 @@ int mctp_interface_send_request_message (const struct msg_transport *transport,
  * Initializer for fields only available when issuing requests is supported.
  */
 #ifdef CMD_ENABLE_ISSUE_REQUEST
-#define	MCTP_INTERFACE_ISSUE_REQUEST_INIT(channel_ptr, cmd_mctp_ptr, cmd_spdm_ptr)  \
-	.base = MCTP_INTERFACE_MSG_TRANSPORT_API_INIT, \
-	.channel = channel_ptr, \
-	.cmd_mctp = cmd_mctp_ptr, \
-	.cmd_spdm = cmd_spdm_ptr,
+#define	MCTP_INTERFACE_ISSUE_REQUEST_INIT(channel_ptr, cmd_cerberus_ptr, cmd_mctp_ptr, \
+	cmd_spdm_ptr)  \
+		.base = MCTP_INTERFACE_MSG_TRANSPORT_API_INIT, \
+		.channel = channel_ptr, \
+		.cmd_cerberus = cmd_cerberus_ptr, \
+		.cmd_mctp = cmd_mctp_ptr, \
+		.cmd_spdm = cmd_spdm_ptr,
 #else
-#define	MCTP_INTERFACE_ISSUE_REQUEST_INIT(channel_ptr, cmd_mctp_ptr, cmd_spdm_ptr)
+#define	MCTP_INTERFACE_ISSUE_REQUEST_INIT(channel_ptr, cmd_cerberus_ptr, cmd_mctp_ptr, cmd_spdm_ptr)
 #endif
 
 /**
@@ -64,11 +66,11 @@ int mctp_interface_send_request_message (const struct msg_transport *transport,
  */
 #define	mctp_interface_static_init(state_ptr, req_handler_ptr, device_mgr_ptr, channel_ptr, \
 	cmd_cerberus_ptr, cmd_mctp_ptr, cmd_spdm_ptr)	{ \
-		MCTP_INTERFACE_ISSUE_REQUEST_INIT (channel_ptr, cmd_mctp_ptr, cmd_spdm_ptr) \
+		MCTP_INTERFACE_ISSUE_REQUEST_INIT (channel_ptr, cmd_cerberus_ptr, cmd_mctp_ptr, \
+			cmd_spdm_ptr) \
 		.state = state_ptr, \
 		.req_handler = req_handler_ptr, \
 		.device_manager = device_mgr_ptr, \
-		.cmd_cerberus = cmd_cerberus_ptr, \
 	}
 
 
