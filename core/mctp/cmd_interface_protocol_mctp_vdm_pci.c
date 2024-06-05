@@ -72,3 +72,38 @@ void cmd_interface_protocol_mctp_vdm_pci_release (
 {
 	UNUSED (mctp);
 }
+
+/**
+ * Add an MCTP vendor defined message protocol header to the message buffer.
+ *
+ * @param mctp The MCTP vendor defined message protocol handler.
+ * @param vendor_id The vendor ID for the protocol used for the MCTP message.
+ * @param message The message descriptor containing the payload that should be encapsulated with an
+ * MCTP vendor defined message header.
+ *
+ * @return 0 if the MCTP vendor defined message header was added successfully or an error code.
+ */
+int cmd_interface_protocol_mctp_vdm_pci_add_header (
+	const struct cmd_interface_protocol_mctp_vdm_pci *mctp, uint16_t vendor_id,
+	struct cmd_interface_msg *message)
+{
+	struct mctp_base_protocol_vdm_pci_header *header;
+
+	if ((mctp == NULL) || (message == NULL)) {
+		return MCTP_BASE_PROTOCOL_INVALID_ARGUMENT;
+	}
+
+	if (cmd_interface_msg_get_protocol_length (message) < sizeof (*header)) {
+		return MCTP_BASE_PROTOCOL_NO_HEADER_SPACE;
+	}
+
+	cmd_interface_msg_add_protocol_header (message, sizeof (*header));
+
+	header = (struct mctp_base_protocol_vdm_pci_header*) message->payload;
+
+	header->msg_header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->msg_header.integrity_check = 0;
+	header->pci_vendor_id = vendor_id;
+
+	return 0;
+}

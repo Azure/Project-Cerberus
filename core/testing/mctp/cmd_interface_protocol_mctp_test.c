@@ -1440,7 +1440,7 @@ static void cmd_interface_protocol_mctp_test_add_header (CuTest *test)
 	struct mctp_base_protocol_message_header *header =
 		(struct mctp_base_protocol_message_header*) data;
 	int status;
-	uint32_t message_type = 0x76;
+	uint8_t message_type = 0x76;
 
 	TEST_START;
 
@@ -1481,7 +1481,7 @@ static void cmd_interface_protocol_mctp_test_add_header_static_init (CuTest *tes
 	struct mctp_base_protocol_message_header *header =
 		(struct mctp_base_protocol_message_header*) data;
 	int status;
-	uint32_t message_type = 0x21;
+	uint8_t message_type = 0x21;
 
 	TEST_START;
 
@@ -1520,7 +1520,7 @@ static void cmd_interface_protocol_mctp_test_add_header_null (CuTest *test)
 	struct mctp_base_protocol_message_header *header =
 		(struct mctp_base_protocol_message_header*) data;
 	int status;
-	uint32_t message_type = 0x76;
+	uint8_t message_type = 0x76;
 
 	TEST_START;
 
@@ -1559,7 +1559,7 @@ static void cmd_interface_protocol_mctp_test_add_header_insufficient_space (CuTe
 	struct mctp_base_protocol_message_header *header =
 		(struct mctp_base_protocol_message_header*) data;
 	int status;
-	uint32_t message_type = 0x76;
+	uint8_t message_type = 0x76;
 
 	TEST_START;
 

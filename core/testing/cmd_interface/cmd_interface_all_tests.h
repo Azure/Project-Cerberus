@@ -153,6 +153,12 @@ static void add_all_cmd_interface_tests (CuSuite *suite)
 	!defined TESTING_SKIP_MSG_TRANSPORT_SUITE
 	TESTING_RUN_SUITE (msg_transport);
 #endif
+#if (defined TESTING_RUN_MSG_TRANSPORT_INTERMEDIATE_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_MSG_TRANSPORT_INTERMEDIATE_SUITE
+	TESTING_RUN_SUITE (msg_transport_intermediate);
+#endif
 #if (defined TESTING_RUN_SESSION_MANAGER_ECC_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

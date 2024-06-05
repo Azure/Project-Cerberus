@@ -69,6 +69,12 @@ static void add_all_mctp_tests (CuSuite *suite)
 	!defined TESTING_SKIP_MSG_TRANSPORT_MCTP_MESSAGE_SUITE
 	TESTING_RUN_SUITE (msg_transport_mctp_message);
 #endif
+#if (defined TESTING_RUN_MSG_TRANSPORT_MCTP_VDM_PCI_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_MSG_TRANSPORT_MCTP_VDM_PCI_SUITE
+	TESTING_RUN_SUITE (msg_transport_mctp_vdm_pci);
+#endif
 }
 
 

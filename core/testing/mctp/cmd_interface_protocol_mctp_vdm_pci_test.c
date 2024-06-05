@@ -440,6 +440,167 @@ static void cmd_interface_protocol_mctp_vdm_pci_test_parse_message_wrong_mctp_me
 	cmd_interface_protocol_mctp_vdm_pci_release (&mctp);
 }
 
+static void cmd_interface_protocol_mctp_vdm_pci_test_add_header (CuTest *test)
+{
+	struct cmd_interface_protocol_mctp_vdm_pci mctp;
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
+	struct cmd_interface_msg message;
+	struct mctp_base_protocol_vdm_pci_header *header =
+		(struct mctp_base_protocol_vdm_pci_header*) data;
+	int status;
+	uint16_t vendor_id = 0x5678;
+
+	TEST_START;
+
+	status = cmd_interface_protocol_mctp_vdm_pci_init (&mctp);
+	CuAssertIntEquals (test, 0, status);
+
+	header->msg_header.msg_type = 0x13;
+	header->msg_header.integrity_check = 1;
+	header->pci_vendor_id = 0x1234;
+
+	memset (&message, 0, sizeof (message));
+	message.data = data;
+	message.length = sizeof (data);
+	message.max_response = sizeof (data);
+	message.payload = &data[3];
+	message.payload_length = sizeof (data) - 3;
+
+	status = cmd_interface_protocol_mctp_vdm_pci_add_header (&mctp, vendor_id, &message);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, data, message.data);
+	CuAssertIntEquals (test, sizeof (data), message.length);
+	CuAssertIntEquals (test, sizeof (data), message.max_response);
+	CuAssertPtrEquals (test, message.data, message.payload);
+	CuAssertIntEquals (test, message.length, message.payload_length);
+
+	CuAssertIntEquals (test, 0x7e, header->msg_header.msg_type);
+	CuAssertIntEquals (test, 0, header->msg_header.integrity_check);
+	CuAssertIntEquals (test, vendor_id, header->pci_vendor_id);
+
+	cmd_interface_protocol_mctp_vdm_pci_release (&mctp);
+}
+
+static void cmd_interface_protocol_mctp_vdm_pci_test_add_header_static_init (CuTest *test)
+{
+	struct cmd_interface_protocol_mctp_vdm_pci mctp =
+		cmd_interface_protocol_mctp_vdm_pci_static_init;
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
+	struct cmd_interface_msg message;
+	struct mctp_base_protocol_vdm_pci_header *header =
+		(struct mctp_base_protocol_vdm_pci_header*) data;
+	int status;
+	uint16_t vendor_id = 0x2354;
+
+	TEST_START;
+
+	header->msg_header.msg_type = 0x13;
+	header->msg_header.integrity_check = 1;
+	header->pci_vendor_id = 0x1234;
+
+	memset (&message, 0, sizeof (message));
+	message.data = data;
+	message.length = sizeof (data);
+	message.max_response = sizeof (data);
+	message.payload = &data[3];
+	message.payload_length = sizeof (data) - 3;
+
+	status = cmd_interface_protocol_mctp_vdm_pci_add_header (&mctp, vendor_id, &message);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, data, message.data);
+	CuAssertIntEquals (test, sizeof (data), message.length);
+	CuAssertIntEquals (test, sizeof (data), message.max_response);
+	CuAssertPtrEquals (test, message.data, message.payload);
+	CuAssertIntEquals (test, message.length, message.payload_length);
+
+	CuAssertIntEquals (test, 0x7e, header->msg_header.msg_type);
+	CuAssertIntEquals (test, 0, header->msg_header.integrity_check);
+	CuAssertIntEquals (test, vendor_id, header->pci_vendor_id);
+
+	cmd_interface_protocol_mctp_vdm_pci_release (&mctp);
+}
+
+static void cmd_interface_protocol_mctp_vdm_pci_test_add_header_null (CuTest *test)
+{
+	struct cmd_interface_protocol_mctp_vdm_pci mctp;
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
+	struct cmd_interface_msg message;
+	struct mctp_base_protocol_vdm_pci_header *header =
+		(struct mctp_base_protocol_vdm_pci_header*) data;
+	int status;
+	uint16_t vendor_id = 0x5678;
+
+	TEST_START;
+
+	status = cmd_interface_protocol_mctp_vdm_pci_init (&mctp);
+	CuAssertIntEquals (test, 0, status);
+
+	header->msg_header.msg_type = 0x13;
+	header->msg_header.integrity_check = 1;
+	header->pci_vendor_id = 0x1234;
+
+	memset (&message, 0, sizeof (message));
+	message.data = data;
+	message.length = sizeof (data);
+	message.max_response = sizeof (data);
+	message.payload = &data[3];
+	message.payload_length = sizeof (data) - 3;
+
+	status = cmd_interface_protocol_mctp_vdm_pci_add_header (NULL, vendor_id, &message);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
+
+	status = cmd_interface_protocol_mctp_vdm_pci_add_header (&mctp, vendor_id, NULL);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
+
+	CuAssertPtrEquals (test, data, message.data);
+	CuAssertIntEquals (test, sizeof (data), message.length);
+	CuAssertIntEquals (test, sizeof (data), message.max_response);
+	CuAssertPtrEquals (test, &message.data[3], message.payload);
+	CuAssertIntEquals (test, message.length - 3, message.payload_length);
+
+	cmd_interface_protocol_mctp_vdm_pci_release (&mctp);
+}
+
+static void cmd_interface_protocol_mctp_vdm_pci_test_add_header_insufficient_space (CuTest *test)
+{
+	struct cmd_interface_protocol_mctp_vdm_pci mctp;
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
+	struct cmd_interface_msg message;
+	struct mctp_base_protocol_vdm_pci_header *header =
+		(struct mctp_base_protocol_vdm_pci_header*) data;
+	int status;
+	uint16_t vendor_id = 0x5678;
+
+	TEST_START;
+
+	status = cmd_interface_protocol_mctp_vdm_pci_init (&mctp);
+	CuAssertIntEquals (test, 0, status);
+
+	header->msg_header.msg_type = 0x13;
+	header->msg_header.integrity_check = 1;
+	header->pci_vendor_id = 0x1234;
+
+	memset (&message, 0, sizeof (message));
+	message.data = data;
+	message.length = sizeof (data);
+	message.max_response = sizeof (data);
+	message.payload = &data[2];
+	message.payload_length = sizeof (data) - 2;
+
+	status = cmd_interface_protocol_mctp_vdm_pci_add_header (&mctp, vendor_id, &message);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_NO_HEADER_SPACE, status);
+
+	CuAssertPtrEquals (test, data, message.data);
+	CuAssertIntEquals (test, sizeof (data), message.length);
+	CuAssertIntEquals (test, sizeof (data), message.max_response);
+	CuAssertPtrEquals (test, &message.data[2], message.payload);
+	CuAssertIntEquals (test, message.length - 2, message.payload_length);
+
+	cmd_interface_protocol_mctp_vdm_pci_release (&mctp);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_protocol_mctp_vdm_pci);
@@ -456,6 +617,10 @@ TEST (cmd_interface_protocol_mctp_vdm_pci_test_parse_message_static_init);
 TEST (cmd_interface_protocol_mctp_vdm_pci_test_parse_message_null);
 TEST (cmd_interface_protocol_mctp_vdm_pci_test_parse_message_short_message);
 TEST (cmd_interface_protocol_mctp_vdm_pci_test_parse_message_wrong_mctp_message_type);
+TEST (cmd_interface_protocol_mctp_vdm_pci_test_add_header);
+TEST (cmd_interface_protocol_mctp_vdm_pci_test_add_header_static_init);
+TEST (cmd_interface_protocol_mctp_vdm_pci_test_add_header_null);
+TEST (cmd_interface_protocol_mctp_vdm_pci_test_add_header_insufficient_space);
 
 TEST_SUITE_END;
 // *INDENT-ON*

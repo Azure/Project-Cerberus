@@ -4,7 +4,8 @@
 #ifndef MSG_TRANSPORT_MCTP_MESSAGE_H_
 #define MSG_TRANSPORT_MCTP_MESSAGE_H_
 
-#include "cmd_interface/msg_transport.h"
+#include <stdint.h>
+#include "cmd_interface/msg_transport_intermediate.h"
 #include "mctp/cmd_interface_protocol_mctp.h"
 
 
@@ -13,8 +14,7 @@
  * to transmit the message.
  */
 struct msg_transport_mctp_message {
-	struct msg_transport base;							/**< Base transport API. */
-	const struct msg_transport *mctp_transport;			/**< Interface to the MCTP transport layer. */
+	struct msg_transport_intermediate base;				/**< Base transport API. */
 	const struct cmd_interface_protocol_mctp *protocol;	/**< Protocol handler for MCTP messages. */
 	uint8_t message_type;								/**< The type of messages being sent. */
 };

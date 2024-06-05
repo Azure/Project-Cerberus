@@ -4,6 +4,7 @@
 #ifndef CMD_INTERFACE_PROTOCOL_MCTP_VDM_PCI_H_
 #define CMD_INTERFACE_PROTOCOL_MCTP_VDM_PCI_H_
 
+#include <stdint.h>
 #include "cmd_interface/cmd_interface.h"
 
 
@@ -19,6 +20,10 @@ struct cmd_interface_protocol_mctp_vdm_pci {
 int cmd_interface_protocol_mctp_vdm_pci_init (struct cmd_interface_protocol_mctp_vdm_pci *mctp);
 void cmd_interface_protocol_mctp_vdm_pci_release (
 	const struct cmd_interface_protocol_mctp_vdm_pci *mctp);
+
+int cmd_interface_protocol_mctp_vdm_pci_add_header (
+	const struct cmd_interface_protocol_mctp_vdm_pci *mctp, uint16_t vendor_id,
+	struct cmd_interface_msg *message);
 
 
 #endif	/* CMD_INTERFACE_PROTOCOL_MCTP_VDM_PCI_H_ */

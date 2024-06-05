@@ -4,6 +4,7 @@
 #ifndef CMD_INTERFACE_PROTOCOL_MCTP_H_
 #define CMD_INTERFACE_PROTOCOL_MCTP_H_
 
+#include <stdint.h>
 #include "cmd_interface/cmd_interface.h"
 
 
