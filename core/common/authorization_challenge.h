@@ -7,8 +7,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include "authorization.h"
 #include "auth_token.h"
+#include "authorization.h"
 #include "platform_api.h"
 #include "crypto/hash.h"
 
@@ -28,7 +28,7 @@
  * Variable context for challenged-based authorization.
  */
 struct authorization_challenge_state {
-	platform_mutex lock;					/**< Synchronization for authorization requests. */
+	platform_mutex lock;	/**< Synchronization for authorization requests. */
 };
 
 /**

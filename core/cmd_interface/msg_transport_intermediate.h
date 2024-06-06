@@ -34,4 +34,4 @@ int msg_transport_intermediate_init (struct msg_transport_intermediate *intermed
 void msg_transport_intermediate_release (const struct msg_transport_intermediate *intermediate);
 
 
-#endif /* MSG_TRANSPORT_INTERMEDIATE_H_ */
+#endif	/* MSG_TRANSPORT_INTERMEDIATE_H_ */

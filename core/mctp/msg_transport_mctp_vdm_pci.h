@@ -29,4 +29,4 @@ int msg_transport_mctp_vdm_pci_init (struct msg_transport_mctp_vdm_pci *mctp_vdm
 void msg_transport_mctp_vdm_pci_release (const struct msg_transport_mctp_vdm_pci *mctp_vdm_pci);
 
 
-#endif /* MSG_TRANSPORT_MCTP_VDM_PCI_H_ */
+#endif	/* MSG_TRANSPORT_MCTP_VDM_PCI_H_ */

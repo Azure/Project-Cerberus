@@ -63,4 +63,4 @@ int cmd_authorization_authorize_reset_intrusion (const struct cmd_authorization 
 	}
 
 
-#endif /* CMD_AUTHORIZATION_STATIC_H_ */
+#endif	/* CMD_AUTHORIZATION_STATIC_H_ */

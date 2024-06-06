@@ -26,4 +26,4 @@ int msg_transport_mctp_message_init (struct msg_transport_mctp_message *mctp_mes
 void msg_transport_mctp_message_release (const struct msg_transport_mctp_message *mctp_message);
 
 
-#endif /* MSG_TRANSPORT_MCTP_MESSAGE_H_ */
+#endif	/* MSG_TRANSPORT_MCTP_MESSAGE_H_ */

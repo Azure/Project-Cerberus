@@ -200,8 +200,8 @@ exit:
  */
 int hash_kat_run_self_test_update_sha1 (struct hash_engine *hash)
 {
-	return hash_kat_run_update_self_test (hash, HASH_TYPE_SHA1,
-		SHA_KAT_VECTORS_UPDATE_SHA1_DIGEST, HASH_ENGINE_SHA1_SELF_TEST_FAILED);
+	return hash_kat_run_update_self_test (hash, HASH_TYPE_SHA1,	SHA_KAT_VECTORS_UPDATE_SHA1_DIGEST,
+		HASH_ENGINE_SHA1_SELF_TEST_FAILED);
 }
 
 /**
@@ -374,7 +374,7 @@ int hash_kat_hmac_run_self_test_sha384 (struct hash_engine *hash)
 int hash_kat_hmac_run_self_test_sha512 (struct hash_engine *hash)
 {
 	return hash_kat_hmac_run_self_test (hash, HMAC_SHA512, HMAC_KAT_VECTORS_CALCULATE_SHA512_MAC,
-		 HASH_ENGINE_HMAC_SHA512_SELF_TEST_FAILED);
+		HASH_ENGINE_HMAC_SHA512_SELF_TEST_FAILED);
 }
 
 /**

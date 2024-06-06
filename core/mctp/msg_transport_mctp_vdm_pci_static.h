@@ -33,4 +33,4 @@ int msg_transport_mctp_vdm_pci_send_request_message (const struct msg_transport 
 	}
 
 
-#endif /* MSG_TRANSPORT_MCTP_VDM_PCI_STATIC_H_ */
+#endif	/* MSG_TRANSPORT_MCTP_VDM_PCI_STATIC_H_ */

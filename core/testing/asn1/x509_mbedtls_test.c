@@ -2874,7 +2874,8 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc_end_entity_privat
 	x509_mbedtls_release (&engine);
 }
 
-static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc_intermediate_ca_private_key (
+static void
+x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc_intermediate_ca_private_key (
 	CuTest *test)
 {
 	struct x509_engine_mbedtls engine;
@@ -3052,7 +3053,8 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc384_end_entity_pri
 	x509_mbedtls_release (&engine);
 }
 
-static void x509_mbedtls_test_create_ca_signed_certificate_ecc384_end_entity_ecc_intermediate_ca_private_key (
+static void
+x509_mbedtls_test_create_ca_signed_certificate_ecc384_end_entity_ecc_intermediate_ca_private_key (
 	CuTest *test)
 {
 	struct x509_engine_mbedtls engine;
@@ -3325,7 +3327,8 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc521_end_entity_pri
 	x509_mbedtls_release (&engine);
 }
 
-static void x509_mbedtls_test_create_ca_signed_certificate_ecc521_end_entity_ecc_intermediate_ca_private_key (
+static void
+x509_mbedtls_test_create_ca_signed_certificate_ecc521_end_entity_ecc_intermediate_ca_private_key (
 	CuTest *test)
 {
 	struct x509_engine_mbedtls engine;
@@ -6177,11 +6180,10 @@ static void x509_mbedtls_test_add_trusted_ca_null (CuTest *test)
 		X509_CERTCA_ECC_CA_DER_LEN);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.add_trusted_ca (&engine.base, &store, NULL,
-		X509_CERTCA_ECC_CA_DER_LEN);
+	status = engine.base.add_trusted_ca (&engine.base, &store, NULL, X509_CERTCA_ECC_CA_DER_LEN);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.add_trusted_ca (&engine.base, &store, X509_CERTCA_ECC_CA_DER,	0);
+	status = engine.base.add_trusted_ca (&engine.base, &store, X509_CERTCA_ECC_CA_DER, 0);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	engine.base.release_ca_cert_store (&engine.base, &store);
@@ -7124,7 +7126,8 @@ static void x509_mbedtls_test_authenticate_ecc_ca_trusted_intermediate_cert_no_u
 	x509_mbedtls_release (&engine);
 }
 
-static void x509_mbedtls_test_authenticate_end_entity_trusted_intermediate_multiple_untrusted_certs (
+static void x509_mbedtls_test_authenticate_end_entity_trusted_intermediate_multiple_untrusted_certs
+(
 	CuTest *test)
 {
 	struct x509_engine_mbedtls engine;

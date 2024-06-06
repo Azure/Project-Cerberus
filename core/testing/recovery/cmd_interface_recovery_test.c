@@ -1,36 +1,36 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "testing.h"
-#include "cmd_interface/cmd_interface.h"
-#include "cmd_interface/device_manager.h"
+#include "cmd_interface/attestation_cmd_interface.h"
 #include "cmd_interface/cerberus_protocol.h"
-#include "cmd_interface/cerberus_protocol_required_commands.h"
+#include "cmd_interface/cerberus_protocol_diagnostic_commands.h"
 #include "cmd_interface/cerberus_protocol_master_commands.h"
 #include "cmd_interface/cerberus_protocol_optional_commands.h"
-#include "cmd_interface/cerberus_protocol_diagnostic_commands.h"
-#include "cmd_interface/attestation_cmd_interface.h"
+#include "cmd_interface/cerberus_protocol_required_commands.h"
+#include "cmd_interface/cmd_interface.h"
+#include "cmd_interface/device_manager.h"
 #include "common/array_size.h"
 #include "logging/debug_log.h"
 #include "recovery/cmd_interface_recovery.h"
 #include "recovery/cmd_interface_recovery_static.h"
 #include "recovery/recovery_image_header.h"
+#include "testing/cmd_interface/cerberus_protocol_debug_commands_testing.h"
+#include "testing/cmd_interface/cerberus_protocol_diagnostic_commands_testing.h"
+#include "testing/cmd_interface/cerberus_protocol_master_commands_testing.h"
+#include "testing/cmd_interface/cerberus_protocol_optional_commands_testing.h"
+#include "testing/cmd_interface/cerberus_protocol_required_commands_testing.h"
 #include "testing/mock/cmd_interface/cmd_interface_mock.h"
 #include "testing/mock/firmware/firmware_update_control_mock.h"
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/manifest/manifest_cmd_interface_mock.h"
+#include "testing/mock/recovery/recovery_image_cmd_interface_mock.h"
 #include "testing/mock/recovery/recovery_image_manager_mock.h"
 #include "testing/mock/recovery/recovery_image_mock.h"
-#include "testing/mock/recovery/recovery_image_cmd_interface_mock.h"
-#include "testing/cmd_interface/cerberus_protocol_required_commands_testing.h"
-#include "testing/cmd_interface/cerberus_protocol_master_commands_testing.h"
-#include "testing/cmd_interface/cerberus_protocol_optional_commands_testing.h"
-#include "testing/cmd_interface/cerberus_protocol_debug_commands_testing.h"
-#include "testing/cmd_interface/cerberus_protocol_diagnostic_commands_testing.h"
 #include "testing/recovery/recovery_image_header_testing.h"
 
 
@@ -55,12 +55,13 @@ const char *fw_version_list[FW_VERSION_COUNT];
  * Dependencies for testing the recovery command interface.
  */
 struct cmd_interface_recovery_testing {
-	struct cmd_interface_recovery handler;						/**< Command handler instance. */
-	struct firmware_update_control_mock update;					/**< The firmware update mock. */
-	struct logging_mock debug;									/**< The debug logger mock. */
-	struct device_manager device_manager;						/**< Device manager. */
-	struct cmd_interface_fw_version fw_version;					/**< The firmware version data. */
+	struct cmd_interface_recovery handler;		/**< Command handler instance. */
+	struct firmware_update_control_mock update;	/**< The firmware update mock. */
+	struct logging_mock debug;					/**< The debug logger mock. */
+	struct device_manager device_manager;		/**< Device manager. */
+	struct cmd_interface_fw_version fw_version;	/**< The firmware version data. */
 };
+
 
 /**
  * Helper function to initialize a subset of the recovery command interface parameters.
@@ -69,7 +70,7 @@ struct cmd_interface_recovery_testing {
  * @param cmd The instance to use for testing.
  */
 static void setup_cmd_interface_recovery_mock_test_init (CuTest *test,
-	struct cmd_interface_recovery_testing  *cmd)
+	struct cmd_interface_recovery_testing *cmd)
 {
 	int status;
 
@@ -102,8 +103,7 @@ static void setup_cmd_interface_recovery_mock_test_init (CuTest *test,
  * @param count The number of firmware versions.
  */
 static void setup_cmd_interface_recovery_mock_test_init_fw_version (
-	struct cmd_interface_recovery_testing  *cmd, const char *fw_version,
-	size_t count)
+	struct cmd_interface_recovery_testing *cmd, const char *fw_version,	size_t count)
 {
 	fw_version_list[0] = fw_version;
 	cmd->fw_version.count = count;
@@ -117,19 +117,19 @@ static void setup_cmd_interface_recovery_mock_test_init_fw_version (
  * @param cmd The instance to use for testing.
  */
 static void setup_cmd_interface_recovery_mock_test (CuTest *test,
-	struct cmd_interface_recovery_testing  *cmd)
+	struct cmd_interface_recovery_testing *cmd)
 {
 	int status;
 
 	setup_cmd_interface_recovery_mock_test_init (test, cmd);
 
-	setup_cmd_interface_recovery_mock_test_init_fw_version (cmd, RECOVERY_FW_VERSION, FW_VERSION_COUNT);
+	setup_cmd_interface_recovery_mock_test_init_fw_version (cmd, RECOVERY_FW_VERSION,
+		FW_VERSION_COUNT);
 
-	status = cmd_interface_recovery_init (&cmd->handler, &cmd->update.base,
-		 &cmd->device_manager,	&cmd->fw_version);
+	status = cmd_interface_recovery_init (&cmd->handler, &cmd->update.base, &cmd->device_manager,
+		&cmd->fw_version);
 
 	CuAssertIntEquals (test, 0, status);
-
 }
 
 /**
@@ -138,8 +138,8 @@ static void setup_cmd_interface_recovery_mock_test (CuTest *test,
  * @param test The test framework.
  * @param cmd The testing instance to release.
  */
- static void complete_cmd_interface_recovery_mock_test (CuTest *test,
-	struct cmd_interface_recovery_testing  *cmd)
+static void complete_cmd_interface_recovery_mock_test (CuTest *test,
+	struct cmd_interface_recovery_testing *cmd)
 {
 	int status;
 
@@ -197,8 +197,7 @@ static void cmd_interface_recovery_test_init (CuTest *test)
 
 	debug_log = &debug.base;
 
-	status = cmd_interface_recovery_init (&interface, &update.base,
-		 &device_manager, &fw_version);
+	status = cmd_interface_recovery_init (&interface, &update.base, &device_manager, &fw_version);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, interface.base.process_request);
@@ -249,16 +248,13 @@ static void cmd_interface_recovery_test_init_null (CuTest *test)
 	status = cmd_interface_recovery_init (NULL, &update.base, &device_manager, &fw_version);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	status = cmd_interface_recovery_init (&interface, NULL,
-	&device_manager, &fw_version);
+	status = cmd_interface_recovery_init (&interface, NULL,	&device_manager, &fw_version);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	status = cmd_interface_recovery_init (&interface, &update.base,
-		NULL, &fw_version);
+	status = cmd_interface_recovery_init (&interface, &update.base,	NULL, &fw_version);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	status = cmd_interface_recovery_init (&interface, &update.base,
-		&device_manager,NULL);
+	status = cmd_interface_recovery_init (&interface, &update.base,	&device_manager, NULL);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = firmware_update_control_mock_validate_and_release (&update);
@@ -282,8 +278,8 @@ static void cmd_interface_recovery_test_deinit_null (CuTest *test)
 static void cmd_interface_recovery_test_static_init (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,
-		&cmd.update.base, &cmd.fw_version)
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
+			&cmd.fw_version)
 	};
 
 	TEST_START;
@@ -295,12 +291,11 @@ static void cmd_interface_recovery_test_static_init (CuTest *test)
 	CuAssertPtrNotNull (test, cmd.handler.base.generate_error_packet);
 
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
-
 }
 
 static void cmd_interface_recovery_test_process_null (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 	struct cmd_interface_msg request;
 	int status;
 
@@ -322,8 +317,8 @@ static void cmd_interface_recovery_test_process_null (CuTest *test)
 static void cmd_interface_recovery_test_process_null_static_init (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,
-		&cmd.update.base, &cmd.fw_version)
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
+			&cmd.fw_version)
 	};
 	struct cmd_interface_msg request;
 	int status;
@@ -345,7 +340,7 @@ static void cmd_interface_recovery_test_process_null_static_init (CuTest *test)
 
 static void cmd_interface_recovery_test_process_payload_too_short (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 	struct cmd_interface_msg request;
 	int status;
 
@@ -368,7 +363,7 @@ static void cmd_interface_recovery_test_process_payload_too_short (CuTest *test)
 
 static void cmd_interface_recovery_test_process_unsupported_message (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
@@ -415,7 +410,7 @@ static void cmd_interface_recovery_test_process_unsupported_message (CuTest *tes
 
 static void cmd_interface_recovery_test_process_unknown_command (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
@@ -446,7 +441,7 @@ static void cmd_interface_recovery_test_process_unknown_command (CuTest *test)
 
 static void cmd_interface_recovery_test_process_reserved_fields_not_zero (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
@@ -486,7 +481,7 @@ static void cmd_interface_recovery_test_process_reserved_fields_not_zero (CuTest
 
 static void cmd_interface_recovery_test_process_fw_update_init (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -498,7 +493,7 @@ static void cmd_interface_recovery_test_process_fw_update_init (CuTest *test)
 
 static void cmd_interface_recovery_test_process_fw_update_init_invalid_len (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -510,7 +505,7 @@ static void cmd_interface_recovery_test_process_fw_update_init_invalid_len (CuTe
 
 static void cmd_interface_recovery_test_process_fw_update_init_fail (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -522,7 +517,7 @@ static void cmd_interface_recovery_test_process_fw_update_init_fail (CuTest *tes
 
 static void cmd_interface_recovery_test_process_fw_update (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -535,8 +530,8 @@ static void cmd_interface_recovery_test_process_fw_update (CuTest *test)
 static void cmd_interface_recovery_test_process_fw_update_static_init (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,
-		&cmd.update.base, &cmd.fw_version)
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
+			&cmd.fw_version)
 	};
 
 	TEST_START;
@@ -549,7 +544,7 @@ static void cmd_interface_recovery_test_process_fw_update_static_init (CuTest *t
 
 static void cmd_interface_recovery_test_process_fw_update_no_data (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -560,7 +555,7 @@ static void cmd_interface_recovery_test_process_fw_update_no_data (CuTest *test)
 
 static void cmd_interface_recovery_test_process_fw_update_fail (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -572,7 +567,7 @@ static void cmd_interface_recovery_test_process_fw_update_fail (CuTest *test)
 
 static void cmd_interface_recovery_test_process_complete_fw_update (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -585,8 +580,8 @@ static void cmd_interface_recovery_test_process_complete_fw_update (CuTest *test
 static void cmd_interface_recovery_test_process_complete_fw_update_static_init (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,
-		&cmd.update.base, &cmd.fw_version)
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
+			&cmd.fw_version)
 	};
 
 	TEST_START;
@@ -599,7 +594,7 @@ static void cmd_interface_recovery_test_process_complete_fw_update_static_init (
 
 static void cmd_interface_recovery_test_process_complete_fw_update_invalid_len (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -611,7 +606,7 @@ static void cmd_interface_recovery_test_process_complete_fw_update_invalid_len (
 
 static void cmd_interface_recovery_test_process_complete_fw_update_fail (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -623,7 +618,7 @@ static void cmd_interface_recovery_test_process_complete_fw_update_fail (CuTest 
 
 static void cmd_interface_recovery_test_process_get_ext_update_status_invalid_len (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -635,7 +630,7 @@ static void cmd_interface_recovery_test_process_get_ext_update_status_invalid_le
 
 static void cmd_interface_recovery_test_process_get_ext_update_status_invalid_type (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -647,7 +642,7 @@ static void cmd_interface_recovery_test_process_get_ext_update_status_invalid_ty
 
 static void cmd_interface_recovery_test_process_get_fw_version (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 	setup_cmd_interface_recovery_mock_test (test, &cmd);
@@ -659,8 +654,8 @@ static void cmd_interface_recovery_test_process_get_fw_version (CuTest *test)
 static void cmd_interface_recovery_test_process_get_fw_version_static_init (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,
-		&cmd.update.base, &cmd.fw_version)
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
+			&cmd.fw_version)
 	};
 
 	TEST_START;
@@ -672,17 +667,16 @@ static void cmd_interface_recovery_test_process_get_fw_version_static_init (CuTe
 
 static void cmd_interface_recovery_test_process_get_fw_version_unset_version (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 	int status;
 
 	TEST_START;
 
 	setup_cmd_interface_recovery_mock_test_init (test, &cmd);
-	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, NULL,
-		FW_VERSION_COUNT);
+	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, NULL,	FW_VERSION_COUNT);
 
-	status = cmd_interface_recovery_init (&cmd.handler, &cmd.update.base,
-		&cmd.device_manager, &cmd.fw_version);
+	status = cmd_interface_recovery_init (&cmd.handler, &cmd.update.base, &cmd.device_manager,
+		&cmd.fw_version);
 	CuAssertIntEquals (test, 0, status);
 
 	cerberus_protocol_required_commands_testing_process_get_fw_version_unset_version (test,
@@ -693,7 +687,7 @@ static void cmd_interface_recovery_test_process_get_fw_version_unset_version (Cu
 
 static void cmd_interface_recovery_test_process_get_fw_version_invalid_len (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -705,7 +699,7 @@ static void cmd_interface_recovery_test_process_get_fw_version_invalid_len (CuTe
 
 static void cmd_interface_recovery_test_process_get_fw_version_unsupported_area (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -717,7 +711,7 @@ static void cmd_interface_recovery_test_process_get_fw_version_unsupported_area 
 
 static void cmd_interface_recovery_test_process_get_fw_version_bad_count (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 	int status;
 
 	TEST_START;
@@ -725,8 +719,8 @@ static void cmd_interface_recovery_test_process_get_fw_version_bad_count (CuTest
 	setup_cmd_interface_recovery_mock_test_init (test, &cmd);
 	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, NULL, 0);
 
-	status = cmd_interface_recovery_init (&cmd.handler, &cmd.update.base,
-		&cmd.device_manager, &cmd.fw_version);
+	status = cmd_interface_recovery_init (&cmd.handler, &cmd.update.base, &cmd.device_manager,
+		&cmd.fw_version);
 	CuAssertIntEquals (test, 0, status);
 
 	cerberus_protocol_required_commands_testing_process_get_fw_version_bad_count (test,
@@ -737,7 +731,7 @@ static void cmd_interface_recovery_test_process_get_fw_version_bad_count (CuTest
 
 static void cmd_interface_recovery_test_process_get_log_info (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -750,8 +744,8 @@ static void cmd_interface_recovery_test_process_get_log_info (CuTest *test)
 static void cmd_interface_recovery_test_process_get_log_info_static_init (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,
-		&cmd.update.base, &cmd.fw_version)
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
+			&cmd.fw_version)
 	};
 
 	TEST_START;
@@ -764,7 +758,7 @@ static void cmd_interface_recovery_test_process_get_log_info_static_init (CuTest
 
 static void cmd_interface_recovery_test_process_get_log_info_invalid_len (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -776,7 +770,7 @@ static void cmd_interface_recovery_test_process_get_log_info_invalid_len (CuTest
 
 static void cmd_interface_recovery_test_process_get_log_info_fail_debug (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -788,7 +782,7 @@ static void cmd_interface_recovery_test_process_get_log_info_fail_debug (CuTest 
 
 static void cmd_interface_recovery_test_process_log_read_debug (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -801,8 +795,8 @@ static void cmd_interface_recovery_test_process_log_read_debug (CuTest *test)
 static void cmd_interface_recovery_test_process_log_read_debug_static_init (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,
-		&cmd.update.base, &cmd.fw_version)
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
+			&cmd.fw_version)
 	};
 
 	TEST_START;
@@ -815,7 +809,7 @@ static void cmd_interface_recovery_test_process_log_read_debug_static_init (CuTe
 
 static void cmd_interface_recovery_test_process_log_read_debug_limited_response (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -827,7 +821,7 @@ static void cmd_interface_recovery_test_process_log_read_debug_limited_response 
 
 static void cmd_interface_recovery_test_process_log_read_debug_fail (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -839,7 +833,7 @@ static void cmd_interface_recovery_test_process_log_read_debug_fail (CuTest *tes
 
 static void cmd_interface_recovery_test_process_get_capabilities (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -852,8 +846,8 @@ static void cmd_interface_recovery_test_process_get_capabilities (CuTest *test)
 static void cmd_interface_recovery_test_process_get_capabilities_static_init (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,
-		&cmd.update.base, &cmd.fw_version)
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
+			&cmd.fw_version)
 	};
 
 	TEST_START;
@@ -866,7 +860,7 @@ static void cmd_interface_recovery_test_process_get_capabilities_static_init (Cu
 
 static void cmd_interface_recovery_test_process_get_capabilities_invalid_device (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -878,7 +872,7 @@ static void cmd_interface_recovery_test_process_get_capabilities_invalid_device 
 
 static void cmd_interface_recovery_test_process_get_capabilities_invalid_len (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -907,8 +901,8 @@ static void cmd_interface_recovery_test_process_response (CuTest *test)
 static void cmd_interface_recovery_test_process_response_static_init (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,
-		&cmd.update.base, &cmd.fw_version)
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
+			&cmd.fw_version)
 	};
 	struct cmd_interface_msg response;
 	int status;
@@ -950,7 +944,7 @@ static void cmd_interface_recovery_test_process_response_null (CuTest *test)
 
 static void cmd_interface_recovery_test_generate_error_packet (CuTest *test)
 {
-	struct cmd_interface_recovery_testing  cmd;
+	struct cmd_interface_recovery_testing cmd;
 
 	TEST_START;
 
@@ -964,8 +958,8 @@ static void cmd_interface_recovery_test_generate_error_packet (CuTest *test)
 static void cmd_interface_recovery_test_generate_error_packet_static_init (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,
-		&cmd.update.base, &cmd.fw_version)
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
+			&cmd.fw_version)
 	};
 
 	TEST_START;

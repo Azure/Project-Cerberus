@@ -54,4 +54,4 @@ int msg_transport_intermediate_get_buffer_overhead (const struct msg_transport *
 	}
 
 
-#endif /* MSG_TRANSPORT_INTERMEDIATE_STATIC_H_ */
+#endif	/* MSG_TRANSPORT_INTERMEDIATE_STATIC_H_ */

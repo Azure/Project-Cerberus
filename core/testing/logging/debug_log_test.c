@@ -46,14 +46,14 @@ static void debug_log_testing_init_dependencies (CuTest *test, struct logging_mo
  * @param logger The logger instance to release.
  * @param rtc The real time clock instance to release, if used.
  */
-static void debug_log_testing_validate_and_release_dependencies (CuTest *test, struct logging_mock *logger,
-	struct real_time_clock_mock *rtc)
+static void debug_log_testing_validate_and_release_dependencies (CuTest *test,
+	struct logging_mock *logger, struct real_time_clock_mock *rtc)
 {
 	int status;
 
 	debug_timestamp = NULL;
 	debug_log = NULL;
-	
+
 	status = 0;
 
 	if (rtc != NULL) {

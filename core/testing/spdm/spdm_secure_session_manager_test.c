@@ -344,6 +344,7 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
 		&testing.transcript_manager_mock.base);
+
 	session_manager9.max_spdm_session_sequence_number = 0;
 
 	status = spdm_secure_session_manager_init_state (&session_manager9);
@@ -487,7 +488,7 @@ static void spdm_secure_session_manager_test_create_session (CuTest *test)
 	connection_info.version.update_version_number = 0;
 	connection_info.secure_message_version.alpha = 0;
 	connection_info.secure_message_version.major_version = 1;
-	connection_info.secure_message_version.minor_version = 2;;
+	connection_info.secure_message_version.minor_version = 2;
 	connection_info.secure_message_version.update_version_number = 0;
 
 	connection_info.peer_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_384;
@@ -552,8 +553,9 @@ static void spdm_secure_session_manager_test_create_session_enc_mac (CuTest *tes
 
 	CuAssertPtrNotNull (test, session);
 	CuAssertIntEquals (test, SPDM_SESSION_TYPE_ENC_MAC, session->session_type);
-	CuAssertIntEquals (test, 0, testing_validate_array (&testing.local_capabilities, 
-		&session->peer_capabilities, sizeof(testing.local_capabilities)));
+	CuAssertIntEquals (test, 0,
+		testing_validate_array (&testing.local_capabilities, &session->peer_capabilities,
+		sizeof (testing.local_capabilities)));
 
 	session_manager->release_session (session_manager, session_id);
 

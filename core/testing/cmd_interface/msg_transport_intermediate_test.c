@@ -20,8 +20,8 @@ TEST_SUITE_LABEL ("msg_transport_intermediate");
  * message transport.
  */
 struct msg_transport_intermediate_testing {
-	struct msg_transport_mock transport;		/**< Mock for the next transport layer. */
-	struct msg_transport_intermediate test;		/**< Message transport being tested. */
+	struct msg_transport_mock transport;	/**< Mock for the next transport layer. */
+	struct msg_transport_intermediate test;	/**< Message transport being tested. */
 };
 
 
@@ -146,7 +146,8 @@ static void msg_transport_intermediate_test_init_null (CuTest *test)
 static void msg_transport_intermediate_test_static_init (CuTest *test)
 {
 	struct msg_transport_intermediate_testing intermediate = {
-		.test = msg_transport_intermediate_static_init (
+		.test =
+			msg_transport_intermediate_static_init (
 			msg_transport_intermediate_testing_send_request_message, &intermediate.transport.base,
 			20)
 	};
@@ -196,7 +197,8 @@ static void msg_transport_intermediate_test_get_max_message_overhead (CuTest *te
 static void msg_transport_intermediate_test_get_max_message_overhead_static_init (CuTest *test)
 {
 	struct msg_transport_intermediate_testing intermediate = {
-		.test = msg_transport_intermediate_static_init (
+		.test =
+			msg_transport_intermediate_static_init (
 			msg_transport_intermediate_testing_send_request_message, &intermediate.transport.base,
 			15)
 	};
@@ -307,7 +309,8 @@ static void msg_transport_intermediate_test_get_max_message_payload_length_stati
 	CuTest *test)
 {
 	struct msg_transport_intermediate_testing intermediate = {
-		.test = msg_transport_intermediate_static_init (
+		.test =
+			msg_transport_intermediate_static_init (
 			msg_transport_intermediate_testing_send_request_message, &intermediate.transport.base,
 			20)
 	};
@@ -397,7 +400,8 @@ static void msg_transport_intermediate_test_get_max_encapsulated_message_length_
 	CuTest *test)
 {
 	struct msg_transport_intermediate_testing intermediate = {
-		.test = msg_transport_intermediate_static_init (
+		.test =
+			msg_transport_intermediate_static_init (
 			msg_transport_intermediate_testing_send_request_message, &intermediate.transport.base,
 			20)
 	};
@@ -486,7 +490,8 @@ static void msg_transport_intermediate_test_get_buffer_overhead (CuTest *test)
 static void msg_transport_intermediate_test_get_buffer_overhead_static_init (CuTest *test)
 {
 	struct msg_transport_intermediate_testing intermediate = {
-		.test = msg_transport_intermediate_static_init (
+		.test =
+			msg_transport_intermediate_static_init (
 			msg_transport_intermediate_testing_send_request_message, &intermediate.transport.base,
 			4)
 	};

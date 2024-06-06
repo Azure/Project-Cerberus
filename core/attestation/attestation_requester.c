@@ -140,8 +140,8 @@ static int attestation_requester_send_request_and_get_response (
 						DEVICE_MANAGER_ATTESTATION_INTERRUPTED);
 				}
 			}
-			else if ((status == MCTP_BASE_PROTOCOL_ERROR_RESPONSE) || (status == MCTP_BASE_PROTOCOL_FAIL_RESPONSE)) {
-
+			else if ((status == MCTP_BASE_PROTOCOL_ERROR_RESPONSE) ||
+				(status == MCTP_BASE_PROTOCOL_FAIL_RESPONSE)) {
 				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
 					DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
 			}
@@ -175,9 +175,9 @@ static int attestation_requester_send_request_and_get_response (
 			platform_msleep (attestation->state->txn.sleep_duration_ms);
 			attestation->state->txn.sleep_duration_ms = 0;
 
-			request_len = spdm_generate_respond_if_ready_request (
-				attestation->state->spdm_msg_buffer, ATTESTATION_REQUESTER_MAX_SPDM_REQUEST,
-				attestation->state->txn.requested_command,
+			request_len =
+				spdm_generate_respond_if_ready_request (attestation->state->spdm_msg_buffer,
+				ATTESTATION_REQUESTER_MAX_SPDM_REQUEST,	attestation->state->txn.requested_command,
 				attestation->state->txn.respond_if_ready_token,
 				attestation->state->txn.spdm_minor_version);
 			if (ROT_IS_ERROR ((int) request_len)) {
@@ -357,6 +357,7 @@ static int attestation_requester_verify_and_load_root_cert (
 			root_ca, root_ca_length, digest, sizeof (digest));
 		if (ROT_IS_ERROR (status)) {
 			active_cfm->free_root_ca_digest (active_cfm, &root_ca_digests);
+
 			return status;
 		}
 
@@ -367,6 +368,7 @@ static int attestation_requester_verify_and_load_root_cert (
 				DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS);
 
 			active_cfm->free_root_ca_digest (active_cfm, &root_ca_digests);
+
 			return status;
 		}
 
@@ -1329,8 +1331,8 @@ static void attestation_requester_copy_spdm_response (const struct spdm_protocol
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
 			((attestation->state->txn.protocol << 24) |
-				(attestation->state->txn.requested_command << 16) |
-				(ATTESTATION_PROTOCOL_DMTF_SPDM << 8) |	command));
+						(attestation->state->txn.requested_command << 16) |
+						(ATTESTATION_PROTOCOL_DMTF_SPDM << 8) |	command));
 
 		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
 
@@ -1540,8 +1542,8 @@ void attestation_requester_on_cerberus_get_certificate_response (
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
 			((attestation->state->txn.protocol << 24) |
-				(attestation->state->txn.requested_command << 16) |
-				(ATTESTATION_PROTOCOL_CERBERUS << 8) | CERBERUS_PROTOCOL_GET_CERTIFICATE));
+						(attestation->state->txn.requested_command << 16) |
+						(ATTESTATION_PROTOCOL_CERBERUS << 8) | CERBERUS_PROTOCOL_GET_CERTIFICATE));
 		goto fail;
 	}
 
@@ -1901,8 +1903,9 @@ static int attestation_requester_verify_and_load_leaf_key_cerberus (
 	int status;
 
 	for (cert_idx = 0; cert_idx < attestation->state->txn.num_certs; ++cert_idx) {
-		status = cerberus_protocol_generate_get_certificate_request (
-			attestation->state->txn.slot_num, cert_idx, attestation->state->txn.msg_buffer,
+		status =
+			cerberus_protocol_generate_get_certificate_request (attestation->state->txn.slot_num,
+			cert_idx, attestation->state->txn.msg_buffer,
 			sizeof (attestation->state->txn.msg_buffer), 0, 0);
 		if (ROT_IS_ERROR (status)) {
 			return status;
@@ -1975,9 +1978,10 @@ static int attestation_requester_attest_device_cerberus_protocol (
 		return status;
 	}
 
-	status = cerberus_protocol_generate_get_certificate_digest_request (
-		attestation->state->txn.slot_num, ATTESTATION_ECDHE_KEY_EXCHANGE,
-		attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer));
+	status =
+		cerberus_protocol_generate_get_certificate_digest_request (attestation->state->txn.slot_num,
+		ATTESTATION_ECDHE_KEY_EXCHANGE,	attestation->state->txn.msg_buffer,
+		sizeof (attestation->state->txn.msg_buffer));
 	if (ROT_IS_ERROR (status)) {
 		return status;
 	}
@@ -2872,8 +2876,8 @@ static int attestation_requester_spdm_process_challenge_response (
  * @return 0 if completed successfully, or an error code
  */
 static int attestation_requester_retrieve_spdm_certificate_chain_portion (
-	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
-	uint32_t offset, size_t length, uint8_t **portion_data)
+	const struct attestation_requester *attestation, uint8_t eid, int device_addr, uint32_t offset,
+	size_t length, uint8_t **portion_data)
 {
 	struct spdm_get_certificate_response *rsp =
 		(struct spdm_get_certificate_response*) attestation->state->txn.msg_buffer;
@@ -2900,8 +2904,8 @@ static int attestation_requester_retrieve_spdm_certificate_chain_portion (
 			goto exit;
 		}
 
-		status = attestation_requester_send_spdm_request_and_get_response (attestation,
-			rq_len,	device_addr, eid, true, SPDM_REQUEST_GET_CERTIFICATE);
+		status = attestation_requester_send_spdm_request_and_get_response (attestation,	rq_len,
+			device_addr, eid, true, SPDM_REQUEST_GET_CERTIFICATE);
 		if (status != 0) {
 			goto exit;
 		}
@@ -3036,8 +3040,8 @@ static int attestation_requester_verify_and_load_leaf_key_spdm (
 	/* Get root CA certificate. */
 	cert_offset = cert_len;
 
-	status = attestation_requester_retrieve_individual_spdm_certificate (attestation,
-		dest_addr, eid, cert_offset, &cert_data, &cert_len);
+	status = attestation_requester_retrieve_individual_spdm_certificate (attestation, dest_addr,
+		eid, cert_offset, &cert_data, &cert_len);
 	if (status != 0) {
 		return status;
 	}
@@ -3052,8 +3056,8 @@ static int attestation_requester_verify_and_load_leaf_key_spdm (
 
 	while (cert_offset < spdm_cert_chain->length) {
 		/* Retrieve, hash, and validate each certificate in the chain. */
-		status = attestation_requester_retrieve_individual_spdm_certificate (attestation,
-			dest_addr, eid, cert_offset, &cert_data, &cert_len);
+		status = attestation_requester_retrieve_individual_spdm_certificate (attestation, dest_addr,
+			eid, cert_offset, &cert_data, &cert_len);
 		if (status != 0) {
 			return status;
 		}
@@ -3261,10 +3265,10 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 
 	active_cfm->free_component_device (active_cfm, &component_device);
 
-
 	device_state = device_manager_get_device_state_by_eid (attestation->device_mgr, eid);
 
-	if (!(device_state == DEVICE_MANAGER_AUTHENTICATED) || (device_state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS)) {
+	if (!(device_state == DEVICE_MANAGER_AUTHENTICATED) ||
+		(device_state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS)) {
 		status = device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
 			DEVICE_MANAGER_READY_FOR_ATTESTATION);
 		if (status != 0) {

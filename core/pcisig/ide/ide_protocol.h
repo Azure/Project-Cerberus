@@ -17,7 +17,7 @@
 /**
  * AES 256 KEY length in bytes
  */
-#define IDE_AES_256_IV_LENGTH 				(8)
+#define IDE_AES_256_IV_LENGTH				(8)
 
 /**
  * AES 256 KEY length in DWORDS
@@ -125,8 +125,8 @@ struct ide_km_key_prog {
  * AES GCM 256 key buffer format.
  */
 struct ide_km_aes_256_gcm_key_buffer {
-	uint32_t key[IDE_AES_256_KEY_LENGTH_IN_DWORDS];		/**< 256-bit key. */
-	uint32_t iv[IDE_AES_256_IV_LENGTH_IN_DWORDS];		/**< 64-bit IV. */
+	uint32_t key[IDE_AES_256_KEY_LENGTH_IN_DWORDS];	/**< 256-bit key. */
+	uint32_t iv[IDE_AES_256_IV_LENGTH_IN_DWORDS];	/**< 64-bit IV. */
 };
 
 /**

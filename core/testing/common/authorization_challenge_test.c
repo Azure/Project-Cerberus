@@ -117,7 +117,7 @@ static void authorization_challenge_testing_init_static (CuTest *test,
  * @param auth Testing dependencies to release.
  */
 static void authorization_challenge_testing_release (CuTest *test,
-struct authorization_challenge_testing *auth)
+	struct authorization_challenge_testing *auth)
 {
 	authorization_challenge_release (&auth->test);
 	authorization_challenge_testing_release_dependencies (test, auth);
@@ -155,16 +155,13 @@ static void authorization_challenge_test_init_null (CuTest *test)
 
 	authorization_challenge_testing_init_dependencies (test, &auth);
 
-	status = authorization_challenge_init (NULL, &auth.state, &auth.token.base,
-		HASH_TYPE_SHA256);
+	status = authorization_challenge_init (NULL, &auth.state, &auth.token.base,	HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTHORIZATION_INVALID_ARGUMENT, status);
 
-	status = authorization_challenge_init (&auth.test, NULL, &auth.token.base,
-		HASH_TYPE_SHA256);
+	status = authorization_challenge_init (&auth.test, NULL, &auth.token.base, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTHORIZATION_INVALID_ARGUMENT, status);
 
-	status = authorization_challenge_init (&auth.test, &auth.state, NULL,
-		HASH_TYPE_SHA256);
+	status = authorization_challenge_init (&auth.test, &auth.state, NULL, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTHORIZATION_INVALID_ARGUMENT, status);
 
 	authorization_challenge_testing_release_dependencies (test, &auth);

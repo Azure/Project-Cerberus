@@ -82,8 +82,9 @@ static int intrusion_manager_reset_intrusion (struct intrusion_manager *manager)
 		else {
 			status = manager->state->clear (manager->state);
 			if (status == 0) {
-				status = intrusion_manager_update_measurement (manager, INTRUSION_MANAGER_NO_INTRUSION,
-					false, INTRUSION_LOGGING_NO_INTRUSION_NOTIFICATION);
+				status = intrusion_manager_update_measurement (manager,
+					INTRUSION_MANAGER_NO_INTRUSION,	false,
+					INTRUSION_LOGGING_NO_INTRUSION_NOTIFICATION);
 			}
 		}
 	}

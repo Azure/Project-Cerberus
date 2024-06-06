@@ -62,15 +62,13 @@ int cmd_authorization_authorize_reset_defaults (const struct cmd_authorization *
 int cmd_authorization_authorize_clear_platform_config (const struct cmd_authorization *auth,
 	const uint8_t **token, size_t *length)
 {
-	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_CLEAR_PCD, token,
-		length);
+	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_CLEAR_PCD, token,	length);
 }
 
 int cmd_authorization_authorize_clear_component_manifests (const struct cmd_authorization *auth,
 	const uint8_t **token, size_t *length)
 {
-	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_CLEAR_CFM, token,
-		length);
+	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_CLEAR_CFM, token,	length);
 }
 
 int cmd_authorization_authorize_reset_intrusion (const struct cmd_authorization *auth,

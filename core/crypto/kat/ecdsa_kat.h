@@ -25,4 +25,4 @@ int ecdsa_kat_run_self_test_ecc_hw_verify_p521_sha512 (const struct ecc_hw *ecc_
 /* ECDSA self-tests leverage ECDSA error codes. */
 
 
-#endif /* ECDSA_KAT_H_ */
+#endif	/* ECDSA_KAT_H_ */

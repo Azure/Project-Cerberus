@@ -13,9 +13,9 @@
  * to get a known k value during ECDSA signature generation self-tests.
  */
 struct ecdsa_kat_rng {
-	struct rng_engine base;		/**< Base RNG API. */
-	const uint8_t *data;		/**< Buffer containing the data to provide when requested. */
-	size_t length;				/**< Length of the random data. */
+	struct rng_engine base;	/**< Base RNG API. */
+	const uint8_t *data;	/**< Buffer containing the data to provide when requested. */
+	size_t length;			/**< Length of the random data. */
 };
 
 

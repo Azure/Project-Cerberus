@@ -152,7 +152,7 @@ static void spdm_handle_response_state (struct spdm_state *state, int *spdm_erro
 			break;
 
 		case SPDM_RESPONSE_STATE_NOT_READY:
-			/* [TODO] Implement this case in later messages. */
+		/* [TODO] Implement this case in later messages. */
 
 		default:
 			*spdm_error = SPDM_ERROR_UNSPECIFIED;
@@ -1618,7 +1618,7 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 exit:
 	if (status != 0) {
 		spdm_generate_error_response (request, minor_ver_in_error_msg, spdm_error, 0x00, NULL, 0,
-		SPDM_REQUEST_GET_VERSION, status);
+			SPDM_REQUEST_GET_VERSION, status);
 	}
 
 	return 0;
@@ -1847,7 +1847,7 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 exit:
 	if (status != 0) {
 		spdm_generate_error_response (request, minor_ver_in_error_msg, spdm_error, 0x00, NULL, 0,
-		SPDM_REQUEST_GET_CAPABILITIES, status);
+			SPDM_REQUEST_GET_CAPABILITIES, status);
 	}
 
 	return 0;
@@ -3259,8 +3259,8 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 	}
 
 	/* Set opaque data size to 0 */
-	buffer_unaligned_write16 (
-		(uint16_t*) (spdm_get_measurements_resp_nonce (spdm_response) + SPDM_NONCE_LEN), 0);
+	buffer_unaligned_write16 ((uint16_t*) (spdm_get_measurements_resp_nonce (spdm_response) +
+		SPDM_NONCE_LEN), 0);
 
 	/* Add response to L1L2 hash context. Signature is not included in the hash. */
 	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,

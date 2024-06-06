@@ -61,4 +61,4 @@ int authorization_challenge_authorize (const struct authorization *auth, const u
 	}
 
 
-#endif /* AUTHORIZATION_CHALLENGE_STATIC_H_ */
+#endif	/* AUTHORIZATION_CHALLENGE_STATIC_H_ */

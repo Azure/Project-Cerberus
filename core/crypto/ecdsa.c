@@ -240,6 +240,7 @@ int ecdsa_ecc_hw_sign_message (const struct ecc_hw *ecc_hw, struct hash_engine *
 	status = hash->update (hash, message, msg_length);
 	if (status != 0) {
 		hash->cancel (hash);
+
 		return status;
 	}
 
@@ -379,6 +380,7 @@ int ecdsa_ecc_hw_verify_message (const struct ecc_hw *ecc_hw, struct hash_engine
 	status = hash->update (hash, message, msg_length);
 	if (status != 0) {
 		hash->cancel (hash);
+
 		return status;
 	}
 

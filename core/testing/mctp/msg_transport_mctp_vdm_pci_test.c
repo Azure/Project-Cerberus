@@ -6,9 +6,9 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
+#include "mctp/mctp_base_protocol.h"
 #include "mctp/msg_transport_mctp_vdm_pci.h"
 #include "mctp/msg_transport_mctp_vdm_pci_static.h"
-#include "mctp/mctp_base_protocol.h"
 #include "testing/mock/cmd_interface/cmd_interface_mock.h"
 #include "testing/mock/cmd_interface/msg_transport_mock.h"
 
@@ -133,12 +133,10 @@ static void msg_transport_mctp_vdm_pci_test_init_null (CuTest *test)
 		0x1414);
 	CuAssertIntEquals (test, MSG_TRANSPORT_INVALID_ARGUMENT, status);
 
-	status = msg_transport_mctp_vdm_pci_init (&mctp.test, NULL, &mctp.protocol,
-		0x1414);
+	status = msg_transport_mctp_vdm_pci_init (&mctp.test, NULL, &mctp.protocol,	0x1414);
 	CuAssertIntEquals (test, MSG_TRANSPORT_INVALID_ARGUMENT, status);
 
-	status = msg_transport_mctp_vdm_pci_init (&mctp.test, &mctp.mctp_transport.base, NULL,
-		0x1414);
+	status = msg_transport_mctp_vdm_pci_init (&mctp.test, &mctp.mctp_transport.base, NULL, 0x1414);
 	CuAssertIntEquals (test, MSG_TRANSPORT_INVALID_ARGUMENT, status);
 
 	msg_transport_mctp_vdm_pci_testing_release_dependencies (test, &mctp);
@@ -328,9 +326,8 @@ static void msg_transport_mctp_vdm_pci_test_get_buffer_overhead (CuTest *test)
 
 	msg_transport_mctp_vdm_pci_testing_init (test, &mctp, 0x1414);
 
-	status = mock_expect (&mctp.mctp_transport.mock,
-		mctp.mctp_transport.base.get_buffer_overhead, &mctp.mctp_transport, overhead,
-		MOCK_ARG (dest_id), MOCK_ARG (length));
+	status = mock_expect (&mctp.mctp_transport.mock, mctp.mctp_transport.base.get_buffer_overhead,
+		&mctp.mctp_transport, overhead,	MOCK_ARG (dest_id), MOCK_ARG (length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp.test.base.base.get_buffer_overhead (&mctp.test.base.base, dest_id, length);
@@ -354,9 +351,8 @@ static void msg_transport_mctp_vdm_pci_test_get_buffer_overhead_static_init (CuT
 
 	msg_transport_mctp_vdm_pci_testing_init_dependencies (test, &mctp);
 
-	status = mock_expect (&mctp.mctp_transport.mock,
-		mctp.mctp_transport.base.get_buffer_overhead, &mctp.mctp_transport, overhead,
-		MOCK_ARG (dest_id), MOCK_ARG (length));
+	status = mock_expect (&mctp.mctp_transport.mock, mctp.mctp_transport.base.get_buffer_overhead,
+		&mctp.mctp_transport, overhead,	MOCK_ARG (dest_id), MOCK_ARG (length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp.test.base.base.get_buffer_overhead (&mctp.test.base.base, dest_id, length);
@@ -373,7 +369,7 @@ static void msg_transport_mctp_vdm_pci_test_send_request_message (CuTest *test)
 	uint8_t tx_message[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	uint8_t rx_expected[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	uint8_t rx_message[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
-	struct cmd_interface_msg req_expected ={0};
+	struct cmd_interface_msg req_expected = {0};
 	struct cmd_interface_msg request = {0};
 	struct cmd_interface_msg resp_expected = {0};
 	struct cmd_interface_msg response = {0};
@@ -426,8 +422,7 @@ static void msg_transport_mctp_vdm_pci_test_send_request_message (CuTest *test)
 	status = mock_expect (&mctp.mctp_transport.mock, mctp.mctp_transport.base.send_request_message,
 		&mctp.mctp_transport, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &req_expected,
-			sizeof (req_expected), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request),
+		sizeof (req_expected), cmd_interface_mock_save_request,	cmd_interface_mock_free_request),
 		MOCK_ARG (timeout), MOCK_ARG_PTR (&response));
 	status |= mock_expect_output_deep_copy (&mctp.mctp_transport.mock, 2, &resp_expected,
 		sizeof (resp_expected), cmd_interface_mock_copy_request);
@@ -473,7 +468,7 @@ static void msg_transport_mctp_vdm_pci_test_send_request_message_static_init (Cu
 	uint8_t tx_message[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	uint8_t rx_expected[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	uint8_t rx_message[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
-	struct cmd_interface_msg req_expected ={0};
+	struct cmd_interface_msg req_expected = {0};
 	struct cmd_interface_msg request = {0};
 	struct cmd_interface_msg resp_expected = {0};
 	struct cmd_interface_msg response = {0};
@@ -525,8 +520,7 @@ static void msg_transport_mctp_vdm_pci_test_send_request_message_static_init (Cu
 	status = mock_expect (&mctp.mctp_transport.mock, mctp.mctp_transport.base.send_request_message,
 		&mctp.mctp_transport, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &req_expected,
-			sizeof (req_expected), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request),
+		sizeof (req_expected), cmd_interface_mock_save_request,	cmd_interface_mock_free_request),
 		MOCK_ARG (timeout), MOCK_ARG_PTR (&response));
 	status |= mock_expect_output_deep_copy (&mctp.mctp_transport.mock, 2, &resp_expected,
 		sizeof (resp_expected), cmd_interface_mock_copy_request);
@@ -595,7 +589,7 @@ static void msg_transport_mctp_vdm_pci_test_send_request_message_wrong_response_
 	uint8_t tx_message[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	uint8_t rx_expected[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	uint8_t rx_message[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
-	struct cmd_interface_msg req_expected ={0};
+	struct cmd_interface_msg req_expected = {0};
 	struct cmd_interface_msg request = {0};
 	struct cmd_interface_msg resp_expected = {0};
 	struct cmd_interface_msg response = {0};
@@ -648,8 +642,7 @@ static void msg_transport_mctp_vdm_pci_test_send_request_message_wrong_response_
 	status = mock_expect (&mctp.mctp_transport.mock, mctp.mctp_transport.base.send_request_message,
 		&mctp.mctp_transport, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &req_expected,
-			sizeof (req_expected), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request),
+		sizeof (req_expected), cmd_interface_mock_save_request,	cmd_interface_mock_free_request),
 		MOCK_ARG (timeout), MOCK_ARG_PTR (&response));
 	status |= mock_expect_output_deep_copy (&mctp.mctp_transport.mock, 2, &resp_expected,
 		sizeof (resp_expected), cmd_interface_mock_copy_request);
@@ -715,7 +708,7 @@ static void msg_transport_mctp_vdm_pci_test_send_request_message_send_error (CuT
 	uint8_t tx_expected[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	uint8_t tx_message[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	uint8_t rx_message[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
-	struct cmd_interface_msg req_expected ={0};
+	struct cmd_interface_msg req_expected = {0};
 	struct cmd_interface_msg request = {0};
 	struct cmd_interface_msg response = {0};
 	uint8_t eid = 0x23;
@@ -750,8 +743,7 @@ static void msg_transport_mctp_vdm_pci_test_send_request_message_send_error (CuT
 	status = mock_expect (&mctp.mctp_transport.mock, mctp.mctp_transport.base.send_request_message,
 		&mctp.mctp_transport, MSG_TRANSPORT_SEND_REQUEST_FAILED,
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &req_expected,
-			sizeof (req_expected), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request),
+		sizeof (req_expected), cmd_interface_mock_save_request,	cmd_interface_mock_free_request),
 		MOCK_ARG (timeout), MOCK_ARG_PTR (&response));
 
 	CuAssertIntEquals (test, 0, status);
@@ -783,7 +775,7 @@ static void msg_transport_mctp_vdm_pci_test_send_request_message_parse_error (Cu
 	uint8_t tx_message[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	uint8_t rx_expected[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	uint8_t rx_message[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
-	struct cmd_interface_msg req_expected ={0};
+	struct cmd_interface_msg req_expected = {0};
 	struct cmd_interface_msg request = {0};
 	struct cmd_interface_msg resp_expected = {0};
 	struct cmd_interface_msg response = {0};
@@ -836,8 +828,7 @@ static void msg_transport_mctp_vdm_pci_test_send_request_message_parse_error (Cu
 	status = mock_expect (&mctp.mctp_transport.mock, mctp.mctp_transport.base.send_request_message,
 		&mctp.mctp_transport, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &req_expected,
-			sizeof (req_expected), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request),
+		sizeof (req_expected), cmd_interface_mock_save_request,	cmd_interface_mock_free_request),
 		MOCK_ARG (timeout), MOCK_ARG_PTR (&response));
 	status |= mock_expect_output_deep_copy (&mctp.mctp_transport.mock, 2, &resp_expected,
 		sizeof (resp_expected), cmd_interface_mock_copy_request);

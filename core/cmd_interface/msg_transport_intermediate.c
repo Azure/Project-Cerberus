@@ -28,7 +28,7 @@ int msg_transport_intermediate_get_max_message_overhead (const struct msg_transp
 }
 
 int msg_transport_intermediate_get_max_message_payload_length (
-		const struct msg_transport *transport, uint8_t dest_id)
+	const struct msg_transport *transport, uint8_t dest_id)
 {
 	const struct msg_transport_intermediate *intermediate =
 		(const struct msg_transport_intermediate*) transport;
@@ -52,7 +52,7 @@ int msg_transport_intermediate_get_max_message_payload_length (
 }
 
 int msg_transport_intermediate_get_max_encapsulated_message_length (
-		const struct msg_transport *transport, uint8_t dest_id)
+	const struct msg_transport *transport, uint8_t dest_id)
 {
 	const struct msg_transport_intermediate *intermediate =
 		(const struct msg_transport_intermediate*) transport;

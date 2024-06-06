@@ -225,14 +225,14 @@ static void ephemeral_key_generation_rsa_test_generate_key_with_static_init (CuT
 	status |= mock_expect_save_arg (&key_gen_rsa_test.rsa.mock, 0, 0);
 
 	status |= mock_expect (&key_gen_rsa_test.rsa.mock,
-		key_gen_rsa_test.rsa.base.get_private_key_der,	&key_gen_rsa_test.rsa,	0,
+		key_gen_rsa_test.rsa.base.get_private_key_der, &key_gen_rsa_test.rsa, 0,
 		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&key_out), MOCK_ARG_PTR (&length));
 	status |= mock_expect_output (&key_gen_rsa_test.rsa.mock, 1, &key, sizeof (key), -1);
 	status |= mock_expect_output (&key_gen_rsa_test.rsa.mock, 2, &RSA4K_PRIVKEY_DER_LEN,
 		sizeof (RSA4K_PRIVKEY_DER_LEN), -1);
 
-	status |= mock_expect (&key_gen_rsa_test.rsa.mock,	key_gen_rsa_test.rsa.base.release_key,
-		&key_gen_rsa_test.rsa,	0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&key_gen_rsa_test.rsa.mock, key_gen_rsa_test.rsa.base.release_key,
+		&key_gen_rsa_test.rsa, 0, MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -320,9 +320,8 @@ static void ephemeral_key_generation_rsa_test_generate_key_with_get_private_key_
 	status |= mock_expect_save_arg (&key_gen_rsa_test.rsa.mock, 0, 0);
 
 	status |= mock_expect (&key_gen_rsa_test.rsa.mock,
-		key_gen_rsa_test.rsa.base.get_private_key_der, &key_gen_rsa_test.rsa,
-		RSA_ENGINE_NO_MEMORY, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&key_out),
-		MOCK_ARG_PTR (&key_length));
+		key_gen_rsa_test.rsa.base.get_private_key_der, &key_gen_rsa_test.rsa, RSA_ENGINE_NO_MEMORY,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&key_out), MOCK_ARG_PTR (&key_length));
 
 	status |= mock_expect (&key_gen_rsa_test.rsa.mock, key_gen_rsa_test.rsa.base.release_key,
 		&key_gen_rsa_test.rsa, 0, MOCK_ARG_SAVED_ARG (0));

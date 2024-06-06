@@ -21,13 +21,13 @@ TEST_SUITE_LABEL ("cmd_authorization");
  * Dependencies for testing the command authorization handler.
  */
 struct cmd_authorization_testing {
-	struct authorization_mock bypass;					/**< Mock for revert bypass authorization. */
-	struct authorization_mock defaults;					/**< Mock for factory default authorization. */
-	struct authorization_mock platform;					/**< Mock for platform config authorization. */
-	struct authorization_mock components;				/**< Mock for component config authorization. */
-	struct authorization_mock intrusion;				/**< Mock for intrusion authorization. */
-	struct cmd_authorization_operation op_list[5];		/**< List of supported operations. */
-	struct cmd_authorization test;						/**< Command authorization handler under test. */
+	struct authorization_mock bypass;				/**< Mock for revert bypass authorization. */
+	struct authorization_mock defaults;				/**< Mock for factory default authorization. */
+	struct authorization_mock platform;				/**< Mock for platform config authorization. */
+	struct authorization_mock components;			/**< Mock for component config authorization. */
+	struct authorization_mock intrusion;			/**< Mock for intrusion authorization. */
+	struct cmd_authorization_operation op_list[5];	/**< List of supported operations. */
+	struct cmd_authorization test;					/**< Command authorization handler under test. */
 };
 
 

@@ -1,20 +1,20 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <math.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
-#include <math.h>
-#include "cmd_interface/cmd_logging.h"
-#include "cmd_interface/cmd_interface.h"
+#include "cmd_interface_recovery.h"
 #include "cmd_interface/cerberus_protocol.h"
-#include "cmd_interface/cerberus_protocol_required_commands.h"
-#include "cmd_interface/cerberus_protocol_master_commands.h"
-#include "cmd_interface/cerberus_protocol_optional_commands.h"
 #include "cmd_interface/cerberus_protocol_debug_commands.h"
 #include "cmd_interface/cerberus_protocol_diagnostic_commands.h"
-#include "cmd_interface_recovery.h"
+#include "cmd_interface/cerberus_protocol_master_commands.h"
+#include "cmd_interface/cerberus_protocol_optional_commands.h"
+#include "cmd_interface/cerberus_protocol_required_commands.h"
+#include "cmd_interface/cmd_interface.h"
+#include "cmd_interface/cmd_logging.h"
 #include "common/unused.h"
 
 
@@ -58,13 +58,12 @@ int cmd_interface_recovery_process_request (const struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_GET_EXT_UPDATE_STATUS:
-			status = cerberus_protocol_get_extended_update_status (interface->control,
-				NULL, NULL,	NULL, NULL, request);
+			status = cerberus_protocol_get_extended_update_status (interface->control, NULL, NULL,
+				NULL, NULL, request);
 			break;
 
 		case CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES:
-			status = cerberus_protocol_get_device_capabilities (interface->device_manager,
-				request);
+			status = cerberus_protocol_get_device_capabilities (interface->device_manager, request);
 			break;
 
 		default:

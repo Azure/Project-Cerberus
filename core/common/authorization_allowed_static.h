@@ -27,4 +27,4 @@ int authorization_allowed_authorize (const struct authorization *auth, const uin
 	}
 
 
-#endif /* AUTHORIZATION_ALLOWED_STATIC_H_ */
+#endif	/* AUTHORIZATION_ALLOWED_STATIC_H_ */

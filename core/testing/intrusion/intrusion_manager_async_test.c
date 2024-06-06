@@ -576,8 +576,8 @@ static void intrusion_manager_async_test_check_state_check_error_from_no_intrusi
 
 	intrusion_manager_async_testing_init (test, &manager, PCR_MEASUREMENT (0, 0));
 
-	status = mock_expect (&manager.state.mock, manager.state.base.is_active, &manager.state,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&manager.state.mock, manager.state.base.is_active, &manager.state, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.state.mock, 0, &active_state, sizeof (active_state), -1);
 
 	/* Set no intrusion state. */
@@ -640,8 +640,8 @@ static void intrusion_manager_async_test_check_state_deferred (CuTest *test)
 
 	intrusion_manager_async_testing_init (test, &manager, PCR_MEASUREMENT (0, 0));
 
-	status = mock_expect (&manager.state.mock, manager.state.base.is_active, &manager.state,
-		0, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&manager.state.mock, manager.state.base.is_active, &manager.state, 0,
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.state.mock, 0, &active_state, sizeof (active_state), -1);
 
 	/* Set no intrusion state. */
