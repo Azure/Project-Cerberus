@@ -517,6 +517,93 @@ static void spi_flash_test_set_device_size_null (CuTest *test)
 	spi_flash_release (&flash);
 }
 
+static void spi_flash_test_set_device_size_small (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint32_t dev_size = 0x200000;
+	uint32_t out;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size_small (&flash, dev_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_get_device_size (&flash, &out);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, dev_size, out);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_set_device_size_small_null (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size_small (NULL, 0x100000);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_set_device_size_small_over_16MB (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size_small (&flash, 0x2000000);
+	CuAssertIntEquals (test, SPI_FLASH_DEVICE_SIZE_OVER_16MB, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
 static void spi_flash_test_get_device_size_flash_api (CuTest *test)
 {
 	struct spi_flash_state state;
@@ -28269,6 +28356,9 @@ TEST (spi_flash_test_static_init_fast_read_null);
 TEST (spi_flash_test_release_null);
 TEST (spi_flash_test_set_device_size);
 TEST (spi_flash_test_set_device_size_null);
+TEST (spi_flash_test_set_device_size_small);
+TEST (spi_flash_test_set_device_size_small_null);
+TEST (spi_flash_test_set_device_size_small_over_16MB);
 TEST (spi_flash_test_get_device_size_flash_api);
 TEST (spi_flash_test_get_device_size_null);
 TEST (spi_flash_test_get_device_id);

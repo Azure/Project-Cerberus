@@ -127,6 +127,7 @@ int spi_flash_save_device_info (const struct spi_flash *flash, struct spi_flash_
 int spi_flash_discover_device_properties (const struct spi_flash *flash,
 	const struct spi_flash_sfdp *sfdp);
 int spi_flash_set_device_size (const struct spi_flash *flash, uint32_t bytes);
+int spi_flash_set_device_size_small (const struct spi_flash *flash, uint32_t bytes);
 int spi_flash_set_read_command (const struct spi_flash *flash,
 	const struct spi_flash_sfdp_read_cmd *command, uint16_t flags);
 int spi_flash_set_write_command (const struct spi_flash *flash, uint8_t opcode, uint16_t flags);
@@ -194,6 +195,7 @@ enum {
 	SPI_FLASH_RESET_NOT_SUPPORTED = SPI_FLASH_ERROR (0x0d),		/**< Soft reset is not supported by the device. */
 	SPI_FLASH_PWRDOWN_NOT_SUPPORTED = SPI_FLASH_ERROR (0x0e),	/**< Deep power down is not supported by the device. */
 	SPI_FLASH_READ_ONLY_INTERFACE = SPI_FLASH_ERROR (0x0f),		/**< The interface is only configured to allow read access. */
+	SPI_FLASH_DEVICE_SIZE_OVER_16MB = SPI_FLASH_ERROR (0x10),	/**< Device size larger than 16MB. */
 };
 
 

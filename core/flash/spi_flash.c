@@ -1030,6 +1030,46 @@ int spi_flash_set_device_size (const struct spi_flash *flash, uint32_t bytes)
 }
 
 /**
+ * Set the capacity of the flash device for a flash that is no more than 16MB.
+ * This must be set before using the interface to the device.
+ *
+ * While this should not be used in most application code, there are scenarios where setting the
+ * flash device size in this way can be useful.  Specifically, this works when the flash device is
+ * definitively known and the overhead of SFDP is not desirable. In case of ROM, setting device size
+ * does not have dependency on SFDP. So when size is less than 16MB it is useful to call this API.
+ * It is also useful for test code. If this function is used in any other scenario,
+ * it is possible to configure the driver in a way that is not compatible with the flash device.
+ *
+ * In general, {@link spi_flash_discover_device_properties} should be used to set the device size.
+ *
+ * @param flash The flash instance to configure.
+ * @param bytes The capacity of the physical flash device, in bytes.
+ *
+ * @return 0 if the interface was configured successfully or an error code.
+ */
+int spi_flash_set_device_size_small (const struct spi_flash *flash, uint32_t bytes)
+{
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	if (bytes > 0x1000000) {
+		return SPI_FLASH_DEVICE_SIZE_OVER_16MB;
+	}
+
+	platform_mutex_lock (&flash->state->lock);
+
+	flash->state->device_size = bytes;
+	/* Devices with 16MB or less of storage typically don't support 4-byte address mode, nor do
+	 * they need it. */
+	flash->state->capabilities = FLASH_CAP_3BYTE_ADDR;
+
+	platform_mutex_unlock (&flash->state->lock);
+
+	return 0;
+}
+
+/**
  * Set the opcode and parameters that should be used when reading data from flash.
  *
  * This will ignore any other properties of the device and/or SPI master and use exactly what is
