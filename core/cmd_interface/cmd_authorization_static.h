@@ -9,7 +9,8 @@
 
 /* Internal functions declared to allow for static initialization. */
 int cmd_authorization_authorize_operation (const struct cmd_authorization *auth,
-	uint32_t operation_id, const uint8_t **token, size_t *length);
+	uint32_t operation_id, const uint8_t **token, size_t *length,
+	const struct authorized_execution **execution);
 int cmd_authorization_authorize_revert_bypass (const struct cmd_authorization *auth,
 	const uint8_t **token, size_t *length);
 int cmd_authorization_authorize_reset_defaults (const struct cmd_authorization *auth,
@@ -39,10 +40,13 @@ int cmd_authorization_authorize_reset_intrusion (const struct cmd_authorization 
  * @param id_arg Identifier for the operation.
  * @param authorization_ptr Authorization context for the operation.  This can be null to always
  * disallow the operation.
+ * @param execution_ptr Execution context for the operation.  This can be null if no operation will
+ * ever be executed.
  */
-#define	cmd_authorization_operation_static_init(id_arg, authorization_ptr)	{ \
+#define	cmd_authorization_operation_static_init(id_arg, authorization_ptr, execution_ptr)	{ \
 		.id = id_arg, \
 		.authorization = authorization_ptr, \
+		.execution = execution_ptr, \
 	}
 
 /**

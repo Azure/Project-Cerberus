@@ -12,6 +12,7 @@
 #include "common/array_size.h"
 #include "testing/crypto/hash_testing.h"
 #include "testing/mock/common/authorization_mock.h"
+#include "testing/mock/common/authorized_execution_mock.h"
 
 
 TEST_SUITE_LABEL ("cmd_authorization");
@@ -22,10 +23,15 @@ TEST_SUITE_LABEL ("cmd_authorization");
  */
 struct cmd_authorization_testing {
 	struct authorization_mock bypass;				/**< Mock for revert bypass authorization. */
+	struct authorized_execution_mock bypass_op;		/**< Mock for the revert bypass operation. */
 	struct authorization_mock defaults;				/**< Mock for factory default authorization. */
+	struct authorized_execution_mock defaults_op;	/**< Mock for the factory default operation. */
 	struct authorization_mock platform;				/**< Mock for platform config authorization. */
+	struct authorized_execution_mock platform_op;	/**< Mock for the platform config operation. */
 	struct authorization_mock components;			/**< Mock for component config authorization. */
+	struct authorized_execution_mock components_op;	/**< Mock for the component config operation. */
 	struct authorization_mock intrusion;			/**< Mock for intrusion authorization. */
+	struct authorized_execution_mock intrusion_op;	/**< Mock for the intrusion operation. */
 	struct cmd_authorization_operation op_list[5];	/**< List of supported operations. */
 	struct cmd_authorization test;					/**< Command authorization handler under test. */
 };
@@ -45,32 +51,52 @@ static void cmd_authorization_testing_init_dependencies (CuTest *test,
 	status = authorization_mock_init (&auth->bypass);
 	CuAssertIntEquals (test, 0, status);
 
+	status = authorized_execution_mock_init (&auth->bypass_op);
+	CuAssertIntEquals (test, 0, status);
+
 	auth->op_list[0].id = CERBERUS_PROTOCOL_REVERT_BYPASS;
 	auth->op_list[0].authorization = &auth->bypass.base;
+	auth->op_list[0].execution = &auth->bypass_op.base;
 
 	status = authorization_mock_init (&auth->defaults);
 	CuAssertIntEquals (test, 0, status);
 
+	status = authorized_execution_mock_init (&auth->defaults_op);
+	CuAssertIntEquals (test, 0, status);
+
 	auth->op_list[1].id = CERBERUS_PROTOCOL_FACTORY_RESET;
 	auth->op_list[1].authorization = &auth->defaults.base;
+	auth->op_list[1].execution = &auth->defaults_op.base;
 
 	status = authorization_mock_init (&auth->platform);
 	CuAssertIntEquals (test, 0, status);
 
+	status = authorized_execution_mock_init (&auth->platform_op);
+	CuAssertIntEquals (test, 0, status);
+
 	auth->op_list[2].id = CERBERUS_PROTOCOL_CLEAR_PCD;
 	auth->op_list[2].authorization = &auth->platform.base;
+	auth->op_list[2].execution = &auth->platform_op.base;
 
 	status = authorization_mock_init (&auth->components);
 	CuAssertIntEquals (test, 0, status);
 
+	status = authorized_execution_mock_init (&auth->components_op);
+	CuAssertIntEquals (test, 0, status);
+
 	auth->op_list[3].id = CERBERUS_PROTOCOL_CLEAR_CFM;
 	auth->op_list[3].authorization = &auth->components.base;
+	auth->op_list[3].execution = &auth->components_op.base;
 
 	status = authorization_mock_init (&auth->intrusion);
 	CuAssertIntEquals (test, 0, status);
 
+	status = authorized_execution_mock_init (&auth->intrusion_op);
+	CuAssertIntEquals (test, 0, status);
+
 	auth->op_list[4].id = CERBERUS_PROTOCOL_RESET_INTRUSION;
 	auth->op_list[4].authorization = &auth->intrusion.base;
+	auth->op_list[4].execution = &auth->intrusion_op.base;
 }
 
 /**
@@ -85,10 +111,19 @@ static void cmd_authorization_testing_release_dependencies (CuTest *test,
 	int status;
 
 	status = authorization_mock_validate_and_release (&auth->bypass);
+	status |= authorized_execution_mock_validate_and_release (&auth->bypass_op);
+
 	status |= authorization_mock_validate_and_release (&auth->defaults);
+	status |= authorized_execution_mock_validate_and_release (&auth->defaults_op);
+
 	status |= authorization_mock_validate_and_release (&auth->platform);
+	status |= authorized_execution_mock_validate_and_release (&auth->platform_op);
+
 	status |= authorization_mock_validate_and_release (&auth->components);
+	status |= authorized_execution_mock_validate_and_release (&auth->components_op);
+
 	status |= authorization_mock_validate_and_release (&auth->intrusion);
+	status |= authorized_execution_mock_validate_and_release (&auth->intrusion_op);
 
 	CuAssertIntEquals (test, 0, status);
 }
@@ -130,17 +165,19 @@ static void authorization_allowed_test_operation_static_init (CuTest *test)
 {
 	struct cmd_authorization_testing auth;
 	struct cmd_authorization_operation operation1 =
-		cmd_authorization_operation_static_init (12, &auth.bypass.base);
+		cmd_authorization_operation_static_init (12, &auth.bypass.base, &auth.bypass_op.base);
 	struct cmd_authorization_operation operation2 =
-		cmd_authorization_operation_static_init (20, &auth.defaults.base);
+		cmd_authorization_operation_static_init (20, &auth.defaults.base, &auth.defaults_op.base);
 
 	TEST_START;
 
 	CuAssertIntEquals (test, 12, operation1.id);
 	CuAssertPtrEquals (test, &auth.bypass.base, (void*) operation1.authorization);
+	CuAssertPtrEquals (test, &auth.bypass_op.base, (void*) operation1.execution);
 
 	CuAssertIntEquals (test, 20, operation2.id);
 	CuAssertPtrEquals (test, &auth.defaults.base, (void*) operation2.authorization);
+	CuAssertPtrEquals (test, &auth.defaults_op.base, (void*) operation2.execution);
 }
 
 static void authorization_allowed_test_init (CuTest *test)
@@ -231,6 +268,7 @@ static void authorization_allowed_test_authorize_operation (CuTest *test)
 	int status;
 	const uint8_t *token;
 	size_t length;
+	const struct authorized_execution *execution = (void*) &length;
 
 	TEST_START;
 
@@ -240,8 +278,10 @@ static void authorization_allowed_test_authorize_operation (CuTest *test)
 		MOCK_ARG_PTR (&token), MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
-	status = auth.test.authorize_operation (&auth.test, auth.op_list[0].id, &token, &length);
+	status = auth.test.authorize_operation (&auth.test, auth.op_list[0].id, &token, &length,
+		&execution);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, (void*) auth.op_list[0].execution, (void*) execution);
 
 	cmd_authorization_testing_release (test, &auth);
 }
@@ -252,6 +292,7 @@ static void authorization_allowed_test_authorize_operation_last (CuTest *test)
 	int status;
 	const uint8_t *token;
 	size_t length;
+	const struct authorized_execution *execution = (void*) &length;
 
 	TEST_START;
 
@@ -261,8 +302,10 @@ static void authorization_allowed_test_authorize_operation_last (CuTest *test)
 		MOCK_ARG_PTR (&token), MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
-	status = auth.test.authorize_operation (&auth.test, auth.op_list[4].id, &token, &length);
+	status = auth.test.authorize_operation (&auth.test, auth.op_list[4].id, &token, &length,
+		&execution);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, (void*) auth.op_list[4].execution, (void*) execution);
 
 	cmd_authorization_testing_release (test, &auth);
 }
@@ -273,6 +316,7 @@ static void authorization_allowed_test_authorize_operation_no_authorization (CuT
 	int status;
 	const uint8_t *token;
 	size_t length;
+	const struct authorized_execution *execution = (void*) &length;
 
 	TEST_START;
 
@@ -281,8 +325,10 @@ static void authorization_allowed_test_authorize_operation_no_authorization (CuT
 	/* Remove authorization for an operation. */
 	auth.op_list[2].authorization = NULL;
 
-	status = auth.test.authorize_operation (&auth.test, auth.op_list[2].id, &token, &length);
+	status = auth.test.authorize_operation (&auth.test, auth.op_list[2].id, &token, &length,
+		&execution);
 	CuAssertIntEquals (test, AUTHORIZATION_NOT_AUTHORIZED, status);
+	CuAssertPtrEquals (test, NULL, (void*) execution);
 
 	cmd_authorization_testing_release (test, &auth);
 }
@@ -295,6 +341,7 @@ static void authorization_allowed_test_authorize_operation_challenge (CuTest *te
 	int status;
 	const uint8_t *token;
 	size_t length;
+	const struct authorized_execution *execution = (void*) &length;
 
 	TEST_START;
 
@@ -307,10 +354,12 @@ static void authorization_allowed_test_authorize_operation_challenge (CuTest *te
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = auth.test.authorize_operation (&auth.test, auth.op_list[1].id, &token, &length);
+	status = auth.test.authorize_operation (&auth.test, auth.op_list[1].id, &token, &length,
+		&execution);
 	CuAssertIntEquals (test, AUTHORIZATION_CHALLENGE, status);
 	CuAssertPtrEquals (test, (void*) token_data, (void*) token);
 	CuAssertIntEquals (test, HASH_TESTING_FULL_BLOCK_1024_LEN, length);
+	CuAssertPtrEquals (test, NULL, (void*) execution);
 
 	status = testing_validate_array (HASH_TESTING_FULL_BLOCK_1024, token, length);
 	CuAssertIntEquals (test, 0, status);
@@ -326,6 +375,7 @@ static void authorization_allowed_test_authorize_operation_static_init (CuTest *
 	int status;
 	const uint8_t *token;
 	size_t length;
+	const struct authorized_execution *execution = (void*) &length;
 
 	TEST_START;
 
@@ -335,8 +385,10 @@ static void authorization_allowed_test_authorize_operation_static_init (CuTest *
 		MOCK_ARG_PTR (&token), MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
-	status = auth.test.authorize_operation (&auth.test, auth.op_list[0].id, &token, &length);
+	status = auth.test.authorize_operation (&auth.test, auth.op_list[0].id, &token, &length,
+		&execution);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, (void*) auth.op_list[0].execution, (void*) execution);
 
 	cmd_authorization_testing_release (test, &auth);
 }
@@ -347,12 +399,17 @@ static void authorization_allowed_test_authorize_operation_null (CuTest *test)
 	int status;
 	const uint8_t *token;
 	size_t length;
+	const struct authorized_execution *execution = (void*) &length;
 
 	TEST_START;
 
 	cmd_authorization_testing_init (test, &auth);
 
-	status = auth.test.authorize_operation (NULL, auth.op_list[0].id, &token, &length);
+	status = auth.test.authorize_operation (NULL, auth.op_list[0].id, &token, &length, &execution);
+	CuAssertIntEquals (test, CMD_AUTHORIZATION_INVALID_ARGUMENT, status);
+	CuAssertPtrEquals (test, NULL, (void*) execution);
+
+	status = auth.test.authorize_operation (&auth.test, auth.op_list[0].id, &token, &length, NULL);
 	CuAssertIntEquals (test, CMD_AUTHORIZATION_INVALID_ARGUMENT, status);
 
 	cmd_authorization_testing_release (test, &auth);
@@ -364,13 +421,15 @@ static void authorization_allowed_test_authorize_operation_unsupported (CuTest *
 	int status;
 	const uint8_t *token;
 	size_t length;
+	const struct authorized_execution *execution = (void*) &length;
 
 	TEST_START;
 
 	cmd_authorization_testing_init (test, &auth);
 
-	status = auth.test.authorize_operation (&auth.test, 15, &token, &length);
+	status = auth.test.authorize_operation (&auth.test, 15, &token, &length, &execution);
 	CuAssertIntEquals (test, CMD_AUTHORIZATION_UNSUPPORTED_OP, status);
+	CuAssertPtrEquals (test, NULL, (void*) execution);
 
 	cmd_authorization_testing_release (test, &auth);
 }
@@ -381,6 +440,7 @@ static void authorization_allowed_test_authorize_operation_authorize_error (CuTe
 	int status;
 	const uint8_t *token;
 	size_t length;
+	const struct authorized_execution *execution = (void*) &length;
 
 	TEST_START;
 
@@ -390,8 +450,10 @@ static void authorization_allowed_test_authorize_operation_authorize_error (CuTe
 		AUTHORIZATION_AUTHORIZE_FAILED, MOCK_ARG_PTR (&token), MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
-	status = auth.test.authorize_operation (&auth.test, auth.op_list[0].id, &token, &length);
+	status = auth.test.authorize_operation (&auth.test, auth.op_list[0].id, &token, &length,
+		&execution);
 	CuAssertIntEquals (test, AUTHORIZATION_AUTHORIZE_FAILED, status);
+	CuAssertPtrEquals (test, NULL, (void*) execution);
 
 	cmd_authorization_testing_release (test, &auth);
 }

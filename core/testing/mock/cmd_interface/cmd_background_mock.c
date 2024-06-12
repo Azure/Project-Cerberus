@@ -33,6 +33,30 @@ static int cmd_background_mock_unseal_result (const struct cmd_background *cmd, 
 		MOCK_ARG_PTR_CALL (key_length), MOCK_ARG_PTR_CALL (unseal_status));
 }
 
+static int cmd_background_mock_execute_authorized_operation (const struct cmd_background *cmd,
+	const struct authorized_execution *execution)
+{
+	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, cmd_background_mock_execute_authorized_operation, cmd,
+		MOCK_ARG_PTR_CALL (execution));
+}
+
+static int cmd_background_mock_get_authorized_operation_status (const struct cmd_background *cmd)
+{
+	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_get_authorized_operation_status, cmd);
+}
+
 static int cmd_background_mock_reset_bypass (const struct cmd_background *cmd)
 {
 	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
@@ -162,6 +186,9 @@ static int cmd_background_mock_func_arg_count (void *func)
 	else if (func == cmd_background_mock_unseal_start) {
 		return 2;
 	}
+	else if (func == cmd_background_mock_execute_authorized_operation) {
+		return 1;
+	}
 	else {
 		return 0;
 	}
@@ -174,6 +201,12 @@ static const char* cmd_background_mock_func_name_map (void *func)
 	}
 	else if (func == cmd_background_mock_unseal_result) {
 		return "unseal_result";
+	}
+	else if (func == cmd_background_mock_execute_authorized_operation) {
+		return "execute_authorized_operation";
+	}
+	else if (func == cmd_background_mock_get_authorized_operation_status) {
+		return "get_authorized_operation_status";
 	}
 	else if (func == cmd_background_mock_reset_bypass) {
 		return "reset_bypass";
@@ -234,6 +267,12 @@ static const char* cmd_background_mock_arg_name_map (void *func, int arg)
 
 			case 2:
 				return "unseal_status";
+		}
+	}
+	else if (func == cmd_background_mock_execute_authorized_operation) {
+		switch (arg) {
+			case 0:
+				return "execution";
 		}
 	}
 

@@ -10,11 +10,18 @@
 
 
 int cmd_authorization_authorize_operation (const struct cmd_authorization *auth,
-	uint32_t operation_id, const uint8_t **token, size_t *length)
+	uint32_t operation_id, const uint8_t **token, size_t *length,
+	const struct authorized_execution **execution)
 {
 	const struct cmd_authorization_operation *operation = NULL;
 	size_t i = 0;
 	int status;
+
+	if (execution == NULL) {
+		return CMD_AUTHORIZATION_INVALID_ARGUMENT;
+	}
+
+	*execution = NULL;
 
 	if (auth == NULL) {
 		return CMD_AUTHORIZATION_INVALID_ARGUMENT;
@@ -33,6 +40,10 @@ int cmd_authorization_authorize_operation (const struct cmd_authorization *auth,
 	if (operation) {
 		if (operation->authorization) {
 			status = operation->authorization->authorize (operation->authorization, token, length);
+			if (status == 0) {
+				/* The operation was authorized, so provide the execution context. */
+				*execution = operation->execution;
+			}
 		}
 		else {
 			status = AUTHORIZATION_NOT_AUTHORIZED;
@@ -48,34 +59,46 @@ int cmd_authorization_authorize_operation (const struct cmd_authorization *auth,
 int cmd_authorization_authorize_revert_bypass (const struct cmd_authorization *auth,
 	const uint8_t **token, size_t *length)
 {
+	const struct authorized_execution *execution;
+
 	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_REVERT_BYPASS, token,
-		length);
+		length, &execution);
 }
 
 int cmd_authorization_authorize_reset_defaults (const struct cmd_authorization *auth,
 	const uint8_t **token, size_t *length)
 {
+	const struct authorized_execution *execution;
+
 	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_FACTORY_RESET, token,
-		length);
+		length, &execution);
 }
 
 int cmd_authorization_authorize_clear_platform_config (const struct cmd_authorization *auth,
 	const uint8_t **token, size_t *length)
 {
-	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_CLEAR_PCD, token,	length);
+	const struct authorized_execution *execution;
+
+	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_CLEAR_PCD, token,	length,
+		&execution);
 }
 
 int cmd_authorization_authorize_clear_component_manifests (const struct cmd_authorization *auth,
 	const uint8_t **token, size_t *length)
 {
-	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_CLEAR_CFM, token,	length);
+	const struct authorized_execution *execution;
+
+	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_CLEAR_CFM, token,	length,
+		&execution);
 }
 
 int cmd_authorization_authorize_reset_intrusion (const struct cmd_authorization *auth,
 	const uint8_t **token, size_t *length)
 {
+	const struct authorized_execution *execution;
+
 	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_RESET_INTRUSION, token,
-		length);
+		length, &execution);
 }
 
 /**

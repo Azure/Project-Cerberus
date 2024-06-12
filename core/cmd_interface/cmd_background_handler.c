@@ -168,6 +168,37 @@ static int cmd_background_handler_start_config_reset (const struct cmd_backgroun
 #endif
 
 #ifdef CMD_ENABLE_RESET_CONFIG
+int cmd_background_handler_execute_authorized_operation (const struct cmd_background *cmd,
+	const struct authorized_execution *execution)
+{
+	const struct cmd_background_handler *handler = (const struct cmd_background_handler*) cmd;
+
+	if ((handler == NULL) || (execution == NULL)) {
+		return CMD_BACKGROUND_INVALID_ARGUMENT;
+	}
+
+	return cmd_background_handler_submit_event (handler,
+		CMD_BACKGROUND_HANDLER_ACTION_AUTHORIZED_OP, (uint8_t*) execution, sizeof (execution),
+		CONFIG_RESET_STATUS_STARTING, CONFIG_RESET_STATUS_TASK_NOT_RUNNING,
+		CONFIG_RESET_STATUS_INTERNAL_ERROR, &handler->state->config_status);
+}
+
+int cmd_background_handler_get_authorized_operation_status (const struct cmd_background *cmd)
+{
+	const struct cmd_background_handler *handler = (const struct cmd_background_handler*) cmd;
+	int status;
+
+	if (handler == NULL) {
+		return CMD_BACKGROUND_INVALID_ARGUMENT;
+	}
+
+	handler->task->lock (handler->task);
+	status = handler->state->config_status;
+	handler->task->unlock (handler->task);
+
+	return status;
+}
+
 int cmd_background_handler_reset_bypass (const struct cmd_background *cmd)
 {
 	return cmd_background_handler_start_config_reset (cmd,
@@ -336,6 +367,24 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
 #endif
 
 #ifdef CMD_ENABLE_RESET_CONFIG
+		case CMD_BACKGROUND_HANDLER_ACTION_AUTHORIZED_OP: {
+			const struct authorized_execution **execution =
+				(const struct authorized_execution**) context->event_buffer;
+			uint8_t op_start;
+			uint8_t op_error;
+
+			(*execution)->get_status_identifiers (*execution, &op_start, &op_error);
+
+			op_status = &cmd->state->config_status;
+			cmd_background_handler_set_status (cmd, &cmd->state->config_status, op_start);
+
+			status = (*execution)->execute (*execution);
+			if (status != 0) {
+				status = CMD_BACKGROUND_STATUS (op_error, status);
+			}
+			break;
+		}
+
 		case CMD_BACKGROUND_HANDLER_ACTION_RUN_BYPASS:
 			op_status = &cmd->state->config_status;
 			cmd_background_handler_set_status (cmd, &cmd->state->config_status,
@@ -567,6 +616,10 @@ int cmd_background_handler_init (struct cmd_background_handler *handler,
 	/* Configuration reset operations. */
 #if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
 #ifdef CMD_ENABLE_RESET_CONFIG
+	handler->base_cmd.execute_authorized_operation =
+		cmd_background_handler_execute_authorized_operation;
+	handler->base_cmd.get_authorized_operation_status =
+		cmd_background_handler_get_authorized_operation_status;
 	handler->base_cmd.reset_bypass = cmd_background_handler_reset_bypass;
 	handler->base_cmd.restore_defaults = cmd_background_handler_restore_defaults;
 	handler->base_cmd.clear_platform_config = cmd_background_handler_clear_platform_config;

@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "common/authorization.h"
+#include "common/authorized_execution.h"
 #include "status/rot_status.h"
 
 
@@ -24,6 +25,12 @@ struct cmd_authorization_operation {
 	 * disallowed.
 	 */
 	const struct authorization *authorization;
+
+	/**
+	 * Execution context for the operation.  If this is null, no operation will be executed, even if
+	 * authorization succeeds.
+	 */
+	const struct authorized_execution *execution;
 };
 
 /**
@@ -40,12 +47,15 @@ struct cmd_authorization {
 	 * {@link struct authorization.authorize}.
 	 * @param length Input or output length of the authorization token, depending on the initial
 	 * value of the authorization token.  See {@link struct authorization.authorize}.
+	 * @param execution Output for the execution context of the operation.  This will only be valid
+	 * if authorization was successful and there is a operation associated with it.  Otherwise, this
+	 * will be null.
 	 *
 	 * @return 0 if the operation is authorized or an error code.  If a token was generated,
 	 * CMD_AUTHORIZATION_CHALLENGE will be returned.
 	 */
 	int (*authorize_operation) (const struct cmd_authorization *auth, uint32_t operation_id,
-		const uint8_t **token, size_t *length);
+		const uint8_t **token, size_t *length, const struct authorized_execution **execution);
 
 	/**
 	 * Check for authorization to revert the device to bypass mode.

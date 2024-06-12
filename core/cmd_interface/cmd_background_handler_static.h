@@ -12,6 +12,9 @@ int cmd_background_handler_unseal_start (const struct cmd_background *cmd,
 	const uint8_t *unseal_request, size_t length);
 int cmd_background_handler_unseal_result (const struct cmd_background *cmd, uint8_t *key,
 	size_t *key_length, uint32_t *unseal_status);
+int cmd_background_handler_execute_authorized_operation (const struct cmd_background *cmd,
+	const struct authorized_execution *execution);
+int cmd_background_handler_get_authorized_operation_status (const struct cmd_background *cmd);
 int cmd_background_handler_reset_bypass (const struct cmd_background *cmd);
 int cmd_background_handler_restore_defaults (const struct cmd_background *cmd);
 int cmd_background_handler_clear_platform_config (const struct cmd_background *cmd);
@@ -49,6 +52,8 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
  */
 #ifdef CMD_ENABLE_RESET_CONFIG
 #define	CMD_BACKGROUND_HANDLER_CONFIG_RESET_API \
+	.execute_authorized_operation = cmd_background_handler_execute_authorized_operation, \
+	.get_authorized_operation_status = cmd_background_handler_get_authorized_operation_status, \
 	.reset_bypass = cmd_background_handler_reset_bypass, \
 	.restore_defaults = cmd_background_handler_restore_defaults, \
 	.clear_platform_config = cmd_background_handler_clear_platform_config, \

@@ -149,6 +149,7 @@ enum {
 	ROT_MODULE_KEY_CACHE = 0x0089,						/**< Key cache to handle rsa key management */
 	ROT_MODULE_EPHEMERAL_KEY_MANAGER = 0x008a,			/**< Ephemeral key manager */
 	ROT_MODULE_EPHEMERAL_KEY_GENERATION = 0x008b,		/**< Ephemeral key generation */
+	ROT_MODULE_AUTHORIZED_EXECUTION = 0x008c,			/**< Execution context for authorized operations. */
 };
 
 

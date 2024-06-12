@@ -37,6 +37,8 @@ enum config_reset_status {
 	CONFIG_RESET_STATUS_INTRUSION_FAILED,			/**< Failed to reset intrusion state. */
 	CONFIG_RESET_STATUS_CLEAR_COMPONENT_MANIFESTS,	/**< Component manifests are being cleared. */
 	CONFIG_RESET_STATUS_COMPONENT_MANIFESTS_FAILED,	/**< Failed to clear component manifests. */
+	CONFIG_RESET_STATUS_AUTHORIZED_OPERATION,		/**< Executing an unspecified authorized operation. */
+	CONFIG_RESET_STATUS_AUTHORIZED_OP_FAILED,		/**< Failed execution of an authorized operation. */
 };
 
 /**

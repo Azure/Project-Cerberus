@@ -6,13 +6,14 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "common/authorized_execution.h"
 #include "status/rot_status.h"
 
 
 /**
  * Make a status value formatted for status reporting.
  *
- * @param status The status per attestation_cmd_status.
+ * @param status The overall operation status.
  * @param error The error code for the operation.
  */
 #define	CMD_BACKGROUND_STATUS(status, error)	(((error & 0xffffff) << 8) | status)
@@ -63,6 +64,28 @@ struct cmd_background {
 #endif
 
 #ifdef CMD_ENABLE_RESET_CONFIG
+	/**
+	 * Execute a protected operation that has been authorized for execution.
+	 *
+	 * @param cmd The background context for executing the operation.
+	 * @param execution The execution context for the authorized operation to execute.
+	 *
+	 * @return 0 if the operation was successfully scheduled or an error code.
+	 */
+	int (*execute_authorized_operation) (const struct cmd_background *cmd,
+		const struct authorized_execution *execution);
+
+	/**
+	 * Get the status of the last authorized operation being executed.
+	 *
+	 * @param cmd The background command context to query.
+	 *
+	 * @return The operation status.  The lower 8 bits will be the status as per
+	 * {@link enum config_reset_status}.  The rest of the bits will be the return code from the
+	 * operation.
+	 */
+	int (*get_authorized_operation_status) (const struct cmd_background *cmd);
+
 	/**
 	 * Remove all configuration necessary for host firmware validation and restore the device to
 	 * bypass mode.
