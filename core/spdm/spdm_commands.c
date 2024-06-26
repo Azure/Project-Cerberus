@@ -2962,6 +2962,230 @@ int spdm_process_get_certificate_response (struct cmd_interface_msg *response)
 	return 0;
 }
 
+int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request)
+{
+	int status;
+	int spdm_error;
+	const struct spdm_challenge_request *spdm_request;
+	struct spdm_challenge_response *spdm_response;
+	uint8_t spdm_version;
+	struct spdm_state *state;
+	const struct spdm_device_capability *local_capabilities;
+	const struct spdm_transcript_manager *transcript_manager;
+	struct hash_engine *hash_engine;
+	struct riot_key_manager *key_manager;
+	struct rng_engine *rng_engine;
+	struct ecc_engine *ecc_engine;
+	enum hash_type hash_type;
+	int hash_size;
+	size_t signature_size;
+	size_t request_size;
+	size_t response_size;
+	const struct spdm_measurements *measurements;
+	uint8_t measurement_summary_type;
+	uint32_t meas_summary_hash_size;
+	uint8_t slot_num;
+	uint8_t m1_hash[HASH_MAX_HASH_LEN];
+	uint8_t *response_ptr;
+
+	if ((spdm_responder == NULL) || (request == NULL)) {
+		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
+	}
+
+	transcript_manager = spdm_responder->transcript_manager;
+	state = spdm_responder->state;
+	local_capabilities = spdm_responder->local_capabilities;
+	key_manager = spdm_responder->key_manager;
+	ecc_engine = spdm_responder->ecc_engine;
+	hash_engine = spdm_responder->hash_engine[0];
+	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
+	measurements = spdm_responder->measurements;
+	rng_engine = spdm_responder->rng_engine;
+
+	/* Validate the request. */
+	if (request->payload_length < sizeof (struct spdm_challenge_request)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+	request_size = sizeof (struct spdm_challenge_request);
+	spdm_request = (struct spdm_challenge_request*) request->payload;
+	spdm_version = SPDM_MAKE_VERSION (spdm_request->header.spdm_major_version,
+		spdm_request->header.spdm_minor_version);
+	if (spdm_version != spdm_get_connection_version (state)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH;
+		spdm_error = SPDM_ERROR_VERSION_MISMATCH;
+		goto exit;
+	}
+
+	measurement_summary_type = spdm_request->req_measurement_summary_hash_type;
+	if ((measurement_summary_type != SPDM_MEASUREMENT_SUMMARY_HASH_NONE) &&
+		(measurement_summary_type != SPDM_MEASUREMENT_SUMMARY_HASH_TCB) &&
+		(measurement_summary_type != SPDM_MEASUREMENT_SUMMARY_HASH_ALL)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+
+	if ((measurement_summary_type > SPDM_MEASUREMENT_SUMMARY_HASH_NONE) &&
+		((local_capabilities->flags.meas_cap == 0) ||
+		(state->connection_info.peer_algorithms.measurement_spec == 0) ||
+		(state->connection_info.peer_algorithms.measurement_hash_algo == 0))) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+
+	if (spdm_request->slot_num != 0) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+
+	/* Verify SPDM state. */
+	if (state->response_state != SPDM_RESPONSE_STATE_NORMAL) {
+		/* [TODO] Handle RESPOND_IF_READY condition when supported. */
+
+		spdm_handle_response_state (state, &spdm_error);
+		status = CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR;
+		goto exit;
+	}
+
+	if (state->connection_info.connection_state < SPDM_CONNECTION_STATE_NEGOTIATED) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNEXPECTED_REQUEST;
+		spdm_error = SPDM_ERROR_UNEXPECTED_REQUEST;
+		goto exit;
+	}
+
+	/* Check if the measurement capability is supported. */
+	if (local_capabilities->flags.chal_cap == 0) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY;
+		spdm_error = SPDM_ERROR_UNSUPPORTED_REQUEST;
+		goto exit;
+	}
+
+	slot_num = spdm_request->slot_num;
+	signature_size =
+		spdm_get_asym_signature_size (state->connection_info.peer_algorithms.base_asym_algo);
+	if (signature_size == 0) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_SIG_SIZE;
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	hash_size = hash_get_hash_length (hash_type);
+	if (hash_size == HASH_ENGINE_UNKNOWN_HASH) {
+		status = HASH_ENGINE_UNKNOWN_HASH;
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	meas_summary_hash_size = (measurement_summary_type == SPDM_MEASUREMENT_SUMMARY_HASH_NONE) ?
+			0 : hash_size;
+
+	/* Check if sufficient buffer is available for the response including the optional signature. */
+	response_size = sizeof (struct spdm_challenge_response) + hash_size + SPDM_NONCE_LEN +
+		meas_summary_hash_size + sizeof (uint16_t) + signature_size;
+
+	if (cmd_interface_msg_get_max_response (request) < response_size) {
+		status = CMD_HANDLER_SPDM_RESPONDER_RESPONSE_TOO_LARGE;
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	/* Reset transcript manager state as per request code. */
+	spdm_reset_transcript_via_request_code (state, transcript_manager, SPDM_RESPONSE_CHALLENGE);
+
+	/* Add request to M1M2 hash context. */
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2,
+		request->payload, request_size, false, SPDM_MAX_SESSION_COUNT);
+	if (status != 0) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR;
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	spdm_response = (struct spdm_challenge_response*) request->payload;
+	memset (spdm_response, 0, response_size);
+
+	spdm_populate_header (&spdm_response->header, SPDM_RESPONSE_CHALLENGE,
+		SPDM_GET_MINOR_VERSION (spdm_version));
+	spdm_response->basic_mutual_auth_req = 0;
+	spdm_response->slot_num = slot_num;
+	spdm_response->slot_mask = (1 << slot_num);
+	response_ptr = (uint8_t*) (spdm_response + 1);
+
+	/* Get the digest of the certificate chain. */
+	status = spdm_get_certificate_chain_digest (key_manager, hash_engine, hash_type, response_ptr);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	response_ptr += hash_size;
+	/* Generate random data for the response. */
+	status = rng_engine->generate_random_buffer (rng_engine, SPDM_NONCE_LEN, response_ptr);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	response_ptr += SPDM_NONCE_LEN;
+	/* Add the measurement summary hash if requested. */
+	if (measurement_summary_type > SPDM_MEASUREMENT_SUMMARY_HASH_NONE) {
+		status = measurements->get_measurement_summary_hash (measurements,
+			spdm_responder->hash_engine[0], hash_type, spdm_responder->hash_engine[1], hash_type,
+			(measurement_summary_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB), response_ptr,
+			meas_summary_hash_size);
+		if (status != 0) {
+			spdm_error = SPDM_ERROR_UNSPECIFIED;
+			goto exit;
+		}
+		response_ptr += meas_summary_hash_size;
+	}
+
+	/* Write opaque data size as 0 */
+	buffer_unaligned_write16 ((uint16_t*) response_ptr, 0);
+	response_ptr += sizeof (uint16_t);
+
+	/* Add response to M1M2 hash context. */
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2,
+		request->payload, response_size - signature_size, false, SPDM_MAX_SESSION_COUNT);
+	if (status != 0) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR;
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	/* Get the M1 hash and complete the hash context. */
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2, true,
+		false, SPDM_MAX_SESSION_COUNT, m1_hash, hash_size);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	/* Sign the M1 hash. */
+	status = spdm_responder_data_sign (state, key_manager, ecc_engine, hash_engine,
+		SPDM_RESPONSE_CHALLENGE, m1_hash, hash_size, response_ptr, signature_size);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	/* Set the payload length. */
+	cmd_interface_msg_set_message_payload_length (request, response_size);
+
+exit:
+	if (status != 0) {
+		spdm_generate_error_response (request, state->connection_info.version.minor_version,
+			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_CHALLENGE, status);
+	}
+
+	return 0;
+}
+
 /**
  * Construct SPDM challenge request.
  *

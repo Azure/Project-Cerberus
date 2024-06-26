@@ -134,7 +134,7 @@ void cmd_interface_spdm_responder_testing_init_dependencies (CuTest *test,
 	testing->local_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
 	testing->local_capabilities.flags.cache_cap = 0;
 	testing->local_capabilities.flags.cert_cap = 1;
-	testing->local_capabilities.flags.chal_cap = 0;
+	testing->local_capabilities.flags.chal_cap = 1;
 	testing->local_capabilities.flags.meas_cap = 1;
 	testing->local_capabilities.flags.meas_fresh_cap = 0;
 	testing->local_capabilities.flags.encrypt_cap = 1;
@@ -1921,6 +1921,256 @@ static void cmd_interface_spdm_responder_test_process_request_get_certificate_fa
 	cmd_interface_spdm_responder_testing_release (test, &testing);
 }
 
+static void cmd_interface_spdm_responder_test_process_request_challenge (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg request;
+	int status;
+	struct spdm_challenge_request rq = {0};
+	struct spdm_challenge_response *rsp = (struct spdm_challenge_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct cmd_interface_spdm_responder_testing testing;
+	uint8_t expected_nonce[SPDM_NONCE_LEN];
+	uint32_t i;
+	uint8_t expected_digest[SHA384_HASH_LENGTH] = {
+		0xe0, 0xd3, 0x9f, 0x09, 0xd2, 0xea, 0x3c,
+		0x9b, 0x0a, 0xeb, 0xb0, 0x50, 0xd9, 0x4f, 0x31, 0x44, 0xa7, 0x5e, 0x17, 0xd2, 0x15, 0x23,
+		0x5f, 0xd3, 0x25, 0x0f, 0x0e, 0x56, 0x2a, 0xaf, 0x29, 0xde, 0x0e, 0xe9, 0x51, 0xe1, 0xdc,
+		0x01, 0x81, 0x88, 0x50, 0xd2, 0x2a, 0x4a, 0x0d, 0xce, 0xca, 0x01
+	};
+	uint32_t hash_size = SHA384_HASH_LENGTH;
+	uint32_t signature_size = (ECC_KEY_LENGTH_384 << 1);
+	uint32_t response_size = sizeof (struct spdm_challenge_response) + 2 * hash_size +
+		SPDM_NONCE_LEN + sizeof (uint16_t) + signature_size;
+	uint16_t expected_opaque_size = 0;
+	uint8_t *response_ptr;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.payload = buf;
+	request.max_response = sizeof (buf);
+	request.payload_length = sizeof (struct spdm_challenge_request);
+	request.length = request.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+	spdm_state->connection_info.peer_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	spdm_state->connection_info.peer_algorithms.base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P384;
+	spdm_state->connection_info.peer_algorithms.measurement_spec = SPDM_MEASUREMENT_SPEC_DMTF;
+	spdm_state->connection_info.peer_algorithms.measurement_hash_algo =
+		SPDM_MEAS_RSP_TPM_ALG_SHA_384;
+
+	rq.header.req_rsp_code = SPDM_REQUEST_CHALLENGE;
+	rq.header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq.header.spdm_minor_version = 2;
+	rq.req_measurement_summary_hash_type = SPDM_MEASUREMENT_SUMMARY_HASH_ALL;
+	rq.slot_num = 0;
+
+	for (i = 0; i < SPDM_NONCE_LEN; i++) {
+		rq.nonce[i] = rand ();
+		expected_nonce[i] = rand ();
+	}
+	memcpy (request.payload, &rq, sizeof (struct spdm_challenge_request));
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		&testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2), MOCK_ARG_PTR (request.payload),
+		MOCK_ARG (request.payload_length), MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.calculate_sha384, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_PTR (testing.key_manager.root_ca.cert),
+		MOCK_ARG (testing.key_manager.root_ca.length), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.start_sha384, &testing.hash_engine_mock[0].base, 0);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	for (uint8_t i = 0; i < SPDM_MAX_CERT_COUNT_IN_CHAIN; i++) {
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	}
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.hash_engine_mock[0].mock, 0, expected_digest,
+		sizeof (expected_digest), -1);
+
+	status |= mock_expect (&testing.rng_mock.mock, testing.rng_mock.base.generate_random_buffer,
+		&testing.rng_mock, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.rng_mock.mock, 1, expected_nonce, SPDM_NONCE_LEN, -1);
+
+	status |= mock_expect (&testing.measurements_mock.mock,
+		testing.measurements_mock.base.get_measurement_summary_hash,
+		&testing.measurements_mock.base, 0,	MOCK_ARG_PTR (testing.hash_engine[0]),
+		MOCK_ARG (HASH_TYPE_SHA384), MOCK_ARG_PTR (testing.hash_engine[1]),
+		MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG (rq.req_measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+	status |= mock_expect_output (&testing.measurements_mock.mock, 5, expected_digest, hash_size,
+		-1);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
+		MOCK_ARG_PTR_CONTAINS (rsp, response_size - signature_size),
+		MOCK_ARG (response_size - signature_size), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2), MOCK_ARG (true), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
+		&testing.ecc_mock.base, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY_384, RIOT_CORE_ALIAS_KEY_384_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_384_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 0);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.get_signature_max_length,
+		&testing.ecc_mock.base, ECC_DER_P384_ECDSA_MAX_LENGTH, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.calculate_sha384, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + SHA384_HASH_LENGTH),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+	status |= mock_expect_output (&testing.hash_engine_mock[0].mock, 2, SHA384_TEST_HASH,
+		SHA384_HASH_LENGTH, -1);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
+		&testing.ecc_mock.base, ECC384_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (ECC_DER_P384_ECDSA_MAX_LENGTH));
+	status |= mock_expect_output (&testing.ecc_mock.mock, 3, ECC384_SIGNATURE_TEST,
+		ECC384_SIG_TEST_LEN, 4);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
+		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, response_size, request.length);
+	CuAssertIntEquals (test, request.length, request.payload_length);
+	CuAssertPtrEquals (test, buf, request.data);
+	CuAssertPtrEquals (test, rsp, request.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_CHALLENGE, rsp->header.req_rsp_code);
+
+	response_ptr = (uint8_t*) (rsp + 1);
+	status = testing_validate_array (expected_digest, response_ptr, hash_size);
+	CuAssertIntEquals (test, 0, status);
+	response_ptr += hash_size;
+
+	status = testing_validate_array (expected_nonce, response_ptr, SPDM_NONCE_LEN);
+	CuAssertIntEquals (test, 0, status);
+	response_ptr += SPDM_NONCE_LEN;
+
+	status = testing_validate_array (expected_digest, response_ptr, hash_size);
+	CuAssertIntEquals (test, 0, status);
+	response_ptr += hash_size;
+
+	status = testing_validate_array (&expected_opaque_size, response_ptr, sizeof (uint16_t));
+	CuAssertIntEquals (test, 0, status);
+	response_ptr += sizeof (uint16_t);
+
+	status = testing_validate_array (ECC384_SIGNATURE_TEST_STRUCT.r, response_ptr,
+		ECC_KEY_LENGTH_384);
+	CuAssertIntEquals (test, 0, status);
+	response_ptr += ECC_KEY_LENGTH_384;
+
+	status = testing_validate_array (ECC384_SIGNATURE_TEST_STRUCT.s, response_ptr,
+		ECC_KEY_LENGTH_384);
+	CuAssertIntEquals (test, 0, status);
+
+	cmd_interface_spdm_responder_testing_release (test, &testing);
+}
+
+static void cmd_interface_spdm_responder_test_process_request_challenge_fail (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg request;
+	int status;
+	struct spdm_challenge_request rq = {0};
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct cmd_interface_spdm_responder_testing testing;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.payload = buf;
+	request.max_response = sizeof (buf);
+	request.payload_length = sizeof (struct spdm_challenge_request);
+	request.length = request.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NOT_STARTED;
+	spdm_state->connection_info.peer_algorithms.measurement_spec = SPDM_MEASUREMENT_SPEC_DMTF;
+	spdm_state->connection_info.peer_algorithms.measurement_hash_algo =
+		SPDM_MEAS_RSP_TPM_ALG_SHA_384;
+
+	rq.header.req_rsp_code = SPDM_REQUEST_CHALLENGE;
+	rq.header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq.header.spdm_minor_version = 2;
+	rq.req_measurement_summary_hash_type = SPDM_MEASUREMENT_SUMMARY_HASH_ALL;
+	rq.slot_num = 0;
+
+	memcpy (request.payload, &rq, sizeof (struct spdm_challenge_request));
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		&testing.session_manager_mock.base, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_UNEXPECTED_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), request.payload_length);
+
+	cmd_interface_spdm_responder_testing_release (test, &testing);
+}
+
 static void cmd_interface_spdm_responder_test_process_request_get_measurements (CuTest *test)
 {
 	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
@@ -2897,6 +3147,8 @@ TEST (cmd_interface_spdm_responder_test_process_request_get_digests);
 TEST (cmd_interface_spdm_responder_test_process_request_get_digests_fail);
 TEST (cmd_interface_spdm_responder_test_process_request_get_certificate);
 TEST (cmd_interface_spdm_responder_test_process_request_get_certificate_fail);
+TEST (cmd_interface_spdm_responder_test_process_request_challenge);
+TEST (cmd_interface_spdm_responder_test_process_request_challenge_fail);
 TEST (cmd_interface_spdm_responder_test_process_request_get_measurements);
 TEST (cmd_interface_spdm_responder_test_process_request_get_measurements_fail);
 TEST (cmd_interface_spdm_responder_test_process_request_key_exchange);

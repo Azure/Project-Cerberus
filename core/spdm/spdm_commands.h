@@ -1359,6 +1359,8 @@ int spdm_generate_get_certificate_request (uint8_t *buf, size_t buf_len, uint8_t
 	uint16_t offset, uint16_t length, uint8_t spdm_minor_version);
 int spdm_process_get_certificate_response (struct cmd_interface_msg *response);
 
+int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request);
 int spdm_generate_challenge_request (uint8_t *buf, size_t buf_len, uint8_t slot_num,
 	uint8_t req_measurement_summary_hash_type, uint8_t *nonce, uint8_t spdm_minor_version);
 int spdm_process_challenge_response (struct cmd_interface_msg *response);

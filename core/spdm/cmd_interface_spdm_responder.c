@@ -82,6 +82,10 @@ int cmd_interface_spdm_process_request (const struct cmd_interface *intf,
 			status = spdm_get_certificate (spdm_responder, request);
 			break;
 
+		case SPDM_REQUEST_CHALLENGE:
+			status = spdm_challenge (spdm_responder, request);
+			break;
+
 		case SPDM_REQUEST_GET_MEASUREMENTS:
 			status = spdm_get_measurements (spdm_responder, request);
 			break;
