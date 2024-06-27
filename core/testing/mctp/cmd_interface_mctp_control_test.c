@@ -550,7 +550,7 @@ static void cmd_interface_mctp_control_test_process_request_get_message_type_sup
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertTrue (test, !request.crypto_timeout);
-	CuAssertIntEquals (test, mctp_control_get_message_type_response_length (2), request.length);
+	CuAssertIntEquals (test, mctp_control_get_message_type_response_length (3), request.length);
 	CuAssertIntEquals (test, 0, rsp->header.header.msg_type);
 	CuAssertIntEquals (test, 0, rsp->header.header.rq);
 	CuAssertIntEquals (test, 0, rsp->header.header.d_bit);
@@ -560,11 +560,12 @@ static void cmd_interface_mctp_control_test_process_request_get_message_type_sup
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE,
 		rsp->header.header.command_code);
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SUCCESS, rsp->header.completion_code);
-	CuAssertIntEquals (test, 2, rsp->message_type_count);
+	CuAssertIntEquals (test, 3, rsp->message_type_count);
 
 	entry = mctp_control_get_message_type_response_get_entries (rsp);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG, entry[0]);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, entry[1]);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM, entry[2]);
 
 	complete_cmd_interface_mctp_control_test (test, &cmd);
 }

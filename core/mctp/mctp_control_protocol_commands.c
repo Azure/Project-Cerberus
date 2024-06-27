@@ -12,6 +12,7 @@
 #include "mctp_logging.h"
 #include "platform_api.h"
 #include "cmd_interface/device_manager.h"
+#include "spdm/spdm_protocol.h"
 
 
 /**
@@ -214,6 +215,17 @@ int mctp_control_protocol_get_mctp_version_support (struct cmd_interface_msg *re
 				CERBERUS_PROTOCOL_PROTOCOL_VERSION;
 			break;
 
+		case MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM:
+			response->version_num_entry_count = 1;
+			version_entry->alpha = 0;
+			version_entry->update = MCTP_CONTROL_GET_MCTP_VERSION_VERSION_IGNORE_UPDATE;
+			version_entry->minor = MCTP_CONTROL_GET_MCTP_VERSION_VERSION_ENCODING |
+				SPDM_MAX_MINOR_VERSION;
+			version_entry->major = MCTP_CONTROL_GET_MCTP_VERSION_VERSION_ENCODING |
+				SPDM_MAJOR_VERSION;
+
+			break;
+
 		case 0xFF:
 			response->version_num_entry_count = 1;
 			version_entry->alpha = 0;
@@ -268,12 +280,13 @@ int mctp_control_protocol_get_message_type_support (struct cmd_interface_msg *re
 		return 0;
 	}
 
-	response->message_type_count = 2;
+	response->message_type_count = 3;
 
 	message_type_list = mctp_control_get_message_type_response_get_entries (response);
 
 	message_type_list[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	message_type_list[1] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	message_type_list[2] = MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM;
 
 	request->length = mctp_control_get_message_type_response_length (response->message_type_count);
 

@@ -9,6 +9,7 @@
 #include "cmd_interface/device_manager.h"
 #include "mctp/mctp_control_protocol.h"
 #include "mctp/mctp_control_protocol_commands.h"
+#include "spdm/spdm_protocol.h"
 #include "testing/mock/cmd_interface/cmd_interface_mock.h"
 
 
@@ -1081,6 +1082,49 @@ static void mctp_control_protocol_commands_test_process_get_mctp_version_support
 	CuAssertIntEquals (test, 0, entry->alpha);
 }
 
+static void mctp_control_protocol_commands_test_process_get_mctp_version_support_spdm_protocol (
+	CuTest *test)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT];
+	struct cmd_interface_msg request;
+	struct mctp_control_get_mctp_version *rq = (struct mctp_control_get_mctp_version*) data;
+	struct mctp_control_get_mctp_version_response *response =
+		(struct mctp_control_get_mctp_version_response*) data;
+	struct mctp_control_mctp_version_number_entry *entry =
+		mctp_control_get_mctp_version_response_get_entries (response);
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	rq->header.command_code = MCTP_CONTROL_PROTOCOL_GET_MCTP_VERSION;
+	rq->header.rq = 1;
+	rq->header.instance_id = 2;
+
+	rq->message_type_num = MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM;
+
+	request.length = sizeof (struct mctp_control_get_mctp_version);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = mctp_control_protocol_get_mctp_version_support (&request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, mctp_control_get_mctp_version_response_length (1), request.length);
+	CuAssertIntEquals (test, 4, response->header.header.command_code);
+	CuAssertIntEquals (test, 0, response->header.completion_code);
+	CuAssertIntEquals (test, 1, response->version_num_entry_count);
+	CuAssertIntEquals (test, MCTP_CONTROL_GET_MCTP_VERSION_VERSION_ENCODING | SPDM_MAJOR_VERSION,
+		entry->major);
+	CuAssertIntEquals (test,
+		MCTP_CONTROL_GET_MCTP_VERSION_VERSION_ENCODING | SPDM_MAX_MINOR_VERSION, entry->minor);
+	CuAssertIntEquals (test, MCTP_CONTROL_GET_MCTP_VERSION_VERSION_IGNORE_UPDATE, entry->update);
+	CuAssertIntEquals (test, 0, entry->alpha);
+}
+
 static void mctp_control_protocol_commands_test_process_get_mctp_version_support_null (CuTest *test)
 {
 	int status;
@@ -1196,12 +1240,13 @@ static void mctp_control_protocol_commands_test_process_get_message_type_support
 
 	status = mctp_control_protocol_get_message_type_support (&request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, mctp_control_get_message_type_response_length (2), request.length);
+	CuAssertIntEquals (test, mctp_control_get_message_type_response_length (3), request.length);
 	CuAssertIntEquals (test, 5, response->header.header.command_code);
 	CuAssertIntEquals (test, 0, response->header.completion_code);
-	CuAssertIntEquals (test, 2, response->message_type_count);
+	CuAssertIntEquals (test, 3, response->message_type_count);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG, entry[0]);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, entry[1]);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM, entry[2]);
 }
 
 static void mctp_control_protocol_commands_test_process_get_message_type_support_invalid_len (
@@ -2116,6 +2161,7 @@ TEST (mctp_control_protocol_commands_test_process_get_eid_invalid_len);
 TEST (mctp_control_protocol_commands_test_process_get_mctp_version_support_mctp_base_protocol);
 TEST (mctp_control_protocol_commands_test_process_get_mctp_version_support_mctp_ctrl_protocol);
 TEST (mctp_control_protocol_commands_test_process_get_mctp_version_support_vdm_protocol);
+TEST (mctp_control_protocol_commands_test_process_get_mctp_version_support_spdm_protocol);
 TEST (mctp_control_protocol_commands_test_process_get_mctp_version_support_null);
 TEST (mctp_control_protocol_commands_test_process_get_mctp_version_support_invalid_len);
 TEST (mctp_control_protocol_commands_test_process_get_mctp_version_support_unsupported_msg_type);
