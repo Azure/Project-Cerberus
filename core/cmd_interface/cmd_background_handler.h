@@ -61,14 +61,14 @@ struct cmd_background_handler {
 	struct hash_engine *hash;					/**< Hash engine to be used in attestation operations. */
 #endif
 #if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
-	struct config_reset *reset;					/**< Configuration reset manager. */
+	const struct config_reset *reset;			/**< Configuration reset manager. */
 #endif
 };
 
 
 int cmd_background_handler_init (struct cmd_background_handler *handler,
 	struct cmd_background_handler_state *state, struct attestation_responder *attestation,
-	struct hash_engine *hash, struct config_reset *reset, struct riot_key_manager *riot,
+	struct hash_engine *hash, const struct config_reset *reset, struct riot_key_manager *riot,
 	const struct event_task *task);
 int cmd_background_handler_init_state (const struct cmd_background_handler *handler);
 void cmd_background_handler_release (const struct cmd_background_handler *handler);

@@ -21,6 +21,12 @@ static void add_all_intrusion_tests (CuSuite *suite)
 	/* This is unused when no tests will be executed. */
 	UNUSED (suite);
 
+#if (defined TESTING_RUN_AUTHORIZED_EXECUTION_RESET_INTRUSION_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_AUTHORIZED_EXECUTION_RESET_INTRUSION_SUITE
+	TESTING_RUN_SUITE (authorized_execution_reset_intrusion);
+#endif
 #if (defined TESTING_RUN_INTRUSION_MANAGER_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

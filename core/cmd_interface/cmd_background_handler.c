@@ -588,7 +588,7 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
  */
 int cmd_background_handler_init (struct cmd_background_handler *handler,
 	struct cmd_background_handler_state *state, struct attestation_responder *attestation,
-	struct hash_engine *hash, struct config_reset *reset, struct riot_key_manager *riot,
+	struct hash_engine *hash, const struct config_reset *reset, struct riot_key_manager *riot,
 	const struct event_task *task)
 {
 	if ((handler == NULL) || (state == NULL) || (riot == NULL) || (task == NULL)) {

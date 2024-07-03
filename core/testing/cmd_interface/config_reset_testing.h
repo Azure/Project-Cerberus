@@ -31,7 +31,7 @@ void config_reset_testing_init_attestation_keys (CuTest *test,
 	struct config_reset_testing_keys *keys);
 void config_reset_testing_init_attestation_keys_valid_cert_chain (CuTest *test,
 	struct config_reset_testing_keys *keys);
-void config_reset_testing_release_attestation_keys (CuTest *test,
+int config_reset_testing_release_attestation_keys (CuTest *test,
 	struct config_reset_testing_keys *keys);
 
 

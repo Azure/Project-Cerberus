@@ -60,8 +60,8 @@ struct cmd_background_handler_testing {
 	struct event_task_mock task;						/**< Mock for the command task. */
 	struct event_task_context context;					/**< Event context for event processing. */
 	struct event_task_context *context_ptr;				/**< Pointer to the event context. */
-	struct cmd_background_handler_state state;			/**< Context for the manifest handler. */
-	struct cmd_background_handler test;					/**< Manifest handler under test. */
+	struct cmd_background_handler_state state;			/**< Context for the background handler. */
+	struct cmd_background_handler test;					/**< Background command handler under test. */
 };
 
 
@@ -298,10 +298,10 @@ static void cmd_background_handler_testing_release_dependencies (CuTest *test,
 	status |= rsa_mock_validate_and_release (&handler->rsa_mock);
 	status |= logging_mock_validate_and_release (&handler->log);
 	status |= event_task_mock_validate_and_release (&handler->task);
+	status |= config_reset_testing_release_attestation_keys (test, &handler->keys);
 
 	CuAssertIntEquals (test, 0, status);
 
-	config_reset_testing_release_attestation_keys (test, &handler->keys);
 	config_reset_release (&handler->reset);
 }
 
@@ -314,8 +314,9 @@ static void cmd_background_handler_testing_release_dependencies (CuTest *test,
 static void cmd_background_handler_testing_validate_and_release (CuTest *test,
 	struct cmd_background_handler_testing *handler)
 {
-	cmd_background_handler_testing_release_dependencies (test, handler);
 	cmd_background_handler_release (&handler->test);
+
+	cmd_background_handler_testing_release_dependencies (test, handler);
 }
 
 /*******************

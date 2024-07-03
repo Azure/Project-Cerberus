@@ -7,6 +7,7 @@
 #include <string.h>
 #include "testing.h"
 #include "cmd_interface/config_reset.h"
+#include "cmd_interface/config_reset_static.h"
 #include "testing/asn1/x509_testing.h"
 #include "testing/cmd_interface/config_reset_testing.h"
 #include "testing/mock/intrusion/intrusion_manager_mock.h"
@@ -17,6 +18,27 @@
 
 
 TEST_SUITE_LABEL ("config_reset");
+
+
+/**
+ * Dependencies for testing the configuration reset manager.
+ */
+struct config_reset_testing {
+	struct manifest_manager_mock manifest_bypass[3];		/**< Bypass manifest managers. */
+	struct manifest_manager_mock manifest_config[3];		/**< Platform config manifest managers. */
+	struct manifest_manager_mock manifest_components[3];	/**< Component manifest managers. */
+	struct state_manager_mock state[3];						/**< State managers to for reset testing. */
+	struct config_reset_testing_keys keys;					/**< Handling of attestation keys. */
+	struct recovery_image_manager_mock recovery;			/**< Manager for host recovery image.  */
+	struct keystore_mock keystore[2];						/**< Keystores containing config to clear. */
+	struct intrusion_manager_mock intrusion;				/**< Intrusion manager to clear. */
+	const struct manifest_manager *bypass[3];				/**< List of bypass manifests. */
+	const struct manifest_manager *config[3];				/**< List of platform config manifests. */
+	const struct manifest_manager *component[3];			/**< List of component manifests. */
+	struct state_manager *state_list[3];					/**< List of state managers. */
+	const struct keystore *keystore_array[2];				/**< List of keystores. */
+	struct config_reset test;								/**< Configuration reset manager under test. */
+};
 
 
 /**
@@ -175,17 +197,16 @@ void config_reset_testing_init_attestation_keys_valid_cert_chain (CuTest *test,
  *
  * @param test The testing framework.
  * @param keys Key management components.
+ *
+ * @return 0 if the mocks were validated successful or 1 if not.
  */
-void config_reset_testing_release_attestation_keys (CuTest *test,
+int config_reset_testing_release_attestation_keys (CuTest *test,
 	struct config_reset_testing_keys *keys)
 {
 	int status;
 
 	status = keystore_mock_validate_and_release (&keys->riot_keystore);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keys->aux_keystore);
-	CuAssertIntEquals (test, 0, status);
+	status |= keystore_mock_validate_and_release (&keys->aux_keystore);
 
 	riot_key_manager_release (&keys->riot);
 	aux_attestation_release (&keys->aux);
@@ -193,6 +214,133 @@ void config_reset_testing_release_attestation_keys (CuTest *test,
 	X509_TESTING_ENGINE_RELEASE (&keys->x509);
 	RSA_TESTING_ENGINE_RELEASE (&keys->rsa);
 	ECC_TESTING_ENGINE_RELEASE (&keys->ecc);
+
+	return status;
+}
+
+/**
+ * Helper to initialize all dependencies for testing.
+ *
+ * @param test The test framework.
+ * @param reset Testing dependencies to initialize.
+ */
+static void config_reset_testing_init_dependencies (CuTest *test,
+	struct config_reset_testing *reset)
+{
+	size_t i;
+	const char *bypass_name[] = {
+		"manifest_bypass[0]", "manifest_bypass[1]", "manifest_bypass[2]"
+	};
+	const char *config_name[] = {
+		"manifest_config[0]", "manifest_config[1]", "manifest_config[2]"
+	};
+	const char *components_name[] = {
+		"manifest_components[0]", "manifest_components[1]", "manifest_components[2]"
+	};
+	const char *state_name[] = {
+		"state[0]", "state[1]", "state[2]"
+	};
+	const char *keystore_name[] = {
+		"keystore[0]", "keystore[1]"
+	};
+	int status;
+
+	for (i = 0; i < 3; i++) {
+		status = manifest_manager_mock_init (&reset->manifest_bypass[i]);
+		CuAssertIntEquals (test, 0, status);
+		mock_set_name (&reset->manifest_bypass[i].mock, bypass_name[i]);
+		reset->bypass[i] = &reset->manifest_bypass[i].base;
+
+		status = manifest_manager_mock_init (&reset->manifest_config[i]);
+		CuAssertIntEquals (test, 0, status);
+		mock_set_name (&reset->manifest_config[i].mock, config_name[i]);
+		reset->config[i] = &reset->manifest_config[i].base;
+
+		status = manifest_manager_mock_init (&reset->manifest_components[i]);
+		CuAssertIntEquals (test, 0, status);
+		mock_set_name (&reset->manifest_components[i].mock, components_name[i]);
+		reset->component[i] = &reset->manifest_components[i].base;
+
+		status = state_manager_mock_init (&reset->state[i]);
+		CuAssertIntEquals (test, 0, status);
+		mock_set_name (&reset->state[i].mock, state_name[i]);
+		reset->state_list[i] = &reset->state[i].base;
+
+		if (i != 2) {
+			status = keystore_mock_init (&reset->keystore[i]);
+			CuAssertIntEquals (test, 0, status);
+			mock_set_name (&reset->keystore[i].mock, keystore_name[i]);
+			reset->keystore_array[i] = &reset->keystore[i].base;
+		}
+	}
+
+	status = recovery_image_manager_mock_init (&reset->recovery);
+	CuAssertIntEquals (test, 0, status);
+
+	status = intrusion_manager_mock_init (&reset->intrusion);
+	CuAssertIntEquals (test, 0, status);
+
+	config_reset_testing_init_attestation_keys (test, &reset->keys);
+}
+
+/**
+ * Helper to release all testing dependencies.
+ *
+ * @param test The test framework.
+ * @param reset Testing dependencies to release.
+ */
+static void config_reset_testing_release_dependencies (CuTest *test,
+	struct config_reset_testing *reset)
+{
+	size_t i;
+	int status = 0;
+
+	for (i = 0; i < 3; i++) {
+		status |= manifest_manager_mock_validate_and_release (&reset->manifest_bypass[i]);
+		status |= manifest_manager_mock_validate_and_release (&reset->manifest_config[i]);
+		status |= manifest_manager_mock_validate_and_release (&reset->manifest_components[i]);
+		status |= state_manager_mock_validate_and_release (&reset->state[i]);
+
+		if (i != 3) {
+			status |= keystore_mock_validate_and_release (&reset->keystore[i]);
+		}
+	}
+
+	status |= recovery_image_manager_mock_validate_and_release (&reset->recovery);
+	status |= intrusion_manager_mock_validate_and_release (&reset->intrusion);
+	status |= config_reset_testing_release_attestation_keys (test, &reset->keys);
+
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Initialize a configuration reset handler for testing.
+ *
+ * @param test The test framework.
+ * @param reset Testing dependencies.
+ */
+static void config_reset_testing_init (CuTest *test, struct config_reset_testing *reset)
+{
+	int status;
+
+	config_reset_testing_init_dependencies (test, reset);
+
+	status = config_reset_init (&reset->test, reset->bypass, 1, reset->config, 1, reset->component,
+		1, reset->state_list, 1, &reset->keys.riot, &reset->keys.aux, &reset->recovery.base,
+		reset->keystore_array, 2, &reset->intrusion.base);
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Release configuration reset test components.
+ *
+ * @param test The test framework.
+ * @param reset Testing dependencies to release.
+ */
+static void config_reset_testing_release (CuTest *test, struct config_reset_testing *reset)
+{
+	config_reset_release (&reset->test);
+	config_reset_testing_release_dependencies (test, reset);
 }
 
 
@@ -202,5040 +350,1858 @@ void config_reset_testing_release_attestation_keys (CuTest *test,
 
 static void config_reset_test_init (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	status = config_reset_init (&reset, config, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_init_no_state (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_components;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
+		NULL, 0, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2,
+		&reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, config, 1, config, 1, component_manifests, 1, NULL, 0,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_init_no_manifests (CuTest *test)
 {
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
+	struct config_reset_testing reset;
 	int status;
 
 	TEST_START;
 
-	config_reset_testing_init_attestation_keys (test, &keys);
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, NULL, 0, NULL, 0, NULL, 0, NULL, 0, &reset.keys.riot,
+		&reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	status = config_reset_init (&reset, NULL, 0, NULL, 0, NULL, 0, NULL, 0, &keys.riot, &keys.aux,
-		&recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_init_no_bypass_manifests (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, NULL, 0, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, NULL, 0, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_init_no_default_manifests (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, NULL, 0, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, config, 1, NULL, 0, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_init_no_riot (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, NULL, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2,
+		&reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, config, 1, config, 1, component_manifests, 1, state_list, 1,
-		NULL, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_init_no_aux (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, NULL, &reset.recovery.base, reset.keystore_array, 2,
+		&reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, config, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, NULL, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_init_no_recovery (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = keystore_mock_init (&keystore1);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, NULL, reset.keystore_array, 2,
+		&reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, config, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, NULL, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_init_no_keystores (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base, NULL, 0,
+		&reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = intrusion_manager_mock_init (&intrusion);
-
-	status = config_reset_init (&reset, config, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, NULL, 0, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_init_no_intrusion (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = config_reset_init (&reset, config, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, NULL);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_init_null (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (NULL, config, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
+	status = config_reset_init (NULL, reset.bypass, 1, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, CONFIG_RESET_INVALID_ARGUMENT, status);
 
-	status = config_reset_init (&reset, NULL, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
+	status = config_reset_init (&reset.test, NULL, 1, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, CONFIG_RESET_INVALID_ARGUMENT, status);
 
-	status = config_reset_init (&reset, config, 1, NULL, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
+	status = config_reset_init (&reset.test, reset.bypass, 1, NULL, 1, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, CONFIG_RESET_INVALID_ARGUMENT, status);
 
-	status = config_reset_init (&reset, config, 1, config, 1, NULL, 1, state_list, 1, &keys.riot,
-		&keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, NULL, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, CONFIG_RESET_INVALID_ARGUMENT, status);
 
-	status = config_reset_init (&reset, config, 1, config, 1, component_manifests, 1, NULL, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
+		NULL, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2,
+		&reset.intrusion.base);
 	CuAssertIntEquals (test, CONFIG_RESET_INVALID_ARGUMENT, status);
 
-	status = config_reset_init (&reset, config, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, NULL, 2, &intrusion.base);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base, NULL, 2,
+		&reset.intrusion.base);
 	CuAssertIntEquals (test, CONFIG_RESET_INVALID_ARGUMENT, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release_dependencies (test, &reset);
 }
 
 static void config_reset_test_init_no_manifests_with_state (CuTest *test)
 {
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = recovery_image_manager_mock_init (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, NULL, 0, NULL, 0, NULL, 0, state_list, 1, &keys.riot,
-		&keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
+	status = config_reset_init (&reset.test, NULL, 0, NULL, 0, NULL, 0, reset.state_list, 1,
+		&reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2,
+		&reset.intrusion.base);
 	CuAssertIntEquals (test, CONFIG_RESET_NO_MANIFESTS, status);
 
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
+	config_reset_testing_release_dependencies (test, &reset);
+}
 
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
+static void config_reset_test_static_init (CuTest *test)
+{
+	struct config_reset_testing reset = {
+		.test = config_reset_static_init (reset.bypass, 1, reset.config, 1, reset.component, 1,
+			reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+			reset.keystore_array, 2, &reset.intrusion.base)
+	};
 
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
+	TEST_START;
 
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
+	config_reset_testing_release (test, &reset);
+}
 
-	config_reset_testing_release_attestation_keys (test, &keys);
+static void config_reset_test_release_null (CuTest *test)
+{
+	TEST_START;
+
+	config_reset_release (NULL);
 }
 
 static void config_reset_test_restore_bypass (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest.base;
+	config_reset_testing_init (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
+	status = config_reset_restore_bypass (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = config_reset_restore_bypass (&reset);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_bypass_multiple (CuTest *test)
 {
-	struct manifest_manager_mock manifest1;
-	struct manifest_manager_mock manifest2;
-	struct manifest_manager_mock manifest3;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[3];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest1);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest1.mock, "manifest_manager1");
-	bypass[0] = &manifest1.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest2);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest2.mock, "manifest_manager2");
-	bypass[1] = &manifest2.base;
-
-	status = manifest_manager_mock_init (&manifest3);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest3.mock, "manifest_manager3");
-	bypass[2] = &manifest3.base;
-
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 3, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 3, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest1.mock, manifest1.base.clear_all_manifests, &manifest1, 0);
-	status |= mock_expect (&manifest2.mock, manifest2.base.clear_all_manifests, &manifest2, 0);
-	status |= mock_expect (&manifest3.mock, manifest3.base.clear_all_manifests, &manifest3, 0);
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_bypass[1].mock,
+		reset.manifest_bypass[1].base.clear_all_manifests, &reset.manifest_bypass[1], 0);
+	status |= mock_expect (&reset.manifest_bypass[2].mock,
+		reset.manifest_bypass[2].base.clear_all_manifests, &reset.manifest_bypass[2], 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_bypass (&reset);
+	status = config_reset_restore_bypass (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_bypass_no_manifests (CuTest *test)
 {
-	struct manifest_manager_mock manifest_extra;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *config[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = recovery_image_manager_mock_init (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore1);
+	status = config_reset_init (&reset.test, NULL, 0, reset.config, 1, NULL, 0, NULL, 0,
+		&reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2,
+		&reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, NULL, 0, config, 1, NULL, 0, NULL, 0, &keys.riot, &keys.aux,
-		&recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = config_reset_restore_bypass (&reset);
+	status = config_reset_restore_bypass (&reset.test);
 	CuAssertIntEquals (test, CONFIG_RESET_NO_MANIFESTS, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
+	config_reset_testing_release (test, &reset);
+}
+
+static void config_reset_test_restore_bypass_static_init (CuTest *test)
+{
+	struct config_reset_testing reset = {
+		.test = config_reset_static_init (reset.bypass, 1, reset.config, 1, reset.component, 1,
+			reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+			reset.keystore_array, 2, &reset.intrusion.base)
+	};
+	int status;
+
+	TEST_START;
+
+	config_reset_testing_init_dependencies (test, &reset);
+
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
+	status = config_reset_restore_bypass (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_bypass_null (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, config, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
+	config_reset_testing_init (test, &reset);
 
 	status = config_reset_restore_bypass (NULL);
 	CuAssertIntEquals (test, CONFIG_RESET_INVALID_ARGUMENT, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_bypass_clear_error (CuTest *test)
 {
-	struct manifest_manager_mock manifest1;
-	struct manifest_manager_mock manifest2;
-	struct manifest_manager_mock manifest3;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[3];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest1);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest1.mock, "manifest_manager1");
-	bypass[0] = &manifest1.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest2);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest2.mock, "manifest_manager2");
-	bypass[1] = &manifest2.base;
-
-	status = manifest_manager_mock_init (&manifest3);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest3.mock, "manifest_manager3");
-	bypass[2] = &manifest3.base;
-
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 3, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 3, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest1.mock, manifest1.base.clear_all_manifests, &manifest1, 0);
-	status |= mock_expect (&manifest2.mock, manifest2.base.clear_all_manifests, &manifest2,
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_bypass[1].mock,
+		reset.manifest_bypass[1].base.clear_all_manifests, &reset.manifest_bypass[1],
 		MANIFEST_MANAGER_CLEAR_ALL_FAILED);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_bypass (&reset);
+	status = config_reset_restore_bypass (&reset.test);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_CLEAR_ALL_FAILED, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest.base;
+	config_reset_testing_init (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
+	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
+		&reset.state[0], 0);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
 
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
+	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
+		&reset.keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status = recovery_image_manager_mock_init (&recovery);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
+		&reset.recovery, 0);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keystore[0].mock, reset.keystore[0].base.erase_all_keys,
+		&reset.keystore[0], 0);
+	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
+		&reset.keystore[1], 0);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
-	status |= mock_expect (&manifest_extra.mock, manifest_extra.base.clear_all_manifests,
-		&manifest_extra, 0);
-	status |= mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
-	status |= mock_expect (&state.mock, state.base.restore_default_state, &state, 0);
-
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
-		&keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
-
-	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
-	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
-
-	status |= mock_expect (&intrusion.mock, intrusion.base.handle_intrusion, &intrusion, 0);
+	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
+		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_multiple_bypass (CuTest *test)
 {
-	struct manifest_manager_mock manifest1;
-	struct manifest_manager_mock manifest2;
-	struct manifest_manager_mock manifest3;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state1;
-	struct state_manager_mock state2;
-	struct state_manager_mock state3;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[3];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[3];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest1);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest1.mock, "manifest_manager1");
-	bypass[0] = &manifest1.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest2);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest2.mock, "manifest_manager2");
-	bypass[1] = &manifest2.base;
-
-	status = manifest_manager_mock_init (&manifest3);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest3.mock, "manifest_manager3");
-	bypass[2] = &manifest3.base;
-
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state1);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state1.base;
-
-	status = state_manager_mock_init (&state2);
-	CuAssertIntEquals (test, 0, status);
-	state_list[1] = &state2.base;
-
-	status = state_manager_mock_init (&state3);
-	CuAssertIntEquals (test, 0, status);
-	state_list[2] = &state3.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 3, reset.config, 1, reset.component, 1,
+		reset.state_list, 3, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_bypass[1].mock,
+		reset.manifest_bypass[1].base.clear_all_manifests, &reset.manifest_bypass[1], 0);
+	status |= mock_expect (&reset.manifest_bypass[2].mock,
+		reset.manifest_bypass[2].base.clear_all_manifests, &reset.manifest_bypass[2], 0);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
 
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
 
-	config_reset_testing_init_attestation_keys (test, &keys);
+	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
+		&reset.state[0], 0);
+	status |= mock_expect (&reset.state[1].mock, reset.state[1].base.restore_default_state,
+		&reset.state[1], 0);
+	status |= mock_expect (&reset.state[2].mock, reset.state[2].base.restore_default_state,
+		&reset.state[2], 0);
 
-	status = config_reset_init (&reset, bypass, 3, config, 1, component_manifests, 1, state_list, 3,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
 
-	status = mock_expect (&manifest1.mock, manifest1.base.clear_all_manifests, &manifest1, 0);
-	status |= mock_expect (&manifest2.mock, manifest2.base.clear_all_manifests, &manifest2, 0);
-	status |= mock_expect (&manifest3.mock, manifest3.base.clear_all_manifests, &manifest3, 0);
+	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
+		&reset.keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status |= mock_expect (&manifest_extra.mock, manifest_extra.base.clear_all_manifests,
-		&manifest_extra, 0);
+	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
+		&reset.recovery, 0);
 
-	status |= mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
+	status |= mock_expect (&reset.keystore[0].mock, reset.keystore[0].base.erase_all_keys,
+		&reset.keystore[0], 0);
+	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
+		&reset.keystore[1], 0);
 
-	status |= mock_expect (&state1.mock, state1.base.restore_default_state, &state1, 0);
-	status |= mock_expect (&state2.mock, state2.base.restore_default_state, &state2, 0);
-	status |= mock_expect (&state3.mock, state3.base.restore_default_state, &state3, 0);
-
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
-		&keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
-
-	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
-	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
-
-	status |= mock_expect (&intrusion.mock, intrusion.base.handle_intrusion, &intrusion, 0);
+	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
+		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_multiple_default (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_components;
-	struct manifest_manager_mock manifest_extra1;
-	struct manifest_manager_mock manifest_extra2;
-	struct manifest_manager_mock manifest_extra3;
-	struct state_manager_mock state1;
-	struct state_manager_mock state2;
-	struct state_manager_mock state3;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[3];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[3];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = manifest_manager_mock_init (&manifest_extra1);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest_extra1.mock, "manifest_manager1");
-	config[0] = &manifest_extra1.base;
-
-	status = manifest_manager_mock_init (&manifest_extra2);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest_extra2.mock, "manifest_manager2");
-	config[1] = &manifest_extra2.base;
-
-	status = manifest_manager_mock_init (&manifest_extra3);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest_extra3.mock, "manifest_manager3");
-	config[2] = &manifest_extra3.base;
-
-	status = state_manager_mock_init (&state1);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state1.base;
-
-	status = state_manager_mock_init (&state2);
-	CuAssertIntEquals (test, 0, status);
-	state_list[1] = &state2.base;
-
-	status = state_manager_mock_init (&state3);
-	CuAssertIntEquals (test, 0, status);
-	state_list[2] = &state3.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 3, reset.component, 1,
+		reset.state_list, 3, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+	status |= mock_expect (&reset.manifest_config[1].mock,
+		reset.manifest_config[1].base.clear_all_manifests, &reset.manifest_config[1], 0);
+	status |= mock_expect (&reset.manifest_config[2].mock,
+		reset.manifest_config[2].base.clear_all_manifests, &reset.manifest_config[2], 0);
 
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
 
-	config_reset_testing_init_attestation_keys (test, &keys);
+	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
+		&reset.state[0], 0);
+	status |= mock_expect (&reset.state[1].mock, reset.state[1].base.restore_default_state,
+		&reset.state[1], 0);
+	status |= mock_expect (&reset.state[2].mock, reset.state[2].base.restore_default_state,
+		&reset.state[2], 0);
 
-	status = config_reset_init (&reset, bypass, 1, config, 3, component_manifests, 1, state_list, 3,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
 
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
+	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
+		&reset.keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status |= mock_expect (&manifest_extra1.mock, manifest_extra1.base.clear_all_manifests,
-		&manifest_extra1, 0);
-	status |= mock_expect (&manifest_extra2.mock, manifest_extra2.base.clear_all_manifests,
-		&manifest_extra2, 0);
-	status |= mock_expect (&manifest_extra3.mock, manifest_extra3.base.clear_all_manifests,
-		&manifest_extra3, 0);
+	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
+		&reset.recovery, 0);
 
-	status |= mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
+	status |= mock_expect (&reset.keystore[0].mock, reset.keystore[0].base.erase_all_keys,
+		&reset.keystore[0], 0);
+	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
+		&reset.keystore[1], 0);
 
-	status |= mock_expect (&state1.mock, state1.base.restore_default_state, &state1, 0);
-	status |= mock_expect (&state2.mock, state2.base.restore_default_state, &state2, 0);
-	status |= mock_expect (&state3.mock, state3.base.restore_default_state, &state3, 0);
-
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
-		&keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
-
-	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
-	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
-
-	status |= mock_expect (&intrusion.mock, intrusion.base.handle_intrusion, &intrusion, 0);
+	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
+		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_multiple_components (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct manifest_manager_mock manifest_components2;
-	struct manifest_manager_mock manifest_components3;
-	struct state_manager_mock state1;
-	struct state_manager_mock state2;
-	struct state_manager_mock state3;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[3];
-	struct state_manager *state_list[3];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest_components.mock, "manifest_manager1");
-	component_manifests[0] = &manifest_components.base;
-
-	status = manifest_manager_mock_init (&manifest_components2);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest_components2.mock, "manifest_manager2");
-	component_manifests[1] = &manifest_components2.base;
-
-	status = manifest_manager_mock_init (&manifest_components3);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest_components3.mock, "manifest_manager3");
-	component_manifests[2] = &manifest_components3.base;
-
-	status = state_manager_mock_init (&state1);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state1.base;
-
-	status = state_manager_mock_init (&state2);
-	CuAssertIntEquals (test, 0, status);
-	state_list[1] = &state2.base;
-
-	status = state_manager_mock_init (&state3);
-	CuAssertIntEquals (test, 0, status);
-	state_list[2] = &state3.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 3,
+		reset.state_list, 3, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
 
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
+	status |= mock_expect (&reset.manifest_components[1].mock,
+		reset.manifest_components[1].base.clear_all_manifests, &reset.manifest_components[1], 0);
+	status |= mock_expect (&reset.manifest_components[2].mock,
+		reset.manifest_components[2].base.clear_all_manifests, &reset.manifest_components[2], 0);
 
-	config_reset_testing_init_attestation_keys (test, &keys);
+	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
+		&reset.state[0], 0);
+	status |= mock_expect (&reset.state[1].mock, reset.state[1].base.restore_default_state,
+		&reset.state[1], 0);
+	status |= mock_expect (&reset.state[2].mock, reset.state[2].base.restore_default_state,
+		&reset.state[2], 0);
 
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 3, state_list, 3,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
 
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
+	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
+		&reset.keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status |= mock_expect (&manifest_extra.mock, manifest_extra.base.clear_all_manifests,
-		&manifest_extra, 0);
+	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
+		&reset.recovery, 0);
 
-	status |= mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
-	status |= mock_expect (&manifest_components2.mock,
-		manifest_components2.base.clear_all_manifests, &manifest_components2, 0);
-	status |= mock_expect (&manifest_components3.mock,
-		manifest_components3.base.clear_all_manifests, &manifest_components3, 0);
+	status |= mock_expect (&reset.keystore[0].mock, reset.keystore[0].base.erase_all_keys,
+		&reset.keystore[0], 0);
+	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
+		&reset.keystore[1], 0);
 
-	status |= mock_expect (&state1.mock, state1.base.restore_default_state, &state1, 0);
-	status |= mock_expect (&state2.mock, state2.base.restore_default_state, &state2, 0);
-	status |= mock_expect (&state3.mock, state3.base.restore_default_state, &state3, 0);
-
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
-		&keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
-
-	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
-	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
-
-	status |= mock_expect (&intrusion.mock, intrusion.base.handle_intrusion, &intrusion, 0);
+	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
+		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_no_bypass_manifests (CuTest *test)
 {
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, NULL, 0, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
+	status = mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
+	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
+		&reset.state[0], 0);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
 
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
+		&reset.keys.aux_keystore, 0, MOCK_ARG (0));
 
-	config_reset_testing_init_attestation_keys (test, &keys);
+	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
+		&reset.recovery, 0);
 
-	status = config_reset_init (&reset, NULL, 0, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keystore[0].mock, reset.keystore[0].base.erase_all_keys,
+		&reset.keystore[0], 0);
+	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
+		&reset.keystore[1], 0);
 
-	status = mock_expect (&manifest_extra.mock, manifest_extra.base.clear_all_manifests,
-		&manifest_extra, 0);
-	status |= mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
-	status |= mock_expect (&state.mock, state.base.restore_default_state, &state, 0);
-
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
-		&keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
-
-	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
-	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
-
-	status |= mock_expect (&intrusion.mock, intrusion.base.handle_intrusion, &intrusion, 0);
+	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
+		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_no_default_manifests (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, NULL, 0, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
+	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
+		&reset.state[0], 0);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
 
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
+		&reset.keys.aux_keystore, 0, MOCK_ARG (0));
 
-	config_reset_testing_init_attestation_keys (test, &keys);
+	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
+		&reset.recovery, 0);
 
-	status = config_reset_init (&reset, bypass, 1, NULL, 0, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keystore[0].mock, reset.keystore[0].base.erase_all_keys,
+		&reset.keystore[0], 0);
+	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
+		&reset.keystore[1], 0);
 
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
-	status |= mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
-	status |= mock_expect (&state.mock, state.base.restore_default_state, &state, 0);
-
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
-		&keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
-
-	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
-	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
-
-	status |= mock_expect (&intrusion.mock, intrusion.base.handle_intrusion, &intrusion, 0);
+	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
+		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_no_component_manifests (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, NULL, 0,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
+		&reset.state[0], 0);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
 
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
+		&reset.keys.aux_keystore, 0, MOCK_ARG (0));
 
-	config_reset_testing_init_attestation_keys (test, &keys);
+	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
+		&reset.recovery, 0);
 
-	status = config_reset_init (&reset, bypass, 1, config, 1, NULL, 0, state_list, 1, &keys.riot,
-		&keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keystore[0].mock, reset.keystore[0].base.erase_all_keys,
+		&reset.keystore[0], 0);
+	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
+		&reset.keystore[1], 0);
 
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
-	status |= mock_expect (&manifest_extra.mock, manifest_extra.base.clear_all_manifests,
-		&manifest_extra, 0);
-	status |= mock_expect (&state.mock, state.base.restore_default_state, &state, 0);
-
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
-		&keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
-
-	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
-	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
-
-	status |= mock_expect (&intrusion.mock, intrusion.base.handle_intrusion, &intrusion, 0);
+	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
+		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_no_manifests (CuTest *test)
 {
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
+	struct config_reset_testing reset;
 	int status;
 
 	TEST_START;
 
-	config_reset_testing_init_attestation_keys (test, &keys);
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, NULL, 0, NULL, 0, NULL, 0, NULL, 0, &reset.keys.riot,
+		&reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
+		&reset.keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
+		&reset.recovery, 0);
 
-	status = config_reset_init (&reset, NULL, 0, NULL, 0, NULL, 0, NULL, 0, &keys.riot, &keys.aux,
-		&recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keystore[0].mock, reset.keystore[0].base.erase_all_keys,
+		&reset.keystore[0], 0);
+	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
+		&reset.keystore[1], 0);
 
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
-		&keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
-
-	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
-	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
-
-	status |= mock_expect (&intrusion.mock, intrusion.base.handle_intrusion, &intrusion, 0);
+	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
+		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_no_state (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
+		NULL, 0, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2,
+		&reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
 
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
+		&reset.keys.aux_keystore, 0, MOCK_ARG (0));
 
-	config_reset_testing_init_attestation_keys (test, &keys);
+	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
+		&reset.recovery, 0);
 
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 1, NULL, 0,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keystore[0].mock, reset.keystore[0].base.erase_all_keys,
+		&reset.keystore[0], 0);
+	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
+		&reset.keystore[1], 0);
 
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
-	status |= mock_expect (&manifest_extra.mock, manifest_extra.base.clear_all_manifests,
-		&manifest_extra, 0);
-	status |= mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
-
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
-		&keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
-
-	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
-	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
-
-	status |= mock_expect (&intrusion.mock, intrusion.base.handle_intrusion, &intrusion, 0);
+	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
+		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_no_riot (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, NULL, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2,
+		&reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
+	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
+		&reset.state[0], 0);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
+		&reset.keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
+		&reset.recovery, 0);
 
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 1, state_list, 1,
-		NULL, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
-	status |= mock_expect (&manifest_extra.mock, manifest_extra.base.clear_all_manifests,
-		&manifest_extra, 0);
-	status |= mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
-	status |= mock_expect (&state.mock, state.base.restore_default_state, &state, 0);
-
-	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
-		&keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
-
-	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
-	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
-
-	status |= mock_expect (&intrusion.mock, intrusion.base.handle_intrusion, &intrusion, 0);
+	status |= mock_expect (&reset.keystore[0].mock, reset.keystore[0].base.erase_all_keys,
+		&reset.keystore[0], 0);
+	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
+		&reset.keystore[1], 0);
+	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
+		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_no_aux (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, NULL, &reset.recovery.base, reset.keystore_array, 2,
+		&reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
+	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
+		&reset.state[0], 0);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
 
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
+		&reset.recovery, 0);
 
-	config_reset_testing_init_attestation_keys (test, &keys);
+	status |= mock_expect (&reset.keystore[0].mock, reset.keystore[0].base.erase_all_keys,
+		&reset.keystore[0], 0);
+	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
+		&reset.keystore[1], 0);
 
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, NULL, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
-	status |= mock_expect (&manifest_extra.mock, manifest_extra.base.clear_all_manifests,
-		&manifest_extra, 0);
-	status |= mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
-	status |= mock_expect (&state.mock, state.base.restore_default_state, &state, 0);
-
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
-
-	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
-	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
-
-	status |= mock_expect (&intrusion.mock, intrusion.base.handle_intrusion, &intrusion, 0);
+	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
+		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_no_recovery (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = keystore_mock_init (&keystore1);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, NULL, reset.keystore_array, 2,
+		&reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
+	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
+		&reset.state[0], 0);
 
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
 
-	config_reset_testing_init_attestation_keys (test, &keys);
+	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
+		&reset.keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, NULL, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keystore[0].mock, reset.keystore[0].base.erase_all_keys,
+		&reset.keystore[0], 0);
+	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
+		&reset.keystore[1], 0);
 
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
-	status |= mock_expect (&manifest_extra.mock, manifest_extra.base.clear_all_manifests,
-		&manifest_extra, 0);
-	status |= mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
-	status |= mock_expect (&state.mock, state.base.restore_default_state, &state, 0);
-
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
-		&keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
-	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
-
-	status |= mock_expect (&intrusion.mock, intrusion.base.handle_intrusion, &intrusion, 0);
+	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
+		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_no_keystore_array (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base, NULL, 0,
+		&reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
+	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
+		&reset.state[0], 0);
 
-	config_reset_testing_init_attestation_keys (test, &keys);
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
 
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, NULL, 0, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
+		&reset.keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
-	status |= mock_expect (&manifest_extra.mock, manifest_extra.base.clear_all_manifests,
-		&manifest_extra, 0);
-	status |= mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
-	status |= mock_expect (&state.mock, state.base.restore_default_state, &state, 0);
+	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
+		&reset.recovery, 0);
 
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
-		&keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
-
-	status |= mock_expect (&intrusion.mock, intrusion.base.handle_intrusion, &intrusion, 0);
+	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
+		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_no_intrusion (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
+	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
+		&reset.state[0], 0);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
 
-	config_reset_testing_init_attestation_keys (test, &keys);
+	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
+		&reset.keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, NULL);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
+		&reset.recovery, 0);
 
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
-	status |= mock_expect (&manifest_extra.mock, manifest_extra.base.clear_all_manifests,
-		&manifest_extra, 0);
-	status |= mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
-	status |= mock_expect (&state.mock, state.base.restore_default_state, &state, 0);
-
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
-		&keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
-
-	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
-	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
+	status |= mock_expect (&reset.keystore[0].mock, reset.keystore[0].base.erase_all_keys,
+		&reset.keystore[0], 0);
+	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
+		&reset.keystore[1], 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
+	config_reset_testing_release (test, &reset);
+}
+
+static void config_reset_test_restore_defaults_static_init (CuTest *test)
+{
+	struct config_reset_testing reset = {
+		.test = config_reset_static_init (reset.bypass, 1, reset.config, 1, reset.component, 1,
+			reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+			reset.keystore_array, 2, &reset.intrusion.base)
+	};
+	int status;
+
+	TEST_START;
+
+	config_reset_testing_init_dependencies (test, &reset);
+
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
+	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
+		&reset.state[0], 0);
+
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
+
+	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
+		&reset.keys.aux_keystore, 0, MOCK_ARG (0));
+
+	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
+		&reset.recovery, 0);
+
+	status |= mock_expect (&reset.keystore[0].mock, reset.keystore[0].base.erase_all_keys,
+		&reset.keystore[0], 0);
+	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
+		&reset.keystore[1], 0);
+
+	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
+		&reset.intrusion, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_null (CuTest *test)
 {
+	struct config_reset_testing reset;
 	int status;
 
 	TEST_START;
 
+	config_reset_testing_init (test, &reset);
+
 	status = config_reset_restore_defaults (NULL);
 	CuAssertIntEquals (test, CONFIG_RESET_INVALID_ARGUMENT, status);
+
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_bypass_clear_error (CuTest *test)
 {
-	struct manifest_manager_mock manifest1;
-	struct manifest_manager_mock manifest2;
-	struct manifest_manager_mock manifest3;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state1;
-	struct state_manager_mock state2;
-	struct state_manager_mock state3;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[3];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[3];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest1);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest1.mock, "manifest_manager1");
-	bypass[0] = &manifest1.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest2);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest2.mock, "manifest_manager2");
-	bypass[1] = &manifest2.base;
-
-	status = manifest_manager_mock_init (&manifest3);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest3.mock, "manifest_manager3");
-	bypass[2] = &manifest3.base;
-
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state1);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state1.base;
-
-	status = state_manager_mock_init (&state2);
-	CuAssertIntEquals (test, 0, status);
-	state_list[1] = &state2.base;
-
-	status = state_manager_mock_init (&state3);
-	CuAssertIntEquals (test, 0, status);
-	state_list[2] = &state3.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 3, reset.config, 1, reset.component, 1,
+		reset.state_list, 3, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 3, config, 1, component_manifests, 1, state_list, 3,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest1.mock, manifest1.base.clear_all_manifests, &manifest1, 0);
-	status |= mock_expect (&manifest2.mock, manifest2.base.clear_all_manifests, &manifest2,
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_bypass[1].mock,
+		reset.manifest_bypass[1].base.clear_all_manifests, &reset.manifest_bypass[1],
 		MANIFEST_MANAGER_CLEAR_ALL_FAILED);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_CLEAR_ALL_FAILED, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_default_clear_error (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra1;
-	struct manifest_manager_mock manifest_extra2;
-	struct manifest_manager_mock manifest_extra3;
-	struct state_manager_mock state1;
-	struct state_manager_mock state2;
-	struct state_manager_mock state3;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[3];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[3];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra1);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest_extra1.mock, "manifest_manager1");
-	config[0] = &manifest_extra1.base;
-
-	status = manifest_manager_mock_init (&manifest_extra2);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest_extra2.mock, "manifest_manager2");
-	config[1] = &manifest_extra2.base;
-
-	status = manifest_manager_mock_init (&manifest_extra3);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest_extra3.mock, "manifest_manager3");
-	config[2] = &manifest_extra3.base;
-
-	status = state_manager_mock_init (&state1);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state1.base;
-
-	status = state_manager_mock_init (&state2);
-	CuAssertIntEquals (test, 0, status);
-	state_list[1] = &state2.base;
-
-	status = state_manager_mock_init (&state3);
-	CuAssertIntEquals (test, 0, status);
-	state_list[2] = &state3.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 3, reset.component, 1,
+		reset.state_list, 3, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 1, config, 3, component_manifests, 1, state_list, 3,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
-
-	status |= mock_expect (&manifest_extra1.mock, manifest_extra1.base.clear_all_manifests,
-		&manifest_extra1, 0);
-	status |= mock_expect (&manifest_extra2.mock, manifest_extra2.base.clear_all_manifests,
-		&manifest_extra2, MANIFEST_MANAGER_CLEAR_ALL_FAILED);
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+	status |= mock_expect (&reset.manifest_config[1].mock,
+		reset.manifest_config[1].base.clear_all_manifests, &reset.manifest_config[1],
+		MANIFEST_MANAGER_CLEAR_ALL_FAILED);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_CLEAR_ALL_FAILED, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_components_clear_error (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct manifest_manager_mock manifest_components2;
-	struct manifest_manager_mock manifest_components3;
-	struct state_manager_mock state1;
-	struct state_manager_mock state2;
-	struct state_manager_mock state3;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[3];
-	struct state_manager *state_list[3];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest_components.mock, "manifest_manager1");
-	component_manifests[0] = &manifest_components.base;
-
-	status = manifest_manager_mock_init (&manifest_components2);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest_components2.mock, "manifest_manager2");
-	component_manifests[1] = &manifest_components2.base;
-
-	status = manifest_manager_mock_init (&manifest_components3);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest_components3.mock, "manifest_manager3");
-	component_manifests[2] = &manifest_components3.base;
-
-	status = state_manager_mock_init (&state1);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state1.base;
-
-	status = state_manager_mock_init (&state2);
-	CuAssertIntEquals (test, 0, status);
-	state_list[1] = &state2.base;
-
-	status = state_manager_mock_init (&state3);
-	CuAssertIntEquals (test, 0, status);
-	state_list[2] = &state3.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 3,
+		reset.state_list, 3, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
 
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 3, state_list, 3,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
-
-	status |= mock_expect (&manifest_extra.mock, manifest_extra.base.clear_all_manifests,
-		&manifest_extra, 0);
-
-	status |= mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
-	status |= mock_expect (&manifest_components2.mock,
-		manifest_components2.base.clear_all_manifests, &manifest_components2,
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
+	status |= mock_expect (&reset.manifest_components[1].mock,
+		reset.manifest_components[1].base.clear_all_manifests, &reset.manifest_components[1],
 		MANIFEST_MANAGER_CLEAR_ALL_FAILED);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_CLEAR_ALL_FAILED, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
+	config_reset_testing_release (test, &reset);
+}
+
+static void config_reset_test_restore_defaults_state_restore_error (CuTest *test)
+{
+	struct config_reset_testing reset;
+	int status;
+
+	TEST_START;
+
+	config_reset_testing_init_dependencies (test, &reset);
+
+	status = config_reset_init (&reset.test, reset.bypass, 3, reset.config, 1, reset.component, 1,
+		reset.state_list, 3, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_bypass[1].mock,
+		reset.manifest_bypass[1].base.clear_all_manifests, &reset.manifest_bypass[1], 0);
+	status |= mock_expect (&reset.manifest_bypass[2].mock,
+		reset.manifest_bypass[2].base.clear_all_manifests, &reset.manifest_bypass[2], 0);
+
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
+
+	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
+		&reset.state[0], 0);
+	status |= mock_expect (&reset.state[1].mock, reset.state[1].base.restore_default_state,
+		&reset.state[1], STATE_MANAGER_DEFAULTS_FAILED);
+
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
+	status = config_reset_restore_defaults (&reset.test);
+	CuAssertIntEquals (test, STATE_MANAGER_DEFAULTS_FAILED, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest_components2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_riot_erase_error (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest.base;
+	config_reset_testing_init (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
+	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
+		&reset.state[0], 0);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
-	status |= mock_expect (&manifest_extra.mock, manifest_extra.base.clear_all_manifests,
-		&manifest_extra, 0);
-	status |= mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
-	status |= mock_expect (&state.mock, state.base.restore_default_state, &state, 0);
-
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, KEYSTORE_ERASE_FAILED, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, KEYSTORE_ERASE_FAILED, MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, KEYSTORE_ERASE_FAILED, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_aux_erase_error (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest.base;
+	config_reset_testing_init (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
+	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
+		&reset.state[0], 0);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
 
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
-	status |= mock_expect (&manifest_extra.mock, manifest_extra.base.clear_all_manifests,
-		&manifest_extra, 0);
-	status |= mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
-	status |= mock_expect (&state.mock, state.base.restore_default_state, &state, 0);
-
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
-		&keys.aux_keystore, KEYSTORE_ERASE_FAILED, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
+		&reset.keys.aux_keystore, KEYSTORE_ERASE_FAILED, MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, KEYSTORE_ERASE_FAILED, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_recovery_in_use_error (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest.base;
+	config_reset_testing_init (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
+	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
+		&reset.state[0], 0);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
 
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
+	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
+		&reset.keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status = recovery_image_manager_mock_init (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
-	status |= mock_expect (&manifest_extra.mock, manifest_extra.base.clear_all_manifests,
-		&manifest_extra, 0);
-	status |= mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
-	status |= mock_expect (&state.mock, state.base.restore_default_state, &state, 0);
-
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
-		&keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery,
-		RECOVERY_IMAGE_MANAGER_IMAGE_IN_USE);
+	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
+		&reset.recovery, RECOVERY_IMAGE_MANAGER_IMAGE_IN_USE);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_MANAGER_IMAGE_IN_USE, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_keystore_array_erase_error (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest.base;
+	config_reset_testing_init (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
+	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
+		&reset.state[0], 0);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
 
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
+	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
+		&reset.keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status = recovery_image_manager_mock_init (&recovery);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
+		&reset.recovery, 0);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
-	status |= mock_expect (&manifest_extra.mock, manifest_extra.base.clear_all_manifests,
-		&manifest_extra, 0);
-	status |= mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
-	status |= mock_expect (&state.mock, state.base.restore_default_state, &state, 0);
-
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
-		&keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
-
-	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1,
-		KEYSTORE_NO_MEMORY);
+	status |= mock_expect (&reset.keystore[0].mock, reset.keystore[0].base.erase_all_keys,
+		&reset.keystore[0], KEYSTORE_ERASE_FAILED);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
-	CuAssertIntEquals (test, KEYSTORE_NO_MEMORY, status);
+	status = config_reset_restore_defaults (&reset.test);
+	CuAssertIntEquals (test, KEYSTORE_ERASE_FAILED, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_defaults_intrusion_error (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest.base;
+	config_reset_testing_init (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest_extra.base;
+	status = mock_expect (&reset.manifest_bypass[0].mock,
+		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
+	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
+		&reset.state[0], 0);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
 
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
+	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
+		&reset.keys.aux_keystore, 0, MOCK_ARG (0));
 
-	status = recovery_image_manager_mock_init (&recovery);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
+		&reset.recovery, 0);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&reset.keystore[0].mock, reset.keystore[0].base.erase_all_keys,
+		&reset.keystore[0], 0);
+	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
+		&reset.keystore[1], 0);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
-	status |= mock_expect (&manifest_extra.mock, manifest_extra.base.clear_all_manifests,
-		&manifest_extra, 0);
-	status |= mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
-	status |= mock_expect (&state.mock, state.base.restore_default_state, &state, 0);
-
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&keys.riot_keystore.mock, keys.riot_keystore.base.erase_key,
-		&keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&keys.aux_keystore.mock, keys.aux_keystore.base.erase_key,
-		&keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&recovery.mock, recovery.base.erase_all_recovery_regions, &recovery, 0);
-
-	status |= mock_expect (&keystore1.mock, keystore1.base.erase_all_keys, &keystore1, 0);
-	status |= mock_expect (&keystore2.mock, keystore2.base.erase_all_keys, &keystore2, 0);
-
-	status |= mock_expect (&intrusion.mock, intrusion.base.handle_intrusion, &intrusion,
-		INTRUSION_MANAGER_RESET_FAILED);
+	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
+		&reset.intrusion, INTRUSION_MANAGER_RESET_FAILED);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_defaults (&reset);
+	status = config_reset_restore_defaults (&reset.test);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_RESET_FAILED, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_platform_config (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
+	config_reset_testing_init (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
+	status = config_reset_restore_platform_config (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest.mock, manifest.base.clear_all_manifests, &manifest, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = config_reset_restore_platform_config (&reset);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_platform_config_multiple (CuTest *test)
 {
-	struct manifest_manager_mock manifest1;
-	struct manifest_manager_mock manifest2;
-	struct manifest_manager_mock manifest3;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[3];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest1);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest1.mock, "manifest_manager1");
-	config[0] = &manifest1.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest2);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest2.mock, "manifest_manager2");
-	config[1] = &manifest2.base;
-
-	status = manifest_manager_mock_init (&manifest3);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest3.mock, "manifest_manager3");
-	config[2] = &manifest3.base;
-
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 3, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 1, config, 3, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest1.mock, manifest1.base.clear_all_manifests, &manifest1, 0);
-	status |= mock_expect (&manifest2.mock, manifest2.base.clear_all_manifests, &manifest2, 0);
-	status |= mock_expect (&manifest3.mock, manifest3.base.clear_all_manifests, &manifest3, 0);
+	status = mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+	status |= mock_expect (&reset.manifest_config[1].mock,
+		reset.manifest_config[1].base.clear_all_manifests, &reset.manifest_config[1], 0);
+	status |= mock_expect (&reset.manifest_config[2].mock,
+		reset.manifest_config[2].base.clear_all_manifests, &reset.manifest_config[2], 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_platform_config (&reset);
+	status = config_reset_restore_platform_config (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_platform_config_no_manifests (CuTest *test)
 {
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *component_manifests[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest_extra.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, NULL, 0, reset.component, 1, NULL, 0,
+		&reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2,
+		&reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 1, NULL, 0, component_manifests, 1, NULL, 0,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = config_reset_restore_platform_config (&reset);
+	status = config_reset_restore_platform_config (&reset.test);
 	CuAssertIntEquals (test, CONFIG_RESET_NO_MANIFESTS, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
+	config_reset_testing_release (test, &reset);
+}
+
+static void config_reset_test_restore_platform_config_static_init (CuTest *test)
+{
+	struct config_reset_testing reset = {
+		.test = config_reset_static_init (reset.bypass, 1, reset.config, 1, reset.component, 1,
+			reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+			reset.keystore_array, 2, &reset.intrusion.base)
+	};
+	int status;
+
+	TEST_START;
+
+	config_reset_testing_init_dependencies (test, &reset);
+
+	status = mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
+	status = config_reset_restore_platform_config (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_platform_config_null (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, config, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
+	config_reset_testing_init (test, &reset);
 
 	status = config_reset_restore_platform_config (NULL);
 	CuAssertIntEquals (test, CONFIG_RESET_INVALID_ARGUMENT, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_restore_platform_config_clear_error (CuTest *test)
 {
-	struct manifest_manager_mock manifest1;
-	struct manifest_manager_mock manifest2;
-	struct manifest_manager_mock manifest3;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[3];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest1);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest1.mock, "manifest_manager1");
-	config[0] = &manifest1.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest2);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest2.mock, "manifest_manager2");
-	config[1] = &manifest2.base;
-
-	status = manifest_manager_mock_init (&manifest3);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest3.mock, "manifest_manager3");
-	config[2] = &manifest3.base;
-
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 3, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 1, config, 3, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest1.mock, manifest1.base.clear_all_manifests, &manifest1, 0);
-	status |= mock_expect (&manifest2.mock, manifest2.base.clear_all_manifests, &manifest2,
+	status |= mock_expect (&reset.manifest_config[0].mock,
+		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
+	status |= mock_expect (&reset.manifest_config[1].mock,
+		reset.manifest_config[1].base.clear_all_manifests, &reset.manifest_config[1],
 		MANIFEST_MANAGER_CLEAR_ALL_FAILED);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_restore_platform_config (&reset);
+	status = config_reset_restore_platform_config (&reset.test);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_CLEAR_ALL_FAILED, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_reset_intrusion (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
+	config_reset_testing_init (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = mock_expect (&reset.intrusion.mock, reset.intrusion.base.reset_intrusion,
+		&reset.intrusion, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
+	status = config_reset_reset_intrusion (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore2);
+	config_reset_testing_release (test, &reset);
+}
+
+static void config_reset_test_reset_intrusion_static_init (CuTest *test)
+{
+	struct config_reset_testing reset = {
+		.test = config_reset_static_init (reset.bypass, 1, reset.config, 1, reset.component, 1,
+			reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+			reset.keystore_array, 2, &reset.intrusion.base)
+	};
+	int status;
+
+	TEST_START;
+
+	config_reset_testing_init_dependencies (test, &reset);
+
+	status = mock_expect (&reset.intrusion.mock, reset.intrusion.base.reset_intrusion,
+		&reset.intrusion, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = intrusion_manager_mock_init (&intrusion);
+	status = config_reset_reset_intrusion (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&intrusion.mock, intrusion.base.reset_intrusion, &intrusion, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = config_reset_reset_intrusion (&reset);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_reset_intrusion_null (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, config, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
+	config_reset_testing_init (test, &reset);
 
 	status = config_reset_reset_intrusion (NULL);
 	CuAssertIntEquals (test, CONFIG_RESET_INVALID_ARGUMENT, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_reset_intrusion_null_intrusion (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
+	status = config_reset_reset_intrusion (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, config, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, NULL);
-	CuAssertIntEquals (test, 0, status);
-
-	status = config_reset_reset_intrusion (&reset);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_reset_intrusion_reset_error (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
+	config_reset_testing_init (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = mock_expect (&reset.intrusion.mock, reset.intrusion.base.reset_intrusion,
+		&reset.intrusion, INTRUSION_MANAGER_RESET_FAILED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, config, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&intrusion.mock, intrusion.base.reset_intrusion, &intrusion,
-		INTRUSION_MANAGER_RESET_FAILED);
-	CuAssertIntEquals (test, 0, status);
-
-	status = config_reset_reset_intrusion (&reset);
+	status = config_reset_reset_intrusion (&reset.test);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_RESET_FAILED, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_clear_component_manifests (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
+	config_reset_testing_init (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
+	status = config_reset_clear_component_manifests (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = config_reset_clear_component_manifests (&reset);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_clear_component_manifests_multiple (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct manifest_manager_mock manifest_components2;
-	struct manifest_manager_mock manifest_components3;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[3];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest_components2.mock, "manifest_manager1");
-	component_manifests[0] = &manifest_components.base;
-
-	status = manifest_manager_mock_init (&manifest_components2);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest_components2.mock, "manifest_manager2");
-	component_manifests[1] = &manifest_components2.base;
-
-	status = manifest_manager_mock_init (&manifest_components3);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest_components3.mock, "manifest_manager3");
-	component_manifests[2] = &manifest_components3.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 3,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 3, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
-	status |= mock_expect (&manifest_components2.mock,
-		manifest_components2.base.clear_all_manifests, &manifest_components2, 0);
-	status |= mock_expect (&manifest_components3.mock,
-		manifest_components3.base.clear_all_manifests, &manifest_components3, 0);
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
+	status |= mock_expect (&reset.manifest_components[1].mock,
+		reset.manifest_components[1].base.clear_all_manifests, &reset.manifest_components[1], 0);
+	status |= mock_expect (&reset.manifest_components[2].mock,
+		reset.manifest_components[2].base.clear_all_manifests, &reset.manifest_components[2], 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_clear_component_manifests (&reset);
+	status = config_reset_clear_component_manifests (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_clear_component_manifests_no_manifests (CuTest *test)
 {
-	struct manifest_manager_mock manifest_extra;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest_extra.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = recovery_image_manager_mock_init (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore1);
+	status = config_reset_init (&reset.test, reset.bypass, 1, NULL, 0, NULL, 0, NULL, 0,
+		&reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2,
+		&reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 1, NULL, 0, NULL, 0, NULL, 0, &keys.riot, &keys.aux,
-		&recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = config_reset_clear_component_manifests (&reset);
+	status = config_reset_clear_component_manifests (&reset.test);
 	CuAssertIntEquals (test, CONFIG_RESET_NO_MANIFESTS, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
+	config_reset_testing_release (test, &reset);
+}
+
+static void config_reset_test_clear_component_manifests_static_init (CuTest *test)
+{
+	struct config_reset_testing reset = {
+		.test = config_reset_static_init (reset.bypass, 1, reset.config, 1, reset.component, 1,
+			reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+			reset.keystore_array, 2, &reset.intrusion.base)
+	};
+	int status;
+
+	TEST_START;
+
+	config_reset_testing_init_dependencies (test, &reset);
+
+	status = mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
+	status = config_reset_clear_component_manifests (&reset.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_clear_component_manifests_null (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_components;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[1];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	component_manifests[0] = &manifest_components.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, config, 1, config, 1, component_manifests, 1, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
+	config_reset_testing_init (test, &reset);
 
 	status = config_reset_clear_component_manifests (NULL);
 	CuAssertIntEquals (test, CONFIG_RESET_INVALID_ARGUMENT, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 static void config_reset_test_clear_component_manifests_clear_error (CuTest *test)
 {
-	struct manifest_manager_mock manifest;
-	struct manifest_manager_mock manifest_extra;
-	struct manifest_manager_mock manifest_components;
-	struct manifest_manager_mock manifest_components2;
-	struct manifest_manager_mock manifest_components3;
-	struct state_manager_mock state;
-	struct config_reset_testing_keys keys;
-	struct config_reset reset;
+	struct config_reset_testing reset;
 	int status;
-	const struct manifest_manager *bypass[1];
-	const struct manifest_manager *config[1];
-	const struct manifest_manager *component_manifests[3];
-	struct state_manager *state_list[1];
-	struct recovery_image_manager_mock recovery;
-	struct keystore_mock keystore1;
-	struct keystore_mock keystore2;
-	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
-	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
 
-	status = manifest_manager_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-	config[0] = &manifest.base;
+	config_reset_testing_init_dependencies (test, &reset);
 
-	status = manifest_manager_mock_init (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-	bypass[0] = &manifest_extra.base;
-
-	status = manifest_manager_mock_init (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest_components.mock, "manifest_manager1");
-	component_manifests[0] = &manifest_components.base;
-
-	status = manifest_manager_mock_init (&manifest_components2);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest_components2.mock, "manifest_manager2");
-	component_manifests[1] = &manifest_components2.base;
-
-	status = manifest_manager_mock_init (&manifest_components3);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&manifest_components3.mock, "manifest_manager3");
-	component_manifests[2] = &manifest_components3.base;
-
-	status = state_manager_mock_init (&state);
-	CuAssertIntEquals (test, 0, status);
-	state_list[0] = &state.base;
-
-	status = recovery_image_manager_mock_init (&recovery);
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 3,
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+		reset.keystore_array, 2, &reset.intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = keystore_mock_init (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_init (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_init_attestation_keys (test, &keys);
-
-	status = config_reset_init (&reset, bypass, 1, config, 1, component_manifests, 3, state_list, 1,
-		&keys.riot, &keys.aux, &recovery.base, keystore_array, 2, &intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest_components.mock, manifest_components.base.clear_all_manifests,
-		&manifest_components, 0);
-	status |= mock_expect (&manifest_components2.mock,
-		manifest_components2.base.clear_all_manifests, &manifest_components2,
+	status |= mock_expect (&reset.manifest_components[0].mock,
+		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
+	status |= mock_expect (&reset.manifest_components[1].mock,
+		reset.manifest_components[1].base.clear_all_manifests, &reset.manifest_components[1],
 		MANIFEST_MANAGER_CLEAR_ALL_FAILED);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = config_reset_clear_component_manifests (&reset);
+	status = config_reset_clear_component_manifests (&reset.test);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_CLEAR_ALL_FAILED, status);
 
-	status = manifest_manager_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_extra);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_validate_and_release (&manifest_components3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = state_manager_mock_validate_and_release (&state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = intrusion_manager_mock_validate_and_release (&intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release_attestation_keys (test, &keys);
-
-	config_reset_release (&reset);
+	config_reset_testing_release (test, &reset);
 }
 
 
@@ -5254,9 +2220,12 @@ TEST (config_reset_test_init_no_keystores);
 TEST (config_reset_test_init_no_intrusion);
 TEST (config_reset_test_init_null);
 TEST (config_reset_test_init_no_manifests_with_state);
+TEST (config_reset_test_static_init);
+TEST (config_reset_test_release_null);
 TEST (config_reset_test_restore_bypass);
 TEST (config_reset_test_restore_bypass_multiple);
 TEST (config_reset_test_restore_bypass_no_manifests);
+TEST (config_reset_test_restore_bypass_static_init);
 TEST (config_reset_test_restore_bypass_null);
 TEST (config_reset_test_restore_bypass_clear_error);
 TEST (config_reset_test_restore_defaults);
@@ -5273,10 +2242,12 @@ TEST (config_reset_test_restore_defaults_no_aux);
 TEST (config_reset_test_restore_defaults_no_recovery);
 TEST (config_reset_test_restore_defaults_no_keystore_array);
 TEST (config_reset_test_restore_defaults_no_intrusion);
+TEST (config_reset_test_restore_defaults_static_init);
 TEST (config_reset_test_restore_defaults_null);
 TEST (config_reset_test_restore_defaults_bypass_clear_error);
 TEST (config_reset_test_restore_defaults_default_clear_error);
 TEST (config_reset_test_restore_defaults_components_clear_error);
+TEST (config_reset_test_restore_defaults_state_restore_error);
 TEST (config_reset_test_restore_defaults_riot_erase_error);
 TEST (config_reset_test_restore_defaults_aux_erase_error);
 TEST (config_reset_test_restore_defaults_recovery_in_use_error);
@@ -5285,15 +2256,18 @@ TEST (config_reset_test_restore_defaults_intrusion_error);
 TEST (config_reset_test_restore_platform_config);
 TEST (config_reset_test_restore_platform_config_multiple);
 TEST (config_reset_test_restore_platform_config_no_manifests);
+TEST (config_reset_test_restore_platform_config_static_init);
 TEST (config_reset_test_restore_platform_config_null);
 TEST (config_reset_test_restore_platform_config_clear_error);
 TEST (config_reset_test_reset_intrusion);
+TEST (config_reset_test_reset_intrusion_static_init);
 TEST (config_reset_test_reset_intrusion_null);
 TEST (config_reset_test_reset_intrusion_null_intrusion);
 TEST (config_reset_test_reset_intrusion_reset_error);
 TEST (config_reset_test_clear_component_manifests);
 TEST (config_reset_test_clear_component_manifests_multiple);
 TEST (config_reset_test_clear_component_manifests_no_manifests);
+TEST (config_reset_test_clear_component_manifests_static_init);
 TEST (config_reset_test_clear_component_manifests_null);
 TEST (config_reset_test_clear_component_manifests_clear_error);
 

@@ -31,12 +31,14 @@
  *
  * @return 0 if the manager was initialized successfully or an error code.
  */
-int config_reset_init (struct config_reset *reset, const struct manifest_manager **bypass_config,
-	size_t bypass_count, const struct manifest_manager **platform_config, size_t platform_count,
-	const struct manifest_manager **component_manifests, size_t component_manifests_count,
-	struct state_manager **state, size_t state_count, struct riot_key_manager *riot,
+int config_reset_init (struct config_reset *reset,
+	const struct manifest_manager *const *bypass_config, size_t bypass_count,
+	const struct manifest_manager *const *platform_config, size_t platform_count,
+	const struct manifest_manager *const *component_manifests, size_t component_manifests_count,
+	struct state_manager *const *state, size_t state_count, struct riot_key_manager *riot,
 	struct aux_attestation *aux, struct recovery_image_manager *recovery,
-	const struct keystore **keystores, size_t keystore_count, struct intrusion_manager *intrusion)
+	const struct keystore *const *keystores, size_t keystore_count,
+	struct intrusion_manager *intrusion)
 {
 	if ((reset == NULL) || (bypass_count && (bypass_config == NULL)) ||
 		(platform_count && (platform_config == NULL)) || (state_count && (state == NULL)) ||
@@ -74,7 +76,7 @@ int config_reset_init (struct config_reset *reset, const struct manifest_manager
  *
  * @param reset The configuration reset manager to release.
  */
-void config_reset_release (struct config_reset *reset)
+void config_reset_release (const struct config_reset *reset)
 {
 	UNUSED (reset);
 }
@@ -90,7 +92,7 @@ void config_reset_release (struct config_reset *reset)
  *
  * @return 0 if the configuration was erased or an error code.
  */
-int config_reset_restore_bypass (struct config_reset *reset)
+int config_reset_restore_bypass (const struct config_reset *reset)
 {
 	size_t i;
 	int status;
@@ -120,7 +122,7 @@ int config_reset_restore_bypass (struct config_reset *reset)
  *
  * @return 0 if defaults were restored or an error code.
  */
-int config_reset_restore_defaults (struct config_reset *reset)
+int config_reset_restore_defaults (const struct config_reset *reset)
 {
 	size_t i;
 	int status = 0;
@@ -145,7 +147,10 @@ int config_reset_restore_defaults (struct config_reset *reset)
 	}
 
 	for (i = 0; i < reset->state_count; i++) {
-		(reset->state[i])->restore_default_state (reset->state[i]);
+		status = (reset->state[i])->restore_default_state (reset->state[i]);
+		if (status != 0) {
+			return status;
+		}
 	}
 
 	if (reset->riot) {
@@ -191,7 +196,7 @@ int config_reset_restore_defaults (struct config_reset *reset)
  *
  * @return 0 if defaults were restored or an error code.
  */
-int config_reset_restore_platform_config (struct config_reset *reset)
+int config_reset_restore_platform_config (const struct config_reset *reset)
 {
 	size_t i;
 	int status;
@@ -221,7 +226,7 @@ int config_reset_restore_platform_config (struct config_reset *reset)
  *
  * @return 0 if intrusion was reset or an error code.
  */
-int config_reset_reset_intrusion (struct config_reset *reset)
+int config_reset_reset_intrusion (const struct config_reset *reset)
 {
 	if (reset == NULL) {
 		return CONFIG_RESET_INVALID_ARGUMENT;
@@ -242,7 +247,7 @@ int config_reset_reset_intrusion (struct config_reset *reset)
  *
  * @return 0 if defaults were restored or an error code.
  */
-int config_reset_clear_component_manifests (struct config_reset *reset)
+int config_reset_clear_component_manifests (const struct config_reset *reset)
 {
 	size_t i;
 	int status;
