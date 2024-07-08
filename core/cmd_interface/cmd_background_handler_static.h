@@ -15,20 +15,11 @@ int cmd_background_handler_unseal_result (const struct cmd_background *cmd, uint
 int cmd_background_handler_execute_authorized_operation (const struct cmd_background *cmd,
 	const struct authorized_execution *execution);
 int cmd_background_handler_get_authorized_operation_status (const struct cmd_background *cmd);
-int cmd_background_handler_reset_bypass (const struct cmd_background *cmd);
-int cmd_background_handler_restore_defaults (const struct cmd_background *cmd);
-int cmd_background_handler_clear_platform_config (const struct cmd_background *cmd);
-int cmd_background_handler_clear_component_manifests (const struct cmd_background *cmd);
-int cmd_background_handler_reset_intrusion (const struct cmd_background *cmd);
-int cmd_background_handler_get_config_reset_status (const struct cmd_background *cmd);
 int cmd_background_handler_debug_log_clear (const struct cmd_background *cmd);
 int cmd_background_handler_debug_log_fill (const struct cmd_background *cmd);
 int cmd_background_handler_authenticate_riot_certs (const struct cmd_background *cmd);
 int cmd_background_handler_get_riot_cert_chain_state (const struct cmd_background *cmd);
 int cmd_background_handler_reboot_device (const struct cmd_background *cmd);
-
-void cmd_background_handler_execute (const struct event_task_handler *handler,
-	struct event_task_context *context, bool *reset);
 
 
 /**
@@ -53,38 +44,11 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
 #ifdef CMD_ENABLE_RESET_CONFIG
 #define	CMD_BACKGROUND_HANDLER_CONFIG_RESET_API \
 	.execute_authorized_operation = cmd_background_handler_execute_authorized_operation, \
-	.get_authorized_operation_status = cmd_background_handler_get_authorized_operation_status, \
-	.reset_bypass = cmd_background_handler_reset_bypass, \
-	.restore_defaults = cmd_background_handler_restore_defaults, \
-	.clear_platform_config = cmd_background_handler_clear_platform_config, \
-	.clear_component_manifests = cmd_background_handler_clear_component_manifests,
+	.get_authorized_operation_status = cmd_background_handler_get_authorized_operation_status,
 #else
 #define	CMD_BACKGROUND_HANDLER_CONFIG_RESET_API
 #endif
 
-/**
- * Constant initializer for the intrusion reset operation.
- */
-#ifdef CMD_ENABLE_INTRUSION
-#define	CMD_BACKGROUND_HANDLER_INTRUSION_API    \
-	.reset_intrusion = cmd_background_handler_reset_intrusion,
-#else
-#define	CMD_BACKGROUND_HANDLER_INTRUSION_API
-#endif
-
-/**
- * Constant initializer for the configuration reset status operation.
- */
-#if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
-#define	CMD_BACKGROUND_HANDLER_CONFIG_STATUS_API    \
-	.get_config_reset_status = cmd_background_handler_get_config_reset_status,
-
-#define	CMD_BACKGROUND_HANDLER_CONFIG_RESET_DEPENDENCIES(r) \
-	.reset = r,
-#else
-#define	CMD_BACKGROUND_HANDLER_CONFIG_STATUS_API
-#define	CMD_BACKGROUND_HANDLER_CONFIG_RESET_DEPENDENCIES(r)
-#endif
 
 /**
  * Constant initializer for the debug log operations.
@@ -109,8 +73,6 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
 #define	CMD_BACKGROUND_HANDLER_COMMAND_API_INIT  { \
 		CMD_BACKGROUND_HANDLER_UNSEAL_API \
 		CMD_BACKGROUND_HANDLER_CONFIG_RESET_API \
-		CMD_BACKGROUND_HANDLER_INTRUSION_API \
-		CMD_BACKGROUND_HANDLER_CONFIG_STATUS_API \
 		CMD_BACKGROUND_HANDLER_DEBUG_LOG_API \
 		.authenticate_riot_certs = cmd_background_handler_authenticate_riot_certs, \
 		.get_riot_cert_chain_state = cmd_background_handler_get_riot_cert_chain_state, \
@@ -136,20 +98,17 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
  * required if unseal is not supported.
  * @param hash_ptr The hashing engine to use for unsealing.  This is not required if unseal is not
  * supported.
- * @param reset_ptr Manager for configuration reset operations.  This is not required if
- * configuration and intrusion reset are not supported.
  * @param riot_ptr Manager for RIoT keys and certificates.
  * @param task_ptr The task that will be used to execute manifest operations.
  */
-#define	cmd_background_handler_static_init(state_ptr, attestation_ptr, hash_ptr, reset_ptr, \
-	riot_ptr, task_ptr)	{ \
+#define	cmd_background_handler_static_init(state_ptr, attestation_ptr, hash_ptr, riot_ptr, \
+	task_ptr)	{ \
 		.base_cmd = CMD_BACKGROUND_HANDLER_COMMAND_API_INIT, \
 		.base_event = CMD_BACKGROUND_HANDLER_EVENT_API_INIT, \
 		.state = state_ptr, \
 		.keys = riot_ptr, \
 		.task = task_ptr, \
 		CMD_BACKGROUND_HANDLER_UNSEAL_DEPENDENCIES (attestation_ptr, hash_ptr) \
-		CMD_BACKGROUND_HANDLER_CONFIG_RESET_DEPENDENCIES (reset_ptr) \
 	}
 
 

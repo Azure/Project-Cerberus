@@ -56,51 +56,6 @@ int cmd_authorization_authorize_operation (const struct cmd_authorization *auth,
 	return status;
 }
 
-int cmd_authorization_authorize_revert_bypass (const struct cmd_authorization *auth,
-	const uint8_t **token, size_t *length)
-{
-	const struct authorized_execution *execution;
-
-	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_REVERT_BYPASS, token,
-		length, &execution);
-}
-
-int cmd_authorization_authorize_reset_defaults (const struct cmd_authorization *auth,
-	const uint8_t **token, size_t *length)
-{
-	const struct authorized_execution *execution;
-
-	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_FACTORY_RESET, token,
-		length, &execution);
-}
-
-int cmd_authorization_authorize_clear_platform_config (const struct cmd_authorization *auth,
-	const uint8_t **token, size_t *length)
-{
-	const struct authorized_execution *execution;
-
-	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_CLEAR_PCD, token,	length,
-		&execution);
-}
-
-int cmd_authorization_authorize_clear_component_manifests (const struct cmd_authorization *auth,
-	const uint8_t **token, size_t *length)
-{
-	const struct authorized_execution *execution;
-
-	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_CLEAR_CFM, token,	length,
-		&execution);
-}
-
-int cmd_authorization_authorize_reset_intrusion (const struct cmd_authorization *auth,
-	const uint8_t **token, size_t *length)
-{
-	const struct authorized_execution *execution;
-
-	return cmd_authorization_authorize_operation (auth, CERBERUS_PROTOCOL_RESET_INTRUSION, token,
-		length, &execution);
-}
-
 /**
  * Initialize the handler for authorizing requested operations.
  *
@@ -124,12 +79,6 @@ int cmd_authorization_init (struct cmd_authorization *auth,
 	memset (auth, 0, sizeof (struct cmd_authorization));
 
 	auth->authorize_operation = cmd_authorization_authorize_operation;
-	auth->authorize_revert_bypass = cmd_authorization_authorize_revert_bypass;
-	auth->authorize_reset_defaults = cmd_authorization_authorize_reset_defaults;
-	auth->authorize_clear_platform_config = cmd_authorization_authorize_clear_platform_config;
-	auth->authorize_clear_component_manifests =
-		cmd_authorization_authorize_clear_component_manifests;
-	auth->authorize_reset_intrusion = cmd_authorization_authorize_reset_intrusion;
 
 	auth->op_list = op_list;
 	auth->op_count = op_count;

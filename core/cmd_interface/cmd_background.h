@@ -85,67 +85,6 @@ struct cmd_background {
 	 * operation.
 	 */
 	int (*get_authorized_operation_status) (const struct cmd_background *cmd);
-
-	/**
-	 * Remove all configuration necessary for host firmware validation and restore the device to
-	 * bypass mode.
-	 *
-	 * @param cmd The background context for executing the operation.
-	 *
-	 * @return 0 if the operation was successfully scheduled or an error code.
-	 */
-	int (*reset_bypass) (const struct cmd_background *cmd);
-
-	/**
-	 * Remove all configuration and state from the device, restoring it to a clean state.
-	 *
-	 * @param cmd The background context for executing the operation.
-	 *
-	 * @return 0 if the operation was successfully scheduled or an error code.
-	 */
-	int (*restore_defaults) (const struct cmd_background *cmd);
-
-	/**
-	 * Remove all configuration for a specific platform from the device.
-	 *
-	 * @param cmd The background context for executing the operation.
-	 *
-	 * @return 0 if the operation was successfully scheduled or an error code.
-	 */
-	int (*clear_platform_config) (const struct cmd_background *cmd);
-
-	/**
-	 * Remove all component manifests from the device.
-	 *
-	 * @param cmd The background context for executing the operation.
-	 *
-	 * @return 0 if the operation was successfully scheduled or an error code.
-	 */
-	int (*clear_component_manifests) (const struct cmd_background *cmd);
-#endif
-
-#ifdef CMD_ENABLE_INTRUSION
-	/**
-	 * Reset the intrusion state.
-	 *
-	 * @param cmd The background context for executing the operation.
-	 *
-	 * @return 0 if the operation was successfully scheduled or an error code.
-	 */
-	int (*reset_intrusion) (const struct cmd_background *cmd);
-#endif
-
-#if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
-	/**
-	 * Get the status of the last configuration reset operation.
-	 *
-	 * @param cmd The background command context to query.
-	 *
-	 * @return The configuration reset status.  The lower 8 bits will be the status as per
-	 * {@link enum config_reset_status}.  The rest of the bits will be the return code from the
-	 * operation.
-	 */
-	int (*get_config_reset_status) (const struct cmd_background *cmd);
 #endif
 
 #ifdef CMD_ENABLE_DEBUG_LOG
@@ -224,6 +163,7 @@ enum {
 	CMD_BACKGROUND_INTRUSION_FAILED = CMD_BACKGROUND_ERROR (0x0d),		/**< Failed to reset the intrusion state. */
 	CMD_BACKGROUND_CFM_FAILED = CMD_BACKGROUND_ERROR (0x0e),			/**< Failed to clear component manifests. */
 	CMD_BACKGROUND_REBOOT_FAILED = CMD_BACKGROUND_ERROR (0x0f),			/**< Failed to warm reset the device. */
+	CMD_BACKGROUND_AUTH_OP_FAILED = CMD_BACKGROUND_ERROR (0x10),		/**< Failed to execute an authorized operation. */
 };
 
 

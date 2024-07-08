@@ -4414,8 +4414,8 @@ void cerberus_protocol_master_commands_testing_process_get_reset_config_status (
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&background->mock, background->base.get_config_reset_status, background,
-		0x00BB11AA);
+	status = mock_expect (&background->mock, background->base.get_authorized_operation_status,
+		background, 0x00BB11AA);
 	CuAssertIntEquals (test, 0, status);
 
 	request.crypto_timeout = true;

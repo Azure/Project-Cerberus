@@ -57,72 +57,6 @@ static int cmd_background_mock_get_authorized_operation_status (const struct cmd
 	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_get_authorized_operation_status, cmd);
 }
 
-static int cmd_background_mock_reset_bypass (const struct cmd_background *cmd)
-{
-	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_reset_bypass, cmd);
-}
-
-static int cmd_background_mock_restore_defaults (const struct cmd_background *cmd)
-{
-	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_restore_defaults, cmd);
-}
-
-static int cmd_background_mock_clear_platform_config (const struct cmd_background *cmd)
-{
-	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_clear_platform_config, cmd);
-}
-
-static int cmd_background_mock_clear_component_manifests (const struct cmd_background *cmd)
-{
-	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_clear_component_manifests, cmd);
-}
-
-static int cmd_background_mock_reset_intrusion (const struct cmd_background *cmd)
-{
-	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_reset_intrusion, cmd);
-}
-
-static int cmd_background_mock_get_config_reset_status (const struct cmd_background *cmd)
-{
-	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_get_config_reset_status, cmd);
-}
-
 static int cmd_background_mock_debug_log_clear (const struct cmd_background *cmd)
 {
 	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
@@ -208,24 +142,6 @@ static const char* cmd_background_mock_func_name_map (void *func)
 	else if (func == cmd_background_mock_get_authorized_operation_status) {
 		return "get_authorized_operation_status";
 	}
-	else if (func == cmd_background_mock_reset_bypass) {
-		return "reset_bypass";
-	}
-	else if (func == cmd_background_mock_restore_defaults) {
-		return "restore_defaults";
-	}
-	else if (func == cmd_background_mock_clear_platform_config) {
-		return "clear_platform_config";
-	}
-	else if (func == cmd_background_mock_clear_component_manifests) {
-		return "clear_component_manifests";
-	}
-	else if (func == cmd_background_mock_reset_intrusion) {
-		return "reset_intrusion";
-	}
-	else if (func == cmd_background_mock_get_config_reset_status) {
-		return "get_config_reset_status";
-	}
 	else if (func == cmd_background_mock_debug_log_clear) {
 		return "debug_log_clear";
 	}
@@ -305,12 +221,9 @@ int cmd_background_mock_init (struct cmd_background_mock *mock)
 
 	mock->base.unseal_start = cmd_background_mock_unseal_start;
 	mock->base.unseal_result = cmd_background_mock_unseal_result;
-	mock->base.reset_bypass = cmd_background_mock_reset_bypass;
-	mock->base.restore_defaults = cmd_background_mock_restore_defaults;
-	mock->base.clear_platform_config = cmd_background_mock_clear_platform_config;
-	mock->base.clear_component_manifests = cmd_background_mock_clear_component_manifests;
-	mock->base.reset_intrusion = cmd_background_mock_reset_intrusion;
-	mock->base.get_config_reset_status = cmd_background_mock_get_config_reset_status;
+	mock->base.execute_authorized_operation = cmd_background_mock_execute_authorized_operation;
+	mock->base.get_authorized_operation_status =
+		cmd_background_mock_get_authorized_operation_status;
 	mock->base.debug_log_clear = cmd_background_mock_debug_log_clear;
 	mock->base.debug_log_fill = cmd_background_mock_debug_log_fill;
 	mock->base.authenticate_riot_certs = cmd_background_mock_authenticate_riot_certs;

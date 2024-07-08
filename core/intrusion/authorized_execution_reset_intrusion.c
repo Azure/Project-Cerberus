@@ -9,11 +9,14 @@
 #include "common/unused.h"
 
 
-int authorized_execution_reset_intrusion_execute (const struct authorized_execution *execution)
+int authorized_execution_reset_intrusion_execute (const struct authorized_execution *execution,
+	bool *reset_req)
 {
 	const struct authorized_execution_reset_intrusion *reset =
 		(const struct authorized_execution_reset_intrusion*) execution;
 	int status;
+
+	UNUSED (reset_req);
 
 	if (reset == NULL) {
 		return AUTHORIZED_EXECUTION_INVALID_ARGUMENT;

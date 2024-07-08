@@ -12,6 +12,7 @@
 #include "testing/mock/cmd_interface/cmd_authorization_mock.h"
 #include "testing/mock/cmd_interface/cmd_background_mock.h"
 #include "testing/mock/cmd_interface/session_manager_mock.h"
+#include "testing/mock/common/authorized_execution_mock.h"
 #include "testing/mock/crypto/hash_mock.h"
 #include "testing/mock/firmware/firmware_update_control_mock.h"
 #include "testing/mock/flash/flash_mock.h"
@@ -355,7 +356,7 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_h
 
 void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
-	struct cmd_background_mock *background);
+	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
 void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_challenge (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_max_challenge (
@@ -364,9 +365,12 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_n
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_reset_bypass_with_nonce_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
-	struct cmd_background_mock *background);
+	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
 void cerberus_protocol_optional_commands_testing_process_reset_bypass_with_nonce_not_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+void cerberus_protocol_optional_commands_testing_process_reset_bypass_authorized_no_operation (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
+	struct cmd_background_mock *background);
 void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_invalid_challenge (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void
@@ -375,11 +379,11 @@ cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_invali
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_reset_bypass_error (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
-	struct cmd_background_mock *background);
+	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
 
 void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_nonce_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
-	struct cmd_background_mock *background);
+	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
 void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_nonce_challenge (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_nonce_max_challenge (
@@ -388,10 +392,13 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_restore_defaults_with_nonce_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
-	struct cmd_background_mock *background);
+	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
 void cerberus_protocol_optional_commands_testing_process_restore_defaults_with_nonce_not_authorized
 (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+void cerberus_protocol_optional_commands_testing_process_restore_defaults_authorized_no_operation (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
+	struct cmd_background_mock *background);
 void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_nonce_invalid_challenge
 (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
@@ -401,11 +408,11 @@ cerberus_protocol_optional_commands_testing_process_restore_defaults_no_nonce_in
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_restore_defaults_error (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
-	struct cmd_background_mock *background);
+	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
 
 void cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
-	struct cmd_background_mock *background);
+	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
 void cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_challenge (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void
@@ -417,11 +424,15 @@ cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_non
 void cerberus_protocol_optional_commands_testing_process_clear_platform_config_with_nonce_authorized
 (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
-	struct cmd_background_mock *background);
+	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
 void
 cerberus_protocol_optional_commands_testing_process_clear_platform_config_with_nonce_not_authorized
 (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+void
+cerberus_protocol_optional_commands_testing_process_clear_platform_config_authorized_no_operation (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
+	struct cmd_background_mock *background);
 void
 cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_invalid_challenge
 (
@@ -432,11 +443,11 @@ cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_non
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_clear_platform_config_error (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
-	struct cmd_background_mock *background);
+	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
 
 void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
-	struct cmd_background_mock *background);
+	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
 void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_challenge (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_max_challenge (
@@ -445,9 +456,12 @@ void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_not
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_clear_cfms_with_nonce_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
-	struct cmd_background_mock *background);
+	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
 void cerberus_protocol_optional_commands_testing_process_clear_cfms_with_nonce_not_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+void cerberus_protocol_optional_commands_testing_process_clear_cfms_authorized_no_operation (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
+	struct cmd_background_mock *background);
 void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_invalid_challenge (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void
@@ -456,11 +470,11 @@ cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_invalid_
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_clear_cfms_error (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
-	struct cmd_background_mock *background);
+	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
 
 void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
-	struct cmd_background_mock *background);
+	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
 void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_challenge (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_max_challenge (
@@ -469,9 +483,12 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonc
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_reset_intrusion_with_nonce_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
-	struct cmd_background_mock *background);
+	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
 void cerberus_protocol_optional_commands_testing_process_reset_intrusion_with_nonce_not_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+void cerberus_protocol_optional_commands_testing_process_reset_intrusion_authorized_no_operation (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
+	struct cmd_background_mock *background);
 void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_invalid_challenge
 (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
@@ -481,12 +498,14 @@ cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_inv
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_reset_intrusion_error (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
-	struct cmd_background_mock *background);
+	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
 
 void cerberus_protocol_optional_commands_testing_process_reset_config_invalid_len (CuTest *test,
 	struct cmd_interface *cmd);
 void cerberus_protocol_optional_commands_testing_process_reset_config_invalid_request_subtype (
-	CuTest *test, struct cmd_interface *cmd);
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+void cerberus_protocol_optional_commands_testing_process_reset_config_authorization_error (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 
 void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_port0 (CuTest *test,
 	struct cmd_interface *cmd, struct recovery_image_cmd_interface_mock *recovery_0);

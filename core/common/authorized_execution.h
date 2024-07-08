@@ -4,6 +4,7 @@
 #ifndef AUTHORIZED_EXECUTION_H_
 #define AUTHORIZED_EXECUTION_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "status/rot_status.h"
 
@@ -18,10 +19,13 @@ struct authorized_execution {
 	 * Execute the operation.
 	 *
 	 * @param execution Execution context for the operation being performed.
+	 * @param reset_req Optional output to indicate when a device reset is requested after execution
+	 * of the operation.  This will only be set if a reset is requested.  If no reset is requested
+	 * by the operation, the value be unchanged by the call.  This can be null if not needed.
 	 *
 	 * @return 0 the operation executed successfully or an error code.
 	 */
-	int (*execute) (const struct authorized_execution *execution);
+	int (*execute) (const struct authorized_execution *execution, bool *reset_req);
 
 	/**
 	 * Get the command status identifiers for the operation.  These identifiers are used for

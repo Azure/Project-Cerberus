@@ -20,6 +20,7 @@ struct authorized_execution_config_reset {
 	uint8_t log_fail;					/**< Log message ID for a failed execution. */
 	uint8_t op_start;					/**< Status ID when the execution is starting. */
 	uint8_t op_fail;					/**< Status ID when the execution has failed. */
+	bool reset_req;						/**< Indication if the operation will request a reset. */
 
 	/**
 	 * Handler to call on the configuration reset manager for execute the execution.

@@ -126,6 +126,7 @@ struct cmd_interface_system_testing {
 	struct pcr_store store;									/**< PCR storage. */
 	struct device_manager device_manager;					/**< Device manager. */
 	struct cmd_authorization_mock auth;						/**< The authorization handler. */
+	struct authorized_execution_mock execution;				/**< The authorized execution context. */
 	struct riot_key_manager riot;							/**< RIoT keys manager. */
 	struct host_control_mock host_ctrl_0;					/**< The host control mock interface for port 0. */
 	struct host_control_mock host_ctrl_1;					/**< The host control mock interface for port 1. */
@@ -291,6 +292,9 @@ static void setup_cmd_interface_system_mock_test_init (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_authorization_mock_init (&cmd->auth);
+	CuAssertIntEquals (test, 0, status);
+
+	status = authorized_execution_mock_init (&cmd->execution);
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_manager_mock_init (&cmd->recovery_manager_0);
@@ -468,90 +472,36 @@ static void complete_cmd_interface_system_mock_test (CuTest *test,
 	debug_log = NULL;
 
 	status = firmware_update_control_mock_validate_and_release (&cmd->update);
-	CuAssertIntEquals (test, 0, status);
+	status |= manifest_cmd_interface_mock_validate_and_release (&cmd->pfm_0);
+	status |= manifest_cmd_interface_mock_validate_and_release (&cmd->pfm_1);
+	status |= manifest_cmd_interface_mock_validate_and_release (&cmd->cfm);
+	status |= manifest_cmd_interface_mock_validate_and_release (&cmd->pcd);
+	status |= cmd_background_mock_validate_and_release (&cmd->background);
+	status |= pfm_manager_mock_validate_and_release (&cmd->pfm_manager_0);
+	status |= pfm_manager_mock_validate_and_release (&cmd->pfm_manager_1);
+	status |= cfm_manager_mock_validate_and_release (&cmd->cfm_manager);
+	status |= pcd_manager_mock_validate_and_release (&cmd->pcd_manager);
+	status |= host_processor_mock_validate_and_release (&cmd->host_0);
+	status |= host_processor_mock_validate_and_release (&cmd->host_1);
+	status |= logging_mock_validate_and_release (&cmd->debug);
+	status |= attestation_responder_mock_validate_and_release (&cmd->attestation);
+	status |= hash_mock_validate_and_release (&cmd->hash);
+	status |= keystore_mock_validate_and_release (&cmd->keystore);
+	status |= cmd_authorization_mock_validate_and_release (&cmd->auth);
+	status |= authorized_execution_mock_validate_and_release (&cmd->execution);
+	status |= recovery_image_cmd_interface_mock_validate_and_release (&cmd->recovery_0);
+	status |= recovery_image_cmd_interface_mock_validate_and_release (&cmd->recovery_1);
+	status |= x509_mock_validate_and_release (&cmd->x509_mock);
+	status |= recovery_image_manager_mock_validate_and_release (&cmd->recovery_manager_0);
+	status |= recovery_image_manager_mock_validate_and_release (&cmd->recovery_manager_1);
+	status |= flash_mock_validate_and_release (&cmd->flash);
+	status |= flash_mock_validate_and_release (&cmd->flash_state);
+	status |= host_control_mock_validate_and_release (&cmd->host_ctrl_0);
+	status |= host_control_mock_validate_and_release (&cmd->host_ctrl_1);
+	status |= cmd_device_mock_validate_and_release (&cmd->cmd_device);
+	status |= session_manager_mock_validate_and_release (&cmd->session);
+	status |= cerberus_protocol_observer_mock_validate_and_release (&cmd->observer);
 
-	status = manifest_cmd_interface_mock_validate_and_release (&cmd->pfm_0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_cmd_interface_mock_validate_and_release (&cmd->pfm_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_cmd_interface_mock_validate_and_release (&cmd->cfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_cmd_interface_mock_validate_and_release (&cmd->pcd);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd_background_mock_validate_and_release (&cmd->background);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_mock_validate_and_release (&cmd->pfm_manager_0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_mock_validate_and_release (&cmd->pfm_manager_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_manager_mock_validate_and_release (&cmd->cfm_manager);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd_manager_mock_validate_and_release (&cmd->pcd_manager);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_processor_mock_validate_and_release (&cmd->host_0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_processor_mock_validate_and_release (&cmd->host_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = logging_mock_validate_and_release (&cmd->debug);
-	CuAssertIntEquals (test, 0, status);
-
-	status = attestation_responder_mock_validate_and_release (&cmd->attestation);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_validate_and_release (&cmd->hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&cmd->keystore);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd_authorization_mock_validate_and_release (&cmd->auth);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_cmd_interface_mock_validate_and_release (&cmd->recovery_0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_cmd_interface_mock_validate_and_release (&cmd->recovery_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = x509_mock_validate_and_release (&cmd->x509_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&cmd->recovery_manager_0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_manager_mock_validate_and_release (&cmd->recovery_manager_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_validate_and_release (&cmd->flash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_validate_and_release (&cmd->flash_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&cmd->host_ctrl_0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&cmd->host_ctrl_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd_device_mock_validate_and_release (&cmd->cmd_device);
-	CuAssertIntEquals (test, 0, status);
-
-	status = session_manager_mock_validate_and_release (&cmd->session);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cerberus_protocol_observer_mock_validate_and_release (&cmd->observer);
 	CuAssertIntEquals (test, 0, status);
 
 	device_manager_release (&cmd->device_manager);
@@ -6057,7 +6007,7 @@ static void cmd_interface_system_test_process_reset_bypass_no_nonce_authorized (
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_authorized (test,
-		&cmd.handler.base, &cmd.auth, &cmd.background);
+		&cmd.handler.base, &cmd.auth, &cmd.execution, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6109,7 +6059,7 @@ static void cmd_interface_system_test_process_reset_bypass_with_nonce_authorized
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_bypass_with_nonce_authorized (test,
-		&cmd.handler.base, &cmd.auth, &cmd.background);
+		&cmd.handler.base, &cmd.auth, &cmd.execution, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6123,6 +6073,19 @@ static void cmd_interface_system_test_process_reset_bypass_with_nonce_not_author
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_bypass_with_nonce_not_authorized (
 		test, &cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_reset_bypass_authorized_no_operation (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_reset_bypass_authorized_no_operation (test,
+		&cmd.handler.base, &cmd.auth, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6163,7 +6126,7 @@ static void cmd_interface_system_test_process_reset_bypass_error (CuTest *test)
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_bypass_error (test, &cmd.handler.base,
-		&cmd.auth, &cmd.background);
+		&cmd.auth, &cmd.execution, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6176,7 +6139,7 @@ static void cmd_interface_system_test_process_restore_defaults_no_nonce_authoriz
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_restore_defaults_no_nonce_authorized (test,
-		&cmd.handler.base, &cmd.auth, &cmd.background);
+		&cmd.handler.base, &cmd.auth, &cmd.execution, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6229,7 +6192,7 @@ static void cmd_interface_system_test_process_restore_defaults_with_nonce_author
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_restore_defaults_with_nonce_authorized (
-		test, &cmd.handler.base, &cmd.auth, &cmd.background);
+		test, &cmd.handler.base, &cmd.auth, &cmd.execution, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6244,6 +6207,20 @@ static void cmd_interface_system_test_process_restore_defaults_with_nonce_not_au
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_restore_defaults_with_nonce_not_authorized (
 		test, &cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_restore_defaults_authorized_no_operation (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_restore_defaults_authorized_no_operation (
+		test, &cmd.handler.base, &cmd.auth, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6285,7 +6262,7 @@ static void cmd_interface_system_test_process_restore_defaults_error (CuTest *te
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_restore_defaults_error (test,
-		&cmd.handler.base, &cmd.auth, &cmd.background);
+		&cmd.handler.base, &cmd.auth, &cmd.execution, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6299,7 +6276,7 @@ static void cmd_interface_system_test_process_clear_platform_config_no_nonce_aut
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_authorized (
-		test, &cmd.handler.base, &cmd.auth, &cmd.background);
+		test, &cmd.handler.base, &cmd.auth, &cmd.execution, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6355,7 +6332,7 @@ static void cmd_interface_system_test_process_clear_platform_config_with_nonce_a
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_clear_platform_config_with_nonce_authorized
-		(test, &cmd.handler.base, &cmd.auth, &cmd.background);
+		(test, &cmd.handler.base, &cmd.auth, &cmd.execution, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6370,6 +6347,20 @@ static void cmd_interface_system_test_process_clear_platform_config_with_nonce_n
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_clear_platform_config_with_nonce_not_authorized
 		(test, &cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_clear_platform_config_authorized_no_operation (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_clear_platform_config_authorized_no_operation
+		(test, &cmd.handler.base, &cmd.auth, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6412,7 +6403,7 @@ static void cmd_interface_system_test_process_clear_platform_config_error (CuTes
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_clear_platform_config_error (test,
-		&cmd.handler.base, &cmd.auth, &cmd.background);
+		&cmd.handler.base, &cmd.auth, &cmd.execution, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6425,7 +6416,7 @@ static void cmd_interface_system_test_process_clear_cfms_no_nonce_authorized (Cu
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_authorized (test,
-		&cmd.handler.base, &cmd.auth, &cmd.background);
+		&cmd.handler.base, &cmd.auth, &cmd.execution, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6477,7 +6468,7 @@ static void cmd_interface_system_test_process_clear_cfms_with_nonce_authorized (
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_clear_cfms_with_nonce_authorized (test,
-		&cmd.handler.base, &cmd.auth, &cmd.background);
+		&cmd.handler.base, &cmd.auth, &cmd.execution, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6491,6 +6482,19 @@ static void cmd_interface_system_test_process_clear_cfms_with_nonce_not_authoriz
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_clear_cfms_with_nonce_not_authorized (test,
 		&cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_clear_cfms_authorized_no_operation (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_clear_cfms_authorized_no_operation (test,
+		&cmd.handler.base, &cmd.auth, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6531,7 +6535,7 @@ static void cmd_interface_system_test_process_clear_cfms_error (CuTest *test)
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_clear_cfms_error (test,	&cmd.handler.base,
-		&cmd.auth, &cmd.background);
+		&cmd.auth, &cmd.execution, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6544,7 +6548,7 @@ static void cmd_interface_system_test_process_reset_intrusion_no_nonce_authorize
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_authorized (test,
-		&cmd.handler.base, &cmd.auth, &cmd.background);
+		&cmd.handler.base, &cmd.auth, &cmd.execution, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6596,7 +6600,7 @@ static void cmd_interface_system_test_process_reset_intrusion_with_nonce_authori
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_intrusion_with_nonce_authorized (test,
-		&cmd.handler.base, &cmd.auth, &cmd.background);
+		&cmd.handler.base, &cmd.auth, &cmd.execution, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6611,6 +6615,19 @@ static void cmd_interface_system_test_process_reset_intrusion_with_nonce_not_aut
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_intrusion_with_nonce_not_authorized (
 		test, &cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_reset_intrusion_authorized_no_operation (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_reset_intrusion_authorized_no_operation (
+		test, &cmd.handler.base, &cmd.auth, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6652,7 +6669,7 @@ static void cmd_interface_system_test_process_reset_intrusion_error (CuTest *tes
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_intrusion_error (test,
-		&cmd.handler.base, &cmd.auth, &cmd.background);
+		&cmd.handler.base, &cmd.auth, &cmd.execution, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -6679,7 +6696,20 @@ static void cmd_interface_system_test_process_reset_config_invalid_request_subty
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_config_invalid_request_subtype (test,
-		&cmd.handler.base);
+		&cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_reset_config_authorization_error (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_reset_config_authorization_error (test,
+		&cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -8738,6 +8768,7 @@ TEST (cmd_interface_system_test_process_reset_bypass_no_nonce_max_challenge);
 TEST (cmd_interface_system_test_process_reset_bypass_no_nonce_not_authorized);
 TEST (cmd_interface_system_test_process_reset_bypass_with_nonce_authorized);
 TEST (cmd_interface_system_test_process_reset_bypass_with_nonce_not_authorized);
+TEST (cmd_interface_system_test_process_reset_bypass_authorized_no_operation);
 TEST (cmd_interface_system_test_process_reset_bypass_no_nonce_invalid_challenge);
 TEST (cmd_interface_system_test_process_reset_bypass_no_nonce_invalid_challenge_limited_response);
 TEST (cmd_interface_system_test_process_reset_bypass_error);
@@ -8747,6 +8778,7 @@ TEST (cmd_interface_system_test_process_restore_defaults_no_nonce_max_challenge)
 TEST (cmd_interface_system_test_process_restore_defaults_no_nonce_not_authorized);
 TEST (cmd_interface_system_test_process_restore_defaults_with_nonce_authorized);
 TEST (cmd_interface_system_test_process_restore_defaults_with_nonce_not_authorized);
+TEST (cmd_interface_system_test_process_restore_defaults_authorized_no_operation);
 TEST (cmd_interface_system_test_process_restore_defaults_no_nonce_invalid_challenge);
 TEST (cmd_interface_system_test_process_restore_defaults_no_nonce_invalid_challenge_limited_response);
 TEST (cmd_interface_system_test_process_restore_defaults_error);
@@ -8756,6 +8788,7 @@ TEST (cmd_interface_system_test_process_clear_platform_config_no_nonce_max_chall
 TEST (cmd_interface_system_test_process_clear_platform_config_no_nonce_not_authorized);
 TEST (cmd_interface_system_test_process_clear_platform_config_with_nonce_authorized);
 TEST (cmd_interface_system_test_process_clear_platform_config_with_nonce_not_authorized);
+TEST (cmd_interface_system_test_process_clear_platform_config_authorized_no_operation);
 TEST (cmd_interface_system_test_process_clear_platform_config_no_nonce_invalid_challenge);
 TEST (cmd_interface_system_test_process_clear_platform_config_no_nonce_invalid_challenge_limited_response);
 TEST (cmd_interface_system_test_process_clear_platform_config_error);
@@ -8765,6 +8798,7 @@ TEST (cmd_interface_system_test_process_clear_cfms_no_nonce_max_challenge);
 TEST (cmd_interface_system_test_process_clear_cfms_no_nonce_not_authorized);
 TEST (cmd_interface_system_test_process_clear_cfms_with_nonce_authorized);
 TEST (cmd_interface_system_test_process_clear_cfms_with_nonce_not_authorized);
+TEST (cmd_interface_system_test_process_clear_cfms_authorized_no_operation);
 TEST (cmd_interface_system_test_process_clear_cfms_no_nonce_invalid_challenge);
 TEST (cmd_interface_system_test_process_clear_cfms_no_nonce_invalid_challenge_limited_response);
 TEST (cmd_interface_system_test_process_clear_cfms_error);
@@ -8774,11 +8808,13 @@ TEST (cmd_interface_system_test_process_reset_intrusion_no_nonce_max_challenge);
 TEST (cmd_interface_system_test_process_reset_intrusion_no_nonce_not_authorized);
 TEST (cmd_interface_system_test_process_reset_intrusion_with_nonce_authorized);
 TEST (cmd_interface_system_test_process_reset_intrusion_with_nonce_not_authorized);
+TEST (cmd_interface_system_test_process_reset_intrusion_authorized_no_operation);
 TEST (cmd_interface_system_test_process_reset_intrusion_no_nonce_invalid_challenge);
 TEST (cmd_interface_system_test_process_reset_intrusion_no_nonce_invalid_challenge_limited_response);
 TEST (cmd_interface_system_test_process_reset_intrusion_error);
 TEST (cmd_interface_system_test_process_reset_config_invalid_len);
 TEST (cmd_interface_system_test_process_reset_config_invalid_request_subtype);
+TEST (cmd_interface_system_test_process_reset_config_authorization_error);
 TEST (cmd_interface_system_test_process_prepare_recovery_image_port0);
 TEST (cmd_interface_system_test_process_prepare_recovery_image_port1);
 TEST (cmd_interface_system_test_process_prepare_recovery_image_port0_null);

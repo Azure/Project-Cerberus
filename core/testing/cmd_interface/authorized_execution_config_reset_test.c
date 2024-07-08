@@ -11,7 +11,6 @@
 #include "cmd_interface/config_reset.h"
 #include "testing/cmd_interface/config_reset_testing.h"
 #include "testing/logging/debug_log_testing.h"
-#include "testing/mock/intrusion/intrusion_manager_mock.h"
 #include "testing/mock/keystore/keystore_mock.h"
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/manifest/manifest_manager_mock.h"
@@ -32,7 +31,6 @@ struct authorized_execution_config_reset_testing {
 	struct state_manager_mock state_mgr;				/**< State to clear. */
 	struct keystore_mock keystore;						/**< Extra keystore to clear. */
 	struct recovery_image_manager_mock recovery;		/**< Mock for recovery image management. */
-	struct intrusion_manager_mock intrusion;			/**< Mock for intrusion state management. */
 	struct config_reset_testing_keys keys;				/**< RIoT and aux keys. */
 	const struct manifest_manager *bypass[1];			/**< List of bypass manifests. */
 	const struct manifest_manager *config[1];			/**< List of config manifests. */
@@ -86,13 +84,9 @@ static void authorized_execution_config_reset_testing_init_dependencies (CuTest 
 	CuAssertIntEquals (test, 0, status);
 	execution->keystores[0] = &execution->keystore.base;
 
-	status = intrusion_manager_mock_init (&execution->intrusion);
-	CuAssertIntEquals (test, 0, status);
-
 	status = config_reset_init (&execution->reset, execution->bypass, 1, execution->config, 1,
 		execution->components, 1, execution->state_list, 1, &execution->keys.riot,
-		&execution->keys.aux, &execution->recovery.base, execution->keystores, 1,
-		&execution->intrusion.base);
+		&execution->keys.aux, &execution->recovery.base, execution->keystores, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging_mock_init (&execution->log);
@@ -120,7 +114,6 @@ static void authorized_execution_config_reset_testing_release_dependencies (CuTe
 	status |= state_manager_mock_validate_and_release (&execution->state_mgr);
 	status |= recovery_image_manager_mock_validate_and_release (&execution->recovery);
 	status |= keystore_mock_validate_and_release (&execution->keystore);
-	status |= intrusion_manager_mock_validate_and_release (&execution->intrusion);
 	status |= logging_mock_validate_and_release (&execution->log);
 	status |= config_reset_testing_release_attestation_keys (test, &execution->keys);
 
@@ -451,6 +444,7 @@ static void authorized_execution_config_reset_test_release_null (CuTest *test)
 static void authorized_execution_config_reset_test_execute_restore_bypass (CuTest *test)
 {
 	struct authorized_execution_config_reset_testing execution;
+	bool reset_req = false;
 	int status;
 	struct debug_log_entry_info entry = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -474,8 +468,9 @@ static void authorized_execution_config_reset_test_execute_restore_bypass (CuTes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base);
+	status = execution.test.base.execute (&execution.test.base, &reset_req);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, reset_req);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
 }
@@ -483,6 +478,7 @@ static void authorized_execution_config_reset_test_execute_restore_bypass (CuTes
 static void authorized_execution_config_reset_test_execute_restore_bypass_failure (CuTest *test)
 {
 	struct authorized_execution_config_reset_testing execution;
+	bool reset_req = false;
 	int status;
 	struct debug_log_entry_info entry = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -507,8 +503,9 @@ static void authorized_execution_config_reset_test_execute_restore_bypass_failur
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base);
+	status = execution.test.base.execute (&execution.test.base, &reset_req);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_CLEAR_ALL_FAILED, status);
+	CuAssertIntEquals (test, false, reset_req);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
 }
@@ -518,6 +515,7 @@ static void authorized_execution_config_reset_test_execute_restore_bypass_static
 	struct authorized_execution_config_reset_testing execution = {
 		.test = authorized_execution_config_reset_static_init_restore_bypass (&execution.reset)
 	};
+	bool reset_req = true;
 	int status;
 	struct debug_log_entry_info entry = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -541,8 +539,9 @@ static void authorized_execution_config_reset_test_execute_restore_bypass_static
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base);
+	status = execution.test.base.execute (&execution.test.base, &reset_req);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, true, reset_req);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
 }
@@ -550,6 +549,7 @@ static void authorized_execution_config_reset_test_execute_restore_bypass_static
 static void authorized_execution_config_reset_test_execute_restore_defaults (CuTest *test)
 {
 	struct authorized_execution_config_reset_testing execution;
+	bool reset_req = false;
 	int status;
 	struct debug_log_entry_info entry = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -592,17 +592,15 @@ static void authorized_execution_config_reset_test_execute_restore_defaults (CuT
 	status |= mock_expect (&execution.keystore.mock, execution.keystore.base.erase_all_keys,
 		&execution.keystore, 0);
 
-	status |= mock_expect (&execution.intrusion.mock, execution.intrusion.base.handle_intrusion,
-		&execution.intrusion, 0);
-
 	status |= mock_expect (&execution.log.mock, execution.log.base.create_entry, &execution.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry)));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base);
+	status = execution.test.base.execute (&execution.test.base, &reset_req);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, reset_req);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
 }
@@ -610,6 +608,7 @@ static void authorized_execution_config_reset_test_execute_restore_defaults (CuT
 static void authorized_execution_config_reset_test_execute_restore_defaults_failure (CuTest *test)
 {
 	struct authorized_execution_config_reset_testing execution;
+	bool reset_req = false;
 	int status;
 	struct debug_log_entry_info entry = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -634,8 +633,9 @@ static void authorized_execution_config_reset_test_execute_restore_defaults_fail
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base);
+	status = execution.test.base.execute (&execution.test.base, &reset_req);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_CLEAR_ALL_FAILED, status);
+	CuAssertIntEquals (test, false, reset_req);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
 }
@@ -646,6 +646,7 @@ static void authorized_execution_config_reset_test_execute_restore_defaults_stat
 	struct authorized_execution_config_reset_testing execution = {
 		.test = authorized_execution_config_reset_static_init_restore_defaults (&execution.reset)
 	};
+	bool reset_req = true;
 	int status;
 	struct debug_log_entry_info entry = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -688,17 +689,15 @@ static void authorized_execution_config_reset_test_execute_restore_defaults_stat
 	status |= mock_expect (&execution.keystore.mock, execution.keystore.base.erase_all_keys,
 		&execution.keystore, 0);
 
-	status |= mock_expect (&execution.intrusion.mock, execution.intrusion.base.handle_intrusion,
-		&execution.intrusion, 0);
-
 	status |= mock_expect (&execution.log.mock, execution.log.base.create_entry, &execution.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry)));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base);
+	status = execution.test.base.execute (&execution.test.base, &reset_req);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, true, reset_req);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
 }
@@ -706,6 +705,7 @@ static void authorized_execution_config_reset_test_execute_restore_defaults_stat
 static void authorized_execution_config_reset_test_execute_clear_platform_config (CuTest *test)
 {
 	struct authorized_execution_config_reset_testing execution;
+	bool reset_req = false;
 	int status;
 	struct debug_log_entry_info entry = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -729,8 +729,9 @@ static void authorized_execution_config_reset_test_execute_clear_platform_config
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base);
+	status = execution.test.base.execute (&execution.test.base, &reset_req);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, true, reset_req);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
 }
@@ -739,6 +740,7 @@ static void authorized_execution_config_reset_test_execute_clear_platform_config
 	CuTest *test)
 {
 	struct authorized_execution_config_reset_testing execution;
+	bool reset_req = false;
 	int status;
 	struct debug_log_entry_info entry = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -763,8 +765,42 @@ static void authorized_execution_config_reset_test_execute_clear_platform_config
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base);
+	status = execution.test.base.execute (&execution.test.base, &reset_req);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_CLEAR_ALL_FAILED, status);
+	CuAssertIntEquals (test, false, reset_req);
+
+	authorized_execution_config_reset_testing_release (test, &execution);
+}
+
+static void authorized_execution_config_reset_test_execute_clear_platform_config_no_reset_req (
+	CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution;
+	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
+		.msg_index = CMD_LOGGING_CLEAR_PLATFORM_CONFIG,
+		.arg1 = 0,
+		.arg2 = 0
+	};
+
+	TEST_START;
+
+	authorized_execution_config_reset_testing_init_restore_platform_config (test, &execution);
+
+	status = mock_expect (&execution.manifest_config.mock,
+		execution.manifest_config.base.clear_all_manifests, &execution.manifest_config, 0);
+
+	status |= mock_expect (&execution.log.mock, execution.log.base.create_entry, &execution.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = execution.test.base.execute (&execution.test.base, NULL);
+	CuAssertIntEquals (test, 0, status);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
 }
@@ -776,6 +812,7 @@ static void authorized_execution_config_reset_test_execute_clear_platform_config
 		.test =
 			authorized_execution_config_reset_static_init_restore_platform_config (&execution.reset)
 	};
+	bool reset_req = false;
 	int status;
 	struct debug_log_entry_info entry = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -799,8 +836,9 @@ static void authorized_execution_config_reset_test_execute_clear_platform_config
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base);
+	status = execution.test.base.execute (&execution.test.base, &reset_req);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, true, reset_req);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
 }
@@ -808,6 +846,7 @@ static void authorized_execution_config_reset_test_execute_clear_platform_config
 static void authorized_execution_config_reset_test_execute_clear_component_manifests (CuTest *test)
 {
 	struct authorized_execution_config_reset_testing execution;
+	bool reset_req = false;
 	int status;
 	struct debug_log_entry_info entry = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -831,8 +870,9 @@ static void authorized_execution_config_reset_test_execute_clear_component_manif
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base);
+	status = execution.test.base.execute (&execution.test.base, &reset_req);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, reset_req);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
 }
@@ -841,6 +881,7 @@ static void authorized_execution_config_reset_test_execute_clear_component_manif
 	CuTest *test)
 {
 	struct authorized_execution_config_reset_testing execution;
+	bool reset_req = false;
 	int status;
 	struct debug_log_entry_info entry = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -865,8 +906,9 @@ static void authorized_execution_config_reset_test_execute_clear_component_manif
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base);
+	status = execution.test.base.execute (&execution.test.base, &reset_req);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_CLEAR_ALL_FAILED, status);
+	CuAssertIntEquals (test, false, reset_req);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
 }
@@ -879,6 +921,7 @@ static void authorized_execution_config_reset_test_execute_clear_component_manif
 			authorized_execution_config_reset_static_init_clear_component_manifests (
 			&execution.reset)
 	};
+	bool reset_req = true;
 	int status;
 	struct debug_log_entry_info entry = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -902,8 +945,9 @@ static void authorized_execution_config_reset_test_execute_clear_component_manif
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base);
+	status = execution.test.base.execute (&execution.test.base, &reset_req);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, true, reset_req);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
 }
@@ -911,14 +955,16 @@ static void authorized_execution_config_reset_test_execute_clear_component_manif
 static void authorized_execution_config_reset_test_execute_null (CuTest *test)
 {
 	struct authorized_execution_config_reset_testing execution;
+	bool reset_req = false;
 	int status;
 
 	TEST_START;
 
 	authorized_execution_config_reset_testing_init_restore_bypass (test, &execution);
 
-	status = execution.test.base.execute (NULL);
+	status = execution.test.base.execute (NULL, &reset_req);
 	CuAssertIntEquals (test, AUTHORIZED_EXECUTION_INVALID_ARGUMENT, status);
+	CuAssertIntEquals (test, false, reset_req);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
 }
@@ -1132,6 +1178,7 @@ TEST (authorized_execution_config_reset_test_execute_restore_defaults_failure);
 TEST (authorized_execution_config_reset_test_execute_restore_defaults_static_init);
 TEST (authorized_execution_config_reset_test_execute_clear_platform_config);
 TEST (authorized_execution_config_reset_test_execute_clear_platform_config_failure);
+TEST (authorized_execution_config_reset_test_execute_clear_platform_config_no_reset_req);
 TEST (authorized_execution_config_reset_test_execute_clear_platform_config_static_init);
 TEST (authorized_execution_config_reset_test_execute_clear_component_manifests);
 TEST (authorized_execution_config_reset_test_execute_clear_component_manifests_failure);

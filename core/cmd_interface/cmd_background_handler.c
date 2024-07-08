@@ -48,7 +48,7 @@ void cmd_background_handler_set_status (const struct cmd_background_handler *han
  *
  * @return 0 if the task was notified successfully or an error code.
  */
-static int cmd_background_handler_submit_event (const struct cmd_background_handler *handler,
+int cmd_background_handler_submit_event (const struct cmd_background_handler *handler,
 	uint32_t action, const uint8_t *data, size_t length, int starting_status, int no_task_status,
 	int error_status, int *status_out)
 {
@@ -139,34 +139,6 @@ int cmd_background_handler_unseal_result (const struct cmd_background *cmd, uint
 }
 #endif
 
-#if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
-/**
- * Notify the task of a config reset operation.
- *
- * @param cmd The handler being notified.
- * @param action The config reset action to perform.
- *
- * @return 0 if the task was successfully notified or an error code.
- */
-static int cmd_background_handler_start_config_reset (const struct cmd_background *cmd,
-	uint32_t action)
-{
-	const struct cmd_background_handler *handler = (const struct cmd_background_handler*) cmd;
-
-	if (handler == NULL) {
-		return CMD_BACKGROUND_INVALID_ARGUMENT;
-	}
-
-	if (handler->reset == NULL) {
-		return CMD_BACKGROUND_UNSUPPORTED_REQUEST;
-	}
-
-	return cmd_background_handler_submit_event (handler, action, NULL, 0,
-		CONFIG_RESET_STATUS_STARTING, CONFIG_RESET_STATUS_TASK_NOT_RUNNING,
-		CONFIG_RESET_STATUS_INTERNAL_ERROR, &handler->state->config_status);
-}
-#endif
-
 #ifdef CMD_ENABLE_RESET_CONFIG
 int cmd_background_handler_execute_authorized_operation (const struct cmd_background *cmd,
 	const struct authorized_execution *execution)
@@ -178,7 +150,7 @@ int cmd_background_handler_execute_authorized_operation (const struct cmd_backgr
 	}
 
 	return cmd_background_handler_submit_event (handler,
-		CMD_BACKGROUND_HANDLER_ACTION_AUTHORIZED_OP, (uint8_t*) execution, sizeof (execution),
+		CMD_BACKGROUND_HANDLER_ACTION_AUTHORIZED_OP, (uint8_t*) &execution, sizeof (execution),
 		CONFIG_RESET_STATUS_STARTING, CONFIG_RESET_STATUS_TASK_NOT_RUNNING,
 		CONFIG_RESET_STATUS_INTERNAL_ERROR, &handler->state->config_status);
 }
@@ -189,60 +161,7 @@ int cmd_background_handler_get_authorized_operation_status (const struct cmd_bac
 	int status;
 
 	if (handler == NULL) {
-		return CMD_BACKGROUND_INVALID_ARGUMENT;
-	}
-
-	handler->task->lock (handler->task);
-	status = handler->state->config_status;
-	handler->task->unlock (handler->task);
-
-	return status;
-}
-
-int cmd_background_handler_reset_bypass (const struct cmd_background *cmd)
-{
-	return cmd_background_handler_start_config_reset (cmd,
-		CMD_BACKGROUND_HANDLER_ACTION_RUN_BYPASS);
-}
-
-int cmd_background_handler_restore_defaults (const struct cmd_background *cmd)
-{
-	return cmd_background_handler_start_config_reset (cmd,
-		CMD_BACKGROUND_HANDLER_ACTION_RUN_DEFAULTS);
-}
-
-int cmd_background_handler_clear_platform_config (const struct cmd_background *cmd)
-{
-	return cmd_background_handler_start_config_reset (cmd,
-		CMD_BACKGROUND_HANDLER_ACTION_PLATFORM_CFG);
-}
-
-int cmd_background_handler_clear_component_manifests (const struct cmd_background *cmd)
-{
-	return cmd_background_handler_start_config_reset (cmd, CMD_BACKGROUND_HANDLER_ACTION_CLEAR_CFM);
-}
-#endif
-
-#ifdef CMD_ENABLE_INTRUSION
-int cmd_background_handler_reset_intrusion (const struct cmd_background *cmd)
-{
-	return cmd_background_handler_start_config_reset (cmd,
-		CMD_BACKGROUND_HANDLER_ACTION_RESET_INTRUSION);
-}
-#endif
-
-#if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
-int cmd_background_handler_get_config_reset_status (const struct cmd_background *cmd)
-{
-	const struct cmd_background_handler *handler = (const struct cmd_background_handler*) cmd;
-	int status;
-
-	if (handler == NULL) {
-		return CMD_BACKGROUND_INVALID_ARGUMENT;
-	}
-
-	if (handler->reset == NULL) {
-		return CMD_BACKGROUND_UNSUPPORTED_REQUEST;
+		return CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_UNKNOWN, CMD_BACKGROUND_INVALID_ARGUMENT);
 	}
 
 	handler->task->lock (handler->task);
@@ -378,108 +297,12 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
 			op_status = &cmd->state->config_status;
 			cmd_background_handler_set_status (cmd, &cmd->state->config_status, op_start);
 
-			status = (*execution)->execute (*execution);
+			status = (*execution)->execute (*execution, reset);
 			if (status != 0) {
 				status = CMD_BACKGROUND_STATUS (op_error, status);
 			}
 			break;
 		}
-
-		case CMD_BACKGROUND_HANDLER_ACTION_RUN_BYPASS:
-			op_status = &cmd->state->config_status;
-			cmd_background_handler_set_status (cmd, &cmd->state->config_status,
-				CONFIG_RESET_STATUS_RESTORE_BYPASS);
-
-			status = config_reset_restore_bypass (cmd->reset);
-			if (status == 0) {
-				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-					CMD_LOGGING_BYPASS_RESTORED, 0, 0);
-			}
-			else {
-				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-					CMD_LOGGING_RESTORE_BYPASS_FAIL, status, 0);
-
-				status = CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_BYPASS_FAILED, status);
-			}
-			break;
-
-		case CMD_BACKGROUND_HANDLER_ACTION_RUN_DEFAULTS:
-			op_status = &cmd->state->config_status;
-			cmd_background_handler_set_status (cmd, &cmd->state->config_status,
-				CONFIG_RESET_STATUS_RESTORE_DEFAULTS);
-
-			status = config_reset_restore_defaults (cmd->reset);
-			if (status == 0) {
-				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-					CMD_LOGGING_DEFAULTS_RESTORED, 0, 0);
-			}
-			else {
-				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-					CMD_LOGGING_RESTORE_DEFAULTS_FAIL, status, 0);
-
-				status = CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_DEFAULTS_FAILED, status);
-			}
-			break;
-
-		case CMD_BACKGROUND_HANDLER_ACTION_PLATFORM_CFG:
-			op_status = &cmd->state->config_status;
-			cmd_background_handler_set_status (cmd, &cmd->state->config_status,
-				CONFIG_RESET_STATUS_CLEAR_PLATFORM_CONFIG);
-
-			status = config_reset_restore_platform_config (cmd->reset);
-			if (status == 0) {
-				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-					CMD_LOGGING_CLEAR_PLATFORM_CONFIG, 0, 0);
-
-				/* Reset the device to apply the default configuration. */
-				*reset = true;
-			}
-			else {
-				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-					CMD_LOGGING_CLEAR_PLATFORM_FAIL, status, 0);
-
-				status = CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_PLATFORM_CONFIG_FAILED, status);
-			}
-			break;
-
-		case CMD_BACKGROUND_HANDLER_ACTION_CLEAR_CFM:
-			op_status = &cmd->state->config_status;
-			cmd_background_handler_set_status (cmd, &cmd->state->config_status,
-				CONFIG_RESET_STATUS_CLEAR_COMPONENT_MANIFESTS);
-
-			status = config_reset_clear_component_manifests (cmd->reset);
-			if (status == 0) {
-				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-					CMD_LOGGING_CLEAR_CFM, 0, 0);
-			}
-			else {
-				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-					CMD_LOGGING_CLEAR_CFM_FAIL, status, 0);
-
-				status = CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_COMPONENT_MANIFESTS_FAILED,
-					status);
-			}
-			break;
-#endif
-
-#ifdef CMD_ENABLE_INTRUSION
-		case CMD_BACKGROUND_HANDLER_ACTION_RESET_INTRUSION:
-			op_status = &cmd->state->config_status;
-			cmd_background_handler_set_status (cmd, &cmd->state->config_status,
-				CONFIG_RESET_STATUS_RESET_INTRUSION);
-
-			status = config_reset_reset_intrusion (cmd->reset);
-			if (status == 0) {
-				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-					CMD_LOGGING_RESET_INTRUSION, 0, 0);
-			}
-			else {
-				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-					CMD_LOGGING_RESET_INTRUSION_FAIL, status, 0);
-
-				status = CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_INTRUSION_FAILED, status);
-			}
-			break;
 #endif
 
 #ifdef CMD_ENABLE_DEBUG_LOG
@@ -579,8 +402,6 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
  * if unseal is not supported.
  * @param hash The hashing engine to use for unsealing.  This is not required
  * if unseal is not supported.
- * @param reset Manager for configuration reset operations.  This is not required if configuration
- * and intrusion reset are not supported.
  * @param riot Manager for RIoT keys and certificates.
  * @param task The task that will be used to execute background operations.
  *
@@ -588,8 +409,7 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
  */
 int cmd_background_handler_init (struct cmd_background_handler *handler,
 	struct cmd_background_handler_state *state, struct attestation_responder *attestation,
-	struct hash_engine *hash, const struct config_reset *reset, struct riot_key_manager *riot,
-	const struct event_task *task)
+	struct hash_engine *hash, struct riot_key_manager *riot, const struct event_task *task)
 {
 	if ((handler == NULL) || (state == NULL) || (riot == NULL) || (task == NULL)) {
 		return CMD_BACKGROUND_INVALID_ARGUMENT;
@@ -614,25 +434,11 @@ int cmd_background_handler_init (struct cmd_background_handler *handler,
 #endif
 
 	/* Configuration reset operations. */
-#if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
 #ifdef CMD_ENABLE_RESET_CONFIG
 	handler->base_cmd.execute_authorized_operation =
 		cmd_background_handler_execute_authorized_operation;
 	handler->base_cmd.get_authorized_operation_status =
 		cmd_background_handler_get_authorized_operation_status;
-	handler->base_cmd.reset_bypass = cmd_background_handler_reset_bypass;
-	handler->base_cmd.restore_defaults = cmd_background_handler_restore_defaults;
-	handler->base_cmd.clear_platform_config = cmd_background_handler_clear_platform_config;
-	handler->base_cmd.clear_component_manifests = cmd_background_handler_clear_component_manifests;
-#endif
-#ifdef CMD_ENABLE_INTRUSION
-	handler->base_cmd.reset_intrusion = cmd_background_handler_reset_intrusion;
-#endif
-	handler->base_cmd.get_config_reset_status = cmd_background_handler_get_config_reset_status;
-
-	handler->reset = reset;
-#else
-	UNUSED (reset);
 #endif
 
 	/* Debug log operations. */
@@ -682,7 +488,7 @@ int cmd_background_handler_init_state (const struct cmd_background_handler *hand
 	handler->state->attestation_status = ATTESTATION_CMD_STATUS_NONE_STARTED;
 #endif
 
-#if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
+#ifdef CMD_ENABLE_RESET_CONFIG
 	handler->state->config_status = CONFIG_RESET_STATUS_NONE_STARTED;
 #endif
 

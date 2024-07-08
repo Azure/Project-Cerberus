@@ -974,7 +974,7 @@ int cerberus_protocol_get_reset_config_status (const struct cmd_background *back
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
-	rsp->update_status = background->get_config_reset_status (background);
+	rsp->update_status = background->get_authorized_operation_status (background);
 
 	return 0;
 #else

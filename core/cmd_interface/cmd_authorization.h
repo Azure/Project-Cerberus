@@ -52,85 +52,11 @@ struct cmd_authorization {
 	 * will be null.
 	 *
 	 * @return 0 if the operation is authorized or an error code.  If a token was generated,
-	 * CMD_AUTHORIZATION_CHALLENGE will be returned.
+	 * CMD_AUTHORIZATION_CHALLENGE will be returned.  If the operation ID is not known,
+	 * CMD_AUTHORIZATION_UNSUPPORTED_OP will be returned.
 	 */
 	int (*authorize_operation) (const struct cmd_authorization *auth, uint32_t operation_id,
 		const uint8_t **token, size_t *length, const struct authorized_execution **execution);
-
-	/**
-	 * Check for authorization to revert the device to bypass mode.
-	 *
-	 * @param auth Authorization handler to query.
-	 * @param token Input or output authorization token, depending on the initial value.  See
-	 * {@link struct authorization.authorize}.
-	 * @param length Input or output length of the authorization token, depending on the initial
-	 * value of the authorization token.  See {@link struct authorization.authorize}.
-	 *
-	 * @return 0 if the operation is authorized or an error code.  If a token was generated,
-	 * CMD_AUTHORIZATION_CHALLENGE will be returned.
-	 */
-	int (*authorize_revert_bypass) (const struct cmd_authorization *auth, const uint8_t **token,
-		size_t *length);
-
-	/**
-	 * Check for authorization to reset the device to factory default configuration.
-	 *
-	 * @param auth Authorization handler to query.
-	 * @param token Input or output authorization token, depending on the initial value.  See
-	 * {@link struct authorization.authorize}.
-	 * @param length Input or output length of the authorization token, depending on the initial
-	 * value of the authorization token.  See {@link struct authorization.authorize}.
-	 *
-	 * @return 0 if the operation is authorized or an error code.  If a token was generated,
-	 * CMD_AUTHORIZATION_CHALLENGE will be returned.
-	 */
-	int (*authorize_reset_defaults) (const struct cmd_authorization *auth, const uint8_t **token,
-		size_t *length);
-
-	/**
-	 * Check for authorization to clear the platform-specific configuration for the device.
-	 *
-	 * @param auth Authorization handler to query.
-	 * @param token Input or output authorization token, depending on the initial value.  See
-	 * {@link struct authorization.authorize}.
-	 * @param length Input or output length of the authorization token, depending on the initial
-	 * value of the authorization token.  See {@link struct authorization.authorize}.
-	 *
-	 * @return 0 if the operation is authorized or an error code.  If a token was generated,
-	 * CMD_AUTHORIZATION_CHALLENGE will be returned.
-	 */
-	int (*authorize_clear_platform_config) (const struct cmd_authorization *auth,
-		const uint8_t **token, size_t *length);
-
-	/**
-	 * Check for authorization to clear component manifests on the device.
-	 *
-	 * @param auth Authorization handler to query.
-	 * @param token Input or output authorization token, depending on the initial value.  See
-	 * {@link struct authorization.authorize}.
-	 * @param length Input or output length of the authorization token, depending on the initial
-	 * value of the authorization token.  See {@link struct authorization.authorize}.
-	 *
-	 * @return 0 if the operation is authorized or an error code.  If a token was generated,
-	 * CMD_AUTHORIZATION_CHALLENGE will be returned.
-	 */
-	int (*authorize_clear_component_manifests) (const struct cmd_authorization *auth,
-		const uint8_t **token, size_t *length);
-
-	/**
-	 * Check for authorization to reset the intrusion state for the device.
-	 *
-	 * @param auth Authorization handler to query.
-	 * @param token Input or output authorization token, depending on the initial value.  See
-	 * {@link struct authorization.authorize}.
-	 * @param length Input or output length of the authorization token, depending on the initial
-	 * value of the authorization token.  See {@link struct authorization.authorize}.
-	 *
-	 * @return 0 if the operation is authorized or an error code.  If a token was generated,
-	 * CMD_AUTHORIZATION_CHALLENGE will be returned.
-	 */
-	int (*authorize_reset_intrusion) (const struct cmd_authorization *auth, const uint8_t **token,
-		size_t *length);
 
 	/**
 	 * The list of supported operations requiring authorization.  A supported operation does not

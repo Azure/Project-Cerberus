@@ -7,7 +7,8 @@
 #include "authorized_execution_mock.h"
 
 
-static int authorized_execution_mock_execute (const struct authorized_execution *execution)
+static int authorized_execution_mock_execute (const struct authorized_execution *execution,
+	bool *reset_req)
 {
 	struct authorized_execution_mock *mock = (struct authorized_execution_mock*) execution;
 
@@ -15,7 +16,8 @@ static int authorized_execution_mock_execute (const struct authorized_execution 
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN_NO_ARGS (&mock->mock, authorized_execution_mock_execute, execution);
+	MOCK_RETURN (&mock->mock, authorized_execution_mock_execute, execution,
+		MOCK_ARG_PTR_CALL (reset_req));
 }
 
 static void authorized_execution_mock_get_status_identifiers (
@@ -35,6 +37,9 @@ static int authorized_execution_mock_func_arg_count (void *func)
 {
 	if (func == authorized_execution_mock_get_status_identifiers) {
 		return 2;
+	}
+	else if (func == authorized_execution_mock_execute) {
+		return 1;
 	}
 	else {
 		return 0;
@@ -56,7 +61,13 @@ static const char* authorized_execution_mock_func_name_map (void *func)
 
 static const char* authorized_execution_mock_arg_name_map (void *func, int arg)
 {
-	if (func == authorized_execution_mock_get_status_identifiers) {
+	if (func == authorized_execution_mock_execute) {
+		switch (arg) {
+			case 0:
+				return "reset_req";
+		}
+	}
+	else if (func == authorized_execution_mock_get_status_identifiers) {
 		switch (arg) {
 			case 0:
 				return "start";

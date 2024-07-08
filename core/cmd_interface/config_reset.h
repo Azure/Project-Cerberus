@@ -7,7 +7,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "attestation/aux_attestation.h"
-#include "intrusion/intrusion_manager.h"
 #include "keystore/keystore.h"
 #include "manifest/manifest_manager.h"
 #include "recovery/recovery_image_manager.h"
@@ -58,7 +57,6 @@ struct config_reset {
 	struct recovery_image_manager *recovery;					/**< Manager for host recovery images. */
 	const struct keystore *const *keystores;					/**< Array of keystores to clear keys of. */
 	size_t keystore_count;										/**< Number of keystores in the keystores array. */
-	struct intrusion_manager *intrusion;						/**< Intrusion manager to reset intrusion. */
 };
 
 
@@ -68,14 +66,12 @@ int config_reset_init (struct config_reset *reset,
 	const struct manifest_manager *const *component_manifests, size_t component_manifests_count,
 	struct state_manager *const *state, size_t state_count, struct riot_key_manager *riot,
 	struct aux_attestation *aux, struct recovery_image_manager *recovery,
-	const struct keystore *const *keystores, size_t keystore_count,
-	struct intrusion_manager *intrusion);
+	const struct keystore *const *keystores, size_t keystore_count);
 void config_reset_release (const struct config_reset *reset);
 
 int config_reset_restore_bypass (const struct config_reset *reset);
 int config_reset_restore_defaults (const struct config_reset *reset);
 int config_reset_restore_platform_config (const struct config_reset *reset);
-int config_reset_reset_intrusion (const struct config_reset *reset);
 int config_reset_clear_component_manifests (const struct config_reset *reset);
 
 

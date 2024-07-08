@@ -27,12 +27,10 @@
  * @param recovery_ptr Manager for recovery images to be cleared.
  * @param keystores_ptr Array of keystores to clear keys of.
  * @param keystore_count_arg Number of keystores in the keystores array.
- * @param intrusion_ptr The intrusion manager to reset intrusion.
  */
 #define	config_reset_static_init(bypass_config_ptr, bypass_count_arg, platform_config_ptr, \
 	platform_count_arg, component_manifests_ptr, component_manifests_count_arg, state_ptr, \
-	state_count_arg, riot_ptr, aux_ptr, recovery_ptr, keystores_ptr, keystore_count_arg, \
-	intrusion_ptr) { \
+	state_count_arg, riot_ptr, aux_ptr, recovery_ptr, keystores_ptr, keystore_count_arg) { \
 		.bypass = bypass_config_ptr, \
 		.bypass_count = bypass_count_arg, \
 		.config = platform_config_ptr, \
@@ -46,7 +44,6 @@
 		.recovery = recovery_ptr, \
 		.keystores = keystores_ptr, \
 		.keystore_count = keystore_count_arg, \
-		.intrusion = intrusion_ptr, \
 	}
 
 

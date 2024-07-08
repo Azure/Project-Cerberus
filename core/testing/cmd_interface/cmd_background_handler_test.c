@@ -9,7 +9,6 @@
 #include "cmd_interface/cmd_background_handler.h"
 #include "cmd_interface/cmd_background_handler_static.h"
 #include "cmd_interface/cmd_logging.h"
-#include "cmd_interface/config_reset.h"
 #include "crypto/aes.h"
 #include "flash/flash_common.h"
 #include "logging/logging_flash.h"
@@ -22,11 +21,7 @@
 #include "testing/mock/attestation/attestation_responder_mock.h"
 #include "testing/mock/common/authorized_execution_mock.h"
 #include "testing/mock/crypto/rsa_mock.h"
-#include "testing/mock/intrusion/intrusion_manager_mock.h"
 #include "testing/mock/logging/logging_mock.h"
-#include "testing/mock/manifest/manifest_manager_mock.h"
-#include "testing/mock/recovery/recovery_image_manager_mock.h"
-#include "testing/mock/state_manager/state_manager_mock.h"
 #include "testing/mock/system/event_task_mock.h"
 #include "testing/riot/riot_core_testing.h"
 
@@ -38,30 +33,17 @@ TEST_SUITE_LABEL ("cmd_background_handler");
  * Dependencies for testing.
  */
 struct cmd_background_handler_testing {
-	HASH_TESTING_ENGINE hash;							/**< Hash engine for attestation. */
-	struct manifest_manager_mock manifest_bypass;		/**< Bypass manifest to clear. */
-	struct manifest_manager_mock manifest_config;		/**< Config manifest to clear. */
-	struct manifest_manager_mock manifest_components;	/**< Component manifest to clear. */
-	struct state_manager_mock state_mgr;				/**< State to clear. */
-	struct keystore_mock keystore;						/**< Extra keystore to clear. */
-	struct recovery_image_manager_mock recovery;		/**< Mock for recovery image management. */
-	struct intrusion_manager_mock intrusion;			/**< Mock for intrusion state management. */
-	const struct manifest_manager *bypass[1];			/**< List of bypass manifests. */
-	const struct manifest_manager *config[1];			/**< List of config manifests. */
-	const struct manifest_manager *components[1];		/**< List of component manifests. */
-	struct state_manager *state_list[1];				/**< List of state managers. */
-	const struct keystore *keystores[1];				/**< List of keystores. */
-	struct config_reset_testing_keys keys;				/**< RIoT and aux keys. */
-	struct config_reset reset;							/**< Configuration reset manager. */
-	struct authorized_execution_mock execution;			/**< Mock for an operation execution context. */
-	struct attestation_responder_mock attestation;		/**< Mock for attestation requests. */
-	struct rsa_engine_mock rsa_mock;					/**< Mock for RSA operations. */
-	struct logging_mock log;							/**< Mock for debug logging. */
-	struct event_task_mock task;						/**< Mock for the command task. */
-	struct event_task_context context;					/**< Event context for event processing. */
-	struct event_task_context *context_ptr;				/**< Pointer to the event context. */
-	struct cmd_background_handler_state state;			/**< Context for the background handler. */
-	struct cmd_background_handler test;					/**< Background command handler under test. */
+	HASH_TESTING_ENGINE hash;						/**< Hash engine for attestation. */
+	struct config_reset_testing_keys keys;			/**< RIoT and aux keys. */
+	struct authorized_execution_mock execution;		/**< Mock for an operation execution context. */
+	struct attestation_responder_mock attestation;	/**< Mock for attestation requests. */
+	struct rsa_engine_mock rsa_mock;				/**< Mock for RSA operations. */
+	struct logging_mock log;						/**< Mock for debug logging. */
+	struct event_task_mock task;					/**< Mock for the command task. */
+	struct event_task_context context;				/**< Event context for event processing. */
+	struct event_task_context *context_ptr;			/**< Pointer to the event context. */
+	struct cmd_background_handler_state state;		/**< Context for the background handler. */
+	struct cmd_background_handler test;				/**< Background command handler under test. */
 };
 
 
@@ -86,40 +68,6 @@ static void cmd_background_handler_testing_init_dependencies_and_certs (CuTest *
 	}
 
 	status = HASH_TESTING_ENGINE_INIT (&handler->hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_mock_init (&handler->manifest_bypass);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&handler->manifest_bypass.mock, "manifest_bypass");
-	handler->bypass[0] = &handler->manifest_bypass.base;
-
-	status = manifest_manager_mock_init (&handler->manifest_config);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&handler->manifest_config.mock, "manifest_config");
-	handler->config[0] = &handler->manifest_config.base;
-
-	status = manifest_manager_mock_init (&handler->manifest_components);
-	CuAssertIntEquals (test, 0, status);
-	mock_set_name (&handler->manifest_components.mock, "manifest_components");
-	handler->components[0] = &handler->manifest_components.base;
-
-	status = state_manager_mock_init (&handler->state_mgr);
-	CuAssertIntEquals (test, 0, status);
-	handler->state_list[0] = &handler->state_mgr.base;
-
-	status = recovery_image_manager_mock_init (&handler->recovery);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&handler->keystore);
-	CuAssertIntEquals (test, 0, status);
-	handler->keystores[0] = &handler->keystore.base;
-
-	status = intrusion_manager_mock_init (&handler->intrusion);
-	CuAssertIntEquals (test, 0, status);
-
-	status = config_reset_init (&handler->reset, handler->bypass, 1, handler->config, 1,
-		handler->components, 1, handler->state_list, 1, &handler->keys.riot, &handler->keys.aux,
-		&handler->recovery.base, handler->keystores, 1, &handler->intrusion.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = authorized_execution_mock_init (&handler->execution);
@@ -169,8 +117,7 @@ static void cmd_background_handler_testing_init (CuTest *test,
 	cmd_background_handler_testing_init_dependencies_and_certs (test, handler, false);
 
 	status = cmd_background_handler_init (&handler->test, &handler->state,
-		&handler->attestation.base, &handler->hash.base, &handler->reset, &handler->keys.riot,
-		&handler->task.base);
+		&handler->attestation.base, &handler->hash.base, &handler->keys.riot, &handler->task.base);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -188,8 +135,7 @@ static void cmd_background_handler_testing_init_valid_certs (CuTest *test,
 	cmd_background_handler_testing_init_dependencies_and_certs (test, handler, true);
 
 	status = cmd_background_handler_init (&handler->test, &handler->state,
-		&handler->attestation.base, &handler->hash.base, &handler->reset, &handler->keys.riot,
-		&handler->task.base);
+		&handler->attestation.base, &handler->hash.base, &handler->keys.riot, &handler->task.base);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -212,8 +158,7 @@ static void cmd_background_handler_testing_init_mock_rsa (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_background_handler_init (&handler->test, &handler->state,
-		&handler->attestation.base, &handler->hash.base, &handler->reset, &handler->keys.riot,
-		&handler->task.base);
+		&handler->attestation.base, &handler->hash.base, &handler->keys.riot, &handler->task.base);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -286,14 +231,7 @@ static void cmd_background_handler_testing_release_dependencies (CuTest *test,
 
 	debug_log = NULL;
 
-	status = manifest_manager_mock_validate_and_release (&handler->manifest_bypass);
-	status |= manifest_manager_mock_validate_and_release (&handler->manifest_config);
-	status |= manifest_manager_mock_validate_and_release (&handler->manifest_components);
-	status |= state_manager_mock_validate_and_release (&handler->state_mgr);
-	status |= recovery_image_manager_mock_validate_and_release (&handler->recovery);
-	status |= keystore_mock_validate_and_release (&handler->keystore);
-	status |= intrusion_manager_mock_validate_and_release (&handler->intrusion);
-	status |= authorized_execution_mock_validate_and_release (&handler->execution);
+	status = authorized_execution_mock_validate_and_release (&handler->execution);
 	status |= attestation_responder_mock_validate_and_release (&handler->attestation);
 	status |= rsa_mock_validate_and_release (&handler->rsa_mock);
 	status |= logging_mock_validate_and_release (&handler->log);
@@ -301,8 +239,6 @@ static void cmd_background_handler_testing_release_dependencies (CuTest *test,
 	status |= config_reset_testing_release_attestation_keys (test, &handler->keys);
 
 	CuAssertIntEquals (test, 0, status);
-
-	config_reset_release (&handler->reset);
 }
 
 /**
@@ -333,7 +269,7 @@ static void cmd_background_handler_test_init (CuTest *test)
 	cmd_background_handler_testing_init_dependencies (test, &handler);
 
 	status = cmd_background_handler_init (&handler.test, &handler.state, &handler.attestation.base,
-		&handler.hash.base, &handler.reset, &handler.keys.riot, &handler.task.base);
+		&handler.hash.base, &handler.keys.riot, &handler.task.base);
 	CuAssertIntEquals (test, 0, status);
 
 #ifdef CMD_ENABLE_UNSEAL
@@ -343,16 +279,6 @@ static void cmd_background_handler_test_init (CuTest *test)
 #ifdef CMD_ENABLE_RESET_CONFIG
 	CuAssertPtrNotNull (test, handler.test.base_cmd.execute_authorized_operation);
 	CuAssertPtrNotNull (test, handler.test.base_cmd.get_authorized_operation_status);
-	CuAssertPtrNotNull (test, handler.test.base_cmd.reset_bypass);
-	CuAssertPtrNotNull (test, handler.test.base_cmd.restore_defaults);
-	CuAssertPtrNotNull (test, handler.test.base_cmd.clear_platform_config);
-	CuAssertPtrNotNull (test, handler.test.base_cmd.clear_component_manifests);
-#endif
-#ifdef CMD_ENABLE_INTRUSION
-	CuAssertPtrNotNull (test, handler.test.base_cmd.reset_intrusion);
-#endif
-#if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
-	CuAssertPtrNotNull (test, handler.test.base_cmd.get_config_reset_status);
 #endif
 #ifdef CMD_ENABLE_DEBUG_LOG
 	CuAssertPtrNotNull (test, handler.test.base_cmd.debug_log_clear);
@@ -380,19 +306,19 @@ static void cmd_background_handler_test_init_null (CuTest *test)
 	cmd_background_handler_testing_init_dependencies (test, &handler);
 
 	status = cmd_background_handler_init (NULL, &handler.state, &handler.attestation.base,
-		&handler.hash.base, &handler.reset, &handler.keys.riot, &handler.task.base);
+		&handler.hash.base, &handler.keys.riot, &handler.task.base);
 	CuAssertIntEquals (test, CMD_BACKGROUND_INVALID_ARGUMENT, status);
 
 	status = cmd_background_handler_init (&handler.test, NULL, &handler.attestation.base,
-		&handler.hash.base, &handler.reset, &handler.keys.riot, &handler.task.base);
+		&handler.hash.base, &handler.keys.riot, &handler.task.base);
 	CuAssertIntEquals (test, CMD_BACKGROUND_INVALID_ARGUMENT, status);
 
 	status = cmd_background_handler_init (&handler.test, &handler.state, &handler.attestation.base,
-		&handler.hash.base, &handler.reset, NULL, &handler.task.base);
+		&handler.hash.base, NULL, &handler.task.base);
 	CuAssertIntEquals (test, CMD_BACKGROUND_INVALID_ARGUMENT, status);
 
 	status = cmd_background_handler_init (&handler.test, &handler.state, &handler.attestation.base,
-		&handler.hash.base, &handler.reset, &handler.keys.riot, NULL);
+		&handler.hash.base, &handler.keys.riot, NULL);
 	CuAssertIntEquals (test, CMD_BACKGROUND_INVALID_ARGUMENT, status);
 
 	cmd_background_handler_testing_release_dependencies (test, &handler);
@@ -402,8 +328,7 @@ static void cmd_background_handler_test_static_init (CuTest *test)
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
 
 	TEST_START;
@@ -417,16 +342,6 @@ static void cmd_background_handler_test_static_init (CuTest *test)
 #ifdef CMD_ENABLE_RESET_CONFIG
 	CuAssertPtrNotNull (test, test_static.base_cmd.execute_authorized_operation);
 	CuAssertPtrNotNull (test, test_static.base_cmd.get_authorized_operation_status);
-	CuAssertPtrNotNull (test, test_static.base_cmd.reset_bypass);
-	CuAssertPtrNotNull (test, test_static.base_cmd.restore_defaults);
-	CuAssertPtrNotNull (test, test_static.base_cmd.clear_platform_config);
-	CuAssertPtrNotNull (test, test_static.base_cmd.clear_component_manifests);
-#endif
-#ifdef CMD_ENABLE_INTRUSION
-	CuAssertPtrNotNull (test, test_static.base_cmd.reset_intrusion);
-#endif
-#if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
-	CuAssertPtrNotNull (test, test_static.base_cmd.get_config_reset_status);
 #endif
 #ifdef CMD_ENABLE_DEBUG_LOG
 	CuAssertPtrNotNull (test, test_static.base_cmd.debug_log_clear);
@@ -452,8 +367,7 @@ static void cmd_background_handler_test_static_init_null (CuTest *test)
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
 
 	TEST_START;
@@ -519,8 +433,7 @@ static void cmd_background_handler_test_unseal_result_static_init (CuTest *test)
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
 	uint8_t key[AES256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
@@ -585,7 +498,7 @@ static void cmd_background_handler_test_unseal_result_no_unseal_support (CuTest 
 	cmd_background_handler_testing_init_dependencies (test, &handler);
 
 	status = cmd_background_handler_init (&handler.test, &handler.state, NULL, &handler.hash.base,
-		&handler.reset, &handler.keys.riot, &handler.task.base);
+		&handler.keys.riot, &handler.task.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = handler.test.base_cmd.unseal_result (&handler.test.base_cmd, key, &key_length,
@@ -595,7 +508,7 @@ static void cmd_background_handler_test_unseal_result_no_unseal_support (CuTest 
 	cmd_background_handler_release (&handler.test);
 
 	status = cmd_background_handler_init (&handler.test, &handler.state, &handler.attestation.base,
-		NULL, &handler.reset, &handler.keys.riot, &handler.task.base);
+		NULL, &handler.keys.riot, &handler.task.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = handler.test.base_cmd.unseal_result (&handler.test.base_cmd, key, &key_length,
@@ -606,7 +519,7 @@ static void cmd_background_handler_test_unseal_result_no_unseal_support (CuTest 
 }
 #endif
 
-#if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
+#ifdef CMD_ENABLE_RESET_CONFIG
 static void cmd_background_handler_test_get_authorized_operation_status (CuTest *test)
 {
 	struct cmd_background_handler_testing handler;
@@ -631,8 +544,7 @@ static void cmd_background_handler_test_get_authorized_operation_status_static_i
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
 
 	TEST_START;
@@ -661,86 +573,9 @@ static void cmd_background_handler_test_get_authorized_operation_status_null (Cu
 	cmd_background_handler_testing_init (test, &handler);
 
 	status = handler.test.base_cmd.get_authorized_operation_status (NULL);
-	CuAssertIntEquals (test, CMD_BACKGROUND_INVALID_ARGUMENT, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_get_config_reset_status (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CONFIG_RESET_STATUS_NONE_STARTED, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_get_config_reset_status_static_init (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init_static (test, &handler, &test_static);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = test_static.base_cmd.get_config_reset_status (&test_static.base_cmd);
-	CuAssertIntEquals (test, CONFIG_RESET_STATUS_NONE_STARTED, status);
-
-	cmd_background_handler_testing_release_dependencies (test, &handler);
-	cmd_background_handler_release (&test_static);
-}
-
-static void cmd_background_handler_test_get_config_reset_status_null (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	status = handler.test.base_cmd.get_config_reset_status (NULL);
-	CuAssertIntEquals (test, CMD_BACKGROUND_INVALID_ARGUMENT, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_get_config_reset_status_no_config_reset_support (
-	CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init_dependencies (test, &handler);
-
-	status = cmd_background_handler_init (&handler.test, &handler.state, &handler.attestation.base,
-		&handler.hash.base, NULL, &handler.keys.riot, &handler.task.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CMD_BACKGROUND_UNSUPPORTED_REQUEST, status);
+	CuAssertIntEquals (test,
+		(((CMD_BACKGROUND_INVALID_ARGUMENT & 0x00ffffff) << 8) | CONFIG_RESET_STATUS_UNKNOWN),
+		status);
 
 	cmd_background_handler_testing_validate_and_release (test, &handler);
 }
@@ -790,8 +625,7 @@ static void cmd_background_handler_test_get_riot_cert_chain_state_static_init (C
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
 
 	TEST_START;
@@ -815,8 +649,7 @@ static void cmd_background_handler_test_get_riot_cert_chain_state_static_init_va
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
 
 	TEST_START;
@@ -954,8 +787,7 @@ static void cmd_background_handler_test_unseal_start_static_init (CuTest *test)
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
 	uint8_t unseal_data[] = {0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18};
 	uint8_t key[AES256_KEY_LENGTH];
@@ -1034,7 +866,7 @@ static void cmd_background_handler_test_unseal_start_no_unseal_support (CuTest *
 	cmd_background_handler_testing_init_dependencies (test, &handler);
 
 	status = cmd_background_handler_init (&handler.test, &handler.state, NULL, &handler.hash.base,
-		&handler.reset, &handler.keys.riot, &handler.task.base);
+		&handler.keys.riot, &handler.task.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = handler.test.base_cmd.unseal_start (&handler.test.base_cmd, unseal_data,
@@ -1044,7 +876,7 @@ static void cmd_background_handler_test_unseal_start_no_unseal_support (CuTest *
 	cmd_background_handler_release (&handler.test);
 
 	status = cmd_background_handler_init (&handler.test, &handler.state, &handler.attestation.base,
-		NULL, &handler.reset, &handler.keys.riot, &handler.task.base);
+		NULL, &handler.keys.riot, &handler.task.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = handler.test.base_cmd.unseal_start (&handler.test.base_cmd, unseal_data,
@@ -1189,7 +1021,7 @@ static void cmd_background_handler_test_unseal_start_get_context_error (CuTest *
 		&result);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, (((EVENT_TASK_GET_CONTEXT_FAILED & 0x00ffffff) << 8) |
-			ATTESTATION_CMD_STATUS_INTERNAL_ERROR),	result);
+			ATTESTATION_CMD_STATUS_INTERNAL_ERROR), result);
 	CuAssertIntEquals (test, 0, key_length);
 
 	cmd_background_handler_testing_validate_and_release (test, &handler);
@@ -1270,7 +1102,7 @@ static void cmd_background_handler_test_execute_authorized_operation (CuTest *te
 	CuAssertIntEquals (test, CMD_BACKGROUND_HANDLER_ACTION_AUTHORIZED_OP, handler.context.action);
 	CuAssertIntEquals (test, sizeof (&handler.execution.base), handler.context.buffer_length);
 
-	status = testing_validate_array ((uint8_t*) op_ptr, handler.context.event_buffer,
+	status = testing_validate_array ((uint8_t*) &op_ptr, handler.context.event_buffer,
 		sizeof (op_ptr));
 	CuAssertIntEquals (test, 0, status);
 
@@ -1289,8 +1121,7 @@ static void cmd_background_handler_test_execute_authorized_operation_static_init
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	struct authorized_execution *op_ptr = &handler.execution.base;
 	int status;
 
@@ -1314,7 +1145,7 @@ static void cmd_background_handler_test_execute_authorized_operation_static_init
 	CuAssertIntEquals (test, CMD_BACKGROUND_HANDLER_ACTION_AUTHORIZED_OP, handler.context.action);
 	CuAssertIntEquals (test, sizeof (&handler.execution.base), handler.context.buffer_length);
 
-	status = testing_validate_array ((uint8_t*) op_ptr, handler.context.event_buffer,
+	status = testing_validate_array ((uint8_t*) &op_ptr, handler.context.event_buffer,
 		sizeof (op_ptr));
 	CuAssertIntEquals (test, 0, status);
 
@@ -1492,1239 +1323,6 @@ static void cmd_background_handler_test_execute_authorized_operation_notify_erro
 
 	cmd_background_handler_testing_validate_and_release (test, &handler);
 }
-
-static void cmd_background_handler_test_reset_bypass (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
-		sizeof (handler.context_ptr), -1);
-
-	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
-		MOCK_ARG_PTR (&handler.test.base_event));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.reset_bypass (&handler.test.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, CMD_BACKGROUND_HANDLER_ACTION_RUN_BYPASS, handler.context.action);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CONFIG_RESET_STATUS_STARTING, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_reset_bypass_static_init (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init_static (test, &handler, &test_static);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
-		sizeof (handler.context_ptr), -1);
-
-	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
-		MOCK_ARG_PTR (&test_static.base_event));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = test_static.base_cmd.reset_bypass (&test_static.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, CMD_BACKGROUND_HANDLER_ACTION_RUN_BYPASS, handler.context.action);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = test_static.base_cmd.get_config_reset_status (&test_static.base_cmd);
-	CuAssertIntEquals (test, CONFIG_RESET_STATUS_STARTING, status);
-
-	cmd_background_handler_testing_release_dependencies (test, &handler);
-	cmd_background_handler_release (&test_static);
-}
-
-static void cmd_background_handler_test_reset_bypass_null (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	status = handler.test.base_cmd.reset_bypass (NULL);
-	CuAssertIntEquals (test, CMD_BACKGROUND_INVALID_ARGUMENT, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_reset_bypass_no_config_reset_support (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init_dependencies (test, &handler);
-
-	status = cmd_background_handler_init (&handler.test, &handler.state, &handler.attestation.base,
-		&handler.hash.base, NULL, &handler.keys.riot, &handler.task.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.reset_bypass (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CMD_BACKGROUND_UNSUPPORTED_REQUEST, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_reset_bypass_no_task (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	void *null_ptr = NULL;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-	handler.context_ptr = NULL;
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		EVENT_TASK_NO_TASK, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &null_ptr, sizeof (null_ptr), -1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.reset_bypass (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CMD_BACKGROUND_NO_TASK, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((CMD_BACKGROUND_NO_TASK & 0x00ffffff) << 8) | CONFIG_RESET_STATUS_TASK_NOT_RUNNING),
-		status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_reset_bypass_task_busy (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	void *null_ptr = NULL;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-	handler.context_ptr = NULL;
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		EVENT_TASK_BUSY, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &null_ptr, sizeof (null_ptr), -1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.reset_bypass (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CMD_BACKGROUND_TASK_BUSY, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CONFIG_RESET_STATUS_NONE_STARTED, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_reset_bypass_get_context_error (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	void *null_ptr = NULL;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-	handler.context_ptr = NULL;
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		EVENT_TASK_GET_CONTEXT_FAILED, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &null_ptr, sizeof (null_ptr), -1);
-
-	/* Need to lock while updating the status. */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.reset_bypass (&handler.test.base_cmd);
-	CuAssertIntEquals (test, EVENT_TASK_GET_CONTEXT_FAILED, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((EVENT_TASK_GET_CONTEXT_FAILED & 0x00ffffff) << 8) | CONFIG_RESET_STATUS_INTERNAL_ERROR),
-		status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_reset_bypass_notify_error (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
-		sizeof (handler.context_ptr), -1);
-
-	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task,
-		EVENT_TASK_NOTIFY_FAILED, MOCK_ARG_PTR (&handler.test.base_event));
-
-	/* Need to lock while updating the status. */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.reset_bypass (&handler.test.base_cmd);
-	CuAssertIntEquals (test, EVENT_TASK_NOTIFY_FAILED, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((EVENT_TASK_NOTIFY_FAILED & 0x00ffffff) << 8) | CONFIG_RESET_STATUS_INTERNAL_ERROR),
-		status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_restore_defaults (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
-		sizeof (handler.context_ptr), -1);
-
-	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
-		MOCK_ARG_PTR (&handler.test.base_event));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.restore_defaults (&handler.test.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, CMD_BACKGROUND_HANDLER_ACTION_RUN_DEFAULTS, handler.context.action);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CONFIG_RESET_STATUS_STARTING, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_restore_defaults_static_init (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init_static (test, &handler, &test_static);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
-		sizeof (handler.context_ptr), -1);
-
-	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
-		MOCK_ARG_PTR (&test_static.base_event));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = test_static.base_cmd.restore_defaults (&test_static.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, CMD_BACKGROUND_HANDLER_ACTION_RUN_DEFAULTS, handler.context.action);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = test_static.base_cmd.get_config_reset_status (&test_static.base_cmd);
-	CuAssertIntEquals (test, CONFIG_RESET_STATUS_STARTING, status);
-
-	cmd_background_handler_testing_release_dependencies (test, &handler);
-	cmd_background_handler_release (&test_static);
-}
-
-static void cmd_background_handler_test_restore_defaults_null (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	status = handler.test.base_cmd.restore_defaults (NULL);
-	CuAssertIntEquals (test, CMD_BACKGROUND_INVALID_ARGUMENT, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_restore_defaults_no_config_reset_support (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init_dependencies (test, &handler);
-
-	status = cmd_background_handler_init (&handler.test, &handler.state, &handler.attestation.base,
-		&handler.hash.base, NULL, &handler.keys.riot, &handler.task.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.restore_defaults (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CMD_BACKGROUND_UNSUPPORTED_REQUEST, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_restore_defaults_no_task (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	void *null_ptr = NULL;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-	handler.context_ptr = NULL;
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		EVENT_TASK_NO_TASK, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &null_ptr, sizeof (null_ptr), -1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.restore_defaults (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CMD_BACKGROUND_NO_TASK, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((CMD_BACKGROUND_NO_TASK & 0x00ffffff) << 8) | CONFIG_RESET_STATUS_TASK_NOT_RUNNING),
-		status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_restore_defaults_task_busy (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	void *null_ptr = NULL;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-	handler.context_ptr = NULL;
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		EVENT_TASK_BUSY, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &null_ptr, sizeof (null_ptr), -1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.restore_defaults (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CMD_BACKGROUND_TASK_BUSY, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CONFIG_RESET_STATUS_NONE_STARTED, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_restore_defaults_get_context_error (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	void *null_ptr = NULL;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-	handler.context_ptr = NULL;
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		EVENT_TASK_GET_CONTEXT_FAILED, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &null_ptr, sizeof (null_ptr), -1);
-
-	/* Need to lock while updating the status. */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.restore_defaults (&handler.test.base_cmd);
-	CuAssertIntEquals (test, EVENT_TASK_GET_CONTEXT_FAILED, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((EVENT_TASK_GET_CONTEXT_FAILED & 0x00ffffff) << 8) | CONFIG_RESET_STATUS_INTERNAL_ERROR),
-		status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_restore_defaults_notify_error (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
-		sizeof (handler.context_ptr), -1);
-
-	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task,
-		EVENT_TASK_NOTIFY_FAILED, MOCK_ARG_PTR (&handler.test.base_event));
-
-	/* Need to lock while updating the status. */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.restore_defaults (&handler.test.base_cmd);
-	CuAssertIntEquals (test, EVENT_TASK_NOTIFY_FAILED, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((EVENT_TASK_NOTIFY_FAILED & 0x00ffffff) << 8) | CONFIG_RESET_STATUS_INTERNAL_ERROR),
-		status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_clear_platform_config (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
-		sizeof (handler.context_ptr), -1);
-
-	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
-		MOCK_ARG_PTR (&handler.test.base_event));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.clear_platform_config (&handler.test.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, CMD_BACKGROUND_HANDLER_ACTION_PLATFORM_CFG, handler.context.action);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CONFIG_RESET_STATUS_STARTING, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_clear_platform_config_static_init (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init_static (test, &handler, &test_static);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
-		sizeof (handler.context_ptr), -1);
-
-	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
-		MOCK_ARG_PTR (&test_static.base_event));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = test_static.base_cmd.clear_platform_config (&test_static.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, CMD_BACKGROUND_HANDLER_ACTION_PLATFORM_CFG, handler.context.action);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = test_static.base_cmd.get_config_reset_status (&test_static.base_cmd);
-	CuAssertIntEquals (test, CONFIG_RESET_STATUS_STARTING, status);
-
-	cmd_background_handler_testing_release_dependencies (test, &handler);
-	cmd_background_handler_release (&test_static);
-}
-
-static void cmd_background_handler_test_clear_platform_config_null (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	status = handler.test.base_cmd.clear_platform_config (NULL);
-	CuAssertIntEquals (test, CMD_BACKGROUND_INVALID_ARGUMENT, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_clear_platform_config_no_config_reset_support (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init_dependencies (test, &handler);
-
-	status = cmd_background_handler_init (&handler.test, &handler.state, &handler.attestation.base,
-		&handler.hash.base, NULL, &handler.keys.riot, &handler.task.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.clear_platform_config (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CMD_BACKGROUND_UNSUPPORTED_REQUEST, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_clear_platform_config_no_task (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	void *null_ptr = NULL;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-	handler.context_ptr = NULL;
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		EVENT_TASK_NO_TASK, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &null_ptr, sizeof (null_ptr), -1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.clear_platform_config (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CMD_BACKGROUND_NO_TASK, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((CMD_BACKGROUND_NO_TASK & 0x00ffffff) << 8) | CONFIG_RESET_STATUS_TASK_NOT_RUNNING),
-		status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_clear_platform_config_task_busy (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	void *null_ptr = NULL;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-	handler.context_ptr = NULL;
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		EVENT_TASK_BUSY, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &null_ptr, sizeof (null_ptr), -1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.clear_platform_config (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CMD_BACKGROUND_TASK_BUSY, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CONFIG_RESET_STATUS_NONE_STARTED, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_clear_platform_config_get_context_error (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	void *null_ptr = NULL;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-	handler.context_ptr = NULL;
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		EVENT_TASK_GET_CONTEXT_FAILED, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &null_ptr, sizeof (null_ptr), -1);
-
-	/* Need to lock while updating the status. */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.clear_platform_config (&handler.test.base_cmd);
-	CuAssertIntEquals (test, EVENT_TASK_GET_CONTEXT_FAILED, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((EVENT_TASK_GET_CONTEXT_FAILED & 0x00ffffff) << 8) | CONFIG_RESET_STATUS_INTERNAL_ERROR),
-		status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_clear_platform_config_notify_error (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
-		sizeof (handler.context_ptr), -1);
-
-	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task,
-		EVENT_TASK_NOTIFY_FAILED, MOCK_ARG_PTR (&handler.test.base_event));
-
-	/* Need to lock while updating the status. */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.clear_platform_config (&handler.test.base_cmd);
-	CuAssertIntEquals (test, EVENT_TASK_NOTIFY_FAILED, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((EVENT_TASK_NOTIFY_FAILED & 0x00ffffff) << 8) | CONFIG_RESET_STATUS_INTERNAL_ERROR),
-		status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_clear_component_manifests (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
-		sizeof (handler.context_ptr), -1);
-
-	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
-		MOCK_ARG_PTR (&handler.test.base_event));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.clear_component_manifests (&handler.test.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, CMD_BACKGROUND_HANDLER_ACTION_CLEAR_CFM, handler.context.action);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CONFIG_RESET_STATUS_STARTING, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_clear_component_manifests_static_init (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init_static (test, &handler, &test_static);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
-		sizeof (handler.context_ptr), -1);
-
-	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
-		MOCK_ARG_PTR (&test_static.base_event));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = test_static.base_cmd.clear_component_manifests (&test_static.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, CMD_BACKGROUND_HANDLER_ACTION_CLEAR_CFM, handler.context.action);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = test_static.base_cmd.get_config_reset_status (&test_static.base_cmd);
-	CuAssertIntEquals (test, CONFIG_RESET_STATUS_STARTING, status);
-
-	cmd_background_handler_testing_release_dependencies (test, &handler);
-	cmd_background_handler_release (&test_static);
-}
-
-static void cmd_background_handler_test_clear_component_manifests_null (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	status = handler.test.base_cmd.clear_component_manifests (NULL);
-	CuAssertIntEquals (test, CMD_BACKGROUND_INVALID_ARGUMENT, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_clear_component_manifests_no_config_reset_support (
-	CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init_dependencies (test, &handler);
-
-	status = cmd_background_handler_init (&handler.test, &handler.state, &handler.attestation.base,
-		&handler.hash.base, NULL, &handler.keys.riot, &handler.task.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.clear_component_manifests (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CMD_BACKGROUND_UNSUPPORTED_REQUEST, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_clear_component_manifests_no_task (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	void *null_ptr = NULL;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-	handler.context_ptr = NULL;
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		EVENT_TASK_NO_TASK, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &null_ptr, sizeof (null_ptr), -1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.clear_component_manifests (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CMD_BACKGROUND_NO_TASK, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((CMD_BACKGROUND_NO_TASK & 0x00ffffff) << 8) | CONFIG_RESET_STATUS_TASK_NOT_RUNNING),
-		status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_clear_component_manifests_task_busy (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	void *null_ptr = NULL;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-	handler.context_ptr = NULL;
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		EVENT_TASK_BUSY, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &null_ptr, sizeof (null_ptr), -1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.clear_component_manifests (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CMD_BACKGROUND_TASK_BUSY, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CONFIG_RESET_STATUS_NONE_STARTED, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_clear_component_manifests_get_context_error (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	void *null_ptr = NULL;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-	handler.context_ptr = NULL;
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		EVENT_TASK_GET_CONTEXT_FAILED, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &null_ptr, sizeof (null_ptr), -1);
-
-	/* Need to lock while updating the status. */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.clear_component_manifests (&handler.test.base_cmd);
-	CuAssertIntEquals (test, EVENT_TASK_GET_CONTEXT_FAILED, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((EVENT_TASK_GET_CONTEXT_FAILED & 0x00ffffff) << 8) | CONFIG_RESET_STATUS_INTERNAL_ERROR),
-		status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_clear_component_manifests_notify_error (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
-		sizeof (handler.context_ptr), -1);
-
-	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task,
-		EVENT_TASK_NOTIFY_FAILED, MOCK_ARG_PTR (&handler.test.base_event));
-
-	/* Need to lock while updating the status. */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.clear_component_manifests (&handler.test.base_cmd);
-	CuAssertIntEquals (test, EVENT_TASK_NOTIFY_FAILED, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((EVENT_TASK_NOTIFY_FAILED & 0x00ffffff) << 8) | CONFIG_RESET_STATUS_INTERNAL_ERROR),
-		status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-#endif
-
-#ifdef CMD_ENABLE_INTRUSION
-static void cmd_background_handler_test_reset_intrusion (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
-		sizeof (handler.context_ptr), -1);
-
-	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
-		MOCK_ARG_PTR (&handler.test.base_event));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.reset_intrusion (&handler.test.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, CMD_BACKGROUND_HANDLER_ACTION_RESET_INTRUSION, handler.context.action);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CONFIG_RESET_STATUS_STARTING, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_reset_intrusion_static_init (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init_static (test, &handler, &test_static);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
-		sizeof (handler.context_ptr), -1);
-
-	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
-		MOCK_ARG_PTR (&test_static.base_event));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = test_static.base_cmd.reset_intrusion (&test_static.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, CMD_BACKGROUND_HANDLER_ACTION_RESET_INTRUSION, handler.context.action);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = test_static.base_cmd.get_config_reset_status (&test_static.base_cmd);
-	CuAssertIntEquals (test, CONFIG_RESET_STATUS_STARTING, status);
-
-	cmd_background_handler_testing_release_dependencies (test, &handler);
-	cmd_background_handler_release (&test_static);
-}
-
-static void cmd_background_handler_test_reset_intrusion_null (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	status = handler.test.base_cmd.reset_intrusion (NULL);
-	CuAssertIntEquals (test, CMD_BACKGROUND_INVALID_ARGUMENT, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_reset_intrusion_no_config_reset_support (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init_dependencies (test, &handler);
-
-	status = cmd_background_handler_init (&handler.test, &handler.state, &handler.attestation.base,
-		&handler.hash.base, NULL, &handler.keys.riot, &handler.task.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.reset_intrusion (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CMD_BACKGROUND_UNSUPPORTED_REQUEST, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_reset_intrusion_no_task (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	void *null_ptr = NULL;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-	handler.context_ptr = NULL;
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		EVENT_TASK_NO_TASK, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &null_ptr, sizeof (null_ptr), -1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.reset_intrusion (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CMD_BACKGROUND_NO_TASK, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((CMD_BACKGROUND_NO_TASK & 0x00ffffff) << 8) | CONFIG_RESET_STATUS_TASK_NOT_RUNNING),
-		status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_reset_intrusion_task_busy (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	void *null_ptr = NULL;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-	handler.context_ptr = NULL;
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		EVENT_TASK_BUSY, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &null_ptr, sizeof (null_ptr), -1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.reset_intrusion (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CMD_BACKGROUND_TASK_BUSY, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, CONFIG_RESET_STATUS_NONE_STARTED, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_reset_intrusion_get_context_error (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	void *null_ptr = NULL;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-	handler.context_ptr = NULL;
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
-		EVENT_TASK_GET_CONTEXT_FAILED, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &null_ptr, sizeof (null_ptr), -1);
-
-	/* Need to lock while updating the status. */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.reset_intrusion (&handler.test.base_cmd);
-	CuAssertIntEquals (test, EVENT_TASK_GET_CONTEXT_FAILED, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((EVENT_TASK_GET_CONTEXT_FAILED & 0x00ffffff) << 8) | CONFIG_RESET_STATUS_INTERNAL_ERROR),
-		status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_reset_intrusion_notify_error (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
-		sizeof (handler.context_ptr), -1);
-
-	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task,
-		EVENT_TASK_NOTIFY_FAILED, MOCK_ARG_PTR (&handler.test.base_event));
-
-	/* Need to lock while updating the status. */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.reset_intrusion (&handler.test.base_cmd);
-	CuAssertIntEquals (test, EVENT_TASK_NOTIFY_FAILED, status);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test,
-		(((EVENT_TASK_NOTIFY_FAILED & 0x00ffffff) << 8) | CONFIG_RESET_STATUS_INTERNAL_ERROR),
-		status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
 #endif
 
 #ifdef CMD_ENABLE_DEBUG_LOG
@@ -2758,8 +1356,7 @@ static void cmd_background_handler_test_debug_log_clear_static_init (CuTest *tes
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
 
 	TEST_START;
@@ -2924,8 +1521,7 @@ static void cmd_background_handler_test_debug_log_fill_static_init (CuTest *test
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
 
 	TEST_START;
@@ -3099,8 +1695,7 @@ static void cmd_background_handler_test_authenticate_riot_certs_static_init (CuT
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
 
 	TEST_START;
@@ -3175,7 +1770,7 @@ static void cmd_background_handler_test_authenticate_riot_certs_no_task (CuTest 
 
 	status = handler.test.base_cmd.get_riot_cert_chain_state (&handler.test.base_cmd);
 	CuAssertIntEquals (test,
-		(((CMD_BACKGROUND_NO_TASK & 0x00ffffff) << 8) | RIOT_CERT_STATE_CHAIN_INVALID),	status);
+		(((CMD_BACKGROUND_NO_TASK & 0x00ffffff) << 8) | RIOT_CERT_STATE_CHAIN_INVALID), status);
 
 	cmd_background_handler_testing_validate_and_release (test, &handler);
 }
@@ -3316,8 +1911,7 @@ static void cmd_background_handler_test_reboot_device_static_init (CuTest *test)
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
 
 	TEST_START;
@@ -3506,8 +2100,7 @@ static void cmd_background_handler_test_generate_aux_key_static_init (CuTest *te
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
 
 #ifdef ATTESTATION_SUPPORT_RSA_UNSEAL
@@ -4185,8 +2778,7 @@ static void cmd_background_handler_test_execute_unseal_static_init (CuTest *test
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
 	bool reset = false;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -4289,6 +2881,7 @@ static void cmd_background_handler_test_execute_execute_authorized_operation (Cu
 	uint8_t error_code = CONFIG_RESET_STATUS_AUTHORIZED_OP_FAILED;
 	int status;
 	bool reset = false;
+	bool reset_req = true;
 
 	TEST_START;
 
@@ -4304,7 +2897,8 @@ static void cmd_background_handler_test_execute_execute_authorized_operation (Cu
 	status |= mock_expect_output (&handler.execution.mock, 1, &error_code, sizeof (error_code), -1);
 
 	status |= mock_expect (&handler.execution.mock, handler.execution.base.execute,
-		&handler.execution, 0);
+		&handler.execution, 0, MOCK_ARG_PTR (&reset));
+	status |= mock_expect_output (&handler.execution.mock, 0, &reset_req, sizeof (reset_req), -1);
 
 	/* Lock for state update: 0 */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -4317,7 +2911,7 @@ static void cmd_background_handler_test_execute_execute_authorized_operation (Cu
 	memcpy (handler.context.event_buffer, (uint8_t*) &op_ptr, sizeof (op_ptr));
 
 	handler.test.base_event.execute (&handler.test.base_event, handler.context_ptr, &reset);
-	CuAssertIntEquals (test, 0, reset);
+	CuAssertIntEquals (test, true, reset);
 
 	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
@@ -4353,7 +2947,7 @@ static void cmd_background_handler_test_execute_execute_authorized_operation_fai
 	status |= mock_expect_output (&handler.execution.mock, 1, &error_code, sizeof (error_code), -1);
 
 	status |= mock_expect (&handler.execution.mock, handler.execution.base.execute,
-		&handler.execution, AUTHORIZED_EXECUTION_EXECUTE_FAILED, MOCK_ARG_NOT_NULL);
+		&handler.execution, AUTHORIZED_EXECUTION_EXECUTE_FAILED, MOCK_ARG_PTR (&reset));
 
 	/* Lock for state update: 0 */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -4404,7 +2998,7 @@ static void cmd_background_handler_test_execute_execute_authorized_operation_fai
 	status |= mock_expect_output (&handler.execution.mock, 1, &error_code, sizeof (error_code), -1);
 
 	status |= mock_expect (&handler.execution.mock, handler.execution.base.execute,
-		&handler.execution, MANIFEST_MANAGER_CLEAR_ALL_FAILED);
+		&handler.execution, MANIFEST_MANAGER_CLEAR_ALL_FAILED, MOCK_ARG_PTR (&reset));
 
 	/* Lock for state update: 0 */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -4426,7 +3020,7 @@ static void cmd_background_handler_test_execute_execute_authorized_operation_fai
 
 	status = handler.test.base_cmd.get_authorized_operation_status (&handler.test.base_cmd);
 	CuAssertIntEquals (test, (((MANIFEST_MANAGER_CLEAR_ALL_FAILED & 0x00ffffff) << 8) |
-			CONFIG_RESET_STATUS_BYPASS_FAILED),	status);
+			CONFIG_RESET_STATUS_BYPASS_FAILED), status);
 
 	cmd_background_handler_testing_validate_and_release (test, &handler);
 }
@@ -4436,8 +3030,7 @@ static void cmd_background_handler_test_execute_execute_authorized_operation_sta
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	struct authorized_execution *op_ptr = &handler.execution.base;
 	uint8_t start_code = CONFIG_RESET_STATUS_AUTHORIZED_OPERATION;
 	uint8_t error_code = CONFIG_RESET_STATUS_AUTHORIZED_OP_FAILED;
@@ -4458,7 +3051,7 @@ static void cmd_background_handler_test_execute_execute_authorized_operation_sta
 	status |= mock_expect_output (&handler.execution.mock, 1, &error_code, sizeof (error_code), -1);
 
 	status |= mock_expect (&handler.execution.mock, handler.execution.base.execute,
-		&handler.execution, 0);
+		&handler.execution, 0, MOCK_ARG_PTR (&reset));
 
 	/* Lock for state update: 0 */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -4479,867 +3072,6 @@ static void cmd_background_handler_test_execute_execute_authorized_operation_sta
 	CuAssertIntEquals (test, 0, status);
 
 	status = test_static.base_cmd.get_authorized_operation_status (&test_static.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-
-	cmd_background_handler_testing_release_dependencies (test, &handler);
-	cmd_background_handler_release (&test_static);
-}
-
-static void cmd_background_handler_test_execute_restore_bypass (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	bool reset = false;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_INFO,
-		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-		.msg_index = CMD_LOGGING_BYPASS_RESTORED,
-		.arg1 = 0,
-		.arg2 = 0
-	};
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	/* Lock for state update: CONFIG_RESET_STATUS_RESTORE_BYPASS */
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	status |= mock_expect (&handler.manifest_bypass.mock,
-		handler.manifest_bypass.base.clear_all_manifests, &handler.manifest_bypass, 0);
-
-	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-
-	/* Lock for state update: 0 */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	handler.context.action = CMD_BACKGROUND_HANDLER_ACTION_RUN_BYPASS;
-	handler.context.buffer_length = 0;
-
-	handler.test.base_event.execute (&handler.test.base_event, handler.context_ptr, &reset);
-	CuAssertIntEquals (test, 0, reset);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_execute_restore_bypass_failure (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	bool reset = false;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_ERROR,
-		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-		.msg_index = CMD_LOGGING_RESTORE_BYPASS_FAIL,
-		.arg1 = MANIFEST_MANAGER_CLEAR_ALL_FAILED,
-		.arg2 = 0
-	};
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	/* Lock for state update: CONFIG_RESET_STATUS_RESTORE_BYPASS */
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	status |= mock_expect (&handler.manifest_bypass.mock,
-		handler.manifest_bypass.base.clear_all_manifests, &handler.manifest_bypass,
-		MANIFEST_MANAGER_CLEAR_ALL_FAILED);
-
-	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-
-	/* Lock for state update: CONFIG_RESET_STATUS_BYPASS_FAILED */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	handler.context.action = CMD_BACKGROUND_HANDLER_ACTION_RUN_BYPASS;
-	handler.context.buffer_length = 0;
-
-	handler.test.base_event.execute (&handler.test.base_event, handler.context_ptr, &reset);
-	CuAssertIntEquals (test, 0, reset);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, (((MANIFEST_MANAGER_CLEAR_ALL_FAILED & 0x00ffffff) << 8) |
-			CONFIG_RESET_STATUS_BYPASS_FAILED),	status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_execute_restore_bypass_static_init (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
-	int status;
-	bool reset = false;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_INFO,
-		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-		.msg_index = CMD_LOGGING_BYPASS_RESTORED,
-		.arg1 = 0,
-		.arg2 = 0
-	};
-
-	TEST_START;
-
-	cmd_background_handler_testing_init_static (test, &handler, &test_static);
-
-	/* Lock for state update: CONFIG_RESET_STATUS_RESTORE_BYPASS */
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	status |= mock_expect (&handler.manifest_bypass.mock,
-		handler.manifest_bypass.base.clear_all_manifests, &handler.manifest_bypass, 0);
-
-	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-
-	/* Lock for state update: 0 */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	handler.context.action = CMD_BACKGROUND_HANDLER_ACTION_RUN_BYPASS;
-	handler.context.buffer_length = 0;
-
-	test_static.base_event.execute (&test_static.base_event, handler.context_ptr, &reset);
-	CuAssertIntEquals (test, 0, reset);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = test_static.base_cmd.get_config_reset_status (&test_static.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-
-	cmd_background_handler_testing_release_dependencies (test, &handler);
-	cmd_background_handler_release (&test_static);
-}
-
-static void cmd_background_handler_test_execute_restore_defaults (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	bool reset = false;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_INFO,
-		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-		.msg_index = CMD_LOGGING_DEFAULTS_RESTORED,
-		.arg1 = 0,
-		.arg2 = 0
-	};
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	/* Lock for state update: CONFIG_RESET_STATUS_RESTORE_DEFAULTS */
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	status |= mock_expect (&handler.manifest_bypass.mock,
-		handler.manifest_bypass.base.clear_all_manifests, &handler.manifest_bypass, 0);
-	status |= mock_expect (&handler.manifest_config.mock,
-		handler.manifest_config.base.clear_all_manifests, &handler.manifest_config, 0);
-	status |= mock_expect (&handler.manifest_components.mock,
-		handler.manifest_components.base.clear_all_manifests, &handler.manifest_components, 0);
-	status |= mock_expect (&handler.state_mgr.mock, handler.state_mgr.base.restore_default_state,
-		&handler.state_mgr, 0);
-
-	status |= mock_expect (&handler.keys.riot_keystore.mock,
-		handler.keys.riot_keystore.base.erase_key, &handler.keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&handler.keys.riot_keystore.mock,
-		handler.keys.riot_keystore.base.erase_key, &handler.keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&handler.keys.riot_keystore.mock,
-		handler.keys.riot_keystore.base.erase_key, &handler.keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&handler.keys.aux_keystore.mock,
-		handler.keys.aux_keystore.base.erase_key, &handler.keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&handler.recovery.mock, handler.recovery.base.erase_all_recovery_regions,
-		&handler.recovery, 0);
-
-	status |= mock_expect (&handler.keystore.mock, handler.keystore.base.erase_all_keys,
-		&handler.keystore, 0);
-
-	status |= mock_expect (&handler.intrusion.mock, handler.intrusion.base.handle_intrusion,
-		&handler.intrusion, 0);
-
-	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-
-	/* Lock for state update: 0 */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	handler.context.action = CMD_BACKGROUND_HANDLER_ACTION_RUN_DEFAULTS;
-	handler.context.buffer_length = 0;
-
-	handler.test.base_event.execute (&handler.test.base_event, handler.context_ptr, &reset);
-	CuAssertIntEquals (test, 0, reset);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_execute_restore_defaults_failure (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	bool reset = false;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_ERROR,
-		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-		.msg_index = CMD_LOGGING_RESTORE_DEFAULTS_FAIL,
-		.arg1 = MANIFEST_MANAGER_CLEAR_ALL_FAILED,
-		.arg2 = 0
-	};
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	/* Lock for state update: CONFIG_RESET_STATUS_RESTORE_DEFAULTS */
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	status |= mock_expect (&handler.manifest_bypass.mock,
-		handler.manifest_bypass.base.clear_all_manifests, &handler.manifest_bypass,
-		MANIFEST_MANAGER_CLEAR_ALL_FAILED);
-
-	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-
-	/* Lock for state update: CONFIG_RESET_STATUS_DEFAULTS_FAILED */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	handler.context.action = CMD_BACKGROUND_HANDLER_ACTION_RUN_DEFAULTS;
-	handler.context.buffer_length = 0;
-
-	handler.test.base_event.execute (&handler.test.base_event, handler.context_ptr, &reset);
-	CuAssertIntEquals (test, 0, reset);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, (((MANIFEST_MANAGER_CLEAR_ALL_FAILED & 0x00ffffff) << 8) |
-			CONFIG_RESET_STATUS_DEFAULTS_FAILED), status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_execute_restore_defaults_static_init (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
-	int status;
-	bool reset = false;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_INFO,
-		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-		.msg_index = CMD_LOGGING_DEFAULTS_RESTORED,
-		.arg1 = 0,
-		.arg2 = 0
-	};
-
-	TEST_START;
-
-	cmd_background_handler_testing_init_static (test, &handler, &test_static);
-
-	/* Lock for state update: CONFIG_RESET_STATUS_RESTORE_DEFAULTS */
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	status |= mock_expect (&handler.manifest_bypass.mock,
-		handler.manifest_bypass.base.clear_all_manifests, &handler.manifest_bypass, 0);
-	status |= mock_expect (&handler.manifest_config.mock,
-		handler.manifest_config.base.clear_all_manifests, &handler.manifest_config, 0);
-	status |= mock_expect (&handler.manifest_components.mock,
-		handler.manifest_components.base.clear_all_manifests, &handler.manifest_components, 0);
-	status |= mock_expect (&handler.state_mgr.mock, handler.state_mgr.base.restore_default_state,
-		&handler.state_mgr, 0);
-
-	status |= mock_expect (&handler.keys.riot_keystore.mock,
-		handler.keys.riot_keystore.base.erase_key, &handler.keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&handler.keys.riot_keystore.mock,
-		handler.keys.riot_keystore.base.erase_key, &handler.keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&handler.keys.riot_keystore.mock,
-		handler.keys.riot_keystore.base.erase_key, &handler.keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&handler.keys.aux_keystore.mock,
-		handler.keys.aux_keystore.base.erase_key, &handler.keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&handler.recovery.mock, handler.recovery.base.erase_all_recovery_regions,
-		&handler.recovery, 0);
-
-	status |= mock_expect (&handler.keystore.mock, handler.keystore.base.erase_all_keys,
-		&handler.keystore, 0);
-
-	status |= mock_expect (&handler.intrusion.mock, handler.intrusion.base.handle_intrusion,
-		&handler.intrusion, 0);
-
-	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-
-	/* Lock for state update: 0 */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	handler.context.action = CMD_BACKGROUND_HANDLER_ACTION_RUN_DEFAULTS;
-	handler.context.buffer_length = 0;
-
-	test_static.base_event.execute (&test_static.base_event, handler.context_ptr, &reset);
-	CuAssertIntEquals (test, 0, reset);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = test_static.base_cmd.get_config_reset_status (&test_static.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-
-	cmd_background_handler_testing_release_dependencies (test, &handler);
-	cmd_background_handler_release (&test_static);
-}
-
-static void cmd_background_handler_test_execute_clear_platform_config (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	bool reset = false;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_INFO,
-		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-		.msg_index = CMD_LOGGING_CLEAR_PLATFORM_CONFIG,
-		.arg1 = 0,
-		.arg2 = 0
-	};
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	/* Lock for state update: CONFIG_RESET_STATUS_CLEAR_PLATFORM_CONFIG */
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	status |= mock_expect (&handler.manifest_config.mock,
-		handler.manifest_config.base.clear_all_manifests, &handler.manifest_config, 0);
-
-	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-
-	/* Lock for state update: 0 */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	handler.context.action = CMD_BACKGROUND_HANDLER_ACTION_PLATFORM_CFG;
-	handler.context.buffer_length = 0;
-
-	handler.test.base_event.execute (&handler.test.base_event, handler.context_ptr, &reset);
-	CuAssertIntEquals (test, 1, reset);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_execute_clear_platform_config_failure (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	bool reset = false;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_ERROR,
-		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-		.msg_index = CMD_LOGGING_CLEAR_PLATFORM_FAIL,
-		.arg1 = MANIFEST_MANAGER_CLEAR_ALL_FAILED,
-		.arg2 = 0
-	};
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	/* Lock for state update: CONFIG_RESET_STATUS_CLEAR_PLATFORM_CONFIG */
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	status |= mock_expect (&handler.manifest_config.mock,
-		handler.manifest_config.base.clear_all_manifests, &handler.manifest_config,
-		MANIFEST_MANAGER_CLEAR_ALL_FAILED);
-
-	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-
-	/* Lock for state update: CONFIG_RESET_STATUS_PLATFORM_CONFIG_FAILED */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	handler.context.action = CMD_BACKGROUND_HANDLER_ACTION_PLATFORM_CFG;
-	handler.context.buffer_length = 0;
-
-	handler.test.base_event.execute (&handler.test.base_event, handler.context_ptr, &reset);
-	CuAssertIntEquals (test, 0, reset);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, (((MANIFEST_MANAGER_CLEAR_ALL_FAILED & 0x00ffffff) << 8) |
-			CONFIG_RESET_STATUS_PLATFORM_CONFIG_FAILED), status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_execute_clear_platform_config_static_init (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
-	int status;
-	bool reset = false;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_INFO,
-		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-		.msg_index = CMD_LOGGING_CLEAR_PLATFORM_CONFIG,
-		.arg1 = 0,
-		.arg2 = 0
-	};
-
-	TEST_START;
-
-	cmd_background_handler_testing_init_static (test, &handler, &test_static);
-
-	/* Lock for state update: CONFIG_RESET_STATUS_CLEAR_PLATFORM_CONFIG */
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	status |= mock_expect (&handler.manifest_config.mock,
-		handler.manifest_config.base.clear_all_manifests, &handler.manifest_config, 0);
-
-	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-
-	/* Lock for state update: 0 */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	handler.context.action = CMD_BACKGROUND_HANDLER_ACTION_PLATFORM_CFG;
-	handler.context.buffer_length = 0;
-
-	test_static.base_event.execute (&test_static.base_event, handler.context_ptr, &reset);
-	CuAssertIntEquals (test, 1, reset);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = test_static.base_cmd.get_config_reset_status (&test_static.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-
-	cmd_background_handler_testing_release_dependencies (test, &handler);
-	cmd_background_handler_release (&test_static);
-}
-
-static void cmd_background_handler_test_execute_clear_component_manifests (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	bool reset = false;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_INFO,
-		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-		.msg_index = CMD_LOGGING_CLEAR_CFM,
-		.arg1 = 0,
-		.arg2 = 0
-	};
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	/* Lock for state update: CONFIG_RESET_STATUS_CLEAR_COMPONENT_MANIFESTS */
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	status |= mock_expect (&handler.manifest_components.mock,
-		handler.manifest_components.base.clear_all_manifests, &handler.manifest_components, 0);
-
-	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-
-	/* Lock for state update: 0 */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	handler.context.action = CMD_BACKGROUND_HANDLER_ACTION_CLEAR_CFM;
-	handler.context.buffer_length = 0;
-
-	handler.test.base_event.execute (&handler.test.base_event, handler.context_ptr, &reset);
-	CuAssertIntEquals (test, 0, reset);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_execute_clear_component_manifests_failure (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	bool reset = false;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_ERROR,
-		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-		.msg_index = CMD_LOGGING_CLEAR_CFM_FAIL,
-		.arg1 = MANIFEST_MANAGER_CLEAR_ALL_FAILED,
-		.arg2 = 0
-	};
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	/* Lock for state update: CONFIG_RESET_STATUS_CLEAR_COMPONENT_MANIFESTS */
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	status |= mock_expect (&handler.manifest_components.mock,
-		handler.manifest_components.base.clear_all_manifests, &handler.manifest_components,
-		MANIFEST_MANAGER_CLEAR_ALL_FAILED);
-
-	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-
-	/* Lock for state update: CONFIG_RESET_STATUS_COMPONENT_MANIFESTS_FAILED */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	handler.context.action = CMD_BACKGROUND_HANDLER_ACTION_CLEAR_CFM;
-	handler.context.buffer_length = 0;
-
-	handler.test.base_event.execute (&handler.test.base_event, handler.context_ptr, &reset);
-	CuAssertIntEquals (test, 0, reset);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, (((MANIFEST_MANAGER_CLEAR_ALL_FAILED & 0x00ffffff) << 8) |
-			CONFIG_RESET_STATUS_COMPONENT_MANIFESTS_FAILED), status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_execute_clear_component_manifests_static_init (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
-	int status;
-	bool reset = false;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_INFO,
-		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-		.msg_index = CMD_LOGGING_CLEAR_CFM,
-		.arg1 = 0,
-		.arg2 = 0
-	};
-
-	TEST_START;
-
-	cmd_background_handler_testing_init_static (test, &handler, &test_static);
-
-	/* Lock for state update: CONFIG_RESET_STATUS_CLEAR_COMPONENT_MANIFESTS */
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	status |= mock_expect (&handler.manifest_components.mock,
-		handler.manifest_components.base.clear_all_manifests, &handler.manifest_components, 0);
-
-	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-
-	/* Lock for state update: 0 */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	handler.context.action = CMD_BACKGROUND_HANDLER_ACTION_CLEAR_CFM;
-	handler.context.buffer_length = 0;
-
-	test_static.base_event.execute (&test_static.base_event, handler.context_ptr, &reset);
-	CuAssertIntEquals (test, 0, reset);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = test_static.base_cmd.get_config_reset_status (&test_static.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-
-	cmd_background_handler_testing_release_dependencies (test, &handler);
-	cmd_background_handler_release (&test_static);
-}
-#endif
-
-#ifdef CMD_ENABLE_INTRUSION
-static void cmd_background_handler_test_execute_reset_intrusion (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	bool reset = false;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_INFO,
-		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-		.msg_index = CMD_LOGGING_RESET_INTRUSION,
-		.arg1 = 0,
-		.arg2 = 0
-	};
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	/* Lock for state update: CONFIG_RESET_STATUS_RESET_INTRUSION */
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	status |= mock_expect (&handler.intrusion.mock, handler.intrusion.base.reset_intrusion,
-		&handler.intrusion, 0);
-
-	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-
-	/* Lock for state update: 0 */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	handler.context.action = CMD_BACKGROUND_HANDLER_ACTION_RESET_INTRUSION;
-	handler.context.buffer_length = 0;
-
-	handler.test.base_event.execute (&handler.test.base_event, handler.context_ptr, &reset);
-	CuAssertIntEquals (test, 0, reset);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, 0, status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_execute_reset_intrusion_failure (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	int status;
-	bool reset = false;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_ERROR,
-		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-		.msg_index = CMD_LOGGING_RESET_INTRUSION_FAIL,
-		.arg1 = INTRUSION_MANAGER_RESET_FAILED,
-		.arg2 = 0
-	};
-
-	TEST_START;
-
-	cmd_background_handler_testing_init (test, &handler);
-
-	/* Lock for state update: CONFIG_RESET_STATUS_RESET_INTRUSION */
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	status |= mock_expect (&handler.intrusion.mock, handler.intrusion.base.reset_intrusion,
-		&handler.intrusion, INTRUSION_MANAGER_RESET_FAILED);
-
-	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-
-	/* Lock for state update: CONFIG_RESET_STATUS_INTRUSION_FAILED */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	handler.context.action = CMD_BACKGROUND_HANDLER_ACTION_RESET_INTRUSION;
-	handler.context.buffer_length = 0;
-
-	handler.test.base_event.execute (&handler.test.base_event, handler.context_ptr, &reset);
-	CuAssertIntEquals (test, 0, reset);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
-	CuAssertIntEquals (test, (((INTRUSION_MANAGER_RESET_FAILED & 0x00ffffff) << 8) |
-			CONFIG_RESET_STATUS_INTRUSION_FAILED), status);
-
-	cmd_background_handler_testing_validate_and_release (test, &handler);
-}
-
-static void cmd_background_handler_test_execute_reset_intrusion_static_init (CuTest *test)
-{
-	struct cmd_background_handler_testing handler;
-	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
-	int status;
-	bool reset = false;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_INFO,
-		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-		.msg_index = CMD_LOGGING_RESET_INTRUSION,
-		.arg1 = 0,
-		.arg2 = 0
-	};
-
-	TEST_START;
-
-	cmd_background_handler_testing_init_static (test, &handler, &test_static);
-
-	/* Lock for state update: CONFIG_RESET_STATUS_RESET_INTRUSION */
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	status |= mock_expect (&handler.intrusion.mock, handler.intrusion.base.reset_intrusion,
-		&handler.intrusion, 0);
-
-	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-
-	/* Lock for state update: 0 */
-	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	handler.context.action = CMD_BACKGROUND_HANDLER_ACTION_RESET_INTRUSION;
-	handler.context.buffer_length = 0;
-
-	test_static.base_event.execute (&test_static.base_event, handler.context_ptr, &reset);
-	CuAssertIntEquals (test, 0, reset);
-
-	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
-	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = test_static.base_cmd.get_config_reset_status (&test_static.base_cmd);
 	CuAssertIntEquals (test, 0, status);
 
 	cmd_background_handler_testing_release_dependencies (test, &handler);
@@ -5423,8 +3155,7 @@ static void cmd_background_handler_test_execute_debug_log_clear_static_init (CuT
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
 	bool reset = false;
 	struct debug_log_entry_info entry = {
@@ -5502,8 +3233,7 @@ static void cmd_background_handler_test_execute_debug_log_fill_static_init (CuTe
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
 	bool reset = false;
 	struct debug_log_entry_info entry = {
@@ -5658,7 +3388,7 @@ static void cmd_background_handler_test_execute_authenticate_riot_certs_failure 
 
 	status = handler.test.base_cmd.get_riot_cert_chain_state (&handler.test.base_cmd);
 	CuAssertIntEquals (test, (((RIOT_KEY_MANAGER_NO_SIGNED_DEVICE_ID & 0x00ffffff) << 8) |
-			RIOT_CERT_STATE_CHAIN_INVALID),	status);
+			RIOT_CERT_STATE_CHAIN_INVALID), status);
 
 	cmd_background_handler_testing_validate_and_release (test, &handler);
 }
@@ -5667,8 +3397,7 @@ static void cmd_background_handler_test_execute_authenticate_riot_certs_static_i
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
 	bool reset = false;
 	uint8_t *dev_id_der = NULL;
@@ -5756,8 +3485,7 @@ static void cmd_background_handler_test_execute_reboot_device_static_init (CuTes
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	bool reset = false;
 
 	TEST_START;
@@ -5876,8 +3604,7 @@ static void cmd_background_handler_test_execute_generate_aux_key_static_init (Cu
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
 	bool reset = false;
 	struct debug_log_entry_info entry = {
@@ -5984,7 +3711,7 @@ static void cmd_background_handler_test_execute_unknown_action (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
+	status = handler.test.base_cmd.get_authorized_operation_status (&handler.test.base_cmd);
 	CuAssertIntEquals (test, CONFIG_RESET_STATUS_NONE_STARTED, status);
 
 	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -6060,7 +3787,7 @@ static void cmd_background_handler_test_execute_unknown_action_unseal_active (Cu
 		&result);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, (((CMD_BACKGROUND_UNSUPPORTED_OP & 0x00ffffff) << 8) |
-			ATTESTATION_CMD_STATUS_INTERNAL_ERROR),	result);
+			ATTESTATION_CMD_STATUS_INTERNAL_ERROR), result);
 	CuAssertIntEquals (test, 0, key_length);
 
 	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -6068,7 +3795,7 @@ static void cmd_background_handler_test_execute_unknown_action_unseal_active (Cu
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
+	status = handler.test.base_cmd.get_authorized_operation_status (&handler.test.base_cmd);
 	CuAssertIntEquals (test, CONFIG_RESET_STATUS_NONE_STARTED, status);
 
 	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -6115,8 +3842,8 @@ static void cmd_background_handler_test_execute_unknown_action_config_reset_acti
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.base_cmd.reset_bypass (&handler.test.base_cmd);
-	CuAssertIntEquals (test, 0, status);
+	status = handler.test.base_cmd.execute_authorized_operation (&handler.test.base_cmd,
+		&handler.execution.base);
 
 	/* Corrupt the action. */
 	handler.context.action = 0x100;
@@ -6150,7 +3877,7 @@ static void cmd_background_handler_test_execute_unknown_action_config_reset_acti
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
+	status = handler.test.base_cmd.get_authorized_operation_status (&handler.test.base_cmd);
 	CuAssertIntEquals (test,
 		(((CMD_BACKGROUND_UNSUPPORTED_OP & 0x00ffffff) << 8) | CONFIG_RESET_STATUS_INTERNAL_ERROR),
 		status);
@@ -6233,7 +3960,7 @@ static void cmd_background_handler_test_execute_unknown_action_riot_auth_active 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.base_cmd.get_config_reset_status (&handler.test.base_cmd);
+	status = handler.test.base_cmd.get_authorized_operation_status (&handler.test.base_cmd);
 	CuAssertIntEquals (test, CONFIG_RESET_STATUS_NONE_STARTED, status);
 
 	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -6253,8 +3980,7 @@ static void cmd_background_handler_test_execute_unknown_action_static_init (CuTe
 {
 	struct cmd_background_handler_testing handler;
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
-		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
-		&handler.task.base);
+		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
 	bool reset = false;
 	struct debug_log_entry_info entry = {
@@ -6299,7 +4025,7 @@ static void cmd_background_handler_test_execute_unknown_action_static_init (CuTe
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.base_cmd.get_config_reset_status (&test_static.base_cmd);
+	status = test_static.base_cmd.get_authorized_operation_status (&test_static.base_cmd);
 	CuAssertIntEquals (test, CONFIG_RESET_STATUS_NONE_STARTED, status);
 
 	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -6329,14 +4055,10 @@ TEST (cmd_background_handler_test_unseal_result_static_init);
 TEST (cmd_background_handler_test_unseal_result_null);
 TEST (cmd_background_handler_test_unseal_result_no_unseal_support);
 #endif
-#if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
+#ifdef CMD_ENABLE_RESET_CONFIG
 TEST (cmd_background_handler_test_get_authorized_operation_status);
 TEST (cmd_background_handler_test_get_authorized_operation_status_static_init);
 TEST (cmd_background_handler_test_get_authorized_operation_status_null);
-TEST (cmd_background_handler_test_get_config_reset_status);
-TEST (cmd_background_handler_test_get_config_reset_status_static_init);
-TEST (cmd_background_handler_test_get_config_reset_status_null);
-TEST (cmd_background_handler_test_get_config_reset_status_no_config_reset_support);
 #endif
 TEST (cmd_background_handler_test_get_riot_cert_chain_state);
 TEST (cmd_background_handler_test_get_riot_cert_chain_state_valid_certs);
@@ -6363,48 +4085,6 @@ TEST (cmd_background_handler_test_execute_authorized_operation_no_task);
 TEST (cmd_background_handler_test_execute_authorized_operation_task_busy);
 TEST (cmd_background_handler_test_execute_authorized_operation_get_context_error);
 TEST (cmd_background_handler_test_execute_authorized_operation_notify_error);
-TEST (cmd_background_handler_test_reset_bypass);
-TEST (cmd_background_handler_test_reset_bypass_static_init);
-TEST (cmd_background_handler_test_reset_bypass_null);
-TEST (cmd_background_handler_test_reset_bypass_no_config_reset_support);
-TEST (cmd_background_handler_test_reset_bypass_no_task);
-TEST (cmd_background_handler_test_reset_bypass_task_busy);
-TEST (cmd_background_handler_test_reset_bypass_get_context_error);
-TEST (cmd_background_handler_test_reset_bypass_notify_error);
-TEST (cmd_background_handler_test_restore_defaults);
-TEST (cmd_background_handler_test_restore_defaults_static_init);
-TEST (cmd_background_handler_test_restore_defaults_null);
-TEST (cmd_background_handler_test_restore_defaults_no_config_reset_support);
-TEST (cmd_background_handler_test_restore_defaults_no_task);
-TEST (cmd_background_handler_test_restore_defaults_task_busy);
-TEST (cmd_background_handler_test_restore_defaults_get_context_error);
-TEST (cmd_background_handler_test_restore_defaults_notify_error);
-TEST (cmd_background_handler_test_clear_platform_config);
-TEST (cmd_background_handler_test_clear_platform_config_static_init);
-TEST (cmd_background_handler_test_clear_platform_config_null);
-TEST (cmd_background_handler_test_clear_platform_config_no_config_reset_support);
-TEST (cmd_background_handler_test_clear_platform_config_no_task);
-TEST (cmd_background_handler_test_clear_platform_config_task_busy);
-TEST (cmd_background_handler_test_clear_platform_config_get_context_error);
-TEST (cmd_background_handler_test_clear_platform_config_notify_error);
-TEST (cmd_background_handler_test_clear_component_manifests);
-TEST (cmd_background_handler_test_clear_component_manifests_static_init);
-TEST (cmd_background_handler_test_clear_component_manifests_null);
-TEST (cmd_background_handler_test_clear_component_manifests_no_config_reset_support);
-TEST (cmd_background_handler_test_clear_component_manifests_no_task);
-TEST (cmd_background_handler_test_clear_component_manifests_task_busy);
-TEST (cmd_background_handler_test_clear_component_manifests_get_context_error);
-TEST (cmd_background_handler_test_clear_component_manifests_notify_error);
-#endif
-#ifdef CMD_ENABLE_INTRUSION
-TEST (cmd_background_handler_test_reset_intrusion);
-TEST (cmd_background_handler_test_reset_intrusion_static_init);
-TEST (cmd_background_handler_test_reset_intrusion_null);
-TEST (cmd_background_handler_test_reset_intrusion_no_config_reset_support);
-TEST (cmd_background_handler_test_reset_intrusion_no_task);
-TEST (cmd_background_handler_test_reset_intrusion_task_busy);
-TEST (cmd_background_handler_test_reset_intrusion_get_context_error);
-TEST (cmd_background_handler_test_reset_intrusion_notify_error);
 #endif
 #ifdef CMD_ENABLE_DEBUG_LOG
 TEST (cmd_background_handler_test_debug_log_clear);
@@ -6459,23 +4139,6 @@ TEST (cmd_background_handler_test_execute_execute_authorized_operation);
 TEST (cmd_background_handler_test_execute_execute_authorized_operation_failure);
 TEST (cmd_background_handler_test_execute_execute_authorized_operation_failure_bypass_error);
 TEST (cmd_background_handler_test_execute_execute_authorized_operation_static_init);
-TEST (cmd_background_handler_test_execute_restore_bypass);
-TEST (cmd_background_handler_test_execute_restore_bypass_failure);
-TEST (cmd_background_handler_test_execute_restore_bypass_static_init);
-TEST (cmd_background_handler_test_execute_restore_defaults);
-TEST (cmd_background_handler_test_execute_restore_defaults_failure);
-TEST (cmd_background_handler_test_execute_restore_defaults_static_init);
-TEST (cmd_background_handler_test_execute_clear_platform_config);
-TEST (cmd_background_handler_test_execute_clear_platform_config_failure);
-TEST (cmd_background_handler_test_execute_clear_platform_config_static_init);
-TEST (cmd_background_handler_test_execute_clear_component_manifests);
-TEST (cmd_background_handler_test_execute_clear_component_manifests_failure);
-TEST (cmd_background_handler_test_execute_clear_component_manifests_static_init);
-#endif
-#ifdef CMD_ENABLE_INTRUSION
-TEST (cmd_background_handler_test_execute_reset_intrusion);
-TEST (cmd_background_handler_test_execute_reset_intrusion_failure);
-TEST (cmd_background_handler_test_execute_reset_intrusion_static_init);
 #endif
 #ifdef CMD_ENABLE_DEBUG_LOG
 TEST (cmd_background_handler_test_execute_debug_log_clear);

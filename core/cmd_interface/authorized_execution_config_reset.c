@@ -8,7 +8,8 @@
 #include "common/unused.h"
 
 
-int authorized_execution_config_reset_execute (const struct authorized_execution *execution)
+int authorized_execution_config_reset_execute (const struct authorized_execution *execution,
+	bool *reset_req)
 {
 	const struct authorized_execution_config_reset *config =
 		(const struct authorized_execution_config_reset*) execution;
@@ -22,6 +23,11 @@ int authorized_execution_config_reset_execute (const struct authorized_execution
 	if (status == 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
 			config->log_success, 0, 0);
+
+		/* Request a device reset for operations that require it. */
+		if ((reset_req != NULL) && config->reset_req) {
+			*reset_req = true;
+		}
 	}
 	else {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
@@ -62,6 +68,7 @@ void authorized_execution_config_reset_get_status_identifiers (
  * @param log_fail Log message ID for a failed execution.
  * @param op_start Status ID to report when the execution is starting.
  * @param op_fail Status ID to report when the execution has failed.
+ * @param reset_req Flag indicating if a reset will be requested by the operation or not.
  * @param reset_handler Function to call on the configuration reset manager to execute the
  * execution.
  *
@@ -69,7 +76,7 @@ void authorized_execution_config_reset_get_status_identifiers (
  */
 static int authorized_execution_config_reset_init (
 	struct authorized_execution_config_reset *execution, const struct config_reset *reset,
-	uint8_t log_success, uint8_t log_fail, uint8_t op_start, uint8_t op_fail,
+	uint8_t log_success, uint8_t log_fail, uint8_t op_start, uint8_t op_fail, bool reset_req,
 	int (*reset_handler) (const struct config_reset*))
 {
 	if ((execution == NULL) || (reset == NULL)) {
@@ -87,6 +94,7 @@ static int authorized_execution_config_reset_init (
 	execution->log_fail = log_fail;
 	execution->op_start = op_start;
 	execution->op_fail = op_fail;
+	execution->reset_req = reset_req;
 	execution->reset_handler = reset_handler;
 
 	return 0;
@@ -106,7 +114,7 @@ int authorized_execution_config_reset_init_restore_bypass (
 {
 	return authorized_execution_config_reset_init (execution, reset, CMD_LOGGING_BYPASS_RESTORED,
 		CMD_LOGGING_RESTORE_BYPASS_FAIL, CONFIG_RESET_STATUS_RESTORE_BYPASS,
-		CONFIG_RESET_STATUS_BYPASS_FAILED, config_reset_restore_bypass);
+		CONFIG_RESET_STATUS_BYPASS_FAILED, false, config_reset_restore_bypass);
 }
 
 /**
@@ -123,7 +131,7 @@ int authorized_execution_config_reset_init_restore_defaults (
 {
 	return authorized_execution_config_reset_init (execution, reset, CMD_LOGGING_DEFAULTS_RESTORED,
 		CMD_LOGGING_RESTORE_DEFAULTS_FAIL, CONFIG_RESET_STATUS_RESTORE_DEFAULTS,
-		CONFIG_RESET_STATUS_DEFAULTS_FAILED, config_reset_restore_defaults);
+		CONFIG_RESET_STATUS_DEFAULTS_FAILED, false, config_reset_restore_defaults);
 }
 
 /**
@@ -140,7 +148,7 @@ int authorized_execution_config_reset_init_restore_platform_config (
 {
 	return authorized_execution_config_reset_init (execution, reset,
 		CMD_LOGGING_CLEAR_PLATFORM_CONFIG, CMD_LOGGING_CLEAR_PLATFORM_FAIL,
-		CONFIG_RESET_STATUS_CLEAR_PLATFORM_CONFIG, CONFIG_RESET_STATUS_PLATFORM_CONFIG_FAILED,
+		CONFIG_RESET_STATUS_CLEAR_PLATFORM_CONFIG, CONFIG_RESET_STATUS_PLATFORM_CONFIG_FAILED, true,
 		config_reset_restore_platform_config);
 }
 
@@ -158,7 +166,8 @@ int authorized_execution_config_reset_init_clear_component_manifests (
 {
 	return authorized_execution_config_reset_init (execution, reset, CMD_LOGGING_CLEAR_CFM,
 		CMD_LOGGING_CLEAR_CFM_FAIL, CONFIG_RESET_STATUS_CLEAR_COMPONENT_MANIFESTS,
-		CONFIG_RESET_STATUS_COMPONENT_MANIFESTS_FAILED, config_reset_clear_component_manifests);
+		CONFIG_RESET_STATUS_COMPONENT_MANIFESTS_FAILED, false,
+		config_reset_clear_component_manifests);
 }
 
 /**

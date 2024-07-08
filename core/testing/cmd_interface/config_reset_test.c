@@ -10,7 +10,6 @@
 #include "cmd_interface/config_reset_static.h"
 #include "testing/asn1/x509_testing.h"
 #include "testing/cmd_interface/config_reset_testing.h"
-#include "testing/mock/intrusion/intrusion_manager_mock.h"
 #include "testing/mock/manifest/manifest_manager_mock.h"
 #include "testing/mock/recovery/recovery_image_manager_mock.h"
 #include "testing/mock/state_manager/state_manager_mock.h"
@@ -31,7 +30,6 @@ struct config_reset_testing {
 	struct config_reset_testing_keys keys;					/**< Handling of attestation keys. */
 	struct recovery_image_manager_mock recovery;			/**< Manager for host recovery image.  */
 	struct keystore_mock keystore[2];						/**< Keystores containing config to clear. */
-	struct intrusion_manager_mock intrusion;				/**< Intrusion manager to clear. */
 	const struct manifest_manager *bypass[3];				/**< List of bypass manifests. */
 	const struct manifest_manager *config[3];				/**< List of platform config manifests. */
 	const struct manifest_manager *component[3];			/**< List of component manifests. */
@@ -277,9 +275,6 @@ static void config_reset_testing_init_dependencies (CuTest *test,
 	status = recovery_image_manager_mock_init (&reset->recovery);
 	CuAssertIntEquals (test, 0, status);
 
-	status = intrusion_manager_mock_init (&reset->intrusion);
-	CuAssertIntEquals (test, 0, status);
-
 	config_reset_testing_init_attestation_keys (test, &reset->keys);
 }
 
@@ -301,13 +296,12 @@ static void config_reset_testing_release_dependencies (CuTest *test,
 		status |= manifest_manager_mock_validate_and_release (&reset->manifest_components[i]);
 		status |= state_manager_mock_validate_and_release (&reset->state[i]);
 
-		if (i != 3) {
+		if (i != 2) {
 			status |= keystore_mock_validate_and_release (&reset->keystore[i]);
 		}
 	}
 
 	status |= recovery_image_manager_mock_validate_and_release (&reset->recovery);
-	status |= intrusion_manager_mock_validate_and_release (&reset->intrusion);
 	status |= config_reset_testing_release_attestation_keys (test, &reset->keys);
 
 	CuAssertIntEquals (test, 0, status);
@@ -327,7 +321,7 @@ static void config_reset_testing_init (CuTest *test, struct config_reset_testing
 
 	status = config_reset_init (&reset->test, reset->bypass, 1, reset->config, 1, reset->component,
 		1, reset->state_list, 1, &reset->keys.riot, &reset->keys.aux, &reset->recovery.base,
-		reset->keystore_array, 2, &reset->intrusion.base);
+		reset->keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -359,7 +353,7 @@ static void config_reset_test_init (CuTest *test)
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
 		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	config_reset_testing_release (test, &reset);
@@ -375,8 +369,7 @@ static void config_reset_test_init_no_state (CuTest *test)
 	config_reset_testing_init_dependencies (test, &reset);
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
-		NULL, 0, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2,
-		&reset.intrusion.base);
+		NULL, 0, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	config_reset_testing_release (test, &reset);
@@ -392,7 +385,7 @@ static void config_reset_test_init_no_manifests (CuTest *test)
 	config_reset_testing_init_dependencies (test, &reset);
 
 	status = config_reset_init (&reset.test, NULL, 0, NULL, 0, NULL, 0, NULL, 0, &reset.keys.riot,
-		&reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2, &reset.intrusion.base);
+		&reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	config_reset_testing_release (test, &reset);
@@ -409,7 +402,7 @@ static void config_reset_test_init_no_bypass_manifests (CuTest *test)
 
 	status = config_reset_init (&reset.test, NULL, 0, reset.config, 1, reset.component, 1,
 		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	config_reset_testing_release (test, &reset);
@@ -426,7 +419,7 @@ static void config_reset_test_init_no_default_manifests (CuTest *test)
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, NULL, 0, reset.component, 1,
 		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	config_reset_testing_release (test, &reset);
@@ -442,8 +435,7 @@ static void config_reset_test_init_no_riot (CuTest *test)
 	config_reset_testing_init_dependencies (test, &reset);
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
-		reset.state_list, 1, NULL, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2,
-		&reset.intrusion.base);
+		reset.state_list, 1, NULL, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	config_reset_testing_release (test, &reset);
@@ -459,8 +451,7 @@ static void config_reset_test_init_no_aux (CuTest *test)
 	config_reset_testing_init_dependencies (test, &reset);
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
-		reset.state_list, 1, &reset.keys.riot, NULL, &reset.recovery.base, reset.keystore_array, 2,
-		&reset.intrusion.base);
+		reset.state_list, 1, &reset.keys.riot, NULL, &reset.recovery.base, reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	config_reset_testing_release (test, &reset);
@@ -476,8 +467,7 @@ static void config_reset_test_init_no_recovery (CuTest *test)
 	config_reset_testing_init_dependencies (test, &reset);
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
-		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, NULL, reset.keystore_array, 2,
-		&reset.intrusion.base);
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, NULL, reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	config_reset_testing_release (test, &reset);
@@ -493,25 +483,7 @@ static void config_reset_test_init_no_keystores (CuTest *test)
 	config_reset_testing_init_dependencies (test, &reset);
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
-		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base, NULL, 0,
-		&reset.intrusion.base);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release (test, &reset);
-}
-
-static void config_reset_test_init_no_intrusion (CuTest *test)
-{
-	struct config_reset_testing reset;
-	int status;
-
-	TEST_START;
-
-	config_reset_testing_init_dependencies (test, &reset);
-
-	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
-		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, NULL);
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	config_reset_testing_release (test, &reset);
@@ -528,32 +500,30 @@ static void config_reset_test_init_null (CuTest *test)
 
 	status = config_reset_init (NULL, reset.bypass, 1, reset.config, 1, reset.component, 1,
 		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, CONFIG_RESET_INVALID_ARGUMENT, status);
 
 	status = config_reset_init (&reset.test, NULL, 1, reset.config, 1, reset.component, 1,
 		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, CONFIG_RESET_INVALID_ARGUMENT, status);
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, NULL, 1, reset.component, 1,
 		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, CONFIG_RESET_INVALID_ARGUMENT, status);
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, NULL, 1,
 		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, CONFIG_RESET_INVALID_ARGUMENT, status);
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
-		NULL, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2,
-		&reset.intrusion.base);
+		NULL, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2);
 	CuAssertIntEquals (test, CONFIG_RESET_INVALID_ARGUMENT, status);
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
-		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base, NULL, 2,
-		&reset.intrusion.base);
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base, NULL, 2);
 	CuAssertIntEquals (test, CONFIG_RESET_INVALID_ARGUMENT, status);
 
 	config_reset_testing_release_dependencies (test, &reset);
@@ -569,8 +539,7 @@ static void config_reset_test_init_no_manifests_with_state (CuTest *test)
 	config_reset_testing_init_dependencies (test, &reset);
 
 	status = config_reset_init (&reset.test, NULL, 0, NULL, 0, NULL, 0, reset.state_list, 1,
-		&reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2,
-		&reset.intrusion.base);
+		&reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2);
 	CuAssertIntEquals (test, CONFIG_RESET_NO_MANIFESTS, status);
 
 	config_reset_testing_release_dependencies (test, &reset);
@@ -581,7 +550,7 @@ static void config_reset_test_static_init (CuTest *test)
 	struct config_reset_testing reset = {
 		.test = config_reset_static_init (reset.bypass, 1, reset.config, 1, reset.component, 1,
 			reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-			reset.keystore_array, 2, &reset.intrusion.base)
+			reset.keystore_array, 2)
 	};
 
 	TEST_START;
@@ -628,7 +597,7 @@ static void config_reset_test_restore_bypass_multiple (CuTest *test)
 
 	status = config_reset_init (&reset.test, reset.bypass, 3, reset.config, 1, reset.component, 1,
 		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&reset.manifest_bypass[0].mock,
@@ -656,8 +625,7 @@ static void config_reset_test_restore_bypass_no_manifests (CuTest *test)
 	config_reset_testing_init_dependencies (test, &reset);
 
 	status = config_reset_init (&reset.test, NULL, 0, reset.config, 1, NULL, 0, NULL, 0,
-		&reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2,
-		&reset.intrusion.base);
+		&reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = config_reset_restore_bypass (&reset.test);
@@ -671,7 +639,7 @@ static void config_reset_test_restore_bypass_static_init (CuTest *test)
 	struct config_reset_testing reset = {
 		.test = config_reset_static_init (reset.bypass, 1, reset.config, 1, reset.component, 1,
 			reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-			reset.keystore_array, 2, &reset.intrusion.base)
+			reset.keystore_array, 2)
 	};
 	int status;
 
@@ -715,7 +683,7 @@ static void config_reset_test_restore_bypass_clear_error (CuTest *test)
 
 	status = config_reset_init (&reset.test, reset.bypass, 3, reset.config, 1, reset.component, 1,
 		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&reset.manifest_bypass[0].mock,
@@ -768,9 +736,6 @@ static void config_reset_test_restore_defaults (CuTest *test)
 	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
 		&reset.keystore[1], 0);
 
-	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
-		&reset.intrusion, 0);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = config_reset_restore_defaults (&reset.test);
@@ -790,7 +755,7 @@ static void config_reset_test_restore_defaults_multiple_bypass (CuTest *test)
 
 	status = config_reset_init (&reset.test, reset.bypass, 3, reset.config, 1, reset.component, 1,
 		reset.state_list, 3, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&reset.manifest_bypass[0].mock,
@@ -831,9 +796,6 @@ static void config_reset_test_restore_defaults_multiple_bypass (CuTest *test)
 	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
 		&reset.keystore[1], 0);
 
-	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
-		&reset.intrusion, 0);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = config_reset_restore_defaults (&reset.test);
@@ -853,7 +815,7 @@ static void config_reset_test_restore_defaults_multiple_default (CuTest *test)
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 3, reset.component, 1,
 		reset.state_list, 3, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&reset.manifest_bypass[0].mock,
@@ -894,9 +856,6 @@ static void config_reset_test_restore_defaults_multiple_default (CuTest *test)
 	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
 		&reset.keystore[1], 0);
 
-	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
-		&reset.intrusion, 0);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = config_reset_restore_defaults (&reset.test);
@@ -916,7 +875,7 @@ static void config_reset_test_restore_defaults_multiple_components (CuTest *test
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 3,
 		reset.state_list, 3, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&reset.manifest_bypass[0].mock,
@@ -957,9 +916,6 @@ static void config_reset_test_restore_defaults_multiple_components (CuTest *test
 	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
 		&reset.keystore[1], 0);
 
-	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
-		&reset.intrusion, 0);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = config_reset_restore_defaults (&reset.test);
@@ -979,7 +935,7 @@ static void config_reset_test_restore_defaults_no_bypass_manifests (CuTest *test
 
 	status = config_reset_init (&reset.test, NULL, 0, reset.config, 1, reset.component, 1,
 		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&reset.manifest_config[0].mock,
@@ -1007,9 +963,6 @@ static void config_reset_test_restore_defaults_no_bypass_manifests (CuTest *test
 	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
 		&reset.keystore[1], 0);
 
-	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
-		&reset.intrusion, 0);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = config_reset_restore_defaults (&reset.test);
@@ -1029,7 +982,7 @@ static void config_reset_test_restore_defaults_no_default_manifests (CuTest *tes
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, NULL, 0, reset.component, 1,
 		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&reset.manifest_bypass[0].mock,
@@ -1056,9 +1009,6 @@ static void config_reset_test_restore_defaults_no_default_manifests (CuTest *tes
 		&reset.keystore[0], 0);
 	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
 		&reset.keystore[1], 0);
-
-	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
-		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1079,7 +1029,7 @@ static void config_reset_test_restore_defaults_no_component_manifests (CuTest *t
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, NULL, 0,
 		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&reset.manifest_bypass[0].mock,
@@ -1106,9 +1056,6 @@ static void config_reset_test_restore_defaults_no_component_manifests (CuTest *t
 		&reset.keystore[0], 0);
 	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
 		&reset.keystore[1], 0);
-
-	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
-		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1128,7 +1075,7 @@ static void config_reset_test_restore_defaults_no_manifests (CuTest *test)
 	config_reset_testing_init_dependencies (test, &reset);
 
 	status = config_reset_init (&reset.test, NULL, 0, NULL, 0, NULL, 0, NULL, 0, &reset.keys.riot,
-		&reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2, &reset.intrusion.base);
+		&reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
@@ -1148,9 +1095,6 @@ static void config_reset_test_restore_defaults_no_manifests (CuTest *test)
 		&reset.keystore[0], 0);
 	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
 		&reset.keystore[1], 0);
-
-	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
-		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1170,8 +1114,7 @@ static void config_reset_test_restore_defaults_no_state (CuTest *test)
 	config_reset_testing_init_dependencies (test, &reset);
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
-		NULL, 0, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2,
-		&reset.intrusion.base);
+		NULL, 0, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&reset.manifest_bypass[0].mock,
@@ -1198,9 +1141,6 @@ static void config_reset_test_restore_defaults_no_state (CuTest *test)
 		&reset.keystore[0], 0);
 	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
 		&reset.keystore[1], 0);
-
-	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
-		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1220,8 +1160,7 @@ static void config_reset_test_restore_defaults_no_riot (CuTest *test)
 	config_reset_testing_init_dependencies (test, &reset);
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
-		reset.state_list, 1, NULL, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2,
-		&reset.intrusion.base);
+		reset.state_list, 1, NULL, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&reset.manifest_bypass[0].mock,
@@ -1243,8 +1182,6 @@ static void config_reset_test_restore_defaults_no_riot (CuTest *test)
 		&reset.keystore[0], 0);
 	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
 		&reset.keystore[1], 0);
-	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
-		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1264,8 +1201,7 @@ static void config_reset_test_restore_defaults_no_aux (CuTest *test)
 	config_reset_testing_init_dependencies (test, &reset);
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
-		reset.state_list, 1, &reset.keys.riot, NULL, &reset.recovery.base, reset.keystore_array, 2,
-		&reset.intrusion.base);
+		reset.state_list, 1, &reset.keys.riot, NULL, &reset.recovery.base, reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&reset.manifest_bypass[0].mock,
@@ -1291,9 +1227,6 @@ static void config_reset_test_restore_defaults_no_aux (CuTest *test)
 		&reset.keystore[0], 0);
 	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
 		&reset.keystore[1], 0);
-
-	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
-		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1313,8 +1246,7 @@ static void config_reset_test_restore_defaults_no_recovery (CuTest *test)
 	config_reset_testing_init_dependencies (test, &reset);
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
-		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, NULL, reset.keystore_array, 2,
-		&reset.intrusion.base);
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, NULL, reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&reset.manifest_bypass[0].mock,
@@ -1340,9 +1272,6 @@ static void config_reset_test_restore_defaults_no_recovery (CuTest *test)
 		&reset.keystore[0], 0);
 	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
 		&reset.keystore[1], 0);
-
-	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
-		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1362,8 +1291,7 @@ static void config_reset_test_restore_defaults_no_keystore_array (CuTest *test)
 	config_reset_testing_init_dependencies (test, &reset);
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
-		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base, NULL, 0,
-		&reset.intrusion.base);
+		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&reset.manifest_bypass[0].mock,
@@ -1387,58 +1315,6 @@ static void config_reset_test_restore_defaults_no_keystore_array (CuTest *test)
 
 	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
 		&reset.recovery, 0);
-
-	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
-		&reset.intrusion, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = config_reset_restore_defaults (&reset.test);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release (test, &reset);
-}
-
-static void config_reset_test_restore_defaults_no_intrusion (CuTest *test)
-{
-	struct config_reset_testing reset;
-	int status;
-
-	TEST_START;
-
-	config_reset_testing_init_dependencies (test, &reset);
-
-	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
-		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, NULL);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&reset.manifest_bypass[0].mock,
-		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
-	status |= mock_expect (&reset.manifest_config[0].mock,
-		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
-	status |= mock_expect (&reset.manifest_components[0].mock,
-		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
-	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
-		&reset.state[0], 0);
-
-	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
-		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
-		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
-		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
-		&reset.keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
-		&reset.recovery, 0);
-
-	status |= mock_expect (&reset.keystore[0].mock, reset.keystore[0].base.erase_all_keys,
-		&reset.keystore[0], 0);
-	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
-		&reset.keystore[1], 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1453,7 +1329,7 @@ static void config_reset_test_restore_defaults_static_init (CuTest *test)
 	struct config_reset_testing reset = {
 		.test = config_reset_static_init (reset.bypass, 1, reset.config, 1, reset.component, 1,
 			reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-			reset.keystore_array, 2, &reset.intrusion.base)
+			reset.keystore_array, 2)
 	};
 	int status;
 
@@ -1487,9 +1363,6 @@ static void config_reset_test_restore_defaults_static_init (CuTest *test)
 		&reset.keystore[0], 0);
 	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
 		&reset.keystore[1], 0);
-
-	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
-		&reset.intrusion, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1525,7 +1398,7 @@ static void config_reset_test_restore_defaults_bypass_clear_error (CuTest *test)
 
 	status = config_reset_init (&reset.test, reset.bypass, 3, reset.config, 1, reset.component, 1,
 		reset.state_list, 3, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&reset.manifest_bypass[0].mock,
@@ -1553,7 +1426,7 @@ static void config_reset_test_restore_defaults_default_clear_error (CuTest *test
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 3, reset.component, 1,
 		reset.state_list, 3, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&reset.manifest_bypass[0].mock,
@@ -1584,7 +1457,7 @@ static void config_reset_test_restore_defaults_components_clear_error (CuTest *t
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 3,
 		reset.state_list, 3, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&reset.manifest_bypass[0].mock,
@@ -1618,7 +1491,7 @@ static void config_reset_test_restore_defaults_state_restore_error (CuTest *test
 
 	status = config_reset_init (&reset.test, reset.bypass, 3, reset.config, 1, reset.component, 1,
 		reset.state_list, 3, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&reset.manifest_bypass[0].mock,
@@ -1793,53 +1666,6 @@ static void config_reset_test_restore_defaults_keystore_array_erase_error (CuTes
 	config_reset_testing_release (test, &reset);
 }
 
-static void config_reset_test_restore_defaults_intrusion_error (CuTest *test)
-{
-	struct config_reset_testing reset;
-	int status;
-
-	TEST_START;
-
-	config_reset_testing_init (test, &reset);
-
-	status = mock_expect (&reset.manifest_bypass[0].mock,
-		reset.manifest_bypass[0].base.clear_all_manifests, &reset.manifest_bypass[0], 0);
-	status |= mock_expect (&reset.manifest_config[0].mock,
-		reset.manifest_config[0].base.clear_all_manifests, &reset.manifest_config[0], 0);
-	status |= mock_expect (&reset.manifest_components[0].mock,
-		reset.manifest_components[0].base.clear_all_manifests, &reset.manifest_components[0], 0);
-	status |= mock_expect (&reset.state[0].mock, reset.state[0].base.restore_default_state,
-		&reset.state[0], 0);
-
-	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
-		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
-	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
-		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
-	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
-		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
-
-	status |= mock_expect (&reset.keys.aux_keystore.mock, reset.keys.aux_keystore.base.erase_key,
-		&reset.keys.aux_keystore, 0, MOCK_ARG (0));
-
-	status |= mock_expect (&reset.recovery.mock, reset.recovery.base.erase_all_recovery_regions,
-		&reset.recovery, 0);
-
-	status |= mock_expect (&reset.keystore[0].mock, reset.keystore[0].base.erase_all_keys,
-		&reset.keystore[0], 0);
-	status |= mock_expect (&reset.keystore[1].mock, reset.keystore[1].base.erase_all_keys,
-		&reset.keystore[1], 0);
-
-	status |= mock_expect (&reset.intrusion.mock, reset.intrusion.base.handle_intrusion,
-		&reset.intrusion, INTRUSION_MANAGER_RESET_FAILED);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = config_reset_restore_defaults (&reset.test);
-	CuAssertIntEquals (test, INTRUSION_MANAGER_RESET_FAILED, status);
-
-	config_reset_testing_release (test, &reset);
-}
-
 static void config_reset_test_restore_platform_config (CuTest *test)
 {
 	struct config_reset_testing reset;
@@ -1870,7 +1696,7 @@ static void config_reset_test_restore_platform_config_multiple (CuTest *test)
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 3, reset.component, 1,
 		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&reset.manifest_config[0].mock,
@@ -1898,8 +1724,7 @@ static void config_reset_test_restore_platform_config_no_manifests (CuTest *test
 	config_reset_testing_init_dependencies (test, &reset);
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, NULL, 0, reset.component, 1, NULL, 0,
-		&reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2,
-		&reset.intrusion.base);
+		&reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = config_reset_restore_platform_config (&reset.test);
@@ -1913,7 +1738,7 @@ static void config_reset_test_restore_platform_config_static_init (CuTest *test)
 	struct config_reset_testing reset = {
 		.test = config_reset_static_init (reset.bypass, 1, reset.config, 1, reset.component, 1,
 			reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-			reset.keystore_array, 2, &reset.intrusion.base)
+			reset.keystore_array, 2)
 	};
 	int status;
 
@@ -1957,7 +1782,7 @@ static void config_reset_test_restore_platform_config_clear_error (CuTest *test)
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 3, reset.component, 1,
 		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status |= mock_expect (&reset.manifest_config[0].mock,
@@ -1970,102 +1795,6 @@ static void config_reset_test_restore_platform_config_clear_error (CuTest *test)
 
 	status = config_reset_restore_platform_config (&reset.test);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_CLEAR_ALL_FAILED, status);
-
-	config_reset_testing_release (test, &reset);
-}
-
-static void config_reset_test_reset_intrusion (CuTest *test)
-{
-	struct config_reset_testing reset;
-	int status;
-
-	TEST_START;
-
-	config_reset_testing_init (test, &reset);
-
-	status = mock_expect (&reset.intrusion.mock, reset.intrusion.base.reset_intrusion,
-		&reset.intrusion, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = config_reset_reset_intrusion (&reset.test);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release (test, &reset);
-}
-
-static void config_reset_test_reset_intrusion_static_init (CuTest *test)
-{
-	struct config_reset_testing reset = {
-		.test = config_reset_static_init (reset.bypass, 1, reset.config, 1, reset.component, 1,
-			reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-			reset.keystore_array, 2, &reset.intrusion.base)
-	};
-	int status;
-
-	TEST_START;
-
-	config_reset_testing_init_dependencies (test, &reset);
-
-	status = mock_expect (&reset.intrusion.mock, reset.intrusion.base.reset_intrusion,
-		&reset.intrusion, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = config_reset_reset_intrusion (&reset.test);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release (test, &reset);
-}
-
-static void config_reset_test_reset_intrusion_null (CuTest *test)
-{
-	struct config_reset_testing reset;
-	int status;
-
-	TEST_START;
-
-	config_reset_testing_init (test, &reset);
-
-	status = config_reset_reset_intrusion (NULL);
-	CuAssertIntEquals (test, CONFIG_RESET_INVALID_ARGUMENT, status);
-
-	config_reset_testing_release (test, &reset);
-}
-
-static void config_reset_test_reset_intrusion_null_intrusion (CuTest *test)
-{
-	struct config_reset_testing reset;
-	int status;
-
-	TEST_START;
-
-	config_reset_testing_init_dependencies (test, &reset);
-
-	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
-		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, NULL);
-	CuAssertIntEquals (test, 0, status);
-
-	status = config_reset_reset_intrusion (&reset.test);
-	CuAssertIntEquals (test, 0, status);
-
-	config_reset_testing_release (test, &reset);
-}
-
-static void config_reset_test_reset_intrusion_reset_error (CuTest *test)
-{
-	struct config_reset_testing reset;
-	int status;
-
-	TEST_START;
-
-	config_reset_testing_init (test, &reset);
-
-	status = mock_expect (&reset.intrusion.mock, reset.intrusion.base.reset_intrusion,
-		&reset.intrusion, INTRUSION_MANAGER_RESET_FAILED);
-	CuAssertIntEquals (test, 0, status);
-
-	status = config_reset_reset_intrusion (&reset.test);
-	CuAssertIntEquals (test, INTRUSION_MANAGER_RESET_FAILED, status);
 
 	config_reset_testing_release (test, &reset);
 }
@@ -2100,7 +1829,7 @@ static void config_reset_test_clear_component_manifests_multiple (CuTest *test)
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 3,
 		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status |= mock_expect (&reset.manifest_components[0].mock,
@@ -2128,8 +1857,7 @@ static void config_reset_test_clear_component_manifests_no_manifests (CuTest *te
 	config_reset_testing_init_dependencies (test, &reset);
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, NULL, 0, NULL, 0, NULL, 0,
-		&reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2,
-		&reset.intrusion.base);
+		&reset.keys.riot, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = config_reset_clear_component_manifests (&reset.test);
@@ -2143,7 +1871,7 @@ static void config_reset_test_clear_component_manifests_static_init (CuTest *tes
 	struct config_reset_testing reset = {
 		.test = config_reset_static_init (reset.bypass, 1, reset.config, 1, reset.component, 1,
 			reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-			reset.keystore_array, 2, &reset.intrusion.base)
+			reset.keystore_array, 2)
 	};
 	int status;
 
@@ -2187,7 +1915,7 @@ static void config_reset_test_clear_component_manifests_clear_error (CuTest *tes
 
 	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 3,
 		reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
-		reset.keystore_array, 2, &reset.intrusion.base);
+		reset.keystore_array, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status |= mock_expect (&reset.manifest_components[0].mock,
@@ -2217,7 +1945,6 @@ TEST (config_reset_test_init_no_riot);
 TEST (config_reset_test_init_no_aux);
 TEST (config_reset_test_init_no_recovery);
 TEST (config_reset_test_init_no_keystores);
-TEST (config_reset_test_init_no_intrusion);
 TEST (config_reset_test_init_null);
 TEST (config_reset_test_init_no_manifests_with_state);
 TEST (config_reset_test_static_init);
@@ -2241,7 +1968,6 @@ TEST (config_reset_test_restore_defaults_no_riot);
 TEST (config_reset_test_restore_defaults_no_aux);
 TEST (config_reset_test_restore_defaults_no_recovery);
 TEST (config_reset_test_restore_defaults_no_keystore_array);
-TEST (config_reset_test_restore_defaults_no_intrusion);
 TEST (config_reset_test_restore_defaults_static_init);
 TEST (config_reset_test_restore_defaults_null);
 TEST (config_reset_test_restore_defaults_bypass_clear_error);
@@ -2252,18 +1978,12 @@ TEST (config_reset_test_restore_defaults_riot_erase_error);
 TEST (config_reset_test_restore_defaults_aux_erase_error);
 TEST (config_reset_test_restore_defaults_recovery_in_use_error);
 TEST (config_reset_test_restore_defaults_keystore_array_erase_error);
-TEST (config_reset_test_restore_defaults_intrusion_error);
 TEST (config_reset_test_restore_platform_config);
 TEST (config_reset_test_restore_platform_config_multiple);
 TEST (config_reset_test_restore_platform_config_no_manifests);
 TEST (config_reset_test_restore_platform_config_static_init);
 TEST (config_reset_test_restore_platform_config_null);
 TEST (config_reset_test_restore_platform_config_clear_error);
-TEST (config_reset_test_reset_intrusion);
-TEST (config_reset_test_reset_intrusion_static_init);
-TEST (config_reset_test_reset_intrusion_null);
-TEST (config_reset_test_reset_intrusion_null_intrusion);
-TEST (config_reset_test_reset_intrusion_reset_error);
 TEST (config_reset_test_clear_component_manifests);
 TEST (config_reset_test_clear_component_manifests_multiple);
 TEST (config_reset_test_clear_component_manifests_no_manifests);

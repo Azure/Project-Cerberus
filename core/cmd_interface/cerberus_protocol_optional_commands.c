@@ -749,17 +749,15 @@ int cerberus_protocol_unseal_message_result (const struct cmd_background *backgr
 int cerberus_protocol_reset_config (const struct cmd_authorization *cmd_auth,
 	const struct cmd_background *background, struct cmd_interface_msg *request)
 {
-#if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
+#ifdef CMD_ENABLE_RESET_CONFIG
 	struct cerberus_protocol_reset_config *rq =
 		(struct cerberus_protocol_reset_config*) request->data;
 	struct cerberus_protocol_reset_config_response *rsp =
 		(struct cerberus_protocol_reset_config_response*) request->data;
+	const struct authorized_execution *execution;
 	const uint8_t *nonce = NULL;
 	size_t length;
 	int status;
-
-	int (*auth) (const struct cmd_authorization*, const uint8_t**, size_t*);
-	int (*action) (const struct cmd_background*);
 
 	request->crypto_timeout = true;
 
@@ -767,58 +765,37 @@ int cerberus_protocol_reset_config (const struct cmd_authorization *cmd_auth,
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	switch (rq->type) {
-#ifdef CMD_ENABLE_RESET_CONFIG
-		case CERBERUS_PROTOCOL_REVERT_BYPASS:
-			auth = cmd_auth->authorize_revert_bypass;
-			action = background->reset_bypass;
-			break;
-
-		case CERBERUS_PROTOCOL_FACTORY_RESET:
-			auth = cmd_auth->authorize_reset_defaults;
-			action = background->restore_defaults;
-			break;
-
-		case CERBERUS_PROTOCOL_CLEAR_CFM:
-			auth = cmd_auth->authorize_clear_component_manifests;
-			action = background->clear_component_manifests;
-			break;
-
-		case CERBERUS_PROTOCOL_CLEAR_PCD:
-			auth = cmd_auth->authorize_clear_platform_config;
-			action = background->clear_platform_config;
-			break;
-#endif
-
-#ifdef CMD_ENABLE_INTRUSION
-		case CERBERUS_PROTOCOL_RESET_INTRUSION:
-			auth = cmd_auth->authorize_reset_intrusion;
-			action = background->reset_intrusion;
-			break;
-#endif
-
-		default:
-			return CMD_HANDLER_UNSUPPORTED_INDEX;
-	}
-
 	length = cerberus_protocol_reset_authorization_length (request);
 	if (length != 0) {
 		nonce = cerberus_protocol_reset_authorization (rq);
 	}
 
-	status = auth (cmd_auth, &nonce, &length);
-	if (status == AUTHORIZATION_CHALLENGE) {
-		if (length > CERBERUS_PROTOCOL_MAX_AUTHORIZATION_DATA (request)) {
-			return CMD_HANDLER_BUF_TOO_SMALL;
-		}
+	status = cmd_auth->authorize_operation (cmd_auth, rq->type, &nonce, &length, &execution);
 
-		memcpy (cerberus_protocol_reset_authorization (rsp), nonce, length);
-		request->length = cerberus_protocol_get_reset_config_response_length (length);
-		status = 0;
-	}
-	else if (status == 0) {
-		status = action (background);
-		request->length = 0;
+	switch (status) {
+		case 0:
+			if (execution != NULL) {
+				status = background->execute_authorized_operation (background, execution);
+				request->length = 0;
+			}
+			else {
+				status = CMD_HANDLER_UNSUPPORTED_OPERATION;
+			}
+			break;
+
+		case AUTHORIZATION_CHALLENGE:
+			if (length > CERBERUS_PROTOCOL_MAX_AUTHORIZATION_DATA (request)) {
+				return CMD_HANDLER_BUF_TOO_SMALL;
+			}
+
+			memcpy (cerberus_protocol_reset_authorization (rsp), nonce, length);
+			request->length = cerberus_protocol_get_reset_config_response_length (length);
+			status = 0;
+			break;
+
+		case CMD_AUTHORIZATION_UNSUPPORTED_OP:
+			status = CMD_HANDLER_UNSUPPORTED_INDEX;
+			break;
 	}
 
 	return status;
