@@ -103,7 +103,7 @@ int event_task_freertos_notify (const struct event_task *task,
 
 /**
  * Initialize an event handler task.  The actual FreeRTOS task will not be allocated until a call to
- * {@link event_task_freertos_start}.
+ * one of the task allocation functions is made.
  *
  * @param task The event handler task to initialize.
  * @param state Variable context for the task.  This must be uninitialized.
@@ -139,7 +139,7 @@ int event_task_freertos_init (struct event_task_freertos *task,
 /**
  * Initialize only the variable state for an event handler task.  The rest of the task instance is
  * assumed to have already been initialized.  The actual FreeRTOS task will not be allocated until a
- * call to {@link event_task_freertos_start}.
+ * call to one of the task allocation functions is made.
  *
  * This would generally be used with a statically initialized instance.
  *
@@ -187,6 +187,9 @@ static void event_task_freertos_process_notification (const struct event_task_fr
 {
 	bool reset = false;
 
+	/* Wait for the task to be started before executing anything in the task context. */
+	ulTaskNotifyTake (pdTRUE, portMAX_DELAY);
+
 	event_task_prepare_handlers (task->handlers, task->num_handlers);
 
 	/* Indicate that the handlers have been initialized and the task is ready to process
@@ -223,18 +226,18 @@ static void event_task_freertos_process_notification (const struct event_task_fr
 
 #if configSUPPORT_DYNAMIC_ALLOCATION == 1
 /**
- * Allocate and start running the event handler task using dynamic allocation of task resources. No
- * events can be handled until the task has been started.
+ * Allocate the event handler task using dynamic allocation of task resources.  The task will not be
+ * ready for processing events until {@link event_task_freertos_start} is called.
  *
- * @param task The event task to start.
+ * @param task The event task to allocate.
  * @param stack_words The size of the task stack.  The stack size is measured in words.
  * @param task_name An identifying name to assign to the task.  The maximum length is determined by
  * the FreeRTOS configuration for the platform.
  * @param priority The priority to assign to this task.
  *
- * @return 0 if the task was started or an error code.
+ * @return 0 if the task was allocated or an error code.
  */
-int event_task_freertos_start (const struct event_task_freertos *task, uint16_t stack_words,
+int event_task_freertos_allocate (const struct event_task_freertos *task, uint16_t stack_words,
 	const char *task_name, int priority)
 {
 	int status;
@@ -256,10 +259,10 @@ int event_task_freertos_start (const struct event_task_freertos *task, uint16_t 
 
 #if configSUPPORT_STATIC_ALLOCATION == 1
 /**
- * Initialize and start running the event handler task using static allocation of task resources.
- * No events can be handled until the task has been started.
+ * Allocate the event handler task using static allocation of task resources.  The task will not be
+ * ready for processing events until {@link event_task_freertos_start} is called.
  *
- * @param task The event task to start.
+ * @param task The event task to allocate.
  * @param context The statically allocated FreeRTOS context for the task.
  * @param stack A buffer to use for the task's stack.
  * @param stack_words The number of words in the stack buffer.
@@ -267,10 +270,11 @@ int event_task_freertos_start (const struct event_task_freertos *task, uint16_t 
  * the FreeRTOS configuration for the platform.
  * @param priority The priority to assign to this task.
  *
- * @return 0 if the task was started or an error code.
+ * @return 0 if the task was allocated or an error code.
  */
-int event_task_freertos_start_static (const struct event_task_freertos *task, StaticTask_t *context,
-	StackType_t *stack, uint32_t stack_words, const char *task_name, int priority)
+int event_task_freertos_allocate_static (const struct event_task_freertos *task,
+	StaticTask_t *context, StackType_t *stack, uint32_t stack_words, const char *task_name,
+	int priority)
 {
 	if (task == NULL) {
 		return EVENT_TASK_INVALID_ARGUMENT;
@@ -286,3 +290,16 @@ int event_task_freertos_start_static (const struct event_task_freertos *task, St
 	return 0;
 }
 #endif
+
+/**
+ * Start running an event handler task that was previously allocated.  No events can be handled
+ * until the task has been started.
+ *
+ * @param task The event task to start.  If this is null, nothing will be done.
+ */
+void event_task_freertos_start (const struct event_task_freertos *task)
+{
+	if (task != NULL) {
+		xTaskNotifyGive (task->state->task);
+	}
+}
