@@ -85,18 +85,6 @@ int cmd_interface_tdisp_responder_process_response (const struct cmd_interface *
 }
 #endif
 
-int cmd_interface_tdisp_responder_generate_error_packet (const struct cmd_interface *intf,
-	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
-{
-	UNUSED (intf);
-	UNUSED (request);
-	UNUSED (error_code);
-	UNUSED (error_data);
-	UNUSED (cmd_set);
-
-	return CMD_INTERFACE_TDISP_RESPONDER_UNSUPPORTED_OPERATION;
-}
-
 /**
  * Initialize the TDISP responder instance.
  *
@@ -132,8 +120,6 @@ int cmd_interface_tdisp_responder_init (struct cmd_interface_tdisp_responder *td
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 	tdisp_responder->base.process_response = cmd_interface_tdisp_responder_process_response;
 #endif
-	tdisp_responder->base.generate_error_packet =
-		cmd_interface_tdisp_responder_generate_error_packet;
 
 	/* Initialize the state. */
 	status = cmd_interface_tdisp_responder_init_state (tdisp_responder);

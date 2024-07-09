@@ -30,7 +30,6 @@ int cmd_interface_rma_process_response (const struct cmd_interface *intf,
 #define	CMD_INTERFACE_RMA_API_INIT	{ \
 		.process_request = cmd_interface_rma_process_request, \
 		CMD_INTERFACE_RMA_RESPONSE_API \
-		.generate_error_packet = cmd_interface_generate_error_packet, \
 		.session = NULL, \
 	}
 

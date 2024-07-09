@@ -82,20 +82,6 @@ int cmd_interface_multi_handler_process_response (const struct cmd_interface *in
 	return CMD_HANDLER_UNSUPPORTED_OPERATION;
 }
 
-int cmd_interface_multi_handler_generate_error_packet (const struct cmd_interface *intf,
-	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
-{
-	UNUSED (intf);
-	UNUSED (request);
-	UNUSED (error_code);
-	UNUSED (error_data);
-	UNUSED (cmd_set);
-
-	/* TODO:  Perhaps add an API to the protocol handler to generate an error message?  But really,
-	 * this API should probably be removed from the command handler interface. */
-	return CMD_HANDLER_UNSUPPORTED_OPERATION;
-}
-
 int cmd_interface_multi_handler_is_message_type_supported (
 	const struct cmd_interface_multi_handler *intf, uint32_t message_type)
 {
@@ -162,7 +148,6 @@ int cmd_interface_multi_handler_init (struct cmd_interface_multi_handler *intf,
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 	intf->base.process_response = cmd_interface_multi_handler_process_response;
 #endif
-	intf->base.generate_error_packet = cmd_interface_multi_handler_generate_error_packet;
 
 	intf->is_message_type_supported = cmd_interface_multi_handler_is_message_type_supported;
 

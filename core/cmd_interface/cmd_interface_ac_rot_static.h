@@ -32,7 +32,6 @@ int cmd_interface_ac_rot_process_response (const struct cmd_interface *intf,
 #define	CMD_INTERFACE_AC_ROT_API_INIT(session_ptr) { \
 		.process_request = cmd_interface_ac_rot_process_request, \
 		CMD_INTERFACE_AC_ROT_RESPONSE_API \
-		.generate_error_packet = cmd_interface_generate_error_packet, \
 		.session = session_ptr, \
 	}
 

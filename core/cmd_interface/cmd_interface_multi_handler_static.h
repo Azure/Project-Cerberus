@@ -12,8 +12,6 @@ int cmd_interface_multi_handler_process_request (const struct cmd_interface *int
 	struct cmd_interface_msg *request);
 int cmd_interface_multi_handler_process_response (const struct cmd_interface *intf,
 	struct cmd_interface_msg *response);
-int cmd_interface_multi_handler_generate_error_packet (const struct cmd_interface *intf,
-	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set);
 
 int cmd_interface_multi_handler_is_message_type_supported (
 	const struct cmd_interface_multi_handler *intf, uint32_t message_type);
@@ -35,7 +33,6 @@ int cmd_interface_multi_handler_is_message_type_supported (
 #define	CMD_INTERFACE_MULTI_HANDLER_API_INIT { \
 		.process_request = cmd_interface_multi_handler_process_request, \
 		CMD_INTERFACE_MULTI_HANDLER_RESPONSE_API \
-		.generate_error_packet = cmd_interface_multi_handler_generate_error_packet, \
 		.session = NULL, \
 	}
 

@@ -10,12 +10,9 @@
 /* Internal function declared to allow for static initialization. */
 int cmd_interface_ide_responder_process_request (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request);
-
 int cmd_interface_ide_responder_process_response (const struct cmd_interface *intf,
 	struct cmd_interface_msg *response);
 
-int cmd_interface_ide_responder_generate_error_packet (const struct cmd_interface *intf,
-	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set);
 
 /**
  * Constant initializer for response handling.
@@ -30,11 +27,11 @@ int cmd_interface_ide_responder_generate_error_packet (const struct cmd_interfac
 /**
  * Constant initializer for the IDE Responder API.
  */
-#define	CMD_INTERFACE_IDE_RESPONDER_API_INIT { \
-	.process_request = cmd_interface_ide_responder_process_request, \
-	CMD_INTERFACE_IDE_RESPONDER_RESPONSE_API \
-	.generate_error_packet = cmd_interface_ide_responder_generate_error_packet \
+#define	CMD_INTERFACE_IDE_RESPONDER_API_INIT	{ \
+		.process_request = cmd_interface_ide_responder_process_request, \
+		CMD_INTERFACE_IDE_RESPONDER_RESPONSE_API \
 	}
+
 
 /**
  * IDE responder static initialization

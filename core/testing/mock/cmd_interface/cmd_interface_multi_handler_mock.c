@@ -33,20 +33,6 @@ static int cmd_interface_multi_handler_mock_process_response (const struct cmd_i
 		MOCK_ARG_PTR_CALL (response));
 }
 
-static int cmd_interface_multi_handler_mock_generate_error_packet (const struct cmd_interface *intf,
-	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
-{
-	struct cmd_interface_multi_handler_mock *mock = (struct cmd_interface_multi_handler_mock*) intf;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN (&mock->mock, cmd_interface_multi_handler_mock_generate_error_packet, intf,
-		MOCK_ARG_PTR_CALL (request), MOCK_ARG_CALL (error_code), MOCK_ARG_CALL (error_data),
-		MOCK_ARG_CALL (cmd_set));
-}
-
 static int cmd_interface_multi_handler_mock_is_message_type_supported (
 	const struct cmd_interface_multi_handler *intf, uint32_t message_type)
 {
@@ -62,10 +48,7 @@ static int cmd_interface_multi_handler_mock_is_message_type_supported (
 
 static int cmd_interface_multi_handler_mock_func_arg_count (void *func)
 {
-	if (func == cmd_interface_multi_handler_mock_generate_error_packet) {
-		return 4;
-	}
-	else if ((func == cmd_interface_multi_handler_mock_process_request) ||
+	if ((func == cmd_interface_multi_handler_mock_process_request) ||
 		(func == cmd_interface_multi_handler_mock_process_response) ||
 		(func == cmd_interface_multi_handler_mock_is_message_type_supported)) {
 		return 1;
@@ -82,9 +65,6 @@ static const char* cmd_interface_multi_handler_mock_func_name_map (void *func)
 	}
 	else if (func == cmd_interface_multi_handler_mock_process_response) {
 		return "process_response";
-	}
-	else if (func == cmd_interface_multi_handler_mock_generate_error_packet) {
-		return "generate_error_packet";
 	}
 	else if (func == cmd_interface_multi_handler_mock_is_message_type_supported) {
 		return "is_message_type_supported";
@@ -106,21 +86,6 @@ static const char* cmd_interface_multi_handler_mock_arg_name_map (void *func, in
 		switch (arg) {
 			case 0:
 				return "response";
-		}
-	}
-	else if (func == cmd_interface_multi_handler_mock_generate_error_packet) {
-		switch (arg) {
-			case 0:
-				return "request";
-
-			case 1:
-				return "error_code";
-
-			case 2:
-				return "error_data";
-
-			case 3:
-				return "cmd_set";
 		}
 	}
 	else if (func == cmd_interface_multi_handler_mock_is_message_type_supported) {
@@ -159,7 +124,6 @@ int cmd_interface_multi_handler_mock_init (struct cmd_interface_multi_handler_mo
 
 	mock->base.base.process_request = cmd_interface_multi_handler_mock_process_request;
 	mock->base.base.process_response = cmd_interface_multi_handler_mock_process_response;
-	mock->base.base.generate_error_packet = cmd_interface_multi_handler_mock_generate_error_packet;
 
 	mock->base.is_message_type_supported =
 		cmd_interface_multi_handler_mock_is_message_type_supported;

@@ -30,7 +30,6 @@ int cmd_interface_null_process_response (const struct cmd_interface *intf,
 #define	CMD_INTERFACE_NULL_API_INIT { \
 		.process_request = cmd_interface_null_process_request, \
 		CMD_INTERFACE_NULL_RESPONSE_API \
-		.generate_error_packet = cmd_interface_generate_error_packet, \
 		.session = NULL, \
 	}
 

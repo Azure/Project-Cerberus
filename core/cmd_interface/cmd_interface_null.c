@@ -50,7 +50,6 @@ int cmd_interface_null_init (struct cmd_interface_null *intf)
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 	intf->base.process_response = cmd_interface_null_process_response;
 #endif
-	intf->base.generate_error_packet = cmd_interface_generate_error_packet;
 
 	return 0;
 }

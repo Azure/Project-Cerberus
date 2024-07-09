@@ -363,7 +363,6 @@ static void cmd_interface_spdm_responder_test_static_init (CuTest *test)
 
 	CuAssertPtrNotNull (test, spdm_responder.base.process_request);
 	CuAssertPtrNotNull (test, spdm_responder.base.process_response);
-	CuAssertPtrNotNull (test, spdm_responder.base.generate_error_packet);
 
 	cmd_interface_spdm_responder_deinit (&spdm_responder);
 
@@ -391,7 +390,6 @@ static void cmd_interface_spdm_responder_test_static_init_non_secure (CuTest *te
 
 	CuAssertPtrNotNull (test, spdm_responder.base.process_request);
 	CuAssertPtrNotNull (test, spdm_responder.base.process_response);
-	CuAssertPtrNotNull (test, spdm_responder.base.generate_error_packet);
 
 	cmd_interface_spdm_responder_deinit (&spdm_responder);
 
@@ -751,7 +749,6 @@ static void cmd_interface_spdm_responder_test_init (CuTest *test)
 
 	CuAssertPtrNotNull (test, testing.spdm_responder.base.process_request);
 	CuAssertPtrNotNull (test, testing.spdm_responder.base.process_response);
-	CuAssertPtrNotNull (test, testing.spdm_responder.base.generate_error_packet);
 
 	cmd_interface_spdm_responder_deinit (&testing.spdm_responder);
 
@@ -776,7 +773,6 @@ static void cmd_interface_spdm_responder_test_init_non_secure (CuTest *test)
 
 	CuAssertPtrNotNull (test, testing.spdm_responder.base.process_request);
 	CuAssertPtrNotNull (test, testing.spdm_responder.base.process_response);
-	CuAssertPtrNotNull (test, testing.spdm_responder.base.generate_error_packet);
 
 	cmd_interface_spdm_responder_deinit (&testing.spdm_responder);
 
@@ -3099,24 +3095,6 @@ static void cmd_interface_spdm_responder_test_process_response (
 	cmd_interface_spdm_responder_testing_release (test, &testing);
 }
 
-static void cmd_interface_spdm_responder_test_generate_error_packet (
-	CuTest *test)
-{
-	int status;
-	struct cmd_interface_spdm_responder_testing testing;
-
-	TEST_START;
-
-	cmd_interface_spdm_responder_testing_init (test, &testing);
-
-	status =
-		testing.spdm_responder.base.generate_error_packet (
-		(const struct cmd_interface*) (0xDEADBEEF), (struct cmd_interface_msg*) (0xBAADF00D), -1,
-		-1, -1);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_OPERATION, status);
-
-	cmd_interface_spdm_responder_testing_release (test, &testing);
-}
 
 // *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_spdm_responder);
@@ -3161,7 +3139,6 @@ TEST (cmd_interface_spdm_responder_test_process_request_invalid_arg);
 TEST (cmd_interface_spdm_responder_test_process_request_spdm_get_command_id_failure_short_payload);
 TEST (cmd_interface_spdm_responder_test_process_request_unsupported_request_code);
 TEST (cmd_interface_spdm_responder_test_process_response);
-TEST (cmd_interface_spdm_responder_test_generate_error_packet);
 
 TEST_SUITE_END;
 // *INDENT-ON*

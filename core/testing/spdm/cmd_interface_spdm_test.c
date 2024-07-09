@@ -84,7 +84,6 @@ static void cmd_interface_spdm_test_init (CuTest *test)
 
 	CuAssertPtrNotNull (test, interface.base.process_request);
 	CuAssertPtrNotNull (test, interface.base.process_response);
-	CuAssertPtrNotNull (test, interface.base.generate_error_packet);
 
 	cmd_interface_spdm_deinit (&interface);
 }
@@ -1508,22 +1507,6 @@ static void cmd_interface_spdm_test_process_response_unknown_command (CuTest *te
 	complete_cmd_interface_spdm_mock_test (test, &cmd);
 }
 
-static void cmd_interface_spdm_test_generate_error_packet (CuTest *test)
-{
-	struct cmd_interface_spdm_testing cmd;
-	struct cmd_interface_msg request;
-	int status;
-
-	TEST_START;
-
-	setup_cmd_interface_spdm_mock_test (test, &cmd, true);
-
-	status = cmd.handler.base.generate_error_packet (&cmd.handler.base, &request, 0, 0, 0);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_UNSUPPORTED_OPERATION, status);
-
-	complete_cmd_interface_spdm_mock_test (test, &cmd);
-}
-
 static void cmd_interface_spdm_test_add_spdm_protocol_observer_invalid_arg (CuTest *test)
 {
 	struct cmd_interface_spdm_testing cmd;
@@ -1597,7 +1580,6 @@ TEST (cmd_interface_spdm_test_process_response_error_response_incorrect_len);
 TEST (cmd_interface_spdm_test_process_response_invalid_arg);
 TEST (cmd_interface_spdm_test_process_response_payload_too_short);
 TEST (cmd_interface_spdm_test_process_response_unknown_command);
-TEST (cmd_interface_spdm_test_generate_error_packet);
 TEST (cmd_interface_spdm_test_add_spdm_protocol_observer_invalid_arg);
 TEST (cmd_interface_spdm_test_remove_spdm_protocol_observer_invalid_arg);
 

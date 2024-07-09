@@ -56,26 +56,6 @@ int cmd_interface_dual_cmd_set_process_response (const struct cmd_interface *int
 }
 #endif
 
-int cmd_interface_dual_cmd_set_generate_error_packet (const struct cmd_interface *intf,
-	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
-{
-	const struct cmd_interface_dual_cmd_set *interface =
-		(const struct cmd_interface_dual_cmd_set*) intf;
-
-	if (interface == NULL) {
-		return CMD_HANDLER_INVALID_ARGUMENT;
-	}
-
-	if (cmd_set == 0) {
-		return interface->intf_0->generate_error_packet (interface->intf_0, request, error_code,
-			error_data, cmd_set);
-	}
-	else {
-		return interface->intf_1->generate_error_packet (interface->intf_1, request, error_code,
-			error_data, cmd_set);
-	}
-}
-
 /**
  * Initialize a command interface instance with two command sets supported. Requests from each
  * command set get routed to the appropiate command interface. Issuing requests from this interface
@@ -103,7 +83,6 @@ int cmd_interface_dual_cmd_set_init (struct cmd_interface_dual_cmd_set *intf,
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 	intf->base.process_response = cmd_interface_dual_cmd_set_process_response;
 #endif
-	intf->base.generate_error_packet = cmd_interface_dual_cmd_set_generate_error_packet;
 
 	return 0;
 }

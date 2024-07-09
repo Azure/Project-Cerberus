@@ -142,18 +142,6 @@ static int cmd_interface_spdm_process_response (const struct cmd_interface *intf
 }
 #endif
 
-static int cmd_interface_spdm_generate_error_packet (const struct cmd_interface *intf,
-	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
-{
-	UNUSED (intf);
-	UNUSED (request);
-	UNUSED (error_code);
-	UNUSED (error_data);
-	UNUSED (cmd_set);
-
-	return CMD_HANDLER_SPDM_UNSUPPORTED_OPERATION;
-}
-
 /**
  * Initialize SPDM command interface instance
  *
@@ -180,7 +168,6 @@ int cmd_interface_spdm_init (struct cmd_interface_spdm *intf)
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 	intf->base.process_response = cmd_interface_spdm_process_response;
 #endif
-	intf->base.generate_error_packet = cmd_interface_spdm_generate_error_packet;
 
 	return 0;
 }

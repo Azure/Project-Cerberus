@@ -454,7 +454,6 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 	intf->base.process_response = cmd_interface_system_process_response;
 #endif
-	intf->base.generate_error_packet = cmd_interface_generate_error_packet;
 
 #if CMD_SUPPORT_ENCRYPTED_SESSIONS
 	intf->base.session = session;

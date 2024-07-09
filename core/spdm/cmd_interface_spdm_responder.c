@@ -147,29 +147,6 @@ int cmd_interface_spdm_process_response (const struct cmd_interface *intf,
 #endif
 
 /**
- * Generate an SPDM error packet.
- *
- * @param intf SPDM command responder interface.
- * @param request SPDM request message.
- * @param error_code SPDM error code.
- * @param error_data SPDM error data.
- * @param cmd_set SPDM command set.
- *
- * @return 0 if the packet was generated successfully or an error code.
- */
-int cmd_interface_spdm_generate_error_packet (const struct cmd_interface *intf,
-	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
-{
-	UNUSED (intf);
-	UNUSED (request);
-	UNUSED (error_code);
-	UNUSED (error_data);
-	UNUSED (cmd_set);
-
-	return CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_OPERATION;
-}
-
-/**
  * Initialize the SPDM responder instance.
  *
  * @param spdm_responder SPDM responder instance.
@@ -231,7 +208,6 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 	spdm_responder->base.process_response = cmd_interface_spdm_process_response;
 #endif
-	spdm_responder->base.generate_error_packet = cmd_interface_spdm_generate_error_packet;
 
 	status = cmd_interface_spdm_responder_init_state (spdm_responder);
 	if (status != 0) {

@@ -186,18 +186,6 @@ static int cmd_interface_mctp_control_process_response (const struct cmd_interfa
 }
 #endif
 
-static int cmd_interface_mctp_control_generate_error_packet (const struct cmd_interface *intf,
-	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
-{
-	UNUSED (intf);
-	UNUSED (request);
-	UNUSED (error_code);
-	UNUSED (error_data);
-	UNUSED (cmd_set);
-
-	return CMD_HANDLER_MCTP_CTRL_UNSUPPORTED_OPERATION;
-}
-
 /**
  * Initialize MCTP control command interface instance
  *
@@ -233,7 +221,6 @@ int cmd_interface_mctp_control_init (struct cmd_interface_mctp_control *intf,
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 	intf->base.process_response = cmd_interface_mctp_control_process_response;
 #endif
-	intf->base.generate_error_packet = cmd_interface_mctp_control_generate_error_packet;
 
 	return 0;
 }

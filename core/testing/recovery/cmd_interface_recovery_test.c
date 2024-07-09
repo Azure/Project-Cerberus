@@ -202,7 +202,6 @@ static void cmd_interface_recovery_test_init (CuTest *test)
 
 	CuAssertPtrNotNull (test, interface.base.process_request);
 	CuAssertPtrNotNull (test, interface.base.process_response);
-	CuAssertPtrNotNull (test, interface.base.generate_error_packet);
 
 	status = firmware_update_control_mock_validate_and_release (&update);
 	CuAssertIntEquals (test, 0, status);
@@ -288,7 +287,6 @@ static void cmd_interface_recovery_test_static_init (CuTest *test)
 
 	CuAssertPtrNotNull (test, cmd.handler.base.process_request);
 	CuAssertPtrNotNull (test, cmd.handler.base.process_response);
-	CuAssertPtrNotNull (test, cmd.handler.base.generate_error_packet);
 
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
 }
@@ -942,49 +940,6 @@ static void cmd_interface_recovery_test_process_response_null (CuTest *test)
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
 }
 
-static void cmd_interface_recovery_test_generate_error_packet (CuTest *test)
-{
-	struct cmd_interface_recovery_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_recovery_mock_test (test, &cmd);
-
-	cerberus_protocol_required_commands_testing_generate_error_packet (test, &cmd.handler.base);
-
-	complete_cmd_interface_recovery_mock_test (test, &cmd);
-}
-
-static void cmd_interface_recovery_test_generate_error_packet_static_init (CuTest *test)
-{
-	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
-			&cmd.fw_version)
-	};
-
-	TEST_START;
-
-	setup_cmd_interface_recovery_mock_test (test, &cmd);
-
-	cerberus_protocol_required_commands_testing_generate_error_packet (test, &cmd.handler.base);
-
-	complete_cmd_interface_recovery_mock_test (test, &cmd);
-}
-
-static void cmd_interface_recovery_test_generate_error_packet_invalid_arg (CuTest *test)
-{
-	struct cmd_interface_recovery_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_recovery_mock_test (test, &cmd);
-
-	cerberus_protocol_required_commands_testing_generate_error_packet_invalid_arg (test,
-		&cmd.handler.base);
-
-	complete_cmd_interface_recovery_mock_test (test, &cmd);
-}
-
 
 TEST_SUITE_START (cmd_interface_recovery);
 
@@ -1032,9 +987,6 @@ TEST (cmd_interface_recovery_test_process_get_capabilities_invalid_len);
 TEST (cmd_interface_recovery_test_process_response);
 TEST (cmd_interface_recovery_test_process_response_static_init);
 TEST (cmd_interface_recovery_test_process_response_null);
-TEST (cmd_interface_recovery_test_generate_error_packet);
-TEST (cmd_interface_recovery_test_generate_error_packet_static_init);
-TEST (cmd_interface_recovery_test_generate_error_packet_invalid_arg);
 
 /* Tear down after the tests in this suite have run. */
 TEST (cmd_interface_recovery_testing_suite_tear_down);

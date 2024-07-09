@@ -67,7 +67,6 @@ int cmd_interface_rma_init (struct cmd_interface_rma *intf, struct device_manage
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 	intf->base.process_response = cmd_interface_rma_process_response;
 #endif
-	intf->base.generate_error_packet = cmd_interface_generate_error_packet;
 
 	intf->device_manager = device_manager;
 

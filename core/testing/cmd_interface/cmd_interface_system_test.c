@@ -677,7 +677,6 @@ static void cmd_interface_system_test_init (CuTest *test)
 
 	CuAssertPtrNotNull (test, interface.base.process_request);
 	CuAssertPtrNotNull (test, interface.base.process_response);
-	CuAssertPtrNotNull (test, interface.base.generate_error_packet);
 
 	status = firmware_update_control_mock_validate_and_release (&update);
 	CuAssertIntEquals (test, 0, status);
@@ -8301,65 +8300,6 @@ static void cmd_interface_system_test_process_response_device_capabilities_rsvd_
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
-static void cmd_interface_system_test_generate_error_packet (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, true, true);
-
-	cerberus_protocol_required_commands_testing_generate_error_packet (test, &cmd.handler.base);
-
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_generate_error_packet_encrypted (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, true, true);
-
-	cerberus_protocol_required_commands_testing_generate_error_packet_encrypted (test,
-		&cmd.handler.base, &cmd.session);
-
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_generate_error_packet_encrypted_fail (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, true, true);
-
-	cerberus_protocol_required_commands_testing_generate_error_packet_encrypted_fail (test,
-		&cmd.handler.base, &cmd.session);
-
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_generate_error_packet_invalid_arg (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, true, true);
-
-	cerberus_protocol_required_commands_testing_generate_error_packet_invalid_arg (test,
-		&cmd.handler.base);
-
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
 static void cmd_interface_system_test_add_cerberus_protocol_observer_invalid_arg (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -8908,10 +8848,6 @@ TEST (cmd_interface_system_test_process_response_device_capabilities);
 TEST (cmd_interface_system_test_process_response_device_capabilities_no_observer);
 TEST (cmd_interface_system_test_process_response_device_capabilities_invalid_buf_len);
 TEST (cmd_interface_system_test_process_response_device_capabilities_rsvd_not_fail);
-TEST (cmd_interface_system_test_generate_error_packet);
-TEST (cmd_interface_system_test_generate_error_packet_encrypted);
-TEST (cmd_interface_system_test_generate_error_packet_encrypted_fail);
-TEST (cmd_interface_system_test_generate_error_packet_invalid_arg);
 TEST (cmd_interface_system_test_add_cerberus_protocol_observer_invalid_arg);
 TEST (cmd_interface_system_test_remove_cerberus_protocol_observer);
 TEST (cmd_interface_system_test_remove_cerberus_protocol_observer_invalid_arg);

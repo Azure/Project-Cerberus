@@ -109,7 +109,6 @@ static void cmd_interface_rma_test_init (CuTest *test)
 
 	CuAssertPtrNotNull (test, cmd.handler.base.process_request);
 	CuAssertPtrNotNull (test, cmd.handler.base.process_response);
-	CuAssertPtrNotNull (test, cmd.handler.base.generate_error_packet);
 
 	cmd_interface_rma_testing_release (test, &cmd);
 }
@@ -142,7 +141,6 @@ static void cmd_interface_rma_test_static_init (CuTest *test)
 
 	CuAssertPtrNotNull (test, cmd.handler.base.process_request);
 	CuAssertPtrNotNull (test, cmd.handler.base.process_response);
-	CuAssertPtrNotNull (test, cmd.handler.base.generate_error_packet);
 
 	cmd_interface_rma_testing_init_dependencies (test, &cmd);
 
@@ -418,48 +416,6 @@ static void cmd_interface_rma_test_process_response_null (CuTest *test)
 	cmd_interface_rma_testing_release (test, &cmd);
 }
 
-static void cmd_interface_rma_test_generate_error_packet (CuTest *test)
-{
-	struct cmd_interface_rma_testing cmd;
-
-	TEST_START;
-
-	cmd_interface_rma_testing_init (test, &cmd);
-
-	cerberus_protocol_required_commands_testing_generate_error_packet (test, &cmd.handler.base);
-
-	cmd_interface_rma_testing_release (test, &cmd);
-}
-
-static void cmd_interface_rma_test_generate_error_packet_static_init (CuTest *test)
-{
-	struct cmd_interface_rma_testing cmd = {
-		.handler = cmd_interface_rma_static_init (&cmd.device_manager)
-	};
-
-	TEST_START;
-
-	cmd_interface_rma_testing_init_dependencies (test, &cmd);
-
-	cerberus_protocol_required_commands_testing_generate_error_packet (test, &cmd.handler.base);
-
-	cmd_interface_rma_testing_release (test, &cmd);
-}
-
-static void cmd_interface_rma_test_generate_error_packet_error (CuTest *test)
-{
-	struct cmd_interface_rma_testing cmd;
-
-	TEST_START;
-
-	cmd_interface_rma_testing_init (test, &cmd);
-
-	cerberus_protocol_required_commands_testing_generate_error_packet_invalid_arg (test,
-		&cmd.handler.base);
-
-	cmd_interface_rma_testing_release (test, &cmd);
-}
-
 
 // *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_rma);
@@ -479,9 +435,6 @@ TEST (cmd_interface_rma_test_process_unknown_command);
 TEST (cmd_interface_rma_test_process_response);
 TEST (cmd_interface_rma_test_process_response_static_init);
 TEST (cmd_interface_rma_test_process_response_null);
-TEST (cmd_interface_rma_test_generate_error_packet);
-TEST (cmd_interface_rma_test_generate_error_packet_static_init);
-TEST (cmd_interface_rma_test_generate_error_packet_error);
 
 TEST_SUITE_END;
 // *INDENT-ON*

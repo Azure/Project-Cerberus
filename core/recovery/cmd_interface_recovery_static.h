@@ -13,6 +13,7 @@ int cmd_interface_recovery_process_request (const struct cmd_interface *intf,
 int cmd_interface_recovery_process_response (const struct cmd_interface *intf,
 	struct cmd_interface_msg *response);
 
+
 /**
  * Constant initializer for response handling.
  */
@@ -29,7 +30,6 @@ int cmd_interface_recovery_process_response (const struct cmd_interface *intf,
 #define	CMD_INTERFACE_RECOVERY_API_INIT	{ \
 		.process_request = cmd_interface_recovery_process_request, \
 		CMD_INTERFACE_RECOVERY_RESPONSE_API \
-		.generate_error_packet = cmd_interface_generate_error_packet, \
 	}
 
 
@@ -40,7 +40,8 @@ int cmd_interface_recovery_process_response (const struct cmd_interface *intf,
  *
  * @param device_manager_ptr Manager for known devices.
  */
-#define	cmd_interface_recovery_static_init(device_manager_ptr, firmware_update_control_ptr, fw_version_ptr) { \
+#define	cmd_interface_recovery_static_init(device_manager_ptr, firmware_update_control_ptr, \
+	fw_version_ptr) { \
 		.base = CMD_INTERFACE_RECOVERY_API_INIT, \
 		.device_manager = device_manager_ptr, \
 		.control = firmware_update_control_ptr, \

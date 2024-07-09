@@ -252,7 +252,6 @@ static void cmd_interface_ac_rot_test_init (CuTest *test)
 
 	CuAssertPtrNotNull (test, cmd.handler.base.process_request);
 	CuAssertPtrNotNull (test, cmd.handler.base.process_response);
-	CuAssertPtrNotNull (test, cmd.handler.base.generate_error_packet);
 
 	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
@@ -312,7 +311,6 @@ static void cmd_interface_ac_rot_test_static_init (CuTest *test)
 
 	CuAssertPtrNotNull (test, interface.base.process_request);
 	CuAssertPtrNotNull (test, interface.base.process_response);
-	CuAssertPtrNotNull (test, interface.base.generate_error_packet);
 
 	cmd_interface_ac_rot_testing_init_dependencies (test, &cmd);
 
@@ -2340,82 +2338,6 @@ static void cmd_interface_ac_rot_test_process_response_static_init (CuTest *test
 	cmd_interface_ac_rot_deinit (&test_static);
 }
 
-static void cmd_interface_ac_rot_test_generate_error_packet (CuTest *test)
-{
-	struct cmd_interface_ac_rot_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
-
-	cerberus_protocol_required_commands_testing_generate_error_packet (test, &cmd.handler.base);
-
-	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
-}
-
-static void cmd_interface_ac_rot_test_generate_error_packet_encrypted (CuTest *test)
-{
-	struct cmd_interface_ac_rot_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
-
-	cerberus_protocol_required_commands_testing_generate_error_packet_encrypted (test,
-		&cmd.handler.base, &cmd.session);
-
-	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
-}
-
-static void cmd_interface_ac_rot_test_generate_error_packet_static_init (CuTest *test)
-{
-	struct cmd_interface_ac_rot_testing cmd;
-	struct cmd_interface_ac_rot test_static =
-		cmd_interface_ac_rot_static_init (&cmd.attestation.base, &cmd.device_manager,
-		&cmd.background.base, &cmd.fw_version, &cmd.riot, &cmd.cmd_device.base, 0x1234, 20, 0x5678,
-		40, &cmd.session.base);
-
-	TEST_START;
-
-	cmd_interface_ac_rot_testing_init_dependencies (test, &cmd);
-
-	setup_cmd_interface_ac_rot_mock_test_init_fw_version (&cmd, CERBERUS_FW_VERSION,
-		RIOT_CORE_VERSION, FW_VERSION_COUNT);
-
-	cerberus_protocol_required_commands_testing_generate_error_packet (test, &test_static.base);
-
-	cmd_interface_ac_rot_testing_release_dependencies (test, &cmd);
-	cmd_interface_ac_rot_deinit (&test_static);
-}
-
-static void cmd_interface_ac_rot_test_generate_error_packet_encrypted_fail (CuTest *test)
-{
-	struct cmd_interface_ac_rot_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
-
-	cerberus_protocol_required_commands_testing_generate_error_packet_encrypted_fail (test,
-		&cmd.handler.base, &cmd.session);
-
-	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
-}
-
-static void cmd_interface_ac_rot_test_generate_error_packet_invalid_arg (CuTest *test)
-{
-	struct cmd_interface_ac_rot_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
-
-	cerberus_protocol_required_commands_testing_generate_error_packet_invalid_arg (test,
-		&cmd.handler.base);
-
-	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
-}
-
 
 // *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_ac_rot);
@@ -2530,11 +2452,6 @@ TEST (cmd_interface_ac_rot_test_process_session_sync_invalid_len);
 TEST (cmd_interface_ac_rot_test_supports_all_required_commands);
 TEST (cmd_interface_ac_rot_test_process_response);
 TEST (cmd_interface_ac_rot_test_process_response_static_init);
-TEST (cmd_interface_ac_rot_test_generate_error_packet);
-TEST (cmd_interface_ac_rot_test_generate_error_packet_encrypted);
-TEST (cmd_interface_ac_rot_test_generate_error_packet_static_init);
-TEST (cmd_interface_ac_rot_test_generate_error_packet_encrypted_fail);
-TEST (cmd_interface_ac_rot_test_generate_error_packet_invalid_arg);
 
 TEST_SUITE_END;
 // *INDENT-ON*

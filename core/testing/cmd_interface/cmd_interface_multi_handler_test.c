@@ -166,7 +166,6 @@ static void cmd_interface_multi_handler_test_init (CuTest *test)
 
 	CuAssertPtrNotNull (test, cmd.test.base.process_request);
 	CuAssertPtrNotNull (test, cmd.test.base.process_response);
-	CuAssertPtrNotNull (test, cmd.test.base.generate_error_packet);
 
 	CuAssertPtrNotNull (test, cmd.test.is_message_type_supported);
 
@@ -210,7 +209,6 @@ static void cmd_interface_multi_handler_test_static_init (CuTest *test)
 
 	CuAssertPtrNotNull (test, cmd.test.base.process_request);
 	CuAssertPtrNotNull (test, cmd.test.base.process_response);
-	CuAssertPtrNotNull (test, cmd.test.base.generate_error_packet);
 
 	CuAssertPtrNotNull (test, cmd.test.is_message_type_supported);
 
@@ -1438,40 +1436,6 @@ static void cmd_interface_multi_handler_test_process_response_static_init (CuTes
 	cmd_interface_multi_handler_testing_release (test, &cmd);
 }
 
-static void cmd_interface_multi_handler_test_generate_error_packet (CuTest *test)
-{
-	struct cmd_interface_multi_handler_testing cmd;
-	struct cmd_interface_msg request;
-	int status;
-
-	TEST_START;
-
-	cmd_interface_multi_handler_testing_init (test, &cmd);
-
-	status = cmd.test.base.generate_error_packet (&cmd.test.base, &request, 0, 0, 0);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_OPERATION, status);
-
-	cmd_interface_multi_handler_testing_release (test, &cmd);
-}
-
-static void cmd_interface_multi_handler_test_generate_error_packet_static_init (CuTest *test)
-{
-	struct cmd_interface_multi_handler_testing cmd = {
-		.test = cmd_interface_multi_handler_static_init (&cmd.protocol.base, cmd.msg_type, 3)
-	};
-	struct cmd_interface_msg request;
-	int status;
-
-	TEST_START;
-
-	cmd_interface_multi_handler_testing_init_dependencies (test, &cmd);
-
-	status = cmd.test.base.generate_error_packet (&cmd.test.base, &request, 0, 0, 0);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_OPERATION, status);
-
-	cmd_interface_multi_handler_testing_release (test, &cmd);
-}
-
 static void cmd_interface_multi_handler_test_is_message_type_supported (CuTest *test)
 {
 	struct cmd_interface_multi_handler_testing cmd;
@@ -1582,8 +1546,6 @@ TEST (cmd_interface_multi_handler_test_process_request_unknown_message_type_with
 TEST (cmd_interface_multi_handler_test_process_request_unknown_message_type_no_response_handling);
 TEST (cmd_interface_multi_handler_test_process_response);
 TEST (cmd_interface_multi_handler_test_process_response_static_init);
-TEST (cmd_interface_multi_handler_test_generate_error_packet);
-TEST (cmd_interface_multi_handler_test_generate_error_packet_static_init);
 TEST (cmd_interface_multi_handler_test_is_message_type_supported);
 TEST (cmd_interface_multi_handler_test_is_message_type_supported_static_init);
 TEST (cmd_interface_multi_handler_test_is_message_type_supported_null);

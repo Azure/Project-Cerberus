@@ -12,8 +12,6 @@ int cmd_interface_dual_cmd_set_process_request (const struct cmd_interface *intf
 	struct cmd_interface_msg *request);
 int cmd_interface_dual_cmd_set_process_response (const struct cmd_interface *intf,
 	struct cmd_interface_msg *response);
-int cmd_interface_dual_cmd_set_generate_error_packet (const struct cmd_interface *intf,
-	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set);
 
 
 /**
@@ -32,7 +30,6 @@ int cmd_interface_dual_cmd_set_generate_error_packet (const struct cmd_interface
 #define	CMD_INTERFACE_DUAL_CMD_SET_API_INIT { \
 		.process_request = cmd_interface_dual_cmd_set_process_request, \
 		CMD_INTERFACE_DUAL_CMD_SET_RESPONSE_API \
-		.generate_error_packet = cmd_interface_dual_cmd_set_generate_error_packet, \
 		.session = NULL, \
 	}
 

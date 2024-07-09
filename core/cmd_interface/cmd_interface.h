@@ -146,29 +146,6 @@ struct cmd_interface {
 	int (*process_response) (const struct cmd_interface *intf, struct cmd_interface_msg *response);
 #endif
 
-	/**
-	 * Generate a message to indicate an error condition.
-	 *
-	 * TODO:  Revisit the need for this function and how it gets used.  Generally, individual
-	 * protocols will generate their own error responses (e.g. SPDM).  This is really only used for
-	 * transport layer errors (e.g. MCTP) when there is no other associated protocol known (or no
-	 * protocol handling of the error), so perhaps it doesn't belong here.  Maybe it belongs in
-	 * cmd_interface_protocol?  Maybe this function should be removed entirely and it should be up
-	 * to the transport to internally figure out what to do?  Does it really make sense to always
-	 * return Cerberus error messages for MCTP layer errors?
-	 *
-	 * @param intf The command interface to utilize.
-	 * @param request The request container to utilize.
-	 * @param error_code Identifier for the error.
-	 * @param error_data Data for the error condition.
-	 * @param cmd_set Command set to respond on.
-	 *
-	 * @return 0 if the packet was generated successfully or an error code.
-	 */
-	int (*generate_error_packet) (const struct cmd_interface *intf,
-		struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data,
-		uint8_t cmd_set);
-
 	/* TODO:  Now that the cmd_interface is used for more than Cerberus messages, this should get
 	 * refactored out of the base interface and into some Cerberus specific handling, like the
 	 * protocol handlers. */
@@ -262,8 +239,6 @@ int cmd_interface_process_cerberus_protocol_message (const struct cmd_interface 
 	bool rsvd_zero);
 int cmd_interface_prepare_response (const struct cmd_interface *intf,
 	struct cmd_interface_msg *response);
-int cmd_interface_generate_error_packet (const struct cmd_interface *intf,
-	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set);
 
 
 #define	CMD_HANDLER_ERROR(code)		ROT_ERROR (ROT_MODULE_CMD_HANDLER, code)

@@ -203,14 +203,5 @@ void cerberus_protocol_master_commands_testing_process_error_response (CuTest *t
 void cerberus_protocol_master_commands_testing_process_error_response_invalid_len (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_interface_msg *response);
 
-void cerberus_protocol_required_commands_testing_generate_error_packet (CuTest *test,
-	struct cmd_interface *cmd);
-void cerberus_protocol_required_commands_testing_generate_error_packet_encrypted (CuTest *test,
-	struct cmd_interface *cmd, struct session_manager_mock *session);
-void cerberus_protocol_required_commands_testing_generate_error_packet_encrypted_fail (CuTest *test,
-	struct cmd_interface *cmd, struct session_manager_mock *session);
-void cerberus_protocol_required_commands_testing_generate_error_packet_invalid_arg (CuTest *test,
-	struct cmd_interface *cmd);
-
 
 #endif	/* CERBERUS_PROTOCOL_REQUIRED_COMMANDS_TESTING_H_ */

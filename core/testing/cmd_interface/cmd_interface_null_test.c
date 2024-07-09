@@ -31,7 +31,6 @@ static void cmd_interface_null_test_init (CuTest *test)
 
 	CuAssertPtrNotNull (test, cmd.base.process_request);
 	CuAssertPtrNotNull (test, cmd.base.process_response);
-	CuAssertPtrNotNull (test, cmd.base.generate_error_packet);
 
 	cmd_interface_null_release (&cmd);
 }
@@ -54,7 +53,6 @@ static void cmd_interface_null_test_static_init (CuTest *test)
 
 	CuAssertPtrNotNull (test, cmd.base.process_request);
 	CuAssertPtrNotNull (test, cmd.base.process_response);
-	CuAssertPtrNotNull (test, cmd.base.generate_error_packet);
 
 	cmd_interface_null_release (&cmd);
 }
@@ -255,47 +253,6 @@ static void cmd_interface_null_test_init_process_response_null (CuTest *test)
 	cmd_interface_null_release (&cmd);
 }
 
-static void cmd_interface_null_test_init_generate_error_packet (CuTest *test)
-{
-	struct cmd_interface_null cmd;
-	int status;
-
-	TEST_START;
-
-	status = cmd_interface_null_init (&cmd);
-	CuAssertIntEquals (test, 0, status);
-
-	cerberus_protocol_required_commands_testing_generate_error_packet (test, &cmd.base);
-
-	cmd_interface_null_release (&cmd);
-}
-
-static void cmd_interface_null_test_init_generate_error_packet_static_init (CuTest *test)
-{
-	struct cmd_interface_null cmd = cmd_interface_null_static_init;
-
-	TEST_START;
-
-	cerberus_protocol_required_commands_testing_generate_error_packet (test, &cmd.base);
-
-	cmd_interface_null_release (&cmd);
-}
-
-static void cmd_interface_null_test_init_generate_error_packet_null (CuTest *test)
-{
-	struct cmd_interface_null cmd;
-	int status;
-
-	TEST_START;
-
-	status = cmd_interface_null_init (&cmd);
-	CuAssertIntEquals (test, 0, status);
-
-	cerberus_protocol_required_commands_testing_generate_error_packet_invalid_arg (test, &cmd.base);
-
-	cmd_interface_null_release (&cmd);
-}
-
 
 // *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_null);
@@ -310,9 +267,6 @@ TEST (cmd_interface_null_test_init_process_request_null);
 TEST (cmd_interface_null_test_init_process_response);
 TEST (cmd_interface_null_test_init_process_response_static_init);
 TEST (cmd_interface_null_test_init_process_response_null);
-TEST (cmd_interface_null_test_init_generate_error_packet);
-TEST (cmd_interface_null_test_init_generate_error_packet_static_init);
-TEST (cmd_interface_null_test_init_generate_error_packet_null);
 
 TEST_SUITE_END;
 // *INDENT-ON*

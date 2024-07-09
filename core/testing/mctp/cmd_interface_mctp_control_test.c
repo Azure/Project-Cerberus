@@ -109,7 +109,6 @@ static void cmd_interface_mctp_control_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cmd.handler.base.process_request);
 	CuAssertPtrNotNull (test, cmd.handler.base.process_response);
-	CuAssertPtrNotNull (test, cmd.handler.base.generate_error_packet);
 
 	complete_cmd_interface_mctp_control_test (test, &cmd);
 }
@@ -1373,23 +1372,6 @@ static void cmd_interface_mctp_control_test_process_response_discovery_notify_no
 	complete_cmd_interface_mctp_control_test (test, &cmd);
 }
 
-static void cmd_interface_mctp_control_test_generate_error_packet (CuTest *test)
-{
-	struct cmd_interface_mctp_control_testing cmd;
-	struct cmd_interface_msg request;
-	int status;
-
-	TEST_START;
-
-	setup_cmd_interface_mctp_control_test (test, &cmd, true);
-
-	status = cmd.handler.base.generate_error_packet (&cmd.handler.base, &request, 0x0A, 0xAABBCCDD,
-		1);
-	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_UNSUPPORTED_OPERATION, status);
-
-	complete_cmd_interface_mctp_control_test (test, &cmd);
-}
-
 static void cmd_interface_mctp_control_test_add_mctp_control_protocol_observer_invalid_arg (
 	CuTest *test)
 {
@@ -1529,7 +1511,6 @@ TEST (cmd_interface_mctp_control_test_process_response_discovery_notify);
 TEST (cmd_interface_mctp_control_test_process_response_discovery_notify_fail);
 TEST (cmd_interface_mctp_control_test_process_response_discovery_notify_cc_fail);
 TEST (cmd_interface_mctp_control_test_process_response_discovery_notify_no_observer);
-TEST (cmd_interface_mctp_control_test_generate_error_packet);
 TEST (cmd_interface_mctp_control_test_add_mctp_control_protocol_observer_invalid_arg);
 TEST (cmd_interface_mctp_control_test_remove_mctp_control_protocol_observer);
 TEST (cmd_interface_mctp_control_test_remove_mctp_control_protocol_observer_invalid_arg);
