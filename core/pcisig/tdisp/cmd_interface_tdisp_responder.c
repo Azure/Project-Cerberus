@@ -23,6 +23,11 @@ int cmd_interface_tdisp_responder_process_request (const struct cmd_interface *i
 		goto exit;
 	}
 
+	if (request->is_encrypted == false) {
+		status = CMD_INTERFACE_TDISP_RESPONDER_SECURE_SPDM_REQUIRED;
+		goto exit;
+	}
+
 	if (request->payload_length < sizeof (struct tdisp_header)) {
 		status = CMD_INTERFACE_TDISP_RESPONDER_INVALID_MSG_SIZE;
 		goto exit;

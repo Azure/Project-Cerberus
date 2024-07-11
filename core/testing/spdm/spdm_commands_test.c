@@ -24,6 +24,7 @@
 #include "testing/logging/debug_log_testing.h"
 #include "testing/mock/asn1/x509_mock.h"
 #include "testing/mock/attestation/attestation_responder_mock.h"
+#include "testing/mock/cmd_interface/cmd_interface_mock.h"
 #include "testing/mock/crypto/aes_mock.h"
 #include "testing/mock/crypto/ecc_mock.h"
 #include "testing/mock/crypto/hash_mock.h"
@@ -105,6 +106,7 @@ struct spdm_command_testing {
 	struct spdm_measurements_mock measurements_mock;											/**< Mock measurements engine. */
 	struct ecc_engine_mock ecc_mock;															/**< Mock ECC engine. */
 	struct rng_engine_mock rng_mock;															/**< Mock RNG engine. */
+	struct cmd_interface_mock vdm_mock;								/**< Mock for VDM command handler */
 };
 
 
@@ -265,13 +267,17 @@ static void spdm_command_testing_init_dependencies (CuTest *test,
 	status = spdm_secure_session_manager_mock_init (&testing->session_manager_mock);
 	CuAssertIntEquals (test, 0, status);
 
+	status = cmd_interface_mock_init (&testing->vdm_mock);
+	CuAssertIntEquals (test, 0, status);
+
 	status = cmd_interface_spdm_responder_init (&testing->spdm_responder,
 		&testing->spdm_responder_state, &testing->transcript_manager_mock.base,
 		testing->hash_engine, ARRAY_SIZE (testing->hash_engine), testing->version_num,
 		ARRAY_SIZE (testing->version_num), testing->secured_message_version_num,
 		ARRAY_SIZE (testing->secured_message_version_num), &testing->local_capabilities,
 		&testing->local_algorithms, &testing->key_manager, &testing->measurements_mock.base,
-		&testing->ecc_mock.base, &testing->rng_mock.base, &testing->session_manager_mock.base);
+		&testing->ecc_mock.base, &testing->rng_mock.base, &testing->session_manager_mock.base,
+		&testing->vdm_mock.base);
 
 	CuAssertIntEquals (test, 0, status);
 }
@@ -316,6 +322,9 @@ static void spdm_command_testing_release_dependencies (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_secure_session_manager_mock_validate_and_release (&testing->session_manager_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_mock_validate_and_release (&testing->vdm_mock);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -25468,6 +25477,588 @@ static void spdm_test_end_session_last_request_session_state_invalid (CuTest *te
 	spdm_command_testing_release_dependencies (test, &testing);
 }
 
+static void spdm_test_vdm (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_vendor_defined_request_response *rq =
+		(struct spdm_vendor_defined_request_response*) buf;
+	struct spdm_vendor_defined_request_response *rsp =
+		(struct spdm_vendor_defined_request_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_secure_session session = {0};
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_vendor_defined_request_response);
+	msg.length = msg.payload_length;
+	msg.is_encrypted = true;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+
+	session.session_state = SPDM_SESSION_STATE_ESTABLISHED;
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.is_last_session_id_valid,
+		&testing.session_manager_mock.base, 1);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.get_last_session_id, &testing.session_manager_mock.base,
+		0xDEADBEEF);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base,
+		MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
+
+	status |= mock_expect (&testing.vdm_mock.mock,
+		testing.vdm_mock.base.process_request, &testing.vdm_mock.base, 0, MOCK_ARG_PTR (&msg));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_vendor_defined_request (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_vendor_defined_request_response), msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_VENDOR_DEFINED_REQUEST, rsp->header.req_rsp_code);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_vdm_null (CuTest *test)
+{
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	status = spdm_vendor_defined_request (NULL, &msg);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
+
+	status = spdm_vendor_defined_request (&testing.spdm_responder, NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_vdm_no_vdm_handler (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_vendor_defined_request_response *rq =
+		(struct spdm_vendor_defined_request_response*) buf;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_vendor_defined_request_response);
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+
+	spdm_responder->vdm_handler = NULL;
+
+	status = spdm_vendor_defined_request (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_vdm_request_size_invalid (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_vendor_defined_request_response *rq =
+		(struct spdm_vendor_defined_request_response*) buf;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_vendor_defined_request_response) - 1;
+	msg.length = msg.payload_length;
+
+	status = spdm_vendor_defined_request (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_vdm_incorrect_negotiated_version (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_vendor_defined_request_response *rq =
+		(struct spdm_vendor_defined_request_response*) buf;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_vendor_defined_request_response);
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 1;
+
+	status = spdm_vendor_defined_request (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_VERSION_MISMATCH, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_vendor_defined_request_response);
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 1;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+
+	status = spdm_vendor_defined_request (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_VERSION_MISMATCH, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_vdm_incorrect_response_state (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_vendor_defined_request_response *rq =
+		(struct spdm_vendor_defined_request_response*) buf;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_vendor_defined_request_response);
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+
+	spdm_state->response_state = SPDM_RESPONSE_STATE_BUSY;
+
+	status = spdm_vendor_defined_request (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_BUSY, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_vendor_defined_request_response);
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NEED_RESYNC;
+
+	status = spdm_vendor_defined_request (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_REQUEST_RESYNCH, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_vendor_defined_request_response);
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+
+	spdm_state->response_state = SPDM_RESPONSE_STATE_PROCESSING_ENCAP;
+
+	status = spdm_vendor_defined_request (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_REQUEST_IN_FLIGHT, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_vdm_incorrect_connection_state (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_vendor_defined_request_response *rq =
+		(struct spdm_vendor_defined_request_response*) buf;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_vendor_defined_request_response);
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NOT_STARTED;
+
+	status = spdm_vendor_defined_request (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_UNEXPECTED_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_vdm_last_request_session_inactive (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_vendor_defined_request_response *rq =
+		(struct spdm_vendor_defined_request_response*) buf;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_vendor_defined_request_response);
+	msg.length = msg.payload_length;
+	msg.is_encrypted = true;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.is_last_session_id_valid,
+		&testing.session_manager_mock.base, 0);
+
+	status = spdm_vendor_defined_request (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_SESSION_REQUIRED, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_vdm_last_request_session_id_invalid (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_vendor_defined_request_response *rq =
+		(struct spdm_vendor_defined_request_response*) buf;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_vendor_defined_request_response);
+	msg.length = msg.payload_length;
+	msg.is_encrypted = true;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.is_last_session_id_valid,
+		&testing.session_manager_mock.base, 1);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.get_last_session_id,
+		&testing.session_manager_mock.base, 0xDEADBEEF);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.get_session,
+		&testing.session_manager_mock.base, 0, MOCK_ARG (0xDEADBEEF));
+
+	status = spdm_vendor_defined_request (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_SESSION_REQUIRED, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_vdm_last_request_session_state_invalid (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_vendor_defined_request_response *rq =
+		(struct spdm_vendor_defined_request_response*) buf;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_secure_session session = {0};
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_vendor_defined_request_response);
+	msg.length = msg.payload_length;
+	msg.is_encrypted = true;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+
+	session.session_state = SPDM_SESSION_STATE_NOT_STARTED;
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.is_last_session_id_valid,
+		&testing.session_manager_mock.base, 1);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.get_last_session_id,
+		&testing.session_manager_mock.base, 0xDEADBEEF);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.get_session,
+		&testing.session_manager_mock.base, MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
+
+	status = spdm_vendor_defined_request (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_UNEXPECTED_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_vdm_unsupported_message_type (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_vendor_defined_request_response *rq =
+		(struct spdm_vendor_defined_request_response*) buf;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_vendor_defined_request_response);
+	msg.length = msg.payload_length;
+	msg.is_encrypted = false;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+
+	status = mock_expect (&testing.vdm_mock.mock,
+		testing.vdm_mock.base.process_request, &testing.vdm_mock.base,
+		CMD_HANDLER_UNKNOWN_MESSAGE_TYPE, MOCK_ARG_PTR (&msg));
+
+	status = spdm_vendor_defined_request (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_UNSUPPORTED_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
 static void spdm_test_format_signature_digest (CuTest *test)
 {
 	struct hash_engine_mock hash;
@@ -26582,6 +27173,17 @@ TEST (spdm_test_end_session_incorrect_connection_state);
 TEST (spdm_test_end_session_last_request_session_inactive);
 TEST (spdm_test_end_session_last_request_session_id_invalid);
 TEST (spdm_test_end_session_last_request_session_state_invalid);
+TEST (spdm_test_vdm);
+TEST (spdm_test_vdm_null);
+TEST (spdm_test_vdm_no_vdm_handler);
+TEST (spdm_test_vdm_request_size_invalid);
+TEST (spdm_test_vdm_incorrect_negotiated_version);
+TEST (spdm_test_vdm_incorrect_response_state);
+TEST (spdm_test_vdm_incorrect_connection_state);
+TEST (spdm_test_vdm_last_request_session_inactive);
+TEST (spdm_test_vdm_last_request_session_id_invalid);
+TEST (spdm_test_vdm_last_request_session_state_invalid);
+TEST (spdm_test_vdm_unsupported_message_type);
 /* TODO:  The format signature tests are not good.  Too much mock usage.  Real test vectors should
  * be acquired and compared against output of a real hash engine.  It's too easy to mask bugs with
  * mock misuse in cases like this.  It would also reduce the code present in the test.  Failure

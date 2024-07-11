@@ -102,6 +102,10 @@ int cmd_interface_spdm_process_request (const struct cmd_interface *intf,
 			status = spdm_end_session (spdm_responder, request);
 			break;
 
+		case SPDM_REQUEST_VENDOR_DEFINED_REQUEST:
+			status = spdm_vendor_defined_request (spdm_responder, request);
+			break;
+
 		default:
 			spdm_generate_error_response (request, 0, SPDM_ERROR_UNSUPPORTED_REQUEST, 0x00, NULL, 0,
 				req_code, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_OPERATION);
@@ -177,7 +181,7 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	const struct spdm_local_device_algorithms *local_algorithms,
 	struct riot_key_manager *key_manager, const struct spdm_measurements *measurements,
 	struct ecc_engine *ecc_engine, struct rng_engine *rng_engine,
-	struct spdm_secure_session_manager *session_manager)
+	struct spdm_secure_session_manager *session_manager, const struct cmd_interface *vdm_handler)
 {
 	int status;
 
@@ -203,6 +207,7 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	spdm_responder->ecc_engine = ecc_engine;
 	spdm_responder->rng_engine = rng_engine;
 	spdm_responder->session_manager = session_manager;
+	spdm_responder->vdm_handler = vdm_handler;
 
 	spdm_responder->base.process_request = cmd_interface_spdm_process_request;
 #ifdef CMD_ENABLE_ISSUE_REQUEST

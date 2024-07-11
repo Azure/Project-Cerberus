@@ -149,6 +149,7 @@ enum {
 	IDE_DRIVER_KEY_SET_GO_RX_KEY_FAILED = IDE_DRIVER_ERROR (0x0A),							/**< The driver failed to set the IDE Rx key for a given key_set, stream and sub-stream. */
 	IDE_DRIVER_KEY_SET_GO_TX_KEY_FAILED = IDE_DRIVER_ERROR (0x0B),							/**< The driver failed to set the IDE Tx key for a given key_set, stream and sub-stream. */
 	IDE_DRIVER_INVALID_STREAM_ID = IDE_DRIVER_ERROR (0x0C),									/**< The driver failed due to invalid stream ID. */
+	IDE_DRIVER_UNSUPPORTED_PORT_INDEX = IDE_DRIVER_ERROR (0x0D),							/**< Unsupported port index */
 };
 
 

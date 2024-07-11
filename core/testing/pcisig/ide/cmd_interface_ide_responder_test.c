@@ -145,6 +145,26 @@ static void cmd_interface_ide_responder_test_release_null (CuTest *test)
 	cmd_interface_ide_responder_release (NULL);
 }
 
+static void cmd_interface_ide_responder_test_process_request_no_ecrypt (CuTest *test)
+{
+	struct cmd_interface_ide_responder_testing testing;
+	struct cmd_interface_msg msg;
+	int status;
+
+	TEST_START;
+
+	cmd_interface_ide_responder_testing_init (test, &testing);
+
+	memset (&msg, 0, sizeof (msg));
+	msg.is_encrypted = false;
+
+	status = testing.ide_responder.base.process_request (&testing.ide_responder.base, &msg);
+
+	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_SECURE_SPDM_REQUIRED, status);
+
+	cmd_interface_ide_responder_testing_release (test, &testing);
+}
+
 static void cmd_interface_ide_responder_test_process_request_query (CuTest *test)
 {
 	struct cmd_interface_ide_responder_testing testing;
@@ -174,6 +194,7 @@ static void cmd_interface_ide_responder_test_process_request_query (CuTest *test
 	msg.payload = (uint8_t*) rq;
 	msg.payload_length = sizeof (struct ide_km_query);
 	msg.max_response = ARRAY_SIZE (buf);
+	msg.is_encrypted = true;
 	rq->header.object_id = IDE_KM_OBJECT_ID_QUERY;
 	rq->port_index = 1;
 
@@ -324,6 +345,7 @@ static void cmd_interface_ide_responder_test_process_request_query_fail (CuTest 
 	msg.payload = (uint8_t*) rq;
 	msg.payload_length = sizeof (struct ide_km_query) - 1;
 	msg.max_response = ARRAY_SIZE (buf);
+	msg.is_encrypted = true;
 	rq->header.object_id = IDE_KM_OBJECT_ID_QUERY;
 	rq->port_index = 1;
 
@@ -356,6 +378,7 @@ static void cmd_interface_ide_responder_test_process_request_key_prog (CuTest *t
 	msg.payload_length = sizeof (struct ide_km_key_prog) +
 		sizeof (struct ide_km_aes_256_gcm_key_buffer);
 	msg.max_response = ARRAY_SIZE (buf);
+	msg.is_encrypted = true;
 	rq->header.object_id = IDE_KM_OBJECT_ID_KEY_PROG;
 	rq->port_index = 1;
 	rq->stream_id = 2;
@@ -410,6 +433,7 @@ static void cmd_interface_ide_responder_test_process_request_key_set_go (CuTest 
 	msg.payload = (uint8_t*) rq;
 	msg.payload_length = sizeof (struct ide_km_k_set_go);
 	msg.max_response = ARRAY_SIZE (buf);
+	msg.is_encrypted = true;
 	rq->header.object_id = IDE_KM_OBJECT_ID_K_SET_GO;
 	rq->port_index = 1;
 	rq->stream_id = 2;
@@ -459,6 +483,7 @@ static void cmd_interface_ide_responder_test_process_request_key_set_go_fail (
 	msg.payload = (uint8_t*) rq;
 	msg.payload_length = sizeof (struct ide_km_k_set_go) - 1;
 	msg.max_response = ARRAY_SIZE (buf);
+	msg.is_encrypted = true;
 	rq->header.object_id = IDE_KM_OBJECT_ID_K_SET_GO;
 
 	cmd_interface_ide_responder_testing_init (test, &testing);
@@ -488,6 +513,7 @@ static void cmd_interface_ide_responder_test_process_request_key_set_stop (CuTes
 	msg.payload = (uint8_t*) rq;
 	msg.payload_length = sizeof (struct ide_km_k_set_stop);
 	msg.max_response = ARRAY_SIZE (buf);
+	msg.is_encrypted = true;
 	rq->header.object_id = IDE_KM_OBJECT_ID_K_SET_STOP;
 	rq->port_index = 3;
 	rq->stream_id = 1;
@@ -536,6 +562,7 @@ static void cmd_interface_ide_responder_test_process_request_key_set_stop_fail (
 	msg.payload = (uint8_t*) rq;
 	msg.payload_length = sizeof (struct ide_km_k_set_stop) - 1;
 	msg.max_response = ARRAY_SIZE (buf);
+	msg.is_encrypted = true;
 	rq->header.object_id = IDE_KM_OBJECT_ID_K_SET_STOP;
 
 	cmd_interface_ide_responder_testing_init (test, &testing);
@@ -578,6 +605,7 @@ static void cmd_interface_ide_responder_test_process_request_invalid_msg_size (C
 	msg.payload = (uint8_t*) header;
 	msg.payload_length = sizeof (struct ide_km_header) - 1;
 	msg.max_response = ARRAY_SIZE (buf);
+	msg.is_encrypted = true;
 
 	cmd_interface_ide_responder_testing_init (test, &testing);
 
@@ -602,6 +630,7 @@ static void cmd_interface_ide_responder_test_process_request_unkown_command (CuT
 	msg.payload = (uint8_t*) header;
 	msg.payload_length = sizeof (struct ide_km_header);
 	msg.max_response = ARRAY_SIZE (buf);
+	msg.is_encrypted = true;
 	header->object_id = -1;
 
 	cmd_interface_ide_responder_testing_init (test, &testing);
@@ -624,10 +653,13 @@ static void cmd_interface_ide_responder_test_process_response (CuTest *test)
 
 	ide_responder = &testing.ide_responder;
 
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 	status = ide_responder->base.process_response ((const struct cmd_interface*) 0xDEADBEEF,
 		(struct cmd_interface_msg*) 0xBAADB00F);
 	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_UNSUPPORTED_OPERATION, status);
-
+#else
+	UNUSED (status);
+#endif
 	cmd_interface_ide_responder_testing_release (test, &testing);
 }
 
@@ -638,6 +670,7 @@ TEST (cmd_interface_ide_responder_test_static_init);
 TEST (cmd_interface_ide_responder_test_init);
 TEST (cmd_interface_ide_responder_test_init_invalid_param);
 TEST (cmd_interface_ide_responder_test_release_null);
+TEST (cmd_interface_ide_responder_test_process_request_no_ecrypt);
 TEST (cmd_interface_ide_responder_test_process_request_query);
 TEST (cmd_interface_ide_responder_test_process_request_query_fail);
 TEST (cmd_interface_ide_responder_test_process_request_key_prog);

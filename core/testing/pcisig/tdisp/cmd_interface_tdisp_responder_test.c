@@ -248,6 +248,28 @@ static void cmd_interface_tdisp_responder_test_release_null (CuTest *test)
 	cmd_interface_tdisp_responder_release (NULL);
 }
 
+static void cmd_interface_tdisp_responder_test_process_request_no_encrypt (CuTest *test)
+{
+	struct cmd_interface_msg request;
+	int status;
+	struct cmd_interface_tdisp_responder *tdisp_responder;
+	struct cmd_interface_tdisp_responder_testing testing;
+
+	TEST_START;
+
+	cmd_interface_tdisp_responder_testing_init (test, &testing);
+
+	tdisp_responder = &testing.tdisp_responder;
+
+	memset (&request, 0, sizeof (request));
+	request.is_encrypted = false;
+
+	status = tdisp_responder->base.process_request (&tdisp_responder->base, &request);
+	CuAssertIntEquals (test, CMD_INTERFACE_TDISP_RESPONDER_SECURE_SPDM_REQUIRED, status);
+
+	cmd_interface_tdisp_responder_testing_release (test, &testing);
+}
+
 static void cmd_interface_tdisp_responder_test_process_request_get_version (CuTest *test)
 {
 	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
@@ -272,6 +294,7 @@ static void cmd_interface_tdisp_responder_test_process_request_get_version (CuTe
 	request.max_response = sizeof (buf);
 	request.payload_length = sizeof (struct tdisp_get_version_request);
 	request.length = request.payload_length;
+	request.is_encrypted = true;
 
 	rq->header.version = TDISP_CURRENT_VERSION;
 	rq->header.message_type = TDISP_REQUEST_GET_VERSION;
@@ -318,6 +341,7 @@ static void cmd_interface_tdisp_responder_test_process_request_get_capabilities 
 	request.max_response = sizeof (buf);
 	request.payload_length = sizeof (struct tdisp_get_capabilities_request);
 	request.length = request.payload_length;
+	request.is_encrypted = true;
 
 	rq->header.version = TDISP_CURRENT_VERSION;
 	rq->header.message_type = TDISP_REQUEST_GET_CAPABILITIES;
@@ -388,6 +412,7 @@ static void cmd_interface_tdisp_responder_test_process_request_lock_interface (C
 	request.max_response = sizeof (buf);
 	request.payload_length = sizeof (struct tdisp_lock_interface_request);
 	request.length = request.payload_length;
+	request.is_encrypted = true;
 
 	function_id = rand ();
 	rq->header.version = TDISP_CURRENT_VERSION;
@@ -462,6 +487,7 @@ static void cmd_interface_tdisp_responder_test_process_request_get_device_interf
 	request.max_response = sizeof (buf);
 	request.payload_length = sizeof (struct tdisp_get_device_interface_report_request);
 	request.length = request.payload_length;
+	request.is_encrypted = true;
 
 	function_id = rand ();
 	rq->header.version = TDISP_CURRENT_VERSION;
@@ -537,6 +563,7 @@ static void cmd_interface_tdisp_responder_test_process_request_get_device_interf
 	request.max_response = sizeof (buf);
 	request.payload_length = sizeof (struct tdisp_get_device_interface_state_request);
 	request.length = request.payload_length;
+	request.is_encrypted = true;
 
 	function_id = rand ();
 	rq->header.version = TDISP_CURRENT_VERSION;
@@ -595,6 +622,7 @@ static void cmd_interface_tdisp_responder_test_process_request_start_interface (
 	request.max_response = sizeof (buf);
 	request.payload_length = sizeof (struct tdisp_start_interface_request);
 	request.length = request.payload_length;
+	request.is_encrypted = true;
 
 	function_id = rand ();
 	for (i = 0; i < TDISP_START_INTERFACE_NONCE_SIZE; i++) {
@@ -653,6 +681,7 @@ static void cmd_interface_tdisp_responder_test_process_request_stop_interface (C
 	request.max_response = sizeof (buf);
 	request.payload_length = sizeof (struct tdisp_stop_interface_request);
 	request.length = request.payload_length;
+	request.is_encrypted = true;
 
 	function_id = rand ();
 	rq->header.version = TDISP_CURRENT_VERSION;
@@ -724,6 +753,7 @@ static void cmd_interface_tdisp_responder_test_process_request_unsupported_messa
 	request.max_response = sizeof (buf);
 	request.payload_length = sizeof (struct tdisp_get_version_request);
 	request.length = request.payload_length;
+	request.is_encrypted = true;
 
 	rq->header.version = TDISP_CURRENT_VERSION;
 	rq->header.message_type = UINT8_MAX;
@@ -763,6 +793,7 @@ static void cmd_interface_tdisp_responder_test_process_request_payload_lt_min_le
 	request.max_response = sizeof (buf);
 	request.payload_length = sizeof (struct tdisp_header) - 1;
 	request.length = request.payload_length;
+	request.is_encrypted = true;
 
 	status = tdisp_responder->base.process_request (&tdisp_responder->base, &request);
 	CuAssertIntEquals (test, CMD_INTERFACE_TDISP_RESPONDER_INVALID_MSG_SIZE, status);
@@ -782,10 +813,13 @@ static void cmd_interface_tdisp_responder_test_process_response (CuTest *test)
 
 	tdisp_responder = &testing.tdisp_responder;
 
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 	status = tdisp_responder->base.process_response ((const struct cmd_interface*) 0xDEADBEEF,
 		(struct cmd_interface_msg*) 0xBAADB00F);
 	CuAssertIntEquals (test, CMD_INTERFACE_TDISP_RESPONDER_UNSUPPORTED_OPERATION, status);
-
+#else
+	UNUSED (status);
+#endif
 	cmd_interface_tdisp_responder_testing_release (test, &testing);
 }
 
@@ -798,6 +832,7 @@ TEST (cmd_interface_tdisp_responder_test_static_init_invalid_param);
 TEST (cmd_interface_tdisp_responder_test_init);
 TEST (cmd_interface_tdisp_responder_test_init_invalid_param);
 TEST (cmd_interface_tdisp_responder_test_release_null);
+TEST (cmd_interface_tdisp_responder_test_process_request_no_encrypt);
 TEST (cmd_interface_tdisp_responder_test_process_request_get_version);
 TEST (cmd_interface_tdisp_responder_test_process_request_get_capabilities);
 TEST (cmd_interface_tdisp_responder_test_process_request_lock_interface);

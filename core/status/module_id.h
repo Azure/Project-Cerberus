@@ -150,6 +150,8 @@ enum {
 	ROT_MODULE_EPHEMERAL_KEY_MANAGER = 0x008a,			/**< Ephemeral key manager */
 	ROT_MODULE_EPHEMERAL_KEY_GENERATION = 0x008b,		/**< Ephemeral key generation */
 	ROT_MODULE_AUTHORIZED_EXECUTION = 0x008c,			/**< Execution context for authorized operations. */
+	ROT_MODULE_SPDM_VDM_PROTOCOL = 0x008d,				/**< SPDM vendor defined messages protocol. */
+	ROT_MODULE_SPDM_PCISIG_PROTOCOL = 0x008e,			/**< SPDM PCISIG messages protocol. */
 };
 
 

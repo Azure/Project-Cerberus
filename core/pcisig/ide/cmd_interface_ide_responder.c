@@ -21,6 +21,11 @@ int cmd_interface_ide_responder_process_request (const struct cmd_interface *int
 		goto exit;
 	}
 
+	if (request->is_encrypted == false) {
+		status = CMD_INTERFACE_IDE_RESPONDER_SECURE_SPDM_REQUIRED;
+		goto exit;
+	}
+
 	if (request->payload_length < sizeof (struct ide_km_header)) {
 		status = CMD_INTERFACE_IDE_RESPONDER_INVALID_MSG_SIZE;
 		goto exit;

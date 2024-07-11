@@ -1255,6 +1255,8 @@ static void ide_commands_test_ide_km_key_prog_key_prog_fail (CuTest *test)
 
 	TEST_START;
 
+	ide_commands_testing_init_dependencies (test, &testing);
+
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
 	msg.payload = (uint8_t*) rq;
@@ -1269,8 +1271,6 @@ static void ide_commands_test_ide_km_key_prog_key_prog_fail (CuTest *test)
 	rq->sub_stream_info.key_sub_stream = 3;
 
 	key_buffer = (struct ide_km_aes_256_gcm_key_buffer*) (rq + 1);
-
-	ide_commands_testing_init_dependencies (test, &testing);
 
 	status = mock_expect (&testing.ide_driver_mock.mock, testing.ide_driver_mock.base.key_prog,
 		&testing.ide_driver_mock, IDE_DRIVER_KEY_PROG_FAILED, MOCK_ARG (rq->port_index),
@@ -1293,6 +1293,82 @@ static void ide_commands_test_ide_km_key_prog_key_prog_fail (CuTest *test)
 		rsp->sub_stream_info.key_sub_stream);
 	CuAssertIntEquals (test, rq->port_index, rsp->port_index);
 	CuAssertIntEquals (test, IDE_KM_KP_ACK_STATUS_UNSPECIFIED_FAILURE, rsp->status);
+
+	/* Unsupported port index */
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.payload_length = sizeof (struct ide_km_key_prog) +
+		sizeof (struct ide_km_aes_256_gcm_key_buffer);
+	msg.max_response = ARRAY_SIZE (buf);
+	rq->header.object_id = IDE_KM_OBJECT_ID_KEY_PROG;
+	rq->port_index = 1;
+	rq->stream_id = 2;
+	rq->sub_stream_info.key_set = 1;
+	rq->sub_stream_info.rx_tx = 1;
+	rq->sub_stream_info.key_sub_stream = 3;
+
+	key_buffer = (struct ide_km_aes_256_gcm_key_buffer*) (rq + 1);
+
+	status = mock_expect (&testing.ide_driver_mock.mock, testing.ide_driver_mock.base.key_prog,
+		&testing.ide_driver_mock, IDE_DRIVER_UNSUPPORTED_PORT_INDEX, MOCK_ARG (rq->port_index),
+		MOCK_ARG (rq->stream_id), MOCK_ARG (rq->sub_stream_info.key_set),
+		MOCK_ARG (rq->sub_stream_info.rx_tx), MOCK_ARG (rq->sub_stream_info.key_sub_stream),
+		MOCK_ARG_PTR (&key_buffer->key), MOCK_ARG (sizeof (key_buffer->key)),
+		MOCK_ARG_PTR (&key_buffer->iv), MOCK_ARG (sizeof (key_buffer->iv)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ide_km_key_prog (&testing.ide_driver_mock.base, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct ide_km_kp_ack), msg.payload_length);
+	CuAssertIntEquals (test, IDE_KM_OBJECT_ID_KP_ACK, rsp->header.object_id);
+	CuAssertIntEquals (test, rq->stream_id, rsp->stream_id);
+	CuAssertIntEquals (test, rq->sub_stream_info.key_set, rsp->sub_stream_info.key_set);
+	CuAssertIntEquals (test, rq->sub_stream_info.rx_tx, rsp->sub_stream_info.rx_tx);
+	CuAssertIntEquals (test, rq->sub_stream_info.key_sub_stream,
+		rsp->sub_stream_info.key_sub_stream);
+	CuAssertIntEquals (test, rq->port_index, rsp->port_index);
+	CuAssertIntEquals (test, IDE_KM_KP_ACK_STATUS_UNSUPPORTED_PORT_INDEX, rsp->status);
+
+	/* Unsupported value */
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.payload_length = sizeof (struct ide_km_key_prog) +
+		sizeof (struct ide_km_aes_256_gcm_key_buffer);
+	msg.max_response = ARRAY_SIZE (buf);
+	rq->header.object_id = IDE_KM_OBJECT_ID_KEY_PROG;
+	rq->port_index = 1;
+	rq->stream_id = 2;
+	rq->sub_stream_info.key_set = 1;
+	rq->sub_stream_info.rx_tx = 1;
+	rq->sub_stream_info.key_sub_stream = 3;
+
+	key_buffer = (struct ide_km_aes_256_gcm_key_buffer*) (rq + 1);
+
+	status = mock_expect (&testing.ide_driver_mock.mock, testing.ide_driver_mock.base.key_prog,
+		&testing.ide_driver_mock, IDE_DRIVER_INVALID_ARGUMENT, MOCK_ARG (rq->port_index),
+		MOCK_ARG (rq->stream_id), MOCK_ARG (rq->sub_stream_info.key_set),
+		MOCK_ARG (rq->sub_stream_info.rx_tx), MOCK_ARG (rq->sub_stream_info.key_sub_stream),
+		MOCK_ARG_PTR (&key_buffer->key), MOCK_ARG (sizeof (key_buffer->key)),
+		MOCK_ARG_PTR (&key_buffer->iv), MOCK_ARG (sizeof (key_buffer->iv)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ide_km_key_prog (&testing.ide_driver_mock.base, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct ide_km_kp_ack), msg.payload_length);
+	CuAssertIntEquals (test, IDE_KM_OBJECT_ID_KP_ACK, rsp->header.object_id);
+	CuAssertIntEquals (test, rq->stream_id, rsp->stream_id);
+	CuAssertIntEquals (test, rq->sub_stream_info.key_set, rsp->sub_stream_info.key_set);
+	CuAssertIntEquals (test, rq->sub_stream_info.rx_tx, rsp->sub_stream_info.rx_tx);
+	CuAssertIntEquals (test, rq->sub_stream_info.key_sub_stream,
+		rsp->sub_stream_info.key_sub_stream);
+	CuAssertIntEquals (test, rq->port_index, rsp->port_index);
+	CuAssertIntEquals (test, IDE_KM_KP_ACK_STATUS_UNSUPPORTED_VALUE, rsp->status);
 
 	ide_commands_testing_release_dependencies (test, &testing);
 }

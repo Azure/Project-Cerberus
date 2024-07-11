@@ -41,6 +41,7 @@ struct cmd_interface_spdm_responder {
 	const struct spdm_device_capability *local_capabilities;			/**< Local SPDM capabilities. */
 	const struct spdm_local_device_algorithms *local_algorithms;		/**< Local SPDM algorithms and their priorities. */
 	struct spdm_secure_session_manager *session_manager;				/**< Session manager for managing secure sessions. */
+	const struct cmd_interface *vdm_handler;							/**< Command handler for VDM messages */
 };
 
 
@@ -54,7 +55,7 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	const struct spdm_local_device_algorithms *local_algorithms,
 	struct riot_key_manager *key_manager, const struct spdm_measurements *measurements,
 	struct ecc_engine *ecc_engine, struct rng_engine *rng_engine,
-	struct spdm_secure_session_manager *session_manager);
+	struct spdm_secure_session_manager *session_manager, const struct cmd_interface *vdm_handler);
 
 int cmd_interface_spdm_responder_init_state (
 	const struct cmd_interface_spdm_responder *spdm_responder);

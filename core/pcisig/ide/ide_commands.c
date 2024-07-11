@@ -176,7 +176,16 @@ int ide_km_key_prog (const struct ide_driver *ide_driver, struct cmd_interface_m
 		ide_km_request->sub_stream_info.rx_tx, ide_km_request->sub_stream_info.key_sub_stream,
 		key_buffer->key, sizeof (key_buffer->key), key_buffer->iv, sizeof (key_buffer->iv));
 	if (status != 0) {
-		status = IDE_KM_KP_ACK_STATUS_UNSPECIFIED_FAILURE;
+		if ((status == IDE_DRIVER_INVALID_ARGUMENT) ||
+			(status == IDE_DRIVER_INVALID_STREAM_ID)) {
+			status = IDE_KM_KP_ACK_STATUS_UNSUPPORTED_VALUE;
+		}
+		else if (status == IDE_DRIVER_UNSUPPORTED_PORT_INDEX) {
+			status = IDE_KM_KP_ACK_STATUS_UNSUPPORTED_PORT_INDEX;
+		}
+		else {
+			status = IDE_KM_KP_ACK_STATUS_UNSPECIFIED_FAILURE;
+		}
 	}
 
 	/* Clear the key info. */

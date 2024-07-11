@@ -1322,7 +1322,7 @@ exit:
  * @param key_manager RIoT device key manager.
  * @param ecc_engine ECC engine.
  * @param hash_engine Hash engine.
- * @param session_info Session information.
+ * @param session Session information.
  * @param signature Buffer to store the signature.
  * @param sig_size The size of the signature.
  *
@@ -1346,6 +1346,10 @@ static int spdm_generate_measurement_signature (
 	l1l2_hash_size =
 		hash_get_hash_length (spdm_get_hash_type (
 		state->connection_info.peer_algorithms.base_hash_algo));
+
+	if (session_info != NULL) {
+		session_idx = session_info->session_index;
+	}
 
 	/* Get the L1L2 hash. */
 	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,
@@ -4351,6 +4355,125 @@ exit:
 	if (status != 0) {
 		spdm_generate_error_response (request, state->connection_info.version.minor_version,
 			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_END_SESSION, status);
+	}
+
+	return 0;
+}
+
+/**
+ * Process SPDM vendor defined request.
+ *
+ * @param context	SPDM context.
+ * @param request	VENDOR_DEFINED_REQUEST request to process.
+ *
+ * @return 0 if request processed successfully or an error code.
+ */
+int spdm_vendor_defined_request (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request)
+{
+	int status = 0;
+	int spdm_error;
+	uint8_t spdm_version;
+	struct spdm_state *state;
+	uint32_t session_id;
+	struct spdm_secure_session *session;
+	struct spdm_secure_session_manager *session_manager;
+	struct spdm_vendor_defined_request_response *spdm_req_resp;
+
+	if ((spdm_responder == NULL) || (request == NULL)) {
+		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
+	}
+
+	state = spdm_responder->state;
+	session_manager = spdm_responder->session_manager;
+
+	/* vdm_handler is optional */
+	if (spdm_responder->vdm_handler == NULL) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+
+	/* Validate request */
+	if (request->payload_length < sizeof (struct spdm_vendor_defined_request_response)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+
+	spdm_req_resp = (struct spdm_vendor_defined_request_response*) request->payload;
+	spdm_version = SPDM_MAKE_VERSION (spdm_req_resp->header.spdm_major_version,
+		spdm_req_resp->header.spdm_minor_version);
+	if (spdm_version != spdm_get_connection_version (state)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH;
+		spdm_error = SPDM_ERROR_VERSION_MISMATCH;
+		goto exit;
+	}
+
+	/* Verify SPDM state. */
+	if (state->response_state != SPDM_RESPONSE_STATE_NORMAL) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR;
+		spdm_handle_response_state (state, &spdm_error);
+		goto exit;
+	}
+
+	if (state->connection_info.connection_state < SPDM_CONNECTION_STATE_NEGOTIATED) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_CONNECTION_STATE;
+		spdm_error = SPDM_ERROR_UNEXPECTED_REQUEST;
+		goto exit;
+	}
+
+	/* Confirm that we are in a session. */
+	if (request->is_encrypted) {
+		if (session_manager->is_last_session_id_valid (session_manager) == false) {
+			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_CONNECTION_STATE;
+			spdm_error = SPDM_ERROR_SESSION_REQUIRED;
+			goto exit;
+		}
+
+		/* Session id is retrieved from the secure session message header. */
+		session_id = session_manager->get_last_session_id (session_manager);
+		session = session_manager->get_session (session_manager, session_id);
+		if (session == NULL) {
+			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_CONNECTION_STATE;
+			spdm_error = SPDM_ERROR_SESSION_REQUIRED;
+			goto exit;
+		}
+
+		/* Check if the session is in the correct state. */
+		if (session->session_state != SPDM_SESSION_STATE_ESTABLISHED) {
+			status = CMD_HANDLER_SPDM_RESPONDER_UNEXPECTED_REQUEST;
+			spdm_error = SPDM_ERROR_UNEXPECTED_REQUEST;
+			goto exit;
+		}
+	}
+
+	/* consume SPDM related header */
+	cmd_interface_msg_remove_protocol_header (request,
+		offsetof (struct spdm_vendor_defined_request_response, standard_id));
+
+	status = spdm_responder->vdm_handler->process_request (spdm_responder->vdm_handler, request);
+
+	cmd_interface_msg_add_protocol_header (request,
+		offsetof (struct spdm_vendor_defined_request_response, standard_id));
+
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+
+		if (status == CMD_HANDLER_UNKNOWN_MESSAGE_TYPE) {
+			spdm_error = SPDM_ERROR_UNSUPPORTED_REQUEST;
+		}
+		goto exit;
+	}
+
+	/* Update SPDM header. */
+	spdm_populate_header (&spdm_req_resp->header, SPDM_RESPONSE_VENDOR_DEFINED_REQUEST,
+		SPDM_GET_MINOR_VERSION (spdm_version));
+
+exit:
+	if (status != 0) {
+		spdm_generate_error_response (request, state->connection_info.version.minor_version,
+			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_VENDOR_DEFINED_REQUEST, status);
 	}
 
 	return 0;

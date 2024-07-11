@@ -21,6 +21,18 @@ static void add_all_spdm_tests (CuSuite *suite)
 	/* This is unused when no tests will be executed. */
 	UNUSED (suite);
 
+#if (defined TESTING_RUN_CMD_INTERFACE_PROTOCOL_SPDM_PCISIG_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_CMD_INTERFACE_PROTOCOL_SPDM_PCISIG_SUITE
+	TESTING_RUN_SUITE (cmd_interface_protocol_spdm_pcisig);
+#endif
+#if (defined TESTING_RUN_CMD_INTERFACE_PROTOCOL_SPDM_VDM_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_CMD_INTERFACE_PROTOCOL_SPDM_VDM_SUITE
+	TESTING_RUN_SUITE (cmd_interface_protocol_spdm_vdm);
+#endif
 #if (defined TESTING_RUN_CMD_INTERFACE_SPDM_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

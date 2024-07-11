@@ -1158,6 +1158,17 @@ struct spdm_key_update_request {
 	uint8_t tag;						/**< Key update tag. */
 };
 
+/**
+ * SPDM VENDOR_DEFINED request/response format.
+ */
+struct spdm_vendor_defined_request_response {
+	struct spdm_protocol_header header;	/**< Message header. */
+	uint8_t reserved1;					/**< Reserved. */
+	uint8_t reserved2;					/**< Reserved. */
+	uint16_t standard_id;				/**< Registry or standards body ID. */
+	uint8_t vendor_id_len;				/**< Length of the Vendor ID. */
+};
+
 
 /**
  * Get the requester's DHE public key ptr.
@@ -1397,6 +1408,9 @@ uint32_t spdm_get_aead_key_size (uint16_t aead_cipher_suite);
 uint32_t spdm_get_aead_iv_size (uint16_t aead_cipher_suite);
 
 uint32_t spdm_get_aead_tag_size (uint16_t aead_cipher_suite);
+
+int spdm_vendor_defined_request (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request);
 
 
 #endif	/* SPDM_COMMANDS_H_ */

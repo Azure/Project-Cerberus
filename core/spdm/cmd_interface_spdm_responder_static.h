@@ -58,7 +58,7 @@ int cmd_interface_spdm_process_response (const struct cmd_interface *intf,
 	hash_engine_ptr, hash_engine_count_arg, version_num_ptr, version_num_count_arg, \
 	secured_message_version_num_ptr, secured_message_version_num_count_arg, \
 	local_capabilities_ptr, local_algorithms_ptr, key_manager_ptr, measurements_ptr, \
-	ecc_engine_ptr, rng_engine_ptr, session_manager_ptr)	{ \
+	ecc_engine_ptr, rng_engine_ptr, session_manager_ptr, vdm_handler_ptr)	{ \
 		.base = CMD_INTERFACE_SPDM_RESPONDER_API_INIT, \
 		.state = state_ptr, \
 		.transcript_manager = transcript_manager_ptr, \
@@ -74,7 +74,8 @@ int cmd_interface_spdm_process_response (const struct cmd_interface *intf,
 		.measurements = measurements_ptr, \
 		.ecc_engine = ecc_engine_ptr, \
 		.rng_engine = rng_engine_ptr, \
-		.session_manager = session_manager_ptr \
+		.session_manager = session_manager_ptr, \
+		.vdm_handler = vdm_handler_ptr \
 	}
 
 
