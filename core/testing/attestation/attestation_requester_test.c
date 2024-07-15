@@ -540,11 +540,14 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 
 		/* GET_CERTIFICATE request for the root CA. */
 		testing->cert_msg[cert_msg_idx].root_ca = true;
-		testing->cert_msg[cert_msg_idx].req_offset = testing->cert_buffer_len;
-		testing->cert_msg[cert_msg_idx].req_length = X509_CERTSS_RSA_CA_NOPL_DER_LEN;
-		testing->cert_msg[cert_msg_idx].cert_offset = testing->cert_msg[cert_msg_idx].req_offset;
-		testing->cert_msg[cert_msg_idx].cert_length = testing->cert_msg[cert_msg_idx].req_length;
-		testing->cert_msg[cert_msg_idx++].resp_length = X509_CERTSS_RSA_CA_NOPL_DER_LEN;
+		testing->cert_msg[cert_msg_idx].req_offset = testing->cert_buffer_len +
+			ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+		testing->cert_msg[cert_msg_idx].req_length = X509_CERTSS_RSA_CA_NOPL_DER_LEN -
+			ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+		testing->cert_msg[cert_msg_idx].cert_offset = testing->cert_buffer_len;
+		testing->cert_msg[cert_msg_idx].cert_length = X509_CERTSS_RSA_CA_NOPL_DER_LEN;
+		testing->cert_msg[cert_msg_idx++].resp_length = X509_CERTSS_RSA_CA_NOPL_DER_LEN -
+			ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
 
 		testing->cert_buffer_len += X509_CERTSS_RSA_CA_NOPL_DER_LEN;
 	}
@@ -554,11 +557,14 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 
 		/* GET_CERTIFICATE request for the root CA. */
 		testing->cert_msg[cert_msg_idx].root_ca = true;
-		testing->cert_msg[cert_msg_idx].req_offset = testing->cert_buffer_len;
-		testing->cert_msg[cert_msg_idx].req_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN;
-		testing->cert_msg[cert_msg_idx].cert_offset = testing->cert_msg[cert_msg_idx].req_offset;
-		testing->cert_msg[cert_msg_idx].cert_length = testing->cert_msg[cert_msg_idx].req_length;
-		testing->cert_msg[cert_msg_idx++].resp_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN;
+		testing->cert_msg[cert_msg_idx].req_offset = testing->cert_buffer_len +
+			ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+		testing->cert_msg[cert_msg_idx].req_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN -
+			ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+		testing->cert_msg[cert_msg_idx].cert_offset = testing->cert_buffer_len;
+		testing->cert_msg[cert_msg_idx].cert_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN;
+		testing->cert_msg[cert_msg_idx++].resp_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN -
+			ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
 
 		testing->cert_buffer_len += X509_CERTSS_ECC_CA_NOPL_DER_LEN;
 	}
@@ -574,11 +580,14 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 	/* GET_CERTIFICATE request for the Device ID. */
 	testing->cert_msg[cert_msg_idx].auth_cert = true;
 	testing->cert_msg[cert_msg_idx].trusted_ca = true;
-	testing->cert_msg[cert_msg_idx].req_offset = testing->cert_buffer_len;
-	testing->cert_msg[cert_msg_idx].req_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN;
-	testing->cert_msg[cert_msg_idx].cert_offset = testing->cert_msg[cert_msg_idx].req_offset;
-	testing->cert_msg[cert_msg_idx].cert_length = testing->cert_msg[cert_msg_idx].req_length;
-	testing->cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN;
+	testing->cert_msg[cert_msg_idx].req_offset = testing->cert_buffer_len +
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+	testing->cert_msg[cert_msg_idx].req_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+	testing->cert_msg[cert_msg_idx].cert_offset = testing->cert_buffer_len;
+	testing->cert_msg[cert_msg_idx].cert_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN;
+	testing->cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
 
 	testing->cert_buffer_len += RIOT_CORE_DEVID_SIGNED_CERT_LEN;
 
@@ -592,11 +601,14 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 	/* GET_CERTIFICATE request for the Alias cert. */
 	testing->cert_msg[cert_msg_idx].auth_cert = true;
 	testing->cert_msg[cert_msg_idx].alias = true;
-	testing->cert_msg[cert_msg_idx].req_offset = testing->cert_buffer_len;
-	testing->cert_msg[cert_msg_idx].req_length = RIOT_CORE_ALIAS_CERT_LEN;
-	testing->cert_msg[cert_msg_idx].cert_offset = testing->cert_msg[cert_msg_idx].req_offset;
-	testing->cert_msg[cert_msg_idx].cert_length = testing->cert_msg[cert_msg_idx].req_length;
-	testing->cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_ALIAS_CERT_LEN;
+	testing->cert_msg[cert_msg_idx].req_offset = testing->cert_buffer_len +
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+	testing->cert_msg[cert_msg_idx].req_length = RIOT_CORE_ALIAS_CERT_LEN -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+	testing->cert_msg[cert_msg_idx].cert_offset = testing->cert_buffer_len;
+	testing->cert_msg[cert_msg_idx].cert_length = RIOT_CORE_ALIAS_CERT_LEN;
+	testing->cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_ALIAS_CERT_LEN -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
 
 	testing->cert_buffer_len += RIOT_CORE_ALIAS_CERT_LEN;
 	testing->cert_msg_count = cert_msg_idx;
@@ -22206,15 +22218,18 @@ static void attestation_requester_test_attest_device_spdm_cert_retrieval_more_th
 
 	/* GET_CERTIFICATE request for the second part. */
 	testing.cert_msg[cert_msg_idx].req_offset = alias_offset + 100;
-	testing.cert_msg[cert_msg_idx].req_length = RIOT_CORE_ALIAS_CERT_LEN - 100;
+	testing.cert_msg[cert_msg_idx].req_length = RIOT_CORE_ALIAS_CERT_LEN - 100 -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
 	testing.cert_msg[cert_msg_idx++].resp_length = 100;
 
 	/* GET_CERTIFICATE request for the last part. */
 	testing.cert_msg[cert_msg_idx].auth_cert = true;
 	testing.cert_msg[cert_msg_idx].alias = true;
 	testing.cert_msg[cert_msg_idx].req_offset = alias_offset + 200;
-	testing.cert_msg[cert_msg_idx].req_length = RIOT_CORE_ALIAS_CERT_LEN - 200;
-	testing.cert_msg[cert_msg_idx].cert_offset = alias_offset;
+	testing.cert_msg[cert_msg_idx].req_length = RIOT_CORE_ALIAS_CERT_LEN - 200 -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+	testing.cert_msg[cert_msg_idx].cert_offset = alias_offset -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
 	testing.cert_msg[cert_msg_idx].cert_length = RIOT_CORE_ALIAS_CERT_LEN;
 	testing.cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_ALIAS_CERT_LEN - 200;
 
@@ -25099,11 +25114,14 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 
 	/* GET_CERTIFICATE request for the root CA. */
 	testing.cert_msg[cert_msg_idx].root_ca = true;
-	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx].req_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN;
-	testing.cert_msg[cert_msg_idx].cert_offset = testing.cert_msg[cert_msg_idx].req_offset;
-	testing.cert_msg[cert_msg_idx].cert_length = testing.cert_msg[cert_msg_idx].req_length;
-	testing.cert_msg[cert_msg_idx++].resp_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN;
+	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len +
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+	testing.cert_msg[cert_msg_idx].req_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+	testing.cert_msg[cert_msg_idx].cert_offset = testing.cert_buffer_len;
+	testing.cert_msg[cert_msg_idx].cert_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN;
+	testing.cert_msg[cert_msg_idx++].resp_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
 
 	testing.cert_buffer_len += X509_CERTSS_ECC_CA_NOPL_DER_LEN;
 
@@ -25118,11 +25136,14 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	/* GET_CERTIFICATE request for the Device ID. */
 	testing.cert_msg[cert_msg_idx].auth_cert = true;
 	testing.cert_msg[cert_msg_idx].trusted_ca = true;
-	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx].req_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN;
-	testing.cert_msg[cert_msg_idx].cert_offset = testing.cert_msg[cert_msg_idx].req_offset;
-	testing.cert_msg[cert_msg_idx].cert_length = testing.cert_msg[cert_msg_idx].req_length;
-	testing.cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN;
+	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len +
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+	testing.cert_msg[cert_msg_idx].req_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+	testing.cert_msg[cert_msg_idx].cert_offset = testing.cert_buffer_len;
+	testing.cert_msg[cert_msg_idx].cert_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN;
+	testing.cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
 
 	testing.cert_buffer_len += RIOT_CORE_DEVID_SIGNED_CERT_LEN;
 
@@ -25136,11 +25157,14 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	/* GET_CERTIFICATE request for the Alias cert. */
 	testing.cert_msg[cert_msg_idx].auth_cert = true;
 	testing.cert_msg[cert_msg_idx].alias = true;
-	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx].req_length = RIOT_CORE_ALIAS_CERT_LEN;
-	testing.cert_msg[cert_msg_idx].cert_offset = testing.cert_msg[cert_msg_idx].req_offset;
-	testing.cert_msg[cert_msg_idx].cert_length = testing.cert_msg[cert_msg_idx].req_length;
-	testing.cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_ALIAS_CERT_LEN;
+	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len +
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+	testing.cert_msg[cert_msg_idx].req_length = RIOT_CORE_ALIAS_CERT_LEN -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+	testing.cert_msg[cert_msg_idx].cert_offset = testing.cert_buffer_len;
+	testing.cert_msg[cert_msg_idx].cert_length = RIOT_CORE_ALIAS_CERT_LEN;
+	testing.cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_ALIAS_CERT_LEN -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
 
 	testing.cert_buffer_len += RIOT_CORE_ALIAS_CERT_LEN;
 	testing.cert_msg_count = cert_msg_idx;
@@ -26557,8 +26581,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.add_root_ca,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, HASH_ENGINE_START_SHA256_FAILED);
@@ -26618,8 +26642,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.add_root_ca,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, 0);
@@ -26688,8 +26712,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.add_root_ca,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha384,
 		&testing.primary_hash, HASH_ENGINE_START_SHA384_FAILED);
@@ -26749,8 +26773,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.add_root_ca,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha384,
 		&testing.primary_hash, 0);
@@ -26819,8 +26843,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.add_root_ca,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha512,
 		&testing.primary_hash, HASH_ENGINE_START_SHA512_FAILED);
@@ -26880,8 +26904,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.add_root_ca,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha512,
 		&testing.primary_hash, 0);
@@ -26950,8 +26974,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.add_root_ca,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha384,
 		&testing.primary_hash, 0);
@@ -26964,8 +26988,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
@@ -27026,8 +27050,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_hash_i
 
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
@@ -27088,13 +27112,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_load_i
 
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.load_certificate,
 		&testing.x509_mock, X509_ENGINE_LOAD_FAILED, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
@@ -27155,13 +27179,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_authen
 
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.load_certificate,
 		&testing.x509_mock, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 	status |= mock_expect_save_arg (&testing.x509_mock.mock, 0, 1);
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.authenticate,
@@ -27230,13 +27254,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_init_i
 
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.load_certificate,
 		&testing.x509_mock, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 	status |= mock_expect_save_arg (&testing.x509_mock.mock, 0, 1);
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.authenticate,
@@ -27307,13 +27331,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_add_tr
 
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.load_certificate,
 		&testing.x509_mock, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 	status |= mock_expect_save_arg (&testing.x509_mock.mock, 0, 1);
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.authenticate,
@@ -27330,8 +27354,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_add_tr
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.add_trusted_ca,
 		&testing.x509_mock, X509_ENGINE_TRUSTED_CA_FAILED, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
@@ -27402,8 +27426,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_hash_a
 
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
@@ -27474,13 +27498,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_load_a
 
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.load_certificate,
 		&testing.x509_mock, X509_ENGINE_LOAD_FAILED, MOCK_ARG_SAVED_ARG (1),
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
@@ -27551,13 +27575,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_authen
 
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.load_certificate,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (1),
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.authenticate,
 		&testing.x509_mock, X509_ENGINE_CERT_NOT_VALID, MOCK_ARG_SAVED_ARG (1),
@@ -27635,13 +27659,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_finish
 
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.load_certificate,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (1),
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.authenticate,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0));
@@ -27723,13 +27747,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_compar
 
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.load_certificate,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (1),
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.authenticate,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0));
@@ -27814,13 +27838,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_get_al
 
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.load_certificate,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (1),
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.authenticate,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0));
@@ -27908,13 +27932,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_get_al
 
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.load_certificate,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (1),
-		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->req_offset], get_cert->req_length),
-		MOCK_ARG (get_cert->req_length));
+		MOCK_ARG_PTR_CONTAINS (&cert_buffer[get_cert->cert_offset], get_cert->cert_length),
+		MOCK_ARG (get_cert->cert_length));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.authenticate,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0));
@@ -34910,11 +34934,14 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 
 	/* GET_CERTIFICATE request for the root CA. */
 	testing.cert_msg[cert_msg_idx].root_ca = true;
-	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx].req_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN;
-	testing.cert_msg[cert_msg_idx].cert_offset = testing.cert_msg[cert_msg_idx].req_offset;
-	testing.cert_msg[cert_msg_idx].cert_length = testing.cert_msg[cert_msg_idx].req_length;
-	testing.cert_msg[cert_msg_idx++].resp_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN;
+	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len +
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+	testing.cert_msg[cert_msg_idx].req_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+	testing.cert_msg[cert_msg_idx].cert_offset = testing.cert_buffer_len;
+	testing.cert_msg[cert_msg_idx].cert_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN;
+	testing.cert_msg[cert_msg_idx++].resp_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
 
 	testing.cert_buffer_len += X509_CERTSS_ECC_CA_NOPL_DER_LEN;
 
@@ -34929,11 +34956,14 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	/* GET_CERTIFICATE request for the Device ID. */
 	testing.cert_msg[cert_msg_idx].auth_cert = true;
 	testing.cert_msg[cert_msg_idx].trusted_ca = true;
-	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx].req_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN;
-	testing.cert_msg[cert_msg_idx].cert_offset = testing.cert_msg[cert_msg_idx].req_offset;
-	testing.cert_msg[cert_msg_idx].cert_length = testing.cert_msg[cert_msg_idx].req_length;
-	testing.cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN;
+	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len +
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+	testing.cert_msg[cert_msg_idx].req_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+	testing.cert_msg[cert_msg_idx].cert_offset = testing.cert_buffer_len;
+	testing.cert_msg[cert_msg_idx].cert_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN;
+	testing.cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
 
 	testing.cert_buffer_len += RIOT_CORE_DEVID_SIGNED_CERT_LEN;
 
@@ -34947,11 +34977,14 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	/* GET_CERTIFICATE request for the Alias cert. */
 	testing.cert_msg[cert_msg_idx].auth_cert = true;
 	testing.cert_msg[cert_msg_idx].alias = true;
-	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx].req_length = RIOT_CORE_ALIAS_CERT_LEN;
-	testing.cert_msg[cert_msg_idx].cert_offset = testing.cert_msg[cert_msg_idx].req_offset;
-	testing.cert_msg[cert_msg_idx].cert_length = testing.cert_msg[cert_msg_idx].req_length;
-	testing.cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_ALIAS_CERT_LEN;
+	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len +
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+	testing.cert_msg[cert_msg_idx].req_length = RIOT_CORE_ALIAS_CERT_LEN -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+	testing.cert_msg[cert_msg_idx].cert_offset = testing.cert_buffer_len;
+	testing.cert_msg[cert_msg_idx].cert_length = RIOT_CORE_ALIAS_CERT_LEN;
+	testing.cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_ALIAS_CERT_LEN -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
 
 	testing.cert_buffer_len += RIOT_CORE_ALIAS_CERT_LEN;
 

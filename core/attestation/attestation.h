@@ -131,6 +131,7 @@ enum {
 	ATTESTATION_GET_MEAS_CAP_MISMATCH_BY_DEVICE = ATTESTATION_ERROR (0x26),		/**< Target device support mismatched measurement response capabilities. */
 	ATTESTATION_CHAL_CAP_MISMATCH_BY_DEVICE = ATTESTATION_ERROR (0x27),			/**< Target device support mismatched challenge response capabilities. */
 	ATTESTATION_CERT_TOO_LARGE = ATTESTATION_ERROR (0x28),						/**< A single device cert cannot fit into the message buffer. */
+	ATTESTATION_BUFFER_OVERRUN = ATTESTATION_ERROR (0x29),						/**< Buffer overrun occurs when a program accesses memory beyond the allocated buffer size. */
 };
 
 

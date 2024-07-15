@@ -2892,7 +2892,7 @@ static int attestation_requester_retrieve_spdm_certificate_chain_portion (
 		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
 			DEVICE_MANAGER_ATTESTATION_INVALID_CERTS);
 
-		return ATTESTATION_CERT_TOO_LARGE;
+		return ATTESTATION_BUFFER_OVERRUN;
 	}
 
 	while (length > 0) {
@@ -2967,6 +2967,7 @@ static int attestation_requester_retrieve_individual_spdm_certificate (
 {
 	uint8_t *portion_data;
 	size_t portion_size;
+	uint8_t cert_header[ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN];
 	int status;
 
 	/* First determine the size of the next certificate at the specified offset by retrieving just
@@ -2979,22 +2980,45 @@ static int attestation_requester_retrieve_individual_spdm_certificate (
 		return status;
 	}
 
+	memcpy (cert_header, portion_data, portion_size);
+
 	status = asn1_get_der_item_len (portion_data, portion_size);
 	if (ROT_IS_ERROR (status)) {
 		return status;
 	}
 
-	/* Then issue a request to retrieve the entire certificate. */
-	portion_size = status;
+	/* Assume that no single certificate will be larger than the the total size of the message
+	 * buffer. */
+	if ((size_t) (status + sizeof (struct spdm_get_certificate_response)) >
+		sizeof (attestation->state->txn.msg_buffer)) {
+		device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+			DEVICE_MANAGER_ATTESTATION_INVALID_CERTS);
 
-	status = attestation_requester_retrieve_spdm_certificate_chain_portion (attestation, dest_eid,
-		dest_addr, offset, portion_size, &portion_data);
-	if (status != 0) {
-		return status;
+		return ATTESTATION_CERT_TOO_LARGE;
+	}
+
+	/* Then issue a request to retrieve the rest of the certificate. As specified in SPDM spec,
+	 * offset must be monotonic after the first request for a particular certificate chain. */
+	if ((size_t) status < portion_size) {
+		portion_size = 0;
+	}
+	else {
+		offset += portion_size;
+		portion_size = status - portion_size;
+
+		status = attestation_requester_retrieve_spdm_certificate_chain_portion (attestation,
+			dest_eid, dest_addr, offset, portion_size, &portion_data);
+		if (status != 0) {
+			return status;
+		}
+
+		memmove (portion_data + ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN, portion_data,
+			portion_size);
+		memcpy (portion_data, cert_header, ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN);
 	}
 
 	*cert_data = portion_data;
-	*cert_len = portion_size;
+	*cert_len = portion_size + ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
 
 	return 0;
 }
