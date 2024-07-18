@@ -12,7 +12,7 @@
 
 /* Internal functions declared to allow for static initialization. */
 int ephemeral_key_generation_rsa_generate_key (const struct ephemeral_key_generation *key_gen,
-	size_t key_size, uint8_t **key, size_t *key_length);
+	size_t bits, uint8_t *key, size_t key_buffer_size, size_t *key_length);
 
 
 /**

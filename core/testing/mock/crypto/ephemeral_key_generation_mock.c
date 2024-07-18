@@ -8,8 +8,8 @@
 
 
 static int ephemeral_key_generation_mock_generate_key (
-	const struct ephemeral_key_generation *key_gen,	size_t key_size, uint8_t **key,
-	size_t *key_length)
+	const struct ephemeral_key_generation *key_gen,	size_t bits, uint8_t *key,
+	size_t key_buffer_size, size_t *key_length)
 {
 	struct ephemeral_key_generation_mock *mock = (struct ephemeral_key_generation_mock*) key_gen;
 
@@ -18,7 +18,8 @@ static int ephemeral_key_generation_mock_generate_key (
 	}
 
 	MOCK_RETURN (&mock->mock, ephemeral_key_generation_mock_generate_key, key_gen,
-		MOCK_ARG_CALL (key_size), MOCK_ARG_PTR_CALL (key), MOCK_ARG_PTR_CALL (key_length));
+		MOCK_ARG_CALL (bits), MOCK_ARG_PTR_CALL (key), MOCK_ARG_CALL (key_buffer_size),
+		MOCK_ARG_PTR_CALL (key_length));
 }
 
 
@@ -26,7 +27,7 @@ static int ephemeral_key_generation_mock_generate_key (
 static int ephemeral_key_generation_mock_func_arg_count (void *func)
 {
 	if (func == ephemeral_key_generation_mock_generate_key) {
-		return 3;
+		return 4;
 	}
 	else {
 		return 0;
@@ -48,12 +49,15 @@ static const char* ephemeral_key_generation_mock_arg_name_map (void *func, int a
 	if (func == ephemeral_key_generation_mock_generate_key) {
 		switch (arg) {
 			case 0:
-				return "key_size";
+				return "bits";
 
 			case 1:
 				return "key";
 
 			case 2:
+				return "key_buffer_size";
+
+			case 3:
 				return "key_length";
 		}
 	}

@@ -21,6 +21,12 @@ static void add_all_keystore_tests (CuSuite *suite)
 	/* This is unused when no tests will be executed. */
 	UNUSED (suite);
 
+#if (defined TESTING_RUN_EPHEMERAL_KEY_MANAGER_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_EPHEMERAL_KEY_MANAGER_SUITE
+	TESTING_RUN_SUITE (ephemeral_key_manager);
+#endif
 #if (defined TESTING_RUN_KEYSTORE_FLASH_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

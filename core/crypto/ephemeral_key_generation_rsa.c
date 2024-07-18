@@ -3,39 +3,47 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include "platform_api.h"
 #include "platform_io.h"
 #include "common/unused.h"
 #include "crypto/ephemeral_key_generation_rsa.h"
 
 
 int ephemeral_key_generation_rsa_generate_key (const struct ephemeral_key_generation *key_gen,
-	size_t key_size, uint8_t **key, size_t *key_length)
+	size_t bits, uint8_t *key, size_t key_buffer_size, size_t *key_length)
 {
 	struct rsa_private_key rsa_key;
 	const struct ephemeral_key_generation_rsa *key_gen_rsa =
 		(const struct ephemeral_key_generation_rsa*) key_gen;
+	uint8_t *key_der;
 	int status = 0;
 
-	if (key == NULL) {
+	if ((key == NULL) || (key_gen == NULL) || (key_length == NULL)) {
 		return EPHEMERAL_KEY_GEN_INVALID_ARGUMENT;
 	}
 
-	*key = NULL;
-
-	if ((key_gen == NULL) || (key_length == NULL)) {
-		return EPHEMERAL_KEY_GEN_INVALID_ARGUMENT;
-	}
-
-	status = key_gen_rsa->engine->generate_key (key_gen_rsa->engine, &rsa_key, key_size);
+	status = key_gen_rsa->engine->generate_key (key_gen_rsa->engine, &rsa_key, bits);
 	if (status != 0) {
 		return status;
 	}
 
 	/* TODO:  Needs pairwise consistency test. */
 
-	/* Get Private key DER data */
-	status = key_gen_rsa->engine->get_private_key_der (key_gen_rsa->engine,	&rsa_key, key,
+	/* Get the DER encoded private key.  This will be in a dynamically allocated buffer from the RSA
+	 * engine, which needs to be copied into the user buffer. */
+	status = key_gen_rsa->engine->get_private_key_der (key_gen_rsa->engine,	&rsa_key, &key_der,
 		key_length);
+	if (status == 0) {
+		if (*key_length <= key_buffer_size) {
+			memmove (key, key_der, *key_length);
+		}
+		else {
+			status = EPHEMERAL_KEY_GEN_SMALL_KEY_BUFFER;
+		}
+
+		/* Free the dynamically allocated DER data. */
+		platform_free (key_der);
+	}
 
 	key_gen_rsa->engine->release_key (key_gen_rsa->engine, &rsa_key);
 
