@@ -9,9 +9,9 @@
 #include "logging/debug_log.h"
 
 
-static int aes_mbedtls_set_key (struct aes_engine *engine, const uint8_t *key, size_t length)
+int aes_mbedtls_set_key (struct aes_engine *engine, const uint8_t *key, size_t length)
 {
-	struct aes_engine_mbedtls *mbedtls = (struct aes_engine_mbedtls*) engine;
+	const struct aes_engine_mbedtls *mbedtls = (const struct aes_engine_mbedtls*) engine;
 	int status;
 
 	if ((mbedtls == NULL) || (key == NULL)) {
@@ -30,7 +30,7 @@ static int aes_mbedtls_set_key (struct aes_engine *engine, const uint8_t *key, s
 			return AES_ENGINE_INVALID_KEY_LENGTH;
 	}
 
-	status = mbedtls_gcm_setkey (&mbedtls->context, MBEDTLS_CIPHER_ID_AES, key, 256);
+	status = mbedtls_gcm_setkey (&mbedtls->state->context, MBEDTLS_CIPHER_ID_AES, key, 256);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_AES_GCM_INIT_EC, status, 0);
@@ -41,7 +41,7 @@ static int aes_mbedtls_set_key (struct aes_engine *engine, const uint8_t *key, s
 	return 0;
 }
 
-static int aes_mbedtls_encrypt_with_add_data (struct aes_engine *engine, const uint8_t *plaintext,
+int aes_mbedtls_encrypt_with_add_data (struct aes_engine *engine, const uint8_t *plaintext,
 	size_t length, const uint8_t *iv, size_t iv_length, const uint8_t *additional_data,
 	size_t additional_data_length, uint8_t *ciphertext, size_t out_length, uint8_t *tag,
 	size_t tag_length)
@@ -59,11 +59,11 @@ static int aes_mbedtls_encrypt_with_add_data (struct aes_engine *engine, const u
 		return AES_ENGINE_OUT_BUFFER_TOO_SMALL;
 	}
 
-	if (mbedtls->context.cipher_ctx.key_bitlen == 0) {
+	if (mbedtls->state->context.cipher_ctx.key_bitlen == 0) {
 		return AES_ENGINE_NO_KEY;
 	}
 
-	status = mbedtls_gcm_crypt_and_tag (&mbedtls->context, MBEDTLS_GCM_ENCRYPT, length, iv,
+	status = mbedtls_gcm_crypt_and_tag (&mbedtls->state->context, MBEDTLS_GCM_ENCRYPT, length, iv,
 		iv_length, additional_data, additional_data_length, plaintext, ciphertext, 16, tag);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
@@ -75,15 +75,15 @@ static int aes_mbedtls_encrypt_with_add_data (struct aes_engine *engine, const u
 	return 0;
 }
 
-static int aes_mbedtls_encrypt_data (struct aes_engine *engine, const uint8_t *plaintext,
-	size_t length, const uint8_t *iv, size_t iv_length, uint8_t *ciphertext, size_t out_length,
-	uint8_t *tag, size_t tag_length)
+int aes_mbedtls_encrypt_data (struct aes_engine *engine, const uint8_t *plaintext, size_t length,
+	const uint8_t *iv, size_t iv_length, uint8_t *ciphertext, size_t out_length, uint8_t *tag,
+	size_t tag_length)
 {
 	return aes_mbedtls_encrypt_with_add_data (engine, plaintext, length, iv, iv_length, NULL, 0,
 		ciphertext, out_length, tag, tag_length);
 }
 
-static int aes_mbedtls_decrypt_with_add_data (struct aes_engine *engine, const uint8_t *ciphertext,
+int aes_mbedtls_decrypt_with_add_data (struct aes_engine *engine, const uint8_t *ciphertext,
 	size_t length, const uint8_t *tag, const uint8_t *iv, size_t iv_length,
 	const uint8_t *additional_data, size_t additional_data_length, uint8_t *plaintext,
 	size_t out_length)
@@ -100,12 +100,12 @@ static int aes_mbedtls_decrypt_with_add_data (struct aes_engine *engine, const u
 		return AES_ENGINE_OUT_BUFFER_TOO_SMALL;
 	}
 
-	if (mbedtls->context.cipher_ctx.key_bitlen == 0) {
+	if (mbedtls->state->context.cipher_ctx.key_bitlen == 0) {
 		return AES_ENGINE_NO_KEY;
 	}
 
-	status = mbedtls_gcm_auth_decrypt (&mbedtls->context, length, iv, iv_length, additional_data,
-		additional_data_length, tag, 16, ciphertext, plaintext);
+	status = mbedtls_gcm_auth_decrypt (&mbedtls->state->context, length, iv, iv_length,
+		additional_data, additional_data_length, tag, 16, ciphertext, plaintext);
 
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
@@ -119,30 +119,30 @@ static int aes_mbedtls_decrypt_with_add_data (struct aes_engine *engine, const u
 	return status;
 }
 
-static int aes_mbedtls_decrypt_data (struct aes_engine *engine, const uint8_t *ciphertext,
-	size_t length, const uint8_t *tag, const uint8_t *iv, size_t iv_length, uint8_t *plaintext,
-	size_t out_length)
+int aes_mbedtls_decrypt_data (struct aes_engine *engine, const uint8_t *ciphertext,	size_t length,
+	const uint8_t *tag, const uint8_t *iv, size_t iv_length, uint8_t *plaintext, size_t out_length)
 {
 	return aes_mbedtls_decrypt_with_add_data (engine, ciphertext, length, tag, iv, iv_length, NULL,
 		0, plaintext, out_length);
 }
 
 /**
- * Initialize an instance for run AES operations using mbedTLS.
+ * Initialize an instance for running AES operations using mbedTLS.
  *
  * @param engine The AES engine to initialize.
+ * @param state The state information for the engine.
  *
  * @return 0 if the AES engine was successfully initialized or an error code.
  */
-int aes_mbedtls_init (struct aes_engine_mbedtls *engine)
+int aes_mbedtls_init (struct aes_engine_mbedtls *engine, struct aes_engine_mbedtls_state *state)
 {
-	if (engine == NULL) {
+	if ((engine == NULL) || (state == NULL)) {
 		return AES_ENGINE_INVALID_ARGUMENT;
 	}
 
 	memset (engine, 0, sizeof (struct aes_engine_mbedtls));
 
-	mbedtls_gcm_init (&engine->context);
+	engine->state = state;
 
 	engine->base.set_key = aes_mbedtls_set_key;
 	engine->base.encrypt_data = aes_mbedtls_encrypt_data;
@@ -150,17 +150,35 @@ int aes_mbedtls_init (struct aes_engine_mbedtls *engine)
 	engine->base.decrypt_with_add_data = aes_mbedtls_decrypt_with_add_data;
 	engine->base.encrypt_with_add_data = aes_mbedtls_encrypt_with_add_data;
 
+	return aes_mbedtls_init_state (engine);
+}
+
+/**
+ * Initialize the context for a mbedTLS AES engine.
+ *
+ * @param engine The AES engine to initialize the GCM context.
+ *
+ * @return 0 if the AES engine context was successfully initialized or an error code.
+ */
+int aes_mbedtls_init_state (const struct aes_engine_mbedtls *engine)
+{
+	if ((engine == NULL) || (engine->state == NULL)) {
+		return AES_ENGINE_INVALID_ARGUMENT;
+	}
+
+	mbedtls_gcm_init (&engine->state->context);
+
 	return 0;
 }
 
 /**
- * Release an mbedTLS AES engine.
+ * Release a mbedTLS AES engine.
  *
  * @param engine The AES engine to release.
  */
-void aes_mbedtls_release (struct aes_engine_mbedtls *engine)
+void aes_mbedtls_release (const struct aes_engine_mbedtls *engine)
 {
 	if (engine) {
-		mbedtls_gcm_free (&engine->context);
+		mbedtls_gcm_free (&engine->state->context);
 	}
 }

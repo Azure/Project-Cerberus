@@ -7,10 +7,20 @@
 #include "platform_api.h"
 #include "testing.h"
 #include "crypto/aes_mbedtls.h"
+#include "crypto/aes_mbedtls_static.h"
 #include "testing/crypto/aes_testing.h"
 
 
 TEST_SUITE_LABEL ("aes_mbedtls");
+
+
+/**
+ * Dependencies for testing.
+ */
+struct aes_engine_mbedtls_testing {
+	struct aes_engine_mbedtls test;			/**< An mbedTLS context for AES operations. */
+	struct aes_engine_mbedtls_state state;	/**< The state information for the engine. */
+};
 
 
 /*******************
@@ -19,21 +29,21 @@ TEST_SUITE_LABEL ("aes_mbedtls");
 
 static void aes_mbedtls_test_init (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrNotNull (test, engine.base.set_key);
-	CuAssertPtrNotNull (test, engine.base.encrypt_data);
-	CuAssertPtrNotNull (test, engine.base.decrypt_data);
-	CuAssertPtrNotNull (test, engine.base.encrypt_with_add_data);
-	CuAssertPtrNotNull (test, engine.base.decrypt_with_add_data);
+	CuAssertPtrNotNull (test, engine.test.base.set_key);
+	CuAssertPtrNotNull (test, engine.test.base.encrypt_data);
+	CuAssertPtrNotNull (test, engine.test.base.decrypt_data);
+	CuAssertPtrNotNull (test, engine.test.base.encrypt_with_add_data);
+	CuAssertPtrNotNull (test, engine.test.base.decrypt_with_add_data);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_init_null (CuTest *test)
@@ -42,7 +52,41 @@ static void aes_mbedtls_test_init_null (CuTest *test)
 
 	TEST_START;
 
-	status = aes_mbedtls_init (NULL);
+	status = aes_mbedtls_init (NULL, NULL);
+	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
+}
+
+static void aes_mbedtls_test_static_init (CuTest *test)
+{
+	struct aes_engine_mbedtls_testing engine = {
+		.test = aes_mbedtls_static_init (&engine.state)
+	};
+	int status;
+
+	TEST_START;
+
+	status = aes_mbedtls_init_state (&engine.test);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrNotNull (test, engine.test.base.set_key);
+	CuAssertPtrNotNull (test, engine.test.base.encrypt_data);
+	CuAssertPtrNotNull (test, engine.test.base.decrypt_data);
+	CuAssertPtrNotNull (test, engine.test.base.encrypt_with_add_data);
+	CuAssertPtrNotNull (test, engine.test.base.decrypt_with_add_data);
+
+	aes_mbedtls_release (&engine.test);
+}
+
+static void aes_mbedtls_test_static_init_null (CuTest *test)
+{
+	struct aes_engine_mbedtls_testing engine = {
+		.test = aes_mbedtls_static_init (NULL)
+	};
+	int status;
+
+	TEST_START;
+
+	status = aes_mbedtls_init_state (&engine.test);
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 }
 
@@ -55,21 +99,21 @@ static void aes_mbedtls_test_release_null (CuTest *test)
 
 static void aes_mbedtls_test_encrypt_data (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TAG_LEN * 2];
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN, AES_IV,
-		AES_IV_LEN, ciphertext, sizeof (ciphertext), tag, sizeof (tag));
+	status = engine.test.base.encrypt_data (&engine.test.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
+		AES_IV,	AES_IV_LEN, ciphertext, sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (AES_CIPHERTEXT, ciphertext, AES_PLAINTEXT_LEN);
@@ -78,37 +122,67 @@ static void aes_mbedtls_test_encrypt_data (CuTest *test)
 	status = testing_validate_array (AES_GCM_TAG, tag, AES_GCM_TAG_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
+}
+
+static void aes_mbedtls_test_encrypt_data_static_init (CuTest *test)
+{
+	struct aes_engine_mbedtls_testing engine = {
+		.test = aes_mbedtls_static_init (&engine.state)
+	};
+	int status;
+	uint8_t ciphertext[AES_CIPHERTEXT_LEN * 2];
+	uint8_t tag[AES_GCM_TAG_LEN * 2];
+
+	TEST_START;
+
+	status = aes_mbedtls_init_state (&engine.test);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.encrypt_data (&engine.test.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
+		AES_IV,	AES_IV_LEN, ciphertext, sizeof (ciphertext), tag, sizeof (tag));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (AES_CIPHERTEXT, ciphertext, AES_PLAINTEXT_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (AES_GCM_TAG, tag, AES_GCM_TAG_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aes_mbedtls_release (&engine.test);
 }
 
 /* TODO: mbedTLS doesn't support GCM operations without a tag. */
 //static void aes_mbedtls_test_encrypt_data_no_tag (CuTest *test)
 //{
-//	struct aes_engine_mbedtls engine;
+//	struct aes_engine_mbedtls_testing engine;
 //	int status;
 //	uint8_t ciphertext[AES_CIPHERTEXT_LEN * 2];
 //
 //	TEST_START;
 //
-//	status = aes_mbedtls_init (&engine);
+//	status = aes_mbedtls_init (&engine.test, &engine.state);
 //	CuAssertIntEquals (test, 0, status);
 //
-//	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+//	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 //	CuAssertIntEquals (test, 0, status);
 //
-//	status = engine.base.encrypt_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN, AES_IV,
+//	status = engine.test.base.encrypt_data (&engine.test.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN, AES_IV,
 //		AES_IV_LEN, ciphertext, sizeof (ciphertext), NULL, 0);
 //	CuAssertIntEquals (test, 0, status);
 //
 //	status = testing_validate_array (AES_CIPHERTEXT, ciphertext, AES_PLAINTEXT_LEN);
 //	CuAssertIntEquals (test, 0, status);
 //
-//	aes_mbedtls_release (&engine);
+//	aes_mbedtls_release (&engine.test);
 //}
 
 static void aes_mbedtls_test_encrypt_data_same_buffer (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TAG_LEN * 2];
@@ -117,14 +191,14 @@ static void aes_mbedtls_test_encrypt_data_same_buffer (CuTest *test)
 
 	memcpy (ciphertext, AES_PLAINTEXT, AES_PLAINTEXT_LEN);
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_data (&engine.base, ciphertext, AES_PLAINTEXT_LEN, AES_IV,
-		AES_IV_LEN, ciphertext, sizeof (ciphertext), tag, sizeof (tag));
+	status = engine.test.base.encrypt_data (&engine.test.base, ciphertext, AES_PLAINTEXT_LEN,
+		AES_IV,	AES_IV_LEN, ciphertext, sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (AES_CIPHERTEXT, ciphertext, AES_PLAINTEXT_LEN);
@@ -133,190 +207,190 @@ static void aes_mbedtls_test_encrypt_data_same_buffer (CuTest *test)
 	status = testing_validate_array (AES_GCM_TAG, tag, AES_GCM_TAG_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_encrypt_data_null (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TAG_LEN * 2];
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_data (NULL, AES_PLAINTEXT, AES_PLAINTEXT_LEN, AES_IV, AES_IV_LEN,
+	status = engine.test.base.encrypt_data (NULL, AES_PLAINTEXT, AES_PLAINTEXT_LEN, AES_IV,
+		AES_IV_LEN,	ciphertext, sizeof (ciphertext), tag, sizeof (tag));
+	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
+
+	status = engine.test.base.encrypt_data (&engine.test.base, NULL, AES_PLAINTEXT_LEN, AES_IV,
+		AES_IV_LEN,	ciphertext, sizeof (ciphertext), tag, sizeof (tag));
+	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
+
+	status = engine.test.base.encrypt_data (&engine.test.base, AES_PLAINTEXT, 0, AES_IV, AES_IV_LEN,
 		ciphertext, sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.encrypt_data (&engine.base, NULL, AES_PLAINTEXT_LEN, AES_IV, AES_IV_LEN,
-		ciphertext, sizeof (ciphertext), tag, sizeof (tag));
+	status = engine.test.base.encrypt_data (&engine.test.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
+		NULL, AES_IV_LEN, ciphertext, sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.encrypt_data (&engine.base, AES_PLAINTEXT, 0, AES_IV, AES_IV_LEN,
-		ciphertext, sizeof (ciphertext), tag, sizeof (tag));
+	status = engine.test.base.encrypt_data (&engine.test.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
+		AES_IV, 0, ciphertext, sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.encrypt_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN, NULL,
-		AES_IV_LEN, ciphertext, sizeof (ciphertext), tag, sizeof (tag));
+	status = engine.test.base.encrypt_data (&engine.test.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
+		AES_IV,	AES_IV_LEN, NULL, sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.encrypt_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN, AES_IV, 0,
-		ciphertext, sizeof (ciphertext), tag, sizeof (tag));
+	status = engine.test.base.encrypt_data (&engine.test.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
+		AES_IV,	AES_IV_LEN, ciphertext, sizeof (ciphertext), NULL, sizeof (tag));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.encrypt_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN, AES_IV,
-		AES_IV_LEN, NULL, sizeof (ciphertext), tag, sizeof (tag));
-	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
-
-	status = engine.base.encrypt_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN, AES_IV,
-		AES_IV_LEN, ciphertext, sizeof (ciphertext), NULL, sizeof (tag));
-	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
-
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_encrypt_data_small_buffer (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TAG_LEN * 2];
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN, AES_IV,
-		AES_IV_LEN, ciphertext, AES_PLAINTEXT_LEN - 1, tag, sizeof (tag));
+	status = engine.test.base.encrypt_data (&engine.test.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
+		AES_IV,	AES_IV_LEN, ciphertext, AES_PLAINTEXT_LEN - 1, tag, sizeof (tag));
 	CuAssertIntEquals (test, AES_ENGINE_OUT_BUFFER_TOO_SMALL, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_encrypt_data_small_tag_buffer (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TAG_LEN * 2];
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN, AES_IV,
-		AES_IV_LEN, ciphertext, sizeof (ciphertext), tag, AES_GCM_TAG_LEN - 1);
+	status = engine.test.base.encrypt_data (&engine.test.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
+		AES_IV,	AES_IV_LEN, ciphertext, sizeof (ciphertext), tag, AES_GCM_TAG_LEN - 1);
 	CuAssertIntEquals (test, AES_ENGINE_OUT_BUFFER_TOO_SMALL, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_encrypt_data_no_key (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TAG_LEN * 2];
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN, AES_IV,
-		AES_IV_LEN, ciphertext, sizeof (ciphertext), tag, sizeof (tag));
+	status = engine.test.base.encrypt_data (&engine.test.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
+		AES_IV,	AES_IV_LEN, ciphertext, sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, AES_ENGINE_NO_KEY, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_set_key_null (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (NULL, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (NULL, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.set_key (&engine.base, NULL, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, NULL, AES_KEY_LEN);
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_set_key_bad_length (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, 3);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, 3);
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_KEY_LENGTH, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_set_key_unsupported_length (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, (128 / 8));
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, (128 / 8));
 	CuAssertIntEquals (test, AES_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, (192 / 8));
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, (192 / 8));
 	CuAssertIntEquals (test, AES_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_encrypt_with_add_data_additional_data (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TAG_LEN * 2];
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_with_add_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
-		AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext, sizeof (ciphertext), tag,
-		sizeof (tag));
+	status = engine.test.base.encrypt_with_add_data (&engine.test.base, AES_PLAINTEXT,
+		AES_PLAINTEXT_LEN, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext,
+		sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (AES_CIPHERTEXT, ciphertext, AES_PLAINTEXT_LEN);
@@ -325,26 +399,58 @@ static void aes_mbedtls_test_encrypt_with_add_data_additional_data (CuTest *test
 	status = testing_validate_array (AES_GCM_ADD_DATA_TAG, tag, AES_GCM_TAG_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
-static void aes_mbedtls_test_encrypt_with_add_data_no_additional_data (CuTest *test)
+static void aes_mbedtls_test_encrypt_with_add_data_additional_data_with_static_init (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine = {
+		.test = aes_mbedtls_static_init (&engine.state)
+	};
 	int status;
 	uint8_t ciphertext[AES_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TAG_LEN * 2];
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init_state (&engine.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_with_add_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
-		AES_IV, AES_IV_LEN, NULL, 0, ciphertext, sizeof (ciphertext), tag, sizeof (tag));
+	status = engine.test.base.encrypt_with_add_data (&engine.test.base, AES_PLAINTEXT,
+		AES_PLAINTEXT_LEN, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext,
+		sizeof (ciphertext), tag, sizeof (tag));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (AES_CIPHERTEXT, ciphertext, AES_PLAINTEXT_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (AES_GCM_ADD_DATA_TAG, tag, AES_GCM_TAG_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aes_mbedtls_release (&engine.test);
+}
+
+static void aes_mbedtls_test_encrypt_with_add_data_no_additional_data (CuTest *test)
+{
+	struct aes_engine_mbedtls_testing engine;
+	int status;
+	uint8_t ciphertext[AES_CIPHERTEXT_LEN * 2];
+	uint8_t tag[AES_GCM_TAG_LEN * 2];
+
+	TEST_START;
+
+	status = aes_mbedtls_init (&engine.test, &engine.state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.encrypt_with_add_data (&engine.test.base, AES_PLAINTEXT,
+		AES_PLAINTEXT_LEN, AES_IV, AES_IV_LEN, NULL, 0, ciphertext, sizeof (ciphertext), tag,
+		sizeof (tag));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (AES_CIPHERTEXT, ciphertext, AES_PLAINTEXT_LEN);
@@ -353,37 +459,37 @@ static void aes_mbedtls_test_encrypt_with_add_data_no_additional_data (CuTest *t
 	status = testing_validate_array (AES_GCM_TAG, tag, AES_GCM_TAG_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 /* TODO: mbedTLS doesn't support GCM operations without a tag. */
 //static void aes_mbedtls_test_aes_mbedtls_test_encrypt_with_add_data_no_tag (CuTest *test)
 //{
-//	struct aes_engine_mbedtls engine;
+//	struct aes_engine_mbedtls_testing engine;
 //	int status;
 //	uint8_t ciphertext[AES_CIPHERTEXT_LEN * 2];
 //
 //	TEST_START;
 //
-//	status = aes_mbedtls_init (&engine);
+//	status = aes_mbedtls_init (&engine.test, &engine.state);
 //	CuAssertIntEquals (test, 0, status);
 //
-//	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+//	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 //	CuAssertIntEquals (test, 0, status);
 //
-//	status = engine.base.encrypt_with_add_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
+//	status = engine.test.base.encrypt_with_add_data (&engine.test.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
 //		AES_IV, AES_IV_LEN, NULL, 0, ciphertext, sizeof (ciphertext),NULL, 0);
 //	CuAssertIntEquals (test, 0, status);
 //
 //	status = testing_validate_array (AES_CIPHERTEXT, ciphertext, AES_PLAINTEXT_LEN);
 //	CuAssertIntEquals (test, 0, status);
 //
-//	aes_mbedtls_release (&engine);
+//	aes_mbedtls_release (&engine.test);
 //}
 
 static void aes_mbedtls_test_encrypt_with_add_data_same_buffer (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TAG_LEN * 2];
@@ -392,15 +498,15 @@ static void aes_mbedtls_test_encrypt_with_add_data_same_buffer (CuTest *test)
 
 	memcpy (ciphertext, AES_PLAINTEXT, AES_PLAINTEXT_LEN);
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_with_add_data (&engine.base, ciphertext, AES_PLAINTEXT_LEN, AES_IV,
-		AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext, sizeof (ciphertext), tag,
-		sizeof (tag));
+	status = engine.test.base.encrypt_with_add_data (&engine.test.base, ciphertext,
+		AES_PLAINTEXT_LEN, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext,
+		sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (AES_CIPHERTEXT, ciphertext, AES_PLAINTEXT_LEN);
@@ -409,184 +515,211 @@ static void aes_mbedtls_test_encrypt_with_add_data_same_buffer (CuTest *test)
 	status = testing_validate_array (AES_GCM_ADD_DATA_TAG, tag, AES_GCM_TAG_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_encrypt_with_add_data_null (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TAG_LEN * 2];
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_with_add_data (NULL, AES_PLAINTEXT, AES_PLAINTEXT_LEN, AES_IV,
+	status = engine.test.base.encrypt_with_add_data (NULL, AES_PLAINTEXT, AES_PLAINTEXT_LEN, AES_IV,
 		AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext, sizeof (ciphertext), tag,
 		sizeof (tag));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.encrypt_with_add_data (&engine.base, NULL, AES_PLAINTEXT_LEN, AES_IV,
-		AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext, sizeof (ciphertext), tag,
+	status = engine.test.base.encrypt_with_add_data (&engine.test.base, NULL, AES_PLAINTEXT_LEN,
+		AES_IV,	AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext, sizeof (ciphertext), tag,
 		sizeof (tag));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.encrypt_with_add_data (&engine.base, AES_PLAINTEXT, 0, AES_IV,	AES_IV_LEN,
-		AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext, sizeof (ciphertext), tag, sizeof (tag));
-	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
-
-	status = engine.base.encrypt_with_add_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
-		NULL, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext, sizeof (ciphertext), tag,
+	status = engine.test.base.encrypt_with_add_data (&engine.test.base, AES_PLAINTEXT, 0, AES_IV,
+		AES_IV_LEN,	AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext, sizeof (ciphertext), tag,
 		sizeof (tag));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.encrypt_with_add_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
-		AES_IV, 0, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext, sizeof (ciphertext), tag,
-		sizeof (tag));
+	status = engine.test.base.encrypt_with_add_data (&engine.test.base, AES_PLAINTEXT,
+		AES_PLAINTEXT_LEN, NULL, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext,
+		sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.encrypt_with_add_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
-		AES_IV, AES_IV_LEN, NULL, AES_ADD_DATA_LEN, ciphertext, sizeof (ciphertext), tag,
-		sizeof (tag));
+	status = engine.test.base.encrypt_with_add_data (&engine.test.base, AES_PLAINTEXT,
+		AES_PLAINTEXT_LEN, AES_IV, 0, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext,
+		sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.encrypt_with_add_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
-		AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, NULL, sizeof (ciphertext), tag,
-		sizeof (tag));
+	status = engine.test.base.encrypt_with_add_data (&engine.test.base, AES_PLAINTEXT,
+		AES_PLAINTEXT_LEN, AES_IV, AES_IV_LEN, NULL, AES_ADD_DATA_LEN, ciphertext,
+		sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.encrypt_with_add_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
-		AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext, sizeof (ciphertext), NULL,
-		sizeof (tag));
+	status = engine.test.base.encrypt_with_add_data (&engine.test.base, AES_PLAINTEXT,
+		AES_PLAINTEXT_LEN, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, NULL,
+		sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	aes_mbedtls_release (&engine);
+	status = engine.test.base.encrypt_with_add_data (&engine.test.base, AES_PLAINTEXT,
+		AES_PLAINTEXT_LEN, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext,
+		sizeof (ciphertext), NULL, sizeof (tag));
+	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
+
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_encrypt_with_add_data_small_buffer (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TAG_LEN * 2];
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_with_add_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
-		AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext, AES_PLAINTEXT_LEN - 1, tag,
-		sizeof (tag));
+	status = engine.test.base.encrypt_with_add_data (&engine.test.base, AES_PLAINTEXT,
+		AES_PLAINTEXT_LEN, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext,
+		AES_PLAINTEXT_LEN - 1, tag,	sizeof (tag));
 	CuAssertIntEquals (test, AES_ENGINE_OUT_BUFFER_TOO_SMALL, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_encrypt_with_add_data_small_tag_buffer (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TAG_LEN * 2];
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_with_add_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
-		AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext, sizeof (ciphertext), tag,
-		AES_GCM_TAG_LEN - 1);
+	status = engine.test.base.encrypt_with_add_data (&engine.test.base, AES_PLAINTEXT,
+		AES_PLAINTEXT_LEN, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext,
+		sizeof (ciphertext), tag, AES_GCM_TAG_LEN - 1);
 	CuAssertIntEquals (test, AES_ENGINE_OUT_BUFFER_TOO_SMALL, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_encrypt_with_add_data_no_key (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TAG_LEN * 2];
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_with_add_data (&engine.base, AES_PLAINTEXT, AES_PLAINTEXT_LEN,
-		AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext, sizeof (ciphertext), tag,
-		sizeof (tag));
+	status = engine.test.base.encrypt_with_add_data (&engine.test.base, AES_PLAINTEXT,
+		AES_PLAINTEXT_LEN, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, ciphertext,
+		sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, AES_ENGINE_NO_KEY, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_decrypt_data (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_PLAINTEXT_LEN * 2];
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_data (&engine.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
+	status = engine.test.base.decrypt_data (&engine.test.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
 		AES_GCM_TAG, AES_IV, AES_IV_LEN, plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (AES_PLAINTEXT, plaintext, AES_CIPHERTEXT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
+}
+
+static void aes_mbedtls_test_decrypt_data_with_static_init (CuTest *test)
+{
+	struct aes_engine_mbedtls_testing engine = {
+		.test = aes_mbedtls_static_init (&engine.state)
+	};
+	int status;
+	uint8_t plaintext[AES_PLAINTEXT_LEN * 2];
+
+	TEST_START;
+
+	status = aes_mbedtls_init_state (&engine.test);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.decrypt_data (&engine.test.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
+		AES_GCM_TAG, AES_IV, AES_IV_LEN, plaintext, sizeof (plaintext));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (AES_PLAINTEXT, plaintext, AES_CIPHERTEXT_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aes_mbedtls_release (&engine.test);
 }
 
 /* TODO: mbedTLS doesn't support GCM operations without a tag. */
 //static void aes_mbedtls_test_decrypt_data_no_tag (CuTest *test)
 //{
-//	struct aes_engine_mbedtls engine;
+//	struct aes_engine_mbedtls_testing engine;
 //	int status;
 //	uint8_t plaintext[AES_PLAINTEXT_LEN * 2];
 //
 //	TEST_START;
 //
-//	status = aes_mbedtls_init (&engine);
+//	status = aes_mbedtls_init (&engine.test, &engine.state);
 //	CuAssertIntEquals (test, 0, status);
 //
-//	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+//	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 //	CuAssertIntEquals (test, 0, status);
 //
-//	status = engine.base.decrypt_data (&engine.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
+//	status = engine.test.base.decrypt_data (&engine.test.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
 //		NULL, AES_IV, AES_IV_LEN, plaintext, sizeof (plaintext));
 //	CuAssertIntEquals (test, 0, status);
 //
 //	status = testing_validate_array (AES_PLAINTEXT, plaintext, AES_CIPHERTEXT_LEN);
 //	CuAssertIntEquals (test, 0, status);
 //
-//	aes_mbedtls_release (&engine);
+//	aes_mbedtls_release (&engine.test);
 //}
 
 static void aes_mbedtls_test_decrypt_data_same_buffer (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_PLAINTEXT_LEN * 2];
 
@@ -594,109 +727,109 @@ static void aes_mbedtls_test_decrypt_data_same_buffer (CuTest *test)
 
 	memcpy (plaintext, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN);
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_data (&engine.base, plaintext, AES_CIPHERTEXT_LEN,	AES_GCM_TAG,
-		AES_IV, AES_IV_LEN, plaintext, sizeof (plaintext));
+	status = engine.test.base.decrypt_data (&engine.test.base, plaintext, AES_CIPHERTEXT_LEN,
+		AES_GCM_TAG, AES_IV, AES_IV_LEN, plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (AES_PLAINTEXT, plaintext, AES_CIPHERTEXT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_decrypt_data_null (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_PLAINTEXT_LEN * 2];
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_data (NULL, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN, AES_GCM_TAG,
+	status = engine.test.base.decrypt_data (NULL, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN, AES_GCM_TAG,
 		AES_IV, AES_IV_LEN, plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.decrypt_data (&engine.base, NULL, AES_CIPHERTEXT_LEN, AES_GCM_TAG, AES_IV,
-		AES_IV_LEN, plaintext, sizeof (plaintext));
+	status = engine.test.base.decrypt_data (&engine.test.base, NULL, AES_CIPHERTEXT_LEN,
+		AES_GCM_TAG, AES_IV, AES_IV_LEN, plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.decrypt_data (&engine.base, AES_CIPHERTEXT, 0,	AES_GCM_TAG, AES_IV,
-		AES_IV_LEN, plaintext, sizeof (plaintext));
+	status = engine.test.base.decrypt_data (&engine.test.base, AES_CIPHERTEXT, 0, AES_GCM_TAG,
+		AES_IV,	AES_IV_LEN, plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.decrypt_data (&engine.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN, NULL,
-		AES_IV, AES_IV_LEN, plaintext, sizeof (plaintext));
+	status = engine.test.base.decrypt_data (&engine.test.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
+		NULL, AES_IV, AES_IV_LEN, plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.decrypt_data (&engine.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
+	status = engine.test.base.decrypt_data (&engine.test.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
 		AES_GCM_TAG, NULL, AES_IV_LEN, plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.decrypt_data (&engine.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
+	status = engine.test.base.decrypt_data (&engine.test.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
 		AES_GCM_TAG, AES_IV, 0, plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.decrypt_data (&engine.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
+	status = engine.test.base.decrypt_data (&engine.test.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
 		AES_GCM_TAG, AES_IV, AES_IV_LEN, NULL, sizeof (plaintext));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_decrypt_data_small_buffer (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_PLAINTEXT_LEN * 2];
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_data (&engine.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
+	status = engine.test.base.decrypt_data (&engine.test.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
 		AES_GCM_TAG, AES_IV, AES_IV_LEN, plaintext, AES_CIPHERTEXT_LEN - 1);
 	CuAssertIntEquals (test, AES_ENGINE_OUT_BUFFER_TOO_SMALL, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_decrypt_data_no_key (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_PLAINTEXT_LEN * 2];
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_data (&engine.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
+	status = engine.test.base.decrypt_data (&engine.test.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
 		AES_GCM_TAG, AES_IV, AES_IV_LEN, plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, AES_ENGINE_NO_KEY, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_decrypt_data_bad_tag (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_PLAINTEXT_LEN * 2];
 	uint8_t bad_tag[AES_GCM_TAG_LEN];
@@ -706,22 +839,22 @@ static void aes_mbedtls_test_decrypt_data_bad_tag (CuTest *test)
 	memcpy (bad_tag, AES_GCM_TAG, AES_GCM_TAG_LEN);
 	bad_tag[0] ^= 0x55;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_data (&engine.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN, bad_tag,
-		AES_IV, AES_IV_LEN, plaintext, sizeof (plaintext));
+	status = engine.test.base.decrypt_data (&engine.test.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
+		bad_tag, AES_IV, AES_IV_LEN, plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, AES_ENGINE_GCM_AUTH_FAILED, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_decrypt_data_bad_data (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_PLAINTEXT_LEN * 2];
 	uint8_t bad_data[AES_CIPHERTEXT_LEN];
@@ -731,22 +864,22 @@ static void aes_mbedtls_test_decrypt_data_bad_data (CuTest *test)
 	memcpy (bad_data, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN);
 	bad_data[0] ^= 0x55;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_data (&engine.base, bad_data, sizeof (bad_data), AES_GCM_TAG,
-		AES_IV, AES_IV_LEN, plaintext, sizeof (plaintext));
+	status = engine.test.base.decrypt_data (&engine.test.base, bad_data, sizeof (bad_data),
+		AES_GCM_TAG, AES_IV, AES_IV_LEN, plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, AES_ENGINE_GCM_AUTH_FAILED, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_encrypt_and_decrypt (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	const char *message = "Test";
 	uint8_t ciphertext[strlen (message)];
@@ -755,29 +888,29 @@ static void aes_mbedtls_test_encrypt_and_decrypt (CuTest *test)
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_data (&engine.base, (uint8_t*) message, strlen (message), AES_IV,
-		AES_IV_LEN, ciphertext, sizeof (ciphertext), tag, sizeof (tag));
+	status = engine.test.base.encrypt_data (&engine.test.base, (uint8_t*) message, strlen (message),
+		AES_IV,	AES_IV_LEN, ciphertext, sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_data (&engine.base, ciphertext, sizeof (ciphertext), tag, AES_IV,
-		AES_IV_LEN, (uint8_t*) plaintext, sizeof (plaintext));
+	status = engine.test.base.decrypt_data (&engine.test.base, ciphertext, sizeof (ciphertext), tag,
+		AES_IV,	AES_IV_LEN, (uint8_t*) plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, 0, status);
 
 	plaintext[strlen (message)] = '\0';
 	CuAssertStrEquals (test, message, plaintext);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_encrypt_with_longer_iv (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	const char *message = "Test";
 	const uint8_t iv[] = {
@@ -790,29 +923,29 @@ static void aes_mbedtls_test_encrypt_with_longer_iv (CuTest *test)
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_data (&engine.base, (uint8_t*) message, strlen (message), iv,
-		sizeof (iv), ciphertext, sizeof (ciphertext), tag, sizeof (tag));
+	status = engine.test.base.encrypt_data (&engine.test.base, (uint8_t*) message, strlen (message),
+		iv,	sizeof (iv), ciphertext, sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_data (&engine.base, ciphertext, sizeof (ciphertext), tag, iv,
-		sizeof (iv), (uint8_t*) plaintext, sizeof (plaintext));
+	status = engine.test.base.decrypt_data (&engine.test.base, ciphertext, sizeof (ciphertext), tag,
+		iv,	sizeof (iv), (uint8_t*) plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, 0, status);
 
 	plaintext[strlen (message)] = '\0';
 	CuAssertStrEquals (test, message, plaintext);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_encrypt_with_shorter_iv (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	const char *message = "Test";
 	const uint8_t iv[] = {
@@ -824,29 +957,29 @@ static void aes_mbedtls_test_encrypt_with_shorter_iv (CuTest *test)
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_data (&engine.base, (uint8_t*) message, strlen (message), iv,
-		sizeof (iv), ciphertext, sizeof (ciphertext), tag, sizeof (tag));
+	status = engine.test.base.encrypt_data (&engine.test.base, (uint8_t*) message, strlen (message),
+		iv,	sizeof (iv), ciphertext, sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_data (&engine.base, ciphertext, sizeof (ciphertext), tag, iv,
-		sizeof (iv), (uint8_t*) plaintext, sizeof (plaintext));
+	status = engine.test.base.decrypt_data (&engine.test.base, ciphertext, sizeof (ciphertext), tag,
+		iv,	sizeof (iv), (uint8_t*) plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, 0, status);
 
 	plaintext[strlen (message)] = '\0';
 	CuAssertStrEquals (test, message, plaintext);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_encrypt_with_different_keys (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	const char *message = "Test";
 	const uint8_t key2[] = {
@@ -864,32 +997,32 @@ static void aes_mbedtls_test_encrypt_with_different_keys (CuTest *test)
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_data (&engine.base, (uint8_t*) message, strlen (message), AES_IV,
-		AES_IV_LEN, ciphertext1, sizeof (ciphertext1), tag1, sizeof (tag1));
+	status = engine.test.base.encrypt_data (&engine.test.base, (uint8_t*) message, strlen (message),
+		AES_IV,	AES_IV_LEN, ciphertext1, sizeof (ciphertext1), tag1, sizeof (tag1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_data (&engine.base, ciphertext1, sizeof (ciphertext1), tag1,
-		AES_IV, AES_IV_LEN, (uint8_t*) plaintext1, sizeof (plaintext1));
+	status = engine.test.base.decrypt_data (&engine.test.base, ciphertext1, sizeof (ciphertext1),
+		tag1, AES_IV, AES_IV_LEN, (uint8_t*) plaintext1, sizeof (plaintext1));
 	CuAssertIntEquals (test, 0, status);
 
 	plaintext1[strlen (message)] = '\0';
 	CuAssertStrEquals (test, message, plaintext1);
 
-	status = engine.base.set_key (&engine.base, key2, sizeof (key2));
+	status = engine.test.base.set_key (&engine.test.base, key2, sizeof (key2));
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_data (&engine.base, (uint8_t*) message, strlen (message), AES_IV,
-		AES_IV_LEN, ciphertext2, sizeof (ciphertext2), tag2, sizeof (tag2));
+	status = engine.test.base.encrypt_data (&engine.test.base, (uint8_t*) message, strlen (message),
+		AES_IV,	AES_IV_LEN, ciphertext2, sizeof (ciphertext2), tag2, sizeof (tag2));
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_data (&engine.base, ciphertext2, sizeof (ciphertext2), tag2,
-		AES_IV, AES_IV_LEN, (uint8_t*) plaintext2, sizeof (plaintext2));
+	status = engine.test.base.decrypt_data (&engine.test.base, ciphertext2, sizeof (ciphertext2),
+		tag2, AES_IV, AES_IV_LEN, (uint8_t*) plaintext2, sizeof (plaintext2));
 	CuAssertIntEquals (test, 0, status);
 
 	plaintext2[strlen (message)] = '\0';
@@ -898,63 +1031,90 @@ static void aes_mbedtls_test_encrypt_with_different_keys (CuTest *test)
 	status = testing_validate_array (ciphertext1, ciphertext2, sizeof (ciphertext1));
 	CuAssertTrue (test, (status != 0));
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_decrypt_with_add_data (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_PLAINTEXT_LEN * 2];
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_with_add_data (&engine.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
-		AES_GCM_ADD_DATA_TAG, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, plaintext,
-		sizeof (plaintext));
+	status = engine.test.base.decrypt_with_add_data (&engine.test.base, AES_CIPHERTEXT,
+		AES_CIPHERTEXT_LEN,	AES_GCM_ADD_DATA_TAG, AES_IV, AES_IV_LEN, AES_ADD_DATA,
+		AES_ADD_DATA_LEN, plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (AES_PLAINTEXT, plaintext, AES_CIPHERTEXT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
+}
+
+static void aes_mbedtls_test_decrypt_with_add_data_static_init (CuTest *test)
+{
+	struct aes_engine_mbedtls_testing engine = {
+		.test = aes_mbedtls_static_init (&engine.state)
+	};
+	int status;
+	uint8_t plaintext[AES_PLAINTEXT_LEN * 2];
+
+	TEST_START;
+
+	status = aes_mbedtls_init_state (&engine.test);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.decrypt_with_add_data (&engine.test.base, AES_CIPHERTEXT,
+		AES_CIPHERTEXT_LEN,	AES_GCM_ADD_DATA_TAG, AES_IV, AES_IV_LEN, AES_ADD_DATA,
+		AES_ADD_DATA_LEN, plaintext, sizeof (plaintext));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (AES_PLAINTEXT, plaintext, AES_CIPHERTEXT_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aes_mbedtls_release (&engine.test);
 }
 
 /* TODO: mbedTLS doesn't support GCM operations without a tag. */
 //static void aes_mbedtls_test_decrypt_with_add_data_no_tag (CuTest *test)
 //{
-//	struct aes_engine_mbedtls engine;
+//	struct aes_engine_mbedtls_testing engine;
 //	int status;
 //	uint8_t plaintext[AES_PLAINTEXT_LEN * 2];
 //
 //	TEST_START;
 //
-//	status = aes_mbedtls_init (&engine);
+//	status = aes_mbedtls_init (&engine.test, &engine.state);
 //	CuAssertIntEquals (test, 0, status);
 //
-//	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+//	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 //	CuAssertIntEquals (test, 0, status);
 //
-//	status = engine.base.decrypt_with_add_data (&engine.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
+//	status = engine.test.base.decrypt_with_add_data (&engine.test.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
 //		NULL, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, plaintext, sizeof (plaintext));
 //	CuAssertIntEquals (test, 0, status);
 //
 //	status = testing_validate_array (AES_PLAINTEXT, plaintext, AES_CIPHERTEXT_LEN);
 //	CuAssertIntEquals (test, 0, status);
 //
-//	aes_mbedtls_release (&engine);
+//	aes_mbedtls_release (&engine.test);
 //}
 
 
 static void aes_mbedtls_test_decrypt_with_add_data_same_buffer (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_PLAINTEXT_LEN * 2];
 
@@ -962,118 +1122,119 @@ static void aes_mbedtls_test_decrypt_with_add_data_same_buffer (CuTest *test)
 
 	memcpy (plaintext, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN);
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_with_add_data (&engine.base, plaintext, AES_CIPHERTEXT_LEN,
-		AES_GCM_ADD_DATA_TAG, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, plaintext,
-		sizeof (plaintext));
+	status = engine.test.base.decrypt_with_add_data (&engine.test.base, plaintext,
+		AES_CIPHERTEXT_LEN,	AES_GCM_ADD_DATA_TAG, AES_IV, AES_IV_LEN, AES_ADD_DATA,
+		AES_ADD_DATA_LEN, plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (AES_PLAINTEXT, plaintext, AES_CIPHERTEXT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_decrypt_with_add_data_null (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_PLAINTEXT_LEN * 2];
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_with_add_data (NULL, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
+	status = engine.test.base.decrypt_with_add_data (NULL, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
 		AES_GCM_ADD_DATA_TAG, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, plaintext,
 		sizeof (plaintext));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.decrypt_with_add_data (&engine.base, NULL, AES_CIPHERTEXT_LEN,
+	status = engine.test.base.decrypt_with_add_data (&engine.test.base, NULL, AES_CIPHERTEXT_LEN,
 		AES_GCM_ADD_DATA_TAG, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, plaintext,
 		sizeof (plaintext));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.decrypt_with_add_data (&engine.base, AES_CIPHERTEXT, 0,
+	status = engine.test.base.decrypt_with_add_data (&engine.test.base, AES_CIPHERTEXT, 0,
 		AES_GCM_ADD_DATA_TAG, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, plaintext,
 		sizeof (plaintext));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.decrypt_with_add_data (&engine.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
-		NULL, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, plaintext, sizeof (plaintext));
-	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
-
-	status = engine.base.decrypt_with_add_data (&engine.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
-		AES_GCM_ADD_DATA_TAG, NULL, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, plaintext,
+	status = engine.test.base.decrypt_with_add_data (&engine.test.base, AES_CIPHERTEXT,
+		AES_CIPHERTEXT_LEN,	NULL, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, plaintext,
 		sizeof (plaintext));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.decrypt_with_add_data (&engine.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
-		AES_GCM_ADD_DATA_TAG, AES_IV, 0, AES_ADD_DATA, AES_ADD_DATA_LEN, plaintext,
-		sizeof (plaintext));
+	status = engine.test.base.decrypt_with_add_data (&engine.test.base, AES_CIPHERTEXT,
+		AES_CIPHERTEXT_LEN,	AES_GCM_ADD_DATA_TAG, NULL, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN,
+		plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.decrypt_with_add_data (&engine.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
-		AES_GCM_ADD_DATA_TAG, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, NULL,
-		sizeof (plaintext));
+	status = engine.test.base.decrypt_with_add_data (&engine.test.base, AES_CIPHERTEXT,
+		AES_CIPHERTEXT_LEN,	AES_GCM_ADD_DATA_TAG, AES_IV, 0, AES_ADD_DATA, AES_ADD_DATA_LEN,
+		plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
-	aes_mbedtls_release (&engine);
+	status = engine.test.base.decrypt_with_add_data (&engine.test.base, AES_CIPHERTEXT,
+		AES_CIPHERTEXT_LEN,	AES_GCM_ADD_DATA_TAG, AES_IV, AES_IV_LEN, AES_ADD_DATA,
+		AES_ADD_DATA_LEN, NULL,	sizeof (plaintext));
+	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
+
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_decrypt_with_add_data_small_buffer (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_PLAINTEXT_LEN * 2];
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_with_add_data (&engine.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
-		AES_GCM_ADD_DATA_TAG, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, plaintext,
-		AES_CIPHERTEXT_LEN - 1);
+	status = engine.test.base.decrypt_with_add_data (&engine.test.base, AES_CIPHERTEXT,
+		AES_CIPHERTEXT_LEN,	AES_GCM_ADD_DATA_TAG, AES_IV, AES_IV_LEN, AES_ADD_DATA,
+		AES_ADD_DATA_LEN, plaintext, AES_CIPHERTEXT_LEN - 1);
 	CuAssertIntEquals (test, AES_ENGINE_OUT_BUFFER_TOO_SMALL, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_decrypt_with_add_data_no_key (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_PLAINTEXT_LEN * 2];
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_with_add_data (&engine.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
-		AES_GCM_ADD_DATA_TAG, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, plaintext,
-		sizeof (plaintext));
+	status = engine.test.base.decrypt_with_add_data (&engine.test.base, AES_CIPHERTEXT,
+		AES_CIPHERTEXT_LEN,	AES_GCM_ADD_DATA_TAG, AES_IV, AES_IV_LEN, AES_ADD_DATA,
+		AES_ADD_DATA_LEN, plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, AES_ENGINE_NO_KEY, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_decrypt_with_add_data_bad_tag (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_PLAINTEXT_LEN * 2];
 	uint8_t bad_tag[AES_GCM_TAG_LEN];
@@ -1083,22 +1244,23 @@ static void aes_mbedtls_test_decrypt_with_add_data_bad_tag (CuTest *test)
 	memcpy (bad_tag, AES_GCM_ADD_DATA_TAG, AES_GCM_TAG_LEN);
 	bad_tag[0] ^= 0x55;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_with_add_data (&engine.base, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN,
-		bad_tag, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, plaintext, sizeof (plaintext));
+	status = engine.test.base.decrypt_with_add_data (&engine.test.base, AES_CIPHERTEXT,
+		AES_CIPHERTEXT_LEN,	bad_tag, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, plaintext,
+		sizeof (plaintext));
 	CuAssertIntEquals (test, AES_ENGINE_GCM_AUTH_FAILED, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_decrypt_with_add_data_bad_data (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_PLAINTEXT_LEN * 2];
 	uint8_t bad_data[AES_CIPHERTEXT_LEN];
@@ -1108,23 +1270,23 @@ static void aes_mbedtls_test_decrypt_with_add_data_bad_data (CuTest *test)
 	memcpy (bad_data, AES_CIPHERTEXT, AES_CIPHERTEXT_LEN);
 	bad_data[0] ^= 0x55;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_with_add_data (&engine.base, bad_data, sizeof (bad_data),
+	status = engine.test.base.decrypt_with_add_data (&engine.test.base, bad_data, sizeof (bad_data),
 		AES_GCM_ADD_DATA_TAG, AES_IV, AES_IV_LEN, AES_ADD_DATA, AES_ADD_DATA_LEN, plaintext,
 		sizeof (plaintext));
 	CuAssertIntEquals (test, AES_ENGINE_GCM_AUTH_FAILED, status);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_encrypt_and_decrypt_with_add_data (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	const char *message = "Test";
 	const char *add_data = "123456";
@@ -1134,31 +1296,31 @@ static void aes_mbedtls_test_encrypt_and_decrypt_with_add_data (CuTest *test)
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_with_add_data (&engine.base, (uint8_t*) message, strlen (message),
-		AES_IV, AES_IV_LEN, (uint8_t*) add_data, strlen (add_data), ciphertext, sizeof (ciphertext),
-		tag, sizeof (tag));
+	status = engine.test.base.encrypt_with_add_data (&engine.test.base, (uint8_t*) message,
+		strlen (message), AES_IV, AES_IV_LEN, (uint8_t*) add_data, strlen (add_data), ciphertext,
+		sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_with_add_data (&engine.base, ciphertext, sizeof (ciphertext), tag,
-		AES_IV, AES_IV_LEN, (uint8_t*) add_data, strlen (add_data), (uint8_t*) plaintext,
-		sizeof (plaintext));
+	status = engine.test.base.decrypt_with_add_data (&engine.test.base, ciphertext,
+		sizeof (ciphertext), tag, AES_IV, AES_IV_LEN, (uint8_t*) add_data, strlen (add_data),
+		(uint8_t*) plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, 0, status);
 
 	plaintext[strlen (message)] = '\0';
 	CuAssertStrEquals (test, message, plaintext);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_encrypt_with_add_data_with_longer_iv (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	const char *message = "Test";
 	const char *add_data = "ABCDEFGH";
@@ -1172,31 +1334,31 @@ static void aes_mbedtls_test_encrypt_with_add_data_with_longer_iv (CuTest *test)
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_with_add_data (&engine.base, (uint8_t*) message, strlen (message),
-		iv, sizeof (iv), (uint8_t*) add_data, strlen (add_data), ciphertext, sizeof (ciphertext),
-		tag, sizeof (tag));
+	status = engine.test.base.encrypt_with_add_data (&engine.test.base, (uint8_t*) message,
+		strlen (message), iv, sizeof (iv), (uint8_t*) add_data, strlen (add_data), ciphertext,
+		sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_with_add_data (&engine.base, ciphertext, sizeof (ciphertext), tag,
-		iv, sizeof (iv), (uint8_t*) add_data, strlen (add_data), (uint8_t*) plaintext,
-		sizeof (plaintext));
+	status = engine.test.base.decrypt_with_add_data (&engine.test.base, ciphertext,
+		sizeof (ciphertext), tag, iv, sizeof (iv), (uint8_t*) add_data, strlen (add_data),
+		(uint8_t*) plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, 0, status);
 
 	plaintext[strlen (message)] = '\0';
 	CuAssertStrEquals (test, message, plaintext);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_encrypt_with_add_data_with_shorter_iv (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	const char *message = "Test";
 	const char *add_data = "DEADBEEF";
@@ -1209,31 +1371,31 @@ static void aes_mbedtls_test_encrypt_with_add_data_with_shorter_iv (CuTest *test
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_with_add_data (&engine.base, (uint8_t*) message, strlen (message),
-		iv, sizeof (iv), (uint8_t*) add_data, strlen (add_data), ciphertext, sizeof (ciphertext),
-		tag, sizeof (tag));
+	status = engine.test.base.encrypt_with_add_data (&engine.test.base, (uint8_t*) message,
+		strlen (message), iv, sizeof (iv), (uint8_t*) add_data, strlen (add_data), ciphertext,
+		sizeof (ciphertext), tag, sizeof (tag));
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_with_add_data (&engine.base, ciphertext, sizeof (ciphertext), tag,
-		iv, sizeof (iv), (uint8_t*) add_data, strlen (add_data), (uint8_t*) plaintext,
-		sizeof (plaintext));
+	status = engine.test.base.decrypt_with_add_data (&engine.test.base, ciphertext,
+		sizeof (ciphertext), tag, iv, sizeof (iv), (uint8_t*) add_data, strlen (add_data),
+		(uint8_t*) plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, 0, status);
 
 	plaintext[strlen (message)] = '\0';
 	CuAssertStrEquals (test, message, plaintext);
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 static void aes_mbedtls_test_encrypt_with_add_data_with_different_keys (CuTest *test)
 {
-	struct aes_engine_mbedtls engine;
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 	const char *message = "Test";
 	const char *add_data = "BAADF00D";
@@ -1252,36 +1414,36 @@ static void aes_mbedtls_test_encrypt_with_add_data_with_different_keys (CuTest *
 
 	TEST_START;
 
-	status = aes_mbedtls_init (&engine);
+	status = aes_mbedtls_init (&engine.test, &engine.state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.set_key (&engine.base, AES_KEY, AES_KEY_LEN);
+	status = engine.test.base.set_key (&engine.test.base, AES_KEY, AES_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_with_add_data (&engine.base, (uint8_t*) message, strlen (message),
-		AES_IV, AES_IV_LEN, (uint8_t*) add_data, strlen (add_data), ciphertext1,
+	status = engine.test.base.encrypt_with_add_data (&engine.test.base, (uint8_t*) message,
+		strlen (message), AES_IV, AES_IV_LEN, (uint8_t*) add_data, strlen (add_data), ciphertext1,
 		sizeof (ciphertext1), tag1, sizeof (tag1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_with_add_data (&engine.base, ciphertext1, sizeof (ciphertext1),
-		tag1, AES_IV, AES_IV_LEN, (uint8_t*) add_data, strlen (add_data), (uint8_t*) plaintext1,
-		sizeof (plaintext1));
+	status = engine.test.base.decrypt_with_add_data (&engine.test.base, ciphertext1,
+		sizeof (ciphertext1), tag1, AES_IV, AES_IV_LEN, (uint8_t*) add_data, strlen (add_data),
+		(uint8_t*) plaintext1, sizeof (plaintext1));
 	CuAssertIntEquals (test, 0, status);
 
 	plaintext1[strlen (message)] = '\0';
 	CuAssertStrEquals (test, message, plaintext1);
 
-	status = engine.base.set_key (&engine.base, key2, sizeof (key2));
+	status = engine.test.base.set_key (&engine.test.base, key2, sizeof (key2));
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.encrypt_with_add_data (&engine.base, (uint8_t*) message, strlen (message),
-		AES_IV, AES_IV_LEN, (uint8_t*) add_data, strlen (add_data), ciphertext2,
+	status = engine.test.base.encrypt_with_add_data (&engine.test.base, (uint8_t*) message,
+		strlen (message), AES_IV, AES_IV_LEN, (uint8_t*) add_data, strlen (add_data), ciphertext2,
 		sizeof (ciphertext2), tag2, sizeof (tag2));
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.decrypt_with_add_data (&engine.base, ciphertext2, sizeof (ciphertext2),
-		tag2, AES_IV, AES_IV_LEN, (uint8_t*) add_data, strlen (add_data), (uint8_t*) plaintext2,
-		sizeof (plaintext2));
+	status = engine.test.base.decrypt_with_add_data (&engine.test.base, ciphertext2,
+		sizeof (ciphertext2), tag2, AES_IV, AES_IV_LEN, (uint8_t*) add_data, strlen (add_data),
+		(uint8_t*) plaintext2, sizeof (plaintext2));
 	CuAssertIntEquals (test, 0, status);
 
 	plaintext2[strlen (message)] = '\0';
@@ -1290,7 +1452,7 @@ static void aes_mbedtls_test_encrypt_with_add_data_with_different_keys (CuTest *
 	status = testing_validate_array (ciphertext1, ciphertext2, sizeof (ciphertext1));
 	CuAssertTrue (test, (status != 0));
 
-	aes_mbedtls_release (&engine);
+	aes_mbedtls_release (&engine.test);
 }
 
 
@@ -1299,8 +1461,11 @@ TEST_SUITE_START (aes_mbedtls);
 
 TEST (aes_mbedtls_test_init);
 TEST (aes_mbedtls_test_init_null);
+TEST (aes_mbedtls_test_static_init);
+TEST (aes_mbedtls_test_static_init_null);
 TEST (aes_mbedtls_test_release_null);
 TEST (aes_mbedtls_test_encrypt_data);
+TEST (aes_mbedtls_test_encrypt_data_static_init);
 // TEST (aes_mbedtls_test_encrypt_data_no_tag);
 TEST (aes_mbedtls_test_encrypt_data_same_buffer);
 TEST (aes_mbedtls_test_encrypt_data_null);
@@ -1311,6 +1476,7 @@ TEST (aes_mbedtls_test_set_key_null);
 TEST (aes_mbedtls_test_set_key_bad_length);
 TEST (aes_mbedtls_test_set_key_unsupported_length);
 TEST (aes_mbedtls_test_encrypt_with_add_data_additional_data);
+TEST (aes_mbedtls_test_encrypt_with_add_data_additional_data_with_static_init);
 TEST (aes_mbedtls_test_encrypt_with_add_data_no_additional_data);
 // TEST (aes_mbedtls_test_encrypt_with_add_data_no_tag);
 TEST (aes_mbedtls_test_encrypt_with_add_data_same_buffer);
@@ -1319,6 +1485,7 @@ TEST (aes_mbedtls_test_encrypt_with_add_data_small_buffer);
 TEST (aes_mbedtls_test_encrypt_with_add_data_small_tag_buffer);
 TEST (aes_mbedtls_test_encrypt_with_add_data_no_key);
 TEST (aes_mbedtls_test_decrypt_data);
+TEST (aes_mbedtls_test_decrypt_data_with_static_init);
 // TEST (aes_mbedtls_test_decrypt_data_no_tag);
 TEST (aes_mbedtls_test_decrypt_data_same_buffer);
 TEST (aes_mbedtls_test_decrypt_data_null);
@@ -1331,6 +1498,7 @@ TEST (aes_mbedtls_test_encrypt_with_longer_iv);
 TEST (aes_mbedtls_test_encrypt_with_shorter_iv);
 TEST (aes_mbedtls_test_encrypt_with_different_keys);
 TEST (aes_mbedtls_test_decrypt_with_add_data);
+TEST (aes_mbedtls_test_decrypt_with_add_data_static_init);
 // TEST (aes_mbedtls_test_decrypt_with_add_data_no_tag);
 TEST (aes_mbedtls_test_decrypt_with_add_data_same_buffer);
 TEST (aes_mbedtls_test_decrypt_with_add_data_null);

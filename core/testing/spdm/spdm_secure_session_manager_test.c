@@ -982,6 +982,7 @@ static void spdm_secure_session_manager_test_generate_shared_secret (CuTest *tes
 	struct spdm_secure_session *session;
 	ECC_TESTING_ENGINE ecc_engine_real;
 	AES_TESTING_ENGINE aes_engine_real;
+	AES_TESTING_ENGINE_STATE aes_engine_real_state;
 	struct ecc_private_key req_priv_key;
 	struct ecc_public_key req_pub_key;
 	struct ecc_public_key resp_pub_key;
@@ -999,7 +1000,7 @@ static void spdm_secure_session_manager_test_generate_shared_secret (CuTest *tes
 	session_manager = &testing.session_manager;
 
 	status = ECC_TESTING_ENGINE_INIT (&ecc_engine_real);
-	status |= AES_TESTING_ENGINE_INIT (&aes_engine_real);
+	status |= AES_TESTING_ENGINE_INIT (&aes_engine_real, &aes_engine_real_state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_secure_session_manager_init (session_manager, &testing.state,
