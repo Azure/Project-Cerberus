@@ -491,7 +491,7 @@ static int spdm_validate_general_opaque_data (uint8_t spdm_version, uint8_t opaq
 	total_element_len = 0;
 
 	if ((spdm_version >= SPDM_VERSION_1_2) &&
-		(opaque_data_format == SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1)) {
+		(opaque_data_format & SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1)) {
 		/* Check byte alignment. */
 		if ((data_in_size & 3) != 0) {
 			goto exit;
@@ -2280,16 +2280,12 @@ int spdm_negotiate_algorithms (const struct cmd_interface_spdm_responder *spdm_r
 
 	/* Check Opaque Data Format. */
 	if (spdm_version >= SPDM_VERSION_1_2) {
-		switch (rq->other_params_support.opaque_data_format) {
-			case SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_NONE:
-			case SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_0:
-			case SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1:
-				break;
-
-			default:
-				status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
-				spdm_error = SPDM_ERROR_INVALID_REQUEST;
-				goto exit;
+		/* Opaque data format is 4 bits, [1:0] are used to communicate requestor supported
+		 * formats and could be any combination of the bits, [3:2] are reserved  */
+		if ((rq->other_params_support.opaque_data_format >> 2) != 0) {
+			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+			spdm_error = SPDM_ERROR_INVALID_REQUEST;
+			goto exit;
 		}
 	}
 

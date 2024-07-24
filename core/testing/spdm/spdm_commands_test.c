@@ -106,7 +106,7 @@ struct spdm_command_testing {
 	struct spdm_measurements_mock measurements_mock;											/**< Mock measurements engine. */
 	struct ecc_engine_mock ecc_mock;															/**< Mock ECC engine. */
 	struct rng_engine_mock rng_mock;															/**< Mock RNG engine. */
-	struct cmd_interface_mock vdm_mock;								/**< Mock for VDM command handler */
+	struct cmd_interface_mock vdm_mock;															/**< Mock for VDM command handler */
 };
 
 
@@ -4549,6 +4549,189 @@ static void spdm_test_negotiate_algorithms_lowest_pri_hash_algo (CuTest *test)
 	spdm_command_testing_release_dependencies (test, &testing);
 }
 
+static void spdm_test_negotiate_algorithms_opaque_data_format (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_negotiate_algorithms_response *rsp =
+		(struct spdm_negotiate_algorithms_response*) buf;
+	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg =
+		(struct spdm_negotiate_algorithms_response_no_ext_alg*) rsp;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->measurement_specification = local_algorithms->device_algorithms.measurement_spec;
+	rq->other_params_support.opaque_data_format = SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1 |
+		SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_0;
+	rq->base_asym_algo = local_algorithms->device_algorithms.base_asym_algo;
+	rq->base_hash_algo = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 | SPDM_TPM_ALG_SHA_512;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+	memcpy (rq_copy, rq, rq->length);
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->connection_info.peer_capabilities.flags = testing.local_capabilities.flags;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),	MOCK_ARG_PTR_CONTAINS (&rq_copy, req_length),
+		MOCK_ARG (req_length), MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_PTR_PTR_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.set_hash_algo,	&testing.transcript_manager_mock.base,
+		0, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_NEGOTIATE_ALGORITHMS, rsp->header.req_rsp_code);
+	CuAssertIntEquals (test, 4, rsp->num_alg_structure_tables);
+	CuAssertIntEquals (test, 0, rsp->reserved);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		rsp->length);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_spec,
+		rsp->measurement_specification);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format,
+		rsp->other_params_selection.opaque_data_format);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_hash_algo,
+		rsp->measurement_hash_algo);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.base_asym_algo,
+		rsp->base_asym_sel);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.base_hash_algo,
+		rsp->base_hash_sel);
+
+	CuAssertIntEquals (test, 0, rsp->ext_asym_sel_count);
+	CuAssertIntEquals (test, 0, rsp->ext_hash_sel_count);
+	CuAssertIntEquals (test, 0, rsp->reserved4);
+
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE,
+		resp_no_ext_alg->algstruct_table[0].alg_type);
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[0].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[0].ext_alg_count);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.dhe_named_group,
+		resp_no_ext_alg->algstruct_table[0].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[1].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[1].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD,
+		resp_no_ext_alg->algstruct_table[1].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.aead_cipher_suite,
+		resp_no_ext_alg->algstruct_table[1].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[2].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[2].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG,
+		resp_no_ext_alg->algstruct_table[2].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.req_base_asym_alg,
+		resp_no_ext_alg->algstruct_table[2].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[3].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[3].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE,
+		resp_no_ext_alg->algstruct_table[3].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.key_schedule,
+		resp_no_ext_alg->algstruct_table[3].alg_supported);
+
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.aead_cipher_suite,
+		spdm_state->connection_info.peer_algorithms.aead_cipher_suite);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.base_asym_algo,
+		spdm_state->connection_info.peer_algorithms.base_asym_algo);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.base_hash_algo,
+		spdm_state->connection_info.peer_algorithms.base_hash_algo);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.dhe_named_group,
+		spdm_state->connection_info.peer_algorithms.dhe_named_group);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.key_schedule,
+		spdm_state->connection_info.peer_algorithms.key_schedule);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_hash_algo,
+		spdm_state->connection_info.peer_algorithms.measurement_hash_algo);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_spec,
+		spdm_state->connection_info.peer_algorithms.measurement_spec);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format,
+		spdm_state->connection_info.peer_algorithms.other_params_support.opaque_data_format);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.req_base_asym_alg,
+		spdm_state->connection_info.peer_algorithms.req_base_asym_alg);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
 static void spdm_test_negotiate_algorithms_no_priority_table (CuTest *test)
 {
 	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
@@ -6124,7 +6307,7 @@ static void spdm_test_negotiate_algorithms_invalid_opaque_data_format (CuTest *t
 	spdm_state->connection_info.version.minor_version = 2;
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
 
-	rq->other_params_support.opaque_data_format = SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1 + 1;
+	rq->other_params_support.opaque_data_format = SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1 + 2;
 
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
@@ -17495,7 +17678,8 @@ static void spdm_test_key_exchange (CuTest *test)
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -18914,7 +19098,8 @@ static void spdm_test_key_exchange_create_session_fail (CuTest *test)
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -19040,7 +19225,8 @@ static void spdm_test_key_exchange_device_cert_null (CuTest *test)
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -19173,7 +19359,8 @@ static void spdm_test_key_exchange_device_zero_length (CuTest *test)
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -19306,7 +19493,8 @@ static void spdm_test_key_exchange_alias_cert_null (CuTest *test)
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -19439,7 +19627,8 @@ static void spdm_test_key_exchange_alias_cert_zero_length (CuTest *test)
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -19572,7 +19761,8 @@ static void spdm_test_key_exchange_unsuported_hash_algo (CuTest *test)
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -19705,7 +19895,8 @@ static void spdm_test_key_exchange_cert_chain_update_header_hash_fail (CuTest *t
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -19852,7 +20043,8 @@ static void spdm_test_key_exchange_cert_chain_update_cert_hash_fail (CuTest *tes
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -20003,7 +20195,8 @@ static void spdm_test_key_exchange_cert_chain_finish_hash_fail (CuTest *test)
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -20161,7 +20354,8 @@ static void spdm_test_key_exchange_add_cert_chain_hash_to_th_session_hash_contex
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -20320,7 +20514,8 @@ static void spdm_test_key_exchange_add_request_to_transcript_hash_fail (CuTest *
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -20495,7 +20690,8 @@ static void spdm_test_key_exchange_insufficient_response_buffer (CuTest *test)
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -20661,7 +20857,8 @@ static void spdm_test_key_exchange_generate_random_buffer_fail (CuTest *test)
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -20828,7 +21025,8 @@ static void spdm_test_key_exchange_generate_shared_secret_fail (CuTest *test)
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -21001,7 +21199,8 @@ static void spdm_test_key_exchange_get_measurement_summary_hash_fail (CuTest *te
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -21192,7 +21391,8 @@ static void spdm_test_key_exchange_add_response_to_transcript_hash_fail (CuTest 
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -21389,7 +21589,8 @@ static void spdm_test_key_exchange_signature_generation_get_hash_fail (CuTest *t
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -21592,7 +21793,8 @@ static void spdm_test_key_exchange_signature_generation_init_key_pair_fail (CuTe
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -21799,7 +22001,8 @@ static void spdm_test_key_exchange_signature_generation_get_signature_max_length
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -22013,7 +22216,8 @@ static void spdm_test_key_exchange_signature_generation_hmac_calculation_fail (C
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -22233,7 +22437,8 @@ static void spdm_test_key_exchange_signature_generation_v_1_2_sig_req_sign_fail 
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -22460,7 +22665,8 @@ static void spdm_test_key_exchange_signature_generation_ecc_der_decode_ecdsa_sig
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -22687,7 +22893,8 @@ static void spdm_test_key_exchange_add_signature_to_th_session_hash_context_fail
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -22920,7 +23127,8 @@ static void spdm_test_key_exchange_generate_session_handshake_keys_fail (CuTest 
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -23158,7 +23366,8 @@ static void spdm_test_key_exchange_hmac_generation_get_hash_fail (CuTest *test)
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -23402,7 +23611,8 @@ static void spdm_test_key_exchange_add_hmac_to_th_session_transcript_fail (CuTes
 	general_opaque_data_table_header->total_elements = 1;
 	opaque_element_table_header =
 		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
-			+ 1);
+			+
+			1);
 	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
 	opaque_element_table_header->vendor_len = 0;
 	opaque_element_table_header->opaque_element_data_len =
@@ -25527,8 +25737,8 @@ static void spdm_test_vdm (CuTest *test)
 		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base,
 		MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
-	status |= mock_expect (&testing.vdm_mock.mock,
-		testing.vdm_mock.base.process_request, &testing.vdm_mock.base, 0, MOCK_ARG_PTR (&msg));
+	status |= mock_expect (&testing.vdm_mock.mock, testing.vdm_mock.base.process_request,
+		&testing.vdm_mock.base, 0, MOCK_ARG_PTR (&msg));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -25930,12 +26140,12 @@ static void spdm_test_vdm_last_request_session_id_invalid (CuTest *test)
 		&testing.session_manager_mock.base, 1);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
-		testing.session_manager_mock.base.get_last_session_id,
-		&testing.session_manager_mock.base, 0xDEADBEEF);
+		testing.session_manager_mock.base.get_last_session_id, &testing.session_manager_mock.base,
+		0xDEADBEEF);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
-		testing.session_manager_mock.base.get_session,
-		&testing.session_manager_mock.base, 0, MOCK_ARG (0xDEADBEEF));
+		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG (0xDEADBEEF));
 
 	status = spdm_vendor_defined_request (spdm_responder, &msg);
 
@@ -25991,12 +26201,12 @@ static void spdm_test_vdm_last_request_session_state_invalid (CuTest *test)
 		&testing.session_manager_mock.base, 1);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
-		testing.session_manager_mock.base.get_last_session_id,
-		&testing.session_manager_mock.base, 0xDEADBEEF);
+		testing.session_manager_mock.base.get_last_session_id, &testing.session_manager_mock.base,
+		0xDEADBEEF);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
-		testing.session_manager_mock.base.get_session,
-		&testing.session_manager_mock.base, MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
+		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base,
+		MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
 	status = spdm_vendor_defined_request (spdm_responder, &msg);
 
@@ -26044,9 +26254,8 @@ static void spdm_test_vdm_unsupported_message_type (CuTest *test)
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
 	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
 
-	status = mock_expect (&testing.vdm_mock.mock,
-		testing.vdm_mock.base.process_request, &testing.vdm_mock.base,
-		CMD_HANDLER_UNKNOWN_MESSAGE_TYPE, MOCK_ARG_PTR (&msg));
+	status = mock_expect (&testing.vdm_mock.mock, testing.vdm_mock.base.process_request,
+		&testing.vdm_mock.base,	CMD_HANDLER_UNKNOWN_MESSAGE_TYPE, MOCK_ARG_PTR (&msg));
 
 	status = spdm_vendor_defined_request (spdm_responder, &msg);
 
@@ -26939,6 +27148,7 @@ TEST (spdm_test_process_get_capabilities_response_1_0_bad_length);
 TEST (spdm_test_negotiate_algorithms);
 TEST (spdm_test_negotiate_algorithms_highest_pri_hash_algo);
 TEST (spdm_test_negotiate_algorithms_lowest_pri_hash_algo);
+TEST (spdm_test_negotiate_algorithms_opaque_data_format);
 TEST (spdm_test_negotiate_algorithms_no_priority_table);
 TEST (spdm_test_negotiate_algorithms_no_priority_table_first_common_leftmost_hash_algo);
 TEST (spdm_test_negotiate_algorithms_no_priority_table_first_common_rightmost_hash_algo);
