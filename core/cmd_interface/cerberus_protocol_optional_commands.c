@@ -1011,6 +1011,47 @@ int cerberus_protocol_get_attestation_data (struct pcr_store *pcr_store,
 }
 
 /**
+ * Process get attestation summary request
+ *
+ * @param device_mgr Device manager instance to utilize
+ * @param request Attestation summary request to process
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+int cerberus_protocol_get_attestation_summary (struct device_manager *device_mgr,
+	struct cmd_interface_msg *request)
+{
+	struct cerberus_protocol_get_attestation_summary *rq =
+		(struct cerberus_protocol_get_attestation_summary*) request->data;
+	struct cerberus_protocol_get_attestation_summary_response *rsp =
+		(struct cerberus_protocol_get_attestation_summary_response*) request->data;
+	int device_num;
+
+	if (request->length != sizeof (struct cerberus_protocol_get_attestation_summary)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	device_num = device_manager_get_device_num_by_component (device_mgr, rq->component_id,
+		rq->component_instance);
+	if (ROT_IS_ERROR (device_num)) {
+		return CMD_HANDLER_UNSUPPORTED_INDEX;
+	}
+
+	/* Below call can't fail due to known good inputs */
+	rsp->summary.prev_state = device_manager_get_attestation_summary_prev_state (device_mgr,
+		device_num);
+
+	/* Below call can't fail due to known good inputs */
+	device_manager_get_attestation_summary_event_counters (device_mgr, device_num,
+		&rsp->summary.event_counters);
+
+	cmd_interface_msg_set_message_payload_length (request,
+		sizeof (struct cerberus_protocol_get_attestation_summary_response));
+
+	return 0;
+}
+
+/**
  * Process a key exchange request.
  *
  * @param session Session manager to utilize.

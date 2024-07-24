@@ -586,6 +586,12 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data_fa
 	struct cmd_interface *cmd, struct pcr_store *store, struct flash_mock *flash);
 void cerberus_protocol_optional_commands_testing_process_get_attestation_data_no_data (
 	CuTest *test, struct cmd_interface *cmd, struct pcr_store *store);
+void cerberus_protocol_optional_commands_testing_process_get_attestation_summary (CuTest *test,
+	struct cmd_interface *cmd, struct device_manager *device_manager);
+void cerberus_protocol_optional_commands_testing_process_get_attestation_summary_invalid_len (
+	CuTest *test, struct cmd_interface *cmd, struct device_manager *device_manager);
+void cerberus_protocol_optional_commands_testing_process_get_attestation_summary_unsupported_index (
+	CuTest *test, struct cmd_interface *cmd, struct device_manager *device_manager);
 
 void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0 (
 	CuTest *test, struct cmd_interface *cmd, struct session_manager_mock *session);

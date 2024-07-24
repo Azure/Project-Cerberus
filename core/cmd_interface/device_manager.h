@@ -185,6 +185,30 @@ struct device_manager_key {
 	int key_type;								/**< Key type */
 };
 
+#pragma pack(push, 1)
+
+/**
+ * Container for device manager attestation event counters
+ */
+struct device_manager_attestation_summary_event_counters {
+	uint16_t status_success_count;					/* Number of successful attestations */
+	uint16_t status_success_timeout_count;			/* Number of successful attestations with timeout */
+	uint16_t status_fail_internal_count;			/* Number of failed attestations due to internal error */
+	uint16_t status_fail_timeout_count;				/* Number of failed attestations due to timeout */
+	uint16_t status_fail_invalid_response_count;	/* Number of failed attestations due to invalid response */
+	uint16_t status_fail_invalid_config_count;		/* Number of failed attestations due to invalid configuration */
+};
+
+/**
+ * Container for device manager attestation summary
+ */
+struct device_manager_attestation_summary {
+	uint8_t prev_state;															/* Previous attestation state */
+	struct device_manager_attestation_summary_event_counters event_counters;	/* Attestation event counters */
+};
+
+#pragma pack(pop)
+
 /**
  * Entry type in a device manager table
  */
@@ -193,6 +217,7 @@ struct device_manager_entry {
 	platform_clock attestation_timeout;						/**< Clock tracking when device should be attested */
 	uint32_t component_id;									/**< Component ID in PCD and CFM */
 	enum device_manager_device_state state;					/**< Device state */
+	struct device_manager_attestation_summary summary;		/**< Attestation summary data */
 	uint16_t pci_vid;										/**< PCI Vendor ID */
 	uint16_t pci_device_id;									/**< PCI Device ID */
 	uint16_t pci_subsystem_vid;								/**< PCI Subsystem Vendor ID */
@@ -261,6 +286,8 @@ int device_manager_remove_observer (struct device_manager *mgr,
 	struct device_manager_observer *observer);
 
 int device_manager_get_device_num (struct device_manager *mgr, uint8_t eid);
+int device_manager_get_device_num_by_component (struct device_manager *mgr, uint32_t component_id,
+	uint8_t component_instance);
 int device_manager_get_device_addr (struct device_manager *mgr, int device_num);
 int device_manager_get_device_addr_by_eid (struct device_manager *mgr, uint8_t eid);
 int device_manager_get_device_eid (struct device_manager *mgr, int device_num);
@@ -320,6 +347,25 @@ int device_manager_update_device_state (struct device_manager *mgr, int device_n
 	enum device_manager_device_state state);
 int device_manager_update_device_state_by_eid (struct device_manager *mgr, uint8_t eid,
 	enum device_manager_device_state state);
+
+int device_manager_get_attestation_summary_prev_state (struct device_manager *mgr, int device_num);
+int device_manager_get_attestation_summary_prev_state_by_eid (struct device_manager *mgr,
+	uint8_t eid);
+
+int device_manager_update_attestation_summary_prev_state (struct device_manager *mgr,
+	int device_num);
+int device_manager_update_attestation_summary_prev_state_by_eid (struct device_manager *mgr,
+	uint8_t eid);
+
+int device_manager_get_attestation_summary_event_counters (struct device_manager *mgr,
+	int device_num, struct device_manager_attestation_summary_event_counters *event_counters);
+int device_manager_get_attestation_summary_event_counters_by_eid (struct device_manager *mgr,
+	uint8_t eid, struct device_manager_attestation_summary_event_counters *event_counters);
+
+int device_manager_update_attestation_summary_event_counters (struct device_manager *mgr,
+	int device_num);
+int device_manager_update_attestation_summary_event_counters_by_eid (struct device_manager *mgr,
+	uint8_t eid);
 
 int device_manager_get_eid_of_next_device_to_attest (struct device_manager *mgr);
 int device_manager_reset_authenticated_devices (struct device_manager *mgr);

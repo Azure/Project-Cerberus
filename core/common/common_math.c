@@ -370,3 +370,39 @@ int common_math_set_next_bit_in_array_odd_count (uint8_t *bytes, size_t length)
 {
 	return common_math_set_contiguous_bits_to_count (bytes, length, 0);
 }
+
+/**
+ * Saturating increment for 8-bit unsigned integer.
+ *
+ * @param value The value to increment.
+ *
+ * @return The incremented value, or UINT8_MAX if the value is already at the maximum.
+ */
+uint8_t common_math_saturating_increment_u8 (uint8_t value)
+{
+	return ((value == UINT8_MAX) ? UINT8_MAX : (value + 1));
+}
+
+/**
+ * Saturating increment for 16-bit unsigned integer.
+ *
+ * @param value The value to increment.
+ *
+ * @return The incremented value, or UINT16_MAX if the value is already at the maximum.
+ */
+uint16_t common_math_saturating_increment_u16 (uint16_t value)
+{
+	return ((value == UINT16_MAX) ? UINT16_MAX : (value + 1));
+}
+
+/**
+ * Saturating increment for 32-bit unsigned integer.
+ *
+ * @param value The value to increment.
+ *
+ * @return The incremented value, or UINT32_MAX if the value is already at the maximum.
+ */
+uint32_t common_math_saturating_increment_u32 (uint32_t value)
+{
+	return ((value == UINT32_MAX) ? UINT32_MAX : (value + 1));
+}

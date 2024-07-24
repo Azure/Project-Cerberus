@@ -42,7 +42,7 @@ int cerberus_protocol_get_attestation_state (struct device_manager *device_mgr,
 	uint8_t device_num;
 	int status;
 
-	if (request->length != (CERBERUS_PROTOCOL_MIN_MSG_LEN + 1)) {
+	if (request->length != (CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (uint8_t))) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
@@ -57,4 +57,5 @@ int cerberus_protocol_get_attestation_state (struct device_manager *device_mgr,
 
 	return 0;
 }
+
 #endif

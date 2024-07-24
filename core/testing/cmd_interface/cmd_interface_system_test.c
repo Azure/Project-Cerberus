@@ -4304,6 +4304,59 @@ static void cmd_interface_system_test_process_debug_fill_log (CuTest *test)
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
+static void cmd_interface_system_test_process_get_attestation_state (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_debug_commands_testing_process_get_attestation_state (test, &cmd.handler.base,
+		&cmd.device_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_attestation_summary (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_get_attestation_summary (test,
+		&cmd.handler.base, &cmd.device_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_attestation_summary_invalid_len (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_get_attestation_summary_invalid_len (test,
+		&cmd.handler.base, &cmd.device_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_attestation_summary_unsupported_index (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_get_attestation_summary_unsupported_index (
+		test, &cmd.handler.base, &cmd.device_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
 static void cmd_interface_system_test_process_get_log_info (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -8573,6 +8626,10 @@ TEST (cmd_interface_system_test_process_log_clear_invalid_len);
 TEST (cmd_interface_system_test_process_log_clear_invalid_type);
 TEST (cmd_interface_system_test_process_log_clear_debug_fail);
 TEST (cmd_interface_system_test_process_debug_fill_log);
+TEST (cmd_interface_system_test_process_get_attestation_state);
+TEST (cmd_interface_system_test_process_get_attestation_summary);
+TEST (cmd_interface_system_test_process_get_attestation_summary_invalid_len);
+TEST (cmd_interface_system_test_process_get_attestation_summary_unsupported_index);
 TEST (cmd_interface_system_test_process_get_log_info);
 TEST (cmd_interface_system_test_process_get_log_info_invalid_len);
 TEST (cmd_interface_system_test_process_get_log_info_fail_debug);

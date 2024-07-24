@@ -82,6 +82,39 @@ uint8_t num_contiguous_bits[] = {
  * Test cases
  *******************/
 
+static void common_math_test_saturing_increment_u8 (CuTest *test)
+{
+	TEST_START;
+
+	CuAssertIntEquals (test, 1, common_math_saturating_increment_u8 (0));
+	CuAssertIntEquals (test, (UINT8_MAX / 2 + 1),
+		common_math_saturating_increment_u8 (UINT8_MAX / 2));
+	CuAssertIntEquals (test, UINT8_MAX, common_math_saturating_increment_u8 (UINT8_MAX - 1));
+	CuAssertIntEquals (test, UINT8_MAX, common_math_saturating_increment_u8 (UINT8_MAX));
+}
+
+static void common_math_test_saturing_increment_u16 (CuTest *test)
+{
+	TEST_START;
+
+	CuAssertIntEquals (test, 1, common_math_saturating_increment_u16 (0));
+	CuAssertIntEquals (test, (UINT16_MAX / 2 + 1),
+		common_math_saturating_increment_u16 (UINT16_MAX / 2));
+	CuAssertIntEquals (test, UINT16_MAX, common_math_saturating_increment_u16 (UINT16_MAX - 1));
+	CuAssertIntEquals (test, UINT16_MAX, common_math_saturating_increment_u16 (UINT16_MAX));
+}
+
+static void common_math_test_saturing_increment_u32 (CuTest *test)
+{
+	TEST_START;
+
+	CuAssertIntEquals (test, 1, common_math_saturating_increment_u32 (0));
+	CuAssertIntEquals (test, (UINT32_MAX / 2 + 1),
+		common_math_saturating_increment_u32 (UINT32_MAX / 2));
+	CuAssertIntEquals (test, UINT32_MAX, common_math_saturating_increment_u32 (UINT32_MAX - 1));
+	CuAssertIntEquals (test, UINT32_MAX, common_math_saturating_increment_u32 (UINT32_MAX));
+}
+
 static void common_math_test_get_num_bits_set (CuTest *test)
 {
 	int status;
@@ -1016,6 +1049,9 @@ static void common_math_test_is_array_zero_empty (CuTest *test)
 // *INDENT-OFF*
 TEST_SUITE_START (common_math);
 
+TEST (common_math_test_saturing_increment_u8);
+TEST (common_math_test_saturing_increment_u16);
+TEST (common_math_test_saturing_increment_u32);
 TEST (common_math_test_get_num_bits_set);
 TEST (common_math_test_get_num_bits_set_before_index);
 TEST (common_math_test_get_num_bits_set_before_index_out_of_range);

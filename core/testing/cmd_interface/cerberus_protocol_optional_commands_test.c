@@ -10931,6 +10931,176 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data_no
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
+void cerberus_protocol_optional_commands_testing_process_get_attestation_summary (CuTest *test,
+	struct cmd_interface *cmd, struct device_manager *device_manager)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_get_attestation_summary *req =
+		(struct cerberus_protocol_get_attestation_summary*) data;
+	struct cerberus_protocol_get_attestation_summary_response *resp =
+		(struct cerberus_protocol_get_attestation_summary_response*) data;
+	struct device_manager_attestation_summary_event_counters event_counters;
+	struct device_manager_attestation_summary_event_counters expected_event_counters = {
+		.status_success_count = 2,
+		.status_success_timeout_count = 2,
+		.status_fail_internal_count = 1,
+		.status_fail_timeout_count = 1,
+		.status_fail_invalid_response_count = 8,
+		.status_fail_invalid_config_count = 2
+	};
+	int device_state;
+	uint32_t component_id = 50;
+	uint8_t component_instance = 0;
+	int status;
+
+	status = device_manager_update_mctp_bridge_device_entry (device_manager, 0, 0xAA, 0xBB, 0xCC, 0xDD, 1,
+		component_id, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_GET_ATTESTATION_SUMMARY;
+
+	req->component_id = component_id;
+	req->component_instance = component_instance;
+
+	request.length = sizeof (struct cerberus_protocol_get_attestation_summary);
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	for (device_state = 0; device_state <= DEVICE_MANAGER_ATTESTATION_INTERRUPTED; ++device_state) {
+		status = device_manager_update_device_state (device_manager, 0, device_state);
+		CuAssertIntEquals (test, 0, status);
+
+		status = device_manager_update_attestation_summary_event_counters (device_manager, 0);
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	status = device_manager_get_attestation_summary_event_counters (device_manager, 0,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 2, event_counters.status_success_count);
+	CuAssertIntEquals (test, 2, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
+	for (device_state = DEVICE_MANAGER_ATTESTATION_INVALID_VERSION;
+		device_state <= DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE; ++device_state) {
+		status = device_manager_update_device_state (device_manager, 0, device_state);
+		CuAssertIntEquals (test, 0, status);
+
+		status = device_manager_update_attestation_summary_event_counters (device_manager, 0);
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	status = device_manager_get_attestation_summary_event_counters (device_manager, 0,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 2, event_counters.status_success_count);
+	CuAssertIntEquals (test, 2, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 8, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
+	for (device_state = DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH;
+		device_state < MAX_DEVICE_MANAGER_STATES; ++device_state) {
+		status = device_manager_update_device_state (device_manager, 0, device_state);
+		CuAssertIntEquals (test, 0, status);
+
+		status = device_manager_update_attestation_summary_event_counters (device_manager, 0);
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	status = device_manager_get_attestation_summary_event_counters (device_manager, 0,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 2, event_counters.status_success_count);
+	CuAssertIntEquals (test, 2, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 8, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 2, event_counters.status_fail_invalid_config_count);
+
+	request.crypto_timeout = true;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_attestation_summary_response),
+		request.length);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, resp->summary.prev_state);
+	status = testing_validate_array (&expected_event_counters, &resp->summary.event_counters,
+		sizeof (expected_event_counters));
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_get_attestation_summary_invalid_len (CuTest *test,
+	struct cmd_interface *cmd, struct device_manager *device_manager)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_get_attestation_summary *req =
+		(struct cerberus_protocol_get_attestation_summary*) data;
+	int status;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_GET_ATTESTATION_SUMMARY;
+
+	request.length = sizeof (struct cerberus_protocol_get_attestation_summary) + 1;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = true;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_get_attestation_summary_unsupported_index (CuTest *test,
+	struct cmd_interface *cmd, struct device_manager *device_manager)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_get_attestation_summary *req =
+		(struct cerberus_protocol_get_attestation_summary*) data;
+	uint32_t component_id = 50;
+	uint8_t component_instance = 1;
+	int status;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_GET_ATTESTATION_SUMMARY;
+
+	req->component_id = component_id;
+	req->component_instance = component_instance;
+
+	request.length = sizeof (struct cerberus_protocol_get_attestation_summary);
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = true;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_INDEX, status);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+}
+
 void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0 (CuTest *test,
 	struct cmd_interface *cmd, struct session_manager_mock *session)
 {
@@ -12637,6 +12807,60 @@ static void cerberus_protocol_optional_commands_test_get_attestation_data_format
 	CuAssertPtrEquals (test, &raw_buffer_resp[5], cerberus_protocol_attestation_data (resp));
 }
 
+static void cerberus_protocol_optional_commands_test_get_attestation_summary_format (CuTest *test)
+{
+	uint8_t raw_buffer_req[] = {
+		0x7e,0x14,0x13,0x03,0x53,
+		0x01,0x02,0x03,0x04,0x05
+	};
+
+	uint8_t raw_buffer_resp[] = {
+		0x7e,0x14,0x13,0x03,0x53,
+		0x0,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c
+	};
+
+	struct cerberus_protocol_get_attestation_summary *req;
+	struct cerberus_protocol_get_attestation_summary_response *resp;
+	struct device_manager_attestation_summary *summary;
+
+	TEST_START;
+
+	CuAssertIntEquals (test, sizeof (raw_buffer_req),
+		sizeof (struct cerberus_protocol_get_attestation_summary));
+
+	req = (struct cerberus_protocol_get_attestation_summary*) raw_buffer_req;
+	CuAssertIntEquals (test, 0, req->header.integrity_check);
+	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
+	CuAssertIntEquals (test, 0x1314, req->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, req->header.rq);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
+	CuAssertIntEquals (test, 0, req->header.crypt);
+	CuAssertIntEquals (test, 0x03, req->header.reserved1);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_ATTESTATION_SUMMARY, req->header.command);
+
+	CuAssertIntEquals (test, 0x04030201, req->component_id);
+	CuAssertIntEquals (test, 0x05, req->component_instance);
+
+	resp = (struct cerberus_protocol_get_attestation_summary_response*) raw_buffer_resp;
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0x7e, resp->header.msg_type);
+	CuAssertIntEquals (test, 0x1314, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0x03, resp->header.reserved1);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_ATTESTATION_SUMMARY, resp->header.command);
+
+	summary = (struct device_manager_attestation_summary*) &raw_buffer_resp[5];
+	CuAssertIntEquals (test, 0, summary->prev_state);
+	CuAssertIntEquals (test, 0x0201, summary->event_counters.status_success_count);
+	CuAssertIntEquals (test, 0x0403, summary->event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0x0605, summary->event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0x0807, summary->event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0x0a09, summary->event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0x0c0b, summary->event_counters.status_fail_invalid_config_count);
+}
+
 static void cerberus_protocol_optional_commands_test_prepare_fw_update_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
@@ -13173,6 +13397,7 @@ TEST (cerberus_protocol_optional_commands_test_get_log_info_format);
 TEST (cerberus_protocol_optional_commands_test_get_log_format);
 TEST (cerberus_protocol_optional_commands_test_clear_log_format);
 TEST (cerberus_protocol_optional_commands_test_get_attestation_data_format);
+TEST (cerberus_protocol_optional_commands_test_get_attestation_summary_format);
 TEST (cerberus_protocol_optional_commands_test_prepare_fw_update_format);
 TEST (cerberus_protocol_optional_commands_test_fw_update_format);
 TEST (cerberus_protocol_optional_commands_test_complete_fw_update_format);

@@ -12,6 +12,7 @@
 #include "cmd_interface/cmd_authorization.h"
 #include "cmd_interface/cmd_background.h"
 #include "cmd_interface/cmd_interface.h"
+#include "cmd_interface/device_manager.h"
 #include "cmd_interface/session_manager.h"
 #include "common/buffer_util.h"
 #include "crypto/hash.h"
@@ -712,6 +713,23 @@ struct cerberus_protocol_get_attestation_data_response {
 	(req->max_response - sizeof (struct cerberus_protocol_get_attestation_data_response))
 
 /**
+ * Cerberus protocol get attestation summary request format
+ */
+struct cerberus_protocol_get_attestation_summary {
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint32_t component_id;					/**< Component ID for the requested data */
+	uint8_t component_instance;				/**< Component instance for the requested data */
+};
+
+/**
+ * Cerberus protocol get attestation summary response format
+ */
+struct cerberus_protocol_get_attestation_summary_response {
+	struct cerberus_protocol_header header;				/**< Message header */
+	struct device_manager_attestation_summary summary;	/**< Attestation summary data */
+};
+
+/**
  * Cerberus protocol prepare firmware update request format
  */
 struct cerberus_protocol_prepare_fw_update {
@@ -1005,6 +1023,8 @@ int cerberus_protocol_get_recovery_image_id (struct recovery_image_manager *mana
 	struct recovery_image_manager *manager_1, struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_attestation_data (struct pcr_store *store,
+	struct cmd_interface_msg *request);
+int cerberus_protocol_get_attestation_summary (struct device_manager *device_mgr,
 	struct cmd_interface_msg *request);
 
 int cerberus_protocol_key_exchange (struct session_manager *session,

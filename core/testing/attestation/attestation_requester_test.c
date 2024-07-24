@@ -5250,6 +5250,7 @@ static void attestation_requester_test_deinit_null (CuTest *test)
 static void attestation_requester_test_attest_device_cerberus_ecc (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	struct cfm_pmr_digest pmr_digest;
@@ -5297,12 +5298,23 @@ static void attestation_requester_test_attest_device_cerberus_ecc (CuTest *test)
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_cerberus_ecc_vendor_root_ca (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 65;
 	uint8_t ca_digests[SHA256_HASH_LENGTH * 2] = {0};
 	uint8_t digest[SHA256_HASH_LENGTH];
@@ -5351,12 +5363,23 @@ static void attestation_requester_test_attest_device_cerberus_ecc_vendor_root_ca
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_cerberus_ecc_untrusted_root_ca (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	struct cfm_pmr_digest pmr_digest;
@@ -5404,12 +5427,23 @@ static void attestation_requester_test_attest_device_cerberus_ecc_untrusted_root
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_cerberus_rsa (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 75;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	struct cfm_pmr_digest pmr_digest;
@@ -5457,12 +5491,23 @@ static void attestation_requester_test_attest_device_cerberus_rsa (CuTest *test)
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_cerberus_mbedtls_x509 (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	struct cfm_pmr_digest pmr_digest;
@@ -5510,12 +5555,23 @@ static void attestation_requester_test_attest_device_cerberus_mbedtls_x509 (CuTe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_cerberus_already_authenticated (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 40;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	struct cfm_pmr_digest pmr_digest;
@@ -5564,8 +5620,21 @@ static void attestation_requester_test_attest_device_cerberus_already_authentica
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -5574,6 +5643,7 @@ static void attestation_requester_test_attest_device_cerberus_already_authentica
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 40;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	struct cfm_pmr_digest pmr_digest;
@@ -5622,8 +5692,21 @@ static void attestation_requester_test_attest_device_cerberus_already_authentica
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -5632,6 +5715,7 @@ static void attestation_requester_test_attest_device_cerberus_multiple_pmr0_dige
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	uint8_t digest[SHA256_HASH_LENGTH * 2] = {0};
 	struct cfm_pmr_digest pmr_digest;
@@ -5679,6 +5763,16 @@ static void attestation_requester_test_attest_device_cerberus_multiple_pmr0_dige
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -5686,6 +5780,7 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -5703,6 +5798,16 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -5710,6 +5815,7 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -5727,6 +5833,16 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -5734,6 +5850,7 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -5752,8 +5869,21 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -5762,6 +5892,7 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -5780,8 +5911,21 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -5790,6 +5934,7 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -5807,12 +5952,23 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_cerberus_get_digest_fail (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -5833,6 +5989,16 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_fail (C
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -5840,6 +6006,7 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_hash_fa
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t digest[SHA256_HASH_LENGTH * 3];
 	size_t i_digest;
 	int status;
@@ -5872,6 +6039,16 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_hash_fa
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -5879,6 +6056,7 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_unexpec
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -5899,12 +6077,23 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_unexpec
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -5925,6 +6114,16 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -5932,6 +6131,7 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -5953,8 +6153,21 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp_
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -5963,6 +6176,7 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -5984,8 +6198,21 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp_
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -5993,6 +6220,7 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp_
 static void attestation_requester_test_attest_device_cerberus_get_certificate_fail (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -6016,6 +6244,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_fa
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -6023,6 +6261,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_un
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -6046,6 +6285,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_un
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -6053,6 +6302,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_un
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -6076,6 +6326,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_un
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -6083,6 +6343,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_in
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	int status;
 
@@ -6115,6 +6376,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_in
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -6122,6 +6393,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ad
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	int status;
 
@@ -6161,6 +6433,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ad
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -6168,6 +6450,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	int status;
 
@@ -6207,6 +6490,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -6214,6 +6507,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_root_ca_digests root_ca_digests;
 	uint32_t component_id = 5;
 	uint8_t ca_digests[SHA256_HASH_LENGTH * 2] = {0};
@@ -6267,6 +6561,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -6274,6 +6578,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_root_ca_digests root_ca_digests;
 	uint32_t component_id = 12;
 	uint8_t ca_digests[SHA256_HASH_LENGTH * 2] = {0};
@@ -6331,6 +6636,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -6338,6 +6653,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_root_ca_digests root_ca_digests;
 	uint32_t component_id = 50;
 	uint8_t ca_digests[SHA256_HASH_LENGTH * 2] = {0};
@@ -6404,6 +6720,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -6411,6 +6737,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_st
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	int status;
 
@@ -6455,6 +6782,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_st
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -6462,6 +6799,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_up
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	int status;
 
@@ -6514,6 +6852,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_up
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -6521,6 +6869,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ha
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	int status;
 
@@ -6565,6 +6914,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ha
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -6572,6 +6931,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_lo
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	int status;
 
@@ -6622,6 +6982,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_lo
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -6629,6 +6999,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_au
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 12;
 	int status;
 
@@ -6686,6 +7057,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_au
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -6693,6 +7074,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_in
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	int status;
 
@@ -6752,6 +7134,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_in
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -6759,6 +7151,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ad
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	int status;
 
@@ -6826,6 +7219,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ad
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -6833,6 +7236,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ha
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	int status;
 
@@ -6885,6 +7289,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ha
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -6892,6 +7306,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_lo
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	int status;
 
@@ -6950,6 +7365,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_lo
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -6957,6 +7382,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_au
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	int status;
 
@@ -7022,6 +7448,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_au
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -7029,6 +7465,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_fi
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	int status;
 
@@ -7097,6 +7534,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_fi
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -7104,6 +7551,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_co
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t out_digest[SHA256_HASH_LENGTH] = {0};
 	uint32_t component_id = 50;
 	int status;
@@ -7171,6 +7619,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_co
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -7178,6 +7636,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ge
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t out_digest[SHA256_HASH_LENGTH] = {0};
 	uint32_t component_id = 50;
 	int status;
@@ -7253,6 +7712,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ge
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -7260,6 +7729,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ge
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t out_digest[SHA256_HASH_LENGTH] = {0};
 	uint32_t component_id = 50;
 	int status;
@@ -7339,12 +7809,23 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ge
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_cerberus_get_certificate_no_rsp (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7368,6 +7849,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -7375,6 +7866,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7399,8 +7891,21 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -7409,6 +7914,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7433,8 +7939,21 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -7443,6 +7962,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_start_ha
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7469,12 +7989,23 @@ static void attestation_requester_test_attest_device_cerberus_challenge_start_ha
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_cerberus_generate_challenge_fail (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7507,6 +8038,16 @@ static void attestation_requester_test_attest_device_cerberus_generate_challenge
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -7514,6 +8055,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_hash_upd
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7539,12 +8081,23 @@ static void attestation_requester_test_attest_device_cerberus_challenge_hash_upd
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_cerberus_challenge_fail (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7570,6 +8123,16 @@ static void attestation_requester_test_attest_device_cerberus_challenge_fail (Cu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -7577,6 +8140,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7602,6 +8166,16 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -7609,6 +8183,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7634,6 +8209,16 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -7641,6 +8226,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7666,6 +8252,16 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -7673,6 +8269,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7698,6 +8295,16 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -7705,6 +8312,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_update_h
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7730,6 +8338,16 @@ static void attestation_requester_test_attest_device_cerberus_challenge_update_h
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -7737,6 +8355,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_hash_fin
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7762,6 +8381,16 @@ static void attestation_requester_test_attest_device_cerberus_challenge_hash_fin
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -7769,6 +8398,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_ecc_init
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7794,6 +8424,16 @@ static void attestation_requester_test_attest_device_cerberus_challenge_ecc_init
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -7801,6 +8441,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_ecc_veri
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7826,6 +8467,16 @@ static void attestation_requester_test_attest_device_cerberus_challenge_ecc_veri
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -7833,6 +8484,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_rsa_not_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7858,6 +8510,16 @@ static void attestation_requester_test_attest_device_cerberus_challenge_rsa_not_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -7865,6 +8527,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_rsa_init
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7890,6 +8553,16 @@ static void attestation_requester_test_attest_device_cerberus_challenge_rsa_init
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -7897,6 +8570,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_rsa_veri
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7922,6 +8596,16 @@ static void attestation_requester_test_attest_device_cerberus_challenge_rsa_veri
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -7929,6 +8613,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7954,12 +8639,23 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -7985,6 +8681,16 @@ static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp (
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -7992,6 +8698,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp_a
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -8018,8 +8725,21 @@ static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp_a
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -8028,6 +8748,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp_a
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -8054,8 +8775,21 @@ static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp_a
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -8064,6 +8798,7 @@ static void attestation_requester_test_attest_device_cerberus_get_component_pmr_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 12;
 	int status;
 
@@ -8094,12 +8829,23 @@ static void attestation_requester_test_attest_device_cerberus_get_component_pmr_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_cerberus_pmr0_digest_invalid_len (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 12;
 	uint8_t digest[SHA512_HASH_LENGTH] = {0};
 	struct cfm_pmr_digest pmr_digest;
@@ -8142,12 +8888,23 @@ static void attestation_requester_test_attest_device_cerberus_pmr0_digest_invali
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_cerberus_no_pmr0_digest_match (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 12;
 	uint8_t digest[SHA256_HASH_LENGTH] = {0};
 	struct cfm_pmr_digest pmr_digest;
@@ -8190,6 +8947,16 @@ static void attestation_requester_test_attest_device_cerberus_no_pmr0_digest_mat
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -8197,6 +8964,7 @@ static void attestation_requester_test_attest_device_spdm_different_measurement_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct pcr_measured_data pcr_cfm_valid_measured_data;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
@@ -8364,12 +9132,23 @@ static void attestation_requester_test_attest_device_spdm_different_measurement_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha256_only_challenge (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -8467,12 +9246,23 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_challenge 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_challenge (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 12;
 	uint8_t digest[SHA256_HASH_LENGTH];
@@ -8555,12 +9345,23 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_challe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha384_only_challenge (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -8660,12 +9461,23 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_challenge 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_challenge (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 12;
 	uint8_t digest[SHA384_HASH_LENGTH];
@@ -8748,12 +9560,23 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_challe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha512_only_challenge (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -8853,12 +9676,23 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_challenge 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_challenge (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 65;
 	uint8_t digest[SHA512_HASH_LENGTH];
@@ -8941,12 +9775,23 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_challe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0 (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -9068,6 +9913,16 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0 (CuTe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -9075,6 +9930,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -9168,6 +10024,16 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -9175,6 +10041,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -9269,8 +10136,21 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -9279,6 +10159,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -9373,8 +10254,21 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -9382,6 +10276,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0 (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 65;
 	uint8_t digest[SHA256_HASH_LENGTH];
@@ -9482,6 +10377,16 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0 (
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -9489,6 +10394,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_g
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 65;
 	uint8_t digest[SHA256_HASH_LENGTH];
@@ -9576,6 +10482,16 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_g
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -9583,6 +10499,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_g
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 65;
 	uint8_t digest[SHA256_HASH_LENGTH];
@@ -9671,8 +10588,21 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_g
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -9681,6 +10611,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_g
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 65;
 	uint8_t digest[SHA256_HASH_LENGTH];
@@ -9769,8 +10700,21 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_g
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -9778,6 +10722,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_g
 static void attestation_requester_test_attest_device_spdm_sha384_only_pmr0 (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -9899,12 +10844,23 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_pmr0 (CuTe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_pmr0 (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 65;
 	uint8_t digest[SHA384_HASH_LENGTH];
@@ -10005,12 +10961,23 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_pmr0 (
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha512_only_pmr0 (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -10132,12 +11099,23 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_pmr0 (CuTe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_pmr0 (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 65;
 	uint8_t digest[SHA512_HASH_LENGTH];
@@ -10238,6 +11216,16 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_pmr0 (
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -10245,6 +11233,7 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
 	struct cfm_allowable_data_entry data_entry;
@@ -10382,6 +11371,16 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -10389,6 +11388,7 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
 	struct cfm_allowable_data_entry data_entry;
@@ -10526,6 +11526,16 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -10533,6 +11543,7 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -10614,6 +11625,16 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -10621,6 +11642,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_multiple_pmr
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -10742,12 +11764,23 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_multiple_pmr
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha256_only_measurement (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -10873,12 +11906,23 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_measuremen
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_measurement (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_measurement_container container;
 	struct cfm_allowable_digests allowable_digests;
 	uint32_t component_id = 65;
@@ -10983,12 +12027,23 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_measur
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha384_only_measurement (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -11114,12 +12169,23 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_measuremen
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_measurement (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_measurement_container container;
 	struct cfm_allowable_digests allowable_digests;
 	uint32_t component_id = 65;
@@ -11224,12 +12290,23 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_measur
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha512_only_measurement (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -11355,12 +12432,23 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_measuremen
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_measurement (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_measurement_container container;
 	struct cfm_allowable_digests allowable_digests;
 	uint32_t component_id = 65;
@@ -11465,6 +12553,16 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_measur
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -11472,6 +12570,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_multi
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -11597,6 +12696,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_multi
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -11604,6 +12713,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -11801,6 +12911,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -11808,6 +12928,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_versi
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -12005,6 +13126,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_versi
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -12012,6 +13143,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_skip_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -12210,6 +13342,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_skip_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -12217,6 +13359,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -12421,6 +13564,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -12428,6 +13581,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -12622,12 +13776,23 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_only_measurement_data_equal (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -12761,6 +13926,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -12768,6 +13943,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -12901,6 +14077,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -12908,6 +14094,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -13046,6 +14233,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -13053,6 +14250,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -13183,6 +14381,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -13190,6 +14398,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -13326,6 +14535,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -13333,6 +14552,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -13470,6 +14690,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -13477,6 +14707,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -13614,6 +14845,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -13621,6 +14862,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -13761,6 +15003,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -13768,6 +15020,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -13898,6 +15151,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -13905,6 +15168,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -14039,6 +15303,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -14046,6 +15320,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -14181,6 +15456,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -14188,6 +15473,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -14323,6 +15609,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -14330,6 +15626,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -14465,6 +15762,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -14472,6 +15779,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -14611,6 +15919,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -14619,6 +15937,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -14749,6 +16068,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -14756,6 +16085,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -14891,6 +16221,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -14898,6 +16238,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -15033,6 +16374,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -15040,6 +16391,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -15175,6 +16527,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -15182,6 +16544,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -15315,6 +16678,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -15322,6 +16695,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -15462,6 +16836,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -15469,6 +16853,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -15608,6 +16993,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -15615,6 +17010,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -15747,6 +17143,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -15754,6 +17160,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -15890,6 +17297,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -15897,6 +17314,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -16032,6 +17450,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -16039,6 +17467,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -16174,6 +17603,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -16181,6 +17620,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -16321,6 +17761,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -16328,6 +17778,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -16458,6 +17909,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -16465,6 +17926,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -16600,6 +18062,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -16607,6 +18079,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -16741,6 +18214,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -16891,6 +18374,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -17024,6 +18508,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -17031,6 +18525,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -17171,6 +18666,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -17178,6 +18683,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -17317,6 +18823,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -17324,6 +18840,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -17456,6 +18973,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -17463,6 +18990,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -17600,6 +19128,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -17607,6 +19145,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -17744,6 +19283,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -17751,6 +19300,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -17885,6 +19435,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -17892,6 +19452,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -18029,6 +19590,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -18036,6 +19607,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -18170,6 +19742,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -18177,6 +19759,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -18311,6 +19894,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -18318,6 +19911,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -18452,6 +20046,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -18459,6 +20063,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -18593,6 +20198,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -18600,6 +20215,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -18734,6 +20350,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -18741,6 +20367,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -18889,12 +20516,23 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_only_measurement_data_1_1 (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
 	struct cfm_allowable_data_entry data_entry;
@@ -19007,6 +20645,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -19014,6 +20662,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -19147,6 +20796,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -19154,6 +20813,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -19287,6 +20947,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -19294,6 +20964,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -19506,6 +21177,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -19513,6 +21194,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -19725,6 +21407,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -19732,6 +21424,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -19944,6 +21637,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -19951,6 +21654,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -20168,6 +21872,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -20175,6 +21889,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -20384,6 +22099,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -20391,6 +22116,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -20506,6 +22232,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -20513,6 +22249,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_then_measu
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -20718,6 +22455,16 @@ static void attestation_requester_test_attest_device_spdm_measurement_then_measu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -20725,6 +22472,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_then_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -20930,12 +22678,23 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_then_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha256_no_cert_retrieval (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -21046,12 +22805,23 @@ static void attestation_requester_test_attest_device_spdm_sha256_no_cert_retriev
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha384_no_cert_retrieval (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -21163,12 +22933,23 @@ static void attestation_requester_test_attest_device_spdm_sha384_no_cert_retriev
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha512_no_cert_retrieval (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -21280,12 +23061,23 @@ static void attestation_requester_test_attest_device_spdm_sha512_no_cert_retriev
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha256_update_cert_chain (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -21394,12 +23186,23 @@ static void attestation_requester_test_attest_device_spdm_sha256_update_cert_cha
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha384_update_cert_chain (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -21508,12 +23311,23 @@ static void attestation_requester_test_attest_device_spdm_sha384_update_cert_cha
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_sha512_update_cert_chain (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -21622,12 +23436,23 @@ static void attestation_requester_test_attest_device_spdm_sha512_update_cert_cha
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_vendor_root_ca (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -21728,12 +23553,23 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca (CuTest
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_riot_root_ca (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -21833,12 +23669,23 @@ static void attestation_requester_test_attest_device_spdm_riot_root_ca (CuTest *
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_mbedtls_x509 (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -21938,12 +23785,23 @@ static void attestation_requester_test_attest_device_spdm_mbedtls_x509 (CuTest *
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_already_authenticated (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -22044,8 +23902,21 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -22054,6 +23925,7 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -22154,8 +24026,21 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated_
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -22164,6 +24049,7 @@ static void attestation_requester_test_attest_device_spdm_cert_retrieval_more_th
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -22294,6 +24180,16 @@ static void attestation_requester_test_attest_device_spdm_cert_retrieval_more_th
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -22301,6 +24197,7 @@ static void attestation_requester_test_attest_device_spdm_multiple_pmr0_digest_o
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -22400,12 +24297,23 @@ static void attestation_requester_test_attest_device_spdm_multiple_pmr0_digest_o
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_no_secondary_hash (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 101;
 	struct cfm_component_device component_device;
 	int status;
@@ -22451,12 +24359,23 @@ static void attestation_requester_test_attest_device_spdm_no_secondary_hash (CuT
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_start_hash_sha256_fail (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -22475,12 +24394,23 @@ static void attestation_requester_test_attest_device_spdm_start_hash_sha256_fail
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_start_hash_sha384_fail (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -22499,12 +24429,23 @@ static void attestation_requester_test_attest_device_spdm_start_hash_sha384_fail
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_start_hash_sha512_fail (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -22523,6 +24464,16 @@ static void attestation_requester_test_attest_device_spdm_start_hash_sha512_fail
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -22530,6 +24481,7 @@ static void attestation_requester_test_attest_device_spdm_get_version_req_hash_u
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_version_request req;
 	int status;
 
@@ -22560,12 +24512,23 @@ static void attestation_requester_test_attest_device_spdm_get_version_req_hash_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_get_version_fail (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_version_request req;
 	int status;
 
@@ -22599,6 +24562,16 @@ static void attestation_requester_test_attest_device_spdm_get_version_fail (CuTe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -22606,6 +24579,7 @@ static void attestation_requester_test_attest_device_spdm_get_version_response_n
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_version_request req;
 	int status;
 
@@ -22641,12 +24615,23 @@ static void attestation_requester_test_attest_device_spdm_get_version_response_n
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_get_version_unexpected_rsp (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_version_request req;
 	int status;
 
@@ -22680,12 +24665,23 @@ static void attestation_requester_test_attest_device_spdm_get_version_unexpected
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_get_version_no_rsp (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_version_request req;
 	int status;
 
@@ -22719,6 +24715,16 @@ static void attestation_requester_test_attest_device_spdm_get_version_no_rsp (Cu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -22726,6 +24732,7 @@ static void attestation_requester_test_attest_device_spdm_get_version_no_rsp_alr
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_version_request req;
 	int status;
 
@@ -22760,8 +24767,21 @@ static void attestation_requester_test_attest_device_spdm_get_version_no_rsp_alr
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -22770,6 +24790,7 @@ static void attestation_requester_test_attest_device_spdm_get_version_no_rsp_alr
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_version_request req;
 	int status;
 
@@ -22804,8 +24825,21 @@ static void attestation_requester_test_attest_device_spdm_get_version_no_rsp_alr
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -22814,6 +24848,7 @@ static void attestation_requester_test_attest_device_spdm_get_version_unsupporte
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_version_request req;
 	int status;
 
@@ -22847,6 +24882,16 @@ static void attestation_requester_test_attest_device_spdm_get_version_unsupporte
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_VERSION, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -22854,6 +24899,7 @@ static void attestation_requester_test_attest_device_spdm_get_version_unsupporte
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_version_request req;
 	int status;
 
@@ -22890,6 +24936,16 @@ static void attestation_requester_test_attest_device_spdm_get_version_unsupporte
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_VERSION, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -22897,6 +24953,7 @@ static void attestation_requester_test_attest_device_spdm_get_version_unsupporte
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_version_request req;
 	int status;
 
@@ -22932,6 +24989,16 @@ static void attestation_requester_test_attest_device_spdm_get_version_unsupporte
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_VERSION, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -22939,6 +25006,7 @@ static void attestation_requester_test_attest_device_spdm_get_version_rsp_hash_u
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -22960,6 +25028,16 @@ static void attestation_requester_test_attest_device_spdm_get_version_rsp_hash_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -22967,6 +25045,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_req_h
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_capabilities req;
 	size_t req_len;
 	int status;
@@ -23029,12 +25108,23 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_req_h
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_get_capabilities_fail (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_capabilities req;
 	int status;
 
@@ -23091,6 +25181,16 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_fail 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -23098,6 +25198,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_respo
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_capabilities req;
 	int status;
 
@@ -23156,6 +25257,16 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_respo
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -23163,6 +25274,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_unexp
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_capabilities req;
 	int status;
 
@@ -23219,6 +25331,16 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_unexp
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -23226,6 +25348,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rs
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_capabilities req;
 	int status;
 
@@ -23282,6 +25405,16 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rs
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -23289,6 +25422,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rs
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_capabilities req;
 	int status;
 
@@ -23346,8 +25480,21 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rs
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -23356,6 +25503,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rs
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_capabilities req;
 	int status;
 
@@ -23413,8 +25561,21 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rs
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -23423,6 +25584,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_capabilities req;
 	int status;
 
@@ -23481,6 +25643,16 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CAPS, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -23488,6 +25660,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_capabilities req;
 	int status;
 
@@ -23546,6 +25719,16 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CAPS, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -23553,6 +25736,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_capabilities req;
 	int status;
 
@@ -23611,6 +25795,16 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CAPS, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -23618,6 +25812,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_chall
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_capabilities req;
 	int status;
 
@@ -23677,6 +25872,16 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_chall
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CAPS, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -23684,6 +25889,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_rsp_h
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -23705,6 +25911,16 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_rsp_h
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -23712,6 +25928,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_r
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_negotiate_algorithms_request req;
 	int status;
 
@@ -23753,6 +25970,16 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_r
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -23760,6 +25987,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_f
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_negotiate_algorithms_request req;
 	int status;
 
@@ -23803,6 +26031,16 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_f
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -23810,6 +26048,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_r
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_negotiate_algorithms_request req;
 	int status;
 
@@ -23855,6 +26094,16 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_r
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -23862,6 +26111,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_negotiate_algorithms_request req;
 	int status;
 
@@ -23905,6 +26155,16 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -23912,6 +26172,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_n
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_negotiate_algorithms_request req;
 	int status;
 
@@ -23954,6 +26215,16 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_n
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -23962,6 +26233,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_n
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_negotiate_algorithms_request req;
 	int status;
 
@@ -23992,6 +26264,10 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_n
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms (test, false, false,
 		false, &testing);
 
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+		DEVICE_MANAGER_AUTHENTICATED);
+	CuAssertIntEquals (test, 0, status);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (&req, sizeof (req)),
 		MOCK_ARG (sizeof (req)));
@@ -24002,8 +26278,21 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_n
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
-	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -24012,6 +26301,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_n
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_negotiate_algorithms_request req;
 	int status;
 
@@ -24056,8 +26346,21 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_n
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -24066,6 +26369,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_negotiate_algorithms_request req;
 	int status;
 
@@ -24110,6 +26414,16 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -24117,6 +26431,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_m
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_negotiate_algorithms_request req;
 	int status;
 
@@ -24162,6 +26477,16 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_m
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -24169,6 +26494,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_s
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_negotiate_algorithms_request req;
 	int status;
 
@@ -24217,6 +26543,16 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_s
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -24224,6 +26560,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_s
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_negotiate_algorithms_request req;
 	int status;
 
@@ -24272,6 +26609,16 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_s
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -24279,6 +26626,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_negotiate_algorithms_request req;
 	int status;
 
@@ -24324,6 +26672,16 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -24331,6 +26689,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_negotiate_algorithms_request req;
 	int status;
 
@@ -24376,6 +26735,16 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -24383,6 +26752,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_negotiate_algorithms_request req;
 	int status;
 
@@ -24428,6 +26798,16 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -24435,6 +26815,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_negotiate_algorithms_request req;
 	int status;
 
@@ -24480,6 +26861,16 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -24487,6 +26878,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_r
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -24508,6 +26900,16 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_r
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -24515,6 +26917,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_req_hash_u
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_digests_request req;
 	int status;
 
@@ -24550,12 +26953,23 @@ static void attestation_requester_test_attest_device_spdm_get_digests_req_hash_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_get_digests_fail (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_digests_request req;
 	int status;
 
@@ -24593,12 +27007,23 @@ static void attestation_requester_test_attest_device_spdm_get_digests_fail (CuTe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_get_digests_unexpected_rsp (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_digests_request req;
 	int status;
 
@@ -24636,12 +27061,23 @@ static void attestation_requester_test_attest_device_spdm_get_digests_unexpected
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_get_digests_no_rsp (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_digests_request req;
 	int status;
 
@@ -24679,6 +27115,16 @@ static void attestation_requester_test_attest_device_spdm_get_digests_no_rsp (Cu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -24686,6 +27132,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_no_rsp_alr
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_digests_request req;
 	int status;
 
@@ -24724,8 +27171,21 @@ static void attestation_requester_test_attest_device_spdm_get_digests_no_rsp_alr
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -24734,6 +27194,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_no_rsp_alr
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_digests_request req;
 	int status;
 
@@ -24772,8 +27233,21 @@ static void attestation_requester_test_attest_device_spdm_get_digests_no_rsp_alr
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -24781,6 +27255,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_no_rsp_alr
 static void attestation_requester_test_attest_device_spdm_get_digests_invalid_rsp_len (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_digests_request req;
 	int status;
 
@@ -24820,12 +27295,23 @@ static void attestation_requester_test_attest_device_spdm_get_digests_invalid_rs
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_DIGESTS, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_get_digests_req_slot_empty (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_digests_request req;
 	int status;
 
@@ -24862,6 +27348,16 @@ static void attestation_requester_test_attest_device_spdm_get_digests_req_slot_e
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_DIGESTS, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -24869,6 +27365,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_hash_u
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -24892,6 +27389,16 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_hash_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -24909,6 +27416,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
 	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_digests_request req;
 	struct cmd_packet tx_packet;
 	struct mctp_base_protocol_transport_header *header;
@@ -25358,6 +27866,16 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -25366,6 +27884,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 {
 	uint32_t component_id = 101;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_digests_request req;
 	int status;
 
@@ -25405,6 +27924,16 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -25412,6 +27941,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_req_ha
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_certificate_request req;
 	int status;
 
@@ -25453,12 +27983,23 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_req_ha
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_get_certificate_fail (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_certificate_request req;
 	int status;
 
@@ -25502,6 +28043,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_fail (
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -25509,6 +28060,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_unexpe
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_certificate_request req;
 	int status;
 
@@ -25552,12 +28104,23 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_unexpe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_certificate_request req;
 	int status;
 
@@ -25601,6 +28164,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -25608,6 +28181,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_certificate_request req;
 	int status;
 
@@ -25652,8 +28226,21 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -25661,6 +28248,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_certificate_request req;
 	int status;
 
@@ -25705,8 +28293,21 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -25715,6 +28316,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_rsp_un
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_certificate_request req;
 	int status;
 
@@ -25760,6 +28362,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_rsp_un
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CERTS, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -25767,6 +28379,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_rsp_ha
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -25792,12 +28405,23 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_rsp_ha
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_get_certificate_too_large (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	size_t cert_header_len = sizeof (struct spdm_certificate_chain) + SHA384_HASH_LENGTH;
 	size_t root_ca_len_offset = cert_header_len + 2;
 	uint16_t bad_len = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN + 1;
@@ -25841,6 +28465,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_too_la
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CERTS, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -25848,6 +28482,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -25974,6 +28609,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -25981,6 +28626,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -26107,6 +28753,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -26114,6 +28770,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_init_c
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 101;
 	int status;
 
@@ -26156,6 +28813,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_init_c
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -26163,6 +28830,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_add_ro
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 101;
 	int status;
 
@@ -26212,6 +28880,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_add_ro
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -26219,6 +28897,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rio
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	int status;
 
@@ -26268,6 +28947,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rio
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -26275,6 +28964,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_get_ve
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	int status;
 
@@ -26313,6 +29003,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_get_ve
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -26320,6 +29020,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_root_ca_digests root_ca_digests;
 	uint32_t component_id = 50;
 	uint8_t ca_digests[SHA256_HASH_LENGTH * 2] = {0};
@@ -26383,6 +29084,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -26390,6 +29101,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_root_ca_digests root_ca_digests;
 	uint32_t component_id = 50;
 	uint8_t ca_digests[SHA256_HASH_LENGTH * 2] = {0};
@@ -26457,6 +29169,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -26464,6 +29186,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_root_ca_digests root_ca_digests;
 	uint32_t component_id = 50;
 	uint8_t ca_digests[SHA256_HASH_LENGTH * 2] = {0};
@@ -26540,6 +29263,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -26547,6 +29280,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct attestation_requester_testing_get_cert *get_cert = &testing.cert_msg[2];
 	uint32_t component_id = 50;
 	int status;
@@ -26601,6 +29335,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -26608,6 +29352,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct attestation_requester_testing_get_cert *get_cert = &testing.cert_msg[2];
 	uint32_t component_id = 50;
 	int status;
@@ -26671,6 +29416,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -26678,6 +29433,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct attestation_requester_testing_get_cert *get_cert = &testing.cert_msg[2];
 	uint32_t component_id = 50;
 	int status;
@@ -26732,6 +29488,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -26739,6 +29505,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct attestation_requester_testing_get_cert *get_cert = &testing.cert_msg[2];
 	uint32_t component_id = 50;
 	int status;
@@ -26802,6 +29569,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -26809,6 +29586,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct attestation_requester_testing_get_cert *get_cert = &testing.cert_msg[2];
 	uint32_t component_id = 50;
 	int status;
@@ -26863,6 +29641,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -26870,6 +29658,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct attestation_requester_testing_get_cert *get_cert = &testing.cert_msg[2];
 	uint32_t component_id = 50;
 	int status;
@@ -26933,6 +29722,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -26940,6 +29739,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct attestation_requester_testing_get_cert *get_cert = &testing.cert_msg[2];
 	uint32_t component_id = 50;
 	int status;
@@ -27008,6 +29808,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -27015,6 +29825,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_hash_i
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct attestation_requester_testing_get_cert *get_cert = &testing.cert_msg[4];
 	uint32_t component_id = 50;
 	int status;
@@ -27070,6 +29881,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_hash_i
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -27077,6 +29898,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_load_i
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct attestation_requester_testing_get_cert *get_cert = &testing.cert_msg[4];
 	uint32_t component_id = 50;
 	int status;
@@ -27137,6 +29959,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_load_i
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -27144,6 +29976,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_authen
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct attestation_requester_testing_get_cert *get_cert = &testing.cert_msg[4];
 	uint32_t component_id = 50;
 	int status;
@@ -27212,6 +30045,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_authen
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -27219,6 +30062,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_init_i
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct attestation_requester_testing_get_cert *get_cert = &testing.cert_msg[4];
 	uint32_t component_id = 50;
 	int status;
@@ -27289,6 +30133,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_init_i
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -27296,6 +30150,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_add_tr
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct attestation_requester_testing_get_cert *get_cert = &testing.cert_msg[4];
 	uint32_t component_id = 50;
 	int status;
@@ -27374,6 +30229,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_add_tr
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -27381,6 +30246,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_hash_a
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct attestation_requester_testing_get_cert *get_cert = &testing.cert_msg[6];
 	uint32_t component_id = 50;
 	int status;
@@ -27446,6 +30312,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_hash_a
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -27453,6 +30329,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_load_a
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct attestation_requester_testing_get_cert *get_cert = &testing.cert_msg[6];
 	uint32_t component_id = 50;
 	int status;
@@ -27523,6 +30400,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_load_a
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -27530,6 +30417,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_authen
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct attestation_requester_testing_get_cert *get_cert = &testing.cert_msg[6];
 	uint32_t component_id = 50;
 	int status;
@@ -27607,6 +30495,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_authen
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -27614,6 +30512,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_finish
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct attestation_requester_testing_get_cert *get_cert = &testing.cert_msg[6];
 	uint32_t component_id = 50;
 	int status;
@@ -27694,6 +30593,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_finish
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -27701,6 +30610,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_compar
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct attestation_requester_testing_get_cert *get_cert = &testing.cert_msg[6];
 	uint8_t out_digest[SHA384_HASH_LENGTH] = {0};
 	uint32_t component_id = 50;
@@ -27780,6 +30690,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_compar
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -27787,6 +30707,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_get_al
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct attestation_requester_testing_get_cert *get_cert = &testing.cert_msg[6];
 	uint8_t out_digest[SHA384_HASH_LENGTH] = {0};
 	uint32_t component_id = 50;
@@ -27874,6 +30795,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_get_al
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -27881,6 +30812,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_get_al
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct attestation_requester_testing_get_cert *get_cert = &testing.cert_msg[6];
 	uint8_t out_digest[SHA384_HASH_LENGTH] = {0};
 	uint32_t component_id = 50;
@@ -27972,6 +30904,16 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_get_al
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -27979,6 +30921,7 @@ static void attestation_requester_test_attest_device_spdm_generate_random_buffer
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -28012,6 +30955,16 @@ static void attestation_requester_test_attest_device_spdm_generate_random_buffer
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -28020,6 +30973,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_req_hash_upd
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_challenge_request req;
 	int status;
 	size_t i;
@@ -28072,6 +31026,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_req_hash_upd
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -28079,6 +31043,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_fail (Cu
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_challenge_request req;
 	int status;
 	size_t i;
@@ -28134,6 +31099,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_fail (Cu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -28141,6 +31116,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_unexpected_r
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_challenge_request req;
 	int status;
 	size_t i;
@@ -28196,6 +31172,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_unexpected_r
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -28203,6 +31189,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_rsp (CuTe
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_challenge_request req;
 	int status;
 	size_t i;
@@ -28258,6 +31245,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_rsp (CuTe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -28266,6 +31263,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_rsp_alrea
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_challenge_request req;
 	int status;
 	size_t i;
@@ -28322,8 +31320,21 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_rsp_alrea
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -28333,6 +31344,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_rsp_alrea
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_challenge_request req;
 	int status;
 	size_t i;
@@ -28389,8 +31401,21 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_rsp_alrea
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -28400,6 +31425,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_unexpect
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_challenge_request req;
 	int status;
 	size_t i;
@@ -28457,6 +31483,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_unexpect
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -28465,6 +31501,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_unsuppor
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_challenge_request req;
 	int status;
 	size_t i;
@@ -28522,6 +31559,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_unsuppor
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -28530,6 +31577,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_req_slot
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_challenge_request req;
 	int status;
 	size_t i;
@@ -28587,6 +31635,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_req_slot
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -28594,6 +31652,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_invalid_rsp_
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_challenge_request req;
 	int status;
 	size_t i;
@@ -28651,6 +31710,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_invalid_rsp_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -28659,6 +31728,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_compare_cert
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_challenge_request req;
 	int status;
 	size_t i;
@@ -28716,6 +31786,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_compare_cert
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -28724,6 +31804,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_hash_upd
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -28751,6 +31832,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_hash_upd
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -28758,6 +31849,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_hash_finish_
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -28792,6 +31884,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_hash_finish_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -28800,6 +31902,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t digest[SHA384_HASH_LENGTH];
 	int status;
 	size_t i;
@@ -28840,6 +31943,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -28848,6 +31961,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t digest[SHA384_HASH_LENGTH];
 	int status;
 	size_t i;
@@ -28888,6 +32002,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -28896,6 +32020,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t digest[SHA512_HASH_LENGTH];
 	int status;
 	size_t i;
@@ -28936,6 +32061,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -28944,6 +32079,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -28995,6 +32131,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -29003,6 +32149,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -29057,6 +32204,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -29065,6 +32222,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -29122,6 +32280,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -29130,6 +32298,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_init_pub
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -29194,6 +32363,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_init_pub
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -29201,6 +32380,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_verify_f
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -29282,6 +32462,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_verify_f
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -29289,6 +32479,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_get_componen
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -29375,6 +32566,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_get_componen
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -29382,6 +32583,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_pmr0_digest_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -29481,6 +32683,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_pmr0_digest_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -29488,6 +32700,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_pmr0_dige
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -29586,6 +32799,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_pmr0_dige
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -29593,6 +32816,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_get_pmr_dige
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	int status;
 
@@ -29632,6 +32856,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_get_pmr_dige
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -29639,6 +32873,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_start_hash_f
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 50;
 	uint8_t digest3[SHA256_HASH_LENGTH];
@@ -29697,6 +32932,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_start_hash_f
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -29704,6 +32949,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_1_2_setup_de
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	struct spdm_get_version_request req;
 	uint32_t component_id = 50;
@@ -29775,6 +33021,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_1_2_setup_de
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -29782,6 +33038,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_generate_ran
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 50;
 	uint8_t digest3[SHA256_HASH_LENGTH];
@@ -29846,6 +33103,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_generate_ran
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -29855,6 +33122,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_req_hash_upd
 	uint8_t rq_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_get_measurements_request *req = (struct spdm_get_measurements_request*) rq_buf;
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 50;
 	uint8_t digest3[SHA256_HASH_LENGTH];
@@ -29945,6 +33213,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_req_hash_upd
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -29958,6 +33236,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_fail (Cu
 		(struct spdm_measurements_measurement_block*)
 		spdm_get_measurements_resp_measurement_record (rsp);
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 50;
 	uint8_t digest3[SHA256_HASH_LENGTH];
@@ -30106,6 +33385,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_fail (Cu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -30119,6 +33408,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp (CuTe
 		(struct spdm_measurements_measurement_block*)
 		spdm_get_measurements_resp_measurement_record (rsp);
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 50;
 	uint8_t digest3[SHA256_HASH_LENGTH];
@@ -30267,6 +33557,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp (CuTe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -30281,6 +33581,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp_alrea
 		(struct spdm_measurements_measurement_block*)
 		spdm_get_measurements_resp_measurement_record (rsp);
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 50;
 	uint8_t digest3[SHA256_HASH_LENGTH];
@@ -30430,8 +33731,21 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp_alrea
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -30447,6 +33761,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp_alrea
 		(struct spdm_measurements_measurement_block*)
 		spdm_get_measurements_resp_measurement_record (rsp);
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 50;
 	uint8_t digest3[SHA256_HASH_LENGTH];
@@ -30596,8 +33911,21 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp_alrea
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -30612,6 +33940,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_unexpected_r
 		(struct spdm_measurements_measurement_block*)
 		spdm_get_measurements_resp_measurement_record (rsp);
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 50;
 	uint8_t digest3[SHA256_HASH_LENGTH];
@@ -30760,6 +34089,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_unexpected_r
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -30774,6 +34113,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_unexpect
 		(struct spdm_measurements_measurement_block*)
 		spdm_get_measurements_resp_measurement_record (rsp);
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 50;
 	uint8_t digest3[SHA256_HASH_LENGTH];
@@ -30923,6 +34263,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_unexpect
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -30930,6 +34280,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_hash_upd
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 50;
 	uint8_t digest3[SHA256_HASH_LENGTH];
@@ -30991,6 +34342,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_hash_upd
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -30998,6 +34359,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_hash_finish_
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 50;
 	uint8_t digest3[SHA256_HASH_LENGTH];
@@ -31066,6 +34428,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_hash_finish_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -31073,6 +34445,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 50;
 	uint8_t digest[SHA256_HASH_LENGTH];
@@ -31144,6 +34517,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -31151,6 +34534,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 50;
 	uint8_t digest[SHA384_HASH_LENGTH];
@@ -31222,6 +34606,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -31229,6 +34623,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 50;
 	uint8_t digest[SHA512_HASH_LENGTH];
@@ -31300,6 +34695,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -31307,6 +34712,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -31389,6 +34795,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -31396,6 +34812,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -31481,6 +34898,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -31488,6 +34915,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -31576,6 +35004,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -31583,6 +35021,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_ecc_ini
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 50;
 	uint8_t digest[SHA256_HASH_LENGTH];
@@ -31657,6 +35096,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_ecc_ini
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -31664,6 +35113,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_ecc_ver
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 50;
 	uint8_t digest[SHA256_HASH_LENGTH];
@@ -31755,6 +35205,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_ecc_ver
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -31762,6 +35222,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_hash_co
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 50;
 	uint8_t digest[SHA256_HASH_LENGTH];
@@ -31862,6 +35323,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_hash_co
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -31869,6 +35340,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_pmr0_dige
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_pmr_digest pmr_digest;
 	uint32_t component_id = 50;
 	uint8_t digest[SHA256_HASH_LENGTH];
@@ -31969,6 +35441,16 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_pmr0_dige
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -31976,6 +35458,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_next_m
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 50;
 	int status;
 
@@ -32019,6 +35502,16 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_next_m
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -32026,6 +35519,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_measur
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_measurement_container container;
 	struct cfm_allowable_digests allowable_digests;
 	uint32_t component_id = 50;
@@ -32092,6 +35586,16 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_measur
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -32099,6 +35603,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -32221,6 +35726,16 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -32228,6 +35743,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -32348,6 +35864,16 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -32355,6 +35881,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_get_m
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
 	struct cfm_allowable_data_entry data_entry;
@@ -32423,6 +35950,16 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_get_m
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -32430,6 +35967,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_raw_r
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -32561,6 +36099,16 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_raw_r
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -32568,6 +36116,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_num_b
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t rq_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_get_measurements_request *req = (struct spdm_get_measurements_request*) rq_buf;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
@@ -32690,6 +36239,16 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_num_b
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -32697,6 +36256,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_unexp
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -32828,6 +36388,16 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_unexp
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -32835,6 +36405,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
@@ -32964,6 +36535,16 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -33174,6 +36755,7 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 static void attestation_requester_test_attest_device_unsupported_attestation_protocol (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int status;
 
 	TEST_START;
@@ -33188,6 +36770,16 @@ static void attestation_requester_test_attest_device_unsupported_attestation_pro
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -33195,6 +36787,7 @@ static void attestation_requester_test_attest_device_spdm_response_not_ready_une
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_get_version_request req;
 	int status;
 
@@ -33230,6 +36823,16 @@ static void attestation_requester_test_attest_device_spdm_response_not_ready_une
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -33237,6 +36840,7 @@ static void attestation_requester_test_attest_device_cfm_contains_unsupported_ha
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id = 101;
 	struct cfm_component_device component_device;
 	int status;
@@ -33282,6 +36886,16 @@ static void attestation_requester_test_attest_device_cfm_contains_unsupported_ha
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	component_device.measurement_hash_type = HASH_TYPE_SHA1;
 	component_device.transcript_hash_type = (enum hash_type) 4;
 
@@ -33305,6 +36919,16 @@ static void attestation_requester_test_attest_device_cfm_contains_unsupported_ha
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 2, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -34359,6 +37983,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct pcr_measured_data pcr_cfm_valid_measured_data;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
@@ -34527,6 +38152,16 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 
 	status = logging_mock_validate_and_release (&logger);
@@ -34537,6 +38172,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct pcr_measured_data pcr_cfm_valid_measured_data;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
@@ -34705,6 +38341,16 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -34712,6 +38358,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct pcr_measured_data pcr_cfm_valid_measured_data;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
@@ -35250,8 +38897,29 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0C);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0C,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -35260,6 +38928,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	struct spdm_negotiate_algorithms_request req;
 	int status;
 
@@ -35307,6 +38976,16 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
@@ -35350,6 +39029,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_get_routin
 static void attestation_requester_test_mctp_bridge_was_reset (CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -35460,6 +39140,16 @@ static void attestation_requester_test_mctp_bridge_was_reset (CuTest *test)
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	status = attestation_requestor_mctp_bridge_was_reset (&testing.test);
 	CuAssertIntEquals (test, 0, status);

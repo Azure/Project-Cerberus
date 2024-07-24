@@ -326,6 +326,43 @@ int device_manager_get_device_num (struct device_manager *mgr, uint8_t eid)
 }
 
 /**
+ * Find device index in device manager table using Component ID and index in PCD.
+ *
+ * @param mgr The device manager to utilize.
+ * @param component_id The component ID to find.
+ * @param component_instance The component instance to find.
+ *
+ *
+ * @return The device number if found or an error code.
+ */
+int device_manager_get_device_num_by_component (struct device_manager *mgr, uint32_t component_id,
+	uint8_t component_instance)
+{
+	int i_device;
+	int i_component;
+
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	for (i_device = 0; i_device < mgr->num_devices; ++i_device) {
+		i_component = 0;
+
+		while ((i_device < mgr->num_devices) &&
+			(mgr->entries[i_device].component_id == component_id)) {
+			if (i_component == component_instance) {
+				return i_device;
+			}
+
+			i_device++;
+			i_component++;
+		}
+	}
+
+	return DEVICE_MGR_UNKNOWN_DEVICE;
+}
+
+/**
  * Find device SMBUS address for a device in device manager table.
  *
  * @param mgr The device manager to utilize.
@@ -1081,6 +1118,228 @@ int device_manager_update_device_state_by_eid (struct device_manager *mgr, uint8
 
 	return device_manager_update_device_state (mgr, device_manager_get_device_num (mgr, eid),
 		state);
+}
+
+/**
+ * Get previous device state for a device in device manager table.
+ *
+ * @param mgr The device manager to utilize.
+ * @param device_num The device table entry to utilize.
+ *
+ * @return The previous device state if found or an error code.
+ */
+int device_manager_get_attestation_summary_prev_state (struct device_manager *mgr, int device_num)
+{
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if (device_num >= mgr->num_devices) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	return mgr->entries[device_num].summary.prev_state;
+}
+
+/**
+ * Get previous device state for a device in device manager table.
+ *
+ * @param mgr The device manager to utilize.
+ * @param eid EID of device to utilize.
+ *
+ * @return The previous device state if found or an error code.
+ */
+int device_manager_get_attestation_summary_prev_state_by_eid (struct device_manager *mgr,
+	uint8_t eid)
+{
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	return device_manager_get_attestation_summary_prev_state (mgr,
+		device_manager_get_device_num (mgr, eid));
+}
+
+/**
+ * Update device manager device table entry previous state
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param device_num Device table entry to update.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_update_attestation_summary_prev_state (struct device_manager *mgr,
+	int device_num)
+{
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if (device_num >= mgr->num_devices) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	mgr->entries[device_num].summary.prev_state = mgr->entries[device_num].state;
+
+	return 0;
+}
+
+/**
+ * Update device manager device table prev state
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param eid EID of device to update.
+ * @param prev_state Device state.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_update_attestation_summary_prev_state_by_eid (struct device_manager *mgr,
+	uint8_t eid)
+{
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	return device_manager_update_attestation_summary_prev_state (mgr,
+		device_manager_get_device_num (mgr, eid));
+}
+
+/**
+ * Get attestation event counters for a device in device manager table.
+ *
+ * @param mgr The device manager to utilize.
+ * @param device_num The device table entry to utilize.
+ * @param event_counters Output buffer for the event counters.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_get_attestation_summary_event_counters (struct device_manager *mgr,
+	int device_num, struct device_manager_attestation_summary_event_counters *event_counters)
+{
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if (device_num >= mgr->num_devices) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	memcpy (event_counters, &mgr->entries[device_num].summary.event_counters,
+		sizeof (struct device_manager_attestation_summary_event_counters));
+
+	return 0;
+}
+
+/**
+ * Get attestation event counters for a device in device manager table.
+ *
+ * @param mgr The device manager to utilize.
+ * @param eid EID of device to utilize.
+ * @param event_counters Output buffer for the event counters.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_get_attestation_summary_event_counters_by_eid (struct device_manager *mgr,
+	uint8_t eid, struct device_manager_attestation_summary_event_counters *event_counters)
+{
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	return device_manager_get_attestation_summary_event_counters (mgr,
+		device_manager_get_device_num (mgr, eid), event_counters);
+}
+
+/**
+ * Update device manager device table entry attestation event counters
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param device_num Device table entry to update.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_update_attestation_summary_event_counters (struct device_manager *mgr,
+	int device_num)
+{
+	struct device_manager_attestation_summary_event_counters *event_counters;
+
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if (device_num >= mgr->num_devices) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	event_counters = &mgr->entries[device_num].summary.event_counters;
+
+	switch (mgr->entries[device_num].state) {
+		case DEVICE_MANAGER_AUTHENTICATED:
+		case DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS:
+			event_counters->status_success_count =
+				common_math_saturating_increment_u16 (event_counters->status_success_count);
+			break;
+
+		case DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT:
+		case DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT:
+			event_counters->status_success_timeout_count =
+				common_math_saturating_increment_u16 (event_counters->status_success_timeout_count);
+			break;
+
+		case DEVICE_MANAGER_ATTESTATION_INTERRUPTED:
+			event_counters->status_fail_timeout_count =
+				common_math_saturating_increment_u16 (event_counters->status_fail_timeout_count);
+			break;
+
+		case DEVICE_MANAGER_ATTESTATION_FAILED:
+			event_counters->status_fail_internal_count =
+				common_math_saturating_increment_u16 (event_counters->status_fail_internal_count);
+			break;
+
+		case DEVICE_MANAGER_ATTESTATION_INVALID_VERSION:
+		case DEVICE_MANAGER_ATTESTATION_INVALID_CAPS:
+		case DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM:
+		case DEVICE_MANAGER_ATTESTATION_INVALID_DIGESTS:
+		case DEVICE_MANAGER_ATTESTATION_INVALID_CERTS:
+		case DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE:
+		case DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT:
+		case DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE:
+			event_counters->status_fail_invalid_response_count =
+				common_math_saturating_increment_u16 (
+				event_counters->status_fail_invalid_response_count);
+			break;
+
+		case DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH:
+		case DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS:
+			event_counters->status_fail_invalid_config_count =
+				common_math_saturating_increment_u16 (
+				event_counters->status_fail_invalid_config_count);
+			break;
+
+		default:
+			break;
+	}
+
+	return 0;
+}
+
+/**
+ * Update device manager device table event counters
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param eid EID of device to update.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_update_attestation_summary_event_counters_by_eid (struct device_manager *mgr,
+	uint8_t eid)
+{
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	return device_manager_update_attestation_summary_event_counters (mgr,
+		device_manager_get_device_num (mgr, eid));
 }
 
 /**

@@ -8,8 +8,10 @@
 #include "testing.h"
 #include "cmd_interface/cerberus_protocol.h"
 #include "cmd_interface/cerberus_protocol_debug_commands.h"
+#include "cmd_interface/cmd_interface_system.h"
 #include "testing/asn1/x509_testing.h"
 #include "testing/cmd_interface/cerberus_protocol_debug_commands_testing.h"
+#include "testing/cmd_interface/cmd_interface_system_testing.h"
 #include "testing/mock/asn1/x509_mock.h"
 #include "testing/mock/crypto/ecc_mock.h"
 #include "testing/mock/crypto/rng_mock.h"
@@ -49,6 +51,38 @@ void cerberus_protocol_debug_commands_testing_process_debug_fill_log (CuTest *te
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
+void cerberus_protocol_debug_commands_testing_process_get_attestation_state (CuTest *test,
+	struct cmd_interface *cmd, struct device_manager *device_manager)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_header header = {0};
+	int status;
+
+	status = device_manager_update_not_attestable_device_entry (device_manager, 0,
+		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0xAA, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header.command = CERBERUS_PROTOCOL_DEBUG_GET_ATTESTATION_STATE;
+
+	memcpy (request.data, &header, sizeof (header));
+	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = true;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 6, request.length);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE,
+		request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN]);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+}
 
 /*******************
  * Test cases

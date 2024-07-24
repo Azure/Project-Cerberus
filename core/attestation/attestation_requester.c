@@ -3289,6 +3289,9 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 
 	active_cfm->free_component_device (active_cfm, &component_device);
 
+	/* update previous attestation state in device manager attestation event */
+	device_manager_update_attestation_summary_prev_state_by_eid (attestation->device_mgr, eid);
+
 	device_state = device_manager_get_device_state_by_eid (attestation->device_mgr, eid);
 
 	if (!(device_state == DEVICE_MANAGER_AUTHENTICATED) ||
@@ -3349,6 +3352,8 @@ free_cfm:
 				DEVICE_MANAGER_ATTESTATION_FAILED);
 		}
 	}
+
+	device_manager_update_attestation_summary_event_counters_by_eid (attestation->device_mgr, eid);
 
 	return status;
 }

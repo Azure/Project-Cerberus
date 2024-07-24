@@ -51,6 +51,7 @@ enum {
 	CERBERUS_PROTOCOL_READ_LOG,									/**< Read back log */
 	CERBERUS_PROTOCOL_CLEAR_LOG,								/**< Clear log */
 	CERBERUS_PROTOCOL_GET_ATTESTATION_DATA,						/**< Retrieve raw data for log measurements */
+	CERBERUS_PROTOCOL_GET_ATTESTATION_SUMMARY,					/**< Get component attestation summary */
 	CERBERUS_PROTOCOL_GET_PFM_ID = 0x59,						/**< Get PFM ID */
 	CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW,						/**< Get PFM supported FW versions */
 	CERBERUS_PROTOCOL_INIT_PFM_UPDATE,							/**< Initialize PFM update process */

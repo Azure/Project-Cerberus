@@ -241,6 +241,10 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 			status = cerberus_protocol_get_attestation_data (interface->pcr_store, request);
 			break;
 
+		case CERBERUS_PROTOCOL_GET_ATTESTATION_SUMMARY:
+			status = cerberus_protocol_get_attestation_summary (interface->device_manager, request);
+			break;
+
 #ifdef CMD_ENABLE_HEAP_STATS
 		case CERBERUS_PROTOCOL_DIAG_HEAP_USAGE:
 			return cerberus_protocol_heap_stats (interface->cmd_device, request);
