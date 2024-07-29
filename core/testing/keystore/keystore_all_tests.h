@@ -27,6 +27,12 @@ static void add_all_keystore_tests (CuSuite *suite)
 	!defined TESTING_SKIP_EPHEMERAL_KEY_MANAGER_SUITE
 	TESTING_RUN_SUITE (ephemeral_key_manager);
 #endif
+#if (defined TESTING_RUN_KEY_CACHE_FLASH_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_KEY_CACHE_FLASH_SUITE
+	TESTING_RUN_SUITE (key_cache_flash);
+#endif
 #if (defined TESTING_RUN_KEYSTORE_FLASH_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

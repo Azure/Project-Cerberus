@@ -10,7 +10,6 @@
 
 
 /* Internal functions declared to allow for static initialization. */
-void ephemeral_key_manager_prepare (const struct periodic_task_handler *handler);
 const platform_clock* ephemeral_key_manager_get_next_execution (
 	const struct periodic_task_handler *handler);
 void ephemeral_key_manager_execute (const struct periodic_task_handler *handler);
@@ -19,7 +18,7 @@ void ephemeral_key_manager_execute (const struct periodic_task_handler *handler)
  * Constant initializer for the ephemeral Key manager handler API.
  */
 #define	EPHEMERAL_KEY_MANAGER_HANDLER_API_INIT { \
-		.prepare = ephemeral_key_manager_prepare, \
+		.prepare = NULL, \
 		.get_next_execution = ephemeral_key_manager_get_next_execution, \
 		.execute = ephemeral_key_manager_execute \
 	}

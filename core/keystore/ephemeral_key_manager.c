@@ -4,7 +4,6 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include "platform_io.h"
 #include "common/type_cast.h"
 #include "common/unused.h"
 #include "keystore/ephemeral_key_manager.h"
@@ -24,19 +23,6 @@ static void ephemeral_key_manager_schedule_next_execute (
 	}
 	else {
 		key_manager->state->next_valid = false;
-	}
-}
-
-void ephemeral_key_manager_prepare (const struct periodic_task_handler *handler)
-{
-	const struct ephemeral_key_manager *key_manager = TO_DERIVED_TYPE (handler,
-		const struct ephemeral_key_manager, base);
-
-	if (key_manager->key_cache->is_full (key_manager->key_cache) == false) {
-		key_manager->state->next_valid = false;
-	}
-	else {
-		ephemeral_key_manager_schedule_next_execute (key_manager);
 	}
 }
 
@@ -62,29 +48,55 @@ void ephemeral_key_manager_execute (const struct periodic_task_handler *handler)
 	size_t key_length = 0;
 	int status;
 
-	if (key_manager->key_cache->is_full (key_manager->key_cache) == false) {
-		/* The cache is not full, so generate a new key pair and add it to the cache. */
-		status = key_manager->key_gen->generate_key (key_manager->key_gen, key_manager->key_size,
-			key_manager->key, key_manager->key_buf_size, &key_length);
-		if (status == 0) {
-			status = key_manager->key_cache->add (key_manager->key_cache, key_manager->key,
-				key_length);
+	if (key_manager->key_cache->is_error_state (key_manager->key_cache) == false) {
+		if (key_manager->key_cache->is_initialized (key_manager->key_cache) == false) {
+			status = key_manager->key_cache->initialize_cache (key_manager->key_cache);
 			if (status != 0) {
+				/* Failed to initialize the key cache - Create debug log entry */
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_KEYSTORE,
-					KEYSTORE_LOGGING_ADD_KEY_FAIL, key_length, status);
+					KEYSTORE_LOGGING_CACHE_INIT_FAIL, status, 0);
+
+				/* Task should execute after some delay */
+				ephemeral_key_manager_schedule_next_execute (key_manager);
+			}
+			else {
+				/* Schedule the next execution immediately since a key cache needs to be checked */
+				key_manager->state->next_valid = false;
 			}
 		}
 		else {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_KEYSTORE,
-				KEYSTORE_LOGGING_KEY_GENERATION_FAIL, key_manager->key_size, status);
-		}
+			if (key_manager->key_cache->is_full (key_manager->key_cache) == false) {
+				/* The cache is not full, so generate a new key pair and add it to the cache. */
+				status = key_manager->key_gen->generate_key (key_manager->key_gen,
+					key_manager->key_size, key_manager->key, key_manager->key_buf_size,
+					&key_length);
+				if (status == 0) {
+					status = key_manager->key_cache->add (key_manager->key_cache, key_manager->key,
+						key_length);
+					if (status != 0) {
+						debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR,
+							DEBUG_LOG_COMPONENT_KEYSTORE, KEYSTORE_LOGGING_EPHEMERAL_KEY_ADD_FAIL,
+							key_length, status);
+					}
+				}
+				else {
+					debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_KEYSTORE,
+						KEYSTORE_LOGGING_EPHEMERAL_KEY_GENERATION_FAIL, key_manager->key_size,
+						status);
+				}
 
-		/* Schedule the next execution immediately since another key may need to be generated and
-		 * stored. */
-		key_manager->state->next_valid = false;
+				/* Schedule the next execution immediately since another key may need to be
+				 * generated and stored. */
+				key_manager->state->next_valid = false;
+			}
+			else {
+				/* The cache is full.  Wait some time before executing again. */
+				ephemeral_key_manager_schedule_next_execute (key_manager);
+			}
+		}
 	}
 	else {
-		/* The cache is full.  Wait some time before executing again. */
+		/* Task should execute after some delay */
 		ephemeral_key_manager_schedule_next_execute (key_manager);
 	}
 }
@@ -116,7 +128,7 @@ int ephemeral_key_manager_init (struct ephemeral_key_manager *key_manager,
 
 	memset (key_manager, 0, sizeof (*key_manager));
 
-	key_manager->base.prepare = ephemeral_key_manager_prepare;
+	key_manager->base.prepare = NULL;
 	key_manager->base.get_next_execution = ephemeral_key_manager_get_next_execution;
 	key_manager->base.execute = ephemeral_key_manager_execute;
 
@@ -174,7 +186,7 @@ void ephemeral_key_manager_release (const struct ephemeral_key_manager *key_mana
  * @return 0 if the key was successfully retrieved or an error code.
  */
 int ephemeral_key_manager_get_key (const struct ephemeral_key_manager *key_manager,
-	uint32_t requestor_id, uint8_t *key, size_t key_buf_size, size_t *length)
+	uint16_t requestor_id, uint8_t *key, size_t key_buf_size, size_t *length)
 {
 	int status;
 
@@ -186,4 +198,21 @@ int ephemeral_key_manager_get_key (const struct ephemeral_key_manager *key_manag
 		key_buf_size, length);
 
 	return status;
+}
+
+/**
+ * Retrieve the ephemeral key for the specified key size supported
+ *
+ * @param key_manager The ephemeral key manager to query.
+ *
+ * @return supported key length
+ */
+size_t ephemeral_key_manager_get_key_size (const struct ephemeral_key_manager *key_manager)
+{
+	if (key_manager == NULL) {
+		return EPHEMERAL_KEY_MANAGER_INVALID_ARGUMENT;
+	}
+
+	/* Return the key type */
+	return key_manager->key_size;
 }

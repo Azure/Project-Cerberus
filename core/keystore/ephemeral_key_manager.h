@@ -45,7 +45,8 @@ int ephemeral_key_manager_init_state (const struct ephemeral_key_manager *key_ma
 void ephemeral_key_manager_release (const struct ephemeral_key_manager *key_manager);
 
 int ephemeral_key_manager_get_key (const struct ephemeral_key_manager *key_manager,
-	uint32_t requestor_id, uint8_t *key, size_t key_buf_size, size_t *length);
+	uint16_t requestor_id, uint8_t *key, size_t key_buf_size, size_t *length);
+size_t ephemeral_key_manager_get_key_size (const struct ephemeral_key_manager *key_manager);
 
 
 /**

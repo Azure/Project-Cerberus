@@ -16,11 +16,32 @@
  */
 struct key_cache {
 	/**
+	 * Check if the key cache is initialized and ready for use.
+	 *
+	 * @param cache The key cache to check.
+	 *
+	 * @return `true` if the cache is initialized or storage is insufficient error and `false` if
+	 * there not initialized.
+	 */
+	bool (*is_initialized) (const struct key_cache *cache);
+
+	/**
+	 * Check if the key cache is in an error state.  A cache error state represents an unrecoverable
+	 * issue with the cache that cannot be solved through reinitialization.  In this state, the
+	 * cache will report as initialized, but no keys can be added or removed.
+	 *
+	 * @param cache The key cache to check.
+	 *
+	 * @return `true` if the cache is in an error state or `false` if it is not.
+	 */
+	bool (*is_error_state) (const struct key_cache *cache);
+
+	/**
 	 * Check if the key cache is full.
 	 *
 	 * @param cache The key cache to check.
 	 *
-	 * @return `true` if the cache is full or `false` if there is space available.
+	 * @return `true` if the cache is full and `false` if there is space available.
 	 */
 	bool (*is_full) (const struct key_cache *cache);
 
@@ -32,6 +53,16 @@ struct key_cache {
 	 * @return `true` if the cache is empty or `false` if it is not.
 	 */
 	bool (*is_empty) (const struct key_cache *cache);
+
+	/**
+	 * Initializes the key cache. It is required to initialize the cache before using the key cache
+	 * functionality like adding and removing keys.
+	 *
+	 * @param cache The key cache to initialize.
+	 *
+	 * @return 0 if the key cache was successfully initialized or an error code.
+	 */
+	int (*initialize_cache) (const struct key_cache *cache);
 
 	/**
 	 * Add/Write the key information to the cache.
@@ -58,7 +89,7 @@ struct key_cache {
 	 *
 	 * @return 0 if the key was successfully stored, or an error code.
 	 */
-	int (*remove) (const struct key_cache *cache, uint32_t requestor_id, uint8_t *key,
+	int (*remove) (const struct key_cache *cache, uint16_t requestor_id, uint8_t *key,
 		size_t key_buffer_size, size_t *length);
 };
 
@@ -71,18 +102,21 @@ struct key_cache {
 enum {
 	KEY_CACHE_INVALID_ARGUMENT = KEY_CACHE_ERROR (0x00),		/**< Input parameter is null or not valid. */
 	KEY_CACHE_NO_MEMORY = KEY_CACHE_ERROR (0x01),				/**< Memory allocation failed. */
-	KEY_CACHE_IS_FULL_FAILED = KEY_CACHE_ERROR (0x02),			/**< Failed to check if the key cache is full */
-	KEY_CACHE_IS_EMPTY_FAILED = KEY_CACHE_ERROR (0x03),			/**< Failed to check if the key cache is empty */
-	KEY_CACHE_ADD_KEY_FAILED = KEY_CACHE_ERROR (0x04),			/**< Failed to add/write the key on the persistent store */
-	KEY_CACHE_REMOVE_KEY_FAILED = KEY_CACHE_ERROR (0x05),		/**< Failed to remove/read the key from the persistent store */
-	KEY_CACHE_QUEUE_IS_EMPTY = KEY_CACHE_ERROR (0x06),			/**< No key available on the flash all the flash sectors are empty */
-	KEY_CACHE_QUEUE_IS_FULL = KEY_CACHE_ERROR (0x07),			/**< No new flash sector available to store new key */
-	KEY_CACHE_BAD_KEY = KEY_CACHE_ERROR (0x08),					/**< Key is corrupted */
-	KEY_CACHE_ALL_CREDIT_USED = KEY_CACHE_ERROR (0x09),			/**< All credit is used for the Requestor */
-	KEY_CACHE_INVALID_REQUESTOR_ID = KEY_CACHE_ERROR (0x0A),	/**< Invalid requestor ID */
-	KEY_CACHE_INVALID_ADD_INDEX = KEY_CACHE_ERROR (0x0B),		/**< Invalid add/write index */
-	KEY_CACHE_INVALID_REMOVE_INDEX = KEY_CACHE_ERROR (0x0C),	/**< Invalid remove/read index */
-	KEY_CACHE_FATAL_ERROR = KEY_CACHE_ERROR (0x0D),				/**< A Critical error generated while accessing corrupted memory or Flash */
+	KEY_CACHE_INIT_CACHE_FAILED = KEY_CACHE_ERROR (0x02),		/**< Failed to check if the key cache is initialized */
+	KEY_CACHE_ADD_KEY_FAILED = KEY_CACHE_ERROR (0x03),			/**< Failed to add/write the key on the persistent store */
+	KEY_CACHE_REMOVE_KEY_FAILED = KEY_CACHE_ERROR (0x04),		/**< Failed to remove/read the key from the persistent store */
+	KEY_CACHE_QUEUE_IS_EMPTY = KEY_CACHE_ERROR (0x05),			/**< No key available on the flash all the flash sectors are empty */
+	KEY_CACHE_QUEUE_IS_FULL = KEY_CACHE_ERROR (0x06),			/**< No new flash sector available to store new key */
+	KEY_CACHE_CREDIT_NOT_AVAILABLE = KEY_CACHE_ERROR (0x07),	/**< All credit is used for the Requestor */
+	KEY_CACHE_INVALID_REQUESTOR_ID = KEY_CACHE_ERROR (0x08),	/**< Invalid requestor ID */
+	KEY_CACHE_INVALID_ADD_INDEX = KEY_CACHE_ERROR (0x09),		/**< Invalid add/write index */
+	KEY_CACHE_INVALID_REMOVE_INDEX = KEY_CACHE_ERROR (0x0A),	/**< Invalid remove/read index */
+	KEY_CACHE_INSUFFICIENT_STORAGE = KEY_CACHE_ERROR (0x0B),	/**< Not enough flash storage for the required number of keys. */
+	KEY_CACHE_STORAGE_MISMATCH = KEY_CACHE_ERROR (0x0C),		/**< The flash store does not contain the expected number of blocks. */
+	KEY_CACHE_UNAVAILABLE_STORAGE = KEY_CACHE_ERROR (0x0D),		/**< Too much storage is not available for use. */
+	KEY_CACHE_NOT_INITIALIZED = KEY_CACHE_ERROR (0x0E),			/**< The key cache is not initialized. */
+	KEY_CACHE_MEMORY_CORRUPTED = KEY_CACHE_ERROR (0x0F),		/**< The memory is corrupted. */
+	KEY_CACHE_KEY_NOT_FOUND_AT_INDEX = KEY_CACHE_ERROR (0x10),	/**< No key available on the given index */
 };
 
 

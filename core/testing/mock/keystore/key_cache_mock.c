@@ -9,50 +9,83 @@
 #include "keystore/key_cache.h"
 
 
-static bool key_cache_mock_is_full (const struct key_cache *store)
+static bool key_cache_mock_is_initialized (const struct key_cache *cache)
 {
-	struct key_cache_mock *mock = (struct key_cache_mock*) store;
+	struct key_cache_mock *mock = (struct key_cache_mock*) cache;
 
 	if (mock == NULL) {
 		return false;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, bool, key_cache_mock_is_full, store);
+	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, bool, key_cache_mock_is_initialized, cache);
 }
 
-static bool key_cache_mock_is_empty (const struct key_cache *store)
+static bool key_cache_mock_is_error_state (const struct key_cache *cache)
 {
-	struct key_cache_mock *mock = (struct key_cache_mock*) store;
+	struct key_cache_mock *mock = (struct key_cache_mock*) cache;
 
 	if (mock == NULL) {
 		return false;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, bool, key_cache_mock_is_empty, store);
+	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, bool, key_cache_mock_is_error_state, cache);
 }
 
-static int key_cache_mock_add_key (const struct key_cache *store, const uint8_t *key, size_t length)
+static bool key_cache_mock_is_full (const struct key_cache *cache)
 {
-	struct key_cache_mock *mock = (struct key_cache_mock*) store;
+	struct key_cache_mock *mock = (struct key_cache_mock*) cache;
+
+	if (mock == NULL) {
+		return false;
+	}
+
+	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, bool, key_cache_mock_is_full, cache);
+}
+
+static bool key_cache_mock_is_empty (const struct key_cache *cache)
+{
+	struct key_cache_mock *mock = (struct key_cache_mock*) cache;
+
+	if (mock == NULL) {
+		return false;
+	}
+
+	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, bool, key_cache_mock_is_empty, cache);
+}
+
+static int key_cache_mock_initialize_cache (const struct key_cache *cache)
+{
+	struct key_cache_mock *mock = (struct key_cache_mock*) cache;
 
 	if (mock == NULL) {
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, key_cache_mock_add_key, store, MOCK_ARG_PTR_CALL (key),
+	MOCK_RETURN_NO_ARGS (&mock->mock, key_cache_mock_initialize_cache, cache);
+}
+
+static int key_cache_mock_add_key (const struct key_cache *cache, const uint8_t *key, size_t length)
+{
+	struct key_cache_mock *mock = (struct key_cache_mock*) cache;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, key_cache_mock_add_key, cache, MOCK_ARG_PTR_CALL (key),
 		MOCK_ARG_CALL (length));
 }
 
-static int key_cache_mock_remove_key (const struct key_cache *store, uint32_t requestor_id,
+static int key_cache_mock_remove_key (const struct key_cache *cache, uint16_t requestor_id,
 	uint8_t *key, size_t key_buffer_size, size_t *length)
 {
-	struct key_cache_mock *mock = (struct key_cache_mock*) store;
+	struct key_cache_mock *mock = (struct key_cache_mock*) cache;
 
 	if (mock == NULL) {
 		return false;
 	}
 
-	MOCK_RETURN (&mock->mock, key_cache_mock_remove_key, store, MOCK_ARG_CALL (requestor_id),
+	MOCK_RETURN (&mock->mock, key_cache_mock_remove_key, cache, MOCK_ARG_CALL (requestor_id),
 		MOCK_ARG_PTR_CALL (key), MOCK_ARG_CALL (key_buffer_size), MOCK_ARG_PTR_CALL (length));
 }
 
@@ -71,11 +104,20 @@ static int key_cache_mock_func_arg_count (void *func)
 
 static const char* key_cache_mock_func_name_map (void *func)
 {
-	if (func == key_cache_mock_is_full) {
+	if (func == key_cache_mock_is_initialized) {
+		return "is_initialized";
+	}
+	if (func == key_cache_mock_is_error_state) {
+		return "is_error_state";
+	}
+	else if (func == key_cache_mock_is_full) {
 		return "is_full";
 	}
 	else if (func == key_cache_mock_is_empty) {
 		return "is_empty";
+	}
+	else if (func == key_cache_mock_initialize_cache) {
+		return "initialize_cache";
 	}
 	else if (func == key_cache_mock_add_key) {
 		return "add";
@@ -142,8 +184,11 @@ int key_cache_mock_init (struct key_cache_mock *mock)
 
 	mock_set_name (&mock->mock, "key_cache");
 
+	mock->base.is_initialized = key_cache_mock_is_initialized;
+	mock->base.is_error_state = key_cache_mock_is_error_state;
 	mock->base.is_full = key_cache_mock_is_full;
 	mock->base.is_empty = key_cache_mock_is_empty;
+	mock->base.initialize_cache = key_cache_mock_initialize_cache;
 	mock->base.add = key_cache_mock_add_key;
 	mock->base.remove = key_cache_mock_remove_key;
 
