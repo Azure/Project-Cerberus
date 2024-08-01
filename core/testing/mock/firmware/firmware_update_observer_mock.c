@@ -20,9 +20,23 @@ static void firmware_update_observer_mock_on_update_start (
 		MOCK_ARG_PTR_CALL (update_allowed));
 }
 
+static void firmware_update_observer_mock_on_prepare_update (
+	const struct firmware_update_observer *observer, int *update_allowed)
+{
+	struct firmware_update_observer_mock *mock = (struct firmware_update_observer_mock*) observer;
+
+	if (mock == NULL) {
+		return;
+	}
+
+	MOCK_VOID_RETURN (&mock->mock, firmware_update_observer_mock_on_prepare_update, observer,
+		MOCK_ARG_PTR_CALL (update_allowed));
+}
+
 static int firmware_update_observer_mock_func_arg_count (void *func)
 {
-	if (func == firmware_update_observer_mock_on_update_start) {
+	if ((func == firmware_update_observer_mock_on_update_start) ||
+		(func == firmware_update_observer_mock_on_prepare_update)) {
 		return 1;
 	}
 	else {
@@ -35,6 +49,9 @@ static const char* firmware_update_observer_mock_func_name_map (void *func)
 	if (func == firmware_update_observer_mock_on_update_start) {
 		return "on_update_start";
 	}
+	else if (func == firmware_update_observer_mock_on_prepare_update) {
+		return "on_prepare_update";
+	}
 	else {
 		return "unknown";
 	}
@@ -43,6 +60,12 @@ static const char* firmware_update_observer_mock_func_name_map (void *func)
 static const char* firmware_update_observer_mock_arg_name_map (void *func, int arg)
 {
 	if (func == firmware_update_observer_mock_on_update_start) {
+		switch (arg) {
+			case 0:
+				return "update_allowed";
+		}
+	}
+	else if (func == firmware_update_observer_mock_on_prepare_update) {
 		switch (arg) {
 			case 0:
 				return "update_allowed";
@@ -77,6 +100,7 @@ int firmware_update_observer_mock_init (struct firmware_update_observer_mock *mo
 	mock_set_name (&mock->mock, "firmware_update_observer");
 
 	mock->base.on_update_start = firmware_update_observer_mock_on_update_start;
+	mock->base.on_prepare_update = firmware_update_observer_mock_on_prepare_update;
 
 	mock->mock.func_arg_count = firmware_update_observer_mock_func_arg_count;
 	mock->mock.func_name_map = firmware_update_observer_mock_func_name_map;

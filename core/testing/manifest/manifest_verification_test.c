@@ -601,6 +601,7 @@ static void manifest_verification_test_init_no_key_stored (CuTest *test)
 	CuAssertPtrEquals (test, NULL, verification.test.base_observer.on_pfm_activation_request);
 
 	CuAssertPtrNotNull (test, verification.test.base_update.on_update_start);
+	CuAssertPtrEquals (test, NULL, verification.test.base_update.on_prepare_update);
 
 	manifest_verification_testing_release (test, &verification);
 }
@@ -684,6 +685,7 @@ static void manifest_verification_test_init_key_stored (CuTest *test)
 	CuAssertPtrEquals (test, NULL, verification.test.base_observer.on_pfm_activation_request);
 
 	CuAssertPtrNotNull (test, verification.test.base_update.on_update_start);
+	CuAssertPtrEquals (test, NULL, verification.test.base_update.on_prepare_update);
 
 	manifest_verification_testing_release (test, &verification);
 }
@@ -1538,6 +1540,7 @@ static void manifest_verification_test_static_init_no_key_stored (CuTest *test)
 	CuAssertPtrEquals (test, NULL, test_static.base_observer.on_pfm_activation_request);
 
 	CuAssertPtrNotNull (test, test_static.base_update.on_update_start);
+	CuAssertPtrEquals (test, NULL, test_static.base_update.on_prepare_update);
 
 	manifest_verification_testing_init_dependencies_no_key (test, &verification, 1,
 		HASH_TYPE_SHA256);
@@ -1632,6 +1635,7 @@ static void manifest_verification_test_static_init_key_stored (CuTest *test)
 	CuAssertPtrEquals (test, NULL, test_static.base_observer.on_pfm_activation_request);
 
 	CuAssertPtrNotNull (test, test_static.base_update.on_update_start);
+	CuAssertPtrEquals (test, NULL, test_static.base_update.on_prepare_update);
 
 	manifest_verification_testing_init_dependencies_stored_key (test, &verification, 2, 11,
 		HASH_TYPE_SHA256);

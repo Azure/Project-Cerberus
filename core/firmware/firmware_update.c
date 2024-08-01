@@ -1142,6 +1142,7 @@ int firmware_update_run_revocation (const struct firmware_update *updater,
 int firmware_update_prepare_staging (const struct firmware_update *updater,
 	const struct firmware_update_notification *callback, size_t size)
 {
+	int allow_update = 0;
 	int status;
 
 	if (updater == NULL) {
@@ -1151,6 +1152,15 @@ int firmware_update_prepare_staging (const struct firmware_update *updater,
 	}
 
 	firmware_update_status_change (callback, UPDATE_STATUS_STAGING_PREP);
+
+	/* Notify the system than an update is being prepared and see if it should be allowed. */
+	observable_notify_observers_with_ptr (&updater->state->observable,
+		offsetof (struct firmware_update_observer, on_prepare_update), &allow_update);
+	if (allow_update != 0) {
+		firmware_update_status_change (callback, UPDATE_STATUS_STAGING_PREP_FAIL);
+
+		return allow_update;
+	}
 
 	status = flash_updater_prepare_for_update (&updater->state->update_mgr, size);
 	if (status != 0) {
