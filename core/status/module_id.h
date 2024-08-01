@@ -152,6 +152,8 @@ enum {
 	ROT_MODULE_AUTHORIZED_EXECUTION = 0x008c,			/**< Execution context for authorized operations. */
 	ROT_MODULE_SPDM_VDM_PROTOCOL = 0x008d,				/**< SPDM vendor defined messages protocol. */
 	ROT_MODULE_SPDM_PCISIG_PROTOCOL = 0x008e,			/**< SPDM PCISIG messages protocol. */
+	ROT_MODULE_IMPACTFUL_CHECK = 0x008f,				/**< Device check for conditions requiring impactful updates. */
+	ROT_MODULE_IMPACTFUL_UPDATE = 0x0090,				/**< Interface for handling impactful updates. */
 };
 
 
