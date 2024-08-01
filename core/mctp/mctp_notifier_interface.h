@@ -79,6 +79,7 @@ enum {
 	MCTP_NOTIFIER_PAYLOAD_TOO_LARGE = MCTP_NOTIFIER_ERROR (0x09),			/**< Notification payload length too long. */
 	MCTP_NOTIFIER_PAYLOAD_TOO_SHORT = MCTP_NOTIFIER_ERROR (0x0A),			/**< Notification payload length too short. */
 	MCTP_NOTIFIER_RESP_PAYLOAD_TOO_SHORT = MCTP_NOTIFIER_ERROR (0x0B),		/**< Notification response payload length too short. */
+	MCTP_NOTIFIER_UNSUPPORTED_OPERATION = MCTP_NOTIFIER_ERROR (0x0C),		/**< Requested notifier operation not supported. */
 };
 
 
