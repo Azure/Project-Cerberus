@@ -197,10 +197,6 @@ void firmware_update_handler_execute (const struct event_task_handler *handler,
 	int status;
 	bool unknown_action = false;
 
-#ifdef FIRMWARE_UPDATE_DISABLE_SELF_RESET
-	UNUSED (reset);
-#endif
-
 	switch (context->action) {
 		case FIRMWARE_UPDATE_HANDLER_ACTION_RUN_UPDATE:
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CERBERUS_FW,
@@ -213,6 +209,8 @@ void firmware_update_handler_execute (const struct event_task_handler *handler,
 
 #ifndef FIRMWARE_UPDATE_DISABLE_SELF_RESET
 				*reset = true;
+#else
+				UNUSED (reset);
 #endif
 			}
 			else {

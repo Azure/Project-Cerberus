@@ -601,6 +601,14 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_with_bad_rec
 		.arg1 = 0,
 		.arg2 = 0
 	};
+	struct debug_log_entry_info entry_done = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE_DONE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -637,7 +645,6 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_with_bad_rec
 	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry)));
-	status |= mock_expect (&handler.log.mock, handler.log.base.flush, &handler.log, 0);
 
 	/* Lock for state update: UPDATE_STATUS_UPDATE_RECOVERY */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -647,6 +654,11 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_with_bad_rec
 	status |= flash_mock_expect_erase_flash_verify (&handler.flash, 0x40000, sizeof (active_data));
 	status |= flash_mock_expect_copy_flash_verify (&handler.flash, &handler.flash, 0x40000, 0x10000,
 		active_data, sizeof (active_data));
+
+	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry_done, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry_done)));
+	status |= mock_expect (&handler.log.mock, handler.log.base.flush, &handler.log, 0);
 
 	/* Lock for state update: UPDATE_STATUS_NONE_STARTED */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -687,6 +699,14 @@ firmware_update_handler_revoke_after_reset_test_prepare_with_bad_recovery_image_
 		.severity = DEBUG_LOG_SEVERITY_INFO,
 		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
 		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
+	struct debug_log_entry_info entry_done = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE_DONE,
 		.arg1 = 0,
 		.arg2 = 0
 	};
@@ -735,7 +755,6 @@ firmware_update_handler_revoke_after_reset_test_prepare_with_bad_recovery_image_
 	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry)));
-	status |= mock_expect (&handler.log.mock, handler.log.base.flush, &handler.log, 0);
 
 	/* Lock for state update: UPDATE_STATUS_UPDATE_RECOVERY */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -745,6 +764,11 @@ firmware_update_handler_revoke_after_reset_test_prepare_with_bad_recovery_image_
 	status |= flash_mock_expect_erase_flash_verify (&handler.flash, 0x40000, sizeof (active_data));
 	status |= flash_mock_expect_copy_flash_verify (&handler.flash, &handler.flash, 0x40000, 0x10000,
 		active_data, sizeof (active_data));
+
+	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry_done, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry_done)));
+	status |= mock_expect (&handler.log.mock, handler.log.base.flush, &handler.log, 0);
 
 	/* Lock for state update: UPDATE_STATUS_NONE_STARTED */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -1062,6 +1086,14 @@ firmware_update_handler_revoke_after_reset_test_prepare_keep_recovery_updated_wi
 		.arg1 = 0,
 		.arg2 = 0
 	};
+	struct debug_log_entry_info entry_done = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE_DONE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -1099,7 +1131,6 @@ firmware_update_handler_revoke_after_reset_test_prepare_keep_recovery_updated_wi
 	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry)));
-	status |= mock_expect (&handler.log.mock, handler.log.base.flush, &handler.log, 0);
 
 	/* Lock for state update: UPDATE_STATUS_UPDATE_RECOVERY */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -1109,6 +1140,11 @@ firmware_update_handler_revoke_after_reset_test_prepare_keep_recovery_updated_wi
 	status |= flash_mock_expect_erase_flash_verify (&handler.flash, 0x40000, sizeof (active_data));
 	status |= flash_mock_expect_copy_flash_verify (&handler.flash, &handler.flash, 0x40000, 0x10000,
 		active_data, sizeof (active_data));
+
+	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry_done, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry_done)));
+	status |= mock_expect (&handler.log.mock, handler.log.base.flush, &handler.log, 0);
 
 	/* Lock for state update: UPDATE_STATUS_NONE_STARTED */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -1150,6 +1186,14 @@ firmware_update_handler_revoke_after_reset_test_prepare_keep_recovery_updated_wi
 		.severity = DEBUG_LOG_SEVERITY_INFO,
 		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
 		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
+	struct debug_log_entry_info entry_done = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE_DONE,
 		.arg1 = 0,
 		.arg2 = 0
 	};
@@ -1202,7 +1246,6 @@ firmware_update_handler_revoke_after_reset_test_prepare_keep_recovery_updated_wi
 	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry)));
-	status |= mock_expect (&handler.log.mock, handler.log.base.flush, &handler.log, 0);
 
 	/* Lock for state update: UPDATE_STATUS_UPDATE_RECOVERY */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -1212,6 +1255,11 @@ firmware_update_handler_revoke_after_reset_test_prepare_keep_recovery_updated_wi
 	status |= flash_mock_expect_erase_flash_verify (&handler.flash, 0x40000, sizeof (active_data));
 	status |= flash_mock_expect_copy_flash_verify (&handler.flash, &handler.flash, 0x40000, 0x10000,
 		active_data, sizeof (active_data));
+
+	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry_done, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry_done)));
+	status |= mock_expect (&handler.log.mock, handler.log.base.flush, &handler.log, 0);
 
 	/* Lock for state update: UPDATE_STATUS_NONE_STARTED */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -1399,6 +1447,14 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_with_bad_rec
 		.arg1 = 0,
 		.arg2 = 0
 	};
+	struct debug_log_entry_info entry_done = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE_DONE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -1436,7 +1492,6 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_with_bad_rec
 	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry)));
-	status |= mock_expect (&handler.log.mock, handler.log.base.flush, &handler.log, 0);
 
 	/* Lock for state update: UPDATE_STATUS_UPDATE_RECOVERY */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -1446,6 +1501,11 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_with_bad_rec
 	status |= flash_mock_expect_erase_flash_verify (&handler.flash, 0x40000, sizeof (active_data));
 	status |= flash_mock_expect_copy_flash_verify (&handler.flash, &handler.flash, 0x40000, 0x10000,
 		active_data, sizeof (active_data));
+
+	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry_done, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry_done)));
+	status |= mock_expect (&handler.log.mock, handler.log.base.flush, &handler.log, 0);
 
 	/* Lock for state update: UPDATE_STATUS_NONE_STARTED */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -1647,6 +1707,14 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_keep_recover
 		.arg1 = 0,
 		.arg2 = 0
 	};
+	struct debug_log_entry_info entry_done = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE_DONE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -1684,7 +1752,6 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_keep_recover
 	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry)));
-	status |= mock_expect (&handler.log.mock, handler.log.base.flush, &handler.log, 0);
 
 	/* Lock for state update: UPDATE_STATUS_UPDATE_RECOVERY */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -1694,6 +1761,11 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_keep_recover
 	status |= flash_mock_expect_erase_flash_verify (&handler.flash, 0x40000, sizeof (active_data));
 	status |= flash_mock_expect_copy_flash_verify (&handler.flash, &handler.flash, 0x40000, 0x10000,
 		active_data, sizeof (active_data));
+
+	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry_done, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry_done)));
+	status |= mock_expect (&handler.log.mock, handler.log.base.flush, &handler.log, 0);
 
 	/* Lock for state update: UPDATE_STATUS_NONE_STARTED */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
