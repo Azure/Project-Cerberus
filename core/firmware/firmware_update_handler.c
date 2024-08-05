@@ -13,8 +13,8 @@
 void firmware_update_handler_status_change (const struct firmware_update_notification *context,
 	enum firmware_update_status status)
 {
-	const struct firmware_update_handler *handler = TO_DERIVED_TYPE (context,
-		const struct firmware_update_handler, base_notify);
+	const struct firmware_update_handler *handler =
+		TO_DERIVED_TYPE (context, const struct firmware_update_handler, base_notify);
 
 	handler->task->lock (handler->task);
 	handler->state->update_status = status;
@@ -25,18 +25,20 @@ void firmware_update_handler_status_change (const struct firmware_update_notific
  * Notify the updater task that a firmware update event needs to be processed.
  *
  * @param handler The handler that received the event.
+ * @param event_handler The handler to pass to the event task for execution.
  * @param action The firmware update action that needs to be performed.
  * @param data Data associated with the update event.  Null if there is no data.
  * @param length Length of the event data.
  *
  * @return 0 if the update task was notified successfully or an error code.
  */
-static int firmware_update_handler_submit_event (const struct firmware_update_handler *handler,
-	uint32_t action, const uint8_t *data, size_t length)
+int firmware_update_handler_submit_event (const struct firmware_update_handler *handler,
+	const struct event_task_handler *event_handler, uint32_t action, const uint8_t *data,
+	size_t length)
 {
 	int status;
 
-	status = event_task_submit_event (handler->task, &handler->base_event, action, data, length,
+	status = event_task_submit_event (handler->task, event_handler, action, data, length,
 		UPDATE_STATUS_STARTING, &handler->state->update_status);
 	if (status != 0) {
 		if (status == EVENT_TASK_BUSY) {
@@ -63,21 +65,21 @@ static int firmware_update_handler_submit_event (const struct firmware_update_ha
 
 int firmware_update_handler_start_update (const struct firmware_update_control *update)
 {
-	const struct firmware_update_handler *handler = TO_DERIVED_TYPE (update,
-		const struct firmware_update_handler, base_ctrl);
+	const struct firmware_update_handler *handler =
+		TO_DERIVED_TYPE (update, const struct firmware_update_handler, base_ctrl);
 
 	if (handler == NULL) {
 		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
 	}
 
-	return firmware_update_handler_submit_event (handler, FIRMWARE_UPDATE_HANDLER_ACTION_RUN_UPDATE,
-		NULL, 0);
+	return firmware_update_handler_submit_event (handler, &handler->base_event,
+		FIRMWARE_UPDATE_HANDLER_ACTION_RUN_UPDATE, NULL, 0);
 }
 
 int firmware_update_handler_get_status (const struct firmware_update_control *update)
 {
-	const struct firmware_update_handler *handler = TO_DERIVED_TYPE (update,
-		const struct firmware_update_handler, base_ctrl);
+	const struct firmware_update_handler *handler =
+		TO_DERIVED_TYPE (update, const struct firmware_update_handler, base_ctrl);
 	int status;
 
 	if (handler == NULL) {
@@ -93,8 +95,8 @@ int firmware_update_handler_get_status (const struct firmware_update_control *up
 
 int32_t firmware_update_handler_get_remaining_len (const struct firmware_update_control *update)
 {
-	const struct firmware_update_handler *handler = TO_DERIVED_TYPE (update,
-		const struct firmware_update_handler, base_ctrl);
+	const struct firmware_update_handler *handler =
+		TO_DERIVED_TYPE (update, const struct firmware_update_handler, base_ctrl);
 	int32_t bytes;
 
 	if (handler == NULL) {
@@ -111,28 +113,28 @@ int32_t firmware_update_handler_get_remaining_len (const struct firmware_update_
 int firmware_update_handler_prepare_staging (const struct firmware_update_control *update,
 	size_t size)
 {
-	const struct firmware_update_handler *handler = TO_DERIVED_TYPE (update,
-		const struct firmware_update_handler, base_ctrl);
+	const struct firmware_update_handler *handler =
+		TO_DERIVED_TYPE (update, const struct firmware_update_handler, base_ctrl);
 
 	if (handler == NULL) {
 		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
 	}
 
-	return firmware_update_handler_submit_event (handler,
+	return firmware_update_handler_submit_event (handler, &handler->base_event,
 		FIRMWARE_UPDATE_HANDLER_ACTION_PREP_STAGING, (uint8_t*) &size, sizeof (size));
 }
 
 int firmware_update_handler_write_staging (const struct firmware_update_control *update,
 	uint8_t *buf, size_t buf_len)
 {
-	const struct firmware_update_handler *handler = TO_DERIVED_TYPE (update,
-		const struct firmware_update_handler, base_ctrl);
+	const struct firmware_update_handler *handler =
+		TO_DERIVED_TYPE (update, const struct firmware_update_handler, base_ctrl);
 
 	if ((handler == NULL) || (buf == NULL)) {
 		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
 	}
 
-	return firmware_update_handler_submit_event (handler,
+	return firmware_update_handler_submit_event (handler, &handler->base_event,
 		FIRMWARE_UPDATE_HANDLER_ACTION_WRITE_STAGING, buf, buf_len);
 }
 
@@ -182,8 +184,8 @@ void firmware_update_handler_prepare_for_updates (const struct firmware_update_h
 
 void firmware_update_handler_prepare (const struct event_task_handler *handler)
 {
-	const struct firmware_update_handler *fw = TO_DERIVED_TYPE (handler,
-		const struct firmware_update_handler, base_event);
+	const struct firmware_update_handler *fw =
+		TO_DERIVED_TYPE (handler, const struct firmware_update_handler, base_event);
 
 	firmware_update_handler_prepare_for_updates (fw);
 
@@ -196,8 +198,8 @@ void firmware_update_handler_prepare (const struct event_task_handler *handler)
 void firmware_update_handler_execute (const struct event_task_handler *handler,
 	struct event_task_context *context, bool *reset)
 {
-	const struct firmware_update_handler *fw = TO_DERIVED_TYPE (handler,
-		const struct firmware_update_handler, base_event);
+	const struct firmware_update_handler *fw =
+		TO_DERIVED_TYPE (handler, const struct firmware_update_handler, base_event);
 	int status;
 	bool unknown_action = false;
 

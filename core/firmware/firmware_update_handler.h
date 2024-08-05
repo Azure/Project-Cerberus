@@ -64,6 +64,10 @@ int firmware_update_handler_init_state (const struct firmware_update_handler *ha
 void firmware_update_handler_release (const struct firmware_update_handler *handler);
 
 /* Internal functions for use by derived types. */
+int firmware_update_handler_submit_event (const struct firmware_update_handler *handler,
+	const struct event_task_handler *event_handler, uint32_t action, const uint8_t *data,
+	size_t length);
+
 int firmware_update_handler_start_update (const struct firmware_update_control *update);
 int firmware_update_handler_get_status (const struct firmware_update_control *update);
 int32_t firmware_update_handler_get_remaining_len (const struct firmware_update_control *update);

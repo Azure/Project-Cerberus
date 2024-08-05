@@ -28,6 +28,8 @@ enum {
 	FIRMWARE_LOGGING_ALLOW_IMPACTFUL_FAIL,		/**< Failed to authorize impactful updates. */
 	FIRMWARE_LOGGING_IMPACTFUL_UPDATE_NO_AUTH,	/**< Detected an unauthorized impactful update. */
 	FIRMWARE_LOGGING_IMPACTFUL_BLOCKED,			/**< Blocked an impactful update that cannot be authorized. */
+	FIRMWARE_LOGGING_IMPACTFUL_UPDATE,			/**< Successfully applied an impactful update. */
+	FIRMWARE_LOGGING_IMPACTFUL_RESET_AUTH_FAIL,	/**< Failed to reset impactful authorization after an update. */
 };
 
 

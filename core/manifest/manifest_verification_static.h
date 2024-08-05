@@ -51,7 +51,8 @@ void manifest_verification_on_update_start (const struct firmware_update_observe
 
 
 /**
- * Initialize a static instance for ECDSA signature verification.  This can be a constant instance.
+ * Initialize a static instance for manifest signature verification.  This can be a constant
+ * instance.
  *
  * There is no validation done on the arguments.
  *
