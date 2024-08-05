@@ -40,6 +40,17 @@ struct firmware_update_observer {
 	 */
 	void (*on_prepare_update) (const struct firmware_update_observer *observer,
 		int *update_allowed);
+
+	/**
+	 * Notification that a firmware update has completed successfully.  What a successful update
+	 * includes depends on the specific platform, but at minimum, it means that a new image has been
+	 * applied to boot flash.  In addition, it could include other steps that have also completed,
+	 * such as, recovery update and revocation.  This event will only be triggered if all update
+	 * steps complete successfully.
+	 *
+	 * @param observer The observer instance being notified.
+	 */
+	void (*on_update_applied) (const struct firmware_update_observer *observer);
 };
 
 

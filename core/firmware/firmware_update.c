@@ -1012,6 +1012,9 @@ int firmware_update_run_update (const struct firmware_update *updater,
 	}
 
 	/* Update completed successfully. */
+	observable_notify_observers (&updater->state->observable,
+		offsetof (struct firmware_update_observer, on_update_applied));
+
 	return 0;
 }
 
@@ -1074,7 +1077,16 @@ int firmware_update_run_update_no_revocation (const struct firmware_update *upda
 	}
 
 	/* Apply the update to active flash. */
-	return firmware_update_apply_update (updater, callback, new_len, NULL);
+	status = firmware_update_apply_update (updater, callback, new_len, NULL);
+	if (status != 0) {
+		return status;
+	}
+
+	/* Update completed successfully. */
+	observable_notify_observers (&updater->state->observable,
+		offsetof (struct firmware_update_observer, on_update_applied));
+
+	return 0;
 }
 
 /**

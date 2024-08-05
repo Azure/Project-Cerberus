@@ -33,6 +33,19 @@ static void firmware_update_observer_mock_on_prepare_update (
 		MOCK_ARG_PTR_CALL (update_allowed));
 }
 
+static void firmware_update_observer_mock_on_update_applied (
+	const struct firmware_update_observer *observer)
+{
+	struct firmware_update_observer_mock *mock = (struct firmware_update_observer_mock*) observer;
+
+	if (mock == NULL) {
+		return;
+	}
+
+	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, firmware_update_observer_mock_on_update_applied,
+		observer);
+}
+
 static int firmware_update_observer_mock_func_arg_count (void *func)
 {
 	if ((func == firmware_update_observer_mock_on_update_start) ||
@@ -51,6 +64,9 @@ static const char* firmware_update_observer_mock_func_name_map (void *func)
 	}
 	else if (func == firmware_update_observer_mock_on_prepare_update) {
 		return "on_prepare_update";
+	}
+	else if (func == firmware_update_observer_mock_on_update_applied) {
+		return "on_update_applied";
 	}
 	else {
 		return "unknown";
@@ -101,6 +117,7 @@ int firmware_update_observer_mock_init (struct firmware_update_observer_mock *mo
 
 	mock->base.on_update_start = firmware_update_observer_mock_on_update_start;
 	mock->base.on_prepare_update = firmware_update_observer_mock_on_prepare_update;
+	mock->base.on_update_applied = firmware_update_observer_mock_on_update_applied;
 
 	mock->mock.func_arg_count = firmware_update_observer_mock_func_arg_count;
 	mock->mock.func_name_map = firmware_update_observer_mock_func_name_map;
