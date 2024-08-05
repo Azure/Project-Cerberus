@@ -7,10 +7,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "firmware_update.h"
 #include "firmware_update_control.h"
-#include "cmd_interface/cerberus_protocol.h"
 #include "system/event_task.h"
-#include "system/system.h"
 
 
 /**

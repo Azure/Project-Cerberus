@@ -152,14 +152,8 @@ void firmware_update_handler_prepare_for_updates (const struct firmware_update_h
 	if (fw->state->recovery_boot) {
 		/* The system is running from the recovery image, so mark that image as good and restore the
 		 * active image to a functional state. */
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CERBERUS_FW,
-			FIRMWARE_LOGGING_ACTIVE_RESTORE_START, 0, 0);
-
 		firmware_update_set_recovery_good (fw->updater, true);
-		status = firmware_update_restore_active_image (fw->updater);
-
-		debug_log_create_entry ((status == 0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_ERROR,
-			DEBUG_LOG_COMPONENT_CERBERUS_FW, FIRMWARE_LOGGING_ACTIVE_RESTORE_DONE, status, 0);
+		firmware_update_restore_active_image (fw->updater);
 	}
 	else {
 		/* Check the current state of the recovery image. */

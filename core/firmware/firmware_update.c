@@ -665,14 +665,20 @@ int firmware_update_restore_recovery_image (const struct firmware_update *update
  *
  * @param updater The updater to use for the image restore operation.
  *
- * @return 0 if the active image was restored successfully or an error code.
+ * @return 0 if the active image was restored successfully or an error code.  The result is returned
+ * in case the caller needs this information, but the result of the operation will have already been
+ * logged.
  */
 int firmware_update_restore_active_image (const struct firmware_update *updater)
 {
-	int status = FIRMWARE_UPDATE_NO_RECOVERY_IMAGE;
+	int status;
+
+	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		FIRMWARE_LOGGING_ACTIVE_RESTORE_START, 0, 0);
 
 	if (updater == NULL) {
-		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
+		status = FIRMWARE_UPDATE_INVALID_ARGUMENT;
+		goto done;
 	}
 
 	if (updater->flash->recovery_flash) {
@@ -680,6 +686,13 @@ int firmware_update_restore_active_image (const struct firmware_update *updater)
 			updater->flash->active_addr, updater->flash->recovery_flash,
 			updater->flash->recovery_addr, NULL, NULL);
 	}
+	else {
+		status = FIRMWARE_UPDATE_NO_RECOVERY_IMAGE;
+	}
+
+done:
+	debug_log_create_entry ((status == 0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_ERROR,
+		DEBUG_LOG_COMPONENT_CERBERUS_FW, FIRMWARE_LOGGING_ACTIVE_RESTORE_DONE, status, 0);
 
 	return status;
 }
