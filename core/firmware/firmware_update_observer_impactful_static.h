@@ -18,6 +18,7 @@ void firmware_update_observer_impactful_on_update_start (
 #define	FIRMWARE_UPDATE_OBSERVER_IMPACTFUL_API_INIT  { \
 		.on_update_start = firmware_update_observer_impactful_on_update_start, \
 		.on_prepare_update = NULL, \
+		.on_update_applied = NULL, \
 	}
 
 

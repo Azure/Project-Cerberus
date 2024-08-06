@@ -102,6 +102,7 @@ static void firmware_update_observer_impactful_test_init (CuTest *test)
 
 	CuAssertPtrNotNull (test, observer.test.base.on_update_start);
 	CuAssertPtrEquals (test, NULL, observer.test.base.on_prepare_update);
+	CuAssertPtrEquals (test, NULL, observer.test.base.on_update_applied);
 
 	firmware_update_observer_impactful_testing_release (test, &observer);
 }
@@ -134,6 +135,7 @@ static void firmware_update_observer_impactful_test_static_init (CuTest *test)
 
 	CuAssertPtrNotNull (test, observer.test.base.on_update_start);
 	CuAssertPtrEquals (test, NULL, observer.test.base.on_prepare_update);
+	CuAssertPtrEquals (test, NULL, observer.test.base.on_update_applied);
 
 	firmware_update_observer_impactful_testing_init_dependencies (test, &observer);
 

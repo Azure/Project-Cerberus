@@ -75,6 +75,8 @@ enum firmware_update_status {
 	UPDATE_STATUS_TASK_NOT_RUNNING,		/**< The task servicing update request is not running. */
 	UPDATE_STATUS_UNKNOWN,				/**< The update status cannot be determined. */
 	UPDATE_STATUS_SYSTEM_PREREQ_FAIL,	/**< The system state does not allow for firmware updates. */
+	UPDATE_STATUS_BOOT_UPDATED_IMAGE,	/**< The new image is running but still initializing. */
+	UPDATE_STATUS_ROLLBACK,				/**< The device is running the previous image instead of the updated one. */
 };
 
 struct firmware_update;

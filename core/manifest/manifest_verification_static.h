@@ -46,7 +46,9 @@ void manifest_verification_on_update_start (const struct firmware_update_observe
  * Constant initializer for the firmware update event handlers.
  */
 #define	MANIFEST_VERIFICATION_FIRMWARE_UPDATE_OBSERVER_API_INIT  { \
-		.on_update_start = manifest_verification_on_update_start \
+		.on_update_start = manifest_verification_on_update_start, \
+		.on_prepare_update = NULL, \
+		.on_update_applied = NULL, \
 	}
 
 
