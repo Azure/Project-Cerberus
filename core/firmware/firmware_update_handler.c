@@ -16,9 +16,7 @@ void firmware_update_handler_status_change (const struct firmware_update_notific
 	const struct firmware_update_handler *handler =
 		TO_DERIVED_TYPE (context, const struct firmware_update_handler, base_notify);
 
-	handler->task->lock (handler->task);
-	handler->state->update_status = status;
-	handler->task->unlock (handler->task);
+	firmware_update_handler_set_update_status_with_error (handler, status, 0);
 }
 
 /**
@@ -207,11 +205,7 @@ void firmware_update_handler_execute (const struct event_task_handler *handler,
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CERBERUS_FW,
 					FIRMWARE_LOGGING_UPDATE_COMPLETE, 0, 0);
 
-#ifndef FIRMWARE_UPDATE_DISABLE_SELF_RESET
 				*reset = true;
-#else
-				UNUSED (reset);
-#endif
 			}
 			else {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CERBERUS_FW,
@@ -248,6 +242,13 @@ void firmware_update_handler_execute (const struct event_task_handler *handler,
 		fw->task->lock (fw->task);
 		if (status == 0) {
 			fw->state->update_status = 0;
+
+#ifdef FIRMWARE_UPDATE_DISABLE_SELF_RESET
+			if (*reset == true) {
+				*reset = false;
+				fw->state->update_status = UPDATE_STATUS_SUCCESS_NO_RESET;
+			}
+#endif
 		}
 		else {
 			fw->state->update_status |= (status << 8);
@@ -360,4 +361,27 @@ int firmware_update_handler_init_state (const struct firmware_update_handler *ha
 void firmware_update_handler_release (const struct firmware_update_handler *handler)
 {
 	UNUSED (handler);
+}
+
+/**
+ * Change the current update status along with an appended error code.
+ *
+ * This should generally not be called externally since it could inappropriately change the update
+ * status for ongoing operations.  Care must be taken to ensure the calling context is valid.
+ *
+ * @param handler The handler whose state should be updated.
+ * @param status The firmware update status to apply.
+ * @param error_code An error code to append to the status.
+ */
+void firmware_update_handler_set_update_status_with_error (
+	const struct firmware_update_handler *handler, enum firmware_update_status status, int
+	error_code)
+{
+	if (handler == NULL) {
+		return;
+	}
+
+	handler->task->lock (handler->task);
+	handler->state->update_status = (error_code << 8) | status;
+	handler->task->unlock (handler->task);
 }

@@ -2763,7 +2763,7 @@ static void firmware_update_handler_test_execute_run_update_failure (CuTest *tes
 
 	status = handler.test.base_ctrl.get_status (&handler.test.base_ctrl);
 	CuAssertIntEquals (test,
-		(((FIRMWARE_IMAGE_BAD_SIGNATURE & 0x00ffffff) << 8) | UPDATE_STATUS_INVALID_IMAGE),	status);
+		(((FIRMWARE_IMAGE_BAD_SIGNATURE & 0x00ffffff) << 8) | UPDATE_STATUS_INVALID_IMAGE), status);
 
 	firmware_update_handler_testing_validate_and_release (test, &handler);
 }
@@ -3728,6 +3728,87 @@ static void firmware_update_handler_test_execute_unknown_action_static_init_keep
 	firmware_update_handler_release (&test_static);
 }
 
+static void firmware_update_handler_test_set_update_status_with_error (CuTest *test)
+{
+	struct firmware_update_handler_testing handler;
+	int status;
+
+	TEST_START;
+
+	firmware_update_handler_testing_init (test, &handler, 0, 0, 0, false);
+
+	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_update_handler_set_update_status_with_error (&handler.test, UPDATE_STATUS_ROLLBACK,
+		FIRMWARE_UPDATE_INVALID_BOOT_IMAGE);
+
+	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.base_ctrl.get_status (&handler.test.base_ctrl);
+	CuAssertIntEquals (test,
+		(((FIRMWARE_UPDATE_INVALID_BOOT_IMAGE & 0x00ffffff) << 8) | UPDATE_STATUS_ROLLBACK),
+		status);
+
+	firmware_update_handler_testing_validate_and_release (test, &handler);
+}
+
+static void firmware_update_handler_test_set_update_status_with_error_no_error (CuTest *test)
+{
+	struct firmware_update_handler_testing handler;
+	int status;
+
+	TEST_START;
+
+	firmware_update_handler_testing_init (test, &handler, 0, 0, 0, false);
+
+	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_update_handler_set_update_status_with_error (&handler.test,
+		UPDATE_STATUS_BOOT_UPDATED_IMAGE, 0);
+
+	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.base_ctrl.get_status (&handler.test.base_ctrl);
+	CuAssertIntEquals (test, UPDATE_STATUS_BOOT_UPDATED_IMAGE, status);
+
+	firmware_update_handler_testing_validate_and_release (test, &handler);
+}
+
+static void firmware_update_handler_test_set_update_status_with_error_null (CuTest *test)
+{
+	struct firmware_update_handler_testing handler;
+	int status;
+
+	TEST_START;
+
+	firmware_update_handler_testing_init (test, &handler, 0, 0, 0, false);
+
+	firmware_update_handler_set_update_status_with_error (NULL, UPDATE_STATUS_ROLLBACK,
+		FIRMWARE_UPDATE_INVALID_BOOT_IMAGE);
+
+	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.base_ctrl.get_status (&handler.test.base_ctrl);
+	CuAssertIntEquals (test, UPDATE_STATUS_NONE_STARTED, status);
+
+	firmware_update_handler_testing_validate_and_release (test, &handler);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (firmware_update_handler);
@@ -3814,6 +3895,9 @@ TEST (firmware_update_handler_test_execute_unknown_action);
 TEST (firmware_update_handler_test_execute_unknown_action_keep_recovery_updated);
 TEST (firmware_update_handler_test_execute_unknown_action_static_init);
 TEST (firmware_update_handler_test_execute_unknown_action_static_init_keep_recovery_updated);
+TEST (firmware_update_handler_test_set_update_status_with_error);
+TEST (firmware_update_handler_test_set_update_status_with_error_no_error);
+TEST (firmware_update_handler_test_set_update_status_with_error_null);
 
 TEST_SUITE_END;
 // *INDENT-ON*

@@ -6,6 +6,7 @@
 #include <string.h>
 #include "testing.h"
 #include "firmware/firmware_logging.h"
+#include "firmware/impactful_check.h"
 #include "firmware/impactful_update_handler.h"
 #include "firmware/impactful_update_handler_static.h"
 #include "flash/flash_common.h"
@@ -1151,7 +1152,7 @@ static void impactful_update_handler_test_execute_run_update_impactful (CuTest *
 		.severity = DEBUG_LOG_SEVERITY_INFO,
 		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
 		.msg_index = FIRMWARE_LOGGING_IMPACTFUL_UPDATE,
-		.arg1 = IMPACTFUL_UPDATE_NOT_ALLOWED,
+		.arg1 = IMPACTFUL_CHECK_IMPACTFUL_UPDATE,
 		.arg2 = 0
 	};
 	bool reset = false;
@@ -1243,7 +1244,11 @@ static void impactful_update_handler_test_execute_run_update_impactful (CuTest *
 	status |= mock_expect (&handler.impactful.mock, handler.impactful.base.reset_authorization,
 		&handler.impactful.base, 0);
 	status |= mock_expect (&handler.impactful.mock, handler.impactful.base.is_update_not_impactful,
-		&handler.impactful.base, IMPACTFUL_UPDATE_NOT_ALLOWED);
+		&handler.impactful.base, IMPACTFUL_CHECK_IMPACTFUL_UPDATE);
+
+	/* Lock for state update: UPDATE_STATUS_SUCCESS_NO_RESET */
+	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry_impactful,
@@ -1262,7 +1267,9 @@ static void impactful_update_handler_test_execute_run_update_impactful (CuTest *
 	CuAssertIntEquals (test, 0, status);
 
 	status = handler.test.base_ctrl.get_status (&handler.test.base_ctrl);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test,
+		(((IMPACTFUL_CHECK_IMPACTFUL_UPDATE & 0x00ffffff) << 8) | UPDATE_STATUS_SUCCESS_NO_RESET),
+		status);
 
 	impactful_update_handler_testing_release (test, &handler);
 }
@@ -1296,7 +1303,7 @@ static void impactful_update_handler_test_execute_run_update_static_init (CuTest
 		.severity = DEBUG_LOG_SEVERITY_INFO,
 		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
 		.msg_index = FIRMWARE_LOGGING_IMPACTFUL_UPDATE,
-		.arg1 = IMPACTFUL_UPDATE_NOT_ALLOWED,
+		.arg1 = IMPACTFUL_CHECK_IMPACTFUL_UPDATE,
 		.arg2 = 0
 	};
 	bool reset = false;
@@ -1388,7 +1395,11 @@ static void impactful_update_handler_test_execute_run_update_static_init (CuTest
 	status |= mock_expect (&handler.impactful.mock, handler.impactful.base.reset_authorization,
 		&handler.impactful.base, 0);
 	status |= mock_expect (&handler.impactful.mock, handler.impactful.base.is_update_not_impactful,
-		&handler.impactful.base, IMPACTFUL_UPDATE_NOT_ALLOWED);
+		&handler.impactful.base, IMPACTFUL_CHECK_IMPACTFUL_UPDATE);
+
+	/* Lock for state update: UPDATE_STATUS_SUCCESS_NO_RESET */
+	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry_impactful,
@@ -1407,7 +1418,9 @@ static void impactful_update_handler_test_execute_run_update_static_init (CuTest
 	CuAssertIntEquals (test, 0, status);
 
 	status = handler.test.base_ctrl.get_status (&handler.test.base_ctrl);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test,
+		(((IMPACTFUL_CHECK_IMPACTFUL_UPDATE & 0x00ffffff) << 8) | UPDATE_STATUS_SUCCESS_NO_RESET),
+		status);
 
 	impactful_update_handler_testing_release (test, &handler);
 }
@@ -1483,7 +1496,7 @@ static void impactful_update_handler_test_execute_run_update_failure (CuTest *te
 
 	status = handler.test.base_ctrl.get_status (&handler.test.base_ctrl);
 	CuAssertIntEquals (test,
-		(((FIRMWARE_IMAGE_BAD_SIGNATURE & 0x00ffffff) << 8) | UPDATE_STATUS_INVALID_IMAGE),	status);
+		(((FIRMWARE_IMAGE_BAD_SIGNATURE & 0x00ffffff) << 8) | UPDATE_STATUS_INVALID_IMAGE), status);
 
 	impactful_update_handler_testing_release (test, &handler);
 }
@@ -1752,6 +1765,11 @@ static void impactful_update_handler_test_execute_run_update_impactful_check_fai
 
 	status |= mock_expect (&handler.impactful.mock, handler.impactful.base.is_update_not_impactful,
 		&handler.impactful.base, IMPACTFUL_UPDATE_IS_NOT_IMPACTFUL_FAILED);
+
+	/* Lock for state update: UPDATE_STATUS_SUCCESS_NO_RESET */
+	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
 	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry_impactful,
 		LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), MOCK_ARG (sizeof (entry_impactful)));
@@ -1769,7 +1787,8 @@ static void impactful_update_handler_test_execute_run_update_impactful_check_fai
 	CuAssertIntEquals (test, 0, status);
 
 	status = handler.test.base_ctrl.get_status (&handler.test.base_ctrl);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, (((IMPACTFUL_UPDATE_IS_NOT_IMPACTFUL_FAILED & 0x00ffffff) <<
+			8) | UPDATE_STATUS_SUCCESS_NO_RESET), status);
 
 	impactful_update_handler_testing_release (test, &handler);
 }

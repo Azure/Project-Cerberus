@@ -871,7 +871,7 @@ static void firmware_update_handler_no_revocation_test_execute_run_update_failur
 
 	status = handler.test.base.base_ctrl.get_status (&handler.test.base.base_ctrl);
 	CuAssertIntEquals (test,
-		(((FIRMWARE_IMAGE_BAD_SIGNATURE & 0x00ffffff) << 8) | UPDATE_STATUS_INVALID_IMAGE),	status);
+		(((FIRMWARE_IMAGE_BAD_SIGNATURE & 0x00ffffff) << 8) | UPDATE_STATUS_INVALID_IMAGE), status);
 
 	firmware_update_handler_no_revocation_testing_validate_and_release (test, &handler);
 }

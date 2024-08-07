@@ -108,6 +108,9 @@ void impactful_update_handler_execute (const struct event_task_handler *handler,
 			if (status != 0) {
 				/* The update has been determined to be impactful, so disable the device reset that
 				 * would normally apply the new firmware image. */
+				firmware_update_handler_set_update_status_with_error (fw->update,
+					UPDATE_STATUS_SUCCESS_NO_RESET, status);
+
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CERBERUS_FW,
 					FIRMWARE_LOGGING_IMPACTFUL_UPDATE, status, 0);
 

@@ -62,6 +62,10 @@ int firmware_update_handler_init_state (const struct firmware_update_handler *ha
 	bool running_recovery);
 void firmware_update_handler_release (const struct firmware_update_handler *handler);
 
+void firmware_update_handler_set_update_status_with_error (
+	const struct firmware_update_handler *handler, enum firmware_update_status status, int
+	error_code);
+
 /* Internal functions for use by derived types. */
 int firmware_update_handler_submit_event (const struct firmware_update_handler *handler,
 	const struct event_task_handler *event_handler, uint32_t action, const uint8_t *data,

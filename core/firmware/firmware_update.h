@@ -77,6 +77,7 @@ enum firmware_update_status {
 	UPDATE_STATUS_SYSTEM_PREREQ_FAIL,	/**< The system state does not allow for firmware updates. */
 	UPDATE_STATUS_BOOT_UPDATED_IMAGE,	/**< The new image is running but still initializing. */
 	UPDATE_STATUS_ROLLBACK,				/**< The device is running the previous image instead of the updated one. */
+	UPDATE_STATUS_SUCCESS_NO_RESET,		/**< The firmware update was applied successfully but the device was not reset. */
 };
 
 struct firmware_update;
