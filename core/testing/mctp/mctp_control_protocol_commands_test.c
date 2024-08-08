@@ -1237,6 +1237,7 @@ static void mctp_control_protocol_commands_test_process_get_message_type_support
 	request.length = sizeof (struct mctp_control_get_message_type);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response->header.completion_code = 0x80;
 
 	status = mctp_control_protocol_get_message_type_support (&request);
 	CuAssertIntEquals (test, 0, status);

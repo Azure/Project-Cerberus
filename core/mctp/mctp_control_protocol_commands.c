@@ -289,6 +289,7 @@ int mctp_control_protocol_get_message_type_support (struct cmd_interface_msg *re
 	message_type_list[2] = MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM;
 
 	request->length = mctp_control_get_message_type_response_length (response->message_type_count);
+	response->header.completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
 
 	return 0;
 }
