@@ -34,9 +34,8 @@ static ecc_keypair* ecc_riot_alloc_key_context ()
 
 	if (key_ctx) {
 		memset (key_ctx, 0, sizeof (ecc_keypair));
+		key_ctx->Q.infinity = true;
 	}
-
-	key_ctx->Q.infinity = true;
 
 	return key_ctx;
 }
