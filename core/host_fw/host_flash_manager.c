@@ -105,7 +105,10 @@ int host_flash_manager_get_firmware_types (struct pfm *pfm, struct pfm_firmware 
 	return 0;
 
 free_img:
-	platform_free (host_img->fw_images);
+	if (host_img) {
+		platform_free (host_img->fw_images);
+	}
+
 free_firmware:
 	pfm->free_firmware (pfm, host_fw);
 
