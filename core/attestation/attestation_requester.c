@@ -3273,11 +3273,20 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 
 	active_cfm = attestation->cfm_manager->get_active_cfm (attestation->cfm_manager);
 	if (active_cfm == NULL) {
+		status = device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+			DEVICE_MANAGER_ATTESTATION_INVALID_CFM);
+		if (status != 0) {
+			return status;
+		}
+
 		return ATTESTATION_NO_CFM;
 	}
 
 	status = active_cfm->get_component_device (active_cfm, component_id, &component_device);
 	if (status != 0) {
+		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+			DEVICE_MANAGER_ATTESTATION_INVALID_CFM);
+
 		goto free_cfm;
 	}
 

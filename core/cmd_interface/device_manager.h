@@ -75,6 +75,7 @@ enum device_manager_device_state {
 
 	DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH = 0x20,		/**< Previous attestation attempt failed due to measurement mismatch */
 	DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS,					/**< Previous attestation attempt failed due to untrusted certificates */
+	DEVICE_MANAGER_ATTESTATION_INVALID_CFM,						/**< Previous attestation attempt failed due to invalid CFM */
 
 	MAX_DEVICE_MANAGER_STATES,									/**< Max number of device states */
 };

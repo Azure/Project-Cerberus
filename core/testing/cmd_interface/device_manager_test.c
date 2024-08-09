@@ -1455,7 +1455,7 @@ static void device_manager_test_update_attestation_summary_event_counters (CuTes
 	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
 	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
 	CuAssertIntEquals (test, 8, event_counters.status_fail_invalid_response_count);
-	CuAssertIntEquals (test, 2, event_counters.status_fail_invalid_config_count);
+	CuAssertIntEquals (test, 3, event_counters.status_fail_invalid_config_count);
 
 	device_manager_release (&manager);
 }
@@ -1523,7 +1523,7 @@ static void device_manager_test_update_attestation_summary_event_counters_init_a
 	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
 	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
 	CuAssertIntEquals (test, 8, event_counters.status_fail_invalid_response_count);
-	CuAssertIntEquals (test, 2, event_counters.status_fail_invalid_config_count);
+	CuAssertIntEquals (test, 3, event_counters.status_fail_invalid_config_count);
 
 	device_manager_release (&manager);
 }

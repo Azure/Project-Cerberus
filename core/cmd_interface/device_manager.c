@@ -1311,6 +1311,7 @@ int device_manager_update_attestation_summary_event_counters (struct device_mana
 
 		case DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH:
 		case DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS:
+		case DEVICE_MANAGER_ATTESTATION_INVALID_CFM:
 			event_counters->status_fail_invalid_config_count =
 				common_math_saturating_increment_u16 (
 				event_counters->status_fail_invalid_config_count);

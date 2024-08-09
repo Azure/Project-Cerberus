@@ -10947,7 +10947,7 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_summary
 		.status_fail_internal_count = 1,
 		.status_fail_timeout_count = 1,
 		.status_fail_invalid_response_count = 8,
-		.status_fail_invalid_config_count = 2
+		.status_fail_invalid_config_count = 3
 	};
 	int device_state;
 	uint32_t component_id = 50;
@@ -11027,7 +11027,7 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_summary
 	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
 	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
 	CuAssertIntEquals (test, 8, event_counters.status_fail_invalid_response_count);
-	CuAssertIntEquals (test, 2, event_counters.status_fail_invalid_config_count);
+	CuAssertIntEquals (test, 3, event_counters.status_fail_invalid_config_count);
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);

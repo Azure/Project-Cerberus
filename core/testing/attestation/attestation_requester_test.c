@@ -36943,6 +36943,75 @@ static void attestation_requester_test_attest_device_invalid_arg (CuTest *test)
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 }
 
+static void attestation_requester_test_attest_device_no_cfm (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint32_t component_id = 50;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, false, false, true, true,
+		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		component_id);
+
+	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
+		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
+		&testing.ecc.base, &testing.rsa.base, &testing.x509_mock.base, &testing.rng.base,
+		&testing.riot, &testing.device_mgr, &testing.cfm_manager.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
+		&testing.cfm_manager, MOCK_RETURN_PTR (NULL));
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, ATTESTATION_NO_CFM, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CFM, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_invalid_component_device (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint32_t component_id = 101;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, false, false, true, true,
+		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		component_id);
+
+	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
+		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
+		&testing.ecc.base, &testing.rsa.base, &testing.x509_mock.base, &testing.rng.base,
+		&testing.riot, &testing.device_mgr, &testing.cfm_manager.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
+		&testing.cfm_manager, MOCK_RETURN_PTR (&testing.cfm.base));
+	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
+		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device,
+		&testing.cfm, CFM_INVALID_ARGUMENT, MOCK_ARG (component_id),
+		MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CFM, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
 static void attestation_requester_test_discover_device_invalid_arg (CuTest *test)
 {
 	int status;
@@ -39545,6 +39614,8 @@ TEST (attestation_requester_test_attest_device_unsupported_attestation_protocol)
 TEST (attestation_requester_test_attest_device_spdm_response_not_ready_unexpected_requested_command);
 TEST (attestation_requester_test_attest_device_cfm_contains_unsupported_hash_alg);
 TEST (attestation_requester_test_attest_device_invalid_arg);
+TEST (attestation_requester_test_attest_device_no_cfm);
+TEST (attestation_requester_test_attest_device_invalid_component_device);
 TEST (attestation_requester_test_discover_device_spdm);
 TEST (attestation_requester_test_discover_device_spdm_1_1);
 TEST (attestation_requester_test_discover_device_spdm_update_routing_table);
