@@ -164,7 +164,7 @@ static int x509_openssl_create_custom_extension (const struct x509_extension_bui
 	}
 
 	*ext_data = ASN1_OCTET_STRING_new ();
-	if (ext_data == NULL) {
+	if (*ext_data == NULL) {
 		status = X509_ENGINE_NO_MEMORY;
 		goto free_oid;
 	}
