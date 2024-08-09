@@ -616,7 +616,7 @@ int DERtoPEM (
 	int status;
 
 	// Parameter validation
-	if (!(Context) || !(Type < LAST_CERT_TYPE) || !(PEM)) {
+	if (!(Context) || !(Type < LAST_CERT_TYPE) || !(PEM) || !(Length)) {
 		return -1;
 	}
 
@@ -625,7 +625,7 @@ int DERtoPEM (
 	reqLen = b64Len + PEMhf[Type].hLen + PEMhf[Type].fLen;
 
 	// Validate length of output buffer
-	if (Length && (*Length < reqLen)) {
+	if (*Length < reqLen) {
 		*Length = reqLen;
 
 		return -1;
@@ -648,9 +648,7 @@ int DERtoPEM (
 	PEM += PEMhf[Type].fLen;
 
 	// Output buffer length
-	if (Length) {
-		*Length = reqLen;
-	}
+	*Length = reqLen;
 
 	return 0;
 }
