@@ -24,6 +24,18 @@ static void add_all_crypto_tests (CuSuite *suite)
 	!defined TESTING_SKIP_AES_MBEDTLS_SUITE
 	TESTING_RUN_SUITE (aes_mbedtls);
 #endif
+#if (defined TESTING_RUN_AES_XTS_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_AES_XTS_SUITE
+	TESTING_RUN_SUITE (aes_xts);
+#endif
+#if (defined TESTING_RUN_AES_XTS_MBEDTLS_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_AES_XTS_MBEDTLS_SUITE
+	TESTING_RUN_SUITE (aes_xts_mbedtls);
+#endif
 #if (defined TESTING_RUN_CHECKSUM_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

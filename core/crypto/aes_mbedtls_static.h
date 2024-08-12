@@ -4,8 +4,6 @@
 #ifndef AES_MBEDTLS_STATIC_H_
 #define AES_MBEDTLS_STATIC_H_
 
-#include <stdint.h>
-#include <string.h>
 #include "crypto/aes_mbedtls.h"
 
 
@@ -14,25 +12,25 @@ int aes_mbedtls_set_key (struct aes_engine *engine, const uint8_t *key, size_t l
 int aes_mbedtls_encrypt_data (struct aes_engine *engine, const uint8_t *plaintext, size_t length,
 	const uint8_t *iv, size_t iv_length, uint8_t *ciphertext, size_t out_length, uint8_t *tag,
 	size_t tag_length);
-int aes_mbedtls_decrypt_data (struct aes_engine *engine, const uint8_t *ciphertext,	size_t length,
-	const uint8_t *tag, const uint8_t *iv, size_t iv_length, uint8_t *plaintext, size_t out_length);
 int aes_mbedtls_encrypt_with_add_data (struct aes_engine *engine, const uint8_t *plaintext,
 	size_t length, const uint8_t *iv, size_t iv_length, const uint8_t *additional_data,
 	size_t additional_data_length, uint8_t *ciphertext, size_t out_length, uint8_t *tag,
 	size_t tag_length);
+int aes_mbedtls_decrypt_data (struct aes_engine *engine, const uint8_t *ciphertext,	size_t length,
+	const uint8_t *tag, const uint8_t *iv, size_t iv_length, uint8_t *plaintext, size_t out_length);
 int aes_mbedtls_decrypt_with_add_data (struct aes_engine *engine, const uint8_t *ciphertext,
 	size_t length, const uint8_t *tag, const uint8_t *iv, size_t iv_length,
 	const uint8_t *additional_data, size_t additional_data_length, uint8_t *plaintext,
 	size_t out_length);
 
 /**
- * Constant initializer for the AES Mbedtls engine.
+ * Constant initializer for the AES-GCM API.
  */
 #define	AES_MBEDTLS_API_STATIC_INIT { \
 		.set_key = aes_mbedtls_set_key, \
 		.encrypt_data = aes_mbedtls_encrypt_data, \
-		.decrypt_data = aes_mbedtls_decrypt_data, \
 		.encrypt_with_add_data = aes_mbedtls_encrypt_with_add_data, \
+		.decrypt_data = aes_mbedtls_decrypt_data, \
 		.decrypt_with_add_data = aes_mbedtls_decrypt_with_add_data, \
 	}
 

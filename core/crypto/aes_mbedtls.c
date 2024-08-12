@@ -38,6 +38,8 @@ int aes_mbedtls_set_key (struct aes_engine *engine, const uint8_t *key, size_t l
 		return status;
 	}
 
+	mbedtls->state->has_key = true;
+
 	return 0;
 }
 
@@ -59,7 +61,7 @@ int aes_mbedtls_encrypt_with_add_data (struct aes_engine *engine, const uint8_t 
 		return AES_ENGINE_OUT_BUFFER_TOO_SMALL;
 	}
 
-	if (mbedtls->state->context.cipher_ctx.key_bitlen == 0) {
+	if (!mbedtls->state->has_key) {
 		return AES_ENGINE_NO_KEY;
 	}
 
@@ -100,7 +102,7 @@ int aes_mbedtls_decrypt_with_add_data (struct aes_engine *engine, const uint8_t 
 		return AES_ENGINE_OUT_BUFFER_TOO_SMALL;
 	}
 
-	if (mbedtls->state->context.cipher_ctx.key_bitlen == 0) {
+	if (!mbedtls->state->has_key) {
 		return AES_ENGINE_NO_KEY;
 	}
 
@@ -127,7 +129,7 @@ int aes_mbedtls_decrypt_data (struct aes_engine *engine, const uint8_t *cipherte
 }
 
 /**
- * Initialize an instance for running AES operations using mbedTLS.
+ * Initialize an instance for running AES-GCM operations using mbedTLS.
  *
  * @param engine The AES engine to initialize.
  * @param state The state information for the engine.
@@ -154,7 +156,7 @@ int aes_mbedtls_init (struct aes_engine_mbedtls *engine, struct aes_engine_mbedt
 }
 
 /**
- * Initialize the context for a mbedTLS AES engine.
+ * Initialize the context for a mbedTLS AES-GCM engine.
  *
  * @param engine The AES engine to initialize the GCM context.
  *
@@ -166,13 +168,15 @@ int aes_mbedtls_init_state (const struct aes_engine_mbedtls *engine)
 		return AES_ENGINE_INVALID_ARGUMENT;
 	}
 
+	memset (engine->state, 0, sizeof (*engine->state));
+
 	mbedtls_gcm_init (&engine->state->context);
 
 	return 0;
 }
 
 /**
- * Release a mbedTLS AES engine.
+ * Release a mbedTLS AES-GCM engine.
  *
  * @param engine The AES engine to release.
  */

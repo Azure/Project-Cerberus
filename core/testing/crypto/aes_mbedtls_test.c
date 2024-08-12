@@ -48,11 +48,15 @@ static void aes_mbedtls_test_init (CuTest *test)
 
 static void aes_mbedtls_test_init_null (CuTest *test)
 {
+	struct aes_engine_mbedtls_testing engine;
 	int status;
 
 	TEST_START;
 
-	status = aes_mbedtls_init (NULL, NULL);
+	status = aes_mbedtls_init (NULL, &engine.state);
+	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
+
+	status = aes_mbedtls_init (&engine.test, NULL);
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 }
 
@@ -85,6 +89,9 @@ static void aes_mbedtls_test_static_init_null (CuTest *test)
 	int status;
 
 	TEST_START;
+
+	status = aes_mbedtls_init_state (NULL);
+	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);
 
 	status = aes_mbedtls_init_state (&engine.test);
 	CuAssertIntEquals (test, AES_ENGINE_INVALID_ARGUMENT, status);

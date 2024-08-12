@@ -9,10 +9,10 @@
 
 
 /**
- * A mock for the AES API.
+ * A mock for the AES-GCM API.
  */
 struct aes_engine_mock {
-	struct aes_engine base;	/**< The base AES API instance. */
+	struct aes_engine base;	/**< The base AES-GCM API instance. */
 	struct mock mock;		/**< The base mock interface. */
 };
 

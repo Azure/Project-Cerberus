@@ -27,6 +27,12 @@ static void add_all_linux_crypto_tests (CuSuite *suite)
 	!defined TESTING_SKIP_AES_OPENSSL_SUITE
 	TESTING_RUN_SUITE (aes_openssl);
 #endif
+#if (defined TESTING_RUN_AES_XTS_OPENSSL_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_LINUX_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_LINUX_TESTS)) && \
+	!defined TESTING_SKIP_AES_XTS_OPENSSL_SUITE
+	TESTING_RUN_SUITE (aes_xts_openssl);
+#endif
 #if (defined TESTING_RUN_HASH_OPENSSL_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_LINUX_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_LINUX_TESTS)) && \

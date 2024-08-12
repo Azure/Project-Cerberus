@@ -10,7 +10,7 @@
  */
 enum {
 	ROT_MODULE_INIT = 0x0000,							/**< Top-level application that initializes the system. */
-	ROT_MODULE_AES_ENGINE = 0x0001,						/**< An AES crypto engine.  All engines use the same ID. */
+	ROT_MODULE_AES_ENGINE = 0x0001,						/**< An AES-GCM crypto engine.  All engines use the same ID. */
 	ROT_MODULE_ECC_ENGINE = 0x0002,						/**< An ECC crypto engine.  All engines use the same ID. */
 	ROT_MODULE_HASH_ENGINE = 0x0003,					/**< A hash crypto engine.  All engines use the same ID. */
 	ROT_MODULE_RSA_ENGINE = 0x0004,						/**< An RSA crypto engine.  All engines use the same ID. */
@@ -154,6 +154,7 @@ enum {
 	ROT_MODULE_SPDM_PCISIG_PROTOCOL = 0x008e,			/**< SPDM PCISIG messages protocol. */
 	ROT_MODULE_IMPACTFUL_CHECK = 0x008f,				/**< Device check for conditions requiring impactful updates. */
 	ROT_MODULE_IMPACTFUL_UPDATE = 0x0090,				/**< Interface for handling impactful updates. */
+	ROT_MODULE_AES_XTS_ENGINE = 0x0091,					/**< An AES-XTS crypto engine.  All engines use the same ID. */
 };
 
 

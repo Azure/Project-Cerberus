@@ -4,6 +4,7 @@
 #ifndef AES_MBEDTLS_H_
 #define AES_MBEDTLS_H_
 
+#include <stdbool.h>
 #include "aes.h"
 #include "mbedtls/gcm.h"
 
@@ -13,10 +14,11 @@
  */
 struct aes_engine_mbedtls_state {
 	mbedtls_gcm_context context;	/**< The mbedTLS GCM context. */
+	bool has_key;					/**< Flag indicating if the encryption key has been set. */
 };
 
 /**
- * An mbedTLS context for AES operations.
+ * An mbedTLS context for AES-GCM operations.
  */
 struct aes_engine_mbedtls {
 	struct aes_engine base;					/**< The base AES engine. */

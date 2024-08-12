@@ -139,7 +139,7 @@ static int aes_openssl_encrypt_with_add_data (struct aes_engine *engine, const u
 	uint8_t *tag, size_t tag_length)
 {
 	/* [TODO] Reminder to implement this later. */
-	return AES_UNSUPPORTED_OPERATION;
+	return AES_ENGINE_UNSUPPORTED_OPERATION;
 }
 
 static int aes_openssl_decrypt_data (struct aes_engine *engine, const uint8_t *ciphertext,
@@ -200,7 +200,7 @@ static int aes_openssl_decrypt_with_add_data (struct aes_engine *engine, const u
 	size_t out_length)
 {
 	/* [TODO] Reminder to implement this later. */
-	return AES_UNSUPPORTED_OPERATION;
+	return AES_ENGINE_UNSUPPORTED_OPERATION;
 }
 
 /**

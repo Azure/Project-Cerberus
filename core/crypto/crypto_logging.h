@@ -11,8 +11,8 @@
  * Cerberus crypto log messages.
  */
 enum {
-	CRYPTO_LOG_MSG_MBEDTLS_AES_GCM_INIT_EC,					/**< mbedTLS failure during AES GCM init */
-	CRYPTO_LOG_MSG_MBEDTLS_AES_GCM_CRYPT_EC,				/**< mbedTLS failure during AES GCM buffer encryt/decrypt */
+	CRYPTO_LOG_MSG_MBEDTLS_AES_GCM_INIT_EC,					/**< mbedTLS failure during AES GCM key init */
+	CRYPTO_LOG_MSG_MBEDTLS_AES_GCM_CRYPT_EC,				/**< mbedTLS failure during AES GCM buffer encrypt */
 	CRYPTO_LOG_MSG_MBEDTLS_AES_GCM_AUTH_DECRYPT_EC,			/**< mbedTLS failure during AES GCM buffer authenticated decryption */
 	CRYPTO_LOG_MSG_MBEDTLS_PK_INIT_EC,						/**< mbedTLS failure during public key context init */
 	CRYPTO_LOG_MSG_MBEDTLS_PK_PARSE_EC,						/**< mbedTLS failure during private key parsing */
@@ -56,6 +56,8 @@ enum {
 	CRYPTO_LOG_MSG_MBEDTLS_RSA_OAEP_DECRYPT_EC,				/**< mbedTLS failure during RSA OAEP decryption */
 	CRYPTO_LOG_MSG_MBEDTLS_X509_ADD_TCBINFO_EC,				/**< mbedTLS failure during X509 TCB Info addition */
 	CRYPTO_LOG_MSG_MBEDTLS_X509_ADD_UEID_EC,				/**< mbedTLS failure during X509 UEID addition */
+	CRYPTO_LOG_MSG_MBEDTLS_AES_XTS_SET_KEY_EC,				/**< mbedTLS failure during AES XTS set key */
+	CRYPTO_LOG_MSG_MBEDTLS_AES_XTS_CRYPT_EC,				/**< mbedTLS failure during AES XTS encrypt/decrypt */
 };
 
 

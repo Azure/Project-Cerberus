@@ -88,17 +88,17 @@ static int aes_mock_decrypt_with_add_data (struct aes_engine *engine, const uint
 
 static int aes_mock_func_arg_count (void *func)
 {
-	if (func == aes_mock_encrypt_data) {
-		return 8;
-	}
 	if (func == aes_mock_encrypt_with_add_data) {
 		return 10;
 	}
-	else if (func == aes_mock_decrypt_data) {
-		return 7;
-	}
 	else if (func == aes_mock_decrypt_with_add_data) {
 		return 9;
+	}
+	else if (func == aes_mock_encrypt_data) {
+		return 8;
+	}
+	else if (func == aes_mock_decrypt_data) {
+		return 7;
 	}
 	else if (func == aes_mock_set_key) {
 		return 2;
@@ -260,7 +260,7 @@ static const char* aes_mock_arg_name_map (void *func, int arg)
 }
 
 /**
- * Initialize a mock for the AES API.
+ * Initialize a mock for the AES-GCM API.
  *
  * @param mock The mock to initialize.
  *
@@ -285,8 +285,8 @@ int aes_mock_init (struct aes_engine_mock *mock)
 
 	mock->base.set_key = aes_mock_set_key;
 	mock->base.encrypt_data = aes_mock_encrypt_data;
-	mock->base.decrypt_data = aes_mock_decrypt_data;
 	mock->base.encrypt_with_add_data = aes_mock_encrypt_with_add_data;
+	mock->base.decrypt_data = aes_mock_decrypt_data;
 	mock->base.decrypt_with_add_data = aes_mock_decrypt_with_add_data;
 
 	mock->mock.func_arg_count = aes_mock_func_arg_count;
@@ -297,7 +297,7 @@ int aes_mock_init (struct aes_engine_mock *mock)
 }
 
 /**
- * Release a mock AES API instance.
+ * Release a mock AES-GCM API instance.
  *
  * @param mock The mock to release.
  */

@@ -6,12 +6,19 @@
 
 
 //#define	AES_TESTING_USE_OPENSSL
+//#define	AES_XTS_TESTING_USE_OPENSSL
 
 
 #ifdef AES_TESTING_USE_OPENSSL
-/* Configure the AES testing to use the OpenSSL. */
+/* Configure the AES-GCM testing engine to use OpenSSL. */
 #include "crypto/aes_openssl.h"
 #define	AES_TESTING_ENGINE_NAME	openssl
+#endif
+
+#ifdef AES_XTS_TESTING_USE_OPENSSL
+/* Configure the AES-XTS testing engine to use OpenSSL. */
+#include "crypto/aes_openssl.h"
+#define	AES_XTS_TESTING_ENGINE_NAME	openssl
 #endif
 
 
