@@ -152,6 +152,9 @@ enum {
 	ROT_MODULE_AUTHORIZED_EXECUTION = 0x008c,			/**< Execution context for authorized operations. */
 	ROT_MODULE_SPDM_VDM_PROTOCOL = 0x008d,				/**< SPDM vendor defined messages protocol. */
 	ROT_MODULE_SPDM_PCISIG_PROTOCOL = 0x008e,			/**< SPDM PCISIG messages protocol. */
+	ROT_MODULE_PIT_CRYPTO = 0x0063,						/**< Handel Error from PIT Crypto file. */
+	ROT_MODULE_PIT_I2C = 0X0064,						/**< Handel Error from PIT Client file. */
+	ROT_MODULE_PIT = 0X0065,							/**< Handel Error from PIT file. */
 };
 
 
