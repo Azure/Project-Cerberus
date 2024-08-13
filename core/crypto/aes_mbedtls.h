@@ -10,7 +10,7 @@
 
 
 /**
- * State information for a mbedTLS AES engine.
+ * Variable context for mbedTLS AES-GCM operations.
  */
 struct aes_engine_mbedtls_state {
 	mbedtls_gcm_context context;	/**< The mbedTLS GCM context. */
@@ -22,7 +22,7 @@ struct aes_engine_mbedtls_state {
  */
 struct aes_engine_mbedtls {
 	struct aes_engine base;					/**< The base AES engine. */
-	struct aes_engine_mbedtls_state *state;	/**< The state information for the engine. */
+	struct aes_engine_mbedtls_state *state;	/**< Variable context for the AES engine. */
 };
 
 

@@ -168,7 +168,7 @@ struct session_manager {
 	int (*session_sync) (struct session_manager *session, uint8_t eid, uint32_t rn_req,
 		uint8_t *hmac, size_t hmac_len);
 
-	struct aes_engine *aes;							/**< AES engine used to encrypt/decrypt session data */
+	const struct aes_engine *aes;					/**< AES engine used to encrypt/decrypt session data */
 	struct hash_engine *hash;						/**< Hashing engine used to generate AES shared key */
 	struct rng_engine *rng;							/**< RNG engine used to generate IV buffers */
 	struct riot_key_manager *riot;					/**< RIoT key manager containing alias key */
@@ -182,7 +182,7 @@ struct session_manager {
 
 
 /* Internal functions for use by derived types. */
-int session_manager_init (struct session_manager *session, struct aes_engine *aes,
+int session_manager_init (struct session_manager *session, const struct aes_engine *aes,
 	struct hash_engine *hash, struct riot_key_manager *riot,
 	struct session_manager_entry *sessions_table, size_t num_sessions, const uint8_t *pairing_eids,
 	size_t num_pairing_eids, const struct keystore *store);

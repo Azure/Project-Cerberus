@@ -7,7 +7,7 @@
 #include "aes_mock.h"
 
 
-static int aes_mock_set_key (struct aes_engine *engine, const uint8_t *key, size_t length)
+static int aes_mock_set_key (const struct aes_engine *engine, const uint8_t *key, size_t length)
 {
 	struct aes_engine_mock *mock = (struct aes_engine_mock*) engine;
 
@@ -19,7 +19,7 @@ static int aes_mock_set_key (struct aes_engine *engine, const uint8_t *key, size
 		MOCK_ARG_CALL (length));
 }
 
-static int aes_mock_encrypt_data (struct aes_engine *engine, const uint8_t *plaintext,
+static int aes_mock_encrypt_data (const struct aes_engine *engine, const uint8_t *plaintext,
 	size_t length, const uint8_t *iv, size_t iv_length, uint8_t *ciphertext, size_t out_length,
 	uint8_t *tag, size_t tag_length)
 {
@@ -35,10 +35,10 @@ static int aes_mock_encrypt_data (struct aes_engine *engine, const uint8_t *plai
 		MOCK_ARG_CALL (tag_length));
 }
 
-static int aes_mock_encrypt_with_add_data (struct aes_engine *engine, const uint8_t *plaintext,
-	size_t length, const uint8_t *iv, size_t iv_length, const uint8_t *additional_data,
-	size_t additional_data_length, uint8_t *ciphertext, size_t out_length, uint8_t *tag,
-	size_t tag_length)
+static int aes_mock_encrypt_with_add_data (const struct aes_engine *engine,
+	const uint8_t *plaintext, size_t length, const uint8_t *iv, size_t iv_length,
+	const uint8_t *additional_data,	size_t additional_data_length, uint8_t *ciphertext,
+	size_t out_length, uint8_t *tag, size_t tag_length)
 {
 	struct aes_engine_mock *mock = (struct aes_engine_mock*) engine;
 
@@ -53,7 +53,7 @@ static int aes_mock_encrypt_with_add_data (struct aes_engine *engine, const uint
 		MOCK_ARG_CALL (tag_length));
 }
 
-static int aes_mock_decrypt_data (struct aes_engine *engine, const uint8_t *ciphertext,
+static int aes_mock_decrypt_data (const struct aes_engine *engine, const uint8_t *ciphertext,
 	size_t length, const uint8_t *tag, const uint8_t *iv, size_t iv_length, uint8_t *plaintext,
 	size_t out_length)
 {
@@ -68,10 +68,10 @@ static int aes_mock_decrypt_data (struct aes_engine *engine, const uint8_t *ciph
 		MOCK_ARG_CALL (iv_length), MOCK_ARG_PTR_CALL (plaintext), MOCK_ARG_CALL (out_length));
 }
 
-static int aes_mock_decrypt_with_add_data (struct aes_engine *engine, const uint8_t *ciphertext,
-	size_t length, const uint8_t *tag, const uint8_t *iv, size_t iv_length,
-	const uint8_t *additional_data, size_t additional_data_length, uint8_t *plaintext,
-	size_t out_length)
+static int aes_mock_decrypt_with_add_data (const struct aes_engine *engine,
+	const uint8_t *ciphertext, size_t length, const uint8_t *tag, const uint8_t *iv,
+	size_t iv_length, const uint8_t *additional_data, size_t additional_data_length,
+	uint8_t *plaintext,	size_t out_length)
 {
 	struct aes_engine_mock *mock = (struct aes_engine_mock*) engine;
 

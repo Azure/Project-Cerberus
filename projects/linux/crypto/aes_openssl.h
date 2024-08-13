@@ -9,16 +9,24 @@
 
 
 /**
- * An OpenSSL context for AES operations.
+ * Variable context for mbedTLS AES-GCM operations.
+ */
+struct aes_engine_openssl_state {
+	EVP_CIPHER_CTX *context;	/**< Context to use for AES operations. */
+};
+
+/**
+ * An OpenSSL context for AES-GCM operations.
  */
 struct aes_engine_openssl {
-	struct aes_engine base;			/**< The base AES engine. */
-	EVP_CIPHER_CTX *context;		/**< Context to use for AES operations. */
+	struct aes_engine base;					/**< The base AES engine. */
+	struct aes_engine_openssl_state *state;	/**< Variable context for the AES engine. */
 };
 
 
-int aes_openssl_init (struct aes_engine_openssl *engine);
-void aes_openssl_release (struct aes_engine_openssl *engine);
+int aes_openssl_init (struct aes_engine_openssl *engine, struct aes_engine_openssl_state *state);
+int aes_openssl_init_state (const struct aes_engine_openssl *engine);
+void aes_openssl_release (const struct aes_engine_openssl *engine);
 
 
-#endif /* AES_OPENSSL_H_ */
+#endif	/* AES_OPENSSL_H_ */

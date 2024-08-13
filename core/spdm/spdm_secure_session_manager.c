@@ -769,7 +769,7 @@ int spdm_secure_session_manager_decrypt_message (
 	size_t plaintext_size;
 	size_t ciphertext_size;
 	const uint8_t *tag;
-	struct aes_engine *aes_engine;
+	const struct aes_engine *aes_engine;
 
 	UNUSED (sequence_number);
 	UNUSED (salt);
@@ -974,7 +974,7 @@ static int spdm_secure_session_manager_encrypt_message (
 	struct spdm_secured_message_data_header_1 *record_header_1;
 	struct spdm_secured_message_data_header_2 *record_header_2;
 	struct spdm_secured_message_cipher_header *enc_msg_header;
-	struct aes_engine *aes_engine;
+	const struct aes_engine *aes_engine;
 	uint8_t *tag;
 	uint8_t *add_data;
 
@@ -1163,7 +1163,7 @@ exit:
 int spdm_secure_session_manager_init (struct spdm_secure_session_manager *session_manager,
 	struct spdm_secure_session_manager_state *state,
 	const struct spdm_device_capability *local_capabilities,
-	const struct spdm_device_algorithms *local_algorithms, struct aes_engine *aes_engine,
+	const struct spdm_device_algorithms *local_algorithms, const struct aes_engine *aes_engine,
 	struct hash_engine *hash_engine, struct rng_engine *rng_engine, struct ecc_engine *ecc_engine,
 	const struct spdm_transcript_manager *transcript_manager)
 {
