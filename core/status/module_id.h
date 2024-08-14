@@ -10,7 +10,7 @@
  */
 enum {
 	ROT_MODULE_INIT = 0x0000,							/**< Top-level application that initializes the system. */
-	ROT_MODULE_AES_ENGINE = 0x0001,						/**< An AES-GCM crypto engine.  All engines use the same ID. */
+	ROT_MODULE_AES_GCM_ENGINE = 0x0001,					/**< An AES-GCM crypto engine.  All engines use the same ID. */
 	ROT_MODULE_ECC_ENGINE = 0x0002,						/**< An ECC crypto engine.  All engines use the same ID. */
 	ROT_MODULE_HASH_ENGINE = 0x0003,					/**< A hash crypto engine.  All engines use the same ID. */
 	ROT_MODULE_RSA_ENGINE = 0x0004,						/**< An RSA crypto engine.  All engines use the same ID. */

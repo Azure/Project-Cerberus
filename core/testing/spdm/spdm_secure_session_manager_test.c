@@ -12,7 +12,7 @@
 #include "testing/crypto/ecc_testing.h"
 #include "testing/engines/aes_testing_engine.h"
 #include "testing/engines/ecc_testing_engine.h"
-#include "testing/mock/crypto/aes_mock.h"
+#include "testing/mock/crypto/aes_gcm_mock.h"
 #include "testing/mock/crypto/ecc_mock.h"
 #include "testing/mock/crypto/hash_mock.h"
 #include "testing/mock/crypto/rng_mock.h"
@@ -34,7 +34,7 @@ struct spdm_secure_session_manager_testing {
 	struct spdm_local_device_algorithms local_algorithms;				/**< Local algorithms. */
 	struct ecc_engine_mock ecc_mock;									/**< Mock ECC engine. */
 	struct rng_engine_mock rng_mock;									/**< Mock RNG engine. */
-	struct aes_engine_mock aes_mock;									/**< Mock AES engine. */
+	struct aes_gcm_engine_mock aes_mock;								/**< Mock AES engine. */
 };
 
 
@@ -144,7 +144,7 @@ static void spdm_secure_session_manager_testing_init_dependencies (CuTest *test,
 	status = rng_mock_init (&testing->rng_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = aes_mock_init (&testing->aes_mock);
+	status = aes_gcm_mock_init (&testing->aes_mock);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -171,7 +171,7 @@ static void spdm_secure_session_manager_testing_release_dependencies (CuTest *te
 	status = rng_mock_validate_and_release (&testing->rng_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = aes_mock_validate_and_release (&testing->aes_mock);
+	status = aes_gcm_mock_validate_and_release (&testing->aes_mock);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -981,8 +981,8 @@ static void spdm_secure_session_manager_test_generate_shared_secret (CuTest *tes
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	ECC_TESTING_ENGINE ecc_engine_real;
-	AES_TESTING_ENGINE aes_engine_real;
-	AES_TESTING_ENGINE_STATE aes_engine_real_state;
+	AES_GCM_TESTING_ENGINE aes_engine_real;
+	AES_GCM_TESTING_ENGINE_STATE aes_engine_real_state;
 	struct ecc_private_key req_priv_key;
 	struct ecc_public_key req_pub_key;
 	struct ecc_public_key resp_pub_key;
@@ -1000,7 +1000,7 @@ static void spdm_secure_session_manager_test_generate_shared_secret (CuTest *tes
 	session_manager = &testing.session_manager;
 
 	status = ECC_TESTING_ENGINE_INIT (&ecc_engine_real);
-	status |= AES_TESTING_ENGINE_INIT (&aes_engine_real, &aes_engine_real_state);
+	status |= AES_GCM_TESTING_ENGINE_INIT (&aes_engine_real, &aes_engine_real_state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_secure_session_manager_init (session_manager, &testing.state,
@@ -1070,7 +1070,7 @@ static void spdm_secure_session_manager_test_generate_shared_secret (CuTest *tes
 	platform_free (req_pub_key_der);
 
 	ECC_TESTING_ENGINE_RELEASE (&ecc_engine_real);
-	AES_TESTING_ENGINE_RELEASE (&aes_engine_real);
+	AES_GCM_TESTING_ENGINE_RELEASE (&aes_engine_real);
 
 	spdm_secure_session_manager_testing_release (test, &testing);
 }
@@ -2210,12 +2210,12 @@ static void spdm_secure_session_manager_test_decode_secure_message_set_key_fail 
 	record_header_2->length = encrypted_payload_length + aead_tag_size;
 
 	status = mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.set_key, &testing.aes_mock,
-		AES_ENGINE_SET_KEY_FAILED, MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)),
+		AES_GCM_ENGINE_SET_KEY_FAILED, MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)),
 		MOCK_ARG (sizeof (aes_key)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager->decode_secure_message (session_manager, &request);
-	CuAssertIntEquals (test, AES_ENGINE_SET_KEY_FAILED, status);
+	CuAssertIntEquals (test, AES_GCM_ENGINE_SET_KEY_FAILED, status);
 
 	session_manager->release_session (session_manager, session_id);
 
@@ -2287,14 +2287,14 @@ static void spdm_secure_session_manager_test_decode_secure_message_decrypt_with_
 		0, MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
 
 	status |= mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.decrypt_with_add_data,
-		&testing.aes_mock, AES_ENGINE_DECRYPT_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		&testing.aes_mock, AES_GCM_ENGINE_DECRYPT_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager->decode_secure_message (session_manager, &request);
-	CuAssertIntEquals (test, AES_ENGINE_DECRYPT_FAILED, status);
+	CuAssertIntEquals (test, AES_GCM_ENGINE_DECRYPT_FAILED, status);
 
 	session_manager->release_session (session_manager, session_id);
 
@@ -2807,12 +2807,12 @@ static void spdm_secure_session_manager_test_encode_secure_message_set_key_fail 
 	request.payload = buf;
 
 	status = mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.set_key, &testing.aes_mock,
-		AES_ENGINE_SET_KEY_FAILED, MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)),
+		AES_GCM_ENGINE_SET_KEY_FAILED, MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)),
 		MOCK_ARG (sizeof (aes_key)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager->encode_secure_message (session_manager, &request);
-	CuAssertIntEquals (test, AES_ENGINE_SET_KEY_FAILED, status);
+	CuAssertIntEquals (test, AES_GCM_ENGINE_SET_KEY_FAILED, status);
 
 	session_manager->release_session (session_manager, session_id);
 
@@ -2880,14 +2880,14 @@ static void spdm_secure_session_manager_test_encode_secure_message_encrypt_with_
 		0, MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
 
 	status |= mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.encrypt_with_add_data,
-		&testing.aes_mock, AES_ENGINE_DECRYPT_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		&testing.aes_mock, AES_GCM_ENGINE_DECRYPT_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager->encode_secure_message (session_manager, &request);
-	CuAssertIntEquals (test, AES_ENGINE_DECRYPT_FAILED, status);
+	CuAssertIntEquals (test, AES_GCM_ENGINE_DECRYPT_FAILED, status);
 
 	session_manager->release_session (session_manager, session_id);
 

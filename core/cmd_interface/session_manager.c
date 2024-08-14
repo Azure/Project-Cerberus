@@ -9,7 +9,6 @@
 #include "session_manager.h"
 #include "common/buffer_util.h"
 #include "common/common_math.h"
-#include "crypto/aes.h"
 #include "crypto/hash.h"
 #include "crypto/kdf.h"
 #include "riot/riot_core.h"
@@ -479,7 +478,7 @@ int session_manager_setup_paired_session (struct session_manager *session, uint8
 {
 	struct session_manager_entry *req_session;
 	uint8_t pairing_key[SHA256_HASH_LENGTH];
-	uint8_t label[AES256_KEY_LENGTH];
+	uint8_t label[AES_GCM_256_KEY_LENGTH];
 	uint8_t *pairing_key_buf;
 	bool pairing_key_generated = false;
 	char *label_str = "pairing";
@@ -619,7 +618,7 @@ int session_manager_session_sync (struct session_manager *session, uint8_t eid, 
  *
  * @return Initialization status, 0 if success or an error code.
  */
-int session_manager_init (struct session_manager *session, const struct aes_engine *aes,
+int session_manager_init (struct session_manager *session, const struct aes_gcm_engine *aes,
 	struct hash_engine *hash, struct riot_key_manager *riot,
 	struct session_manager_entry *sessions_table, size_t num_sessions, const uint8_t *pairing_eids,
 	size_t num_pairing_eids, const struct keystore *store)

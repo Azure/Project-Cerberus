@@ -21,7 +21,7 @@ int flash_store_contiguous_blocks_encrypted_write (const struct flash_store *fla
 	const struct flash_store_contiguous_blocks_encrypted *encrypted =
 		(const struct flash_store_contiguous_blocks_encrypted*) flash_store;
 	uint8_t *enc_data;
-	uint8_t iv_tag[FLASH_STORE_AES_IV_LENGTH + AES_TAG_LENGTH];
+	uint8_t iv_tag[FLASH_STORE_AES_IV_LENGTH + AES_GCM_TAG_LENGTH];
 	int status;
 
 	status = flash_store_contiguous_blocks_verify_write_params (&encrypted->base, id, data, length);
@@ -42,7 +42,7 @@ int flash_store_contiguous_blocks_encrypted_write (const struct flash_store *fla
 
 	status = encrypted->aes->encrypt_data (encrypted->aes, data, length, iv_tag,
 		FLASH_STORE_AES_IV_LENGTH, enc_data, length, &iv_tag[FLASH_STORE_AES_IV_LENGTH],
-		AES_TAG_LENGTH);
+		AES_GCM_TAG_LENGTH);
 	if (status != 0) {
 		goto exit;
 	}
@@ -61,7 +61,7 @@ int flash_store_contiguous_blocks_encrypted_read (const struct flash_store *flas
 {
 	const struct flash_store_contiguous_blocks_encrypted *encrypted =
 		(const struct flash_store_contiguous_blocks_encrypted*) flash_store;
-	uint8_t iv_tag[FLASH_STORE_AES_IV_LENGTH + AES_TAG_LENGTH];
+	uint8_t iv_tag[FLASH_STORE_AES_IV_LENGTH + AES_GCM_TAG_LENGTH];
 	int status;
 
 	status = flash_store_contiguous_blocks_read_common (&encrypted->base, id, data, length, iv_tag,
@@ -73,7 +73,7 @@ int flash_store_contiguous_blocks_encrypted_read (const struct flash_store *flas
 	status = encrypted->aes->decrypt_data (encrypted->aes, data, length,
 		&iv_tag[FLASH_STORE_AES_IV_LENGTH], iv_tag, FLASH_STORE_AES_IV_LENGTH, data, length);
 	if (status != 0) {
-		if (status == AES_ENGINE_GCM_AUTH_FAILED) {
+		if (status == AES_GCM_ENGINE_GCM_AUTH_FAILED) {
 			return FLASH_STORE_CORRUPT_DATA;
 		}
 		else {
@@ -104,7 +104,7 @@ int flash_store_contiguous_blocks_encrypted_read (const struct flash_store *flas
 static int flash_store_contiguous_blocks_encrypted_init_storage_common (
 	struct flash_store_contiguous_blocks_encrypted *store,
 	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,
-	uint32_t base_addr, size_t block_count, size_t data_length, const struct aes_engine *aes,
+	uint32_t base_addr, size_t block_count, size_t data_length, const struct aes_gcm_engine *aes,
 	struct rng_engine *rng, bool decreasing, bool variable)
 {
 	int status;
@@ -151,7 +151,7 @@ static int flash_store_contiguous_blocks_encrypted_init_storage_common (
 int flash_store_contiguous_blocks_encrypted_init_fixed_storage (
 	struct flash_store_contiguous_blocks_encrypted *store,
 	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,
-	uint32_t base_addr, size_t block_count, size_t data_length, const struct aes_engine *aes,
+	uint32_t base_addr, size_t block_count, size_t data_length, const struct aes_gcm_engine *aes,
 	struct rng_engine *rng)
 {
 	return flash_store_contiguous_blocks_encrypted_init_storage_common (store, state, flash,
@@ -177,7 +177,7 @@ int flash_store_contiguous_blocks_encrypted_init_fixed_storage (
 int flash_store_contiguous_blocks_encrypted_init_fixed_storage_decreasing (
 	struct flash_store_contiguous_blocks_encrypted *store,
 	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,
-	uint32_t base_addr, size_t block_count, size_t data_length, const struct aes_engine *aes,
+	uint32_t base_addr, size_t block_count, size_t data_length, const struct aes_gcm_engine *aes,
 	struct rng_engine *rng)
 {
 	return flash_store_contiguous_blocks_encrypted_init_storage_common (store, state, flash,
@@ -203,7 +203,7 @@ int flash_store_contiguous_blocks_encrypted_init_fixed_storage_decreasing (
 int flash_store_contiguous_blocks_encrypted_init_variable_storage (
 	struct flash_store_contiguous_blocks_encrypted *store,
 	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,
-	uint32_t base_addr,	size_t block_count, size_t min_length, const struct aes_engine *aes,
+	uint32_t base_addr,	size_t block_count, size_t min_length, const struct aes_gcm_engine *aes,
 	struct rng_engine *rng)
 {
 	return flash_store_contiguous_blocks_encrypted_init_storage_common (store, state, flash,
@@ -230,7 +230,7 @@ int flash_store_contiguous_blocks_encrypted_init_variable_storage (
 int flash_store_contiguous_blocks_encrypted_init_variable_storage_decreasing (
 	struct flash_store_contiguous_blocks_encrypted *store,
 	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,
-	uint32_t base_addr, size_t block_count, size_t min_length, const struct aes_engine *aes,
+	uint32_t base_addr, size_t block_count, size_t min_length, const struct aes_gcm_engine *aes,
 	struct rng_engine *rng)
 {
 	return flash_store_contiguous_blocks_encrypted_init_storage_common (store, state, flash,
@@ -251,7 +251,7 @@ int flash_store_contiguous_blocks_encrypted_init_state (
 	size_t data_length)
 {
 	return flash_store_contiguous_blocks_init_state_common (&store->base, block_count, data_length,
-		FLASH_STORE_AES_IV_LENGTH + AES_TAG_LENGTH);
+		FLASH_STORE_AES_IV_LENGTH + AES_GCM_TAG_LENGTH);
 }
 
 /**

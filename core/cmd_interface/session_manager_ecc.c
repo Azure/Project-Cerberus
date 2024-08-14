@@ -8,7 +8,6 @@
 #include "cerberus_protocol_optional_commands.h"
 #include "session_manager.h"
 #include "session_manager_ecc.h"
-#include "crypto/aes.h"
 #include "crypto/ecc.h"
 #include "crypto/hash.h"
 #include "crypto/kdf.h"
@@ -227,7 +226,7 @@ free_device_key:
  *
  * @return Initialization status, 0 if success or an error code.
  */
-int session_manager_ecc_init (struct session_manager_ecc *session, const struct aes_engine *aes,
+int session_manager_ecc_init (struct session_manager_ecc *session, const struct aes_gcm_engine *aes,
 	struct ecc_engine *ecc, struct hash_engine *hash, struct riot_key_manager *riot,
 	struct session_manager_entry *sessions_table, size_t num_sessions, const uint8_t *pairing_eids,
 	size_t num_pairing_eids, const struct keystore *store)

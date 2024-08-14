@@ -9,7 +9,7 @@
 #include "cmd_interface/cmd_background_handler.h"
 #include "cmd_interface/cmd_background_handler_static.h"
 #include "cmd_interface/cmd_logging.h"
-#include "crypto/aes.h"
+#include "crypto/aes_gcm.h"
 #include "flash/flash_common.h"
 #include "logging/logging_flash.h"
 #include "riot/riot_logging.h"
@@ -407,7 +407,7 @@ static void cmd_background_handler_test_unseal_result (CuTest *test)
 {
 	struct cmd_background_handler_testing handler;
 	int status;
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 
@@ -435,7 +435,7 @@ static void cmd_background_handler_test_unseal_result_static_init (CuTest *test)
 	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
 		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 
@@ -461,7 +461,7 @@ static void cmd_background_handler_test_unseal_result_null (CuTest *test)
 {
 	struct cmd_background_handler_testing handler;
 	int status;
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 
@@ -489,7 +489,7 @@ static void cmd_background_handler_test_unseal_result_no_unseal_support (CuTest 
 {
 	struct cmd_background_handler_testing handler;
 	int status;
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 
@@ -689,7 +689,7 @@ static void cmd_background_handler_test_unseal_start (CuTest *test)
 	struct cmd_background_handler_testing handler;
 	int status;
 	uint8_t unseal_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 
@@ -736,7 +736,7 @@ static void cmd_background_handler_test_unseal_start_max_message (CuTest *test)
 	struct cmd_background_handler_testing handler;
 	int status;
 	uint8_t unseal_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 	size_t i;
@@ -790,7 +790,7 @@ static void cmd_background_handler_test_unseal_start_static_init (CuTest *test)
 		&handler.attestation.base, &handler.hash.base, &handler.keys.riot, &handler.task.base);
 	int status;
 	uint8_t unseal_data[] = {0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18};
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 
@@ -909,7 +909,7 @@ static void cmd_background_handler_test_unseal_start_no_task (CuTest *test)
 	int status;
 	uint8_t unseal_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	void *null_ptr = NULL;
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 
@@ -950,7 +950,7 @@ static void cmd_background_handler_test_unseal_start_task_busy (CuTest *test)
 	int status;
 	uint8_t unseal_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	void *null_ptr = NULL;
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 
@@ -989,7 +989,7 @@ static void cmd_background_handler_test_unseal_start_get_context_error (CuTest *
 	int status;
 	uint8_t unseal_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	void *null_ptr = NULL;
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 
@@ -1032,7 +1032,7 @@ static void cmd_background_handler_test_unseal_start_notify_error (CuTest *test)
 	struct cmd_background_handler_testing handler;
 	int status;
 	uint8_t unseal_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 
@@ -2370,7 +2370,7 @@ static void cmd_background_handler_test_execute_unseal_rsa (CuTest *test)
 	size_t length;
 	struct cerberus_protocol_message_unseal *req = (struct cerberus_protocol_message_unseal*) data;
 	struct cerberus_protocol_unseal_pmrs sealing;
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 
@@ -2412,7 +2412,7 @@ static void cmd_background_handler_test_execute_unseal_rsa (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (PAYLOAD_HMAC, PAYLOAD_HMAC_LEN), MOCK_ARG (HMAC_SHA256),
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN),
 		MOCK_ARG_PTR_CONTAINS (&sealing, sizeof (sealing)), MOCK_ARG (5), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (AES256_KEY_LENGTH));
+		MOCK_ARG (AES_GCM_256_KEY_LENGTH));
 	status |= mock_expect_output (&handler.attestation.mock, 12, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN,
 		13);
 
@@ -2438,7 +2438,7 @@ static void cmd_background_handler_test_execute_unseal_rsa (CuTest *test)
 		&result);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, result);
-	CuAssertIntEquals (test, AES256_KEY_LENGTH, key_length);
+	CuAssertIntEquals (test, AES_GCM_256_KEY_LENGTH, key_length);
 
 	status = testing_validate_array (ENCRYPTION_KEY, key, key_length);
 	CuAssertIntEquals (test, 0, status);
@@ -2466,7 +2466,7 @@ static void cmd_background_handler_test_execute_unseal_ecc (CuTest *test)
 	size_t length;
 	struct cerberus_protocol_message_unseal *req = (struct cerberus_protocol_message_unseal*) data;
 	struct cerberus_protocol_unseal_pmrs sealing;
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 
@@ -2508,7 +2508,7 @@ static void cmd_background_handler_test_execute_unseal_ecc (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (PAYLOAD_HMAC, PAYLOAD_HMAC_LEN), MOCK_ARG (HMAC_SHA256),
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN),
 		MOCK_ARG_PTR_CONTAINS (&sealing, sizeof (sealing)), MOCK_ARG (5), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (AES256_KEY_LENGTH));
+		MOCK_ARG (AES_GCM_256_KEY_LENGTH));
 	status |= mock_expect_output (&handler.attestation.mock, 12, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN,
 		13);
 
@@ -2534,7 +2534,7 @@ static void cmd_background_handler_test_execute_unseal_ecc (CuTest *test)
 		&result);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, result);
-	CuAssertIntEquals (test, AES256_KEY_LENGTH, key_length);
+	CuAssertIntEquals (test, AES_GCM_256_KEY_LENGTH, key_length);
 
 	status = testing_validate_array (ENCRYPTION_KEY, key, key_length);
 	CuAssertIntEquals (test, 0, status);
@@ -2562,7 +2562,7 @@ static void cmd_background_handler_test_execute_unseal_result_buffer_too_small (
 	size_t length;
 	struct cerberus_protocol_message_unseal *req = (struct cerberus_protocol_message_unseal*) data;
 	struct cerberus_protocol_unseal_pmrs sealing;
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key) - 1;
 	uint32_t result;
 
@@ -2604,7 +2604,7 @@ static void cmd_background_handler_test_execute_unseal_result_buffer_too_small (
 		MOCK_ARG_PTR_CONTAINS (PAYLOAD_HMAC, PAYLOAD_HMAC_LEN), MOCK_ARG (HMAC_SHA256),
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN),
 		MOCK_ARG_PTR_CONTAINS (&sealing, sizeof (sealing)), MOCK_ARG (5), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (AES256_KEY_LENGTH));
+		MOCK_ARG (AES_GCM_256_KEY_LENGTH));
 	status |= mock_expect_output (&handler.attestation.mock, 12, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN,
 		13);
 
@@ -2642,7 +2642,7 @@ static void cmd_background_handler_test_execute_unseal_result_buffer_too_small (
 		&result);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, result);
-	CuAssertIntEquals (test, AES256_KEY_LENGTH, key_length);
+	CuAssertIntEquals (test, AES_GCM_256_KEY_LENGTH, key_length);
 
 	status = testing_validate_array (ENCRYPTION_KEY, key, key_length);
 	CuAssertIntEquals (test, 0, status);
@@ -2670,7 +2670,7 @@ static void cmd_background_handler_test_execute_unseal_failure (CuTest *test)
 	size_t length;
 	struct cerberus_protocol_message_unseal *req = (struct cerberus_protocol_message_unseal*) data;
 	struct cerberus_protocol_unseal_pmrs sealing;
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 	struct debug_log_entry_info entry = {
@@ -2721,7 +2721,7 @@ static void cmd_background_handler_test_execute_unseal_failure (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (PAYLOAD_HMAC, PAYLOAD_HMAC_LEN), MOCK_ARG (HMAC_SHA256),
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN),
 		MOCK_ARG_PTR_CONTAINS (&sealing, sizeof (sealing)), MOCK_ARG (5), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (AES256_KEY_LENGTH));
+		MOCK_ARG (AES_GCM_256_KEY_LENGTH));
 	status |= mock_expect_output (&handler.attestation.mock, 12, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN,
 		13);
 
@@ -2785,7 +2785,7 @@ static void cmd_background_handler_test_execute_unseal_static_init (CuTest *test
 	size_t length;
 	struct cerberus_protocol_message_unseal *req = (struct cerberus_protocol_message_unseal*) data;
 	struct cerberus_protocol_unseal_pmrs sealing;
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 
@@ -2827,7 +2827,7 @@ static void cmd_background_handler_test_execute_unseal_static_init (CuTest *test
 		MOCK_ARG_PTR_CONTAINS (PAYLOAD_HMAC, PAYLOAD_HMAC_LEN), MOCK_ARG (HMAC_SHA256),
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN),
 		MOCK_ARG_PTR_CONTAINS (&sealing, sizeof (sealing)), MOCK_ARG (5), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (AES256_KEY_LENGTH));
+		MOCK_ARG (AES_GCM_256_KEY_LENGTH));
 	status |= mock_expect_output (&handler.attestation.mock, 12, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN,
 		13);
 
@@ -2852,7 +2852,7 @@ static void cmd_background_handler_test_execute_unseal_static_init (CuTest *test
 	status = test_static.base_cmd.unseal_result (&test_static.base_cmd, key, &key_length, &result);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, result);
-	CuAssertIntEquals (test, AES256_KEY_LENGTH, key_length);
+	CuAssertIntEquals (test, AES_GCM_256_KEY_LENGTH, key_length);
 
 	status = testing_validate_array (ENCRYPTION_KEY, key, key_length);
 	CuAssertIntEquals (test, 0, status);
@@ -3676,7 +3676,7 @@ static void cmd_background_handler_test_execute_unknown_action (CuTest *test)
 		.arg1 = 0x100,
 		.arg2 = 0
 	};
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 
@@ -3740,7 +3740,7 @@ static void cmd_background_handler_test_execute_unknown_action_unseal_active (Cu
 		.arg2 = 0
 	};
 	uint8_t unseal_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 
@@ -3824,7 +3824,7 @@ static void cmd_background_handler_test_execute_unknown_action_config_reset_acti
 		.arg1 = 0x100,
 		.arg2 = 0
 	};
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 
@@ -3907,7 +3907,7 @@ static void cmd_background_handler_test_execute_unknown_action_riot_auth_active 
 		.arg1 = 0x100,
 		.arg2 = 0
 	};
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 
@@ -3991,7 +3991,7 @@ static void cmd_background_handler_test_execute_unknown_action_static_init (CuTe
 		.arg1 = 0x200,
 		.arg2 = 0
 	};
-	uint8_t key[AES256_KEY_LENGTH];
+	uint8_t key[AES_GCM_256_KEY_LENGTH];
 	size_t key_length = sizeof (key);
 	uint32_t result;
 

@@ -21,11 +21,11 @@ static void add_all_linux_crypto_tests (CuSuite *suite)
 	/* This is unused when no tests will be executed. */
 	UNUSED (suite);
 
-#if (defined TESTING_RUN_AES_OPENSSL_SUITE || \
+#if (defined TESTING_RUN_AES_GCM_OPENSSL_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_LINUX_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_LINUX_TESTS)) && \
-	!defined TESTING_SKIP_AES_OPENSSL_SUITE
-	TESTING_RUN_SUITE (aes_openssl);
+	!defined TESTING_SKIP_AES_GCM_OPENSSL_SUITE
+	TESTING_RUN_SUITE (aes_gcm_openssl);
 #endif
 #if (defined TESTING_RUN_AES_XTS_OPENSSL_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_LINUX_TESTS || \

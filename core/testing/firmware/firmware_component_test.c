@@ -12,7 +12,7 @@
 #include "testing/mock/flash/flash_mock.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/common/image_header_testing.h"
-#include "testing/crypto/aes_testing.h"
+#include "testing/crypto/aes_cbc_testing.h"
 #include "testing/firmware/firmware_component_testing.h"
 
 
@@ -11763,8 +11763,8 @@ static void firmware_component_test_load_to_memory_encrypted_image (CuTest *test
 	status |= mock_expect (&loader.mock, loader.base.load_image, &loader, 0, MOCK_ARG_PTR (&flash),
 		MOCK_ARG (0x10000 + FW_COMPONENT_V1_OFFSET), MOCK_ARG (FW_COMPONENT_V1_LENGTH),
 		MOCK_ARG_PTR (FW_COMPONENT_V1_LOAD_ADDRESS_PTR),
-		MOCK_ARG_PTR_CONTAINS (AES_TESTING_CBC_SINGLE_BLOCK_IV, AES_TESTING_CBC_IV_LEN),
-		MOCK_ARG (AES_TESTING_CBC_IV_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR_CONTAINS (AES_CBC_TESTING_SINGLE_BLOCK_IV, AES_CBC_TESTING_IV_LEN),
+		MOCK_ARG (AES_CBC_TESTING_IV_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0), MOCK_ARG_PTR (NULL),
 		MOCK_ARG (0));
 
 	status |= mock_expect (&loader.mock, loader.base.unmap_address, &loader, 0,
@@ -11773,7 +11773,7 @@ static void firmware_component_test_load_to_memory_encrypted_image (CuTest *test
 	CuAssertIntEquals (test, 0, status);
 
 	status = firmware_component_load_to_memory (&image, &loader.base,
-		AES_TESTING_CBC_SINGLE_BLOCK_IV, AES_TESTING_CBC_IV_LEN, &app_len);
+		AES_CBC_TESTING_SINGLE_BLOCK_IV, AES_CBC_TESTING_IV_LEN, &app_len);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, FW_COMPONENT_V1_LENGTH, app_len);
 
@@ -12698,8 +12698,8 @@ static void firmware_component_test_load_to_memory_and_verify_encrypted_image (C
 		MOCK_ARG_PTR (&flash), MOCK_ARG (0x10000 + FW_COMPONENT_V1_OFFSET),
 		MOCK_ARG (FW_COMPONENT_V1_LENGTH),
 		MOCK_ARG_PTR (FW_COMPONENT_V1_LOAD_ADDRESS_PTR),
-		MOCK_ARG_PTR_CONTAINS (AES_TESTING_CBC_MULTI_BLOCK_IV, AES_TESTING_CBC_IV_LEN),
-		MOCK_ARG (AES_TESTING_CBC_IV_LEN), MOCK_ARG_PTR (&hash.base));
+		MOCK_ARG_PTR_CONTAINS (AES_CBC_TESTING_MULTI_BLOCK_IV, AES_CBC_TESTING_IV_LEN),
+		MOCK_ARG (AES_CBC_TESTING_IV_LEN), MOCK_ARG_PTR (&hash.base));
 	status |= mock_expect_external_action (&loader.mock,
 		firmware_component_testing_mock_action_update_digest, (void*) FW_COMPONENT_V1);
 
@@ -12715,7 +12715,7 @@ static void firmware_component_test_load_to_memory_and_verify_encrypted_image (C
 	CuAssertIntEquals (test, 0, status);
 
 	status = firmware_component_load_to_memory_and_verify (&image, &loader.base,
-		AES_TESTING_CBC_MULTI_BLOCK_IV, AES_TESTING_CBC_IV_LEN, &hash.base, &verification.base,
+		AES_CBC_TESTING_MULTI_BLOCK_IV, AES_CBC_TESTING_IV_LEN, &hash.base, &verification.base,
 		FW_COMPONENT_V1_BUILD_VERSION, hash_actual, sizeof (hash_actual), &type, &app_len);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
@@ -15293,8 +15293,8 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_encryp
 		MOCK_ARG_PTR (&flash), MOCK_ARG (base_addr + FW_COMPONENT_V1_OFFSET),
 		MOCK_ARG (FW_COMPONENT_V1_LENGTH),
 		MOCK_ARG_PTR (FW_COMPONENT_V1_LOAD_ADDRESS_PTR),
-		MOCK_ARG_PTR_CONTAINS (AES_TESTING_CBC_MULTI_BLOCK_IV, AES_TESTING_CBC_IV_LEN),
-		MOCK_ARG (AES_TESTING_CBC_IV_LEN), MOCK_ARG_PTR (&hash.base));
+		MOCK_ARG_PTR_CONTAINS (AES_CBC_TESTING_MULTI_BLOCK_IV, AES_CBC_TESTING_IV_LEN),
+		MOCK_ARG (AES_CBC_TESTING_IV_LEN), MOCK_ARG_PTR (&hash.base));
 	status |= mock_expect_external_action (&loader.mock,
 		firmware_component_testing_mock_action_update_digest, (void*) FW_COMPONENT_V1);
 
@@ -15310,7 +15310,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_encryp
 	CuAssertIntEquals (test, 0, status);
 
 	status = firmware_component_load_to_memory_and_verify_with_header (&image, &loader.base,
-		AES_TESTING_CBC_MULTI_BLOCK_IV, AES_TESTING_CBC_IV_LEN, &header, &hash.base,
+		AES_CBC_TESTING_MULTI_BLOCK_IV, AES_CBC_TESTING_IV_LEN, &header, &hash.base,
 		&verification.base, FW_COMPONENT_V1_BUILD_VERSION, hash_actual, sizeof (hash_actual), &type,
 		&app_len);
 	CuAssertIntEquals (test, 0, status);

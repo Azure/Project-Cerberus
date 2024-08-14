@@ -4,103 +4,104 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include "aes_mock.h"
+#include "aes_gcm_mock.h"
 
 
-static int aes_mock_set_key (const struct aes_engine *engine, const uint8_t *key, size_t length)
+static int aes_gcm_mock_set_key (const struct aes_gcm_engine *engine, const uint8_t *key,
+	size_t length)
 {
-	struct aes_engine_mock *mock = (struct aes_engine_mock*) engine;
+	struct aes_gcm_engine_mock *mock = (struct aes_gcm_engine_mock*) engine;
 
 	if (mock == NULL) {
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, aes_mock_set_key, engine, MOCK_ARG_PTR_CALL (key),
+	MOCK_RETURN (&mock->mock, aes_gcm_mock_set_key, engine, MOCK_ARG_PTR_CALL (key),
 		MOCK_ARG_CALL (length));
 }
 
-static int aes_mock_encrypt_data (const struct aes_engine *engine, const uint8_t *plaintext,
+static int aes_gcm_mock_encrypt_data (const struct aes_gcm_engine *engine, const uint8_t *plaintext,
 	size_t length, const uint8_t *iv, size_t iv_length, uint8_t *ciphertext, size_t out_length,
 	uint8_t *tag, size_t tag_length)
 {
-	struct aes_engine_mock *mock = (struct aes_engine_mock*) engine;
+	struct aes_gcm_engine_mock *mock = (struct aes_gcm_engine_mock*) engine;
 
 	if (mock == NULL) {
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, aes_mock_encrypt_data, engine, MOCK_ARG_PTR_CALL (plaintext),
+	MOCK_RETURN (&mock->mock, aes_gcm_mock_encrypt_data, engine, MOCK_ARG_PTR_CALL (plaintext),
 		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (iv), MOCK_ARG_CALL (iv_length),
 		MOCK_ARG_PTR_CALL (ciphertext), MOCK_ARG_CALL (out_length), MOCK_ARG_PTR_CALL (tag),
 		MOCK_ARG_CALL (tag_length));
 }
 
-static int aes_mock_encrypt_with_add_data (const struct aes_engine *engine,
+static int aes_gcm_mock_encrypt_with_add_data (const struct aes_gcm_engine *engine,
 	const uint8_t *plaintext, size_t length, const uint8_t *iv, size_t iv_length,
 	const uint8_t *additional_data,	size_t additional_data_length, uint8_t *ciphertext,
 	size_t out_length, uint8_t *tag, size_t tag_length)
 {
-	struct aes_engine_mock *mock = (struct aes_engine_mock*) engine;
+	struct aes_gcm_engine_mock *mock = (struct aes_gcm_engine_mock*) engine;
 
 	if (mock == NULL) {
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, aes_mock_encrypt_with_add_data, engine, MOCK_ARG_PTR_CALL (plaintext),
-		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (iv), MOCK_ARG_CALL (iv_length),
-		MOCK_ARG_PTR_CALL (additional_data), MOCK_ARG_CALL (additional_data_length),
-		MOCK_ARG_PTR_CALL (ciphertext), MOCK_ARG_CALL (out_length), MOCK_ARG_PTR_CALL (tag),
-		MOCK_ARG_CALL (tag_length));
+	MOCK_RETURN (&mock->mock, aes_gcm_mock_encrypt_with_add_data, engine,
+		MOCK_ARG_PTR_CALL (plaintext), MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (iv),
+		MOCK_ARG_CALL (iv_length), MOCK_ARG_PTR_CALL (additional_data),
+		MOCK_ARG_CALL (additional_data_length),	MOCK_ARG_PTR_CALL (ciphertext),
+		MOCK_ARG_CALL (out_length), MOCK_ARG_PTR_CALL (tag), MOCK_ARG_CALL (tag_length));
 }
 
-static int aes_mock_decrypt_data (const struct aes_engine *engine, const uint8_t *ciphertext,
-	size_t length, const uint8_t *tag, const uint8_t *iv, size_t iv_length, uint8_t *plaintext,
-	size_t out_length)
+static int aes_gcm_mock_decrypt_data (const struct aes_gcm_engine *engine,
+	const uint8_t *ciphertext, size_t length, const uint8_t *tag, const uint8_t *iv,
+	size_t iv_length, uint8_t *plaintext, size_t out_length)
 {
-	struct aes_engine_mock *mock = (struct aes_engine_mock*) engine;
+	struct aes_gcm_engine_mock *mock = (struct aes_gcm_engine_mock*) engine;
 
 	if (mock == NULL) {
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, aes_mock_decrypt_data, engine, MOCK_ARG_PTR_CALL (ciphertext),
+	MOCK_RETURN (&mock->mock, aes_gcm_mock_decrypt_data, engine, MOCK_ARG_PTR_CALL (ciphertext),
 		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (tag), MOCK_ARG_PTR_CALL (iv),
 		MOCK_ARG_CALL (iv_length), MOCK_ARG_PTR_CALL (plaintext), MOCK_ARG_CALL (out_length));
 }
 
-static int aes_mock_decrypt_with_add_data (const struct aes_engine *engine,
+static int aes_gcm_mock_decrypt_with_add_data (const struct aes_gcm_engine *engine,
 	const uint8_t *ciphertext, size_t length, const uint8_t *tag, const uint8_t *iv,
 	size_t iv_length, const uint8_t *additional_data, size_t additional_data_length,
 	uint8_t *plaintext,	size_t out_length)
 {
-	struct aes_engine_mock *mock = (struct aes_engine_mock*) engine;
+	struct aes_gcm_engine_mock *mock = (struct aes_gcm_engine_mock*) engine;
 
 	if (mock == NULL) {
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, aes_mock_decrypt_with_add_data, engine,
+	MOCK_RETURN (&mock->mock, aes_gcm_mock_decrypt_with_add_data, engine,
 		MOCK_ARG_PTR_CALL (ciphertext),	MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (tag),
 		MOCK_ARG_PTR_CALL (iv),	MOCK_ARG_CALL (iv_length), MOCK_ARG_PTR_CALL (additional_data),
 		MOCK_ARG_CALL (additional_data_length), MOCK_ARG_PTR_CALL (plaintext),
 		MOCK_ARG_CALL (out_length));
 }
 
-static int aes_mock_func_arg_count (void *func)
+static int aes_gcm_mock_func_arg_count (void *func)
 {
-	if (func == aes_mock_encrypt_with_add_data) {
+	if (func == aes_gcm_mock_encrypt_with_add_data) {
 		return 10;
 	}
-	else if (func == aes_mock_decrypt_with_add_data) {
+	else if (func == aes_gcm_mock_decrypt_with_add_data) {
 		return 9;
 	}
-	else if (func == aes_mock_encrypt_data) {
+	else if (func == aes_gcm_mock_encrypt_data) {
 		return 8;
 	}
-	else if (func == aes_mock_decrypt_data) {
+	else if (func == aes_gcm_mock_decrypt_data) {
 		return 7;
 	}
-	else if (func == aes_mock_set_key) {
+	else if (func == aes_gcm_mock_set_key) {
 		return 2;
 	}
 	else {
@@ -108,21 +109,21 @@ static int aes_mock_func_arg_count (void *func)
 	}
 }
 
-static const char* aes_mock_func_name_map (void *func)
+static const char* aes_gcm_mock_func_name_map (void *func)
 {
-	if (func == aes_mock_set_key) {
+	if (func == aes_gcm_mock_set_key) {
 		return "set_key";
 	}
-	else if (func == aes_mock_encrypt_data) {
+	else if (func == aes_gcm_mock_encrypt_data) {
 		return "encrypt_data";
 	}
-	else if (func == aes_mock_encrypt_with_add_data) {
+	else if (func == aes_gcm_mock_encrypt_with_add_data) {
 		return "encrypt_with_add_data";
 	}
-	else if (func == aes_mock_decrypt_data) {
+	else if (func == aes_gcm_mock_decrypt_data) {
 		return "decrypt_data";
 	}
-	else if (func == aes_mock_decrypt_with_add_data) {
+	else if (func == aes_gcm_mock_decrypt_with_add_data) {
 		return "decrypt_with_add_data";
 	}
 	else {
@@ -130,9 +131,9 @@ static const char* aes_mock_func_name_map (void *func)
 	}
 }
 
-static const char* aes_mock_arg_name_map (void *func, int arg)
+static const char* aes_gcm_mock_arg_name_map (void *func, int arg)
 {
-	if (func == aes_mock_set_key) {
+	if (func == aes_gcm_mock_set_key) {
 		switch (arg) {
 			case 0:
 				return "key";
@@ -141,7 +142,7 @@ static const char* aes_mock_arg_name_map (void *func, int arg)
 				return "length";
 		}
 	}
-	else if (func == aes_mock_encrypt_data) {
+	else if (func == aes_gcm_mock_encrypt_data) {
 		switch (arg) {
 			case 0:
 				return "plaintext";
@@ -168,7 +169,7 @@ static const char* aes_mock_arg_name_map (void *func, int arg)
 				return "tag_length";
 		}
 	}
-	else if (func == aes_mock_encrypt_with_add_data) {
+	else if (func == aes_gcm_mock_encrypt_with_add_data) {
 		switch (arg) {
 			case 0:
 				return "plaintext";
@@ -201,7 +202,7 @@ static const char* aes_mock_arg_name_map (void *func, int arg)
 				return "tag_length";
 		}
 	}
-	else if (func == aes_mock_decrypt_data) {
+	else if (func == aes_gcm_mock_decrypt_data) {
 		switch (arg) {
 			case 0:
 				return "ciphertext";
@@ -225,7 +226,7 @@ static const char* aes_mock_arg_name_map (void *func, int arg)
 				return "out_length";
 		}
 	}
-	else if (func == aes_mock_decrypt_with_add_data) {
+	else if (func == aes_gcm_mock_decrypt_with_add_data) {
 		switch (arg) {
 			case 0:
 				return "ciphertext";
@@ -266,7 +267,7 @@ static const char* aes_mock_arg_name_map (void *func, int arg)
  *
  * @return 0 if the mock was successfully initialized or an error code.
  */
-int aes_mock_init (struct aes_engine_mock *mock)
+int aes_gcm_mock_init (struct aes_gcm_engine_mock *mock)
 {
 	int status;
 
@@ -274,24 +275,24 @@ int aes_mock_init (struct aes_engine_mock *mock)
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	memset (mock, 0, sizeof (struct aes_engine_mock));
+	memset (mock, 0, sizeof (struct aes_gcm_engine_mock));
 
 	status = mock_init (&mock->mock);
 	if (status != 0) {
 		return status;
 	}
 
-	mock_set_name (&mock->mock, "aes");
+	mock_set_name (&mock->mock, "aes_gcm");
 
-	mock->base.set_key = aes_mock_set_key;
-	mock->base.encrypt_data = aes_mock_encrypt_data;
-	mock->base.encrypt_with_add_data = aes_mock_encrypt_with_add_data;
-	mock->base.decrypt_data = aes_mock_decrypt_data;
-	mock->base.decrypt_with_add_data = aes_mock_decrypt_with_add_data;
+	mock->base.set_key = aes_gcm_mock_set_key;
+	mock->base.encrypt_data = aes_gcm_mock_encrypt_data;
+	mock->base.encrypt_with_add_data = aes_gcm_mock_encrypt_with_add_data;
+	mock->base.decrypt_data = aes_gcm_mock_decrypt_data;
+	mock->base.decrypt_with_add_data = aes_gcm_mock_decrypt_with_add_data;
 
-	mock->mock.func_arg_count = aes_mock_func_arg_count;
-	mock->mock.func_name_map = aes_mock_func_name_map;
-	mock->mock.arg_name_map = aes_mock_arg_name_map;
+	mock->mock.func_arg_count = aes_gcm_mock_func_arg_count;
+	mock->mock.func_name_map = aes_gcm_mock_func_name_map;
+	mock->mock.arg_name_map = aes_gcm_mock_arg_name_map;
 
 	return 0;
 }
@@ -301,7 +302,7 @@ int aes_mock_init (struct aes_engine_mock *mock)
  *
  * @param mock The mock to release.
  */
-void aes_mock_release (struct aes_engine_mock *mock)
+void aes_gcm_mock_release (struct aes_gcm_engine_mock *mock)
 {
 	if (mock) {
 		mock_release (&mock->mock);
@@ -315,13 +316,13 @@ void aes_mock_release (struct aes_engine_mock *mock)
  *
  * @return 0 if all expectations were met or 1 if not.
  */
-int aes_mock_validate_and_release (struct aes_engine_mock *mock)
+int aes_gcm_mock_validate_and_release (struct aes_gcm_engine_mock *mock)
 {
 	int status = 1;
 
 	if (mock != NULL) {
 		status = mock_validate (&mock->mock);
-		aes_mock_release (mock);
+		aes_gcm_mock_release (mock);
 	}
 
 	return status;

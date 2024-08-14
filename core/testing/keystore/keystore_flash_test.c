@@ -11,10 +11,10 @@
 #include "flash/spi_flash.h"
 #include "keystore/keystore_flash.h"
 #include "keystore/keystore_flash_static.h"
-#include "testing/crypto/aes_testing.h"
+#include "testing/crypto/aes_gcm_testing.h"
 #include "testing/crypto/rsa_testing.h"
 #include "testing/engines/hash_testing_engine.h"
-#include "testing/mock/crypto/aes_mock.h"
+#include "testing/mock/crypto/aes_gcm_mock.h"
 #include "testing/mock/crypto/rng_mock.h"
 #include "testing/mock/flash/flash_master_mock.h"
 #include "testing/mock/flash/flash_store_mock.h"
@@ -398,7 +398,7 @@ static void keystore_flash_test_load_key_backwards_compatibility (CuTest *test)
 
 static void keystore_flash_test_load_key_backwards_compatibility_encrypted (CuTest *test)
 {
-	struct aes_engine_mock aes;
+	struct aes_gcm_engine_mock aes;
 	struct rng_engine_mock rng;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
@@ -407,17 +407,18 @@ static void keystore_flash_test_load_key_backwards_compatibility_encrypted (CuTe
 	struct flash_store_contiguous_blocks_state context;
 	struct keystore_flash store;
 	int status;
-	uint16_t read_len = AES_RSA_PRIVKEY_DER_LEN;
+	uint16_t read_len = AES_GCM_TESTING_RSA_PRIVKEY_DER_LEN;
 	uint8_t *key = NULL;
 	size_t key_len;
-	uint8_t auth[AES_IV_LEN + AES_GCM_TAG_LEN];
+	uint8_t auth[AES_GCM_TESTING_IV_LEN + AES_GCM_TESTING_TAG_LEN];
 
 	TEST_START;
 
-	memcpy (auth, AES_IV, AES_IV_LEN);
-	memcpy (&auth[AES_IV_LEN], AES_RSA_PRIVKEY_GCM_TAG, AES_GCM_TAG_LEN);
+	memcpy (auth, AES_GCM_TESTING_IV, AES_GCM_TESTING_IV_LEN);
+	memcpy (&auth[AES_GCM_TESTING_IV_LEN], AES_GCM_TESTING_RSA_PRIVKEY_GCM_TAG,
+		AES_GCM_TESTING_TAG_LEN);
 
-	status = aes_mock_init (&aes);
+	status = aes_gcm_mock_init (&aes);
 	CuAssertIntEquals (test, 0, status);
 
 	status = rng_mock_init (&rng);
@@ -453,21 +454,23 @@ static void keystore_flash_test_load_key_backwards_compatibility_encrypted (CuTe
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, AES_RSA_PRIVKEY_DER,
-		AES_RSA_PRIVKEY_DER_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10002, 0, -1, AES_RSA_PRIVKEY_DER_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, AES_GCM_TESTING_RSA_PRIVKEY_DER,
+		AES_GCM_TESTING_RSA_PRIVKEY_DER_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x10002, 0, -1, AES_GCM_TESTING_RSA_PRIVKEY_DER_LEN));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, auth, sizeof (auth),
-		FLASH_EXP_READ_CMD (0x03, 0x10002 + AES_RSA_PRIVKEY_DER_LEN, 0, -1, sizeof (auth)));
+		FLASH_EXP_READ_CMD (0x03, 0x10002 + AES_GCM_TESTING_RSA_PRIVKEY_DER_LEN, 0, -1,
+		sizeof (auth)));
 
 	status |= mock_expect (&aes.mock, aes.base.decrypt_data, &aes, 0,
-		MOCK_ARG_PTR_CONTAINS (AES_RSA_PRIVKEY_DER, AES_RSA_PRIVKEY_DER_LEN),
-		MOCK_ARG (AES_RSA_PRIVKEY_DER_LEN),
-		MOCK_ARG_PTR_CONTAINS (AES_RSA_PRIVKEY_GCM_TAG, AES_GCM_TAG_LEN),
-		MOCK_ARG_PTR_CONTAINS (AES_IV, AES_IV_LEN), MOCK_ARG (AES_IV_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (AES_RSA_PRIVKEY_DER_LEN));
+		MOCK_ARG_PTR_CONTAINS (AES_GCM_TESTING_RSA_PRIVKEY_DER,
+		AES_GCM_TESTING_RSA_PRIVKEY_DER_LEN), MOCK_ARG (AES_GCM_TESTING_RSA_PRIVKEY_DER_LEN),
+		MOCK_ARG_PTR_CONTAINS (AES_GCM_TESTING_RSA_PRIVKEY_GCM_TAG, AES_GCM_TESTING_TAG_LEN),
+		MOCK_ARG_PTR_CONTAINS (AES_GCM_TESTING_IV, AES_GCM_TESTING_IV_LEN),
+		MOCK_ARG (AES_GCM_TESTING_IV_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (AES_GCM_TESTING_RSA_PRIVKEY_DER_LEN));
 	status |= mock_expect_output (&aes.mock, 5, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, 6);
 
 	CuAssertIntEquals (test, 0, status);
@@ -488,7 +491,7 @@ static void keystore_flash_test_load_key_backwards_compatibility_encrypted (CuTe
 	status = rng_mock_validate_and_release (&rng);
 	CuAssertIntEquals (test, 0, status);
 
-	status = aes_mock_validate_and_release (&aes);
+	status = aes_gcm_mock_validate_and_release (&aes);
 	CuAssertIntEquals (test, 0, status);
 
 	keystore_flash_release (&store);
