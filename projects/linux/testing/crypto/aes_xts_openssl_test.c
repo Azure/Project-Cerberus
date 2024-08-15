@@ -16,7 +16,7 @@ TEST_SUITE_LABEL ("aes_xts_openssl");
 /**
  * Dependencies for testing.
  */
-struct aes_xts_engine_openssl_testing {
+struct aes_xts_openssl_testing {
 	struct aes_xts_engine_openssl_state state;	/**< Variable context for the AES-XTS engine. */
 	struct aes_xts_engine_openssl test;			/**< The engine under test. */
 };
@@ -28,7 +28,7 @@ struct aes_xts_engine_openssl_testing {
 
 static void aes_xts_openssl_test_init (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 
 	TEST_START;
@@ -45,21 +45,21 @@ static void aes_xts_openssl_test_init (CuTest *test)
 
 static void aes_xts_openssl_test_init_null (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 
 	TEST_START;
 
-	status = aes_xts_openssl_init (&engine.test, NULL);
+	status = aes_xts_openssl_init (NULL, &engine.state);
 	CuAssertIntEquals (test, AES_XTS_ENGINE_INVALID_ARGUMENT, status);
 
-	status = aes_xts_openssl_init (NULL, &engine.state);
+	status = aes_xts_openssl_init (&engine.test, NULL);
 	CuAssertIntEquals (test, AES_XTS_ENGINE_INVALID_ARGUMENT, status);
 }
 
 static void aes_xts_openssl_test_static_init (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine = {
+	struct aes_xts_openssl_testing engine = {
 		.test = aes_xts_openssl_static_init (&engine.state)
 	};
 	int status;
@@ -78,7 +78,7 @@ static void aes_xts_openssl_test_static_init (CuTest *test)
 
 static void aes_xts_openssl_test_static_init_null (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine = {
+	struct aes_xts_openssl_testing engine = {
 		.test = aes_xts_openssl_static_init (NULL)
 	};
 	int status;
@@ -101,7 +101,7 @@ static void aes_xts_openssl_test_release_null (CuTest *test)
 
 static void aes_xts_openssl_test_encrypt_data_aes128_16bytes (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t ciphertext[AES_XTS_TESTING_KEY128_DU16_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -131,7 +131,7 @@ static void aes_xts_openssl_test_encrypt_data_aes128_16bytes (CuTest *test)
 
 static void aes_xts_openssl_test_encrypt_data_aes128_32bytes (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t ciphertext[AES_XTS_TESTING_KEY128_DU32_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -161,7 +161,7 @@ static void aes_xts_openssl_test_encrypt_data_aes128_32bytes (CuTest *test)
 
 static void aes_xts_openssl_test_encrypt_data_aes128_25bytes (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t ciphertext[AES_XTS_TESTING_KEY128_DU25_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -191,7 +191,7 @@ static void aes_xts_openssl_test_encrypt_data_aes128_25bytes (CuTest *test)
 
 static void aes_xts_openssl_test_encrypt_data_aes128_512bytes (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t ciphertext[AES_XTS_TESTING_KEY128_DU512_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -219,9 +219,99 @@ static void aes_xts_openssl_test_encrypt_data_aes128_512bytes (CuTest *test)
 	aes_xts_openssl_release (&engine.test);
 }
 
+static void aes_xts_openssl_test_encrypt_data_aes128_1024bytes (CuTest *test)
+{
+	struct aes_xts_openssl_testing engine;
+	int status;
+	uint8_t ciphertext[AES_XTS_TESTING_KEY128_DU1024_DATA_LEN * 2];
+	uint8_t data_unit_id[16];
+
+	TEST_START;
+
+	status = aes_xts_openssl_init (&engine.test, &engine.state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.set_key (&engine.test.base, AES_XTS_TESTING_KEY128_DU1024_KEY,
+		AES_XTS_TESTING_KEY128_DU1024_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aes_xts_flash_address_to_data_unit_id (AES_XTS_TESTING_KEY128_DU1024_ID, data_unit_id);
+
+	status = engine.test.base.encrypt_data (&engine.test.base,
+		AES_XTS_TESTING_KEY128_DU1024_PLAINTEXT, AES_XTS_TESTING_KEY128_DU1024_DATA_LEN,
+		data_unit_id, ciphertext, sizeof (ciphertext));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (AES_XTS_TESTING_KEY128_DU1024_CIPHERTEXT, ciphertext,
+		AES_XTS_TESTING_KEY128_DU1024_DATA_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aes_xts_openssl_release (&engine.test);
+}
+
+static void aes_xts_openssl_test_encrypt_data_aes128_2048bytes (CuTest *test)
+{
+	struct aes_xts_openssl_testing engine;
+	int status;
+	uint8_t ciphertext[AES_XTS_TESTING_KEY128_DU2048_DATA_LEN * 2];
+	uint8_t data_unit_id[16];
+
+	TEST_START;
+
+	status = aes_xts_openssl_init (&engine.test, &engine.state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.set_key (&engine.test.base, AES_XTS_TESTING_KEY128_DU2048_KEY,
+		AES_XTS_TESTING_KEY128_DU2048_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aes_xts_flash_address_to_data_unit_id (AES_XTS_TESTING_KEY128_DU2048_ID, data_unit_id);
+
+	status = engine.test.base.encrypt_data (&engine.test.base,
+		AES_XTS_TESTING_KEY128_DU2048_PLAINTEXT, AES_XTS_TESTING_KEY128_DU2048_DATA_LEN,
+		data_unit_id, ciphertext, sizeof (ciphertext));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (AES_XTS_TESTING_KEY128_DU2048_CIPHERTEXT, ciphertext,
+		AES_XTS_TESTING_KEY128_DU2048_DATA_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aes_xts_openssl_release (&engine.test);
+}
+
+static void aes_xts_openssl_test_encrypt_data_aes128_4096bytes (CuTest *test)
+{
+	struct aes_xts_openssl_testing engine;
+	int status;
+	uint8_t ciphertext[AES_XTS_TESTING_KEY128_DU4096_DATA_LEN * 2];
+	uint8_t data_unit_id[16];
+
+	TEST_START;
+
+	status = aes_xts_openssl_init (&engine.test, &engine.state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.set_key (&engine.test.base, AES_XTS_TESTING_KEY128_DU4096_KEY,
+		AES_XTS_TESTING_KEY128_DU4096_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aes_xts_flash_address_to_data_unit_id (AES_XTS_TESTING_KEY128_DU4096_ID, data_unit_id);
+
+	status = engine.test.base.encrypt_data (&engine.test.base,
+		AES_XTS_TESTING_KEY128_DU4096_PLAINTEXT, AES_XTS_TESTING_KEY128_DU4096_DATA_LEN,
+		data_unit_id, ciphertext, sizeof (ciphertext));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (AES_XTS_TESTING_KEY128_DU4096_CIPHERTEXT, ciphertext,
+		AES_XTS_TESTING_KEY128_DU4096_DATA_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aes_xts_openssl_release (&engine.test);
+}
+
 static void aes_xts_openssl_test_encrypt_data_aes256_32bytes (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t ciphertext[AES_XTS_TESTING_KEY256_DU32_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -251,7 +341,7 @@ static void aes_xts_openssl_test_encrypt_data_aes256_32bytes (CuTest *test)
 
 static void aes_xts_openssl_test_encrypt_data_aes256_48bytes (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t ciphertext[AES_XTS_TESTING_KEY256_DU48_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -281,7 +371,7 @@ static void aes_xts_openssl_test_encrypt_data_aes256_48bytes (CuTest *test)
 
 static void aes_xts_openssl_test_encrypt_data_aes256_512bytes (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t ciphertext[AES_XTS_TESTING_KEY256_DU512_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -311,7 +401,7 @@ static void aes_xts_openssl_test_encrypt_data_aes256_512bytes (CuTest *test)
 
 static void aes_xts_openssl_test_encrypt_data_same_buffer (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t ciphertext[AES_XTS_TESTING_KEY128_DU16_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -343,7 +433,7 @@ static void aes_xts_openssl_test_encrypt_data_same_buffer (CuTest *test)
 
 static void aes_xts_openssl_test_encrypt_data_static_init (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine = {
+	struct aes_xts_openssl_testing engine = {
 		.test = aes_xts_openssl_static_init (&engine.state)
 	};
 	int status;
@@ -375,7 +465,7 @@ static void aes_xts_openssl_test_encrypt_data_static_init (CuTest *test)
 
 static void aes_xts_openssl_test_encrypt_data_null (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t ciphertext[AES_XTS_TESTING_KEY128_DU16_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -414,7 +504,7 @@ static void aes_xts_openssl_test_encrypt_data_null (CuTest *test)
 
 static void aes_xts_openssl_test_encrypt_data_small_buffer (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t ciphertext[AES_XTS_TESTING_KEY128_DU16_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -440,7 +530,7 @@ static void aes_xts_openssl_test_encrypt_data_small_buffer (CuTest *test)
 
 static void aes_xts_openssl_test_encrypt_data_length_too_short (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t ciphertext[AES_XTS_TESTING_KEY128_DU16_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -466,7 +556,7 @@ static void aes_xts_openssl_test_encrypt_data_length_too_short (CuTest *test)
 
 static void aes_xts_openssl_test_encrypt_data_length_too_long (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t ciphertext[AES_XTS_TESTING_KEY128_DU16_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -493,7 +583,7 @@ static void aes_xts_openssl_test_encrypt_data_length_too_long (CuTest *test)
 
 static void aes_xts_openssl_test_encrypt_data_no_key (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t ciphertext[AES_XTS_TESTING_KEY128_DU16_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -515,7 +605,7 @@ static void aes_xts_openssl_test_encrypt_data_no_key (CuTest *test)
 
 static void aes_xts_openssl_test_set_key_null (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 
 	TEST_START;
@@ -536,7 +626,7 @@ static void aes_xts_openssl_test_set_key_null (CuTest *test)
 
 static void aes_xts_openssl_test_set_key_bad_length (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 
 	TEST_START;
@@ -553,7 +643,7 @@ static void aes_xts_openssl_test_set_key_bad_length (CuTest *test)
 
 static void aes_xts_openssl_test_set_key_matching_keys (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t key[AES_XTS_TESTING_KEY128_DU16_KEY_LEN];
 
@@ -574,7 +664,7 @@ static void aes_xts_openssl_test_set_key_matching_keys (CuTest *test)
 
 static void aes_xts_openssl_test_decrypt_data_aes128_16bytes (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t plaintext[AES_XTS_TESTING_KEY128_DU16_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -604,7 +694,7 @@ static void aes_xts_openssl_test_decrypt_data_aes128_16bytes (CuTest *test)
 
 static void aes_xts_openssl_test_decrypt_data_aes128_32bytes (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t plaintext[AES_XTS_TESTING_KEY128_DU32_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -634,7 +724,7 @@ static void aes_xts_openssl_test_decrypt_data_aes128_32bytes (CuTest *test)
 
 static void aes_xts_openssl_test_decrypt_data_aes128_25bytes (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t plaintext[AES_XTS_TESTING_KEY128_DU25_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -664,7 +754,7 @@ static void aes_xts_openssl_test_decrypt_data_aes128_25bytes (CuTest *test)
 
 static void aes_xts_openssl_test_decrypt_data_aes128_512bytes (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t plaintext[AES_XTS_TESTING_KEY128_DU512_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -692,9 +782,99 @@ static void aes_xts_openssl_test_decrypt_data_aes128_512bytes (CuTest *test)
 	aes_xts_openssl_release (&engine.test);
 }
 
+static void aes_xts_openssl_test_decrypt_data_aes128_1024bytes (CuTest *test)
+{
+	struct aes_xts_openssl_testing engine;
+	int status;
+	uint8_t plaintext[AES_XTS_TESTING_KEY128_DU1024_DATA_LEN * 2];
+	uint8_t data_unit_id[16];
+
+	TEST_START;
+
+	status = aes_xts_openssl_init (&engine.test, &engine.state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.set_key (&engine.test.base, AES_XTS_TESTING_KEY128_DU1024_KEY,
+		AES_XTS_TESTING_KEY128_DU1024_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aes_xts_flash_address_to_data_unit_id (AES_XTS_TESTING_KEY128_DU1024_ID, data_unit_id);
+
+	status = engine.test.base.decrypt_data (&engine.test.base,
+		AES_XTS_TESTING_KEY128_DU1024_CIPHERTEXT, AES_XTS_TESTING_KEY128_DU1024_DATA_LEN,
+		data_unit_id, plaintext, sizeof (plaintext));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (AES_XTS_TESTING_KEY128_DU1024_PLAINTEXT, plaintext,
+		AES_XTS_TESTING_KEY128_DU1024_DATA_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aes_xts_openssl_release (&engine.test);
+}
+
+static void aes_xts_openssl_test_decrypt_data_aes128_2048bytes (CuTest *test)
+{
+	struct aes_xts_openssl_testing engine;
+	int status;
+	uint8_t plaintext[AES_XTS_TESTING_KEY128_DU2048_DATA_LEN * 2];
+	uint8_t data_unit_id[16];
+
+	TEST_START;
+
+	status = aes_xts_openssl_init (&engine.test, &engine.state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.set_key (&engine.test.base, AES_XTS_TESTING_KEY128_DU2048_KEY,
+		AES_XTS_TESTING_KEY128_DU2048_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aes_xts_flash_address_to_data_unit_id (AES_XTS_TESTING_KEY128_DU2048_ID, data_unit_id);
+
+	status = engine.test.base.decrypt_data (&engine.test.base,
+		AES_XTS_TESTING_KEY128_DU2048_CIPHERTEXT, AES_XTS_TESTING_KEY128_DU2048_DATA_LEN,
+		data_unit_id, plaintext, sizeof (plaintext));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (AES_XTS_TESTING_KEY128_DU2048_PLAINTEXT, plaintext,
+		AES_XTS_TESTING_KEY128_DU2048_DATA_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aes_xts_openssl_release (&engine.test);
+}
+
+static void aes_xts_openssl_test_decrypt_data_aes128_4096bytes (CuTest *test)
+{
+	struct aes_xts_openssl_testing engine;
+	int status;
+	uint8_t plaintext[AES_XTS_TESTING_KEY128_DU4096_DATA_LEN * 2];
+	uint8_t data_unit_id[16];
+
+	TEST_START;
+
+	status = aes_xts_openssl_init (&engine.test, &engine.state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.set_key (&engine.test.base, AES_XTS_TESTING_KEY128_DU4096_KEY,
+		AES_XTS_TESTING_KEY128_DU4096_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aes_xts_flash_address_to_data_unit_id (AES_XTS_TESTING_KEY128_DU4096_ID, data_unit_id);
+
+	status = engine.test.base.decrypt_data (&engine.test.base,
+		AES_XTS_TESTING_KEY128_DU4096_CIPHERTEXT, AES_XTS_TESTING_KEY128_DU4096_DATA_LEN,
+		data_unit_id, plaintext, sizeof (plaintext));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (AES_XTS_TESTING_KEY128_DU4096_PLAINTEXT, plaintext,
+		AES_XTS_TESTING_KEY128_DU4096_DATA_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aes_xts_openssl_release (&engine.test);
+}
+
 static void aes_xts_openssl_test_decrypt_data_aes256_32bytes (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t plaintext[AES_XTS_TESTING_KEY256_DU32_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -724,7 +904,7 @@ static void aes_xts_openssl_test_decrypt_data_aes256_32bytes (CuTest *test)
 
 static void aes_xts_openssl_test_decrypt_data_aes256_48bytes (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t plaintext[AES_XTS_TESTING_KEY256_DU48_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -754,7 +934,7 @@ static void aes_xts_openssl_test_decrypt_data_aes256_48bytes (CuTest *test)
 
 static void aes_xts_openssl_test_decrypt_data_aes256_512bytes (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t plaintext[AES_XTS_TESTING_KEY256_DU512_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -784,7 +964,7 @@ static void aes_xts_openssl_test_decrypt_data_aes256_512bytes (CuTest *test)
 
 static void aes_xts_openssl_test_decrypt_data_same_buffer (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t plaintext[AES_XTS_TESTING_KEY128_DU16_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -816,7 +996,7 @@ static void aes_xts_openssl_test_decrypt_data_same_buffer (CuTest *test)
 
 static void aes_xts_openssl_test_decrypt_data_static_init (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine = {
+	struct aes_xts_openssl_testing engine = {
 		.test = aes_xts_openssl_static_init (&engine.state)
 	};
 	int status;
@@ -848,7 +1028,7 @@ static void aes_xts_openssl_test_decrypt_data_static_init (CuTest *test)
 
 static void aes_xts_openssl_test_decrypt_data_null (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t plaintext[AES_XTS_TESTING_KEY128_DU16_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -887,7 +1067,7 @@ static void aes_xts_openssl_test_decrypt_data_null (CuTest *test)
 
 static void aes_xts_openssl_test_decrypt_data_small_buffer (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t plaintext[AES_XTS_TESTING_KEY128_DU16_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -913,7 +1093,7 @@ static void aes_xts_openssl_test_decrypt_data_small_buffer (CuTest *test)
 
 static void aes_xts_openssl_test_decrypt_data_length_too_short (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t plaintext[AES_XTS_TESTING_KEY128_DU16_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -939,7 +1119,7 @@ static void aes_xts_openssl_test_decrypt_data_length_too_short (CuTest *test)
 
 static void aes_xts_openssl_test_decrypt_data_length_too_long (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t plaintext[AES_XTS_TESTING_KEY128_DU16_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -966,7 +1146,7 @@ static void aes_xts_openssl_test_decrypt_data_length_too_long (CuTest *test)
 
 static void aes_xts_openssl_test_decrypt_data_no_key (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t plaintext[AES_XTS_TESTING_KEY128_DU16_DATA_LEN * 2];
 	uint8_t data_unit_id[16];
@@ -988,7 +1168,7 @@ static void aes_xts_openssl_test_decrypt_data_no_key (CuTest *test)
 
 static void aes_xts_openssl_test_encrypt_and_decrypt_aes128 (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t ciphertext[AES_XTS_TESTING_KEY128_DU512_DATA_LEN];
 	uint8_t plaintext[AES_XTS_TESTING_KEY128_DU512_DATA_LEN];
@@ -1023,7 +1203,7 @@ static void aes_xts_openssl_test_encrypt_and_decrypt_aes128 (CuTest *test)
 
 static void aes_xts_openssl_test_encrypt_and_decrypt_aes256 (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t ciphertext[AES_XTS_TESTING_KEY256_DU512_DATA_LEN];
 	uint8_t plaintext[AES_XTS_TESTING_KEY256_DU512_DATA_LEN];
@@ -1058,7 +1238,7 @@ static void aes_xts_openssl_test_encrypt_and_decrypt_aes256 (CuTest *test)
 
 static void aes_xts_openssl_test_encrypt_with_different_keys (CuTest *test)
 {
-	struct aes_xts_engine_openssl_testing engine;
+	struct aes_xts_openssl_testing engine;
 	int status;
 	uint8_t ciphertext1[AES_XTS_TESTING_KEY128_DU512_DATA_LEN];
 	uint8_t plaintext1[AES_XTS_TESTING_KEY128_DU512_DATA_LEN];
@@ -1126,6 +1306,9 @@ TEST (aes_xts_openssl_test_encrypt_data_aes128_16bytes);
 TEST (aes_xts_openssl_test_encrypt_data_aes128_32bytes);
 TEST (aes_xts_openssl_test_encrypt_data_aes128_25bytes);
 TEST (aes_xts_openssl_test_encrypt_data_aes128_512bytes);
+TEST (aes_xts_openssl_test_encrypt_data_aes128_1024bytes);
+TEST (aes_xts_openssl_test_encrypt_data_aes128_2048bytes);
+TEST (aes_xts_openssl_test_encrypt_data_aes128_4096bytes);
 TEST (aes_xts_openssl_test_encrypt_data_aes256_32bytes);
 TEST (aes_xts_openssl_test_encrypt_data_aes256_48bytes);
 TEST (aes_xts_openssl_test_encrypt_data_aes256_512bytes);
@@ -1143,6 +1326,9 @@ TEST (aes_xts_openssl_test_decrypt_data_aes128_16bytes);
 TEST (aes_xts_openssl_test_decrypt_data_aes128_32bytes);
 TEST (aes_xts_openssl_test_decrypt_data_aes128_25bytes);
 TEST (aes_xts_openssl_test_decrypt_data_aes128_512bytes);
+TEST (aes_xts_openssl_test_decrypt_data_aes128_1024bytes);
+TEST (aes_xts_openssl_test_decrypt_data_aes128_2048bytes);
+TEST (aes_xts_openssl_test_decrypt_data_aes128_4096bytes);
 TEST (aes_xts_openssl_test_decrypt_data_aes256_32bytes);
 TEST (aes_xts_openssl_test_decrypt_data_aes256_48bytes);
 TEST (aes_xts_openssl_test_decrypt_data_aes256_512bytes);

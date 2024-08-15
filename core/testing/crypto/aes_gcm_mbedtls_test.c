@@ -16,7 +16,7 @@ TEST_SUITE_LABEL ("aes_gcm_mbedtls");
 /**
  * Dependencies for testing.
  */
-struct aes_gcm_engine_mbedtls_testing {
+struct aes_gcm_mbedtls_testing {
 	struct aes_gcm_engine_mbedtls test;			/**< An mbedTLS context for AES operations. */
 	struct aes_gcm_engine_mbedtls_state state;	/**< The state information for the engine. */
 };
@@ -28,7 +28,7 @@ struct aes_gcm_engine_mbedtls_testing {
 
 static void aes_gcm_mbedtls_test_init (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 
 	TEST_START;
@@ -47,7 +47,7 @@ static void aes_gcm_mbedtls_test_init (CuTest *test)
 
 static void aes_gcm_mbedtls_test_init_null (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 
 	TEST_START;
@@ -61,7 +61,7 @@ static void aes_gcm_mbedtls_test_init_null (CuTest *test)
 
 static void aes_gcm_mbedtls_test_static_init (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine = {
+	struct aes_gcm_mbedtls_testing engine = {
 		.test = aes_gcm_mbedtls_static_init (&engine.state)
 	};
 	int status;
@@ -82,7 +82,7 @@ static void aes_gcm_mbedtls_test_static_init (CuTest *test)
 
 static void aes_gcm_mbedtls_test_static_init_null (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine = {
+	struct aes_gcm_mbedtls_testing engine = {
 		.test = aes_gcm_mbedtls_static_init (NULL)
 	};
 	int status;
@@ -105,7 +105,7 @@ static void aes_gcm_mbedtls_test_release_null (CuTest *test)
 
 static void aes_gcm_mbedtls_test_encrypt_data (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_GCM_TESTING_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TESTING_TAG_LEN * 2];
@@ -138,7 +138,7 @@ static void aes_gcm_mbedtls_test_encrypt_data (CuTest *test)
 #if 0
 static void aes_gcm_mbedtls_test_encrypt_data_no_tag (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_GCM_TESTING_CIPHERTEXT_LEN * 2];
 
@@ -166,7 +166,7 @@ static void aes_gcm_mbedtls_test_encrypt_data_no_tag (CuTest *test)
 
 static void aes_gcm_mbedtls_test_encrypt_data_same_buffer (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_GCM_TESTING_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TESTING_TAG_LEN * 2];
@@ -199,7 +199,7 @@ static void aes_gcm_mbedtls_test_encrypt_data_same_buffer (CuTest *test)
 
 static void aes_gcm_mbedtls_test_encrypt_data_static_init (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine = {
+	struct aes_gcm_mbedtls_testing engine = {
 		.test = aes_gcm_mbedtls_static_init (&engine.state)
 	};
 	int status;
@@ -232,7 +232,7 @@ static void aes_gcm_mbedtls_test_encrypt_data_static_init (CuTest *test)
 
 static void aes_gcm_mbedtls_test_encrypt_data_null (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_GCM_TESTING_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TESTING_TAG_LEN * 2];
@@ -286,7 +286,7 @@ static void aes_gcm_mbedtls_test_encrypt_data_null (CuTest *test)
 
 static void aes_gcm_mbedtls_test_encrypt_data_small_buffer (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_GCM_TESTING_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TESTING_TAG_LEN * 2];
@@ -310,7 +310,7 @@ static void aes_gcm_mbedtls_test_encrypt_data_small_buffer (CuTest *test)
 
 static void aes_gcm_mbedtls_test_encrypt_data_small_tag_buffer (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_GCM_TESTING_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TESTING_TAG_LEN * 2];
@@ -334,7 +334,7 @@ static void aes_gcm_mbedtls_test_encrypt_data_small_tag_buffer (CuTest *test)
 
 static void aes_gcm_mbedtls_test_encrypt_data_no_key (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_GCM_TESTING_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TESTING_TAG_LEN * 2];
@@ -354,7 +354,7 @@ static void aes_gcm_mbedtls_test_encrypt_data_no_key (CuTest *test)
 
 static void aes_gcm_mbedtls_test_set_key_null (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 
 	TEST_START;
@@ -373,7 +373,7 @@ static void aes_gcm_mbedtls_test_set_key_null (CuTest *test)
 
 static void aes_gcm_mbedtls_test_set_key_bad_length (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 
 	TEST_START;
@@ -389,7 +389,7 @@ static void aes_gcm_mbedtls_test_set_key_bad_length (CuTest *test)
 
 static void aes_gcm_mbedtls_test_set_key_unsupported_length (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 
 	TEST_START;
@@ -408,7 +408,7 @@ static void aes_gcm_mbedtls_test_set_key_unsupported_length (CuTest *test)
 
 static void aes_gcm_mbedtls_test_encrypt_with_add_data (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_GCM_TESTING_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TESTING_TAG_LEN * 2];
@@ -440,7 +440,7 @@ static void aes_gcm_mbedtls_test_encrypt_with_add_data (CuTest *test)
 
 static void aes_gcm_mbedtls_test_encrypt_with_add_data_no_additional_data (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_GCM_TESTING_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TESTING_TAG_LEN * 2];
@@ -473,7 +473,7 @@ static void aes_gcm_mbedtls_test_encrypt_with_add_data_no_additional_data (CuTes
 #if 0
 static void aes_gcm_mbedtls_test_encrypt_with_add_data_no_tag (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_GCM_TESTING_CIPHERTEXT_LEN * 2];
 
@@ -501,7 +501,7 @@ static void aes_gcm_mbedtls_test_encrypt_with_add_data_no_tag (CuTest *test)
 
 static void aes_gcm_mbedtls_test_encrypt_with_add_data_same_buffer (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_GCM_TESTING_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TESTING_TAG_LEN * 2];
@@ -535,7 +535,7 @@ static void aes_gcm_mbedtls_test_encrypt_with_add_data_same_buffer (CuTest *test
 
 static void aes_gcm_mbedtls_test_encrypt_with_add_data_additional_data_static_init (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine = {
+	struct aes_gcm_mbedtls_testing engine = {
 		.test = aes_gcm_mbedtls_static_init (&engine.state)
 	};
 	int status;
@@ -569,7 +569,7 @@ static void aes_gcm_mbedtls_test_encrypt_with_add_data_additional_data_static_in
 
 static void aes_gcm_mbedtls_test_encrypt_with_add_data_null (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_GCM_TESTING_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TESTING_TAG_LEN * 2];
@@ -632,7 +632,7 @@ static void aes_gcm_mbedtls_test_encrypt_with_add_data_null (CuTest *test)
 
 static void aes_gcm_mbedtls_test_encrypt_with_add_data_small_buffer (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_GCM_TESTING_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TESTING_TAG_LEN * 2];
@@ -657,7 +657,7 @@ static void aes_gcm_mbedtls_test_encrypt_with_add_data_small_buffer (CuTest *tes
 
 static void aes_gcm_mbedtls_test_encrypt_with_add_data_small_tag_buffer (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_GCM_TESTING_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TESTING_TAG_LEN * 2];
@@ -682,7 +682,7 @@ static void aes_gcm_mbedtls_test_encrypt_with_add_data_small_tag_buffer (CuTest 
 
 static void aes_gcm_mbedtls_test_encrypt_with_add_data_no_key (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t ciphertext[AES_GCM_TESTING_CIPHERTEXT_LEN * 2];
 	uint8_t tag[AES_GCM_TESTING_TAG_LEN * 2];
@@ -703,7 +703,7 @@ static void aes_gcm_mbedtls_test_encrypt_with_add_data_no_key (CuTest *test)
 
 static void aes_gcm_mbedtls_test_decrypt_data (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_GCM_TESTING_PLAINTEXT_LEN * 2];
 
@@ -732,7 +732,7 @@ static void aes_gcm_mbedtls_test_decrypt_data (CuTest *test)
 #if 0
 static void aes_gcm_mbedtls_test_decrypt_data_no_tag (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_GCM_TESTING_PLAINTEXT_LEN * 2];
 
@@ -760,7 +760,7 @@ static void aes_gcm_mbedtls_test_decrypt_data_no_tag (CuTest *test)
 
 static void aes_gcm_mbedtls_test_decrypt_data_same_buffer (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_GCM_TESTING_PLAINTEXT_LEN * 2];
 
@@ -789,7 +789,7 @@ static void aes_gcm_mbedtls_test_decrypt_data_same_buffer (CuTest *test)
 
 static void aes_gcm_mbedtls_test_decrypt_data_static_init (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine = {
+	struct aes_gcm_mbedtls_testing engine = {
 		.test = aes_gcm_mbedtls_static_init (&engine.state)
 	};
 	int status;
@@ -818,7 +818,7 @@ static void aes_gcm_mbedtls_test_decrypt_data_static_init (CuTest *test)
 
 static void aes_gcm_mbedtls_test_decrypt_data_null (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_GCM_TESTING_PLAINTEXT_LEN * 2];
 
@@ -871,7 +871,7 @@ static void aes_gcm_mbedtls_test_decrypt_data_null (CuTest *test)
 
 static void aes_gcm_mbedtls_test_decrypt_data_small_buffer (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_GCM_TESTING_PLAINTEXT_LEN * 2];
 
@@ -894,7 +894,7 @@ static void aes_gcm_mbedtls_test_decrypt_data_small_buffer (CuTest *test)
 
 static void aes_gcm_mbedtls_test_decrypt_data_no_key (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_GCM_TESTING_PLAINTEXT_LEN * 2];
 
@@ -913,7 +913,7 @@ static void aes_gcm_mbedtls_test_decrypt_data_no_key (CuTest *test)
 
 static void aes_gcm_mbedtls_test_decrypt_data_bad_tag (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_GCM_TESTING_PLAINTEXT_LEN * 2];
 	uint8_t bad_tag[AES_GCM_TESTING_TAG_LEN];
@@ -940,7 +940,7 @@ static void aes_gcm_mbedtls_test_decrypt_data_bad_tag (CuTest *test)
 
 static void aes_gcm_mbedtls_test_decrypt_data_bad_data (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_GCM_TESTING_PLAINTEXT_LEN * 2];
 	uint8_t bad_data[AES_GCM_TESTING_CIPHERTEXT_LEN];
@@ -967,7 +967,7 @@ static void aes_gcm_mbedtls_test_decrypt_data_bad_data (CuTest *test)
 
 static void aes_gcm_mbedtls_test_decrypt_with_add_data (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_GCM_TESTING_PLAINTEXT_LEN * 2];
 
@@ -995,7 +995,7 @@ static void aes_gcm_mbedtls_test_decrypt_with_add_data (CuTest *test)
 
 static void aes_gcm_mbedtls_test_decrypt_with_add_data_no_additional_data (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_GCM_TESTING_CIPHERTEXT_LEN * 2];
 
@@ -1024,7 +1024,7 @@ static void aes_gcm_mbedtls_test_decrypt_with_add_data_no_additional_data (CuTes
 #if 0
 static void aes_gcm_mbedtls_test_decrypt_with_add_data_no_tag (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_GCM_TESTING_PLAINTEXT_LEN * 2];
 
@@ -1052,7 +1052,7 @@ static void aes_gcm_mbedtls_test_decrypt_with_add_data_no_tag (CuTest *test)
 
 static void aes_gcm_mbedtls_test_decrypt_with_add_data_same_buffer (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_GCM_TESTING_PLAINTEXT_LEN * 2];
 
@@ -1082,7 +1082,7 @@ static void aes_gcm_mbedtls_test_decrypt_with_add_data_same_buffer (CuTest *test
 
 static void aes_gcm_mbedtls_test_decrypt_with_add_data_static_init (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine = {
+	struct aes_gcm_mbedtls_testing engine = {
 		.test = aes_gcm_mbedtls_static_init (&engine.state)
 	};
 	int status;
@@ -1112,7 +1112,7 @@ static void aes_gcm_mbedtls_test_decrypt_with_add_data_static_init (CuTest *test
 
 static void aes_gcm_mbedtls_test_decrypt_with_add_data_null (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_GCM_TESTING_PLAINTEXT_LEN * 2];
 
@@ -1168,7 +1168,7 @@ static void aes_gcm_mbedtls_test_decrypt_with_add_data_null (CuTest *test)
 
 static void aes_gcm_mbedtls_test_decrypt_with_add_data_small_buffer (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_GCM_TESTING_PLAINTEXT_LEN * 2];
 
@@ -1192,7 +1192,7 @@ static void aes_gcm_mbedtls_test_decrypt_with_add_data_small_buffer (CuTest *tes
 
 static void aes_gcm_mbedtls_test_decrypt_with_add_data_no_key (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_GCM_TESTING_PLAINTEXT_LEN * 2];
 
@@ -1212,7 +1212,7 @@ static void aes_gcm_mbedtls_test_decrypt_with_add_data_no_key (CuTest *test)
 
 static void aes_gcm_mbedtls_test_decrypt_with_add_data_bad_tag (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_GCM_TESTING_PLAINTEXT_LEN * 2];
 	uint8_t bad_tag[AES_GCM_TESTING_TAG_LEN];
@@ -1239,7 +1239,7 @@ static void aes_gcm_mbedtls_test_decrypt_with_add_data_bad_tag (CuTest *test)
 
 static void aes_gcm_mbedtls_test_decrypt_with_add_data_bad_data (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	uint8_t plaintext[AES_GCM_TESTING_PLAINTEXT_LEN * 2];
 	uint8_t bad_data[AES_GCM_TESTING_CIPHERTEXT_LEN];
@@ -1266,7 +1266,7 @@ static void aes_gcm_mbedtls_test_decrypt_with_add_data_bad_data (CuTest *test)
 
 static void aes_gcm_mbedtls_test_encrypt_and_decrypt (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	const char *message = "Test";
 	uint8_t ciphertext[strlen (message)];
@@ -1299,7 +1299,7 @@ static void aes_gcm_mbedtls_test_encrypt_and_decrypt (CuTest *test)
 
 static void aes_gcm_mbedtls_test_encrypt_with_longer_iv (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	const char *message = "Test";
 	const uint8_t iv[] = {
@@ -1335,7 +1335,7 @@ static void aes_gcm_mbedtls_test_encrypt_with_longer_iv (CuTest *test)
 
 static void aes_gcm_mbedtls_test_encrypt_with_shorter_iv (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	const char *message = "Test";
 	const uint8_t iv[] = {
@@ -1370,7 +1370,7 @@ static void aes_gcm_mbedtls_test_encrypt_with_shorter_iv (CuTest *test)
 
 static void aes_gcm_mbedtls_test_encrypt_with_different_keys (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	const char *message = "Test";
 	const uint8_t key2[] = {
@@ -1432,7 +1432,7 @@ static void aes_gcm_mbedtls_test_encrypt_with_different_keys (CuTest *test)
 
 static void aes_gcm_mbedtls_test_encrypt_and_decrypt_with_add_data (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	const char *message = "Test";
 	const char *add_data = "123456";
@@ -1467,7 +1467,7 @@ static void aes_gcm_mbedtls_test_encrypt_and_decrypt_with_add_data (CuTest *test
 
 static void aes_gcm_mbedtls_test_encrypt_with_add_data_with_longer_iv (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	const char *message = "Test";
 	const char *add_data = "ABCDEFGH";
@@ -1506,7 +1506,7 @@ static void aes_gcm_mbedtls_test_encrypt_with_add_data_with_longer_iv (CuTest *t
 
 static void aes_gcm_mbedtls_test_encrypt_with_add_data_with_shorter_iv (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	const char *message = "Test";
 	const char *add_data = "DEADBEEF";
@@ -1544,7 +1544,7 @@ static void aes_gcm_mbedtls_test_encrypt_with_add_data_with_shorter_iv (CuTest *
 
 static void aes_gcm_mbedtls_test_encrypt_with_add_data_with_different_keys (CuTest *test)
 {
-	struct aes_gcm_engine_mbedtls_testing engine;
+	struct aes_gcm_mbedtls_testing engine;
 	int status;
 	const char *message = "Test";
 	const char *add_data = "BAADF00D";
