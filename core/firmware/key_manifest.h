@@ -165,6 +165,7 @@ enum {
 	KEY_MANIFEST_UNTRUSTED_ROOT_KEY = KEY_MANIFEST_ERROR (0x0b),	/**< A valid root key is not trusted (e.g. revoked by hardware). */
 	KEY_MANIFEST_REVOKED = KEY_MANIFEST_ERROR (0x0c),				/**< The key manifest has been revoked. */
 	KEY_MANIFEST_ID_TOO_HIGH = KEY_MANIFEST_ERROR (0x0d),			/**< The key manifest is reporting an ID too much greater than the current state. */
+	KEY_MANIFEST_MISSING_KEY = KEY_MANIFEST_ERROR (0x0e),			/**< A required key is missing from the manifest. */
 };
 
 
