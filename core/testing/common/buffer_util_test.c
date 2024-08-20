@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
+#include "common/array_size.h"
 #include "common/buffer_util.h"
 
 
@@ -1249,6 +1250,47 @@ static void buffer_zerioze_test_null (CuTest *test)
 	buffer_zeroize (NULL, 32);
 }
 
+static void buffer_zerioze_dwords_test (CuTest *test)
+{
+	uint32_t buffer[32];
+	uint32_t zero[32] = {0};
+	int status;
+
+	TEST_START;
+
+	memset (buffer, 0xff, sizeof (buffer));
+
+	buffer_zeroize_dwords (buffer, ARRAY_SIZE (buffer));
+
+	status = testing_validate_array (buffer, zero, sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void buffer_zerioze_dwords_test_zero_length (CuTest *test)
+{
+	uint32_t buffer[32];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < ARRAY_SIZE (buffer); i++) {
+		buffer[i] = i;
+	}
+
+	buffer_zeroize_dwords (buffer, 0);
+
+	for (i = 0; i < ARRAY_SIZE (buffer); i++) {
+		CuAssertIntEquals (test, i, buffer[i]);
+	}
+}
+
+static void buffer_zerioze_dwords_test_null (CuTest *test)
+{
+	TEST_START;
+
+	buffer_zeroize_dwords (NULL, 32);
+}
+
 static void buffer_unaligned_test_copy16_unaligned_src (CuTest *test)
 {
 	uint16_t value = 0;
@@ -1777,6 +1819,9 @@ TEST (buffer_compare_dwords_test_one_null_non_zero_length);
 TEST (buffer_zerioze_test);
 TEST (buffer_zerioze_test_zero_length);
 TEST (buffer_zerioze_test_null);
+TEST (buffer_zerioze_dwords_test);
+TEST (buffer_zerioze_dwords_test_zero_length);
+TEST (buffer_zerioze_dwords_test_null);
 TEST (buffer_unaligned_test_copy16_unaligned_src);
 TEST (buffer_unaligned_test_copy16_unaligned_dst);
 TEST (buffer_unaligned_test_copy24_unaligned_src);

@@ -236,6 +236,24 @@ void buffer_zeroize (void *buffer, size_t length)
 }
 
 /**
+ * Clear a buffer of dword aligned data with zeros.  It is guaranteed that only dword accesses will
+ * be made to clear the buffer.
+ *
+ * @param buffer The buffer to clear.
+ * @param dwords Number of dwords in the buffer.
+ */
+void buffer_zeroize_dwords (uint32_t *buffer, size_t dwords)
+{
+	if (buffer) {
+		size_t i;
+
+		for (i = 0; i < dwords; i++) {
+			buffer[i] = 0;
+		}
+	}
+}
+
+/**
  * Copies a 16 bit value between 2 assumed unaligned addresses.
  *
  * This does not do any validation on the parameters.

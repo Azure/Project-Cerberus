@@ -34,6 +34,7 @@ int buffer_compare (const uint8_t *buf1, const uint8_t *buf2, size_t length);
 int buffer_compare_dwords (const uint32_t *buf1, const uint32_t *buf2, size_t dwords);
 
 void buffer_zeroize (void *buffer, size_t length);
+void buffer_zeroize_dwords (uint32_t *buffer, size_t dwords);
 
 void buffer_unaligned_copy16 (uint16_t *dst, const uint16_t *src);
 void buffer_unaligned_copy24 (uint8_t *dst, const uint8_t *src);
