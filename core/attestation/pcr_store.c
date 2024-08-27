@@ -890,17 +890,20 @@ int pcr_store_get_attestation_log (struct pcr_store *store, struct hash_engine *
 		}
 
 		digest_length = pcr_get_all_measurements (&store->pcrs[pcr], &measurements);
-
 		switch (digest_length) {
 			default:
 			/* This isn't possible under normal conditions since invalid digest lengths would be
-			 * rejected during init.  Fall through to SHA-256 in unexpected scenarios. */
+			 * rejected during init. Fall through to SHA-256 in unexpected scenarios.
+			 * In unexpected scenarios digest_length returns with PCR_INVALID_ARGUMENT or HASH_ENGINE_UNKNOWN_HASH,
+			 * to avoid undefined behavior, assigning the digest_length with SHA256_HASH_LENGTH */
+
 			case SHA256_HASH_LENGTH:
 				digest = log_entry.sha256.entry.digest;
 				measurement_size = &log_entry.sha256.entry.measurement_size;
 				measurement = log_entry.sha256.entry.measurement;
 				entry_length = sizeof (log_entry.sha256);
 				algorithm_id = PCR_TCG_SHA256_ALG_ID;
+				digest_length = SHA256_HASH_LENGTH;
 				break;
 
 #if PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH
