@@ -7,6 +7,7 @@
 #include "platform_api.h"
 #include "tpm.h"
 #include "tpm_logging.h"
+#include "common/unused.h"
 #include "flash/flash.h"
 #include "flash/flash_common.h"
 #include "flash/flash_util.h"
@@ -40,9 +41,9 @@ static int tpm_init_header (struct tpm *tpm, bool clear, bool write)
 			return status;
 		}
 
-		memset (tpm->buffer, 0xff, sizeof (tpm->buffer));
+		memset (tpm->buffer, 0xff, tpm->segment_storage_size);
 		for (id = status - 1; id > 0; id--) {
-			status = tpm->flash->write (tpm->flash, id, tpm->buffer, sizeof (tpm->buffer));
+			status = tpm->flash->write (tpm->flash, id, tpm->buffer, tpm->segment_storage_size);
 			if (status != 0) {
 				erase_status = status;
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_TPM,
@@ -55,12 +56,12 @@ static int tpm_init_header (struct tpm *tpm, bool clear, bool write)
 			TPM_LOGGING_INVALID_HEADER, 0, 0);
 	}
 
-	memset (tpm->buffer, 0, sizeof (tpm->buffer));
+	memset (tpm->buffer, 0, tpm->segment_storage_size);
 	header->magic = TPM_MAGIC;
 	header->format_id = TPM_HEADER_FORMAT;
 
 	if (write) {
-		status = tpm->flash->write (tpm->flash, 0, tpm->buffer, sizeof (tpm->buffer));
+		status = tpm->flash->write (tpm->flash, 0, tpm->buffer, tpm->segment_storage_size);
 		if (status != 0) {
 			return status;
 		}
@@ -84,7 +85,7 @@ static int tpm_read_header (struct tpm *tpm, bool init, bool write, bool log)
 	struct tpm_header *header;
 	int status;
 
-	status = tpm->flash->read (tpm->flash, 0, tpm->buffer, sizeof (tpm->buffer));
+	status = tpm->flash->read (tpm->flash, 0, tpm->buffer, tpm->segment_storage_size);
 	if ((status == FLASH_STORE_NO_DATA) || (status == FLASH_STORE_CORRUPT_DATA)) {
 		if (!init) {
 			return status;
@@ -101,7 +102,10 @@ static int tpm_read_header (struct tpm *tpm, bool init, bool write, bool log)
 				TPM_LOGGING_READ_HEADER_FAILED, status, 0);
 		}
 
-		return status;
+		/* Doesn't matter what error. If at INIT, re-initialize the TPM in case of error. */
+		if (!init) {
+			return status;
+		}
 	}
 	else {
 		status = 0;
@@ -125,7 +129,7 @@ static int tpm_read_header (struct tpm *tpm, bool init, bool write, bool log)
  *
  * @param observer The observer instance being notified.
  */
-static void tpm_on_soft_reset (struct host_processor_observer *observer)
+void tpm_on_soft_reset (struct host_processor_observer *observer)
 {
 	struct tpm *tpm = (struct tpm*) observer;
 	struct tpm_header *header;
@@ -177,7 +181,7 @@ int tpm_schedule_clear (struct tpm *tpm)
 	header = (struct tpm_header*) tpm->buffer;
 	if (header->clear != 1) {
 		header->clear = 1;
-		status = tpm->flash->write (tpm->flash, 0, tpm->buffer, sizeof (tpm->buffer));
+		status = tpm->flash->write (tpm->flash, 0, tpm->buffer, tpm->segment_storage_size);
 		if (status != 0) {
 			return status;
 		}
@@ -210,7 +214,7 @@ int tpm_increment_counter (struct tpm *tpm)
 	header = (struct tpm_header*) tpm->buffer;
 	++header->nv_counter;
 
-	return tpm->flash->write (tpm->flash, 0, tpm->buffer, sizeof (tpm->buffer));
+	return tpm->flash->write (tpm->flash, 0, tpm->buffer, tpm->segment_storage_size);
 }
 
 /**
@@ -303,29 +307,54 @@ int tpm_get_storage (struct tpm *tpm, uint8_t index, uint8_t *storage, size_t st
  *
  * @param tpm The TPM storage to initialize.
  * @param flash The flash block storage used for the TPM.
+ * @param segment_storage Buffer to use for reading and writing TPM storage segments.
+ * @param segment_storage_size Size of the segment storage buffer.
  *
  * @return 0 if the TPM storage was successfully initialized or an error code.
  */
-int tpm_init (struct tpm *tpm, const struct flash_store *flash)
+int tpm_init (struct tpm *tpm, const struct flash_store *flash, uint8_t *segment_storage,
+	int segment_storage_size)
 {
-	struct tpm_header *header;
-	int status;
-
-	if ((tpm == NULL) || (flash == NULL)) {
+	if (!tpm || !flash || !segment_storage || !segment_storage_size) {
 		return TPM_INVALID_ARGUMENT;
-	}
-
-	status = flash->get_max_data_length (flash);
-	if (ROT_IS_ERROR (status)) {
-		return status;
-	}
-	else if (status < TPM_STORAGE_SEGMENT_SIZE) {
-		return TPM_INSUFFICIENT_STORAGE;
 	}
 
 	memset (tpm, 0, sizeof (struct tpm));
 
 	tpm->flash = flash;
+	tpm->segment_storage_size = segment_storage_size;
+	tpm->buffer = segment_storage;
+	tpm->observer.on_soft_reset = tpm_on_soft_reset;
+
+	return tpm_init_state (tpm);
+}
+
+/**
+ * Complete the initialization of the TPM storage.
+ * This function should be called after tpm_static_init to complete the initialization
+ * of the TPM storage.
+ *
+ * @param tpm The TPM storage to initialize.
+ *
+ * @return 0 if the TPM storage was successfully initialized or an error code.
+ */
+int tpm_init_state (struct tpm *tpm)
+{
+	int status;
+	struct tpm_header *header;
+
+	if ((tpm == NULL) || (tpm->flash == NULL) || (tpm->buffer == NULL) ||
+		(tpm->segment_storage_size == 0)) {
+		return TPM_INVALID_ARGUMENT;
+	}
+
+	status = tpm->flash->get_max_data_length (tpm->flash);
+	if (ROT_IS_ERROR (status)) {
+		return status;
+	}
+	else if (status < tpm->segment_storage_size) {
+		return TPM_INSUFFICIENT_STORAGE;
+	}
 
 	status = tpm_read_header (tpm, true, true, false);
 	if (status != 0) {
@@ -337,8 +366,6 @@ int tpm_init (struct tpm *tpm, const struct flash_store *flash)
 		status = tpm_init_header (tpm, true, true);
 	}
 
-	tpm->observer.on_soft_reset = tpm_on_soft_reset;
-
 	return status;
 }
 
@@ -349,5 +376,5 @@ int tpm_init (struct tpm *tpm, const struct flash_store *flash)
  */
 void tpm_release (struct tpm *tpm)
 {
-
+	UNUSED (tpm);
 }

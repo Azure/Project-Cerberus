@@ -19,7 +19,8 @@
 struct tpm {
 	struct host_processor_observer observer;	/**< The base observer interface. */
 	const struct flash_store *flash;			/**< The flash used for TPM storage. */
-	uint8_t buffer[TPM_STORAGE_SEGMENT_SIZE];	/**< Buffer for TPM flash storage. */
+	uint16_t segment_storage_size;				/**< Size of TPM storage segment */
+	uint8_t *buffer;							/**< Buffer for TPM storage segment */
 };
 
 #define TPM_MAGIC									0xACFE
@@ -39,7 +40,10 @@ struct tpm_header {
 #pragma pack(pop)
 
 
-int tpm_init (struct tpm *tpm, const struct flash_store *flash);
+int tpm_init (struct tpm *tpm, const struct flash_store *flash, uint8_t *segment_storage,
+	int segment_storage_size);
+int tpm_init_state (struct tpm *tpm);
+
 void tpm_release (struct tpm *tpm);
 
 int tpm_increment_counter (struct tpm *tpm);
