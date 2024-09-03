@@ -66,7 +66,7 @@ target_compile_options(
 		-Wextra
  		-Werror
 		-Wno-unused-parameter
-		-g -ggdb3
+		-g
 	)
 
 target_compile_definitions(
