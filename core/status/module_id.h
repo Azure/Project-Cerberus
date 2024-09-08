@@ -155,6 +155,7 @@ enum {
 	ROT_MODULE_IMPACTFUL_CHECK = 0x008f,				/**< Device check for conditions requiring impactful updates. */
 	ROT_MODULE_IMPACTFUL_UPDATE = 0x0090,				/**< Interface for handling impactful updates. */
 	ROT_MODULE_AES_XTS_ENGINE = 0x0091,					/**< An AES-XTS crypto engine.  All engines use the same ID. */
+	ROT_MODULE_MMIO_REGISTER = 0x0092,					/**< MMIO register operations */
 };
 
 

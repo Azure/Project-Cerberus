@@ -3,7 +3,7 @@
 
 #include "testing.h"
 #include "common/array_size.h"
-#include "common/mmio_util.h"
+#include "mmio/mmio_util.h"
 
 
 TEST_SUITE_LABEL ("mmio_util");
