@@ -40,7 +40,7 @@ int mpu_mock_get_page_attributes (const struct mpu_interface *mpu, const void *a
 	}
 
 	MOCK_RETURN (&mock->mock, mpu_mock_get_page_attributes, mpu, MOCK_ARG_PTR_CALL (address),
-		MOCK_ARG_CALL (protection_level), MOCK_ARG_CALL (page_attributes));
+		MOCK_ARG_CALL (protection_level), MOCK_ARG_PTR_CALL (page_attributes));
 }
 
 static int mpu_mock_func_arg_count (void *func)
