@@ -179,7 +179,7 @@ static int X509AddTcbInfoExtension (
 		CHK (DERStartEnvelopingOctetString (Tbs));
 		CHK (DERStartSequenceOrSet (Tbs, true));
 		CHK (DERAddString (Tbs, Tcb->version, 0x82));
-		CHK (DERAddTaggedInteger (Tbs, Tcb->svn, 0x83));
+		CHK (DERAddTaggedIntegerFromArray (Tbs, Tcb->svn, Tcb->svn_length, 0x83));
 		CHK (DERStartConstructed (Tbs, 0xA6));
 		CHK (DERStartSequenceOrSet (Tbs, true));
 		CHK (DERAddOID (Tbs, shaOID));

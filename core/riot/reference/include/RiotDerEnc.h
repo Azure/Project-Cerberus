@@ -71,6 +71,9 @@ int DERAddIA5String (
 int DERAddTime (
 	DERBuilderContext *Context, const char *Str);
 
+int DERAddTaggedIntegerFromArray (
+	DERBuilderContext *Context,	const uint8_t *Val,	uint32_t NumBytes, uint8_t Tag);
+
 int DERAddIntegerFromArray (
 	DERBuilderContext *Context, const uint8_t *Val, uint32_t NumBytes);
 

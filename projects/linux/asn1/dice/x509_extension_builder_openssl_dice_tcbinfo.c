@@ -66,6 +66,7 @@ int x509_extension_builder_openssl_dice_tcbinfo_build (const struct x509_extensi
 	const struct x509_extension_builder_openssl_dice_tcbinfo *dice =
 		(const struct x509_extension_builder_openssl_dice_tcbinfo*) builder;
 	DICE_TCBINFO *tcbinfo;
+	BIGNUM *svn;
 	DICE_FWID *fwid;
 	ASN1_OBJECT *fwid_oid;
 	int fwid_len;
@@ -83,6 +84,10 @@ int x509_extension_builder_openssl_dice_tcbinfo_build (const struct x509_extensi
 
 	if (dice->tcb->version == NULL) {
 		return DICE_TCBINFO_EXTENSION_NO_VERSION;
+	}
+
+	if ((dice->tcb->svn == NULL) || (dice->tcb->svn_length == 0)) {
+		return DICE_TCBINFO_EXTENSION_NO_SVN;
 	}
 
 	if (dice->tcb->fwid == NULL) {
@@ -137,15 +142,16 @@ int x509_extension_builder_openssl_dice_tcbinfo_build (const struct x509_extensi
 		goto err_build;
 	}
 
-	tcbinfo->svn = ASN1_INTEGER_new ();
-	if (tcbinfo->svn == NULL) {
+	svn = BN_bin2bn (dice->tcb->svn, dice->tcb->svn_length, NULL);
+	if (svn == NULL) {
 		status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
 		goto err_build;
 	}
 
-	status = ASN1_INTEGER_set (tcbinfo->svn, dice->tcb->svn);
-	if (status == 0) {
-		status = -ERR_get_error ();
+	tcbinfo->svn = BN_to_ASN1_INTEGER (svn, NULL);
+	BN_free (svn);
+	if (tcbinfo->svn == NULL) {
+		status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
 		goto err_build;
 	}
 

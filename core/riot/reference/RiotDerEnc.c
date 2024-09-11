@@ -283,7 +283,7 @@ Error:
 	return -1;
 }
 
-static int DERAddTaggedIntegerFromArray (
+int DERAddTaggedIntegerFromArray (
 	DERBuilderContext *Context,	const uint8_t *Val,	uint32_t NumBytes, uint8_t Tag)
 // Input integer is assumed unsigned with most signficant byte first.
 // A leading zero will be added if the most significant input bit is set.

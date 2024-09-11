@@ -2787,7 +2787,12 @@ const uint8_t X509_RIOT_UEID[] = {
 const size_t X509_RIOT_UEID_LEN = sizeof (X509_RIOT_UEID);
 
 const char *X509_RIOT_VERSION = "1.2.3.4";
-const uint32_t X509_RIOT_SVN = 0x12345678;
+
+const uint8_t X509_RIOT_SVN[] = {
+	0x12, 0x34, 0x56, 0x78
+};
+
+const size_t X509_RIOT_SVN_LEN = sizeof (X509_RIOT_SVN);
 
 
 const uint8_t X509_CSR_ECC_CA_UEID_DER[] = {

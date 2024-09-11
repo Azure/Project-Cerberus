@@ -67,6 +67,10 @@ int x509_extension_builder_dice_tcbinfo_create_extension (
 		return DICE_TCBINFO_EXTENSION_NO_VERSION;
 	}
 
+	if ((dice->tcb->svn == NULL) || (dice->tcb->svn_length == 0)) {
+		return DICE_TCBINFO_EXTENSION_NO_SVN;
+	}
+
 	if (dice->tcb->fwid == NULL) {
 		return DICE_TCBINFO_EXTENSION_NO_FWID;
 	}
@@ -101,7 +105,8 @@ int x509_extension_builder_dice_tcbinfo_create_extension (
 	/* TODO:  Not each of these error checks is tested.  Add tests when refactoring DER encoding. */
 	DER_CHK_ENCODE (DERStartSequenceOrSet (&der, true));
 	DER_CHK_ENCODE (DERAddString (&der, dice->tcb->version, 0x82));
-	DER_CHK_ENCODE (DERAddTaggedInteger (&der, dice->tcb->svn, 0x83));
+	DER_CHK_ENCODE (DERAddTaggedIntegerFromArray (&der, dice->tcb->svn, dice->tcb->svn_length,
+		0x83));
 	DER_CHK_ENCODE (DERStartConstructed (&der, 0xa6));
 	DER_CHK_ENCODE (DERStartSequenceOrSet (&der, true));
 	DER_CHK_ENCODE (DERAddOID (&der, fwid_oid));
@@ -269,9 +274,9 @@ size_t x509_extension_builder_dice_tcbinfo_get_ext_buffer_length (
 			length += strlen (tcb->version);
 		}
 
-		length += sizeof (tcb->svn);
+		length += tcb->svn_length + 1;	/* Worst-case SVN length, including a leading zero. */
 		length += 9;					/* Worst-case FWID OID length. */
-		length += SHA512_HASH_LENGTH;	/* Worst-case FWID length */
+		length += SHA512_HASH_LENGTH;	/* Worst-case FWID length. */
 
 		/* Extra space for headers and sequence tags. */
 		length += (4 * 4) + (4 * 2);

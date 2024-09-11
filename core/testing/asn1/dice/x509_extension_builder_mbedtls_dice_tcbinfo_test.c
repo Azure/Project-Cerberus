@@ -37,6 +37,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_init (CuTest *test)
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -59,6 +60,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_init_null (CuTest *
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -80,6 +82,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_init_with_buffer (C
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -104,6 +107,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_init_with_buffer_nu
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -161,6 +165,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build (CuTest *test
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -201,6 +206,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_sha1 (CuTest 
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA1_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA1;
 
@@ -241,6 +247,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_sha384 (CuTes
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA384_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA384;
 
@@ -281,6 +288,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_sha512 (CuTes
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA512_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA512;
 
@@ -314,13 +322,15 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_svn_zero (CuT
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	uint8_t zero = 0;
 	int status;
 	struct x509_extension extension = {0};
 
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
-	tcb.svn = 0;
+	tcb.svn = &zero;
+	tcb.svn_length = 1;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -362,6 +372,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_static_init (
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -402,6 +413,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_null (CuTest 
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -441,6 +453,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_unknown_fwid 
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = (enum hash_type) 10;
 
@@ -464,6 +477,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_fwid (CuTe
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = NULL;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -487,6 +501,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_version (C
 
 	tcb.version = NULL;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -495,6 +510,39 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_version (C
 
 	status = builder.base.build (&builder.base, &extension);
 	CuAssertIntEquals (test, DICE_TCBINFO_EXTENSION_NO_VERSION, status);
+
+	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
+}
+
+static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_svn (CuTest *test)
+{
+	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
+	struct tcg_dice_tcbinfo tcb;
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.fwid = X509_RIOT_SHA256_FWID;
+	tcb.fwid_hash = HASH_TYPE_SHA256;
+
+	status = x509_extension_builder_mbedtls_dice_tcbinfo_init (&builder, &tcb);
+	CuAssertIntEquals (test, 0, status);
+
+	/* SVN null */
+	tcb.svn = NULL;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
+
+	status = builder.base.build (&builder.base, &extension);
+	CuAssertIntEquals (test, DICE_TCBINFO_EXTENSION_NO_SVN, status);
+
+	/* SVN zero length */
+	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = 0;
+
+	status = builder.base.build (&builder.base, &extension);
+	CuAssertIntEquals (test, DICE_TCBINFO_EXTENSION_NO_SVN, status);
 
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
@@ -511,6 +559,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer (
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -553,6 +602,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA1_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA1;
 
@@ -595,6 +645,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA384_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA384;
 
@@ -637,6 +688,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA512_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA512;
 
@@ -672,6 +724,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	uint8_t zero = 0;
 	uint8_t ext_buffer[
 		X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SVN_ZERO)];
 	int status;
@@ -680,7 +733,8 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
-	tcb.svn = 0;
+	tcb.svn = &zero;
+	tcb.svn_length = 1;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -725,6 +779,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_e
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -770,6 +825,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -812,6 +868,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_n
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -839,6 +896,7 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_static_init_n
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -880,6 +938,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -907,6 +966,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -934,6 +994,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -962,6 +1023,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -990,6 +1052,7 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -1018,6 +1081,7 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -1046,6 +1110,7 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -1074,6 +1139,7 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -1101,6 +1167,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -1129,6 +1196,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -1156,6 +1224,7 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -1183,6 +1252,7 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_
 
 	tcb.version = X509_RIOT_VERSION;
 	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
 	tcb.fwid = X509_RIOT_SHA256_FWID;
 	tcb.fwid_hash = HASH_TYPE_SHA256;
 
@@ -1217,6 +1287,7 @@ TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_static_init_null_tc
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_unknown_fwid);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_fwid);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_version);
+TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_svn);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_sha1);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_sha384);

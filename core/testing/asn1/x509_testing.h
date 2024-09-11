@@ -467,7 +467,8 @@ extern const uint8_t X509_RIOT_UEID[];
 extern const size_t X509_RIOT_UEID_LEN;
 
 extern const char *X509_RIOT_VERSION;
-extern const uint32_t X509_RIOT_SVN;
+extern const uint8_t X509_RIOT_SVN[];
+extern const size_t X509_RIOT_SVN_LEN;
 
 
 /* TCB Info and UEID */

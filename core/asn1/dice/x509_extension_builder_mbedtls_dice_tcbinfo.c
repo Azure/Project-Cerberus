@@ -31,7 +31,6 @@ int x509_extension_builder_mbedtls_dice_tcbinfo_create_extension (
 	uint8_t *pos;
 	int enc_length = 0;
 	mbedtls_mpi svn;
-	uint32_t be_svn;
 	int fwid_length;
 	char *fwid_oid;
 	size_t fwid_oid_length;
@@ -43,6 +42,10 @@ int x509_extension_builder_mbedtls_dice_tcbinfo_create_extension (
 
 	if (dice->tcb->version == NULL) {
 		return DICE_TCBINFO_EXTENSION_NO_VERSION;
+	}
+
+	if ((dice->tcb->svn == NULL) || (dice->tcb->svn_length == 0)) {
+		return DICE_TCBINFO_EXTENSION_NO_SVN;
 	}
 
 	if (dice->tcb->fwid == NULL) {
@@ -110,8 +113,7 @@ int x509_extension_builder_mbedtls_dice_tcbinfo_create_extension (
 	/* svn			INTEGER		OPTIONAL */
 	/* mbedtls_asn1_write_int only writes 1 byte integers.  MPI is needed for larger ones. */
 	mbedtls_mpi_init (&svn);
-	be_svn = platform_htonl (dice->tcb->svn);
-	ret = mbedtls_mpi_read_binary (&svn, (uint8_t*) &be_svn, sizeof (uint32_t));
+	ret = mbedtls_mpi_read_binary (&svn, dice->tcb->svn, dice->tcb->svn_length);
 	if (ret != 0) {
 		if (ret == MBEDTLS_ERR_MPI_ALLOC_FAILED) {
 			ret = DICE_TCBINFO_EXTENSION_NO_MEMORY;
