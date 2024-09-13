@@ -378,3 +378,22 @@ void tpm_release (struct tpm *tpm)
 {
 	UNUSED (tpm);
 }
+
+/**
+ * Get the size of the TPM storage segment.
+ *
+ * @param tpm The TPM storage to query.
+ * @param size Output for the segment size.
+ *
+ * @return 0 if the segment size was successfully retrieved or an error code.
+ */
+int tpm_get_segment_storage_size (struct tpm *tpm, uint16_t *size)
+{
+	if ((tpm == NULL) || (size == NULL)) {
+		return TPM_INVALID_ARGUMENT;
+	}
+
+	*size = tpm->segment_storage_size;
+
+	return 0;
+}

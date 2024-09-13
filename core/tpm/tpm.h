@@ -55,6 +55,7 @@ int tpm_get_storage (struct tpm *tpm, uint8_t index, uint8_t *storage, size_t st
 
 int tpm_schedule_clear (struct tpm *tpm);
 
+int tpm_get_segment_storage_size (struct tpm *tpm, uint16_t *size);
 
 #define	TPM_ERROR(code)		ROT_ERROR (ROT_MODULE_TPM, code)
 

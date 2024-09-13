@@ -2167,6 +2167,54 @@ static void tpm_test_schedule_clear_write_fail (CuTest *test)
 	complete_tpm_mock_test (test, &tpm, &flash);
 }
 
+static void tpm_test_get_segment_storage_size (CuTest *test)
+{
+	uint8_t segment[TPM_STORAGE_SEGMENT_SIZE] = {0};
+	struct tpm_header *header = (struct tpm_header*) segment;
+	struct flash_store_mock flash;
+	struct tpm tpm;
+	uint16_t segment_storage_size = 0;
+	int status;
+
+	TEST_START;
+
+	header->magic = TPM_MAGIC;
+	header->format_id = TPM_HEADER_FORMAT;
+
+	setup_tpm_mock_test (test, &tpm, &flash, segment, TPM_STORAGE_SEGMENT_SIZE);
+
+	status = tpm_get_segment_storage_size (&tpm, &segment_storage_size);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, TPM_STORAGE_SEGMENT_SIZE, segment_storage_size);
+
+	complete_tpm_mock_test (test, &tpm, &flash);
+}
+
+
+static void tpm_test_get_segment_storage_size_null (CuTest *test)
+{
+	uint8_t segment[TPM_STORAGE_SEGMENT_SIZE] = {0};
+	struct tpm_header *header = (struct tpm_header*) segment;
+	struct flash_store_mock flash;
+	struct tpm tpm;
+	uint16_t segment_storage_size = 0;
+	int status;
+
+	TEST_START;
+
+	header->magic = TPM_MAGIC;
+	header->format_id = TPM_HEADER_FORMAT;
+
+	setup_tpm_mock_test (test, &tpm, &flash, segment, TPM_STORAGE_SEGMENT_SIZE);
+
+	status = tpm_get_segment_storage_size (NULL, &segment_storage_size);
+	CuAssertIntEquals (test, TPM_INVALID_ARGUMENT, status);
+
+	status = tpm_get_segment_storage_size (&tpm, NULL);
+	CuAssertIntEquals (test, TPM_INVALID_ARGUMENT, status);
+
+	complete_tpm_mock_test (test, &tpm, &flash);
+}
 
 // *INDENT-OFF*
 TEST_SUITE_START (tpm);
@@ -2236,6 +2284,8 @@ TEST (tpm_test_schedule_clear_invalid_storage_corrupt_data);
 TEST (tpm_test_schedule_clear_null);
 TEST (tpm_test_schedule_clear_read_fail);
 TEST (tpm_test_schedule_clear_write_fail);
+TEST (tpm_test_get_segment_storage_size);
+TEST (tpm_test_get_segment_storage_size_null);
 
 TEST_SUITE_END;
 // *INDENT-ON*
