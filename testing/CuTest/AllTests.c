@@ -23,6 +23,16 @@ int RunAllTests (void)
 	fail = suite->failCount;
 
 	CuStringDelete (output);
+
+	CuString *report = CuStringNew ();
+
+	CuSuiteToJUnitXML (suite, report);
+	FILE *report_file = fopen ("TestResult.xml", "w");
+
+	fputs (report->buffer, report_file);
+	fclose (report_file);
+	CuStringDelete (report);
+
 	CuSuiteDelete (suite);
 
 	return fail;
