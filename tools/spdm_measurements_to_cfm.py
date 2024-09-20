@@ -3,17 +3,40 @@
 # Licensed under the MIT license.
 
 # Usage:
-#  spdm_measurements_to_cfm.py <component_name> <input_filename> <output_filename> <filetype>
+#  spdm_measurements_to_cfm.py <component_name> <input_filename> <optional params>
 #  Optional Params:
-#  -s <slot_num> -r <rootca_digest> -b <base_hash_alg> -m <meas_hash_alg> -g <file_signed(True/False) -i <workspace_dir>
-#  Debug Param(Provides debug logs):
-#  -d
+#   -l <get_comp_list>
+#   -f <comp_def_file>
+#   -c <comp_filter_file>
+#   -d <debug> [Debug Param(Provides debug logs)]
 #  E.g.
-#   spdm_measurements_to_cfm.py <comp_name> spdm_measurement.corim cfm_component.xml CORIM
-#   spdm_measurements_to_cfm.py <comp_name> spdm_measurement.rim cfm_component.xml RIM -r <sha384 hash> -b SHA384 -m SHA384 -g True -i workspace
-#   spdm_measurements_to_cfm.py <comp_name> spdm_measurement.rim cfm_component.xml CORIM -b SHA384 -m SHA384 -i workspace
-#   spdm_measurements_to_cfm.py <comp_name> spdm_measurement.corim cfm_component.xml CORIM -r <sha384 hash> -b SHA384 -m SHA384 -g True 
-#   spdm_measurements_to_cfm.py <comp_name> spdm_measurement.cbor cfm_component.xml CORIM -b SHA384 -m SHA384 -g False
+#   spdm_measurements_to_cfm.py <comp_name> spdm_measurement.corim -l
+#   spdm_measurements_to_cfm.py <comp_name> spdm_measurement.rim -c <model_name>_auto_gen_comp_filter.cfg
+#   spdm_measurements_to_cfm.py <comp_name> spdm_measurement.rim -c <model_name>_auto_gen_comp_filter.cfg -f <path to component_defaults.cfg file>
+#  Notes:
+#   1. All other parameters required to run the script will be read from component_defaults.cfg file.
+#   2. -l/--get_comp_list option cannot be used together with -c/--comp_filter_file option.
+#   3. Include and Exclude List both cannot be used together. Meaning, config filter file must
+#      have either Include List or Exclude List defined. Otherwise, warning will be generated.
+#   4. Below is the Template to create components_defaults.cfg file. Do not change Defaults.
+#      Keep a single entry for each component_name.
+#      [Defaults]
+#        output_filename: output_files/cfm_component.xml
+#        workspace_dir: workspace
+#        slot_num: 0
+#      [component_name]
+#        base_hash_algo: <Algorithm name ex: SHA384>
+#        measure_hash_algo: <Algorithm name ex: SHA384>
+#        rootca_digest_val: <RootCA Digest>
+#        signed_flag: <True/False>
+#        file_type: <CORIM/RIM>
+#  How to run:
+#   1. First generate component filter file using -l option. Output file will contain all the supported
+#      sub-components, which will be by default part of Include List.
+#   2. Check if you want to use default generated file as is i.e., generate XML for all the sub-components.
+#      If not, then make changes in either Include or Exclude List.
+#   3. Input the generated file to the script using -c option. Script will parse the config file and generate
+#      XML files.
 
 # TODO: Replace shell commands with python file system APIs
 
@@ -26,11 +49,16 @@ import json as js
 import xml.etree.ElementTree as et
 from enum import Enum
 import base64
+import warnings
+import configparser
 
 #globals
 smc_component_name="component"
 smc_input_filename="spdm_measurement.rim"
 smc_output_filename="cfm_component.xml"
+smc_comp_filter_cfg_filename="cfm_xml_comp_filter.cfg"
+smc_auto_gen_comp_filter_cfg_filename="auto_gen_comp_filter.cfg"
+smc_comp_def_cfg_filename="component_defaults.cfg"
 smc_filetype="RIM"
 smc_slot_num="0"
 smc_rootca_digest=""
@@ -38,7 +66,11 @@ smc_base_hash_alg="SHA384"
 smc_meas_hash_alg="SHA384"
 smc_signed_flag=True
 smc_ws_dir="."
+smc_output_dir=""
 smc_debug=False
+smc_get_comp_list=False
+smc_component_inc_list=[]
+smc_component_exc_list=[]
 
 #filetypes
 CONFIG_TYPE_RIM="RIM"
@@ -107,6 +139,17 @@ CONFIG_VALUE_ENDIANESS_BIG_ENDIAN="BigEndian"
 CONFIG_VALUE_CHECK_EQUAL="Equal"
 CONFIG_VALUE_TRANSCRIPT_HASH_TYPE_SHA384="SHA384"
 CONFIG_VALUE_MEASUREMENT_HASH_TYPE_SHA384="SHA384"
+
+#Component Map Config Sections and Keys/Values
+COMPONENT_MAP_DEFAULTS_SECTION='Defaults'
+COMPONENT_MAP_DEFAULT_OUTPUT_FILENAME='output_filename'
+COMPONENT_MAP_DEFAULT_WORKSPACE_DIR='workspace_dir'
+COMPONENT_MAP_DEFAULT_SLOT_NUM='slot_num'
+COMPONENT_MAP_BASE_HASH_ALGO='base_hash_algo'
+COMPONENT_MAP_MEASURE_HASH_ALGO='measure_hash_algo'
+COMPONENT_MAP_ROOTCA_DIGEST_VAL='rootca_digest_val'
+COMPONENT_MAP_SIGNED_FLAG='signed_flag'
+COMPONENT_MAP_FILE_TYPE='file_type'
 
 ## helpers functions to create the cfm xml file
 # python 3.9 and above has this function already implemented
@@ -280,6 +323,37 @@ class Corim_Data:
             print ("cmd_str = ", cmd_str)
         os.system(cmd_str)
 
+    def set_vendor_model_name(self, tag_environment):
+        """
+        Set self.model to vendor provided model name.
+        """
+        if CONFIG_TAG_MODEL in tag_environment[CONFIG_TAG_CLASS]:
+            self.model = tag_environment[CONFIG_TAG_CLASS][CONFIG_TAG_MODEL]
+            self.model = self.model.upper()
+            if smc_component_name in self.model:
+                self.model = smc_component_name
+            elif ' ' in self.model:
+                self.model = self.model.split(' ', 1)[0]
+
+    def get_model_name(self, tag_measurements):
+        """
+        Get model name from tag measurements.
+        """
+        value = ""
+        for d in tag_measurements:
+            if CONFIG_TAG_RAW_VALUE in d[CONFIG_TAG_VALUE]:
+                if CONFIG_TAG_VALUE in d[CONFIG_TAG_VALUE][CONFIG_TAG_RAW_VALUE]:
+                    value = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_RAW_VALUE][CONFIG_TAG_VALUE])
+                else:
+                    value = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_RAW_VALUE])
+                if smc_component_name not in self.model:
+                    if (d[CONFIG_TAG_KEY][CONFIG_TAG_VALUE] == 2):
+                        encoded = value.hex().replace('00', '')
+                        if (is_not_blank(bytearray.fromhex(encoded).decode())):
+                            model = bytearray.fromhex(encoded).decode()
+                            return model
+        return smc_component_name
+
     def create_json_files(self):
         """
         Creates the Json files
@@ -341,15 +415,28 @@ class Corim_Data:
             tag_environment = d[CONFIG_TAG_ENVIRONMENT]
 
             self.vendor = tag_environment[CONFIG_TAG_CLASS][CONFIG_TAG_VENDOR]
-            if CONFIG_TAG_MODEL in tag_environment[CONFIG_TAG_CLASS]:
-                self.model = tag_environment[CONFIG_TAG_CLASS][CONFIG_TAG_MODEL]
-                self.model = self.model.upper()
-                if smc_component_name in self.model:
-                    self.model = smc_component_name
-                elif ' ' in self.model:
-                    self.model = self.model.split(' ', 1)[0]
+            self.set_vendor_model_name(tag_environment)
 
             tag_measurements = d[CONFIG_TAG_MEASUREMENTS]
+
+            """
+            Get component/model name.
+            """
+            self.model = self.get_model_name(tag_measurements)
+
+            """
+            Skip component/model when -
+            1. exclude_list is not empty and component/model is part of the list.
+            2. include_list is not empty and component/model is not part of the list.
+            """
+            if (smc_component_exc_list) and (self.model in smc_component_exc_list):
+                return self.measurements
+
+            if (smc_component_inc_list) and (self.model not in smc_component_inc_list):
+                return self.measurements
+
+            print ("self.model =", self.model)
+
             for d in tag_measurements:
                 if CONFIG_TAG_RAW_VALUE in d[CONFIG_TAG_VALUE]:
                     if CONFIG_TAG_VALUE in d[CONFIG_TAG_VALUE][CONFIG_TAG_RAW_VALUE]:
@@ -362,13 +449,6 @@ class Corim_Data:
                         mask = format((1 << (len(value) * 8)) - 1, 'x')
                     measurement = Corim_Measurement(d[CONFIG_TAG_KEY][CONFIG_TAG_VALUE], Measurement_Type.CONFIG_TYPE_UINT,
                         CONFIG_TAG_RAW_VALUE, value.hex(), mask)
-                    if smc_component_name not in self.model:
-                      #update self.model
-                        if (d[CONFIG_TAG_KEY][CONFIG_TAG_VALUE] == 2):
-                            encoded = measurement.value.replace('00', '')
-                            if (is_not_blank(bytearray.fromhex(encoded).decode())):
-                                self.model = bytearray.fromhex(encoded).decode()
-                            print ("self.model =", self.model)
                 else:
                     if ':' in d[CONFIG_TAG_VALUE][CONFIG_TAG_DIGESTS][0]:
                         value = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_DIGESTS][0].split(':')[1]).hex()
@@ -377,6 +457,38 @@ class Corim_Data:
                     measurement = Corim_Measurement(d[CONFIG_TAG_KEY][CONFIG_TAG_VALUE], Measurement_Type.CONFIG_TYPE_DIGEST,
                         CONFIG_TAG_DIGESTS, value, None)
                 self.measurements.append(measurement)
+        return self.measurements
+
+    def extract_model_name(self, json_filename):
+        """
+        Parses the json file to extract component/model name.
+        """
+
+        # Opening JSON file in read mode
+        with open(json_filename, "r") as json_file:
+
+            # loading json file data to variable data
+            data = js.load(json_file);
+
+            d = data[CONFIG_TAG_TRIPLES][CONFIG_TAG_REFERNCE_VAUES][0]
+            tag_environment = d[CONFIG_TAG_ENVIRONMENT]
+            tag_measurements = d[CONFIG_TAG_MEASUREMENTS]
+
+            """
+            Set self.model before we extract model name from CoRIM file.
+            This is needed to check smc_component_name with self.model later
+            when we actually extract model name. If model name is not present
+            in CoRIM file, then we set smc_component_name as self.model
+            """
+            self.set_vendor_model_name(tag_environment)
+
+            """
+            Get component/model name.
+            """
+            self.model = self.get_model_name(tag_measurements)
+            return self.model
+
+        return smc_component_name
 
     def display(self, filename):
         """
@@ -559,6 +671,9 @@ class SPDM_Measurement_Data():
         """
         Converts input file to CFM file as per filetype.
         """
+        self.execute_command("rm -rf " + smc_output_dir)
+        self.execute_command("mkdir " + smc_output_dir)
+
         if self.filetype == CONFIG_TYPE_RIM:
             self.data.parse_json_file()
             self.data.display()
@@ -569,7 +684,9 @@ class SPDM_Measurement_Data():
         elif self.filetype == CONFIG_TYPE_CORIM:
             json_filenames = self.data.create_json_files()
             for json_filename in json_filenames:
-                self.data.parse_json_file(json_filename)
+                measurements = self.data.parse_json_file(json_filename)
+                if not measurements:
+                    continue
                 self.data.display(json_filename)
                 if is_not_blank(self.data.model):
                     self.create_cfm_file(self.data, self.output_filename.split(".")[0] + "_" + self.data.model + ".xml")
@@ -581,6 +698,53 @@ class SPDM_Measurement_Data():
                     filepath = os.path.join(smc_ws_dir, filename)
                     self.execute_command("rm -f " + filepath)
             self.execute_command("rm -rf " + smc_ws_dir)
+
+    def display_model_list(self):
+        """
+        Display list of supported components/models for an input CoRIM file.
+        Create a config file with list of supported components/models. By default,
+        all supported models are part of include list. User can make changes to this
+        file before passing it to this script for XML generation.
+        """
+        json_filenames = self.data.create_json_files()
+
+        config_data = configparser.ConfigParser()
+        autogen_filename = smc_component_name + '_' + smc_auto_gen_comp_filter_cfg_filename
+        cfg_file = open(autogen_filename,'w')
+
+        model_list = []
+        print ("=================================================================================")
+        print ("Input CoRIM file supports below components/models -")
+        print ("=================================================================================")
+        for json_filename in json_filenames:
+            model_name = self.data.extract_model_name(json_filename)
+            model_list.append(model_name)
+            print ("*", model_name)
+        print ("=================================================================================")
+
+        model_str = ','.join(map(str, model_list))
+
+        """
+        Write model list to config file.
+        Default all are part of include list.
+        """
+        config_data['Include List'] = {'-inc': model_str}
+        config_data['Exclude List'] = {'-exc': ""}
+        config_data.write(cfg_file)
+        cfg_file.close()
+
+        print ("=================================================================================")
+        print ("Component list config file generated= ", autogen_filename)
+        print ("=================================================================================")
+
+        """
+        Delete intermediate files and directory.
+        """
+        for filename in os.listdir(smc_ws_dir):
+            if filename.endswith(".json"):
+                filepath = os.path.join(smc_ws_dir, filename)
+                self.execute_command("rm -f " + filepath)
+        self.execute_command("rm -rf " + smc_ws_dir)
 
 def cmd_validate_input_args(component_name, input_filename, output_filename, filetype):
     """
@@ -604,7 +768,7 @@ def cmd_validate_input_args(component_name, input_filename, output_filename, fil
         return -1
     return 0
 
-def cmd_validate_optional_input_args(slot_num, rootca_digest, base_hash_alg, meas_hash_alg, signed_flag, workspace_dir):
+def cmd_validate_optional_input_args(slot_num, rootca_digest, base_hash_alg, meas_hash_alg, signed_flag, workspace_dir, smc_output_dir, exclude_list, include_list):
     """
     Validates the optional input arguments.
 
@@ -614,10 +778,13 @@ def cmd_validate_optional_input_args(slot_num, rootca_digest, base_hash_alg, mea
     :param meas_hash_alg: Meas Hash Algorithm
     :param signed_flag: Flag to indicate input file is signed_flag or not
     :param workspace_dir: Folder to store intermediate files
+    :param smc_output_dir: Output directory to store xml files
+    :param exclude_list: List of components excluded from CFM generation
+    :param include_list: List of components included for CFM generation
 
     :return 0 on success and -1 on failure
     """
-    
+
     if slot_num == None:
         return -1
     if rootca_digest == None:
@@ -628,7 +795,20 @@ def cmd_validate_optional_input_args(slot_num, rootca_digest, base_hash_alg, mea
         return -1
     if workspace_dir == None:
         return -1
-
+    if smc_output_dir == None:
+        return -1
+    if (smc_filetype != CONFIG_TYPE_CORIM) and (smc_get_comp_list == True):
+        warnings.warn("Input filetype format doesn't support multiple components.", stacklevel=2)
+        return -1
+    if (smc_filetype != CONFIG_TYPE_CORIM) and (include_list or exclude_list):
+        warnings.warn("Input filetype format doesn't require include/exclude list inputs.", stacklevel=2)
+        return -1
+    if (smc_filetype == CONFIG_TYPE_CORIM) and (include_list or exclude_list) and (smc_get_comp_list == True):
+        warnings.warn("-l/--comp_list and -inc/-exc both cannot be used together in the same command.", stacklevel=2)
+        return -1
+    if include_list and exclude_list:
+        warnings.warn("Use either include_list or exclude_list option. Both cannot be used together.", stacklevel=2)
+        return -1
 
     return 0
 
@@ -637,40 +817,72 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = 'SPDM Measurements to CFM')
     parser.add_argument ('component_name', help = 'Component Name')
     parser.add_argument ('input_filename', help = 'Input SPDM Measurement File')
-    parser.add_argument ('output_filename', help = 'Output CFM File')
-    parser.add_argument ('filetype', help = 'File Type(RIM/CORIM)')
 
     #optional args
-    parser.add_argument('-s', '--slot_num', help = 'SPDM Slot Number')
-    parser.add_argument('-r', '--rootca_digest', help = 'RootCA Ceritificate Digest')
-    parser.add_argument('-b', '--base_hash_alg', help = 'Base Hash Algorithm Supported')
-    parser.add_argument('-m', '--meas_hash_alg', help = 'Meas Hash Algorithm Supported')
-    parser.add_argument ('-g', '--signed_flag', help = 'Flag to indicate input file is signed or not')
-    parser.add_argument ('-i', '--workspace_dir', help = 'Folder to store intermediate files')
     parser.add_argument('-d', '--debug', action="store_true", help = 'Enable debuggging')
+    parser.add_argument('-l', '--get_comp_list', action="store_true", help = 'Get list of supported components')
+    parser.add_argument ('-c', '--comp_filter_file', help = 'Config file containing Include/Exclude component lists')
+    parser.add_argument ('-f', '--comp_def_file', help = 'Config file containing defaults for each CoRIM/RIM file')
 
     args = parser.parse_args()
 
     smc_component_name = args.component_name
     smc_input_filename = args.input_filename
-    smc_output_filename = args.output_filename
-    smc_filetype = args.filetype
 
     #oprtional args
-    if args.slot_num:
-        smc_slot_num = args.slot_num
-    if args.rootca_digest:
-        smc_rootca_digest = args.rootca_digest
-    if args.base_hash_alg:
-        smc_base_hash_alg = args.base_hash_alg
-    if args.meas_hash_alg:
-        smc_meas_hash_alg = args.meas_hash_alg
-    if args.signed_flag:
-        smc_signed_flag = args.signed_flag
-    if args.workspace_dir:
-        smc_ws_dir = os.path.join(smc_ws_dir, args.workspace_dir)
     if args.debug:
         smc_debug = True
+    if args.get_comp_list:
+        smc_get_comp_list = args.get_comp_list
+    if args.comp_filter_file:
+        smc_comp_filter_cfg_filename = args.comp_filter_file
+    if args.comp_def_file:
+        smc_comp_def_cfg_filename = args.comp_def_file
+
+    """
+    Populate defaults and component specific parameters from component map config file.
+    """
+    config_data = configparser.ConfigParser()
+    map_file = os.path.join (os.path.dirname (os.path.abspath (__file__)), smc_comp_def_cfg_filename)
+    if (os.path.isfile(map_file)):
+        config_data.read(map_file)
+    else:
+        warnings.warn("File " + smc_comp_def_cfg_filename + " is missing!", stacklevel=2)
+        exit()
+
+    smc_output_filename = config_data.get(COMPONENT_MAP_DEFAULTS_SECTION,COMPONENT_MAP_DEFAULT_OUTPUT_FILENAME)
+    smc_ws_dir = config_data.get(COMPONENT_MAP_DEFAULTS_SECTION,COMPONENT_MAP_DEFAULT_WORKSPACE_DIR)
+    smc_slot_num = config_data.get(COMPONENT_MAP_DEFAULTS_SECTION,COMPONENT_MAP_DEFAULT_SLOT_NUM)
+    smc_filetype = config_data.get(smc_component_name,COMPONENT_MAP_FILE_TYPE)
+    smc_rootca_digest = config_data.get(smc_component_name,COMPONENT_MAP_ROOTCA_DIGEST_VAL)
+    smc_base_hash_alg = config_data.get(smc_component_name,COMPONENT_MAP_BASE_HASH_ALGO)
+    smc_meas_hash_alg = config_data.get(smc_component_name,COMPONENT_MAP_MEASURE_HASH_ALGO)
+    smc_signed_flag = config_data.get(smc_component_name,COMPONENT_MAP_SIGNED_FLAG)
+
+    """
+    Populate include and exclude list from input component list config file.
+    """
+    if (not smc_get_comp_list):
+        filter_file = os.path.join (os.path.dirname (os.path.abspath (__file__)), smc_comp_filter_cfg_filename)
+        if (os.path.isfile(filter_file)):
+            config_data.read(filter_file)
+
+            inc_list = config_data.get('Include List','-inc')
+            if inc_list:
+                smc_component_inc_list = inc_list.split(',')
+
+            exc_list = config_data.get('Exclude List','-exc')
+            if exc_list:
+                smc_component_exc_list = exc_list.split(',')
+        else:
+            warnings.warn("File " + smc_comp_filter_cfg_filename + " is missing!\n"
+                    "Check if the filename is correct.", stacklevel=2)
+            exit()
+
+        """
+        Create an output directory to store .xml files like in Pipeline
+        """
+        smc_output_dir = smc_output_filename.split('/')[0]
 
     if (cmd_validate_input_args(smc_component_name, smc_input_filename, smc_output_filename, smc_filetype) != 0):
         exit()
@@ -679,14 +891,17 @@ if __name__ == "__main__":
             "smc_filetype=", smc_filetype)
 
     if (cmd_validate_optional_input_args(smc_slot_num, smc_rootca_digest, smc_base_hash_alg,
-            smc_meas_hash_alg, smc_signed_flag, smc_ws_dir) != 0):
+            smc_meas_hash_alg, smc_signed_flag, smc_ws_dir, smc_output_dir, smc_component_exc_list, smc_component_inc_list) != 0):
         exit()
 
     print("Optional Input Args: smc_slot_num=", smc_slot_num, "smc_rootca_digest=", smc_rootca_digest,
-            "smc_base_hash_alg=", smc_base_hash_alg, "smc_meas_hash_alg=", smc_meas_hash_alg, "smc_signed_flag=", smc_signed_flag, "smc_ws_dir=", smc_ws_dir)
+            "smc_base_hash_alg=", smc_base_hash_alg, "smc_meas_hash_alg=", smc_meas_hash_alg, "smc_signed_flag=", smc_signed_flag, "smc_ws_dir=", smc_ws_dir, "smc_get_comp_list=", smc_get_comp_list, "smc_component_inc_list=", smc_component_inc_list, "smc_component_exc_list=", smc_component_exc_list)
 
     config = SPDM_Measurement_Config(smc_slot_num, smc_rootca_digest, smc_base_hash_alg,
             smc_meas_hash_alg)
     data = SPDM_Measurement_Data(smc_input_filename, smc_output_filename, smc_filetype, config)
 
-    data.convert_to_cfm()
+    if (smc_get_comp_list) and (smc_filetype == CONFIG_TYPE_CORIM):
+        data.display_model_list()
+    else:
+        data.convert_to_cfm()
