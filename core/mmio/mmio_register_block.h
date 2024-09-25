@@ -4,6 +4,7 @@
 #ifndef MMIO_REGISTER_BLOCK_H_
 #define MMIO_REGISTER_BLOCK_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include "status/rot_status.h"
@@ -93,6 +94,22 @@ struct mmio_register_block {
 		const uint32_t *src, size_t dwords_count);
 };
 
+
+int mmio_register_block_read_bit (const struct mmio_register_block *register_block,
+	uintptr_t register_offset, uint8_t bit_num, bool *value);
+int mmio_register_block_write_bit (const struct mmio_register_block *register_block,
+	uintptr_t register_offset, uint8_t bit_num, bool value);
+int mmio_register_block_set_bit (const struct mmio_register_block *register_block,
+	uintptr_t register_offset, uint8_t bit_num);
+int mmio_register_block_clear_bit (const struct mmio_register_block *register_block,
+	uintptr_t register_offset, uint8_t bit_num);
+
+int mmio_register_block_read_bits (const struct mmio_register_block *register_block,
+	uintptr_t register_offset, uint8_t bit_offset, uint8_t bit_count, uint32_t *value);
+int mmio_register_block_write_bits (const struct mmio_register_block *register_block,
+	uintptr_t register_offset, uint8_t bit_offset, uint8_t bit_count, uint32_t value);
+
+
 #define	MMIO_REGISTER_ERROR(code)		ROT_ERROR (ROT_MODULE_MMIO_REGISTER, code)
 
 /**
@@ -113,6 +130,8 @@ enum {
 	MMIO_REGISTER_UNALIGNED_SIZE = MMIO_REGISTER_ERROR (0x09),			/**< Unaligned block size detected. */
 	MMIO_REGISTER_OFFSET_OUT_OF_RANGE = MMIO_REGISTER_ERROR (0x0A),		/**< Register offset is out of range. */
 	MMIO_REGISTER_NOT_MAPPED = MMIO_REGISTER_ERROR (0x0B),				/**< Memory is not mapped before accessing registers */
+	MMIO_REGISTER_BIT_OUT_OF_RANGE = MMIO_REGISTER_ERROR (0x0C),		/**< Bit number larger than the register size. */
+	MMIO_REGISTER_BIT_MASK_OUT_OF_RANGE = MMIO_REGISTER_ERROR (0x0D),	/**< Set of bits larger than the register size. */
 };
 
 

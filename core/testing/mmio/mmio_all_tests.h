@@ -21,6 +21,12 @@ static void add_all_mmio_tests (CuSuite *suite)
 	/* This is unused when no tests will be executed. */
 	UNUSED (suite);
 
+#if (defined TESTING_RUN_MMIO_REGISTER_BLOCK_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_MMIO_REGISTER_BLOCK_SUITE
+	TESTING_RUN_SUITE (mmio_register_block);
+#endif
 #if (defined TESTING_RUN_MMIO_MMIO_UTIL_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
