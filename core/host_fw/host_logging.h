@@ -73,6 +73,7 @@ enum {
 	HOST_LOGGING_RECOVERY_RETRIES,				/**< Number of recovery attempts. */
 	HOST_LOGGING_ACTIVE_UPDATE_SUCCESSFUL,		/**< Host active flash update successful. */
 	HOST_LOGGING_ACTIVE_UPDATE_FAIL,			/**< Host active flash update failed. */
+	HOST_LOGGING_ACTIVATION_FAILURE,			/**< Failed to activate Host firmware Image */
 };
 
 
