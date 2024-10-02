@@ -70,7 +70,7 @@ void CuAssertInt64Equals_LineMsg (CuTest *tc, const char *file, int line, const 
 void CuAssertDblEquals_LineMsg (CuTest *tc,	const char *file, int line, const char *message,
 	double expected, double actual, double delta);
 void CuAssertPtrEquals_LineMsg (CuTest *tc,	const char *file, int line, const char *message,
-	void *expected, void *actual);
+	const void *expected, const void *actual);
 
 /* public assert functions */
 
