@@ -1092,10 +1092,14 @@ static void tpm_test_increment_counter_read_fail (CuTest *test)
 	status = mock_expect (&flash.mock, flash.base.read, &flash, FLASH_STORE_READ_FAILED,
 		MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG (512));
 
+	status |= mock_expect (&flash.mock, flash.base.write, &flash, 0, MOCK_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (segment, sizeof (segment)), MOCK_ARG (sizeof (segment)));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = tpm_increment_counter (&tpm);
-	CuAssertIntEquals (test, FLASH_STORE_READ_FAILED, status);
+	/* header recovers from flash errors */
+	CuAssertIntEquals (test, 0, status);
 
 	complete_tpm_mock_test (test, &tpm, &flash);
 }
@@ -1750,6 +1754,9 @@ static void tpm_test_on_soft_reset_read_fail (CuTest *test)
 	status = mock_expect (&flash.mock, flash.base.read, &flash, FLASH_STORE_READ_FAILED,
 		MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG (512));
 
+	status |= mock_expect (&flash.mock, flash.base.write, &flash, 0, MOCK_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (segment, sizeof (segment)), MOCK_ARG (sizeof (segment)));
+
 	CuAssertIntEquals (test, 0, status);
 
 	tpm.observer.on_soft_reset (&tpm.observer);
@@ -2126,10 +2133,14 @@ static void tpm_test_schedule_clear_read_fail (CuTest *test)
 	status = mock_expect (&flash.mock, flash.base.read, &flash, FLASH_STORE_READ_FAILED,
 		MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG (512));
 
+	status |= mock_expect (&flash.mock, flash.base.write, &flash, 0, MOCK_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (segment, sizeof (segment)), MOCK_ARG (sizeof (segment)));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = tpm_schedule_clear (&tpm);
-	CuAssertIntEquals (test, FLASH_STORE_READ_FAILED, status);
+	/* header recovers from flash errors */
+	CuAssertIntEquals (test, 0, status);
 
 	complete_tpm_mock_test (test, &tpm, &flash);
 }

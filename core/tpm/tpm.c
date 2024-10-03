@@ -94,7 +94,6 @@ static int tpm_read_header (struct tpm *tpm, bool init, bool write, bool log)
 		/* If the flash storage doesn't have valid data, reinitialize the header. */
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_TPM,
 			TPM_LOGGING_NO_HEADER, status, 0);
-		status = 0;
 	}
 	else if (ROT_IS_ERROR (status)) {
 		if (log) {
@@ -107,12 +106,18 @@ static int tpm_read_header (struct tpm *tpm, bool init, bool write, bool log)
 			return status;
 		}
 	}
+
+	if (ROT_IS_ERROR (status)) {
+		header = NULL;
+	}
 	else {
+		/* Populate header only if we have successfully read from flash */
+		header = (struct tpm_header*) tpm->buffer;
 		status = 0;
 	}
 
-	header = (struct tpm_header*) tpm->buffer;
-	if (header->magic != TPM_MAGIC) {
+	/* Re-initialize TPM storage if there are any issues with the header during init */
+	if ((header == NULL) || (header && (header->magic != TPM_MAGIC))) {
 		if (init) {
 			status = tpm_init_header (tpm, false, write);
 		}
