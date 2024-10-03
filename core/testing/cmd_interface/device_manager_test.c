@@ -4631,6 +4631,87 @@ static void device_manager_test_get_eid_of_next_device_to_attest_multiple_authen
 	device_manager_release (&manager);
 }
 
+static void device_manager_test_get_eid_of_next_device_to_attest_multiple_unauthenticated (
+	CuTest *test)
+{
+	struct device_manager manager;
+	int status;
+	int i_device = 0;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 1, 14, 14, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 200, 200, 200, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	for (i_device = 0; i_device < 14; i_device++) {
+		status = device_manager_update_not_attestable_device_entry (&manager, i_device,
+			0xAA + i_device, 0xBB, i_device);
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_READY_FOR_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_ATTESTATION_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 2,
+		DEVICE_MANAGER_ATTESTATION_INTERRUPTED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 3,
+		DEVICE_MANAGER_ATTESTATION_INVALID_VERSION);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 4,
+		DEVICE_MANAGER_ATTESTATION_INVALID_CAPS);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 5,
+		DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 6,
+		DEVICE_MANAGER_ATTESTATION_INVALID_DIGESTS);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 7,
+		DEVICE_MANAGER_ATTESTATION_INVALID_CERTS);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 8,
+		DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 9,
+		DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 10,
+		DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 11,
+		DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 12,
+		DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 13,
+		DEVICE_MANAGER_ATTESTATION_INVALID_CFM);
+	CuAssertIntEquals (test, 0, status);
+
+	for (i_device = 1; i_device < 14; i_device++) {
+		status = device_manager_get_eid_of_next_device_to_attest (&manager);
+		CuAssertIntEquals (test, 0xAA + i_device, status);
+	}
+
+	device_manager_release (&manager);
+}
+
 static void device_manager_test_get_eid_of_next_device_to_attest_no_available_devices (CuTest *test)
 {
 	struct device_manager manager;
@@ -7466,6 +7547,7 @@ TEST (device_manager_test_get_eid_of_next_device_to_attest_one_device);
 TEST (device_manager_test_get_eid_of_next_device_to_attest_multiple);
 TEST (device_manager_test_get_eid_of_next_device_to_attest_multiple_attestation_failed);
 TEST (device_manager_test_get_eid_of_next_device_to_attest_multiple_authenticated);
+TEST (device_manager_test_get_eid_of_next_device_to_attest_multiple_unauthenticated);
 TEST (device_manager_test_get_eid_of_next_device_to_attest_invalid_arg);
 TEST (device_manager_test_get_eid_of_next_device_to_attest_no_available_devices);
 TEST (device_manager_test_get_eid_of_next_device_to_attest_no_ready_devices);
