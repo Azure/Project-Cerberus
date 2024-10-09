@@ -14,7 +14,7 @@
 enum {
 	MPU_PAGE_ATTRIBUTE_READ = 0x1,		/**< MPU bit which enables read access */
 	MPU_PAGE_ATTRIBUTE_WRITE = 0x2,		/**< MPU bit which enables write access */
-	MPU_PAGE_ATTRIBUTE_EXECUTE = 0x4,	/**< MPU bit which enables execite access */
+	MPU_PAGE_ATTRIBUTE_EXECUTE = 0x4,	/**< MPU bit which enables execute access */
 	MPU_PAGE_ATTRIBUTE_LOCKED = 0x8,	/**< MPU bit which lock this page for further attributes modification */
 	MPU_PAGE_ATTRIBUTE_ALL = 0xF,		/**< Bitmask of all used MPU bits */
 };
