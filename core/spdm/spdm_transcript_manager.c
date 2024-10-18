@@ -512,7 +512,6 @@ int spdm_transcript_manager_get_hash (
 		default:
 			status = SPDM_TRANSCRIPT_MANAGER_UNSUPPORTED_CONTEXT_TYPE;
 			goto exit;
-			break;
 	}
 
 	if (hash_context->hash_started == false) {

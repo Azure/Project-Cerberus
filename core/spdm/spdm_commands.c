@@ -4328,8 +4328,8 @@ int spdm_end_session (const struct cmd_interface_spdm_responder *spdm_responder,
 	spdm_reset_transcript_via_request_code (state, transcript_manager, SPDM_REQUEST_END_SESSION);
 
 	session->end_session_attributes = spdm_request->end_session_attributes;
-	if ((spdm_request->end_session_attributes.negotiated_state_preservation_indicator ==
-		SPDM_END_SESSION_REQUEST_ATTRIBUTES_PRESERVE_NEGOTIATED_STATE_CLEAR)) {
+	if (spdm_request->end_session_attributes.negotiated_state_preservation_indicator ==
+		SPDM_END_SESSION_REQUEST_ATTRIBUTES_PRESERVE_NEGOTIATED_STATE_CLEAR) {
 		state->connection_info.end_session_attributes.negotiated_state_preservation_indicator =
 			SPDM_END_SESSION_REQUEST_ATTRIBUTES_PRESERVE_NEGOTIATED_STATE_CLEAR;
 	}
