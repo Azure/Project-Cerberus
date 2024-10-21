@@ -20,7 +20,8 @@ enum {
 	SYSTEM_LOGGING_DEVICE_UNLOCKED,			/**< An unlock policy has been applied to the device. */
 	SYSTEM_LOGGING_LOCK_STATE_FAIL,			/**< An error occurred attempting to make the lock state consistent. */
 	SYSTEM_LOGGING_TOKEN_INVALIDATE_FAIL,	/**< Failed to invalidate a consumed unlock token. */
-	SYSTEM_LOGGING_REFRESH_WATCHDOG_FAIL,	/**< Failed to refresh the hardware watchdog counter. */
+	SYSTEM_LOGGING_REFRESH_WATCHDOG_FAIL,	/**< Failed to refresh the hardware watchdog timer. */
+	SYSTEM_LOGGING_START_WATCHDOG_FAIL,		/**< Failed to start the hardware watchdog timer. */
 };
 
 /**
