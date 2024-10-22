@@ -7,7 +7,21 @@
 #include "cmd_interface_tdisp_responder.h"
 #include "tdisp_commands.h"
 #include "cmd_interface/cmd_interface.h"
+#include "common/array_size.h"
 #include "common/unused.h"
+
+/**
+ * TDISP supported messages
+ */
+static const uint8_t tdisp_supported_messages[] = {
+	TDISP_REQUEST_GET_VERSION,
+	TDISP_REQUEST_GET_CAPABILITIES,
+	TDISP_REQUEST_LOCK_INTERFACE,
+	TDISP_REQUEST_GET_DEVICE_INTERFACE_REPORT,
+	TDISP_REQUEST_GET_DEVICE_INTERFACE_STATE,
+	TDISP_REQUEST_START_INTERFACE,
+	TDISP_REQUEST_STOP_INTERFACE,
+};
 
 
 int cmd_interface_tdisp_responder_process_request (const struct cmd_interface *intf,
@@ -42,7 +56,8 @@ int cmd_interface_tdisp_responder_process_request (const struct cmd_interface *i
 			break;
 
 		case TDISP_REQUEST_GET_CAPABILITIES:
-			status = tdisp_get_capabilities (tdisp_responder->tdisp_driver, request);
+			status = tdisp_get_capabilities (tdisp_responder->tdisp_driver,
+				tdisp_supported_messages, ARRAY_SIZE (tdisp_supported_messages), request);
 			break;
 
 		case TDISP_REQUEST_LOCK_INTERFACE:

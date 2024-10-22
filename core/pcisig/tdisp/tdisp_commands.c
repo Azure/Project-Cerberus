@@ -205,11 +205,13 @@ exit:
  *
  * @param tdisp_driver The TDISP driver to use for processing the request.
  * @param request The GET_CAPABILITIES request to process.
+ * @param tdisp_messages Array message IDs supported by TDSIP responder
+ * @param tdisp_messages_count Number of messages supported by TDISP responder
  *
  * @return 0 if request processed successfully (including TDISP error msg) or an error code.
  */
-int tdisp_get_capabilities (const struct tdisp_driver *tdisp_driver,
-	struct cmd_interface_msg *request)
+int tdisp_get_capabilities (const struct tdisp_driver *tdisp_driver, const uint8_t *tdisp_messages,
+	uint32_t tdisp_messages_count, struct cmd_interface_msg *request)
 {
 	int status = 0;
 	const struct tdisp_get_capabilities_request *tdisp_request;
@@ -217,8 +219,11 @@ int tdisp_get_capabilities (const struct tdisp_driver *tdisp_driver,
 	uint32_t function_id = 0;
 	struct tdisp_responder_capabilities rsp_caps = {0};
 	size_t available_payload_length;
+	uint32_t bit_index;
+	size_t i;
 
-	if ((tdisp_driver == NULL) || (request == NULL)) {
+	if ((tdisp_driver == NULL) || (request == NULL) || (tdisp_messages == NULL) ||
+		(tdisp_messages_count == 0)) {
 		return CMD_INTERFACE_TDISP_RESPONDER_INVALID_ARGUMENT;
 	}
 
@@ -248,6 +253,12 @@ int tdisp_get_capabilities (const struct tdisp_driver *tdisp_driver,
 	if (status != 0) {
 		status = TDISP_ERROR_CODE_UNSPECIFIED;
 		goto exit;
+	}
+
+	/* Report supported TDISP messages */
+	for (i = 0; i < tdisp_messages_count; i++) {
+		bit_index = tdisp_messages[i] - 0x80;
+		rsp_caps.req_msg_supported[bit_index / 8] |= (1 << (bit_index % 8));
 	}
 
 	/* Construct the response message. */

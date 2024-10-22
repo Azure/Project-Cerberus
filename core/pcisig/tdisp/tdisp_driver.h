@@ -118,6 +118,7 @@ enum {
 	TDISP_DRIVER_STOP_INTERFACE_REQUEST_FAILED = TDISP_DRIVER_ERROR (0x06),			/**< The driver failed to stop the device interface. */
 	TDISP_DRIVER_GET_DEVICE_INTERFACE_REPORT_FAILED = TDISP_DRIVER_ERROR (0x07),	/**< The driver failed to get the device interface report. */
 	TDISP_DRIVER_GET_MMIO_RANGES_FAILED = TDISP_DRIVER_ERROR (0x08),				/**< The driver failed to get the mmio ranges. */
+	TDISP_DRIVER_NOT_IMPLEMENTED = TDISP_DRIVER_ERROR (0x09),						/**< The driver function is not implemented. */
 };
 
 

@@ -93,6 +93,18 @@ struct tdisp_get_capabilities_request {
 	struct tdisp_requester_capabilities req_caps;	/**< Requester capabilities. */
 };
 
+
+/**
+ * TDISP lock interface flags
+ */
+enum {
+	TDISP_LOCK_INTERFACE_FLAGS_NO_FW_UPDATE = 0x01,			/**< While intreface is locked no FW update is allowed */
+	TDISP_LOCK_INTERFACE_FLAGS_CACHE_LINE_SIZE = 0x02,		/**< System cache line size. 0 - 64 bytes, 1 - 128 bytes */
+	TDISP_LOCK_INTERFACE_FLAGS_LOCK_MSIX = 0x04,			/**< Lock MSIX table and PBA */
+	TDISP_LOCK_INTERFACE_FLAGS_BIND_P2P = 0x08,				/**< P2P support, 0 - is not allowed/enabled, 1 - can be enabled */
+	TDISP_LOCK_INTERFACE_FLAGS_ALL_REQUEST_REDIRECT = 0x10,	/**< TDI must redirect all ATS translated requests to Root complex */
+};
+
 /**
  * TDISP responder capabilities.
  */

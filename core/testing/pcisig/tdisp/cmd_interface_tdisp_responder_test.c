@@ -327,7 +327,6 @@ static void cmd_interface_tdisp_responder_test_process_request_get_capabilities 
 	struct cmd_interface_tdisp_responder *tdisp_responder;
 	struct cmd_interface_tdisp_responder_testing testing;
 	struct tdisp_responder_capabilities expected_rsp_caps = {0};
-	uint8_t i;
 
 	TEST_START;
 
@@ -349,9 +348,8 @@ static void cmd_interface_tdisp_responder_test_process_request_get_capabilities 
 	rq->req_caps.tsm_caps = rand ();
 
 	expected_rsp_caps.dsm_caps = rand ();
-	for (i = 0; i < sizeof (expected_rsp_caps.req_msg_supported); i++) {
-		expected_rsp_caps.req_msg_supported[i] = rand ();
-	}
+	memset (expected_rsp_caps.req_msg_supported, 0, sizeof (expected_rsp_caps.req_msg_supported));
+	expected_rsp_caps.req_msg_supported[0] = 0xFE;
 	expected_rsp_caps.lock_interface_flags_supported = rand ();
 	expected_rsp_caps.dev_addr_width = rand ();
 	expected_rsp_caps.num_req_this = rand ();
