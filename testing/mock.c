@@ -831,6 +831,93 @@ int mock_validate (struct mock *mock)
 	return fail;
 }
 
+/**
+ * Helper function used by MOCK_FUNCTION_TABLE macros to generically implement "func_arg_count"
+ * function of mock interface
+ *
+ * @param table Pointer to mock function table defined using MOCK_FUNCTION_TABLE macros
+ * @param table_size Number of entries inside mock function table
+ * @param entry_size Size of mock function table entry. Different tables might use different
+ * entries size due to the maximum number of function arguments
+ * @param func Mock interface function pointer
+ *
+ * @return Number of function arguments
+ */
+int mock_function_arg_count (const void *table, size_t table_size, size_t entry_size, void *func)
+{
+	const uint8_t *base = (const uint8_t*) table;
+	const struct mock_function_table_entry *entry;
+	size_t i;
+
+	for (i = 0; i < table_size; i++) {
+		entry = (const struct mock_function_table_entry*) (base + (i * entry_size));
+		if (entry->base.func_ptr == func) {
+			return entry->base.arg_count;
+		}
+	}
+
+	return 0;
+}
+
+/**
+ * Helper function used by MOCK_FUNCTION_TABLE macros to generically implement "func_arg_name_map"
+ * function of mock interface
+ *
+ * @param table Pointer to mock function table defined using MOCK_FUNCTION_TABLE macros
+ * @param table_size Number of entries inside mock function table
+ * @param entry_size Size of mock function table entry. Different tables might use different
+ * entries size due to the maximum number of function arguments
+ * @param func Mock interface function pointer
+ * @param arc Argument index for requested argument name
+ *
+ * @return Name of the requested argument or "unknown" if function of argument is not found
+ */
+const char* mock_function_arg_name_map (const void *table, size_t table_size, size_t entry_size,
+	void *func,	int arg)
+{
+	const uint8_t *base = (const uint8_t*) table;
+	const struct mock_function_table_entry *entry;
+	size_t i;
+
+	for (i = 0; i < table_size; i++) {
+		entry = (const struct mock_function_table_entry*) (base + (i * entry_size));
+		if ((entry->base.func_ptr == func) && (arg < (int) entry->base.arg_count)) {
+			return entry->arg_names[arg];
+		}
+	}
+
+	return "unknown";
+}
+
+/**
+ * Helper function used by MOCK_FUNCTION_TABLE macros to generically implement "func_name_map"
+ * function of mock interface
+ *
+ * @param table Pointer to mock function table defined using MOCK_FUNCTION_TABLE macros
+ * @param table_size Number of entries inside mock function table
+ * @param entry_size Size of mock function table entry. Different tables might use different
+ * entries size due to the maximum number of function arguments
+ * @param func Mock interface function pointer
+ *
+ * @return Function name or "unknown" if function is not found
+ */
+const char* mock_function_name_map (const void *table, size_t table_size, size_t entry_size,
+	void *func)
+{
+	const uint8_t *base = (const uint8_t*) table;
+	const struct mock_function_table_entry *entry;
+	size_t i;
+
+	for (i = 0; i < table_size; i++) {
+		entry = (const struct mock_function_table_entry*) (base + (i * entry_size));
+		if (entry->base.func_ptr == func) {
+			return entry->base.func_name;
+		}
+	}
+
+	return "unknown";
+}
+
 
 /**
  * Initialize the mock instance.

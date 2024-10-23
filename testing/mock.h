@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "common/array_size.h"
 #include "status/rot_status.h"
 
 
@@ -528,6 +529,24 @@ enum {
 	MOCK_BAD_ARG_LENGTH = MOCK_ERROR (0x06),	/**< Argument data is not a valid length. */
 };
 
+/**
+ * Helper base struct for defining mock function table
+ */
+struct mock_function_table_entry_base {
+	void *func_ptr;			/**< Mock function pointer */
+	size_t arg_count;		/**< Number of arguments (not counting "this" pointer) */
+	const char *func_name;	/**< Function name */
+};
+
+/**
+ * Abstract helper struct to mimic actual type used for table entries. This struct can't be
+ * instantiated, so it is only used for type casting
+ */
+struct mock_function_table_entry {
+	struct mock_function_table_entry_base base;	/**< Table entry base */
+	const char *const arg_names[];				/**< Abstract pointer to the array of argument names */
+};
+
 
 /* Calls for derived mock internal use. */
 
@@ -541,6 +560,11 @@ struct mock_call* mock_allocate_call (const void *func, const void *instance, si
 
 int64_t mock_return_from_call (struct mock *mock, struct mock_call *call);
 
+int mock_function_arg_count (const void *table, size_t table_size, size_t entry_size, void *func);
+const char* mock_function_arg_name_map (const void *table, size_t table_size, size_t entry_size,
+	void *func,	int arg);
+const char* mock_function_name_map (const void *table, size_t table_size, size_t entry_size,
+	void *func);
 
 #define MOCK_ARG_CALL(x)		((int64_t) x)
 #define	MOCK_ARG_PTR_CALL(ptr)	((int64_t) ((uintptr_t) ptr))
@@ -565,6 +589,93 @@ int64_t mock_return_from_call (struct mock *mock, struct mock_call *call);
 	return (cast) ((uintptr_t) (MOCK_VOID_RETURN (mock, func, inst, __VA_ARGS__)))
 #define MOCK_RETURN_NO_ARGS_CAST_PTR(mock, cast, func, inst) \
 	return (cast) ((uintptr_t) (MOCK_VOID_RETURN_NO_ARGS (mock, func, inst)))
+
+/**
+ * Macro which allows to pass multiple arguments as another macro argument. Used to specify
+ * list of function argument names, for example:
+ * 	MOCK_FUNCTION_ARGS ("buffer", "buffer_size")
+ * Used in combination with MOCK_FUNCTION macro
+ *
+ * @param "..." List of function argument names
+ */
+#define MOCK_FUNCTION_ARGS(...) __VA_ARGS__
+
+/**
+ * Macro to start mock function table definition. The usage should look like:
+ *
+ * MOCK_FUNCTION_TABLE_BEGIN (my_type, 3)
+ * 		MOCK_FUNCTION (my_type, foo, 2, MOCK_FUNCTION_ARGS ("arg1", "arg2"))
+ * 		...
+ * MOCK_FUNCTION_TABLE_END (my_type)
+ *
+ * @param _type Interface type for this mock implementation
+ * @param _max_arg_count Maximum number of function arguments for all functions defined inside
+ * this interface. It has to be provided in order to properly allocate necessary number of entries
+ * to hold each function argument names.
+ */
+#define MOCK_FUNCTION_TABLE_BEGIN(_type, _max_arg_count) \
+struct { \
+	struct mock_function_table_entry_base base; \
+	const char *const arg_names[_max_arg_count]; \
+} _type##_mock_funcs[] = {
+
+/**
+ * Macro for defining mock function table entries.
+ *
+ * @param _type Interface type for this mock
+ * @param _func_name Interface function
+ * @param _arg_count Number of arguments for this function
+ * @param _arg_names List of argument names passed using MOCK_FUNCTION_ARGS() macro
+ */
+#define MOCK_FUNCTION(_type, _func_name, _arg_count, _arg_names) \
+	{ \
+		.base = { \
+			.func_ptr = _type##_mock_##_func_name, \
+			.arg_count = _arg_count, \
+			.func_name = #_func_name, \
+		}, \
+		.arg_names = {_arg_names}, \
+	},
+
+/**
+ * Macro for finalizing table definition and defining mock interface functions
+ *
+ * @param _type Interface type for this mock
+ */
+#define MOCK_FUNCTION_TABLE_END(_type) \
+}; \
+\
+static int _type##_mock_func_arg_count (void *func) \
+{ \
+	return mock_function_arg_count (_type##_mock_funcs, ARRAY_SIZE (_type##_mock_funcs), \
+		sizeof (_type##_mock_funcs[0]), func); \
+} \
+\
+static const char* _type##_mock_arg_name_map (void *func, int arg) \
+{ \
+	return mock_function_arg_name_map (_type##_mock_funcs, ARRAY_SIZE (_type##_mock_funcs), \
+		sizeof (_type##_mock_funcs[0]), func, arg); \
+} \
+\
+static const char* _type##_mock_func_name_map (void *func) \
+{ \
+	return mock_function_name_map (_type##_mock_funcs, ARRAY_SIZE (_type##_mock_funcs), \
+		sizeof (_type##_mock_funcs[0]), func); \
+}
+
+/**
+ * Macro for initializing mock interface functions. This macro should be used in conjuction
+ * with MOCK_FUNCTION_TABLE_BEGIN(), MOCK_FUNCTION(), MOCK_FUNCTION_TABLE_END() to initialize
+ * mock instance virtual functions
+ *
+ * @param _mock_obj Mock instance to be used initializing mock virtual functions
+ * @param _type Interface type for this mock. Should be the same as used in other MOCK_FUNCTION_xxx
+ * macros
+ */
+#define MOCK_INTERFACE_INIT(_mock_obj, _type) \
+	_mock_obj.func_arg_count = _type##_mock_func_arg_count; \
+	_mock_obj.func_name_map = _type##_mock_func_name_map; \
+	_mock_obj.arg_name_map = _type##_mock_arg_name_map;
 
 
 #endif	/* MOCK_H_ */
