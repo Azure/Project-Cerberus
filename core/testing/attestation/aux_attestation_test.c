@@ -578,14 +578,15 @@ static struct riot_keys keys = {
  * Dependencies for testing auxiliary attestation flows.
  */
 struct aux_attestation_testing {
-	struct rsa_engine_mock rsa;				/**< Mock for RSA operations. */
-	struct ecc_engine_mock ecc;				/**< Mock for ECC operations. */
-	struct x509_engine_mock x509;			/**< Mock for X.509 operations. */
-	struct rng_engine_mock rng;				/**< Mock for RNG operations. */
-	struct hash_engine_mock hash;			/**< Mock for hash operations. */
-	struct keystore_mock keystore;			/**< Mock for the attestation keystore. */
-	struct riot_key_manager riot;			/**< Key manager for RIoT keys. */
-	struct aux_attestation test;			/**< Attestation instance being tested. */
+	struct rsa_engine_mock rsa;					/**< Mock for RSA operations. */
+	struct ecc_engine_mock ecc;					/**< Mock for ECC operations. */
+	struct x509_engine_mock x509;				/**< Mock for X.509 operations. */
+	struct rng_engine_mock rng;					/**< Mock for RNG operations. */
+	struct hash_engine_mock hash;				/**< Mock for hash operations. */
+	struct keystore_mock keystore;				/**< Mock for the attestation keystore. */
+	struct riot_key_manager_state riot_state;	/**< Context for the RIoT key manager. */
+	struct riot_key_manager riot;				/**< Key manager for RIoT keys. */
+	struct aux_attestation test;				/**< Attestation instance being tested. */
 };
 
 /**
@@ -611,7 +612,8 @@ static void aux_attestation_testing_init_riot_keys (CuTest *test,
 	status |= mock_expect_output_tmp (&aux->keystore.mock, 1, &dev_id_der, sizeof (dev_id_der), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot_key_manager_init_static (&aux->riot, &aux->keystore.base, &keys, &aux->x509.base);
+	status = riot_key_manager_init_static_keys (&aux->riot, &aux->riot_state, &aux->keystore.base,
+		&keys, &aux->x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&aux->keystore.mock);

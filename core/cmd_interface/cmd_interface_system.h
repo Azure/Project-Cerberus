@@ -46,7 +46,7 @@ struct cmd_interface_system {
 	struct host_processor *host_0;								/**< Host interface for port 0 */
 	struct host_processor *host_1;								/**< Host interface for port 1 */
 	struct pcr_store *pcr_store;								/**< PCR storage */
-	struct riot_key_manager *riot;								/**< RIoT key manager */
+	const struct riot_key_manager *riot;						/**< RIoT key manager */
 	const struct cmd_authorization *auth;						/**< Authorization handler */
 	struct attestation_responder *attestation;					/**< Attestation responder instance */
 	struct hash_engine *hash;									/**< The hashing engine for PCR operations. */
@@ -74,7 +74,7 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	struct device_manager *device_manager, struct pcr_store *store, struct hash_engine *hash,
 	const struct cmd_background *background, struct host_processor *host_0,
 	struct host_processor *host_1, const struct cmd_interface_fw_version *fw_version,
-	struct riot_key_manager *riot, const struct cmd_authorization *auth,
+	const struct riot_key_manager *riot, const struct cmd_authorization *auth,
 	const struct host_control *host_ctrl_0, const struct host_control *host_ctrl_1,
 	const struct recovery_image_cmd_interface *recovery_cmd_0,
 	const struct recovery_image_cmd_interface *recovery_cmd_1,

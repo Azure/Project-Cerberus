@@ -282,41 +282,36 @@ int cerberus_protocol_get_challenge_response (struct attestation_responder *atte
  *
  * @return 0 if processing completed successfully or an error code.
  */
-int cerberus_protocol_export_csr (struct riot_key_manager *riot, struct cmd_interface_msg *request)
+int cerberus_protocol_export_csr (const struct riot_key_manager *riot,
+	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_export_csr *rq = (struct cerberus_protocol_export_csr*) request->data;
 	struct cerberus_protocol_export_csr_response *rsp =
 		(struct cerberus_protocol_export_csr_response*) request->data;
-	const struct riot_keys *keys;
-	int status = 0;
+	struct der_cert csr;
+	int status;
 
 	if (request->length != sizeof (struct cerberus_protocol_export_csr)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if (rq->index != 0) {
+	status = riot_key_manager_get_csr (riot, rq->index, &csr);
+	if (status == RIOT_KEY_MANAGER_UNKNOWN_CSR) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
-
-	keys = riot_key_manager_get_riot_keys (riot);
-	if (keys == NULL) {
-		return CMD_HANDLER_PROCESS_FAILED;
+	else if (status != 0) {
+		return status;
 	}
 
-	if (keys->devid_csr_length > CERBERUS_PROTOCOL_LOCAL_MAX_CSR_DATA) {
-		status = CMD_HANDLER_BUF_TOO_SMALL;
-		goto exit;
+	if (csr.length > CERBERUS_PROTOCOL_LOCAL_MAX_CSR_DATA) {
+		return CMD_HANDLER_BUF_TOO_SMALL;
 	}
-	else if (keys->devid_csr_length > CERBERUS_PROTOCOL_MAX_CSR_DATA (request)) {
-		status = CMD_HANDLER_RESPONSE_TOO_SMALL;
-		goto exit;
+	else if (csr.length > CERBERUS_PROTOCOL_MAX_CSR_DATA (request)) {
+		return CMD_HANDLER_RESPONSE_TOO_SMALL;
 	}
 
-	memcpy (&rsp->csr, keys->devid_csr, keys->devid_csr_length);
-	request->length = cerberus_protocol_export_csr_response_length (keys->devid_csr_length);
-
-exit:
-	riot_key_manager_release_riot_keys (riot, keys);
+	memcpy (&rsp->csr, csr.cert, csr.length);
+	request->length = cerberus_protocol_export_csr_response_length (csr.length);
 
 	return status;
 }
@@ -330,7 +325,7 @@ exit:
  *
  * @return 0 if processing completed successfully or an error code.
  */
-int cerberus_protocol_import_ca_signed_cert (struct riot_key_manager *riot,
+int cerberus_protocol_import_ca_signed_cert (const struct riot_key_manager *riot,
 	const struct cmd_background *background, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_import_certificate *rq =

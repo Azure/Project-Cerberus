@@ -348,8 +348,9 @@ int cerberus_protocol_get_certificate (struct attestation_responder *attestation
 int cerberus_protocol_get_challenge_response (struct attestation_responder *attestation,
 	struct session_manager *session, struct cmd_interface_msg *request);
 
-int cerberus_protocol_export_csr (struct riot_key_manager *riot, struct cmd_interface_msg *request);
-int cerberus_protocol_import_ca_signed_cert (struct riot_key_manager *riot,
+int cerberus_protocol_export_csr (const struct riot_key_manager *riot,
+	struct cmd_interface_msg *request);
+int cerberus_protocol_import_ca_signed_cert (const struct riot_key_manager *riot,
 	const struct cmd_background *background, struct cmd_interface_msg *request);
 int cerberus_protocol_get_signed_cert_state (const struct cmd_background *background,
 	struct cmd_interface_msg *request);

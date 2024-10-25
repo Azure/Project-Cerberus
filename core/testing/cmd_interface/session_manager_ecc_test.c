@@ -62,15 +62,16 @@ static const uint8_t HMAC_KEY[] = {
  * Dependencies for testing the system command interface.
  */
 struct session_manager_ecc_testing {
-	struct session_manager_ecc session;	/**< Session manager instance. */
-	struct aes_gcm_engine_mock aes;		/**< AES engine mock. */
-	struct ecc_engine_mock ecc;			/**< ECC engine mock. */
-	struct hash_engine_mock hash;		/**< Hash engine mock. */
-	struct rng_engine_mock rng;			/**< RNG engine mock. */
-	struct keystore_mock riot_keystore;	/**< RIoT keystore. */
-	struct riot_key_manager riot;		/**< RIoT key manager. */
-	struct x509_engine_mock x509;		/**< RIoT x509 engine mock. */
-	struct keystore_mock keys_keystore;	/**< Pairing keys keystore. */
+	struct session_manager_ecc session;			/**< Session manager instance. */
+	struct aes_gcm_engine_mock aes;				/**< AES engine mock. */
+	struct ecc_engine_mock ecc;					/**< ECC engine mock. */
+	struct hash_engine_mock hash;				/**< Hash engine mock. */
+	struct rng_engine_mock rng;					/**< RNG engine mock. */
+	struct keystore_mock riot_keystore;			/**< RIoT keystore. */
+	struct riot_key_manager_state riot_state;	/**< Context for the RIoT key manager. */
+	struct riot_key_manager riot;				/**< RIoT key manager. */
+	struct x509_engine_mock x509;				/**< RIoT x509 engine mock. */
+	struct keystore_mock keys_keystore;			/**< Pairing keys keystore. */
 };
 
 
@@ -116,8 +117,8 @@ static void setup_session_manager_ecc_test (CuTest *test, struct session_manager
 	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
 	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 
-	status = riot_key_manager_init_static (&cmd->riot, &cmd->riot_keystore.base, &keys,
-		&cmd->x509.base);
+	status = riot_key_manager_init_static_keys (&cmd->riot, &cmd->riot_state,
+		&cmd->riot_keystore.base, &keys, &cmd->x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager_ecc_init (&cmd->session, &cmd->aes.base, &cmd->ecc.base,
@@ -381,8 +382,8 @@ static void session_manager_ecc_test_init (CuTest *test)
 	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
 	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 
-	status = riot_key_manager_init_static (&cmd.riot, &cmd.riot_keystore.base, &keys,
-		&cmd.x509.base);
+	status = riot_key_manager_init_static_keys (&cmd.riot, &cmd.riot_state, &cmd.riot_keystore.base,
+		&keys, &cmd.x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, &cmd.ecc.base, &cmd.hash.base,
@@ -440,8 +441,8 @@ static void session_manager_ecc_test_init_preallocated_table (CuTest *test)
 	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
 	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 
-	status = riot_key_manager_init_static (&cmd.riot, &cmd.riot_keystore.base, &keys,
-		&cmd.x509.base);
+	status = riot_key_manager_init_static_keys (&cmd.riot, &cmd.riot_state, &cmd.riot_keystore.base,
+		&keys, &cmd.x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base,	&cmd.ecc.base, &cmd.hash.base,
@@ -3674,8 +3675,8 @@ static void session_manager_ecc_test_get_pairing_state_no_keystore (CuTest *test
 	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
 	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 
-	status = riot_key_manager_init_static (&cmd.riot, &cmd.riot_keystore.base, &keys,
-		&cmd.x509.base);
+	status = riot_key_manager_init_static_keys (&cmd.riot, &cmd.riot_state, &cmd.riot_keystore.base,
+		&keys, &cmd.x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, &cmd.ecc.base, &cmd.hash.base,
@@ -3753,8 +3754,8 @@ static void session_manager_ecc_test_get_pairing_state_unexpected_eid (CuTest *t
 	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
 	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 
-	status = riot_key_manager_init_static (&cmd.riot, &cmd.riot_keystore.base, &keys,
-		&cmd.x509.base);
+	status = riot_key_manager_init_static_keys (&cmd.riot, &cmd.riot_state, &cmd.riot_keystore.base,
+		&keys, &cmd.x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, &cmd.ecc.base, &cmd.hash.base,
@@ -4858,8 +4859,8 @@ static void session_manager_ecc_test_setup_paired_session_unsupported (CuTest *t
 	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
 	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 
-	status = riot_key_manager_init_static (&cmd.riot, &cmd.riot_keystore.base, &keys,
-		&cmd.x509.base);
+	status = riot_key_manager_init_static_keys (&cmd.riot, &cmd.riot_state, &cmd.riot_keystore.base,
+		&keys, &cmd.x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, &cmd.ecc.base, &cmd.hash.base,

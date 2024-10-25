@@ -99,7 +99,7 @@ struct attestation_requester {
 	struct rsa_engine *rsa;										/**< The RSA engine for attestation authentication operations. */
 	struct x509_engine *x509;									/**< The X509 engine for attestation authentication operations. */
 	struct rng_engine *rng;										/**< The RNG engine for attestation authentication operations. */
-	struct riot_key_manager *riot;								/**< RIoT key manager. */
+	const struct riot_key_manager *riot;						/**< RIoT key manager. */
 	struct device_manager *device_mgr;							/**< Device manager instance to utilize. */
 	struct cfm_manager *cfm_manager;							/**< CFM manager instance */
 };
@@ -109,7 +109,7 @@ int attestation_requester_init (struct attestation_requester *attestation,
 	struct attestation_requester_state *state, const struct mctp_interface *mctp,
 	const struct cmd_channel *channel, struct hash_engine *primary_hash,
 	struct hash_engine *secondary_hash, struct ecc_engine *ecc, struct rsa_engine *rsa,
-	struct x509_engine *x509, struct rng_engine *rng, struct riot_key_manager *riot,
+	struct x509_engine *x509, struct rng_engine *rng, const struct riot_key_manager *riot,
 	struct device_manager *device_mgr, struct cfm_manager *cfm_manager);
 int attestation_requester_init_state (const struct attestation_requester *attestation);
 void attestation_requester_deinit (const struct attestation_requester *ctrl);

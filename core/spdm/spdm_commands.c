@@ -984,8 +984,8 @@ static void spdm_reset_transcript_via_request_code (struct spdm_state *state,
  *
  * @return 0 if certificate list was retrieved successfully or an error code.
  */
-static int spdm_get_certificate_list (struct riot_key_manager *key_manager,	uint8_t *cert_count_out,
-	struct der_cert *cert, const struct riot_keys **keys_out)
+static int spdm_get_certificate_list (const struct riot_key_manager *key_manager,
+	uint8_t *cert_count_out, struct der_cert *cert, const struct riot_keys **keys_out)
 {
 	int status = 0;
 	const struct der_cert *int_ca;
@@ -1043,7 +1043,7 @@ exit:
  *
  * @return 0 if the digest was calculated successfully or an error code.
  */
-static int spdm_get_certificate_chain_digest (struct riot_key_manager *key_manager,
+static int spdm_get_certificate_chain_digest (const struct riot_key_manager *key_manager,
 	struct hash_engine *hash_engine, enum hash_type hash_type, uint8_t *digest)
 {
 	int status;
@@ -1222,9 +1222,10 @@ static void spdm_create_signing_context (struct spdm_state *state, uint8_t op_co
  *
  * @return 0 if signature is generated successfully, error code otherwise.
  */
-static int spdm_responder_data_sign (struct spdm_state *state, struct riot_key_manager *key_manager,
-	struct ecc_engine *ecc_engine, struct hash_engine *hash_engine, uint8_t op_code,
-	const uint8_t *message_hash, size_t hash_size, uint8_t *signature, size_t sig_size)
+static int spdm_responder_data_sign (struct spdm_state *state,
+	const struct riot_key_manager *key_manager, struct ecc_engine *ecc_engine,
+	struct hash_engine *hash_engine, uint8_t op_code, const uint8_t *message_hash, size_t hash_size,
+	uint8_t *signature, size_t sig_size)
 {
 	int status;
 	uint8_t *message;
@@ -1330,7 +1331,7 @@ exit:
  */
 static int spdm_generate_measurement_signature (
 	const struct spdm_transcript_manager *transcript_manager, struct spdm_state *state,
-	struct riot_key_manager *key_manager, struct ecc_engine *ecc_engine,
+	const struct riot_key_manager *key_manager, struct ecc_engine *ecc_engine,
 	struct hash_engine *hash_engine, struct spdm_secure_session *session_info, uint8_t *signature,
 	size_t sig_size)
 {
@@ -1391,7 +1392,7 @@ exit:
  */
 static int spdm_generate_key_exchange_rsp_signature (
 	const struct spdm_transcript_manager *transcript_manager, struct spdm_state *state,
-	struct riot_key_manager *key_manager, struct ecc_engine *ecc_engine,
+	const struct riot_key_manager *key_manager, struct ecc_engine *ecc_engine,
 	struct hash_engine *hash_engine, struct spdm_secure_session *session, uint8_t *signature,
 	uint32_t sig_size)
 {
@@ -2096,7 +2097,7 @@ static int spdm_negotiate_algorithms_construct_response (struct spdm_state *stat
 					(uint16_t) spdm_prioritize_algorithm (
 					local_algo_priority_table->key_schedule_priority_table,
 					local_algo_priority_table->key_schedule_priority_table_count,
-					local_algorithms->key_schedule,	algstruct_table->alg_supported);
+					local_algorithms->key_schedule, algstruct_table->alg_supported);
 
 				state->connection_info.peer_algorithms.key_schedule =
 					resp_no_ext_alg->algstruct_table[i_algstruct].alg_supported;
@@ -2457,7 +2458,7 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 	const struct spdm_transcript_manager *transcript_manager;
 	struct spdm_state *state;
 	const struct spdm_device_capability *local_capabilities;
-	struct riot_key_manager *key_manager;
+	const struct riot_key_manager *key_manager;
 	struct hash_engine *hash_engine;
 	enum hash_type hash_type;
 	struct spdm_secure_session_manager *session_manager;
@@ -2681,7 +2682,7 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 	const struct spdm_transcript_manager *transcript_manager;
 	struct spdm_state *state;
 	const struct spdm_device_capability *local_capabilities;
-	struct riot_key_manager *key_manager;
+	const struct riot_key_manager *key_manager;
 	struct hash_engine *hash_engine;
 	enum hash_type hash_type;
 	const struct riot_keys *keys = NULL;
@@ -2974,7 +2975,7 @@ int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
 	const struct spdm_device_capability *local_capabilities;
 	const struct spdm_transcript_manager *transcript_manager;
 	struct hash_engine *hash_engine;
-	struct riot_key_manager *key_manager;
+	const struct riot_key_manager *key_manager;
 	struct rng_engine *rng_engine;
 	struct ecc_engine *ecc_engine;
 	enum hash_type hash_type;
@@ -3684,7 +3685,7 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 	const struct spdm_transcript_manager *transcript_manager;
 	struct spdm_state *state;
 	const struct spdm_device_capability *local_capabilities;
-	struct riot_key_manager *key_manager;
+	const struct riot_key_manager *key_manager;
 	struct hash_engine *hash_engine;
 	struct rng_engine *rng_engine;
 	bool release_session = false;
@@ -3928,7 +3929,7 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 
 	/* Generate the shared secret. Also, copy the generated local public key to the response buffer. */
 	ptr = spdm_key_exchange_resp_exchange_data (spdm_response);
-	status = session_manager->generate_shared_secret (session_manager, session,	&peer_pub_key_point,
+	status = session_manager->generate_shared_secret (session_manager, session, &peer_pub_key_point,
 		ptr);
 	if (status != 0) {
 		spdm_error = SPDM_ERROR_UNSPECIFIED;

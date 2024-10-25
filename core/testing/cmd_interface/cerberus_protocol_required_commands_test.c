@@ -2459,7 +2459,7 @@ void cerberus_protocol_required_commands_testing_process_get_devid_csr_too_big (
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	riot->keys.devid_csr_length = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG + 1;
+	riot->state->keys.devid_csr_length = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG + 1;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);

@@ -12,7 +12,7 @@
 #include "testing/engines/ecc_testing_engine.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/engines/rng_testing_engine.h"
-#include "testing/mock/asn1/x509_mock.h"
+#include "testing/engines/x509_testing_engine.h"
 #include "testing/mock/cmd_interface/cmd_interface_mock.h"
 #include "testing/mock/crypto/ecc_mock.h"
 #include "testing/mock/crypto/hash_mock.h"
@@ -87,9 +87,10 @@ struct cmd_interface_spdm_responder_testing {
 	struct spdm_version_num_entry secure_message_version_num[SECURED_MESSAGE_VERSION_COUNT];	/**< Secured version number entries. */
 	struct spdm_device_capability local_capabilities;											/**< Local capabilities. */
 	struct spdm_local_device_algorithms local_algorithms;										/**< Local algorithms. */
+	struct riot_key_manager_state key_state;													/**< Context for the device key manager. */
 	struct riot_key_manager key_manager;														/**< Device key manager for testing. */
 	struct keystore_mock keystore;																/**< Mock for the device keystore. */
-	struct x509_engine_mock x509_mock;															/**< Mock for the X.509 engine. */
+	X509_TESTING_ENGINE x509;																	/**< X.509 engine for the key manager. */
 	struct riot_keys keys;																		/**< RIoT keys for testing. */
 	struct spdm_measurements_mock measurements_mock;											/**< Mock measurements engine. */
 	struct ecc_engine_mock ecc_mock;															/**< Mock ECC engine. */
@@ -113,6 +114,9 @@ void cmd_interface_spdm_responder_testing_init_dependencies (CuTest *test,
 	struct spdm_version_number secure_message_version_num[SECURED_MESSAGE_VERSION_COUNT] =
 	{{0, 0, 0, 1}, {0, 0, 1, 1}};
 	uint8_t idx;
+	uint8_t *dev_id_der;
+	uint8_t *ca_der;
+	uint8_t *int_der;
 
 	memcpy (testing->version_num, version_num, sizeof (version_num));
 	memcpy (testing->secure_message_version_num, secure_message_version_num,
@@ -210,14 +214,10 @@ void cmd_interface_spdm_responder_testing_init_dependencies (CuTest *test,
 	testing->local_algorithms.algorithms_priority_table.req_asym_priority_table_count =
 		ARRAY_SIZE (cmd_interface_spdm_responder_testing_req_asym_priority_table);
 
-	status = x509_mock_init (&testing->x509_mock);
+	status = X509_TESTING_ENGINE_INIT (&testing->x509);
 	CuAssertIntEquals (test, 0, status);
 
 	status = keystore_mock_init (&testing->keystore);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&testing->keystore.mock, testing->keystore.base.load_key,
-		&testing->keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	testing->keys.devid_csr = RIOT_CORE_DEVID_CSR_384;
@@ -229,19 +229,45 @@ void cmd_interface_spdm_responder_testing_init_dependencies (CuTest *test,
 	testing->keys.alias_cert = RIOT_CORE_ALIAS_CERT_384;
 	testing->keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_384_LEN;
 
-	status = riot_key_manager_init_static (&testing->key_manager, &testing->keystore.base,
-		&testing->keys, &testing->x509_mock.base);
+	dev_id_der = platform_malloc (RIOT_CORE_DEVID_INTR_SIGNED_CERT_384_LEN);
+	CuAssertPtrNotNull (test, dev_id_der);
+
+	ca_der = platform_malloc (X509_CERTSS_ECC384_CA_NOPL_DER_LEN);
+	CuAssertPtrNotNull (test, ca_der);
+
+	int_der = platform_malloc (X509_CERTCA_ECC384_CA2_NOPL_DER_LEN);
+	CuAssertPtrNotNull (test, int_der);
+
+	memcpy (dev_id_der, RIOT_CORE_DEVID_INTR_SIGNED_CERT_384,
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_384_LEN);
+	memcpy (ca_der, X509_CERTSS_ECC384_CA_NOPL_DER, X509_CERTSS_ECC384_CA_NOPL_DER_LEN);
+	memcpy (int_der, X509_CERTCA_ECC384_CA2_NOPL_DER, X509_CERTCA_ECC384_CA2_NOPL_DER_LEN);
+
+	status = mock_expect (&testing->keystore.mock, testing->keystore.base.load_key,
+		&testing->keystore, 0, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing->keystore.mock, 1, &dev_id_der, sizeof (dev_id_der),
+		-1);
+	status |= mock_expect_output_tmp (&testing->keystore.mock, 2,
+		&RIOT_CORE_DEVID_INTR_SIGNED_CERT_384_LEN,
+		sizeof (RIOT_CORE_DEVID_INTR_SIGNED_CERT_384_LEN), -1);
+
+	status |= mock_expect (&testing->keystore.mock, testing->keystore.base.load_key,
+		&testing->keystore, 0, MOCK_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing->keystore.mock, 1, &ca_der, sizeof (ca_der), -1);
+	status |= mock_expect_output_tmp (&testing->keystore.mock, 2,
+		&X509_CERTSS_ECC384_CA_NOPL_DER_LEN, sizeof (X509_CERTSS_ECC384_CA_NOPL_DER_LEN), -1);
+
+	status |= mock_expect (&testing->keystore.mock, testing->keystore.base.load_key,
+		&testing->keystore, 0, MOCK_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing->keystore.mock, 1, &int_der, sizeof (int_der), -1);
+	status |= mock_expect_output_tmp (&testing->keystore.mock, 2,
+		&X509_CERTCA_ECC384_CA2_NOPL_DER_LEN, sizeof (X509_CERTCA_ECC384_CA2_NOPL_DER_LEN), -1);
+
 	CuAssertIntEquals (test, 0, status);
 
-	testing->key_manager.root_ca.cert = platform_malloc (X509_CERTSS_ECC_CA_DER_LEN);
-	memcpy ((uint8_t*) testing->key_manager.root_ca.cert, X509_CERTSS_ECC_CA_DER,
-		X509_CERTSS_ECC_CA_DER_LEN);
-	testing->key_manager.root_ca.length = X509_CERTSS_ECC_CA_DER_LEN;
-
-	testing->key_manager.intermediate_ca.cert = platform_malloc (X509_CERTCA_ECC_CA2_DER_LEN);
-	memcpy ((uint8_t*) testing->key_manager.intermediate_ca.cert, X509_CERTCA_ECC_CA2_DER,
-		X509_CERTCA_ECC_CA2_DER_LEN);
-	testing->key_manager.intermediate_ca.length = X509_CERTCA_ECC_CA2_DER_LEN;
+	status = riot_key_manager_init_static_keys (&testing->key_manager, &testing->key_state,
+		&testing->keystore.base, &testing->keys, &testing->x509.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_measurements_mock_init (&testing->measurements_mock);
 	CuAssertIntEquals (test, 0, status);
@@ -268,39 +294,26 @@ void cmd_interface_spdm_responder_testing_init_dependencies (CuTest *test,
 void cmd_interface_spdm_responder_testing_release_dependencies (CuTest *test,
 	struct cmd_interface_spdm_responder_testing *testing)
 {
-	int status;
+	int status = 0;
 	uint8_t idx;
 
-	status = spdm_transcript_manager_mock_validate_and_release (&testing->transcript_manager_mock);
-	CuAssertIntEquals (test, 0, status);
-
 	for (idx = 0; idx < ARRAY_SIZE (testing->hash_engine_mock); idx++) {
-		status = hash_mock_validate_and_release (&testing->hash_engine_mock[idx]);
-		CuAssertIntEquals (test, 0, status);
+		status |= hash_mock_validate_and_release (&testing->hash_engine_mock[idx]);
 	}
 
+	status |= spdm_transcript_manager_mock_validate_and_release (&testing->transcript_manager_mock);
+	status |= keystore_mock_validate_and_release (&testing->keystore);
+	status |= spdm_measurements_mock_validate_and_release (&testing->measurements_mock);
+	status |= ecc_mock_validate_and_release (&testing->ecc_mock);
+	status |= rng_mock_validate_and_release (&testing->rng_mock);
+	status |=
+		spdm_secure_session_manager_mock_validate_and_release (&testing->session_manager_mock);
+	status |= cmd_interface_mock_validate_and_release (&testing->vdm_mock);
+
+	CuAssertIntEquals (test, 0, status);
+
 	riot_key_manager_release (&testing->key_manager);
-
-	status = keystore_mock_validate_and_release (&testing->keystore);
-	CuAssertIntEquals (test, 0, status);
-
-	status = x509_mock_validate_and_release (&testing->x509_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spdm_measurements_mock_validate_and_release (&testing->measurements_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = ecc_mock_validate_and_release (&testing->ecc_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = rng_mock_validate_and_release (&testing->rng_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spdm_secure_session_manager_mock_validate_and_release (&testing->session_manager_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd_interface_mock_validate_and_release (&testing->vdm_mock);
-	CuAssertIntEquals (test, 0, status);
+	X509_TESTING_ENGINE_RELEASE (&testing->x509);
 }
 
 /**
@@ -1659,8 +1672,8 @@ static void cmd_interface_spdm_responder_test_process_request_get_digests (CuTes
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384, &testing.hash_engine_mock[0].base, 0,
-		MOCK_ARG_PTR (testing.key_manager.root_ca.cert),
-		MOCK_ARG (testing.key_manager.root_ca.length), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC384_CA_NOPL_DER, X509_CERTSS_ECC384_CA_NOPL_DER_LEN),
+		MOCK_ARG (X509_CERTSS_ECC384_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA384_HASH_LENGTH));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
@@ -1765,7 +1778,6 @@ static void cmd_interface_spdm_responder_test_process_request_get_certificate (C
 	struct spdm_cert_chain_header *cert_chain_header;
 	struct cmd_interface_spdm_responder *spdm_responder;
 	struct spdm_state *spdm_state;
-	struct riot_key_manager *key_manager;
 	struct cmd_interface_spdm_responder_testing testing;
 
 	TEST_START;
@@ -1773,7 +1785,6 @@ static void cmd_interface_spdm_responder_test_process_request_get_certificate (C
 	cmd_interface_spdm_responder_testing_init (test, &testing);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
-	key_manager = spdm_responder->key_manager;
 
 	memset (&request, 0, sizeof (request));
 	request.data = buf;
@@ -1798,8 +1809,8 @@ static void cmd_interface_spdm_responder_test_process_request_get_certificate (C
 	spdm_state->connection_info.peer_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_384;
 
 	cert_chain_length = sizeof (struct spdm_cert_chain_header) + SHA384_HASH_LENGTH +
-		key_manager->root_ca.length + key_manager->intermediate_ca.length +
-		key_manager->keys.alias_cert_length + key_manager->keys.devid_cert_length;
+		X509_CERTSS_ECC384_CA_NOPL_DER_LEN + X509_CERTCA_ECC384_CA2_NOPL_DER_LEN +
+		RIOT_CORE_ALIAS_CERT_384_LEN + RIOT_CORE_DEVID_INTR_SIGNED_CERT_384_LEN;
 
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.reset_last_session_id_validity,
@@ -1823,8 +1834,8 @@ static void cmd_interface_spdm_responder_test_process_request_get_certificate (C
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384, &testing.hash_engine_mock[0].base, 0,
-		MOCK_ARG_PTR (testing.key_manager.root_ca.cert),
-		MOCK_ARG (testing.key_manager.root_ca.length), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC384_CA_NOPL_DER, X509_CERTSS_ECC384_CA_NOPL_DER_LEN),
+		MOCK_ARG (X509_CERTSS_ECC384_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA384_HASH_LENGTH));
 	status |= mock_expect_output (&testing.hash_engine_mock[0].mock, 2, SHA384_TEST_HASH,
 		SHA384_HASH_LENGTH, -1);
@@ -1864,23 +1875,24 @@ static void cmd_interface_spdm_responder_test_process_request_get_certificate (C
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp ((uint8_t*) cert_chain_header + sizeof (struct spdm_cert_chain_header) +
-		SHA384_HASH_LENGTH, key_manager->root_ca.cert, key_manager->root_ca.length);
+		SHA384_HASH_LENGTH, X509_CERTSS_ECC384_CA_NOPL_DER, X509_CERTSS_ECC384_CA_NOPL_DER_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp ((uint8_t*) cert_chain_header + sizeof (struct spdm_cert_chain_header) +
-		SHA384_HASH_LENGTH + key_manager->root_ca.length, key_manager->intermediate_ca.cert,
-		key_manager->intermediate_ca.length);
+		SHA384_HASH_LENGTH + X509_CERTSS_ECC384_CA_NOPL_DER_LEN, X509_CERTCA_ECC384_CA2_NOPL_DER,
+		X509_CERTCA_ECC384_CA2_NOPL_DER_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp ((uint8_t*) cert_chain_header + sizeof (struct spdm_cert_chain_header) +
-		SHA384_HASH_LENGTH + key_manager->root_ca.length + key_manager->intermediate_ca.length,
-		key_manager->keys.devid_cert, key_manager->keys.devid_cert_length);
+		SHA384_HASH_LENGTH + X509_CERTSS_ECC384_CA_NOPL_DER_LEN +
+		X509_CERTCA_ECC384_CA2_NOPL_DER_LEN, RIOT_CORE_DEVID_INTR_SIGNED_CERT_384,
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_384_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp ((uint8_t*) cert_chain_header + sizeof (struct spdm_cert_chain_header) +
-		SHA384_HASH_LENGTH + key_manager->root_ca.length + key_manager->intermediate_ca.length +
-		key_manager->keys.devid_cert_length, key_manager->keys.alias_cert,
-		key_manager->keys.alias_cert_length);
+		SHA384_HASH_LENGTH + X509_CERTSS_ECC384_CA_NOPL_DER_LEN +
+		X509_CERTCA_ECC384_CA2_NOPL_DER_LEN + RIOT_CORE_DEVID_INTR_SIGNED_CERT_384_LEN,
+		RIOT_CORE_ALIAS_CERT_384, RIOT_CORE_ALIAS_CERT_384_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	cmd_interface_spdm_responder_testing_release (test, &testing);
@@ -2009,8 +2021,8 @@ static void cmd_interface_spdm_responder_test_process_request_challenge (CuTest 
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384, &testing.hash_engine_mock[0].base, 0,
-		MOCK_ARG_PTR (testing.key_manager.root_ca.cert),
-		MOCK_ARG (testing.key_manager.root_ca.length), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC384_CA_NOPL_DER, X509_CERTSS_ECC384_CA_NOPL_DER_LEN),
+		MOCK_ARG (X509_CERTSS_ECC384_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA384_HASH_LENGTH));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
@@ -2498,8 +2510,8 @@ static void cmd_interface_spdm_responder_test_process_request_key_exchange (CuTe
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384, &testing.hash_engine_mock[0].base, 0,
-		MOCK_ARG_PTR (testing.key_manager.root_ca.cert),
-		MOCK_ARG (testing.key_manager.root_ca.length), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC384_CA_NOPL_DER, X509_CERTSS_ECC384_CA_NOPL_DER_LEN),
+		MOCK_ARG (X509_CERTSS_ECC384_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA384_HASH_LENGTH));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,

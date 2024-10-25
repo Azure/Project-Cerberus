@@ -83,7 +83,7 @@ struct auth_token {
 	struct rng_engine *rng;							/**< RNG for nonce generation. */
 	struct hash_engine *hash;						/**< Hash engine for token digests. */
 	struct ecc_engine *ecc;							/**< ECC engine for token signing. */
-	struct riot_key_manager *device_key;			/**< Manager for device key used to sign tokens. */
+	const struct riot_key_manager *device_key;		/**< Manager for device key used to sign tokens. */
 	const struct signature_verification *authority;	/**< Verification handler for the token signing authority. */
 	const uint8_t *authority_key;					/**< Public key for the token signing authority. */
 	size_t auth_key_length;							/**< Length of the authority public key. */
@@ -100,12 +100,12 @@ struct auth_token {
 
 int auth_token_init (struct auth_token *auth, struct auth_token_state *state,
 	struct rng_engine *rng, struct hash_engine *hash, struct ecc_engine *ecc,
-	struct riot_key_manager *device_key, const uint8_t *authority_key, size_t key_length,
+	const struct riot_key_manager *device_key, const uint8_t *authority_key, size_t key_length,
 	const struct signature_verification *authority, size_t data_length, size_t nonce_length,
 	enum hash_type sig_hash, uint32_t validity_time);
 int auth_token_init_with_buffer (struct auth_token *auth, struct auth_token_state *state,
 	struct rng_engine *rng, struct hash_engine *hash, struct ecc_engine *ecc,
-	struct riot_key_manager *device_key, const uint8_t *authority_key, size_t key_length,
+	const struct riot_key_manager *device_key, const uint8_t *authority_key, size_t key_length,
 	const struct signature_verification *authority, size_t data_length, size_t nonce_length,
 	enum hash_type sig_hash, uint32_t validity_time, uint8_t *token_buffer, size_t buffer_length);
 

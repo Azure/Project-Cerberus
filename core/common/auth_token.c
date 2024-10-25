@@ -230,7 +230,7 @@ release_riot:
  */
 static int auth_token_init_api (struct auth_token *auth, struct auth_token_state *state,
 	struct rng_engine *rng, struct hash_engine *hash, struct ecc_engine *ecc,
-	struct riot_key_manager *device_key, const uint8_t *authority_key, size_t key_length,
+	const struct riot_key_manager *device_key, const uint8_t *authority_key, size_t key_length,
 	const struct signature_verification *authority, size_t data_length, size_t nonce_length,
 	enum hash_type sig_hash, uint32_t validity_time)
 {
@@ -334,7 +334,7 @@ static int auth_token_validate_static_state (const struct auth_token *auth)
  */
 int auth_token_init (struct auth_token *auth, struct auth_token_state *state,
 	struct rng_engine *rng, struct hash_engine *hash, struct ecc_engine *ecc,
-	struct riot_key_manager *device_key, const uint8_t *authority_key, size_t key_length,
+	const struct riot_key_manager *device_key, const uint8_t *authority_key, size_t key_length,
 	const struct signature_verification *authority, size_t data_length, size_t nonce_length,
 	enum hash_type sig_hash, uint32_t validity_time)
 {
@@ -380,7 +380,7 @@ int auth_token_init (struct auth_token *auth, struct auth_token_state *state,
  */
 int auth_token_init_with_buffer (struct auth_token *auth, struct auth_token_state *state,
 	struct rng_engine *rng, struct hash_engine *hash, struct ecc_engine *ecc,
-	struct riot_key_manager *device_key, const uint8_t *authority_key, size_t key_length,
+	const struct riot_key_manager *device_key, const uint8_t *authority_key, size_t key_length,
 	const struct signature_verification *authority, size_t data_length, size_t nonce_length,
 	enum hash_type sig_hash, uint32_t validity_time, uint8_t *token_buffer, size_t buffer_length)
 {

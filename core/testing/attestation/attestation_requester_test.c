@@ -105,6 +105,7 @@ struct attestation_requester_testing {
 	struct x509_engine_mock x509_mock;							/**< X509 engine mock */
 	X509_TESTING_ENGINE x509;									/**< X.509 engine for the RIoT keys. */
 	struct rng_engine_mock rng;									/**< RNG engine mock */
+	struct riot_key_manager_state riot_state;					/**< Context for RIoT key manager. */
 	struct riot_key_manager riot;								/**< RIoT key manager */
 	struct keystore_mock keystore;								/**< Keystore mock */
 	struct cmd_channel_mock channel;							/**< Command channel mock */
@@ -369,7 +370,8 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 		x509 = &testing->x509.base;
 	}
 
-	status = riot_key_manager_init_static (&testing->riot, &testing->keystore.base, &keys, x509);
+	status = riot_key_manager_init_static_keys (&testing->riot, &testing->riot_state,
+		&testing->keystore.base, &keys, x509, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&testing->device_mgr, 1, !no_mctp_bridge, !no_mctp_bridge,
@@ -5173,8 +5175,8 @@ static void attestation_requester_test_init_state (CuTest *test)
 	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
 	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 
-	status = riot_key_manager_init_static (&testing.riot, &testing.keystore.base, &keys,
-		&testing.x509.base);
+	status = riot_key_manager_init_static_keys (&testing.riot, &testing.riot_state,
+		&testing.keystore.base, &keys, &testing.x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&testing.device_mgr, 1, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
@@ -27541,8 +27543,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
 	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 
-	status = riot_key_manager_init_static (&testing.riot, &testing.keystore.base, &keys,
-		&testing.x509_mock.base);
+	status = riot_key_manager_init_static_keys (&testing.riot, &testing.riot_state,
+		&testing.keystore.base, &keys, &testing.x509_mock.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&testing.device_mgr, 1, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
@@ -36678,8 +36680,8 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
 	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 
-	status = riot_key_manager_init_static (&testing.riot, &testing.keystore.base, &keys,
-		&testing.x509.base);
+	status = riot_key_manager_init_static_keys (&testing.riot, &testing.riot_state,
+		&testing.keystore.base, &keys, &testing.x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&testing.device_mgr, 1, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
@@ -38569,8 +38571,8 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
 	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 
-	status = riot_key_manager_init_static (&testing.riot, &testing.keystore.base, &keys,
-		&testing.x509_mock.base);
+	status = riot_key_manager_init_static_keys (&testing.riot, &testing.riot_state,
+		&testing.keystore.base, &keys, &testing.x509_mock.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&testing.device_mgr, 1, 2, 2,

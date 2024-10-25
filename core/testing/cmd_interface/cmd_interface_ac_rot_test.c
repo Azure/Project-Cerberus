@@ -42,6 +42,7 @@ struct cmd_interface_ac_rot_testing {
 	X509_TESTING_ENGINE x509;						/**< X.509 engine for the RIoT keys. */
 	struct cmd_background_mock background;			/**< The background command interface mock. */
 	struct device_manager device_manager;			/**< Device manager. */
+	struct riot_key_manager_state riot_state;		/**< Context for the RIoT key manager. */
 	struct riot_key_manager riot;					/**< RIoT keys manager. */
 	struct cmd_interface_fw_version fw_version;		/**< The firmware version data. */
 	struct cmd_device_mock cmd_device;				/**< The device command handler mock instance. */
@@ -110,7 +111,8 @@ static void cmd_interface_ac_rot_testing_init_dependencies (CuTest *test,
 	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 	keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_LEN;
 
-	status = riot_key_manager_init_static (&cmd->riot, &cmd->keystore.base, &keys, &cmd->x509.base);
+	status = riot_key_manager_init_static_keys (&cmd->riot, &cmd->riot_state, &cmd->keystore.base,
+		&keys, &cmd->x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_mock_init (&cmd->x509_mock);

@@ -619,7 +619,7 @@ int session_manager_session_sync (struct session_manager *session, uint8_t eid, 
  * @return Initialization status, 0 if success or an error code.
  */
 int session_manager_init (struct session_manager *session, const struct aes_gcm_engine *aes,
-	struct hash_engine *hash, struct riot_key_manager *riot,
+	struct hash_engine *hash, const struct riot_key_manager *riot,
 	struct session_manager_entry *sessions_table, size_t num_sessions, const uint8_t *pairing_eids,
 	size_t num_pairing_eids, const struct keystore *store)
 {

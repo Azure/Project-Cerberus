@@ -30,7 +30,7 @@ struct cmd_interface_spdm_responder {
 	struct hash_engine **hash_engine;									/**< Hash engines for hashing operations. */
 	uint8_t hash_engine_count;											/**< Number of hash engine instances. */
 	const struct spdm_transcript_manager *transcript_manager;			/**< Transcript manager for SPDM. */
-	struct riot_key_manager *key_manager;								/**< Manager for device certificate chain. */
+	const struct riot_key_manager *key_manager;							/**< Manager for device certificate chain. */
 	const struct spdm_measurements *measurements;						/**< Measurements for the device. */
 	struct ecc_engine *ecc_engine;										/**< Engine for ECC operations. */
 	struct rng_engine *rng_engine;										/**< Engine for random number generation. */
@@ -53,7 +53,7 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	uint8_t secure_message_version_num_count,
 	const struct spdm_device_capability *local_capabilities,
 	const struct spdm_local_device_algorithms *local_algorithms,
-	struct riot_key_manager *key_manager, const struct spdm_measurements *measurements,
+	const struct riot_key_manager *key_manager, const struct spdm_measurements *measurements,
 	struct ecc_engine *ecc_engine, struct rng_engine *rng_engine,
 	struct spdm_secure_session_manager *session_manager, const struct cmd_interface *vdm_handler);
 

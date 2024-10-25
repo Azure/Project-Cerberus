@@ -33,6 +33,7 @@ struct auth_token_testing {
 	X509_TESTING_ENGINE x509;						/**< X.509 handler for the key manager. */
 	struct keystore_mock keystore;					/**< Mock for the device keystore. */
 	struct riot_keys keys;							/**< Device keys for the key manager. */
+	struct riot_key_manager_state key_state;		/**< Context for device key manager. */
 	struct riot_key_manager device_keys;			/**< Device key manager for testing. */
 	RNG_TESTING_ENGINE rng;							/**< RNG for testing. */
 	struct rng_engine_mock rng_mock;				/**< Mock for the RNG. */
@@ -127,8 +128,8 @@ static void auth_token_testing_init_dependencies (CuTest *test, struct auth_toke
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot_key_manager_init_static (&auth->device_keys, &auth->keystore.base, &auth->keys,
-		&auth->x509.base);
+	status = riot_key_manager_init_static_keys (&auth->device_keys, &auth->key_state,
+		&auth->keystore.base, &auth->keys, &auth->x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Initialize the rest of the dependencies. */

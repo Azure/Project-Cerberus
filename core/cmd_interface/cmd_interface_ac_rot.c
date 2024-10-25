@@ -125,7 +125,7 @@ int cmd_interface_ac_rot_process_response (const struct cmd_interface *intf,
 int cmd_interface_ac_rot_init (struct cmd_interface_ac_rot *intf,
 	struct attestation_responder *attestation, struct device_manager *device_manager,
 	const struct cmd_background *background, const struct cmd_interface_fw_version *fw_version,
-	struct riot_key_manager *riot, const struct cmd_device *cmd_device, uint16_t vendor_id,
+	const struct riot_key_manager *riot, const struct cmd_device *cmd_device, uint16_t vendor_id,
 	uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id,
 	struct session_manager *session)
 {

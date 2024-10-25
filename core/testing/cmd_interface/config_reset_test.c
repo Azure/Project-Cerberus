@@ -88,8 +88,8 @@ void config_reset_testing_init_attestation_keys (CuTest *test,
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot_key_manager_init_static (&keys->riot, &keys->riot_keystore.base, &riot_core,
-		&keys->x509.base);
+	status = riot_key_manager_init_static_keys (&keys->riot, &keys->riot_state,
+		&keys->riot_keystore.base, &riot_core, &keys->x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = aux_attestation_init (&keys->aux, &keys->aux_keystore.base, &keys->rsa.base,
@@ -175,8 +175,8 @@ void config_reset_testing_init_attestation_keys_valid_cert_chain (CuTest *test,
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot_key_manager_init_static (&keys->riot, &keys->riot_keystore.base, &riot_core,
-		&keys->x509.base);
+	status = riot_key_manager_init_static_keys (&keys->riot, &keys->riot_state,
+		&keys->riot_keystore.base, &riot_core, &keys->x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = aux_attestation_init (&keys->aux, &keys->aux_keystore.base, &keys->rsa.base,

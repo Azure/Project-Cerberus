@@ -34,7 +34,7 @@ int config_reset_init (struct config_reset *reset,
 	const struct manifest_manager *const *bypass_config, size_t bypass_count,
 	const struct manifest_manager *const *platform_config, size_t platform_count,
 	const struct manifest_manager *const *component_manifests, size_t component_manifests_count,
-	struct state_manager *const *state, size_t state_count, struct riot_key_manager *riot,
+	struct state_manager *const *state, size_t state_count, const struct riot_key_manager *riot,
 	struct aux_attestation *aux, struct recovery_image_manager *recovery,
 	const struct keystore *const *keystores, size_t keystore_count)
 {

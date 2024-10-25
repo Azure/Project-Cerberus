@@ -127,6 +127,7 @@ struct cmd_interface_system_testing {
 	struct device_manager device_manager;					/**< Device manager. */
 	struct cmd_authorization_mock auth;						/**< The authorization handler. */
 	struct authorized_execution_mock execution;				/**< The authorized execution context. */
+	struct riot_key_manager_state riot_state;				/**< Context for the RIoT key manager. */
 	struct riot_key_manager riot;							/**< RIoT keys manager. */
 	struct host_control_mock host_ctrl_0;					/**< The host control mock interface for port 0. */
 	struct host_control_mock host_ctrl_1;					/**< The host control mock interface for port 1. */
@@ -288,7 +289,8 @@ static void setup_cmd_interface_system_mock_test_init (CuTest *test,
 	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 	keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_LEN;
 
-	status = riot_key_manager_init_static (&cmd->riot, &cmd->keystore.base, &keys, &cmd->x509.base);
+	status = riot_key_manager_init_static_keys (&cmd->riot, &cmd->riot_state, &cmd->keystore.base,
+		&keys, &cmd->x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_authorization_mock_init (&cmd->auth);
@@ -551,6 +553,7 @@ static void cmd_interface_system_test_init (CuTest *test)
 	struct hash_engine_mock hash;
 	struct cmd_background_mock background;
 	struct device_manager device_manager;
+	struct riot_key_manager_state riot_state;
 	struct riot_key_manager riot;
 	struct keystore_mock keystore;
 	struct cmd_authorization_mock auth;
@@ -635,7 +638,8 @@ static void cmd_interface_system_test_init (CuTest *test)
 	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 	keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_LEN;
 
-	status = riot_key_manager_init_static (&riot, &keystore.base, &keys, &x509.base);
+	status = riot_key_manager_init_static_keys (&riot, &riot_state, &keystore.base, &keys,
+		&x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_responder_mock_init (&attestation);
@@ -770,6 +774,7 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 	struct hash_engine_mock hash;
 	struct cmd_background_mock background;
 	struct device_manager device_manager;
+	struct riot_key_manager_state riot_state;
 	struct riot_key_manager riot;
 	struct keystore_mock keystore;
 	struct cmd_authorization_mock auth;
@@ -854,7 +859,8 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 	keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_LEN;
 
-	status = riot_key_manager_init_static (&riot, &keystore.base, &keys, &x509.base);
+	status = riot_key_manager_init_static_keys (&riot, &riot_state, &keystore.base, &keys,
+		&x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_responder_mock_init (&attestation);

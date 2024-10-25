@@ -47,16 +47,17 @@ static struct riot_keys keys = {
  * Dependencies for testing responder attestation processing.
  */
 struct attestation_responder_testing {
-	struct hash_engine_mock hash;			/**< Mock for hash operations. */
-	struct ecc_engine_mock ecc;				/**< Mock for ECC operations. */
-	struct rsa_engine_mock rsa;				/**< Mock for RSA operations. */
-	struct x509_engine_mock x509;			/**< Mock for X.509 operations. */
-	struct rng_engine_mock rng;				/**< Mock for random number generation. */
-	struct keystore_mock keystore;			/**< Mock for the attestation keystore. */
-	struct riot_key_manager riot;			/**< Key manager for RIoT keys. */
-	struct pcr_store store;					/**< Slave PCRs. */
-	struct aux_attestation aux;				/**< Manager for auxiliary attestation flows. */
-	struct attestation_responder responder;	/**< Attestation responder being tested. */
+	struct hash_engine_mock hash;				/**< Mock for hash operations. */
+	struct ecc_engine_mock ecc;					/**< Mock for ECC operations. */
+	struct rsa_engine_mock rsa;					/**< Mock for RSA operations. */
+	struct x509_engine_mock x509;				/**< Mock for X.509 operations. */
+	struct rng_engine_mock rng;					/**< Mock for random number generation. */
+	struct keystore_mock keystore;				/**< Mock for the attestation keystore. */
+	struct riot_key_manager_state riot_state;	/**< Context for the RIoT key manager. */
+	struct riot_key_manager riot;				/**< Key manager for RIoT keys. */
+	struct pcr_store store;						/**< Slave PCRs. */
+	struct aux_attestation aux;					/**< Manager for auxiliary attestation flows. */
+	struct attestation_responder responder;		/**< Attestation responder being tested. */
 };
 
 
@@ -111,8 +112,8 @@ static void attestation_responder_testing_init_dependencies (CuTest *test,
 	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
 	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 
-	status = riot_key_manager_init_static (&attestation->riot, &attestation->keystore.base, &keys,
-		&attestation->x509.base);
+	status = riot_key_manager_init_static_keys (&attestation->riot, &attestation->riot_state,
+		&attestation->keystore.base, &keys, &attestation->x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = aux_attestation_init (&attestation->aux, &attestation->keystore.base,
@@ -1046,8 +1047,8 @@ static void attestation_responder_test_get_digests_no_dev_id (CuTest *test)
 	bad_keys.alias_key = RIOT_CORE_ALIAS_KEY;
 	bad_keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 
-	status = riot_key_manager_init_static (&attestation.riot, &attestation.keystore.base, &bad_keys,
-		&attestation.x509.base);
+	status = riot_key_manager_init_static_keys (&attestation.riot, &attestation.riot_state,
+		&attestation.keystore.base, &bad_keys, &attestation.x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = aux_attestation_init (&attestation.aux, &attestation.keystore.base,
@@ -1120,8 +1121,8 @@ static void attestation_responder_test_get_digests_no_alias (CuTest *test)
 	bad_keys.devid_cert = RIOT_CORE_DEVID_CERT;
 	bad_keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
 
-	status = riot_key_manager_init_static (&attestation.riot, &attestation.keystore.base, &bad_keys,
-		&attestation.x509.base);
+	status = riot_key_manager_init_static_keys (&attestation.riot, &attestation.riot_state,
+		&attestation.keystore.base, &bad_keys, &attestation.x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = aux_attestation_init (&attestation.aux, &attestation.keystore.base,
@@ -1194,8 +1195,8 @@ static void attestation_responder_test_get_digests_aux_slot_no_dev_id (CuTest *t
 	bad_keys.alias_key = RIOT_CORE_ALIAS_KEY;
 	bad_keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 
-	status = riot_key_manager_init_static (&attestation.riot, &attestation.keystore.base, &bad_keys,
-		&attestation.x509.base);
+	status = riot_key_manager_init_static_keys (&attestation.riot, &attestation.riot_state,
+		&attestation.keystore.base, &bad_keys, &attestation.x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = aux_attestation_init (&attestation.aux, &attestation.keystore.base,
@@ -1637,8 +1638,8 @@ static void attestation_responder_test_get_dev_id_certificate_no_dev_id (CuTest 
 	bad_keys.alias_key = RIOT_CORE_ALIAS_KEY;
 	bad_keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 
-	status = riot_key_manager_init_static (&attestation.riot, &attestation.keystore.base, &bad_keys,
-		&attestation.x509.base);
+	status = riot_key_manager_init_static_keys (&attestation.riot, &attestation.riot_state,
+		&attestation.keystore.base, &bad_keys, &attestation.x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = aux_attestation_init (&attestation.aux, &attestation.keystore.base,
@@ -1709,8 +1710,8 @@ static void attestation_responder_test_get_dev_id_certificate_no_alias (CuTest *
 	bad_keys.devid_cert = RIOT_CORE_DEVID_CERT;
 	bad_keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
 
-	status = riot_key_manager_init_static (&attestation.riot, &attestation.keystore.base, &bad_keys,
-		&attestation.x509.base);
+	status = riot_key_manager_init_static_keys (&attestation.riot, &attestation.riot_state,
+		&attestation.keystore.base, &bad_keys, &attestation.x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = aux_attestation_init (&attestation.aux, &attestation.keystore.base,
@@ -1874,8 +1875,8 @@ static void attestation_responder_test_get_alias_certificate_no_dev_id (CuTest *
 	bad_keys.alias_key = RIOT_CORE_ALIAS_KEY;
 	bad_keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 
-	status = riot_key_manager_init_static (&attestation.riot, &attestation.keystore.base, &bad_keys,
-		&attestation.x509.base);
+	status = riot_key_manager_init_static_keys (&attestation.riot, &attestation.riot_state,
+		&attestation.keystore.base, &bad_keys, &attestation.x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = aux_attestation_init (&attestation.aux, &attestation.keystore.base,
@@ -1946,8 +1947,8 @@ static void attestation_responder_test_get_alias_certificate_no_alias (CuTest *t
 	bad_keys.devid_cert = RIOT_CORE_DEVID_CERT;
 	bad_keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
 
-	status = riot_key_manager_init_static (&attestation.riot, &attestation.keystore.base, &bad_keys,
-		&attestation.x509.base);
+	status = riot_key_manager_init_static_keys (&attestation.riot, &attestation.riot_state,
+		&attestation.keystore.base, &bad_keys, &attestation.x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = aux_attestation_init (&attestation.aux, &attestation.keystore.base,
@@ -2357,8 +2358,8 @@ static void attestation_responder_test_get_aux_certificate_no_dev_id (CuTest *te
 	bad_keys.alias_key = RIOT_CORE_ALIAS_KEY;
 	bad_keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
 
-	status = riot_key_manager_init_static (&attestation.riot, &attestation.keystore.base, &bad_keys,
-		&attestation.x509.base);
+	status = riot_key_manager_init_static_keys (&attestation.riot, &attestation.riot_state,
+		&attestation.keystore.base, &bad_keys, &attestation.x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = aux_attestation_init (&attestation.aux, &attestation.keystore.base,

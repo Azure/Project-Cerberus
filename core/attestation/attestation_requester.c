@@ -1767,7 +1767,7 @@ int attestation_requester_init (struct attestation_requester *attestation,
 	struct attestation_requester_state *state, const struct mctp_interface *mctp,
 	const struct cmd_channel *channel, struct hash_engine *primary_hash,
 	struct hash_engine *secondary_hash, struct ecc_engine *ecc, struct rsa_engine *rsa,
-	struct x509_engine *x509, struct rng_engine *rng, struct riot_key_manager *riot,
+	struct x509_engine *x509, struct rng_engine *rng, const struct riot_key_manager *riot,
 	struct device_manager *device_mgr, struct cfm_manager *cfm_manager)
 {
 	if ((attestation == NULL) || (state == NULL) || (mctp == NULL) || (channel == NULL) ||

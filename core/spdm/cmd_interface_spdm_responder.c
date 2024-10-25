@@ -179,7 +179,7 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	uint8_t secure_message_version_num_count,
 	const struct spdm_device_capability *local_capabilities,
 	const struct spdm_local_device_algorithms *local_algorithms,
-	struct riot_key_manager *key_manager, const struct spdm_measurements *measurements,
+	const struct riot_key_manager *key_manager, const struct spdm_measurements *measurements,
 	struct ecc_engine *ecc_engine, struct rng_engine *rng_engine,
 	struct spdm_secure_session_manager *session_manager, const struct cmd_interface *vdm_handler)
 {
