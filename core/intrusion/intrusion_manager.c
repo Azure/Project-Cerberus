@@ -62,7 +62,7 @@ int intrusion_manager_handle_intrusion (struct intrusion_manager *manager)
 	return (pcr_status == 0) ? state_status : pcr_status;
 }
 
-static int intrusion_manager_reset_intrusion (struct intrusion_manager *manager)
+int intrusion_manager_reset_intrusion (struct intrusion_manager *manager)
 {
 	uint32_t active_state = 0;
 	int status;
