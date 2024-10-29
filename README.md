@@ -1,6 +1,6 @@
 # Project Cerberus
 
-Project Cerberus is designed to be a hardware root of trust (RoT) for server platforms.  It provides functionality 
+Project Cerberus is designed to be a hardware root of trust (RoT) for server platforms.  It provides functionality
 to enforce secure boot for firmware on devices with or without intrinsic secure boot capabilities.  It also
 provides a mechanism to securely attest to the state of the device firmware.
 
@@ -99,13 +99,22 @@ to be production ready code.
 
 ### Extending the Baseline
 
-To add support for additional platforms and/or devices, additions must be made to the source tree.  These additional 
+To add support for additional platforms and/or devices, additions must be made to the source tree.  These additional
 components can be added to the local source tree by adding additional project definitions in local repo manifests in the
 `.repo/local_manifests` directory.  More details about this process can be found at https://gerrit.googlesource.com/git-repo/+/refs/heads/master/docs/manifest-format.md.
 
-There will typically be two types of additions.  
+There will typically be two types of additions.
 1. New 3rd party components required for the project.  These will be added to the `external` directory.
 2. A target platform or specific application build.  These will be added to the `projects` directory.
+
+## Uncrustify Code Formatting
+See the [tools/uncrustify_readme.md](./tools/uncrustify_readme.md).
+
+The script needs to be executed for the purpose of code formatting.
+
+ ```
+ . ./tools/uncrustify_format.sh
+ ```
 
 ## Linux Unit Test Build
 
@@ -151,10 +160,10 @@ the main development environment for adding core functionality and serves as an 
 	```bash
 	./cerberus-linux-unit-tests
 	```
-	
+
 ### Unit Tests With Coverage Report
 
-The unit test build includes a target which runs the unit tests and generates a code coverate 
+The unit test build includes a target which runs the unit tests and generates a code coverate
 report. If necessary, this target also builds the unit tests. The report output can be found at
 build/coverage_report.
 
