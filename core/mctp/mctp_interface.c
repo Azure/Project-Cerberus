@@ -256,6 +256,7 @@ int mctp_interface_send_request_message (const struct msg_transport *transport,
 	uint8_t msg_type;
 	int src_eid;
 	int src_addr;
+	int dest_eid;
 	int dest_addr;
 	int status;
 
@@ -268,6 +269,7 @@ int mctp_interface_send_request_message (const struct msg_transport *transport,
 		return MSG_TRANSPORT_INVALID_ARGUMENT;
 	}
 
+	dest_eid = request->target_eid;
 	dest_addr = device_manager_get_device_addr_by_eid (mctp->device_manager, request->target_eid);
 	if (ROT_IS_ERROR (dest_addr)) {
 		return dest_addr;
@@ -320,7 +322,6 @@ int mctp_interface_send_request_message (const struct msg_transport *transport,
 
 	mctp->state->response_msg_tag = mctp->state->next_msg_tag;
 	mctp->state->response_msg_type = msg_type;
-	mctp->state->response_eid = request->target_eid;
 	mctp->state->response_msg = response;
 
 	/* The message tag has been consumed, regardless of whether the message transaction is
@@ -356,8 +357,7 @@ int mctp_interface_send_request_message (const struct msg_transport *transport,
 	}
 	else if (status == 1) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
-			MCTP_LOGGING_RSP_TIMEOUT,
-			(mctp->state->response_eid << 8) | mctp->state->response_msg_tag, timeout_ms);
+			MCTP_LOGGING_RSP_TIMEOUT, (dest_eid << 8) | mctp->state->response_msg_tag, timeout_ms);
 
 		status = MSG_TRANSPORT_REQUEST_TIMEOUT;
 	}
@@ -410,17 +410,6 @@ static bool mctp_interface_is_expected_response (const struct mctp_interface *mc
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_MCTP,
 			MCTP_LOGGING_RSP_DROPPED, MCTP_LOGGING_RSP_DROPPED_WRONG_TAG,
 			(mctp->state->response_msg_tag << 16) | (msg_tag << 8) |
-				mctp->state->channel_id);
-
-		expected = false;
-		goto exit;
-	}
-
-	if (src_eid != mctp->state->response_eid) {
-		/* This response message came from a different endpoint than expected.  Drop it. */
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_MCTP,
-			MCTP_LOGGING_RSP_DROPPED, MCTP_LOGGING_RSP_DROPPED_WRONG_SOURCE,
-			(mctp->state->response_eid << 24) | (source_addr << 16) | (src_eid << 8) |
 				mctp->state->channel_id);
 
 		expected = false;
@@ -1085,7 +1074,6 @@ int mctp_interface_issue_request (const struct mctp_interface *mctp,
 	mctp->state->rsp_state = MCTP_INTERFACE_RESPONSE_WAITING_DEPRECATED;
 	mctp->state->response_msg_tag = mctp->state->next_msg_tag;
 	mctp->state->response_msg_type = msg_type;
-	mctp->state->response_eid = dest_eid;
 	mctp->state->response_msg = NULL;
 
 	mctp->state->next_msg_tag = (mctp->state->next_msg_tag + 1) % 8;
@@ -1116,8 +1104,7 @@ int mctp_interface_issue_request (const struct mctp_interface *mctp,
 
 	if (status == 1) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
-			MCTP_LOGGING_RSP_TIMEOUT,
-			(mctp->state->response_eid << 8) | mctp->state->response_msg_tag, timeout_ms);
+			MCTP_LOGGING_RSP_TIMEOUT, (dest_eid << 8) | mctp->state->response_msg_tag, timeout_ms);
 
 		status = MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT;
 	}
@@ -1163,6 +1150,7 @@ int mctp_interface_send_discovery_notify (const struct mctp_interface *mctp, uin
 		return MCTP_BASE_PROTOCOL_INVALID_ARGUMENT;
 	}
 
+	/* TODO:  This should probably use the NULL EID. */
 	bridge_eid = device_manager_get_device_eid (mctp->device_manager,
 		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
 	if (ROT_IS_ERROR (bridge_eid)) {

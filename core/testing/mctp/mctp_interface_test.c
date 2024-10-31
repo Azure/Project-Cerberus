@@ -98,7 +98,7 @@ static void mctp_interface_testing_init_dependencies (CuTest *test,
 	status = logging_mock_init (&mctp->log);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&mctp->device_mgr, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&mctp->device_mgr, 3, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -108,6 +108,10 @@ static void mctp_interface_testing_init_dependencies (CuTest *test,
 
 	status = device_manager_update_not_attestable_device_entry (&mctp->device_mgr, 1,
 		MCTP_BASE_PROTOCOL_BMC_EID, 0x51, DEVICE_MANAGER_NOT_PCD_COMPONENT);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&mctp->device_mgr, 2,
+		MCTP_BASE_PROTOCOL_NULL_EID, 0x51, DEVICE_MANAGER_NOT_PCD_COMPONENT);
 	CuAssertIntEquals (test, 0, status);
 
 	device_manager_get_device_capabilities (&mctp->device_mgr, 0, &capabilities);
@@ -7585,6 +7589,132 @@ static void mctp_interface_test_send_request_message_different_msg_tags (CuTest 
 	mctp_interface_testing_release (test, &mctp);
 }
 
+static void mctp_interface_test_send_request_message_different_source_eid (CuTest *test)
+{
+	struct mctp_interface_testing mctp;
+	struct mctp_base_protocol_transport_header *header;
+	uint8_t tx_message[MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN] = {0};
+	struct cmd_packet tx_packet;
+	struct cmd_packet rx_packet;
+	uint8_t rx_message[10];
+	struct mctp_interface_test_callback_context context;
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
+	int status;
+
+	TEST_START;
+
+	mctp_interface_testing_init (test, &mctp);
+
+	/* Build the request message to send, using a Null EID. */
+	status = msg_transport_create_empty_request (&mctp.test.base, tx_message, sizeof (tx_message),
+		MCTP_BASE_PROTOCOL_NULL_EID, &request);
+	CuAssertIntEquals (test, 0, status);
+
+	request.payload[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	request.payload[1] = 0x12;
+	request.payload[2] = 0x34;
+	request.payload[3] = 0x56;
+	request.payload[4] = 0x78;
+	request.payload[5] = 0x90;
+	cmd_interface_msg_set_message_payload_length (&request, 6);
+
+	/* Construct the expected packet generated for the message. */
+	memset (&tx_packet, 0, sizeof (tx_packet));
+	header = (struct mctp_base_protocol_transport_header*) tx_packet.data;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 11;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = 0x00;
+	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 1;
+	header->eom = 1;
+	header->tag_owner = MCTP_BASE_PROTOCOL_TO_REQUEST;
+	header->msg_tag = 0;
+	header->packet_seq = 0;
+
+	memcpy (&tx_packet.data[7], request.payload, request.payload_length);
+
+	tx_packet.data[13] = checksum_crc8 (0xA2, tx_packet.data, 13);
+	tx_packet.pkt_size = 14;
+	tx_packet.state = CMD_VALID_PACKET;
+	tx_packet.dest_addr = 0x51;
+	tx_packet.timeout_valid = false;
+
+	/* Generate a response packet, using the BMC EID as the source EID. */
+	memset (&rx_packet, 0, sizeof (rx_packet));
+	header = (struct mctp_base_protocol_transport_header*) rx_packet.data;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 15;
+	header->source_addr = 0xA3;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	header->source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	header->som = 1;
+	header->eom = 1;
+	header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
+	header->msg_tag = 0;
+	header->packet_seq = 0;
+
+	rx_packet.data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rx_packet.data[8] = 0x01;
+	rx_packet.data[9] = 0x02;
+	rx_packet.data[10] = 0x03;
+	rx_packet.data[11] = 0x04;
+	rx_packet.data[12] = 0x05;
+	rx_packet.data[13] = 0x06;
+	rx_packet.data[14] = 0x07;
+	rx_packet.data[15] = 0x08;
+	rx_packet.data[16] = 0x09;
+	rx_packet.data[17] = checksum_crc8 (0xBA, rx_packet.data, 17);
+	rx_packet.pkt_size = 18;
+	rx_packet.dest_addr = 0x5D;
+	rx_packet.timeout_valid = false;
+
+	context.expected_status = 0;
+	context.rsp_packet = &rx_packet;
+	context.packet_count = 1;
+	context.test = test;
+	context.mctp = &mctp;
+
+	status = mock_expect (&mctp.channel.mock, mctp.channel.base.send_packet, &mctp.channel, 0,
+		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
+	status |= mock_expect_external_action (&mctp.channel.mock,
+		mctp_interface_testing_process_packet_callback, &context);
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Prepare a response structure. */
+	status = msg_transport_create_empty_response (rx_message, sizeof (rx_message), &response);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Send the request. */
+	status = mctp.test.base.send_request_message (&mctp.test.base, &request, 100, &response);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, rx_message, response.data);
+	CuAssertIntEquals (test, sizeof (rx_message), response.length);
+	CuAssertPtrEquals (test, rx_message, response.payload);
+	CuAssertIntEquals (test, sizeof (rx_message), response.payload_length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_BMC_EID, response.source_eid);
+	CuAssertIntEquals (test, 0x51, response.source_addr);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, response.target_eid);
+	CuAssertIntEquals (test, false, response.is_encrypted);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+	CuAssertIntEquals (test, 0, response.channel_id);
+	CuAssertIntEquals (test, sizeof (rx_message), response.max_response);
+
+	status = testing_validate_array (&rx_packet.data[7], response.data, response.length);
+	CuAssertIntEquals (test, 0, status);
+
+	mctp_interface_testing_release (test, &mctp);
+}
+
 static void mctp_interface_test_send_request_message_response_same_buffer (CuTest *test)
 {
 	struct mctp_interface_testing mctp;
@@ -8325,188 +8455,6 @@ static void mctp_interface_test_send_request_message_drop_unexpected_response_ms
 		header->eom = (i != 0) ? 1 : 0;
 		header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
 		header->msg_tag = (i == (ARRAY_SIZE (rx_packet) - 1)) ? 0 : (0 + i);
-		header->packet_seq = (i != 0) ? 1 : 0;
-
-		rx_packet[i].data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-		rx_packet[i].data[8] = 0x01 | (i << 4);
-		rx_packet[i].data[9] = 0x02 | (i << 4);
-		rx_packet[i].data[10] = 0x03 | (i << 4);
-		rx_packet[i].data[11] = 0x04 | (i << 4);
-		rx_packet[i].data[12] = 0x05 | (i << 4);
-		rx_packet[i].data[13] = 0x06 | (i << 4);
-		rx_packet[i].data[14] = 0x07 | (i << 4);
-		rx_packet[i].data[15] = 0x08 | (i << 4);
-		rx_packet[i].data[16] = 0x09 | (i << 4);
-		rx_packet[i].data[17] = checksum_crc8 (0xBA, rx_packet[i].data, 17);
-		rx_packet[i].pkt_size = 18;
-		rx_packet[i].dest_addr = 0x5D;
-		rx_packet[i].timeout_valid = false;
-	}
-
-	context.expected_status = 0;
-	context.rsp_packet = rx_packet;
-	context.packet_count = ARRAY_SIZE (rx_packet);
-	context.test = test;
-	context.mctp = &mctp;
-
-	status = mock_expect (&mctp.channel.mock, mctp.channel.base.send_packet, &mctp.channel, 0,
-		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
-	status |= mock_expect_external_action (&mctp.channel.mock,
-		mctp_interface_testing_process_packet_callback, &context);
-
-	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry1)));
-	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry2, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry2)));
-	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry3, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry3)));
-	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry4, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry4)));
-
-	CuAssertIntEquals (test, 0, status);
-
-	/* Prepare a response structure. */
-	status = msg_transport_create_empty_response (rx_message, sizeof (rx_message), &response);
-	CuAssertIntEquals (test, 0, status);
-
-	/* Send the request. */
-	status = mctp.test.base.send_request_message (&mctp.test.base, &request, 100, &response);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, rx_message, response.data);
-	CuAssertIntEquals (test, sizeof (rx_message), response.length);
-	CuAssertPtrEquals (test, rx_message, response.payload);
-	CuAssertIntEquals (test, sizeof (rx_message), response.payload_length);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_BMC_EID, response.source_eid);
-	CuAssertIntEquals (test, 0x51, response.source_addr);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, response.target_eid);
-	CuAssertIntEquals (test, false, response.is_encrypted);
-	CuAssertIntEquals (test, false, response.crypto_timeout);
-	CuAssertIntEquals (test, 0, response.channel_id);
-	CuAssertIntEquals (test, sizeof (rx_message), response.max_response);
-
-	status = testing_validate_array (&rx_packet[0].data[7], response.data, 10);
-	CuAssertIntEquals (test, 0, status);
-
-	status = testing_validate_array (&rx_packet[5].data[7], &response.data[10], 10);
-	CuAssertIntEquals (test, 0, status);
-
-	mctp_interface_testing_release (test, &mctp);
-}
-
-static void mctp_interface_test_send_request_message_drop_unexpected_response_source_eid (
-	CuTest *test)
-{
-	struct mctp_interface_testing mctp;
-	struct mctp_base_protocol_transport_header *header;
-	uint8_t tx_message[MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN] = {0};
-	struct cmd_packet tx_packet;
-	struct cmd_packet rx_packet[6];
-	uint8_t rx_message[20];
-	struct mctp_interface_test_callback_context context;
-	struct cmd_interface_msg request;
-	struct cmd_interface_msg response;
-	size_t i;
-	int status;
-	struct debug_log_entry_info entry1 = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_INFO,
-		.component = DEBUG_LOG_COMPONENT_MCTP,
-		.msg_index = MCTP_LOGGING_RSP_DROPPED,
-		.arg1 = MCTP_LOGGING_RSP_DROPPED_WRONG_SOURCE,
-		.arg2 = 0x0a510600
-	};
-	struct debug_log_entry_info entry2 = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_INFO,
-		.component = DEBUG_LOG_COMPONENT_MCTP,
-		.msg_index = MCTP_LOGGING_RSP_DROPPED,
-		.arg1 = MCTP_LOGGING_RSP_DROPPED_WRONG_SOURCE,
-		.arg2 = 0x0a510700
-	};
-	struct debug_log_entry_info entry3 = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_INFO,
-		.component = DEBUG_LOG_COMPONENT_MCTP,
-		.msg_index = MCTP_LOGGING_RSP_DROPPED,
-		.arg1 = MCTP_LOGGING_RSP_DROPPED_WRONG_SOURCE,
-		.arg2 = 0x0a510800
-	};
-	struct debug_log_entry_info entry4 = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_INFO,
-		.component = DEBUG_LOG_COMPONENT_MCTP,
-		.msg_index = MCTP_LOGGING_RSP_DROPPED,
-		.arg1 = MCTP_LOGGING_RSP_DROPPED_WRONG_SOURCE,
-		.arg2 = 0x0a510900
-	};
-
-	TEST_START;
-
-	mctp_interface_testing_init (test, &mctp);
-
-	/* Build the request message to send. */
-	status = msg_transport_create_empty_request (&mctp.test.base, tx_message, sizeof (tx_message),
-		MCTP_BASE_PROTOCOL_BMC_EID, &request);
-	CuAssertIntEquals (test, 0, status);
-
-	request.payload[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	request.payload[1] = 0x12;
-	request.payload[2] = 0x34;
-	request.payload[3] = 0x56;
-	request.payload[4] = 0x78;
-	request.payload[5] = 0x90;
-	cmd_interface_msg_set_message_payload_length (&request, 6);
-
-	/* Construct the expected packet generated for the message. */
-	memset (&tx_packet, 0, sizeof (tx_packet));
-	header = (struct mctp_base_protocol_transport_header*) tx_packet.data;
-
-	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = 11;
-	header->source_addr = 0xBB;
-	header->rsvd = 0;
-	header->header_version = 1;
-	header->destination_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->som = 1;
-	header->eom = 1;
-	header->tag_owner = MCTP_BASE_PROTOCOL_TO_REQUEST;
-	header->msg_tag = 0;
-	header->packet_seq = 0;
-
-	memcpy (&tx_packet.data[7], request.payload, request.payload_length);
-
-	tx_packet.data[13] = checksum_crc8 (0xA2, tx_packet.data, 13);
-	tx_packet.pkt_size = 14;
-	tx_packet.state = CMD_VALID_PACKET;
-	tx_packet.dest_addr = 0x51;
-	tx_packet.timeout_valid = false;
-
-	/* Generate a response packets. */
-	memset (&rx_packet, 0, sizeof (rx_packet));
-
-	for (i = 0; i < ARRAY_SIZE (rx_packet); i++) {
-		header = (struct mctp_base_protocol_transport_header*) rx_packet[i].data;
-
-		/* Split the response data between the first and last packets to ensure that no SOM for a
-		 * different message type interrupts message assembly. */
-		header->cmd_code = SMBUS_CMD_CODE_MCTP;
-		header->byte_count = 15;
-		header->source_addr = 0xA3;
-		header->rsvd = 0;
-		header->header_version = 1;
-		header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-		header->source_eid = (i == 0) ? MCTP_BASE_PROTOCOL_BMC_EID :
-			MCTP_BASE_PROTOCOL_BMC_EID - (ARRAY_SIZE (rx_packet) - (i + 1));
-		header->som = (i != (ARRAY_SIZE (rx_packet) - 1)) ? 1 : 0;
-		header->eom = (i != 0) ? 1 : 0;
-		header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
-		header->msg_tag = 0;
 		header->packet_seq = (i != 0) ? 1 : 0;
 
 		rx_packet[i].data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
@@ -9475,178 +9423,6 @@ static void mctp_interface_test_send_request_message_no_response_wait_receive_re
 		header->eom = 1;
 		header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
 		header->msg_tag = ARRAY_SIZE (rx_packet) - (i + 1);
-		header->packet_seq = 0;
-
-		rx_packet[i].data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-		rx_packet[i].data[8] = 0x01 | (i << 4);
-		rx_packet[i].data[9] = 0x02 | (i << 4);
-		rx_packet[i].data[10] = 0x03 | (i << 4);
-		rx_packet[i].data[11] = 0x04 | (i << 4);
-		rx_packet[i].data[12] = 0x05 | (i << 4);
-		rx_packet[i].data[13] = 0x06 | (i << 4);
-		rx_packet[i].data[14] = 0x07 | (i << 4);
-		rx_packet[i].data[15] = 0x08 | (i << 4);
-		rx_packet[i].data[16] = 0x09 | (i << 4);
-		rx_packet[i].data[17] = checksum_crc8 (0xBA, rx_packet[i].data, 17);
-		rx_packet[i].pkt_size = 18;
-		rx_packet[i].dest_addr = 0x5D;
-		rx_packet[i].timeout_valid = false;
-	}
-
-	status = mock_expect (&mctp.channel.mock, mctp.channel.base.send_packet, &mctp.channel, 0,
-		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
-
-	CuAssertIntEquals (test, 0, status);
-
-	/* Send the request. */
-	status = mctp.test.base.send_request_message (&mctp.test.base, &request, 0, NULL);
-	CuAssertIntEquals (test, MSG_TRANSPORT_NO_WAIT_RESPONSE, status);
-
-	/* Receive the response. */
-	status = mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry1)));
-	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry2, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry2)));
-	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry3, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry3)));
-	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry4, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry4)));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = mctp_interface_process_packet (&mctp.test, &rx_packet[0], &tx);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertPtrEquals (test, NULL, tx);
-
-	status = mctp_interface_process_packet (&mctp.test, &rx_packet[1], &tx);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertPtrEquals (test, NULL, tx);
-
-	status = mctp_interface_process_packet (&mctp.test, &rx_packet[2], &tx);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertPtrEquals (test, NULL, tx);
-
-	status = mctp_interface_process_packet (&mctp.test, &rx_packet[3], &tx);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertPtrEquals (test, NULL, tx);
-
-	status = mctp_interface_process_packet (&mctp.test, &rx_packet[4], &tx);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertPtrEquals (test, NULL, tx);
-
-	mctp_interface_testing_release (test, &mctp);
-}
-
-static void mctp_interface_test_send_request_message_no_response_wait_receive_response_drop_unexpected_response_source_eid (
-	CuTest *test)
-{
-	struct mctp_interface_testing mctp;
-	struct mctp_base_protocol_transport_header *header;
-	uint8_t tx_message[MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN] = {0};
-	struct cmd_packet tx_packet;
-	struct cmd_packet rx_packet[5];
-	struct cmd_interface_msg request;
-	struct cmd_message *tx;
-	size_t i;
-	int status;
-	struct debug_log_entry_info entry1 = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_INFO,
-		.component = DEBUG_LOG_COMPONENT_MCTP,
-		.msg_index = MCTP_LOGGING_RSP_DROPPED,
-		.arg1 = MCTP_LOGGING_RSP_DROPPED_WRONG_SOURCE,
-		.arg2 = 0x0a510607
-	};
-	struct debug_log_entry_info entry2 = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_INFO,
-		.component = DEBUG_LOG_COMPONENT_MCTP,
-		.msg_index = MCTP_LOGGING_RSP_DROPPED,
-		.arg1 = MCTP_LOGGING_RSP_DROPPED_WRONG_SOURCE,
-		.arg2 = 0x0a510707
-	};
-	struct debug_log_entry_info entry3 = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_INFO,
-		.component = DEBUG_LOG_COMPONENT_MCTP,
-		.msg_index = MCTP_LOGGING_RSP_DROPPED,
-		.arg1 = MCTP_LOGGING_RSP_DROPPED_WRONG_SOURCE,
-		.arg2 = 0x0a510807
-	};
-	struct debug_log_entry_info entry4 = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_INFO,
-		.component = DEBUG_LOG_COMPONENT_MCTP,
-		.msg_index = MCTP_LOGGING_RSP_DROPPED,
-		.arg1 = MCTP_LOGGING_RSP_DROPPED_WRONG_SOURCE,
-		.arg2 = 0x0a510907
-	};
-
-	TEST_START;
-
-	mctp_interface_testing_init (test, &mctp);
-
-	mctp_interface_set_channel_id (&mctp.test, 7);
-
-	/* Build the request message to send. */
-	status = msg_transport_create_empty_request (&mctp.test.base, tx_message, sizeof (tx_message),
-		MCTP_BASE_PROTOCOL_BMC_EID, &request);
-	CuAssertIntEquals (test, 0, status);
-
-	request.payload[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	request.payload[1] = 0x12;
-	request.payload[2] = 0x34;
-	request.payload[3] = 0x56;
-	request.payload[4] = 0x78;
-	request.payload[5] = 0x90;
-	cmd_interface_msg_set_message_payload_length (&request, 6);
-
-	/* Construct the expected packet generated for the message. */
-	memset (&tx_packet, 0, sizeof (tx_packet));
-	header = (struct mctp_base_protocol_transport_header*) tx_packet.data;
-
-	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = 11;
-	header->source_addr = 0xBB;
-	header->rsvd = 0;
-	header->header_version = 1;
-	header->destination_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->som = 1;
-	header->eom = 1;
-	header->tag_owner = MCTP_BASE_PROTOCOL_TO_REQUEST;
-	header->msg_tag = 0;
-	header->packet_seq = 0;
-
-	memcpy (&tx_packet.data[7], request.payload, request.payload_length);
-
-	tx_packet.data[13] = checksum_crc8 (0xA2, tx_packet.data, 13);
-	tx_packet.pkt_size = 14;
-	tx_packet.state = CMD_VALID_PACKET;
-	tx_packet.dest_addr = 0x51;
-	tx_packet.timeout_valid = false;
-
-	/* Generate a response packets. */
-	memset (&rx_packet, 0, sizeof (rx_packet));
-
-	for (i = 0; i < ARRAY_SIZE (rx_packet); i++) {
-		header = (struct mctp_base_protocol_transport_header*) rx_packet[i].data;
-
-		header->cmd_code = SMBUS_CMD_CODE_MCTP;
-		header->byte_count = 15;
-		header->source_addr = 0xA3;
-		header->rsvd = 0;
-		header->header_version = 1;
-		header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-		header->source_eid = MCTP_BASE_PROTOCOL_BMC_EID - (ARRAY_SIZE (rx_packet) - (i + 1));
-		header->som = 1;
-		header->eom = 1;
-		header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
-		header->msg_tag = 0;
 		header->packet_seq = 0;
 
 		rx_packet[i].data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
@@ -15268,75 +15044,6 @@ static void mctp_interface_test_issue_request_cmd_channel_fail (CuTest *test)
 	mctp_interface_testing_release (test, &mctp);
 }
 
-static void mctp_interface_test_issue_request_then_process_packet_response_from_unexpected_eid (
-	CuTest *test)
-{
-	struct mctp_interface_testing mctp;
-	struct mctp_interface_test_callback_context context;
-	struct cmd_packet rx;
-	struct mctp_base_protocol_transport_header *header =
-		(struct mctp_base_protocol_transport_header*) rx.data;
-	uint8_t data[10];
-	struct cmd_interface_msg response;
-
-	TEST_START;
-
-	memset (&rx, 0, sizeof (rx));
-	memset (&response, 0, sizeof (response));
-
-	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = 15;
-	header->source_addr = 0xAB;
-	header->rsvd = 0;
-	header->header_version = 1;
-	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->source_eid = 0x1D;
-	header->som = 1;
-	header->eom = 1;
-	header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
-	header->msg_tag = 0x00;
-	header->packet_seq = 0;
-
-	rx.data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	rx.data[8] = 0x00;
-	rx.data[9] = 0x00;
-	rx.data[10] = 0x00;
-	rx.data[11] = 0x01;
-	rx.data[12] = 0x02;
-	rx.data[13] = 0x03;
-	rx.data[14] = 0x04;
-	rx.data[15] = 0x05;
-	rx.data[16] = 0x06;
-	rx.data[17] = checksum_crc8 (0xBA, rx.data, 17);
-	rx.pkt_size = 18;
-	rx.dest_addr = 0x5D;
-	rx.timeout_valid = true;
-	platform_init_timeout (10, &rx.pkt_timeout);
-
-	response.data = data;
-	response.length = sizeof (data);
-	memcpy (response.data, &rx.data[7], response.length);
-	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	response.crypto_timeout = false;
-	response.channel_id = 0;
-	response.max_response = 0;
-
-	mctp_interface_testing_init (test, &mctp);
-	debug_log = NULL;
-
-	context.expected_status = 0;
-	context.rsp_packet = &rx;
-	context.packet_count = 1;
-	context.test = test;
-	context.mctp = &mctp;
-
-	mctp_interface_testing_generate_and_issue_request (test, &mctp, &context,
-		MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, 0);
-
-	mctp_interface_testing_release (test, &mctp);
-}
-
 static void mctp_interface_test_issue_request_then_process_packet_response_with_unexpected_msg_tag (
 	CuTest *test)
 {
@@ -15652,12 +15359,12 @@ TEST (mctp_interface_test_send_request_message_max_size);
 TEST (mctp_interface_test_send_request_message_max_size_min_packets);
 TEST (mctp_interface_test_send_request_message_max_response);
 TEST (mctp_interface_test_send_request_message_different_msg_tags);
+TEST (mctp_interface_test_send_request_message_different_source_eid);
 TEST (mctp_interface_test_send_request_message_response_same_buffer);
 TEST (mctp_interface_test_send_request_message_response_same_buffer_max_size);
 TEST (mctp_interface_test_send_request_message_response_same_buffer_max_size_min_packets);
 TEST (mctp_interface_test_send_request_message_response_same_buffer_max_response);
 TEST (mctp_interface_test_send_request_message_drop_unexpected_response_msg_tags);
-TEST (mctp_interface_test_send_request_message_drop_unexpected_response_source_eid);
 TEST (mctp_interface_test_send_request_message_drop_unexpected_response_msg_type);
 TEST (mctp_interface_test_send_request_message_drop_request_packet_no_som);
 TEST (mctp_interface_test_send_request_message_receive_extra_response_message);
@@ -15665,7 +15372,6 @@ TEST (mctp_interface_test_send_request_message_no_response_wait);
 TEST (mctp_interface_test_send_request_message_no_response_wait_receive_response);
 TEST (mctp_interface_test_send_request_message_no_response_wait_receive_response_descriptor_not_null);
 TEST (mctp_interface_test_send_request_message_no_response_wait_receive_response_drop_unexpected_response_msg_tags);
-TEST (mctp_interface_test_send_request_message_no_response_wait_receive_response_drop_unexpected_response_source_eid);
 TEST (mctp_interface_test_send_request_message_no_response_wait_receive_response_drop_unexpected_response_msg_type);
 TEST (mctp_interface_test_send_request_message_no_response_wait_receive_response_drop_request_packet_no_som);
 TEST (mctp_interface_test_send_request_message_no_response_wait_then_another_request);
@@ -15724,7 +15430,6 @@ TEST (mctp_interface_test_issue_request_null);
 TEST (mctp_interface_test_issue_request_output_buf_too_small);
 TEST (mctp_interface_test_issue_request_request_payload_too_large);
 TEST (mctp_interface_test_issue_request_cmd_channel_fail);
-TEST (mctp_interface_test_issue_request_then_process_packet_response_from_unexpected_eid);
 TEST (mctp_interface_test_issue_request_then_process_packet_response_with_unexpected_msg_tag);
 TEST (mctp_interface_test_issue_request_mctp_control_then_process_packet_response_mctp_control_unsupported);
 TEST (mctp_interface_test_issue_request_spdm_then_process_packet_response_spdm_unsupported);

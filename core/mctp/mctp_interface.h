@@ -42,7 +42,6 @@ struct mctp_interface_state {
 	uint8_t msg_type;										/**< Current MCTP exchange message type */
 	int channel_id;											/**< Channel ID associated with the interface. */
 #ifdef CMD_ENABLE_ISSUE_REQUEST
-	uint8_t response_eid;									/**< MCTP EID for device we expect a response from. */
 	uint8_t response_msg_tag;								/**< MCTP message tag for transaction we expect response for. */
 	uint8_t response_msg_type;								/**< Expected message type of the response message. */
 	struct cmd_interface_msg *response_msg;					/**< Descriptor for handling response messages. */
