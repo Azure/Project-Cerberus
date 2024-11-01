@@ -378,16 +378,14 @@ unlock_tx:
  * response message.
  *
  * @param mctp The MCTP handler to check the packet against.
- * @param source_addr I2C address of the device that sent the response packet.
- * @param src_eid EID of the device that sent the response packet.
  * @param msg_tag Message tag of the response packet.
  * @param som Flag indicating if the packet is the first in the message.
  * @param msg_type Message type of the response message.  This is only valid for SOM packets.
  *
  * @return true if the response message is part of an expected response or false if not.
  */
-static bool mctp_interface_is_expected_response (const struct mctp_interface *mctp,
-	uint8_t source_addr, uint8_t src_eid, uint8_t msg_tag, bool som, uint8_t msg_type)
+static bool mctp_interface_is_expected_response (const struct mctp_interface *mctp, uint8_t msg_tag,
+	bool som, uint8_t msg_type)
 {
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 	bool expected = true;
@@ -433,8 +431,6 @@ exit:
 
 	return expected;
 #else
-	UNUSED (source_addr);
-	UNUSED (src_eid);
 	UNUSED (msg_tag);
 	UNUSED (som);
 	UNUSED (msg_type);
@@ -857,8 +853,7 @@ int mctp_interface_process_packet (const struct mctp_interface *mctp, struct cmd
 		}
 
 		if (tag_owner == MCTP_BASE_PROTOCOL_TO_RESPONSE) {
-			if (!mctp_interface_is_expected_response (mctp, response_addr, src_eid, msg_tag, som,
-				msg_type)) {
+			if (!mctp_interface_is_expected_response (mctp, msg_tag, som, msg_type)) {
 				/* Unexpected response packets must not interrupt message assembly and should be
 				 * ignored. */
 				return 0;
