@@ -95,6 +95,10 @@ void system_reset (struct system *system)
 		/* If we get here, the reset has failed. */
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_SYSTEM,
 			SYSTEM_LOGGING_RESET_FAIL, status, 0);
+
+		/* Notify other components of the reset failure to restore normal operation. */
+		observable_notify_observers (&system->observable,
+			offsetof (struct system_observer, on_shutdown_failed));
 	}
 	else {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_SYSTEM,

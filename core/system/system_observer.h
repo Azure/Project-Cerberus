@@ -22,6 +22,17 @@ struct system_observer {
 	 * @param observer The observer instance being notified.
 	 */
 	void (*on_shutdown) (struct system_observer *observer);
+
+	/**
+	 * Notification that the processor failed to complete the shutdown process and reset.  This
+	 * provides observers the opportunity to revert any operations that were done in response to the
+	 * previous shutdown notification.
+	 *
+	 * Arguments passed with the notification will never be null.
+	 *
+	 * @param observer The observer instance being notified.
+	 */
+	void (*on_shutdown_failed) (struct system_observer *observer);
 };
 
 

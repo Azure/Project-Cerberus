@@ -234,9 +234,14 @@ static void system_test_reset (CuTest *test)
 	status |= mock_expect (&system.logger.mock, system.logger.base.flush, &system.logger, 0);
 	status |= mock_expect (&system.device.mock, system.device.base.reset, &system.device, 0);
 
+	/* Since the reset call doesn't actually reset the device, the error flow always gets executed
+	 * by the test. */
 	status |= mock_expect (&system.logger.mock, system.logger.base.create_entry, &system.logger, 0,
 		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry)));
+
+	status |= mock_expect (&system.observer.mock, system.observer.base.on_shutdown_failed,
+		&system.observer, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -340,6 +345,43 @@ static void system_test_reset_device_reset_error (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry)));
 
+	status |= mock_expect (&system.observer.mock, system.observer.base.on_shutdown_failed,
+		&system.observer, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	system_reset (&system.test);
+
+	system_testing_validate_and_release (test, &system);
+}
+
+static void system_test_reset_device_reset_error_no_observers (CuTest *test)
+{
+	struct system_testing system;
+	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_SYSTEM,
+		.msg_index = SYSTEM_LOGGING_RESET_FAIL,
+		.arg1 = CMD_DEVICE_RESET_FAILED,
+		.arg2 = 0
+	};
+
+	TEST_START;
+
+	system_testing_init (test, &system);
+
+	debug_log = &system.logger.base;
+
+	status = mock_expect (&system.logger.mock, system.logger.base.flush, &system.logger, 0);
+	status |= mock_expect (&system.device.mock, system.device.base.reset, &system.device,
+		CMD_DEVICE_RESET_FAILED);
+
+	status |= mock_expect (&system.logger.mock, system.logger.base.create_entry, &system.logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
 	CuAssertIntEquals (test, 0, status);
 
 	system_reset (&system.test);
@@ -362,6 +404,7 @@ TEST (system_test_reset);
 TEST (system_test_reset_no_observers);
 TEST (system_test_reset_null);
 TEST (system_test_reset_device_reset_error);
+TEST (system_test_reset_device_reset_error_no_observers);
 
 TEST_SUITE_END;
 // *INDENT-ON*
