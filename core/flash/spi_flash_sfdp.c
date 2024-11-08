@@ -580,7 +580,8 @@ bool spi_flash_sfdp_supports_4byte_commands (const struct spi_flash_sfdp_basic_t
 	bool opcodes_4b = false;
 
 	if (table != NULL) {
-		if (table->sfdp->vendor == FLASH_ID_MACRONIX) {
+		if ((table->sfdp->vendor == FLASH_ID_MACRONIX) &&
+			(FLASH_ID_DEVICE_SERIES (table->sfdp->device) != FLASH_ID_MX66UW)) {
 			/* SFDP tables can't be used for some Macronix devices.  Earlier devices
 			 * (e.g. MX25L25635F) don't support version 1.5, and at least some newer ones
 			 * (e.g. MX25L25645G) don't correctly report support for 4-byte commands. */
@@ -629,8 +630,7 @@ int spi_flash_sfdp_get_4byte_mode_switch (const struct spi_flash_sfdp_basic_tabl
 		if ((params->enter_4b & 0x7f) == 0) {
 			*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_UNSUPPORTED;
 		}
-		else if ((params->enter_4b & SPI_FLASH_SFDP_ALWAYS_4B) ||
-			((params->reset_exit_4b & SPI_FLASH_SFDP_SUPPORTS_4B_EXIT) == 0)) {
+		else if (params->enter_4b & SPI_FLASH_SFDP_ALWAYS_4B) {
 			*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_FIXED;
 		}
 		else if ((params->enter_4b & SPI_FLASH_SFDP_4B_ENTER_B7) &&
@@ -640,6 +640,9 @@ int spi_flash_sfdp_get_4byte_mode_switch (const struct spi_flash_sfdp_basic_tabl
 		else if ((params->enter_4b & SPI_FLASH_SFDP_4B_ENTER_06_B7) &&
 			(params->reset_exit_4b & SPI_FLASH_SFDP_4B_EXIT_06_E9)) {
 			*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_COMMAND_WRITE_ENABLE;
+		}
+		else if (params->enter_4b & SPI_FLASH_SFDP_4B_OPCODES) {
+			*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_INSTRUCTION_SET;
 		}
 		else {
 			return SPI_FLASH_SFDP_4BYTE_INCOMPATIBLE;
@@ -676,6 +679,18 @@ bool spi_flash_sfdp_exit_4byte_mode_on_reset (const struct spi_flash_sfdp_basic_
 {
 	struct spi_flash_sfdp_basic_parameter_table_1_5 *params;
 	bool revert = true;	// Assume a device will revert unless SFDP explicitly says otherwise.
+	enum spi_flash_sfdp_4byte_addressing switch_4byte;
+	int status;
+
+	status = spi_flash_sfdp_get_4byte_mode_switch (table, &switch_4byte);
+	if (status != 0) {
+		return true;	// Assume a device will revert if we can't determine the switch method.
+	}
+	else if (switch_4byte == SPI_FLASH_SFDP_4BYTE_MODE_INSTRUCTION_SET) {
+		/* As the device can't enter 4byte addressing mode, it will be in 3byte addressing mode
+		 * after reset. */
+		return true;
+	}
 
 	if ((table != NULL) && (table->sfdp->sfdp_header.parameter0.minor_revision >= 5)) {
 		params = (struct spi_flash_sfdp_basic_parameter_table_1_5*) table->data;

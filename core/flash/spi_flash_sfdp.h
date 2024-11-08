@@ -96,6 +96,7 @@ enum spi_flash_sfdp_4byte_addressing {
 	SPI_FLASH_SFDP_4BYTE_MODE_COMMAND,				/**< Use a command to switch the mode. */
 	SPI_FLASH_SFDP_4BYTE_MODE_COMMAND_WRITE_ENABLE,	/**< Issue write enable before mode switch. */
 	SPI_FLASH_SFDP_4BYTE_MODE_FIXED,				/**< Device is permanently in 4-byte mode. */
+	SPI_FLASH_SFDP_4BYTE_MODE_INSTRUCTION_SET,		/**< 4-byte addressing is only supported through the explicit command set. */
 };
 
 /**

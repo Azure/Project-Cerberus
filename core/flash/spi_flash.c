@@ -47,6 +47,10 @@
 #define INFINEON_CFR4N				0x00000005
 #define INFINEON_CFR5N				0x00000006
 
+/* Macronix MX66UW flash volatile configuration register 2 address
+ * that controls the error correction signal. */
+#define MX66UW_CFR2V_ECS			0x00000400
+
 /**
  * Check the requested operation to ensure it is valid for the device.
  */
@@ -798,18 +802,19 @@ static int spi_flash_wait_for_write_completion (const struct spi_flash *flash, i
 }
 
 /**
- * Send a write command that writes to Infineon flash register that requires addressing.
+ * Send a write command that writes to a register that requires a 4byte address.
  * This will block until the register write has completed.
  *
  * @param flash The flash instance to use to send the command.
+ * @param cmd The command code that writes the register.
  * @param addr The address of the register to write.
  * @param data The data to write to the register.
  * @param length The length of the data to write.
  *
  * @return 0 if the command was successfully completed or an error code.
  */
-static int spi_flash_infineon_write_register (const struct spi_flash *flash, uint32_t addr,
-	uint8_t *data, size_t length)
+static int spi_flash_write_register_with_4byte_address (const struct spi_flash *flash, uint8_t cmd,
+	uint32_t addr, uint8_t *data, size_t length)
 {
 	struct flash_xfer xfer;
 	int status;
@@ -824,9 +829,7 @@ static int spi_flash_infineon_write_register (const struct spi_flash *flash, uin
 		return status;
 	}
 
-	/* Assume 4byte address mode. */
-	FLASH_XFER_INIT_WRITE (xfer, FLASH_CMD_INFINEON_WR_ARG, addr, 0, data, length,
-		FLASH_FLAG_4BYTE_ADDRESS);
+	FLASH_XFER_INIT_WRITE (xfer, cmd, addr, 0, data, length, FLASH_FLAG_4BYTE_ADDRESS);
 	status = flash->spi->xfer (flash->spi, &xfer);
 	if (status != 0) {
 		return status;
@@ -1342,20 +1345,23 @@ int spi_flash_clear_block_protect (const struct spi_flash *flash)
 	uint8_t cmd_len = 1;
 	uint8_t mask = 0x83;
 	uint8_t vendor;
+	uint16_t device_id;
 	int status;
 
 	if (flash == NULL) {
 		return SPI_FLASH_INVALID_ARGUMENT;
 	}
 
-	status = spi_flash_get_device_id (flash, &vendor, NULL);
+	status = spi_flash_get_device_id (flash, &vendor, &device_id);
 	if (status != 0) {
 		return status;
 	}
 
 	platform_mutex_lock (&flash->state->lock);
 
-	if ((vendor != FLASH_ID_MICROCHIP) && (vendor != FLASH_ID_INFINEON)) {
+	if ((vendor != FLASH_ID_MICROCHIP) && (vendor != FLASH_ID_INFINEON) &&
+		(!((vendor == FLASH_ID_MACRONIX) &&
+		(FLASH_ID_DEVICE_SERIES (device_id) == FLASH_ID_MX66UW)))) {
 		/* Depending on the quad enable bit, the block clear needs to be handled differently:
 		 *   - If the quad bit is in SR1, then we need to be sure not to clear it.
 		 *   - On some devices, writing only 1 byte to SR1 will automatically clear SR2.  On these
@@ -1411,7 +1417,8 @@ int spi_flash_clear_block_protect (const struct spi_flash *flash)
 
 		if (reg[0] & 0x1c) {
 			reg[0] &= ~0x1c;
-			status = spi_flash_infineon_write_register (flash, INFINEON_STR1V, reg, 1);
+			status = spi_flash_write_register_with_4byte_address (flash, FLASH_CMD_INFINEON_WR_ARG,
+				INFINEON_STR1V, reg, 1);
 			if (status != 0) {
 				goto exit;
 			}
@@ -1419,7 +1426,36 @@ int spi_flash_clear_block_protect (const struct spi_flash *flash)
 
 		/* Enable single byte write */
 		reg[0] = 0xC0;
-		status = spi_flash_infineon_write_register (flash, INFINEON_CFR4V, reg, 1);
+		status = spi_flash_write_register_with_4byte_address (flash, FLASH_CMD_INFINEON_WR_ARG,
+			INFINEON_CFR4V, reg, 1);
+	}
+	else if ((vendor == FLASH_ID_MACRONIX) &&
+		(FLASH_ID_DEVICE_SERIES (device_id) == FLASH_ID_MX66UW)) {
+		/* Macronix MX66U OSPI flash device has different block protect mechanism from Macronix
+		 * SPI flash devices.  The block protect bits in status register are different.  Double page
+		 * programming has to be enabled by writing to volatile configuration register 2. */
+		FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR, reg, 1, 0);
+		status = flash->spi->xfer (flash->spi, &xfer);
+		if (status != 0) {
+			goto exit;
+		}
+
+		if (reg[0] & 0x3c) {
+			reg[0] &= ~0x3c;
+			status = spi_flash_write_register (flash, FLASH_CMD_WRSR, reg, cmd_len,
+				flash->state->sr1_volatile);
+			if (status != 0) {
+				goto exit;
+			}
+		}
+
+		/* Modify ECC configuration to enable double page programming. */
+		reg[0] = 0x02;
+		status = spi_flash_write_register_with_4byte_address (flash, FLASH_CMD_MACRONIX_WRCR2,
+			MX66UW_CFR2V_ECS, reg, 1);
+		if (status != 0) {
+			goto exit;
+		}
 	}
 	else {
 		/* Microchip flash does not have block protect bits in the status register.  Instead, there
@@ -1489,6 +1525,10 @@ int spi_flash_is_address_mode_fixed (const struct spi_flash *flash)
 		return SPI_FLASH_INVALID_ARGUMENT;
 	}
 
+	if (flash->state->switch_4byte == SPI_FLASH_SFDP_4BYTE_MODE_INSTRUCTION_SET) {
+		return 1;
+	}
+
 	return ((flash->state->capabilities & (FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR)) !=
 		(FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR));
 }
@@ -1544,6 +1584,11 @@ int spi_flash_is_4byte_address_mode_on_reset (const struct spi_flash *flash)
 			return 1;
 	}
 
+	/* Handle devices which don't support address mode switching. */
+	if (flash->state->switch_4byte == SPI_FLASH_SFDP_4BYTE_MODE_INSTRUCTION_SET) {
+		return 0;
+	}
+
 	/* Detecting address state on reset is vendor dependent. */
 	status = spi_flash_get_device_id (flash, &vendor, NULL);
 	if (status != 0) {
@@ -1597,6 +1642,14 @@ int spi_flash_is_4byte_address_mode_on_reset (const struct spi_flash *flash)
  */
 static int spi_flash_supports_address_mode (const struct spi_flash *flash, uint8_t mode)
 {
+	if (flash->state->switch_4byte == SPI_FLASH_SFDP_4BYTE_MODE_INSTRUCTION_SET) {
+		/* These devices don't support address mode switching. It is not recommended
+		 * to send commands to flash that are not in the command list. Returning 3byte mode
+		 * here ensures that upper layers like spi_flash_enable_4byte_address_mode don't send
+		 * unsupported commands to flash. */
+		return (mode) ? SPI_FLASH_UNSUPPORTED_ADDR_MODE : SPI_FLASH_ADDR_MODE_FIXED;
+	}
+
 	switch (flash->state->capabilities & (FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR)) {
 		case FLASH_CAP_3BYTE_ADDR:
 			return (mode) ? SPI_FLASH_UNSUPPORTED_ADDR_MODE : SPI_FLASH_ADDR_MODE_FIXED;
@@ -1703,6 +1756,11 @@ int spi_flash_detect_4byte_address_mode (const struct spi_flash *flash)
 
 	if ((flash->state->capabilities & (FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR)) !=
 		(FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR)) {
+		return 0;
+	}
+
+	if (flash->state->switch_4byte == SPI_FLASH_SFDP_4BYTE_MODE_INSTRUCTION_SET) {
+		/* These devices support 3 byte commands to be sent with 3 byte address. */
 		return 0;
 	}
 
