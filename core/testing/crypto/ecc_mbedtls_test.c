@@ -2565,10 +2565,9 @@ static void ecc_mbedtls_test_get_private_key_der_p521 (CuTest *test)
 	status = engine.base.get_private_key_der (&engine.base, &priv_key, &der, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
-	CuAssertIntEquals (test, ECC521_PRIVKEY_DER_NO_LEADING_ZERO_LEN, length);
+	CuAssertIntEquals (test, ECC521_PRIVKEY_DER_LEN, length);
 
-	status = testing_validate_array (ECC521_PRIVKEY_DER_NO_LEADING_ZERO, der,
-		ECC521_PRIVKEY_DER_NO_LEADING_ZERO_LEN);
+	status = testing_validate_array (ECC521_PRIVKEY_DER, der, ECC521_PRIVKEY_DER_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	platform_free (der);

@@ -13,7 +13,7 @@
 #
 # --
 
-set(MBEDTLS_DIR ${CERBERUS_ROOT}/external/mbedtls-2.17.0)
+set(MBEDTLS_DIR ${CERBERUS_ROOT}/external/mbedtls)
 file(GLOB MBEDTLS_SOURCES ${MBEDTLS_DIR}/library/*.c)
 set(MBEDTLS_INCLUDES ${MBEDTLS_DIR}/include)
 

@@ -9,6 +9,7 @@
 #include "asn1/x509_mbedtls.h"
 #include "common/array_size.h"
 #include "crypto/ecc.h"
+#include "mbedtls/version.h"
 #include "testing/asn1/dice/x509_extension_builder_dice_tcbinfo_testing.h"
 #include "testing/asn1/dice/x509_extension_builder_dice_ueid_testing.h"
 #include "testing/asn1/x509_testing.h"
@@ -18,6 +19,13 @@
 
 
 TEST_SUITE_LABEL ("x509_mbedtls");
+
+
+/**
+ * Version number for mbedTLS version 2.28.0.  Certificate generation behavior is different between
+ * versions earlier and later than this release.
+ */
+#define	X509_MBEDTLS_TESTING_VERSION_2_28_0		0x021C0000
 
 
 /*******************
@@ -89,7 +97,11 @@ static void x509_mbedtls_test_create_csr_ecc_ca (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -118,7 +130,11 @@ static void x509_mbedtls_test_create_csr_ecc_end_entity (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -149,7 +165,11 @@ static void x509_mbedtls_test_create_csr_ecc384_ca (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_CA, CSR, UTF8STRING, ECDSA_SHA384_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_CA, CSR, UTF8STRING, ECDSA_SHA384_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -178,7 +198,11 @@ static void x509_mbedtls_test_create_csr_ecc384_end_entity (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_EE, CSR, UTF8STRING, ECDSA_SHA384_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_EE, CSR, UTF8STRING, ECDSA_SHA384_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -208,7 +232,11 @@ static void x509_mbedtls_test_create_csr_ecc384_ca_sha256_digest (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_SHA256_CA, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_SHA256_CA, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -237,7 +265,11 @@ static void x509_mbedtls_test_create_csr_ecc384_end_entity_sha256_digest (CuTest
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_SHA256_EE, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_SHA256_EE, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -268,7 +300,11 @@ static void x509_mbedtls_test_create_csr_ecc521_ca (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC521_CA, CSR, UTF8STRING, ECDSA_SHA512_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC521_CA, CSR, UTF8STRING, ECDSA_SHA512_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -297,7 +333,11 @@ static void x509_mbedtls_test_create_csr_ecc521_end_entity (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC521_EE, CSR, UTF8STRING, ECDSA_SHA512_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC521_EE, CSR, UTF8STRING, ECDSA_SHA512_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -386,7 +426,11 @@ static void x509_mbedtls_test_create_csr_ca_non_zero_path_length_constraint (CuT
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_PL2, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_PL2, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -416,7 +460,11 @@ static void x509_mbedtls_test_create_csr_ca_no_path_length_constraint (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_NOPL, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_NOPL, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -446,7 +494,11 @@ static void x509_mbedtls_test_create_csr_ca_with_eku_oid (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_EKU, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_EKU, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -531,7 +583,11 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension (CuTest *
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -594,7 +650,11 @@ static void x509_mbedtls_test_create_csr_end_entity_tcbinfo_and_ueid_extension (
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE_UEID, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE_UEID, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -657,7 +717,11 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_sha1 (CuT
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA1, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA1, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -720,8 +784,12 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_sha384 (C
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA384, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA384, CSR, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -784,8 +852,12 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_sha512 (C
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA512, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA512, CSR, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -848,7 +920,11 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_svn_zero 
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SVN, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SVN, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -897,7 +973,11 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_extension_no_ueid (CuTest *t
 	status = x509_extension_builder_mock_validate_and_release (&tcb);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -946,7 +1026,11 @@ static void x509_mbedtls_test_create_csr_end_entity_tcbinfo_extension_no_ueid (C
 	status = x509_extension_builder_mock_validate_and_release (&tcb);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE_TCBINFO, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE_TCBINFO, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -998,8 +1082,13 @@ static void x509_mbedtls_test_create_csr_ca_critical_extension (CuTest *test)
 	status = x509_extension_builder_mock_validate_and_release (&tcb);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO_CRIT, CSR, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO_CRIT, CSR, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -1062,7 +1151,11 @@ static void x509_mbedtls_test_create_csr_ca_null_extension (CuTest *test)
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -1319,7 +1412,11 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc_ca (CuTest *tes
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA, CERTSS, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA, CERTSS, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1355,7 +1452,11 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc_end_entity (CuT
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE, CERTSS, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE, CERTSS, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1393,8 +1494,13 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc384_ca (CuTest *
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_CA, CERTSS, UTF8STRING,
+		ECDSA_SHA384_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_CA, CERTSS, UTF8STRING,
 		ECDSA_SHA384_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1430,8 +1536,13 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc384_end_entity (
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_EE, CERTSS, UTF8STRING,
+		ECDSA_SHA384_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_EE, CERTSS, UTF8STRING,
 		ECDSA_SHA384_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1468,8 +1579,13 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc384_ca_sha256_di
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_SHA256_CA, CERTSS, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_SHA256_CA, CERTSS, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1506,8 +1622,13 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc384_end_entity_s
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_SHA256_EE, CERTSS, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_SHA256_EE, CERTSS, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1545,8 +1666,13 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc521_ca (CuTest *
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC521_CA, CERTSS, UTF8STRING,
+		ECDSA_SHA512_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC521_CA, CERTSS, UTF8STRING,
 		ECDSA_SHA512_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1582,8 +1708,13 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc521_end_entity (
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC521_EE, CERTSS, UTF8STRING,
+		ECDSA_SHA512_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC521_EE, CERTSS, UTF8STRING,
 		ECDSA_SHA512_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1693,7 +1824,11 @@ static void x509_mbedtls_test_create_self_signed_certificate_ca_non_zero_path_le
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_PL1, CERTSS, UTF8STRING,	ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_PL1, CERTSS, UTF8STRING,	ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1730,7 +1865,11 @@ static void x509_mbedtls_test_create_self_signed_certificate_ca_no_path_length_c
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_NOPL, CERTSS, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_NOPL, CERTSS, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1800,7 +1939,11 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID, CERTSS, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID, CERTSS, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1871,7 +2014,11 @@ x509_mbedtls_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_and_ueid
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE_UEID, CERTSS, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE_UEID, CERTSS, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1942,8 +2089,13 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA1, CERTSS, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA1, CERTSS, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2014,8 +2166,13 @@ x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extensi
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA384, CERTSS, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA384, CERTSS, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2086,8 +2243,13 @@ x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extensi
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA512, CERTSS, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA512, CERTSS, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2158,8 +2320,12 @@ x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extensi
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SVN, CERTSS, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SVN, CERTSS, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2215,8 +2381,12 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_exte
 	status = x509_extension_builder_mock_validate_and_release (&tcb);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO, CERTSS, UTF8STRING,	ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO, CERTSS, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2273,8 +2443,12 @@ x509_mbedtls_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_extensio
 	status = x509_extension_builder_mock_validate_and_release (&tcb);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE_TCBINFO, CERTSS, UTF8STRING,	ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE_TCBINFO, CERTSS, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2332,8 +2506,13 @@ static void x509_mbedtls_test_create_self_signed_certificate_ca_critical_extensi
 	status = x509_extension_builder_mock_validate_and_release (&tcb);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO_CRIT, CERTSS, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO_CRIT, CERTSS, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2402,7 +2581,11 @@ static void x509_mbedtls_test_create_self_signed_certificate_ca_null_extension (
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID, CERTSS, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID, CERTSS, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2817,7 +3000,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc_c
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA2_ICA, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA2_ICA, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2904,7 +3091,11 @@ x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc_intermediate_ca_pr
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE3_ICA, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE3_ICA, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2993,8 +3184,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc38
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_CA2_ICA, CERTCA, UTF8STRING,
+		ECDSA_SHA384_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_CA2_ICA, CERTCA, UTF8STRING,
 		ECDSA_SHA384_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3084,8 +3280,13 @@ x509_mbedtls_test_create_ca_signed_certificate_ecc384_end_entity_ecc_intermediat
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_EE3_ICA, CERTCA, UTF8STRING,
+		ECDSA_SHA384_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_EE3_ICA, CERTCA, UTF8STRING,
 		ECDSA_SHA384_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3131,8 +3332,13 @@ x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc384_ca_private
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_SHA256_CA2_ICA, CERTCA, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_SHA256_CA2_ICA, CERTCA, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3177,8 +3383,13 @@ x509_mbedtls_test_create_ca_signed_certificate_ecc384_end_entity_private_key_sha
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_SHA256_EE2, CERTCA, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_SHA256_EE2, CERTCA, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3267,8 +3478,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc52
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC521_CA2_ICA, CERTCA, UTF8STRING,
+		ECDSA_SHA512_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC521_CA2_ICA, CERTCA, UTF8STRING,
 		ECDSA_SHA512_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3358,8 +3574,13 @@ x509_mbedtls_test_create_ca_signed_certificate_ecc521_end_entity_ecc_intermediat
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC521_EE3_ICA, CERTCA, UTF8STRING,
+		ECDSA_SHA512_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC521_EE3_ICA, CERTCA, UTF8STRING,
 		ECDSA_SHA512_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3402,7 +3623,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_rsa_ca_private_key (C
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, RSA_CA, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, RSA_CA, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3445,7 +3670,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_rsa_end_entity_privat
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, RSA_EE, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, RSA_EE, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3752,7 +3981,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_rsa_ca_public_key (Cu
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, RSA_CA, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, RSA_CA, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3795,7 +4028,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_rsa_end_entity_public
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, RSA_EE, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, RSA_EE, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3837,7 +4074,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc_ca2_public_key (C
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA2, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA2, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3881,7 +4122,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc_ca2_pu
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE2, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE2, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3925,8 +4170,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc384_ca2_public_key
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_CA2, CERTCA, UTF8STRING,
+		ECDSA_SHA384_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_CA2, CERTCA, UTF8STRING,
 		ECDSA_SHA384_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3970,8 +4220,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc384_ca2
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_EE2, CERTCA, UTF8STRING,
+		ECDSA_SHA384_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_EE2, CERTCA, UTF8STRING,
 		ECDSA_SHA384_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4016,8 +4271,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc521_ca2_public_key
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC521_CA2, CERTCA, UTF8STRING,
+		ECDSA_SHA512_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC521_CA2, CERTCA, UTF8STRING,
 		ECDSA_SHA512_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4061,8 +4321,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc521_ca2
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC521_EE2, CERTCA, UTF8STRING,
+		ECDSA_SHA512_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC521_EE2, CERTCA, UTF8STRING,
 		ECDSA_SHA512_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4228,7 +4493,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4305,7 +4574,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_tcbinfo_an
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE_UEID, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE_UEID, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4382,8 +4655,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA1, CERTCA, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA1, CERTCA, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4460,8 +4738,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA384, CERTCA, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA384, CERTCA, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4538,8 +4821,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA512, CERTCA, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA512, CERTCA, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4616,8 +4904,12 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SVN, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SVN, CERTCA, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4680,8 +4972,12 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_extension_
 	status = x509_extension_builder_mock_validate_and_release (&tcb);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO, CERTCA, UTF8STRING,	ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO, CERTCA, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4744,8 +5040,12 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_tcbinfo_ex
 	status = x509_extension_builder_mock_validate_and_release (&tcb);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE_TCBINFO, CERTCA, UTF8STRING,	ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE_TCBINFO, CERTCA, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4810,8 +5110,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_critical_extension
 	status = x509_extension_builder_mock_validate_and_release (&tcb);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO_CRIT, CERTCA, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO_CRIT, CERTCA, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4887,7 +5192,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_null_extension (Cu
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);

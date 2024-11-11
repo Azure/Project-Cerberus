@@ -5165,6 +5165,9 @@ static void attestation_requester_test_init_state (CuTest *test)
 	status = cfm_mock_init (&testing.cfm);
 	CuAssertIntEquals (test, 0, status);
 
+	status = X509_TESTING_ENGINE_INIT (&testing.x509);
+	CuAssertIntEquals (test, 0, status);
+
 	status = mock_expect (&testing.keystore.mock, testing.keystore.base.load_key,
 		&testing.keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.keystore.mock, 1, &testing.dev_id_der,
