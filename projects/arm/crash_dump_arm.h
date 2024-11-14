@@ -4,11 +4,12 @@
 #ifndef CRASH_DUMP_ARM_H_
 #define CRASH_DUMP_ARM_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 
 
 /* NOTE: The crash dump and exception handling here is targeting ARM Cortex-M processors.  It may
- * equally apply to other ARM architectures, but is not specially attempting to present this
+ * equally apply to other ARM architectures, but is not specifically attempting to present this
  * compatibility. */
 
 
@@ -55,14 +56,14 @@
  * Context pushed to the stack when an exception occurs on Cortex-M architectures.
  */
 struct crash_dump_arm_stack_frame {
-	uint32_t r0;					/**< Value in register R0 when the exception occurred. */
-	uint32_t r1;					/**< Value in register R1 when the exception occurred. */
-	uint32_t r2;					/**< Value in register R2 when the exception occurred. */
-	uint32_t r3;					/**< Value in register R3 when the exception occurred. */
-	uint32_t r12;					/**< Value in register R12 when the exception occurred. */
-	uint32_t lr;					/**< Value in the link register when the exception occurred. */
-	uint32_t return_address;		/**< Return address from the exception.  This is where the exception occurred. */
-	uint32_t xpsr;					/**< Value in register xPSR when the exception occurred. */
+	uint32_t r0;				/**< Value in register R0 when the exception occurred. */
+	uint32_t r1;				/**< Value in register R1 when the exception occurred. */
+	uint32_t r2;				/**< Value in register R2 when the exception occurred. */
+	uint32_t r3;				/**< Value in register R3 when the exception occurred. */
+	uint32_t r12;				/**< Value in register R12 when the exception occurred. */
+	uint32_t lr;				/**< Value in the link register when the exception occurred. */
+	uint32_t return_address;	/**< Return address from the exception.  This is where the exception occurred. */
+	uint32_t xpsr;				/**< Value in register xPSR when the exception occurred. */
 } __attribute__((__packed__));
 
 /**
@@ -81,8 +82,9 @@ struct crash_dump_arm {
 			uint16_t ufsr;						/**< Value of the UsageFault Status Register (UFSR). */
 		};
 	};
-	uint32_t mmfar;								/**< Value of the MemManage Fault Address Register (MMFAR). */
-	uint32_t bfar;								/**< Value of the BusFault Address Register (BFAR). */
+
+	uint32_t mmfar;	/**< Value of the MemManage Fault Address Register (MMFAR). */
+	uint32_t bfar;	/**< Value of the BusFault Address Register (BFAR). */
 };
 
 
@@ -98,7 +100,7 @@ extern struct crash_dump_arm *crash;
  * Handle a received exception and generate a crash dump.  This must be called directly from the
  * exception vector without any branches or stack modification prior to the call.
  */
-#define	crash_dump_arm_handle_exception	\
+#define	crash_dump_arm_handle_exception \
 	__asm volatile ( \
 		"tst lr, #4\n" \
 		"ite eq\n" \
@@ -109,9 +111,9 @@ extern struct crash_dump_arm *crash;
 	)
 
 void crash_dump_arm_save (struct crash_dump_arm_stack_frame *frame, uint32_t xpsr);
-void crash_dump_arm_print_min (void);
-void crash_dump_arm_print_full (void);
-void crash_dump_arm_log (void);
+void crash_dump_arm_print_min (const struct crash_dump_arm *crash_ptr);
+void crash_dump_arm_print_full (const struct crash_dump_arm *crash_ptr);
+void crash_dump_arm_log (const struct crash_dump_arm *crash_ptr, bool log_data_registers);
 
 
-#endif /* CRASH_DUMP_ARM_H_ */
+#endif	/* CRASH_DUMP_ARM_H_ */
