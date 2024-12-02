@@ -103,7 +103,7 @@ struct attestation_requester_testing {
 	struct ecc_engine_mock ecc;									/**< ECC engine mock */
 	struct rsa_engine_mock rsa;									/**< RSA engine mock */
 	struct x509_engine_mock x509_mock;							/**< X509 engine mock */
-	X509_TESTING_ENGINE x509;									/**< X.509 engine for the RIoT keys. */
+	X509_TESTING_ENGINE (x509);									/**< X.509 engine for the RIoT keys. */
 	struct rng_engine_mock rng;									/**< RNG engine mock */
 	struct riot_key_manager_state riot_state;					/**< Context for RIoT key manager. */
 	struct riot_key_manager riot;								/**< RIoT key manager */

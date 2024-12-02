@@ -22,7 +22,7 @@ TEST_SUITE_LABEL ("manifest_flash");
  * Dependencies for testing manifests.
  */
 struct manifest_flash_testing {
-	HASH_TESTING_ENGINE hash;							/**< Hashing engine for validation. */
+	HASH_TESTING_ENGINE (hash);							/**< Hashing engine for validation. */
 	struct signature_verification_mock verification;	/**< PFM signature verification. */
 	struct flash_master_mock flash_mock;				/**< Flash master for the PFM flash. */
 	struct spi_flash_state state;						/**< PFM flash context. */

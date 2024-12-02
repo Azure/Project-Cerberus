@@ -23,7 +23,7 @@ TEST_SUITE_LABEL ("manifest_manager_flash");
  * Dependencies for testing the common manager for manifests on flash.
  */
 struct manifest_manager_flash_testing {
-	HASH_TESTING_ENGINE hash;							/**< Hashing engine for validation. */
+	HASH_TESTING_ENGINE (hash);							/**< Hashing engine for validation. */
 	struct signature_verification_mock verification;	/**< PFM signature verification. */
 	struct flash_mock flash;							/**< Mock for flash storage. */
 	struct state_manager_mock state_mgr;				/**< Mock for state management. */

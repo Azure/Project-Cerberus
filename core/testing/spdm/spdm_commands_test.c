@@ -100,7 +100,7 @@ struct spdm_command_testing {
 	struct riot_key_manager_state key_state;													/**< Context for the device key manager. */
 	struct riot_key_manager key_manager;														/**< Device key manager for testing. */
 	struct keystore_mock keystore;																/**< Mock for the device keystore. */
-	X509_TESTING_ENGINE x509;																	/**< X.509 engine for the key manager. */
+	X509_TESTING_ENGINE (x509);																	/**< X.509 engine for the key manager. */
 	struct riot_keys keys;																		/**< RIoT keys for testing. */
 	struct spdm_measurements_mock measurements_mock;											/**< Mock measurements engine. */
 	struct ecc_engine_mock ecc_mock;															/**< Mock ECC engine. */

@@ -24,7 +24,7 @@ TEST_SUITE_LABEL ("cfm_manager_flash");
  * Dependencies for testing the CFM manager.
  */
 struct cfm_manager_flash_testing {
-	HASH_TESTING_ENGINE hash;							/**< Hashing engine for validation. */
+	HASH_TESTING_ENGINE (hash);							/**< Hashing engine for validation. */
 	struct signature_verification_mock verification;	/**< CFM signature verification. */
 	struct flash_master_mock flash_mock;				/**< Flash master for CFM flash. */
 	struct flash_master_mock flash_mock_state;			/**< Flash master for host state flash. */

@@ -399,7 +399,7 @@ const uint8_t ECDSA_TESTING_DETERMINISTIC_K_RFC6979_ECC521_K_OUT_SHIFTED[] = {
  * Test dependencies for ECDSA.
  */
 struct ecdsa_testing {
-	HASH_TESTING_ENGINE hash;			/**< Hash engine for test. */
+	HASH_TESTING_ENGINE (hash);			/**< Hash engine for test. */
 	struct hash_engine_mock hash_mock;	/**< Mock for the hash engine. */
 	struct ecc_hw_mock ecc_hw;			/**< Mock for the ECC HW driver. */
 	struct rng_engine_mock rng;			/**< Mock for the RNG. */
@@ -527,7 +527,7 @@ int ecdsa_testing_expect_deterministic_k_drbg_instantiate (struct hash_engine_mo
 
 static void ecdsa_test_deterministic_k_drbg_instantiate_ecc256_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecdsa_deterministic_k_drbg drbg;
 	int status;
 
@@ -555,7 +555,7 @@ static void ecdsa_test_deterministic_k_drbg_instantiate_ecc256_sha256 (CuTest *t
 
 static void ecdsa_test_deterministic_k_drbg_instantiate_ecc384_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecdsa_deterministic_k_drbg drbg;
 	int status;
 
@@ -587,7 +587,7 @@ static void ecdsa_test_deterministic_k_drbg_instantiate_ecc384_sha384 (CuTest *t
 
 static void ecdsa_test_deterministic_k_drbg_instantiate_ecc521_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecdsa_deterministic_k_drbg drbg;
 	int status;
 
@@ -619,7 +619,7 @@ static void ecdsa_test_deterministic_k_drbg_instantiate_ecc521_sha512 (CuTest *t
 
 static void ecdsa_test_deterministic_k_drbg_instantiate_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecdsa_deterministic_k_drbg drbg;
 	int status;
 
@@ -651,7 +651,7 @@ static void ecdsa_test_deterministic_k_drbg_instantiate_null (CuTest *test)
 
 static void ecdsa_test_deterministic_k_drbg_instantiate_invalid_hmac_algorithm (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecdsa_deterministic_k_drbg drbg;
 	int status;
 
@@ -1449,7 +1449,7 @@ static void ecdsa_test_deterministic_k_drbg_instantiate_v1_hmac_error (CuTest *t
 
 static void ecdsa_test_deterministic_k_drbg_generate_ecc256_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecdsa_deterministic_k_drbg drbg;
 	uint8_t k[ECC_KEY_LENGTH_256];
 	int status;
@@ -1475,7 +1475,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_ecc256_sha256 (CuTest *test
 
 static void ecdsa_test_deterministic_k_drbg_generate_ecc256_sha256_second_k (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecdsa_deterministic_k_drbg drbg;
 	uint8_t k[ECC_KEY_LENGTH_256];
 	int status;
@@ -1505,7 +1505,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_ecc256_sha256_second_k (CuT
 #ifdef HASH_ENABLE_SHA384
 static void ecdsa_test_deterministic_k_drbg_generate_ecc384_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecdsa_deterministic_k_drbg drbg;
 	uint8_t k[ECC_KEY_LENGTH_384];
 	int status;
@@ -1531,7 +1531,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_ecc384_sha384 (CuTest *test
 
 static void ecdsa_test_deterministic_k_drbg_generate_ecc384_sha384_second_k (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecdsa_deterministic_k_drbg drbg;
 	uint8_t k[ECC_KEY_LENGTH_384];
 	int status;
@@ -1562,7 +1562,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_ecc384_sha384_second_k (CuT
 #ifdef HASH_ENABLE_SHA512
 static void ecdsa_test_deterministic_k_drbg_generate_ecc521_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecdsa_deterministic_k_drbg drbg;
 	uint8_t k[ECC_KEY_LENGTH_521];
 	int status;
@@ -1588,7 +1588,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_ecc521_sha512 (CuTest *test
 
 static void ecdsa_test_deterministic_k_drbg_generate_ecc521_sha512_second_k (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecdsa_deterministic_k_drbg drbg;
 	uint8_t k[ECC_KEY_LENGTH_521];
 	int status;
@@ -1618,7 +1618,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_ecc521_sha512_second_k (CuT
 
 static void ecdsa_test_deterministic_k_drbg_generate_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecdsa_deterministic_k_drbg drbg;
 	uint8_t k[ECC_KEY_LENGTH_256];
 	int status;
@@ -1646,7 +1646,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_null (CuTest *test)
 
 static void ecdsa_test_deterministic_k_drbg_generate_invalid_hmac_algorithm (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecdsa_deterministic_k_drbg drbg;
 	uint8_t k[ECC_KEY_LENGTH_256];
 	int status;
@@ -1986,7 +1986,7 @@ static void ecdsa_test_deterministic_k_drbg_clear_null (CuTest *test)
 
 static void ecdsa_test_deterministic_k_drbg_rfc6979_test_vector_ecc256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecdsa_deterministic_k_drbg drbg;
 	uint8_t k[ECC_KEY_LENGTH_256];
 	int status;
@@ -2014,7 +2014,7 @@ static void ecdsa_test_deterministic_k_drbg_rfc6979_test_vector_ecc256 (CuTest *
 #ifdef HASH_ENABLE_SHA384
 static void ecdsa_test_deterministic_k_drbg_rfc6979_test_vector_ecc384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecdsa_deterministic_k_drbg drbg;
 	uint8_t k[ECC_KEY_LENGTH_384];
 	int status;
@@ -2043,7 +2043,7 @@ static void ecdsa_test_deterministic_k_drbg_rfc6979_test_vector_ecc384 (CuTest *
 #ifdef HASH_ENABLE_SHA384
 static void ecdsa_test_deterministic_k_drbg_rfc6979_test_vector_ecc521 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecdsa_deterministic_k_drbg drbg;
 	uint8_t k[ECC_KEY_LENGTH_521];
 	int status;

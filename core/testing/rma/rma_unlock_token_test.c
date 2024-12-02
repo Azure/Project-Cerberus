@@ -24,7 +24,7 @@ TEST_SUITE_LABEL ("rma_unlock_token");
  * Dependencies for testing the device unlock token handler.
  */
 struct rma_unlock_token_testing {
-	HASH_TESTING_ENGINE hash;						/**< Hash engine for testing. */
+	HASH_TESTING_ENGINE (hash);						/**< Hash engine for testing. */
 	struct hash_engine_mock hash_mock;				/**< Mock for the hash engine. */
 	struct signature_verification_mock authority;	/**< Mock for authority signature verification. */
 	struct cmd_device_mock uuid;					/**< Mock for UUID retrieval. */

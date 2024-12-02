@@ -22,7 +22,7 @@ TEST_SUITE_LABEL ("recovery_image_observer_pcr");
 
 static void recovery_image_observer_pcr_test_init (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -59,7 +59,7 @@ static void recovery_image_observer_pcr_test_init (CuTest *test)
 
 static void recovery_image_observer_pcr_test_init_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -97,7 +97,7 @@ static void recovery_image_observer_pcr_test_init_null (CuTest *test)
 
 static void recovery_image_observer_pcr_test_init_bad_measurement_type (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -137,7 +137,7 @@ static void recovery_image_observer_pcr_test_release_null (CuTest *test)
 
 static void recovery_image_observer_pcr_test_on_recovery_image_activated (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -206,7 +206,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_activated (CuTest
 
 static void recovery_image_observer_pcr_test_on_recovery_image_activated_hash_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -269,7 +269,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_activated_hash_er
 
 static void recovery_image_observer_pcr_test_record_measurement (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -351,7 +351,7 @@ static void recovery_image_observer_pcr_test_record_measurement (CuTest *test)
 
 static void recovery_image_observer_pcr_test_record_measurement_no_active (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -417,7 +417,7 @@ static void recovery_image_observer_pcr_test_record_measurement_no_active (CuTes
 
 static void recovery_image_observer_pcr_test_record_measurement_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -477,7 +477,7 @@ static void recovery_image_observer_pcr_test_record_measurement_null (CuTest *te
 
 static void recovery_image_observer_pcr_test_record_measurement_hash_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -554,7 +554,7 @@ static void recovery_image_observer_pcr_test_record_measurement_hash_error (CuTe
 
 static void recovery_image_observer_pcr_test_on_recovery_image_deactivated (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{

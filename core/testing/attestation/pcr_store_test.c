@@ -22,7 +22,7 @@ TEST_SUITE_LABEL ("pcr_store");
  * Dependencies for testing PCR storage.
  */
 struct pcr_store_testing {
-	HASH_TESTING_ENGINE hash;				/**< Hash engine for testing measurements. */
+	HASH_TESTING_ENGINE (hash);				/**< Hash engine for testing measurements. */
 	struct hash_engine_mock hash_mock;		/**< Mock for hash operations. */
 	struct pcr_store test;					/**< PCR store under test. */
 };

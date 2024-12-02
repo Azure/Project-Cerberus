@@ -3826,11 +3826,11 @@ static void riot_core_common_test_get_alias_key_cert_error (CuTest *test)
 
 static void riot_core_common_test_authenticate_generated_keys (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
-	X509_TESTING_ENGINE x509;
-	X509_TESTING_ENGINE x509_verify;
-	BASE64_TESTING_ENGINE base64;
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
+	X509_TESTING_ENGINE (x509);
+	X509_TESTING_ENGINE (x509_verify);
+	BASE64_TESTING_ENGINE (base64);
 	struct riot_core_common_testing riot;
 	int status;
 	uint8_t *der;
@@ -3946,11 +3946,11 @@ static void riot_core_common_test_authenticate_generated_keys (CuTest *test)
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && defined HASH_ENABLE_SHA384
 static void riot_core_common_test_authenticate_generated_keys_ecc384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
-	X509_TESTING_ENGINE x509;
-	X509_TESTING_ENGINE x509_verify;
-	BASE64_TESTING_ENGINE base64;
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
+	X509_TESTING_ENGINE (x509);
+	X509_TESTING_ENGINE (x509_verify);
+	BASE64_TESTING_ENGINE (base64);
 	struct riot_core_common_testing riot;
 	int status;
 	uint8_t *der;
@@ -4069,11 +4069,11 @@ static void riot_core_common_test_authenticate_generated_keys_ecc384 (CuTest *te
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
 static void riot_core_common_test_authenticate_generated_keys_ecc521 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
-	X509_TESTING_ENGINE x509;
-	X509_TESTING_ENGINE x509_verify;
-	BASE64_TESTING_ENGINE base64;
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
+	X509_TESTING_ENGINE (x509);
+	X509_TESTING_ENGINE (x509_verify);
+	BASE64_TESTING_ENGINE (base64);
 	struct riot_core_common_testing riot;
 	int status;
 	uint8_t *der;

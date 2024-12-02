@@ -318,7 +318,7 @@ static void keystore_flash_test_load_key_not_first_key (CuTest *test)
 
 static void keystore_flash_test_load_key_backwards_compatibility (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash spi;

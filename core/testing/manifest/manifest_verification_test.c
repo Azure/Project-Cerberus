@@ -32,7 +32,7 @@ TEST_SUITE_LABEL ("manifest_verification");
  * Dependencies for testing the verification wrapper for manifests.
  */
 struct manifest_verification_testing {
-	HASH_TESTING_ENGINE hash;							/**< Hash engine for testing. */
+	HASH_TESTING_ENGINE (hash);							/**< Hash engine for testing. */
 	struct hash_engine_mock hash_mock;					/**< Mock for hashing. */
 	struct signature_verification_mock verify_mock;		/**< Mock for signature verification. */
 	struct keystore_mock keystore;						/**< Mock for the manifest keystore. */

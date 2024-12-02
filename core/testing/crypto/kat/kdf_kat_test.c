@@ -23,7 +23,7 @@ TEST_SUITE_LABEL ("kdf_kat");
 
 static void kdf_test_kat_run_self_test_nist800_108_counter_mode_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	int status;
 
 	TEST_START;
@@ -74,7 +74,7 @@ static void kdf_test_kat_run_self_test_nist800_108_counter_mode_sha1_ko_mismatch
 
 static void kdf_test_kat_run_self_test_nist800_108_counter_mode_sha1_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	int status;
 
 	TEST_START;
@@ -111,7 +111,7 @@ static void kdf_test_kat_run_self_test_nist800_108_counter_mode_sha1_kdf_fail (C
 
 static void kdf_test_kat_run_self_test_nist800_108_counter_mode_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	int status;
 
 	TEST_START;
@@ -168,7 +168,7 @@ static void kdf_test_kat_run_self_test_nist800_108_counter_mode_sha256_ko_mismat
 
 static void kdf_test_kat_run_self_test_nist800_108_counter_mode_sha256_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	int status;
 
 	TEST_START;
@@ -205,7 +205,7 @@ static void kdf_test_kat_run_self_test_nist800_108_counter_mode_sha256_kdf_fail 
 
 static void kdf_test_kat_run_self_test_nist800_108_counter_mode_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	int status;
 
 	TEST_START;
@@ -257,7 +257,7 @@ static void kdf_test_kat_run_self_test_nist800_108_counter_mode_sha384_ko_mismat
 
 static void kdf_test_kat_run_self_test_nist800_108_counter_mode_sha384_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	int status;
 
 	TEST_START;
@@ -295,7 +295,7 @@ static void kdf_test_kat_run_self_test_nist800_108_counter_mode_sha384_kdf_fail 
 
 static void kdf_test_kat_run_self_test_nist800_108_counter_mode_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	int status;
 
 	TEST_START;
@@ -347,7 +347,7 @@ static void kdf_test_kat_run_self_test_nist800_108_counter_mode_sha512_ko_mismat
 
 static void kdf_test_kat_run_self_test_nist800_108_counter_mode_sha512_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	int status;
 
 	TEST_START;
@@ -385,7 +385,7 @@ static void kdf_test_kat_run_self_test_nist800_108_counter_mode_sha512_kdf_fail 
 
 static void kdf_test_kat_run_self_test_hkdf_expand_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	int status;
 
 	TEST_START;
@@ -445,7 +445,7 @@ static void kdf_test_kat_run_self_test_hkdf_expand_sha1_okm_mismatch (CuTest *te
 
 static void kdf_test_kat_run_self_test_hkdf_expand_sha1_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	int status;
 
 	TEST_START;
@@ -482,7 +482,7 @@ static void kdf_test_kat_run_self_test_hkdf_expand_sha1_kdf_fail (CuTest *test)
 
 static void kdf_test_kat_run_self_test_hkdf_expand_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	int status;
 
 	TEST_START;
@@ -532,7 +532,7 @@ static void kdf_test_kat_run_self_test_hkdf_expand_sha256_okm_mismatch (CuTest *
 
 static void kdf_test_kat_run_self_test_hkdf_expand_sha256_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	int status;
 
 	TEST_START;
@@ -569,7 +569,7 @@ static void kdf_test_kat_run_self_test_hkdf_expand_sha256_kdf_fail (CuTest *test
 
 static void kdf_test_kat_run_self_test_hkdf_expand_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	int status;
 
 	TEST_START;
@@ -624,7 +624,7 @@ static void kdf_test_kat_run_self_test_hkdf_expand_sha384_okm_mismatch (CuTest *
 
 static void kdf_test_kat_run_self_test_hkdf_expand_sha384_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	int status;
 
 	TEST_START;
@@ -662,7 +662,7 @@ static void kdf_test_kat_run_self_test_hkdf_expand_sha384_kdf_fail (CuTest *test
 
 static void kdf_test_kat_run_self_test_hkdf_expand_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	int status;
 
 	TEST_START;
@@ -717,7 +717,7 @@ static void kdf_test_kat_run_self_test_hkdf_expand_sha512_okm_mismatch (CuTest *
 
 static void kdf_test_kat_run_self_test_hkdf_expand_sha512_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	int status;
 
 	TEST_START;

@@ -24,7 +24,7 @@ TEST_SUITE_LABEL ("riot_key_manager");
  * Dependencies for testing the DICE identity key manager.
  */
 struct riot_key_manager_testing {
-	X509_TESTING_ENGINE x509;				/**< X.509 engine for verifying certificates. */
+	X509_TESTING_ENGINE (x509);				/**< X.509 engine for verifying certificates. */
 	struct x509_engine_mock x509_mock;		/**<  Mock for X.509 verification. */
 	struct keystore_mock keystore;			/**< Mock for the keystore used to store certs. */
 	struct riot_keys keys;					/**< DICE keys to manage. */
@@ -1181,9 +1181,9 @@ static void riot_key_manager_test_init_intermediate_signed_device_id_bad_ca (CuT
 
 static void riot_key_manager_test_init_intermediate_signed_device_id_not_trusted (CuTest *test)
 {
+	ECC_TESTING_ENGINE (ecc);
+	X509_TESTING_ENGINE (x509_gen);
 	struct riot_key_manager_testing manager;
-	ECC_TESTING_ENGINE ecc;
-	X509_TESTING_ENGINE x509_gen;
 	int status;
 	const struct riot_keys *dev_keys;
 	const struct der_cert *root_ca;
@@ -3488,12 +3488,12 @@ static void riot_key_manager_test_static_init_intermediate_signed_device_id_bad_
 static void riot_key_manager_test_static_init_intermediate_signed_device_id_not_trusted (
 	CuTest *test)
 {
+	ECC_TESTING_ENGINE (ecc);
+	X509_TESTING_ENGINE (x509_gen);
 	struct riot_key_manager_testing manager = {
 		.test = riot_key_manager_static_init (&manager.state, &manager.keystore.base,
 			&manager.x509.base, NULL, 0)
 	};
-	ECC_TESTING_ENGINE ecc;
-	X509_TESTING_ENGINE x509_gen;
 	int status;
 	const struct riot_keys *dev_keys;
 	const struct der_cert *root_ca;
@@ -5826,9 +5826,9 @@ static void riot_key_manager_test_verify_stored_certs_intermediate_signed_device
 static void riot_key_manager_test_verify_stored_certs_intermediate_signed_device_id_not_trusted (
 	CuTest *test)
 {
+	ECC_TESTING_ENGINE (ecc);
+	X509_TESTING_ENGINE (x509_gen);
 	struct riot_key_manager_testing manager;
-	ECC_TESTING_ENGINE ecc;
-	X509_TESTING_ENGINE x509_gen;
 	int status;
 	const struct riot_keys *dev_keys;
 	const struct der_cert *root_ca;

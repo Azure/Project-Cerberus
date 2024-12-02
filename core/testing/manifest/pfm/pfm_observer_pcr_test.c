@@ -38,7 +38,7 @@ static const uint32_t PFM_PLATFORM_ID_HASH_LEN = sizeof (PFM_PLATFORM_ID_HASH);
 
 static void pfm_observer_pcr_test_init (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -77,7 +77,7 @@ static void pfm_observer_pcr_test_init (CuTest *test)
 
 static void pfm_observer_pcr_test_init_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -118,7 +118,7 @@ static void pfm_observer_pcr_test_init_null (CuTest *test)
 
 static void pfm_observer_pcr_test_init_bad_measurement_type (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -159,7 +159,7 @@ static void pfm_observer_pcr_test_init_bad_measurement_type (CuTest *test)
 
 static void pfm_observer_pcr_test_init_same_measurement_type (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -211,7 +211,7 @@ static void pfm_observer_pcr_test_release_null (CuTest *test)
 
 static void pfm_observer_pcr_test_on_pfm_activated (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -328,7 +328,7 @@ static void pfm_observer_pcr_test_on_pfm_activated (CuTest *test)
 
 static void pfm_observer_pcr_test_on_pfm_activated_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -456,7 +456,7 @@ static void pfm_observer_pcr_test_on_pfm_activated_sha384 (CuTest *test)
 
 static void pfm_observer_pcr_test_on_pfm_activated_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -584,7 +584,7 @@ static void pfm_observer_pcr_test_on_pfm_activated_sha512 (CuTest *test)
 
 static void pfm_observer_pcr_test_on_pfm_activated_hash_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -676,7 +676,7 @@ static void pfm_observer_pcr_test_on_pfm_activated_hash_error (CuTest *test)
 
 static void pfm_observer_pcr_test_on_pfm_activated_get_id_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -770,7 +770,7 @@ static void pfm_observer_pcr_test_on_pfm_activated_get_id_error (CuTest *test)
 
 static void pfm_observer_pcr_test_on_pfm_activated_get_platform_id_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -877,7 +877,7 @@ static void pfm_observer_pcr_test_on_pfm_activated_get_platform_id_error (CuTest
 
 static void pfm_observer_pcr_test_record_measurement (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -1003,7 +1003,7 @@ static void pfm_observer_pcr_test_record_measurement (CuTest *test)
 
 static void pfm_observer_pcr_test_record_measurement_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -1140,7 +1140,7 @@ static void pfm_observer_pcr_test_record_measurement_sha384 (CuTest *test)
 
 static void pfm_observer_pcr_test_record_measurement_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -1277,7 +1277,7 @@ static void pfm_observer_pcr_test_record_measurement_sha512 (CuTest *test)
 
 static void pfm_observer_pcr_test_record_measurement_no_active (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -1379,7 +1379,7 @@ static void pfm_observer_pcr_test_record_measurement_no_active (CuTest *test)
 
 static void pfm_observer_pcr_test_record_measurement_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -1476,7 +1476,7 @@ static void pfm_observer_pcr_test_record_measurement_null (CuTest *test)
 
 static void pfm_observer_pcr_test_record_measurement_hash_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -1580,7 +1580,7 @@ static void pfm_observer_pcr_test_record_measurement_hash_error (CuTest *test)
 
 static void pfm_observer_pcr_test_record_measurement_get_id_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -1692,7 +1692,7 @@ static void pfm_observer_pcr_test_record_measurement_get_id_error (CuTest *test)
 
 static void pfm_observer_pcr_test_record_measurement_get_platform_id_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -1810,7 +1810,7 @@ static void pfm_observer_pcr_test_record_measurement_get_platform_id_error (CuTe
 
 static void pfm_observer_pcr_test_on_clear_active (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{

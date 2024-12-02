@@ -189,7 +189,7 @@ const uint8_t PFM_PLATFORM2_HASH[] = {
  * Dependencies for testing the PFM manager.
  */
 struct pfm_manager_flash_testing {
-	HASH_TESTING_ENGINE hash;							/**< Hashing engine for validation. */
+	HASH_TESTING_ENGINE (hash);							/**< Hashing engine for validation. */
 	struct signature_verification_mock verification;	/**< PFM signature verification. */
 	struct flash_master_mock flash_mock;				/**< Flash master for PFM flash. */
 	struct flash_master_mock flash_mock_state;			/**< Flash master for host state flash. */

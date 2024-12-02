@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "pcd_manager_mock.h"
-#include "testing/engines/hash_testing_engine.h"
 
 
 static struct pcd* pcd_manager_mock_get_active_pcd (const struct pcd_manager *manager)
@@ -166,7 +165,6 @@ static const char* pcd_manager_mock_arg_name_map (void *func, int arg)
  */
 int pcd_manager_mock_init (struct pcd_manager_mock *mock)
 {
-	HASH_TESTING_ENGINE *hash;
 	int status;
 
 	if (mock == NULL) {
@@ -175,28 +173,18 @@ int pcd_manager_mock_init (struct pcd_manager_mock *mock)
 
 	memset (mock, 0, sizeof (struct pcd_manager_mock));
 
-	hash = platform_malloc (sizeof (HASH_TESTING_ENGINE));
-	if (hash == NULL) {
-		return MOCK_NO_MEMORY;
-	}
-
-	status = HASH_TESTING_ENGINE_INIT (hash);
+	status = HASH_TESTING_ENGINE_INIT (&mock->hash);
 	if (status != 0) {
-		platform_free (hash);
-
 		return status;
 	}
 
-	status = pcd_manager_init (&mock->base, &hash->base);
+	status = pcd_manager_init (&mock->base, &mock->hash.base);
 	if (status != 0) {
-		platform_free (hash);
-
 		return status;
 	}
 
 	status = mock_init (&mock->mock);
 	if (status != 0) {
-		platform_free (hash);
 		pcd_manager_release (&mock->base);
 
 		return status;
@@ -227,8 +215,7 @@ int pcd_manager_mock_init (struct pcd_manager_mock *mock)
 void pcd_manager_mock_release (struct pcd_manager_mock *mock)
 {
 	if (mock) {
-		HASH_TESTING_ENGINE_RELEASE ((HASH_TESTING_ENGINE*) mock->base.base.hash);
-		platform_free (mock->base.base.hash);
+		HASH_TESTING_ENGINE_RELEASE (&mock->hash);
 		pcd_manager_release (&mock->base);
 		mock_release (&mock->mock);
 	}

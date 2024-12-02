@@ -19,7 +19,7 @@
  * Dependencies for testing v2 manifests.
  */
 struct manifest_flash_v2_testing {
-	HASH_TESTING_ENGINE hash;							/**< Hashing engine for validation. */
+	HASH_TESTING_ENGINE (hash);							/**< Hashing engine for validation. */
 	struct hash_engine_mock hash_mock;					/**< Mock hashing engine for error testing. */
 	struct signature_verification_mock verification;	/**< PFM signature verification. */
 	struct flash_mock flash;							/**< Flash where the PFM is stored. */

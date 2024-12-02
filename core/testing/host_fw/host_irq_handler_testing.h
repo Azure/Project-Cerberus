@@ -18,8 +18,8 @@
  * Dependencies for testing.
  */
 struct host_irq_handler_testing {
-	HASH_TESTING_ENGINE hash;			/**< Hash engine to use for reset validation. */
-	RSA_TESTING_ENGINE rsa;				/**< RSA engine to use for reset validation. */
+	HASH_TESTING_ENGINE (hash);			/**< Hash engine to use for reset validation. */
+	RSA_TESTING_ENGINE (rsa);			/**< RSA engine to use for reset validation. */
 	struct host_processor_mock host;	/**< Mock for host processor. */
 	struct bmc_recovery_mock recovery;	/**< Mock for BMC watchdog boot recovery. */
 	struct host_irq_control_mock irq;	/**< Mock for host IRQ controller. */

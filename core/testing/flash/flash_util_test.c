@@ -28,7 +28,7 @@ TEST_SUITE_LABEL ("flash_util");
 
 static void flash_hash_contents_test_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t data[] = {0x31, 0x32, 0x33, 0x34};
@@ -67,7 +67,7 @@ static void flash_hash_contents_test_sha256 (CuTest *test)
 
 static void flash_hash_contents_test_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t data[] = {0x31, 0x32, 0x33, 0x34};
@@ -106,7 +106,7 @@ static void flash_hash_contents_test_sha1 (CuTest *test)
 
 static void flash_hash_contents_test_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t data[] = {0x31, 0x32, 0x33, 0x34};
@@ -146,7 +146,7 @@ static void flash_hash_contents_test_sha384 (CuTest *test)
 
 static void flash_hash_contents_test_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t data[] = {0x31, 0x32, 0x33, 0x34};
@@ -187,7 +187,7 @@ static void flash_hash_contents_test_sha512 (CuTest *test)
 
 static void flash_hash_contents_test_unknown (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
@@ -212,7 +212,7 @@ static void flash_hash_contents_test_unknown (CuTest *test)
 
 static void flash_hash_contents_test_multiple_blocks (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t hash_expected[] = {
@@ -258,7 +258,7 @@ static void flash_hash_contents_test_multiple_blocks (CuTest *test)
 
 static void flash_hash_contents_test_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
@@ -486,8 +486,8 @@ static void flash_hash_contents_test_hash_finish_error (CuTest *test)
 
 static void flash_verify_contents_test_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	char *data = "Test";
@@ -522,8 +522,8 @@ static void flash_verify_contents_test_sha256 (CuTest *test)
 
 static void flash_verify_contents_test_sha256_with_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	char *data = "Test";
@@ -563,8 +563,8 @@ static void flash_verify_contents_test_sha256_with_hash_out (CuTest *test)
 
 static void flash_verify_contents_test_sha256_no_match_signature (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	char *data = "Test";
@@ -599,8 +599,8 @@ static void flash_verify_contents_test_sha256_no_match_signature (CuTest *test)
 
 static void flash_verify_contents_test_sha256_no_match_signature_with_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	char *data = "Test";
@@ -642,8 +642,8 @@ static void flash_verify_contents_test_sha256_no_match_signature_with_hash_out (
 
 static void flash_verify_contents_test_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	char *data = "Test";
@@ -672,8 +672,8 @@ static void flash_verify_contents_test_sha1 (CuTest *test)
 
 static void flash_verify_contents_test_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	char *data = "Test";
@@ -702,8 +702,8 @@ static void flash_verify_contents_test_sha384 (CuTest *test)
 
 static void flash_verify_contents_test_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	char *data = "Test";
@@ -732,8 +732,8 @@ static void flash_verify_contents_test_sha512 (CuTest *test)
 
 static void flash_verify_contents_test_unknown (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	char *data = "Test";
@@ -763,8 +763,8 @@ static void flash_verify_contents_test_unknown (CuTest *test)
 
 static void flash_verify_contents_test_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	char *data = "Test";
@@ -817,8 +817,8 @@ static void flash_verify_contents_test_null (CuTest *test)
 
 static void flash_verify_contents_test_small_hash_buffer (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	uint8_t hash_out[SHA256_HASH_LENGTH - 1];
 	int status;
@@ -849,8 +849,8 @@ static void flash_verify_contents_test_small_hash_buffer (CuTest *test)
 
 static void flash_verify_contents_test_read_error_with_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	char *data = "Test";
@@ -6971,7 +6971,7 @@ static void flash_erase_region_and_verify_test_erase_error (CuTest *test)
 
 static void flash_hash_noncontiguous_contents_test_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -7014,7 +7014,7 @@ static void flash_hash_noncontiguous_contents_test_sha256 (CuTest *test)
 
 static void flash_hash_noncontiguous_contents_test_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -7057,7 +7057,7 @@ static void flash_hash_noncontiguous_contents_test_sha1 (CuTest *test)
 
 static void flash_hash_noncontiguous_contents_test_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -7101,7 +7101,7 @@ static void flash_hash_noncontiguous_contents_test_sha384 (CuTest *test)
 
 static void flash_hash_noncontiguous_contents_test_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -7146,7 +7146,7 @@ static void flash_hash_noncontiguous_contents_test_sha512 (CuTest *test)
 
 static void flash_hash_noncontiguous_contents_test_unknown (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -7175,7 +7175,7 @@ static void flash_hash_noncontiguous_contents_test_unknown (CuTest *test)
 
 static void flash_hash_noncontiguous_contents_test_multiple_blocks (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -7225,7 +7225,7 @@ static void flash_hash_noncontiguous_contents_test_multiple_blocks (CuTest *test
 
 static void flash_hash_noncontiguous_contents_test_multiple_regions (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions[3];
@@ -7282,7 +7282,7 @@ static void flash_hash_noncontiguous_contents_test_multiple_regions (CuTest *tes
 
 static void flash_hash_noncontiguous_contents_test_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -7591,8 +7591,8 @@ static void flash_hash_noncontiguous_contents_test_hash_finish_error (CuTest *te
 
 static void flash_verify_noncontiguous_contents_test_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -7631,8 +7631,8 @@ static void flash_verify_noncontiguous_contents_test_sha256 (CuTest *test)
 
 static void flash_verify_noncontiguous_contents_test_sha256_with_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -7676,8 +7676,8 @@ static void flash_verify_noncontiguous_contents_test_sha256_with_hash_out (CuTes
 
 static void flash_verify_noncontiguous_contents_test_sha256_no_match_signature (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -7717,8 +7717,8 @@ static void flash_verify_noncontiguous_contents_test_sha256_no_match_signature (
 static void flash_verify_noncontiguous_contents_test_sha256_no_match_signature_with_hash_out (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -7763,8 +7763,8 @@ static void flash_verify_noncontiguous_contents_test_sha256_no_match_signature_w
 
 static void flash_verify_noncontiguous_contents_test_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -7797,8 +7797,8 @@ static void flash_verify_noncontiguous_contents_test_sha1 (CuTest *test)
 
 static void flash_verify_noncontiguous_contents_test_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -7831,8 +7831,8 @@ static void flash_verify_noncontiguous_contents_test_sha384 (CuTest *test)
 
 static void flash_verify_noncontiguous_contents_test_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -7865,8 +7865,8 @@ static void flash_verify_noncontiguous_contents_test_sha512 (CuTest *test)
 
 static void flash_verify_noncontiguous_contents_test_unknown (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -7900,8 +7900,8 @@ static void flash_verify_noncontiguous_contents_test_unknown (CuTest *test)
 
 static void flash_verify_noncontiguous_contents_test_multiple_regions (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions[2];
@@ -7947,8 +7947,8 @@ static void flash_verify_noncontiguous_contents_test_multiple_regions (CuTest *t
 
 static void flash_verify_noncontiguous_contents_test_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	struct flash_region regions;
 	int status;
@@ -8009,8 +8009,8 @@ static void flash_verify_noncontiguous_contents_test_null (CuTest *test)
 
 static void flash_verify_noncontiguous_contents_test_hash_buffer_too_small (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	struct flash_region regions;
 	uint8_t hash_out[SHA256_HASH_LENGTH - 1];
@@ -8045,8 +8045,8 @@ static void flash_verify_noncontiguous_contents_test_hash_buffer_too_small (CuTe
 
 static void flash_verify_noncontiguous_contents_test_read_error_with_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -13293,7 +13293,7 @@ static void flash_sector_copy_ext_and_verify_test_same_flash_same_erase_block_at
 
 static void flash_contents_verification_test_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -13335,7 +13335,7 @@ static void flash_contents_verification_test_sha256 (CuTest *test)
 
 static void flash_contents_verification_test_sha256_with_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -13382,7 +13382,7 @@ static void flash_contents_verification_test_sha256_with_hash_out (CuTest *test)
 
 static void flash_contents_verification_test_sha256_no_match_signature (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -13425,7 +13425,7 @@ static void flash_contents_verification_test_sha256_no_match_signature (CuTest *
 
 static void flash_contents_verification_test_sha256_no_match_signature_with_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -13475,7 +13475,7 @@ static void flash_contents_verification_test_sha256_no_match_signature_with_hash
 
 static void flash_contents_verification_test_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -13522,7 +13522,7 @@ static void flash_contents_verification_test_sha1 (CuTest *test)
 
 static void flash_contents_verification_test_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -13569,7 +13569,7 @@ static void flash_contents_verification_test_sha384 (CuTest *test)
 
 static void flash_contents_verification_test_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -13616,7 +13616,7 @@ static void flash_contents_verification_test_sha512 (CuTest *test)
 
 static void flash_contents_verification_test_unknown (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -13648,7 +13648,7 @@ static void flash_contents_verification_test_unknown (CuTest *test)
 
 static void flash_contents_verification_test_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -13700,7 +13700,7 @@ static void flash_contents_verification_test_null (CuTest *test)
 
 static void flash_contents_verification_test_small_hash_buffer (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	uint8_t hash_out[SHA256_HASH_LENGTH - 1];
@@ -13734,7 +13734,7 @@ static void flash_contents_verification_test_small_hash_buffer (CuTest *test)
 
 static void flash_contents_verification_test_small_hash_buffer_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	uint8_t hash_out[SHA1_HASH_LENGTH - 1];
@@ -13768,7 +13768,7 @@ static void flash_contents_verification_test_small_hash_buffer_sha1 (CuTest *tes
 
 static void flash_contents_verification_test_small_hash_buffer_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	uint8_t hash_out[SHA384_HASH_LENGTH - 1];
@@ -13802,7 +13802,7 @@ static void flash_contents_verification_test_small_hash_buffer_sha384 (CuTest *t
 
 static void flash_contents_verification_test_small_hash_buffer_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	uint8_t hash_out[SHA512_HASH_LENGTH - 1];
@@ -13836,7 +13836,7 @@ static void flash_contents_verification_test_small_hash_buffer_sha512 (CuTest *t
 
 static void flash_contents_verification_test_read_error_with_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -13881,7 +13881,7 @@ static void flash_contents_verification_test_read_error_with_hash_out (CuTest *t
 
 static void flash_noncontiguous_contents_verification_test_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -13927,7 +13927,7 @@ static void flash_noncontiguous_contents_verification_test_sha256 (CuTest *test)
 
 static void flash_noncontiguous_contents_verification_test_sha256_with_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -13978,7 +13978,7 @@ static void flash_noncontiguous_contents_verification_test_sha256_with_hash_out 
 
 static void flash_noncontiguous_contents_verification_test_sha256_no_match_signature (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -14026,7 +14026,7 @@ static void flash_noncontiguous_contents_verification_test_sha256_no_match_signa
 static void flash_noncontiguous_contents_verification_test_sha256_no_match_signature_with_hash_out (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -14079,7 +14079,7 @@ static void flash_noncontiguous_contents_verification_test_sha256_no_match_signa
 
 static void flash_noncontiguous_contents_verification_test_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -14130,7 +14130,7 @@ static void flash_noncontiguous_contents_verification_test_sha1 (CuTest *test)
 
 static void flash_noncontiguous_contents_verification_test_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -14181,7 +14181,7 @@ static void flash_noncontiguous_contents_verification_test_sha384 (CuTest *test)
 
 static void flash_noncontiguous_contents_verification_test_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -14232,7 +14232,7 @@ static void flash_noncontiguous_contents_verification_test_sha512 (CuTest *test)
 
 static void flash_noncontiguous_contents_verification_test_unknown (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -14268,7 +14268,7 @@ static void flash_noncontiguous_contents_verification_test_unknown (CuTest *test
 
 static void flash_noncontiguous_contents_verification_test_multiple_regions (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -14321,7 +14321,7 @@ static void flash_noncontiguous_contents_verification_test_multiple_regions (CuT
 
 static void flash_noncontiguous_contents_verification_test_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	struct flash_region regions;
@@ -14381,7 +14381,7 @@ static void flash_noncontiguous_contents_verification_test_null (CuTest *test)
 
 static void flash_noncontiguous_contents_verification_test_hash_buffer_too_small (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	struct flash_region regions;
@@ -14419,7 +14419,7 @@ static void flash_noncontiguous_contents_verification_test_hash_buffer_too_small
 
 static void flash_noncontiguous_contents_verification_test_hash_buffer_too_small_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	struct flash_region regions;
@@ -14458,7 +14458,7 @@ static void flash_noncontiguous_contents_verification_test_hash_buffer_too_small
 static void flash_noncontiguous_contents_verification_test_hash_buffer_too_small_sha384 (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	struct flash_region regions;
@@ -14497,7 +14497,7 @@ static void flash_noncontiguous_contents_verification_test_hash_buffer_too_small
 static void flash_noncontiguous_contents_verification_test_hash_buffer_too_small_sha512 (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	struct flash_region regions;
@@ -14535,7 +14535,7 @@ static void flash_noncontiguous_contents_verification_test_hash_buffer_too_small
 
 static void flash_noncontiguous_contents_verification_test_read_error_with_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -14583,7 +14583,7 @@ static void flash_noncontiguous_contents_verification_test_read_error_with_hash_
 
 static void flash_hash_noncontiguous_contents_at_offset_test_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -14626,7 +14626,7 @@ static void flash_hash_noncontiguous_contents_at_offset_test_sha256 (CuTest *tes
 
 static void flash_hash_noncontiguous_contents_at_offset_test_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -14669,7 +14669,7 @@ static void flash_hash_noncontiguous_contents_at_offset_test_sha1 (CuTest *test)
 
 static void flash_hash_noncontiguous_contents_at_offset_test_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -14713,7 +14713,7 @@ static void flash_hash_noncontiguous_contents_at_offset_test_sha384 (CuTest *tes
 
 static void flash_hash_noncontiguous_contents_at_offset_test_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -14758,7 +14758,7 @@ static void flash_hash_noncontiguous_contents_at_offset_test_sha512 (CuTest *tes
 
 static void flash_hash_noncontiguous_contents_at_offset_test_unknown (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -14787,7 +14787,7 @@ static void flash_hash_noncontiguous_contents_at_offset_test_unknown (CuTest *te
 
 static void flash_hash_noncontiguous_contents_at_offset_test_multiple_blocks (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -14837,7 +14837,7 @@ static void flash_hash_noncontiguous_contents_at_offset_test_multiple_blocks (Cu
 
 static void flash_hash_noncontiguous_contents_at_offset_test_multiple_regions (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions[3];
@@ -14894,7 +14894,7 @@ static void flash_hash_noncontiguous_contents_at_offset_test_multiple_regions (C
 
 static void flash_hash_noncontiguous_contents_at_offset_test_no_offset (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -14937,7 +14937,7 @@ static void flash_hash_noncontiguous_contents_at_offset_test_no_offset (CuTest *
 
 static void flash_hash_noncontiguous_contents_at_offset_test_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -15248,8 +15248,8 @@ static void flash_hash_noncontiguous_contents_at_offset_test_hash_finish_error (
 
 static void flash_verify_noncontiguous_contents_at_offset_test_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -15289,8 +15289,8 @@ static void flash_verify_noncontiguous_contents_at_offset_test_sha256 (CuTest *t
 
 static void flash_verify_noncontiguous_contents_at_offset_test_sha256_with_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -15335,8 +15335,8 @@ static void flash_verify_noncontiguous_contents_at_offset_test_sha256_with_hash_
 static void flash_verify_noncontiguous_contents_at_offset_test_sha256_no_match_signature (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -15377,8 +15377,8 @@ static void flash_verify_noncontiguous_contents_at_offset_test_sha256_no_match_s
 static void flash_verify_noncontiguous_contents_at_offset_test_sha256_no_match_signature_with_hash_out (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -15423,8 +15423,8 @@ static void flash_verify_noncontiguous_contents_at_offset_test_sha256_no_match_s
 
 static void flash_verify_noncontiguous_contents_at_offset_test_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -15458,8 +15458,8 @@ static void flash_verify_noncontiguous_contents_at_offset_test_sha1 (CuTest *tes
 
 static void flash_verify_noncontiguous_contents_at_offset_test_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -15493,8 +15493,8 @@ static void flash_verify_noncontiguous_contents_at_offset_test_sha384 (CuTest *t
 
 static void flash_verify_noncontiguous_contents_at_offset_test_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -15528,8 +15528,8 @@ static void flash_verify_noncontiguous_contents_at_offset_test_sha512 (CuTest *t
 
 static void flash_verify_noncontiguous_contents_at_offset_test_unknown (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -15563,8 +15563,8 @@ static void flash_verify_noncontiguous_contents_at_offset_test_unknown (CuTest *
 
 static void flash_verify_noncontiguous_contents_at_offset_test_multiple_regions (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions[2];
@@ -15611,8 +15611,8 @@ static void flash_verify_noncontiguous_contents_at_offset_test_multiple_regions 
 
 static void flash_verify_noncontiguous_contents_at_offset_test_no_offset (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -15651,8 +15651,8 @@ static void flash_verify_noncontiguous_contents_at_offset_test_no_offset (CuTest
 
 static void flash_verify_noncontiguous_contents_at_offset_test_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	struct flash_region regions;
 	int status;
@@ -15721,8 +15721,8 @@ static void flash_verify_noncontiguous_contents_at_offset_test_null (CuTest *tes
 
 static void flash_verify_noncontiguous_contents_at_offset_test_hash_buffer_too_small (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	struct flash_region regions;
 	uint8_t hash_out[SHA256_HASH_LENGTH - 1];
@@ -15758,8 +15758,8 @@ static void flash_verify_noncontiguous_contents_at_offset_test_hash_buffer_too_s
 static void flash_verify_noncontiguous_contents_at_offset_test_read_error_with_hash_out (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -15804,7 +15804,7 @@ static void flash_verify_noncontiguous_contents_at_offset_test_read_error_with_h
 
 static void flash_noncontiguous_contents_verification_at_offset_test_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -15852,7 +15852,7 @@ static void flash_noncontiguous_contents_verification_at_offset_test_sha256 (CuT
 static void flash_noncontiguous_contents_verification_at_offset_test_sha256_with_hash_out (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -15904,7 +15904,7 @@ static void flash_noncontiguous_contents_verification_at_offset_test_sha256_with
 static void flash_noncontiguous_contents_verification_at_offset_test_sha256_no_match_signature (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -15953,7 +15953,7 @@ static void flash_noncontiguous_contents_verification_at_offset_test_sha256_no_m
 static void flash_noncontiguous_contents_verification_at_offset_test_sha256_no_match_signature_with_hash_out (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -16006,7 +16006,7 @@ static void flash_noncontiguous_contents_verification_at_offset_test_sha256_no_m
 
 static void flash_noncontiguous_contents_verification_at_offset_test_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -16057,7 +16057,7 @@ static void flash_noncontiguous_contents_verification_at_offset_test_sha1 (CuTes
 
 static void flash_noncontiguous_contents_verification_at_offset_test_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -16108,7 +16108,7 @@ static void flash_noncontiguous_contents_verification_at_offset_test_sha384 (CuT
 
 static void flash_noncontiguous_contents_verification_at_offset_test_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -16159,7 +16159,7 @@ static void flash_noncontiguous_contents_verification_at_offset_test_sha512 (CuT
 
 static void flash_noncontiguous_contents_verification_at_offset_test_unknown (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -16196,7 +16196,7 @@ static void flash_noncontiguous_contents_verification_at_offset_test_unknown (Cu
 
 static void flash_noncontiguous_contents_verification_at_offset_test_multiple_regions (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -16250,7 +16250,7 @@ static void flash_noncontiguous_contents_verification_at_offset_test_multiple_re
 
 static void flash_noncontiguous_contents_verification_at_offset_test_no_offset (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -16297,7 +16297,7 @@ static void flash_noncontiguous_contents_verification_at_offset_test_no_offset (
 
 static void flash_noncontiguous_contents_verification_at_offset_test_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	struct flash_region regions;
@@ -16365,7 +16365,7 @@ static void flash_noncontiguous_contents_verification_at_offset_test_null (CuTes
 static void flash_noncontiguous_contents_verification_at_offset_test_hash_buffer_too_small (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	struct flash_region regions;
@@ -16404,7 +16404,7 @@ static void flash_noncontiguous_contents_verification_at_offset_test_hash_buffer
 static void flash_noncontiguous_contents_verification_at_offset_test_hash_buffer_too_small_sha1 (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	struct flash_region regions;
@@ -16443,7 +16443,7 @@ static void flash_noncontiguous_contents_verification_at_offset_test_hash_buffer
 static void flash_noncontiguous_contents_verification_at_offset_test_hash_buffer_too_small_sha384 (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	struct flash_region regions;
@@ -16482,7 +16482,7 @@ static void flash_noncontiguous_contents_verification_at_offset_test_hash_buffer
 static void flash_noncontiguous_contents_verification_at_offset_test_hash_buffer_too_small_sha512 (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	struct flash_region regions;
@@ -16521,7 +16521,7 @@ static void flash_noncontiguous_contents_verification_at_offset_test_hash_buffer
 static void flash_noncontiguous_contents_verification_at_offset_test_read_error_with_hash_out (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock verification;
 	struct flash_mock flash;
 	int status;
@@ -16717,7 +16717,7 @@ static void flash_write_and_verify_test_verify_error (CuTest *test)
 
 static void flash_hash_update_contents_test_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t data[] = {0x31, 0x32, 0x33, 0x34};
@@ -16761,7 +16761,7 @@ static void flash_hash_update_contents_test_sha256 (CuTest *test)
 
 static void flash_hash_update_contents_test_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t data[] = {0x31, 0x32, 0x33, 0x34};
@@ -16805,7 +16805,7 @@ static void flash_hash_update_contents_test_sha1 (CuTest *test)
 
 static void flash_hash_update_contents_test_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t data[] = {0x31, 0x32, 0x33, 0x34};
@@ -16850,7 +16850,7 @@ static void flash_hash_update_contents_test_sha384 (CuTest *test)
 
 static void flash_hash_update_contents_test_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t data[] = {0x31, 0x32, 0x33, 0x34};
@@ -16896,7 +16896,7 @@ static void flash_hash_update_contents_test_sha512 (CuTest *test)
 
 static void flash_hash_update_contents_test_multiple_blocks (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t hash_expected[] = {
@@ -16948,7 +16948,7 @@ static void flash_hash_update_contents_test_multiple_blocks (CuTest *test)
 
 static void flash_hash_update_contents_test_zero_length (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
@@ -16981,7 +16981,7 @@ static void flash_hash_update_contents_test_zero_length (CuTest *test)
 
 static void flash_hash_update_contents_test_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 
@@ -17108,7 +17108,7 @@ static void flash_hash_update_contents_test_hash_update_error (CuTest *test)
 
 static void flash_hash_update_noncontiguous_contents_test_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -17156,7 +17156,7 @@ static void flash_hash_update_noncontiguous_contents_test_sha256 (CuTest *test)
 
 static void flash_hash_update_noncontiguous_contents_test_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -17204,7 +17204,7 @@ static void flash_hash_update_noncontiguous_contents_test_sha1 (CuTest *test)
 
 static void flash_hash_update_noncontiguous_contents_test_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -17253,7 +17253,7 @@ static void flash_hash_update_noncontiguous_contents_test_sha384 (CuTest *test)
 
 static void flash_hash_update_noncontiguous_contents_test_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -17303,7 +17303,7 @@ static void flash_hash_update_noncontiguous_contents_test_sha512 (CuTest *test)
 
 static void flash_hash_update_noncontiguous_contents_test_multiple_blocks (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -17358,7 +17358,7 @@ static void flash_hash_update_noncontiguous_contents_test_multiple_blocks (CuTes
 
 static void flash_hash_update_noncontiguous_contents_test_multiple_regions (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions[3];
@@ -17420,7 +17420,7 @@ static void flash_hash_update_noncontiguous_contents_test_multiple_regions (CuTe
 
 static void flash_hash_update_noncontiguous_contents_test_zero_length (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -17457,7 +17457,7 @@ static void flash_hash_update_noncontiguous_contents_test_zero_length (CuTest *t
 
 static void flash_hash_update_noncontiguous_contents_test_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -17652,7 +17652,7 @@ static void flash_hash_update_noncontiguous_contents_test_hash_update_error (CuT
 
 static void flash_hash_update_noncontiguous_contents_at_offset_test_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -17701,7 +17701,7 @@ static void flash_hash_update_noncontiguous_contents_at_offset_test_sha256 (CuTe
 
 static void flash_hash_update_noncontiguous_contents_at_offset_test_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -17750,7 +17750,7 @@ static void flash_hash_update_noncontiguous_contents_at_offset_test_sha1 (CuTest
 
 static void flash_hash_update_noncontiguous_contents_at_offset_test_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -17800,7 +17800,7 @@ static void flash_hash_update_noncontiguous_contents_at_offset_test_sha384 (CuTe
 
 static void flash_hash_update_noncontiguous_contents_at_offset_test_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -17851,7 +17851,7 @@ static void flash_hash_update_noncontiguous_contents_at_offset_test_sha512 (CuTe
 
 static void flash_hash_update_noncontiguous_contents_at_offset_test_multiple_blocks (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -17907,7 +17907,7 @@ static void flash_hash_update_noncontiguous_contents_at_offset_test_multiple_blo
 
 static void flash_hash_update_noncontiguous_contents_at_offset_test_multiple_regions (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions[3];
@@ -17970,7 +17970,7 @@ static void flash_hash_update_noncontiguous_contents_at_offset_test_multiple_reg
 
 static void flash_hash_update_noncontiguous_contents_at_offset_test_no_offset (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -18019,7 +18019,7 @@ static void flash_hash_update_noncontiguous_contents_at_offset_test_no_offset (C
 
 static void flash_hash_update_noncontiguous_contents_at_offset_test_zero_length (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;
@@ -18057,7 +18057,7 @@ static void flash_hash_update_noncontiguous_contents_at_offset_test_zero_length 
 
 static void flash_hash_update_noncontiguous_contents_at_offset_test_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	struct flash_region regions;

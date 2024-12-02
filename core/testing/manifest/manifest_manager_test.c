@@ -22,7 +22,7 @@ TEST_SUITE_LABEL ("manifest_manager");
 
 static void manifest_manager_test_init (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	int status;
 
@@ -39,7 +39,7 @@ static void manifest_manager_test_init (CuTest *test)
 
 static void manifest_manager_test_init_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	int status;
 
@@ -86,7 +86,7 @@ static void manifest_manager_test_get_port_null (CuTest *test)
 
 static void manifest_manager_test_get_manifest_measured_data (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	struct manifest_mock manifest;
 	uint8_t buffer[SHA256_HASH_LENGTH];
@@ -127,7 +127,7 @@ static void manifest_manager_test_get_manifest_measured_data (CuTest *test)
 
 static void manifest_manager_test_get_manifest_measured_data_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	struct manifest_mock manifest;
 	uint8_t buffer[SHA384_HASH_LENGTH];
@@ -171,7 +171,7 @@ static void manifest_manager_test_get_manifest_measured_data_sha384 (CuTest *tes
 
 static void manifest_manager_test_get_manifest_measured_data_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	struct manifest_mock manifest;
 	uint8_t buffer[SHA512_HASH_LENGTH];
@@ -215,7 +215,7 @@ static void manifest_manager_test_get_manifest_measured_data_sha512 (CuTest *tes
 
 static void manifest_manager_test_get_manifest_measured_data_with_offset (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	struct manifest_mock manifest;
 	uint8_t buffer[SHA256_HASH_LENGTH];
@@ -257,7 +257,7 @@ static void manifest_manager_test_get_manifest_measured_data_with_offset (CuTest
 
 static void manifest_manager_test_get_manifest_measured_data_sha384_offest_sha256_len (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	struct manifest_mock manifest;
 	uint8_t buffer[SHA384_HASH_LENGTH];
@@ -301,7 +301,7 @@ static void manifest_manager_test_get_manifest_measured_data_sha384_offest_sha25
 
 static void manifest_manager_test_get_manifest_measured_data_small_buffer (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	struct manifest_mock manifest;
 	uint8_t buffer[SHA256_HASH_LENGTH] = {0};
@@ -346,7 +346,7 @@ static void manifest_manager_test_get_manifest_measured_data_small_buffer (CuTes
 
 static void manifest_manager_test_get_manifest_measured_data_small_buffer_with_offset (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	struct manifest_mock manifest;
 	uint8_t buffer[SHA256_HASH_LENGTH] = {0};
@@ -392,7 +392,7 @@ static void manifest_manager_test_get_manifest_measured_data_small_buffer_with_o
 
 static void manifest_manager_test_get_manifest_measured_data_no_active (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	uint8_t buffer[SHA256_HASH_LENGTH];
 	uint8_t zero[SHA256_HASH_LENGTH] = {0};
@@ -421,7 +421,7 @@ static void manifest_manager_test_get_manifest_measured_data_no_active (CuTest *
 
 static void manifest_manager_test_get_manifest_measured_data_no_active_with_offset (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	uint8_t buffer[SHA256_HASH_LENGTH];
 	uint8_t zero[SHA256_HASH_LENGTH] = {0};
@@ -451,7 +451,7 @@ static void manifest_manager_test_get_manifest_measured_data_no_active_with_offs
 
 static void manifest_manager_test_get_manifest_measured_data_no_active_small_buffer (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	uint8_t buffer[SHA256_HASH_LENGTH];
 	uint8_t zero[SHA256_HASH_LENGTH] = {0};
@@ -481,7 +481,7 @@ static void manifest_manager_test_get_manifest_measured_data_no_active_small_buf
 static void manifest_manager_test_get_manifest_measured_data_no_active_small_buffer_with_offset (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	uint8_t buffer[SHA256_HASH_LENGTH];
 	uint8_t zero[SHA256_HASH_LENGTH] = {0};
@@ -511,7 +511,7 @@ static void manifest_manager_test_get_manifest_measured_data_no_active_small_buf
 
 static void manifest_manager_test_get_manifest_measured_data_0_bytes_read (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	struct manifest_mock manifest;
 	uint8_t buffer[SHA256_HASH_LENGTH];
@@ -549,7 +549,7 @@ static void manifest_manager_test_get_manifest_measured_data_0_bytes_read (CuTes
 
 static void manifest_manager_test_get_manifest_measured_data_0_bytes_read_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	struct manifest_mock manifest;
 	uint8_t buffer[SHA256_HASH_LENGTH];
@@ -588,7 +588,7 @@ static void manifest_manager_test_get_manifest_measured_data_0_bytes_read_sha384
 
 static void manifest_manager_test_get_manifest_measured_data_no_active_0_bytes_read (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	uint8_t buffer[SHA256_HASH_LENGTH];
 	size_t length = sizeof (buffer);
@@ -613,7 +613,7 @@ static void manifest_manager_test_get_manifest_measured_data_no_active_0_bytes_r
 
 static void manifest_manager_test_get_manifest_measured_data_invalid_offset (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	struct manifest_mock manifest;
 	uint8_t buffer[SHA256_HASH_LENGTH];
@@ -651,7 +651,7 @@ static void manifest_manager_test_get_manifest_measured_data_invalid_offset (CuT
 
 static void manifest_manager_test_get_manifest_measured_data_invalid_offset_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	struct manifest_mock manifest;
 	uint8_t buffer[SHA384_HASH_LENGTH];
@@ -692,7 +692,7 @@ static void manifest_manager_test_get_manifest_measured_data_invalid_offset_sha3
 
 static void manifest_manager_test_get_manifest_measured_data_no_active_invalid_offset (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	uint8_t buffer[SHA256_HASH_LENGTH];
 	size_t length = sizeof (buffer);
@@ -717,7 +717,7 @@ static void manifest_manager_test_get_manifest_measured_data_no_active_invalid_o
 
 static void manifest_manager_test_get_manifest_measured_data_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	struct manifest_mock manifest;
 	uint8_t buffer[SHA256_HASH_LENGTH];
@@ -756,7 +756,7 @@ static void manifest_manager_test_get_manifest_measured_data_null (CuTest *test)
 
 static void manifest_manager_test_get_manifest_measured_data_fail (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct manifest_manager manager;
 	struct manifest_mock manifest;
 	uint8_t buffer[SHA256_HASH_LENGTH];
@@ -1433,8 +1433,8 @@ static void manifest_manager_test_get_manifest_platform_id_measured_data_fail (C
 
 static void manifest_manager_test_hash_manifest_measured_data (CuTest *test)
 {
+	HASH_TESTING_ENGINE (mgr_hash);
 	struct hash_engine_mock hash;
-	HASH_TESTING_ENGINE mgr_hash;
 	struct manifest_manager manager;
 	struct manifest_mock manifest;
 	int status;
@@ -1476,8 +1476,8 @@ static void manifest_manager_test_hash_manifest_measured_data (CuTest *test)
 
 static void manifest_manager_test_hash_manifest_measured_data_sha384 (CuTest *test)
 {
+	HASH_TESTING_ENGINE (mgr_hash);
 	struct hash_engine_mock hash;
-	HASH_TESTING_ENGINE mgr_hash;
 	struct manifest_manager manager;
 	struct manifest_mock manifest;
 	uint8_t hash_out[SHA384_HASH_LENGTH];
@@ -1522,8 +1522,8 @@ static void manifest_manager_test_hash_manifest_measured_data_sha384 (CuTest *te
 
 static void manifest_manager_test_hash_manifest_measured_data_sha512 (CuTest *test)
 {
+	HASH_TESTING_ENGINE (mgr_hash);
 	struct hash_engine_mock hash;
-	HASH_TESTING_ENGINE mgr_hash;
 	struct manifest_manager manager;
 	struct manifest_mock manifest;
 	uint8_t hash_out[SHA512_HASH_LENGTH];
@@ -1568,8 +1568,8 @@ static void manifest_manager_test_hash_manifest_measured_data_sha512 (CuTest *te
 
 static void manifest_manager_test_hash_manifest_measured_data_no_active (CuTest *test)
 {
+	HASH_TESTING_ENGINE (mgr_hash);
 	struct hash_engine_mock hash;
-	HASH_TESTING_ENGINE mgr_hash;
 	struct manifest_manager manager;
 	uint8_t zero[SHA256_HASH_LENGTH] = {0};
 	int status;
@@ -1601,8 +1601,8 @@ static void manifest_manager_test_hash_manifest_measured_data_no_active (CuTest 
 
 static void manifest_manager_test_hash_manifest_measured_data_null (CuTest *test)
 {
+	HASH_TESTING_ENGINE (mgr_hash);
 	struct hash_engine_mock hash;
-	HASH_TESTING_ENGINE mgr_hash;
 	struct manifest_manager manager;
 	struct manifest_mock manifest;
 	int status;
@@ -1638,8 +1638,8 @@ static void manifest_manager_test_hash_manifest_measured_data_null (CuTest *test
 
 static void manifest_manager_test_hash_manifest_measured_data_fail (CuTest *test)
 {
+	HASH_TESTING_ENGINE (mgr_hash);
 	struct hash_engine_mock hash;
-	HASH_TESTING_ENGINE mgr_hash;
 	struct manifest_manager manager;
 	struct manifest_mock manifest;
 	int status;
@@ -1678,8 +1678,8 @@ static void manifest_manager_test_hash_manifest_measured_data_fail (CuTest *test
 
 static void manifest_manager_test_hash_manifest_measured_data_hash_update_fail (CuTest *test)
 {
+	HASH_TESTING_ENGINE (mgr_hash);
 	struct hash_engine_mock hash;
-	HASH_TESTING_ENGINE mgr_hash;
 	struct manifest_manager manager;
 	struct manifest_mock manifest;
 	int status;

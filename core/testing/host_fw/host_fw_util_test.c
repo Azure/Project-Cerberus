@@ -1254,14 +1254,14 @@ static void host_fw_determine_offset_version_test_read_fail_cache_update (CuTest
 
 static void host_fw_verify_images_test (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -1316,14 +1316,14 @@ static void host_fw_verify_images_test (CuTest *test)
 
 static void host_fw_verify_images_test_invalid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -1378,14 +1378,14 @@ static void host_fw_verify_images_test_invalid (CuTest *test)
 
 static void host_fw_verify_images_test_not_contiguous (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[4];
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -1461,14 +1461,14 @@ static void host_fw_verify_images_test_not_contiguous (CuTest *test)
 
 static void host_fw_verify_images_test_multiple (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[3];
 	struct pfm_image_signature sig[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -1553,14 +1553,14 @@ static void host_fw_verify_images_test_multiple (CuTest *test)
 
 static void host_fw_verify_images_test_multiple_one_invalid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[3];
 	struct pfm_image_signature sig[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -1640,14 +1640,14 @@ static void host_fw_verify_images_test_multiple_one_invalid (CuTest *test)
 
 static void host_fw_verify_images_test_partial_validation (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[3];
 	struct pfm_image_signature sig[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -1727,12 +1727,12 @@ static void host_fw_verify_images_test_partial_validation (CuTest *test)
 
 static void host_fw_verify_images_test_no_images (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 
 	TEST_START;
@@ -1769,14 +1769,14 @@ static void host_fw_verify_images_test_no_images (CuTest *test)
 
 static void host_fw_verify_images_test_hashes_sha256 (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -1831,14 +1831,14 @@ static void host_fw_verify_images_test_hashes_sha256 (CuTest *test)
 
 static void host_fw_verify_images_test_hashes_sha384 (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -1893,14 +1893,14 @@ static void host_fw_verify_images_test_hashes_sha384 (CuTest *test)
 
 static void host_fw_verify_images_test_hashes_sha512 (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -1955,14 +1955,14 @@ static void host_fw_verify_images_test_hashes_sha512 (CuTest *test)
 
 static void host_fw_verify_images_test_hashes_sha256_invalid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -2017,14 +2017,14 @@ static void host_fw_verify_images_test_hashes_sha256_invalid (CuTest *test)
 
 static void host_fw_verify_images_test_hashes_sha384_invalid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -2079,14 +2079,14 @@ static void host_fw_verify_images_test_hashes_sha384_invalid (CuTest *test)
 
 static void host_fw_verify_images_test_hashes_sha512_invalid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -2141,14 +2141,14 @@ static void host_fw_verify_images_test_hashes_sha512_invalid (CuTest *test)
 
 static void host_fw_verify_images_test_hashes_not_contiguous (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[4];
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -2224,14 +2224,14 @@ static void host_fw_verify_images_test_hashes_not_contiguous (CuTest *test)
 
 static void host_fw_verify_images_test_hashes_multiple (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[3];
 	struct pfm_image_hash img_hash[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -2316,14 +2316,14 @@ static void host_fw_verify_images_test_hashes_multiple (CuTest *test)
 
 static void host_fw_verify_images_test_hashes_multiple_one_invalid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[3];
 	struct pfm_image_hash img_hash[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -2403,14 +2403,14 @@ static void host_fw_verify_images_test_hashes_multiple_one_invalid (CuTest *test
 
 static void host_fw_verify_images_test_hashes_partial_validation (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[3];
 	struct pfm_image_hash img_hash[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -2490,14 +2490,14 @@ static void host_fw_verify_images_test_hashes_partial_validation (CuTest *test)
 
 static void host_fw_verify_images_test_hashes_hash_error (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -2545,14 +2545,14 @@ static void host_fw_verify_images_test_hashes_hash_error (CuTest *test)
 
 static void host_fw_verify_images_test_null (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -2609,14 +2609,14 @@ static void host_fw_verify_images_test_null (CuTest *test)
 
 static void host_fw_verify_offset_images_test (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -2671,14 +2671,14 @@ static void host_fw_verify_offset_images_test (CuTest *test)
 
 static void host_fw_verify_offset_images_test_no_offset (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -2733,14 +2733,14 @@ static void host_fw_verify_offset_images_test_no_offset (CuTest *test)
 
 static void host_fw_verify_offset_images_test_invalid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -2795,14 +2795,14 @@ static void host_fw_verify_offset_images_test_invalid (CuTest *test)
 
 static void host_fw_verify_offset_images_test_not_contiguous (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[4];
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -2878,14 +2878,14 @@ static void host_fw_verify_offset_images_test_not_contiguous (CuTest *test)
 
 static void host_fw_verify_offset_images_test_multiple (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[3];
 	struct pfm_image_signature sig[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -2970,14 +2970,14 @@ static void host_fw_verify_offset_images_test_multiple (CuTest *test)
 
 static void host_fw_verify_offset_images_test_multiple_one_invalid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[3];
 	struct pfm_image_signature sig[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -3057,14 +3057,14 @@ static void host_fw_verify_offset_images_test_multiple_one_invalid (CuTest *test
 
 static void host_fw_verify_offset_images_test_partial_validation (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[3];
 	struct pfm_image_signature sig[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -3144,12 +3144,12 @@ static void host_fw_verify_offset_images_test_partial_validation (CuTest *test)
 
 static void host_fw_verify_offset_images_test_no_images (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 
 	TEST_START;
@@ -3186,14 +3186,14 @@ static void host_fw_verify_offset_images_test_no_images (CuTest *test)
 
 static void host_fw_verify_offset_images_test_hashes_sha256 (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -3248,14 +3248,14 @@ static void host_fw_verify_offset_images_test_hashes_sha256 (CuTest *test)
 
 static void host_fw_verify_offset_images_test_hashes_sha384 (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -3310,14 +3310,14 @@ static void host_fw_verify_offset_images_test_hashes_sha384 (CuTest *test)
 
 static void host_fw_verify_offset_images_test_hashes_sha512 (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -3372,14 +3372,14 @@ static void host_fw_verify_offset_images_test_hashes_sha512 (CuTest *test)
 
 static void host_fw_verify_offset_images_test_hashes_no_offset (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -3434,14 +3434,14 @@ static void host_fw_verify_offset_images_test_hashes_no_offset (CuTest *test)
 
 static void host_fw_verify_offset_images_test_hashes_sha256_invalid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -3496,14 +3496,14 @@ static void host_fw_verify_offset_images_test_hashes_sha256_invalid (CuTest *tes
 
 static void host_fw_verify_offset_images_test_hashes_sha384_invalid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -3558,14 +3558,14 @@ static void host_fw_verify_offset_images_test_hashes_sha384_invalid (CuTest *tes
 
 static void host_fw_verify_offset_images_test_hashes_sha512_invalid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -3620,14 +3620,14 @@ static void host_fw_verify_offset_images_test_hashes_sha512_invalid (CuTest *tes
 
 static void host_fw_verify_offset_images_test_hashes_not_contiguous (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[4];
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -3703,14 +3703,14 @@ static void host_fw_verify_offset_images_test_hashes_not_contiguous (CuTest *tes
 
 static void host_fw_verify_offset_images_test_hashes_multiple (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[3];
 	struct pfm_image_hash img_hash[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -3795,14 +3795,14 @@ static void host_fw_verify_offset_images_test_hashes_multiple (CuTest *test)
 
 static void host_fw_verify_offset_images_test_hashes_multiple_one_invalid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[3];
 	struct pfm_image_hash img_hash[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -3882,14 +3882,14 @@ static void host_fw_verify_offset_images_test_hashes_multiple_one_invalid (CuTes
 
 static void host_fw_verify_offset_images_test_hashes_partial_validation (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[3];
 	struct pfm_image_hash img_hash[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -3969,14 +3969,14 @@ static void host_fw_verify_offset_images_test_hashes_partial_validation (CuTest 
 
 static void host_fw_verify_offset_images_test_hashes_hash_error (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -4025,14 +4025,14 @@ static void host_fw_verify_offset_images_test_hashes_hash_error (CuTest *test)
 
 static void host_fw_verify_offset_images_test_null (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -4089,6 +4089,8 @@ static void host_fw_verify_offset_images_test_null (CuTest *test)
 
 static void host_fw_full_flash_verification_test (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
@@ -4098,8 +4100,6 @@ static void host_fw_full_flash_verification_test (CuTest *test)
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -4168,6 +4168,8 @@ static void host_fw_full_flash_verification_test (CuTest *test)
 
 static void host_fw_full_flash_verification_test_not_blank_byte (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
@@ -4177,8 +4179,6 @@ static void host_fw_full_flash_verification_test_not_blank_byte (CuTest *test)
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -4247,6 +4247,8 @@ static void host_fw_full_flash_verification_test_not_blank_byte (CuTest *test)
 
 static void host_fw_full_flash_verification_test_multiple_rw_regions (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
@@ -4256,8 +4258,6 @@ static void host_fw_full_flash_verification_test_multiple_rw_regions (CuTest *te
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -4330,6 +4330,8 @@ static void host_fw_full_flash_verification_test_multiple_rw_regions (CuTest *te
 
 static void host_fw_full_flash_verification_test_image_between_rw_regions (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
@@ -4339,8 +4341,6 @@ static void host_fw_full_flash_verification_test_image_between_rw_regions (CuTes
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -4413,6 +4413,8 @@ static void host_fw_full_flash_verification_test_image_between_rw_regions (CuTes
 
 static void host_fw_full_flash_verification_test_multiple_images (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region[2];
 	struct pfm_image_signature sig[2];
 	struct pfm_image_list img_list;
@@ -4422,8 +4424,6 @@ static void host_fw_full_flash_verification_test_multiple_images (CuTest *test)
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -4512,6 +4512,8 @@ static void host_fw_full_flash_verification_test_multiple_images (CuTest *test)
 
 static void host_fw_full_flash_verification_test_offset_image (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region[2];
 	struct pfm_image_signature sig[2];
 	struct pfm_image_list img_list;
@@ -4521,8 +4523,6 @@ static void host_fw_full_flash_verification_test_offset_image (CuTest *test)
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -4612,6 +4612,8 @@ static void host_fw_full_flash_verification_test_offset_image (CuTest *test)
 
 static void host_fw_full_flash_verification_test_first_region_rw (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region[2];
 	struct pfm_image_signature sig[2];
 	struct pfm_image_list img_list;
@@ -4621,8 +4623,6 @@ static void host_fw_full_flash_verification_test_first_region_rw (CuTest *test)
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -4712,6 +4712,8 @@ static void host_fw_full_flash_verification_test_first_region_rw (CuTest *test)
 
 static void host_fw_full_flash_verification_test_last_region_rw (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region[2];
 	struct pfm_image_signature sig[2];
 	struct pfm_image_list img_list;
@@ -4721,8 +4723,6 @@ static void host_fw_full_flash_verification_test_last_region_rw (CuTest *test)
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -4811,6 +4811,8 @@ static void host_fw_full_flash_verification_test_last_region_rw (CuTest *test)
 
 static void host_fw_full_flash_verification_test_multipart_image (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region[4];
 	struct pfm_image_signature sig[2];
 	struct pfm_image_list img_list;
@@ -4820,8 +4822,6 @@ static void host_fw_full_flash_verification_test_multipart_image (CuTest *test)
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -4925,6 +4925,8 @@ static void host_fw_full_flash_verification_test_multipart_image (CuTest *test)
 
 static void host_fw_full_flash_verification_test_partial_validation (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region[2];
 	struct pfm_image_signature sig[2];
 	struct pfm_image_list img_list;
@@ -4934,8 +4936,6 @@ static void host_fw_full_flash_verification_test_partial_validation (CuTest *tes
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -5024,6 +5024,8 @@ static void host_fw_full_flash_verification_test_partial_validation (CuTest *tes
 
 static void host_fw_full_flash_verification_test_invalid_image (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region[2];
 	struct pfm_image_signature sig[2];
 	struct pfm_image_list img_list;
@@ -5033,8 +5035,6 @@ static void host_fw_full_flash_verification_test_invalid_image (CuTest *test)
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -5112,6 +5112,8 @@ static void host_fw_full_flash_verification_test_invalid_image (CuTest *test)
 
 static void host_fw_full_flash_verification_test_not_blank (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
@@ -5121,8 +5123,6 @@ static void host_fw_full_flash_verification_test_not_blank (CuTest *test)
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -5192,6 +5192,8 @@ static void host_fw_full_flash_verification_test_not_blank (CuTest *test)
 
 static void host_fw_full_flash_verification_test_last_not_blank (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
@@ -5201,8 +5203,6 @@ static void host_fw_full_flash_verification_test_last_not_blank (CuTest *test)
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -5274,6 +5274,8 @@ static void host_fw_full_flash_verification_test_last_not_blank (CuTest *test)
 
 static void host_fw_full_flash_verification_test_hashes_sha256 (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list img_list;
@@ -5283,8 +5285,6 @@ static void host_fw_full_flash_verification_test_hashes_sha256 (CuTest *test)
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -5353,6 +5353,8 @@ static void host_fw_full_flash_verification_test_hashes_sha256 (CuTest *test)
 
 static void host_fw_full_flash_verification_test_hashes_sha384 (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list img_list;
@@ -5362,8 +5364,6 @@ static void host_fw_full_flash_verification_test_hashes_sha384 (CuTest *test)
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -5432,6 +5432,8 @@ static void host_fw_full_flash_verification_test_hashes_sha384 (CuTest *test)
 
 static void host_fw_full_flash_verification_test_hashes_sha512 (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list img_list;
@@ -5441,8 +5443,6 @@ static void host_fw_full_flash_verification_test_hashes_sha512 (CuTest *test)
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -5511,6 +5511,8 @@ static void host_fw_full_flash_verification_test_hashes_sha512 (CuTest *test)
 
 static void host_fw_full_flash_verification_test_hashes_multipart_image (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region[4];
 	struct pfm_image_hash img_hash[2];
 	struct pfm_image_list img_list;
@@ -5520,8 +5522,6 @@ static void host_fw_full_flash_verification_test_hashes_multipart_image (CuTest 
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -5625,6 +5625,8 @@ static void host_fw_full_flash_verification_test_hashes_multipart_image (CuTest 
 
 static void host_fw_full_flash_verification_test_hashes_partial_validation (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region[2];
 	struct pfm_image_hash img_hash[2];
 	struct pfm_image_list img_list;
@@ -5634,8 +5636,6 @@ static void host_fw_full_flash_verification_test_hashes_partial_validation (CuTe
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -5724,6 +5724,8 @@ static void host_fw_full_flash_verification_test_hashes_partial_validation (CuTe
 
 static void host_fw_full_flash_verification_test_hashes_invalid_image (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region[2];
 	struct pfm_image_hash img_hash[2];
 	struct pfm_image_list img_list;
@@ -5733,8 +5735,6 @@ static void host_fw_full_flash_verification_test_hashes_invalid_image (CuTest *t
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -5812,6 +5812,8 @@ static void host_fw_full_flash_verification_test_hashes_invalid_image (CuTest *t
 
 static void host_fw_full_flash_verification_test_null (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
@@ -5821,8 +5823,6 @@ static void host_fw_full_flash_verification_test_null (CuTest *test)
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -12220,14 +12220,14 @@ static void host_fw_restore_read_write_data_test_multiple_regions_error (CuTest 
 
 static void host_fw_verify_images_multiple_fw_test (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -12282,14 +12282,14 @@ static void host_fw_verify_images_multiple_fw_test (CuTest *test)
 
 static void host_fw_verify_images_multiple_fw_test_invalid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -12344,14 +12344,14 @@ static void host_fw_verify_images_multiple_fw_test_invalid (CuTest *test)
 
 static void host_fw_verify_images_multiple_fw_test_multiple (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[3];
 	struct pfm_image_signature sig[3];
 	struct pfm_image_list list[3];
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -12444,14 +12444,14 @@ static void host_fw_verify_images_multiple_fw_test_multiple (CuTest *test)
 
 static void host_fw_verify_images_multiple_fw_test_hashes (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -12506,14 +12506,14 @@ static void host_fw_verify_images_multiple_fw_test_hashes (CuTest *test)
 
 static void host_fw_verify_images_multiple_fw_test_hashes_invalid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -12568,14 +12568,14 @@ static void host_fw_verify_images_multiple_fw_test_hashes_invalid (CuTest *test)
 
 static void host_fw_verify_images_multiple_fw_test_hashes_multiple (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[3];
 	struct pfm_image_hash img_hash[3];
 	struct pfm_image_list list[3];
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -12668,14 +12668,14 @@ static void host_fw_verify_images_multiple_fw_test_hashes_multiple (CuTest *test
 
 static void host_fw_verify_images_multiple_fw_test_null (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -12732,14 +12732,14 @@ static void host_fw_verify_images_multiple_fw_test_null (CuTest *test)
 
 static void host_fw_verify_offset_images_multiple_fw_test (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -12795,14 +12795,14 @@ static void host_fw_verify_offset_images_multiple_fw_test (CuTest *test)
 
 static void host_fw_verify_offset_images_multiple_fw_test_no_offset (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -12857,14 +12857,14 @@ static void host_fw_verify_offset_images_multiple_fw_test_no_offset (CuTest *tes
 
 static void host_fw_verify_offset_images_multiple_fw_test_invalid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -12920,14 +12920,14 @@ static void host_fw_verify_offset_images_multiple_fw_test_invalid (CuTest *test)
 
 static void host_fw_verify_offset_images_multiple_fw_test_multiple (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[3];
 	struct pfm_image_signature sig[3];
 	struct pfm_image_list list[3];
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -13021,14 +13021,14 @@ static void host_fw_verify_offset_images_multiple_fw_test_multiple (CuTest *test
 
 static void host_fw_verify_offset_images_multiple_fw_test_hashes (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -13084,14 +13084,14 @@ static void host_fw_verify_offset_images_multiple_fw_test_hashes (CuTest *test)
 
 static void host_fw_verify_offset_images_multiple_fw_test_hashes_no_offset (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -13146,14 +13146,14 @@ static void host_fw_verify_offset_images_multiple_fw_test_hashes_no_offset (CuTe
 
 static void host_fw_verify_offset_images_multiple_fw_test_hashes_invalid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -13209,14 +13209,14 @@ static void host_fw_verify_offset_images_multiple_fw_test_hashes_invalid (CuTest
 
 static void host_fw_verify_offset_images_multiple_fw_test_hashes_multiple (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region[3];
 	struct pfm_image_hash img_hash[3];
 	struct pfm_image_list list[3];
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -13310,14 +13310,14 @@ static void host_fw_verify_offset_images_multiple_fw_test_hashes_multiple (CuTes
 
 static void host_fw_verify_offset_images_multiple_fw_test_null (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -13378,6 +13378,8 @@ static void host_fw_verify_offset_images_multiple_fw_test_null (CuTest *test)
 
 static void host_fw_full_flash_verification_multiple_fw_test (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
@@ -13387,8 +13389,6 @@ static void host_fw_full_flash_verification_multiple_fw_test (CuTest *test)
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -13457,6 +13457,8 @@ static void host_fw_full_flash_verification_multiple_fw_test (CuTest *test)
 
 static void host_fw_full_flash_verification_multiple_fw_test_multiple (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region[3];
 	struct pfm_image_signature sig[3];
 	struct pfm_image_list img_list[3];
@@ -13466,8 +13468,6 @@ static void host_fw_full_flash_verification_multiple_fw_test_multiple (CuTest *t
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -13596,6 +13596,8 @@ static void host_fw_full_flash_verification_multiple_fw_test_multiple (CuTest *t
 
 static void host_fw_full_flash_verification_multiple_fw_test_hashes (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region;
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list img_list;
@@ -13605,8 +13607,6 @@ static void host_fw_full_flash_verification_multiple_fw_test_hashes (CuTest *tes
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 
@@ -13675,6 +13675,8 @@ static void host_fw_full_flash_verification_multiple_fw_test_hashes (CuTest *tes
 
 static void host_fw_full_flash_verification_multiple_fw_test_hashes_multiple (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region[3];
 	struct pfm_image_hash img_hash[3];
 	struct pfm_image_list img_list[3];
@@ -13684,8 +13686,6 @@ static void host_fw_full_flash_verification_multiple_fw_test_hashes_multiple (Cu
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data1 = "Test";
 	char *data2 = "Test2";
@@ -13811,6 +13811,8 @@ static void host_fw_full_flash_verification_multiple_fw_test_hashes_multiple (Cu
 
 static void host_fw_full_flash_verification_multiple_fw_test_null (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_region img_region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
@@ -13820,8 +13822,6 @@ static void host_fw_full_flash_verification_multiple_fw_test_null (CuTest *test)
 	struct flash_master_mock flash_mock;
 	struct spi_flash_state state;
 	struct spi_flash flash;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
 	int status;
 	char *data = "Test";
 

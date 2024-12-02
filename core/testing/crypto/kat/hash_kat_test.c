@@ -58,7 +58,7 @@ const uint8_t SHA512_HMAC_KAT_CALCULATE_KEY_HASH[] = {
 
 static void hash_kat_test_run_self_test_calculate_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -104,7 +104,7 @@ static void hash_kat_test_run_self_test_calculate_sha1_mismatch_data (CuTest *te
 
 static void hash_kat_test_run_self_test_calculate_sha1_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -145,7 +145,7 @@ static void hash_kat_test_run_self_test_calculate_sha1_calculate_fail (CuTest *t
 
 static void hash_kat_test_run_self_test_calculate_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -186,7 +186,7 @@ static void hash_kat_test_run_self_test_calculate_sha256_mismatch_data (CuTest *
 
 static void hash_kat_test_run_self_test_calculate_sha256_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -226,7 +226,7 @@ static void hash_kat_test_run_self_test_calculate_sha256_calculate_fail (CuTest 
 
 static void hash_kat_test_run_self_test_calculate_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -272,7 +272,7 @@ static void hash_kat_test_run_self_test_calculate_sha384_mismatch_data (CuTest *
 
 static void hash_kat_test_run_self_test_calculate_sha384_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -313,7 +313,7 @@ static void hash_kat_test_run_self_test_calculate_sha384_calculate_fail (CuTest 
 
 static void hash_kat_test_run_self_test_calculate_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -359,7 +359,7 @@ static void hash_kat_test_run_self_test_calculate_sha512_mismatch_data (CuTest *
 
 static void hash_kat_test_run_self_test_calculate_sha512_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -400,7 +400,7 @@ static void hash_kat_test_run_self_test_calculate_sha512_calculate_fail (CuTest 
 
 static void hash_kat_test_run_all_calculate_self_tests (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -469,7 +469,7 @@ static void hash_kat_test_run_all_calculate_self_tests_mock (CuTest *test)
 
 static void hash_kat_test_run_all_calculate_self_tests_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -640,7 +640,7 @@ static void hash_kat_test_run_all_calculate_self_tests_sha512_fail (CuTest *test
 
 static void hash_kat_test_run_self_test_update_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -692,7 +692,7 @@ static void hash_kat_test_run_self_test_update_sha1_mismatch_data (CuTest *test)
 
 static void hash_kat_test_run_self_test_update_sha1_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -818,7 +818,7 @@ static void hash_kat_test_run_self_test_update_sha1_finish_fail (CuTest *test)
 
 static void hash_kat_test_run_self_test_update_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -865,7 +865,7 @@ static void hash_kat_test_run_self_test_update_sha256_mismatch_data (CuTest *tes
 
 static void hash_kat_test_run_self_test_update_sha256_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -990,7 +990,7 @@ static void hash_kat_test_run_self_test_update_sha256_finish_fail (CuTest *test)
 
 static void hash_kat_test_run_self_test_update_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -1042,7 +1042,7 @@ static void hash_kat_test_run_self_test_update_sha384_mismatch_data (CuTest *tes
 
 static void hash_kat_test_run_self_test_update_sha384_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -1168,7 +1168,7 @@ static void hash_kat_test_run_self_test_update_sha384_finish_fail (CuTest *test)
 
 static void hash_kat_test_run_self_test_update_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -1220,7 +1220,7 @@ static void hash_kat_test_run_self_test_update_sha512_mismatch_data (CuTest *tes
 
 static void hash_kat_test_run_self_test_update_sha512_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -1346,7 +1346,7 @@ static void hash_kat_test_run_self_test_update_sha512_finish_fail (CuTest *test)
 
 static void hash_kat_test_run_all_update_self_tests (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -1439,7 +1439,7 @@ static void hash_kat_test_run_all_update_self_tests_mock (CuTest *test)
 
 static void hash_kat_test_run_all_update_self_tests_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -1635,7 +1635,7 @@ static void hash_kat_test_run_all_update_self_tests_sha512_fail (CuTest *test)
 
 static void hash_kat_test_hmac_run_self_test_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -1679,7 +1679,7 @@ static void hash_kat_test_hmac_run_self_test_sha1_mismatch_data (CuTest *test)
 
 static void hash_kat_test_hmac_run_self_test_sha1_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -1720,7 +1720,7 @@ static void hash_kat_test_hmac_run_self_test_sha1_calculate_fail (CuTest *test)
 
 static void hash_kat_test_hmac_run_self_test_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -1759,7 +1759,7 @@ static void hash_kat_test_hmac_run_self_test_sha256_mismatch_data (CuTest *test)
 
 static void hash_kat_test_hmac_run_self_test_sha256_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -1799,7 +1799,7 @@ static void hash_kat_test_hmac_run_self_test_sha256_calculate_fail (CuTest *test
 
 static void hash_kat_test_hmac_run_self_test_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -1843,7 +1843,7 @@ static void hash_kat_test_hmac_run_self_test_sha384_mismatch_data (CuTest *test)
 
 static void hash_kat_test_hmac_run_self_test_sha384_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -1884,7 +1884,7 @@ static void hash_kat_test_hmac_run_self_test_sha384_calculate_fail (CuTest *test
 
 static void hash_kat_test_hmac_run_self_test_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -1928,7 +1928,7 @@ static void hash_kat_test_hmac_run_self_test_sha512_mismatch_data (CuTest *test)
 
 static void hash_kat_test_hmac_run_self_test_sha512_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -1969,7 +1969,7 @@ static void hash_kat_test_hmac_run_self_test_sha512_calculate_fail (CuTest *test
 
 static void hash_kat_test_hmac_run_all_self_tests (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;
@@ -2030,7 +2030,7 @@ static void hash_kat_test_hmac_run_all_self_tests_mock (CuTest *test)
 
 static void hash_kat_test_hmac_run_all_self_tests_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE engine;
+	HASH_TESTING_ENGINE (engine);
 	int status;
 
 	TEST_START;

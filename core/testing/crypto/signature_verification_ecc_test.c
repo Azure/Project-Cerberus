@@ -23,7 +23,7 @@ TEST_SUITE_LABEL ("signature_verification_ecc");
 
 static void signature_verification_ecc_test_init_api (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -47,7 +47,7 @@ static void signature_verification_ecc_test_init_api (CuTest *test)
 
 static void signature_verification_ecc_test_init_api_null (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -71,7 +71,7 @@ static void signature_verification_ecc_test_init_api_null (CuTest *test)
 
 static void signature_verification_ecc_test_init (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -96,7 +96,7 @@ static void signature_verification_ecc_test_init (CuTest *test)
 
 static void signature_verification_ecc_test_init_private_key (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -121,7 +121,7 @@ static void signature_verification_ecc_test_init_private_key (CuTest *test)
 
 static void signature_verification_ecc_test_init_no_key (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -145,7 +145,7 @@ static void signature_verification_ecc_test_init_no_key (CuTest *test)
 
 static void signature_verification_ecc_test_init_null (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -175,7 +175,7 @@ static void signature_verification_ecc_test_init_null (CuTest *test)
 
 static void signature_verification_ecc_test_init_not_ecc_key (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -223,7 +223,7 @@ static void signature_verification_ecc_test_init_private_key_error (CuTest *test
 
 static void signature_verification_ecc_test_static_init (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification = signature_verification_ecc_static_init (&state,
 		&ecc.base);
@@ -249,7 +249,7 @@ static void signature_verification_ecc_test_static_init (CuTest *test)
 
 static void signature_verification_ecc_test_static_init_private_key (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification = signature_verification_ecc_static_init (&state,
 		&ecc.base);
@@ -275,7 +275,7 @@ static void signature_verification_ecc_test_static_init_private_key (CuTest *tes
 
 static void signature_verification_ecc_test_static_init_no_key (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification = signature_verification_ecc_static_init (&state,
 		&ecc.base);
@@ -300,7 +300,7 @@ static void signature_verification_ecc_test_static_init_no_key (CuTest *test)
 
 static void signature_verification_ecc_test_static_init_null (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification = signature_verification_ecc_static_init (&state,
 		&ecc.base);
@@ -334,7 +334,7 @@ static void signature_verification_ecc_test_static_init_null (CuTest *test)
 
 static void signature_verification_ecc_test_static_init_not_ecc_key (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification = signature_verification_ecc_static_init (&state,
 		&ecc.base);
@@ -391,7 +391,7 @@ static void signature_verification_ecc_test_release_null (CuTest *test)
 
 static void signature_verification_ecc_test_verify_signature (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -416,7 +416,7 @@ static void signature_verification_ecc_test_verify_signature (CuTest *test)
 
 static void signature_verification_ecc_test_verify_signature_private_key (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -441,7 +441,7 @@ static void signature_verification_ecc_test_verify_signature_private_key (CuTest
 
 static void signature_verification_ecc_test_verify_signature_bad_hash (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -466,7 +466,7 @@ static void signature_verification_ecc_test_verify_signature_bad_hash (CuTest *t
 
 static void signature_verification_ecc_test_verify_signature_bad_signature (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -491,7 +491,7 @@ static void signature_verification_ecc_test_verify_signature_bad_signature (CuTe
 
 static void signature_verification_ecc_test_verify_signature_static_init (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification = signature_verification_ecc_static_init (&state,
 		&ecc.base);
@@ -517,7 +517,7 @@ static void signature_verification_ecc_test_verify_signature_static_init (CuTest
 
 static void signature_verification_ecc_test_verify_signature_null (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -558,7 +558,7 @@ static void signature_verification_ecc_test_verify_signature_null (CuTest *test)
 
 static void signature_verification_ecc_test_verify_signature_no_key (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -582,7 +582,7 @@ static void signature_verification_ecc_test_verify_signature_no_key (CuTest *tes
 
 static void signature_verification_ecc_test_set_verification_key (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -614,7 +614,7 @@ static void signature_verification_ecc_test_set_verification_key (CuTest *test)
 
 static void signature_verification_ecc_test_set_verification_key_private_key (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -646,7 +646,7 @@ static void signature_verification_ecc_test_set_verification_key_private_key (Cu
 
 static void signature_verification_ecc_test_set_verification_key_clear_key (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -678,7 +678,7 @@ static void signature_verification_ecc_test_set_verification_key_clear_key (CuTe
 
 static void signature_verification_ecc_test_set_verification_key_clear_key_no_key (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -709,7 +709,7 @@ static void signature_verification_ecc_test_set_verification_key_clear_key_no_ke
 
 static void signature_verification_ecc_test_set_verification_key_change_key (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -742,7 +742,7 @@ static void signature_verification_ecc_test_set_verification_key_change_key (CuT
 
 static void signature_verification_ecc_test_set_verification_key_static_init (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification = signature_verification_ecc_static_init (&state,
 		&ecc.base);
@@ -775,7 +775,7 @@ static void signature_verification_ecc_test_set_verification_key_static_init (Cu
 
 static void signature_verification_ecc_test_set_verification_key_null (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -809,7 +809,7 @@ static void signature_verification_ecc_test_set_verification_key_null (CuTest *t
 
 static void signature_verification_ecc_test_set_verification_key_not_ecc_key (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -883,7 +883,7 @@ static void signature_verification_ecc_test_set_verification_key_private_key_err
 
 static void signature_verification_ecc_test_is_key_valid (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -915,7 +915,7 @@ static void signature_verification_ecc_test_is_key_valid (CuTest *test)
 
 static void signature_verification_ecc_test_is_key_valid_private_key (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -947,7 +947,7 @@ static void signature_verification_ecc_test_is_key_valid_private_key (CuTest *te
 
 static void signature_verification_ecc_test_is_key_valid_static_init (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification = signature_verification_ecc_static_init (&state,
 		&ecc.base);
@@ -980,7 +980,7 @@ static void signature_verification_ecc_test_is_key_valid_static_init (CuTest *te
 
 static void signature_verification_ecc_test_is_key_valid_null (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;
@@ -1017,7 +1017,7 @@ static void signature_verification_ecc_test_is_key_valid_null (CuTest *test)
 
 static void signature_verification_ecc_test_is_key_valid_not_ecc_key (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct signature_verification_ecc_state state;
 	struct signature_verification_ecc verification;
 	int status;

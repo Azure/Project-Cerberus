@@ -39,7 +39,7 @@ struct cmd_interface_ac_rot_testing {
 	struct attestation_responder_mock attestation;	/**< The attestation responder mock. */
 	struct keystore_mock keystore;					/**< RIoT keystore. */
 	struct x509_engine_mock x509_mock;				/**< The X.509 engine mock for the RIoT keys. */
-	X509_TESTING_ENGINE x509;						/**< X.509 engine for the RIoT keys. */
+	X509_TESTING_ENGINE (x509);						/**< X.509 engine for the RIoT keys. */
 	struct cmd_background_mock background;			/**< The background command interface mock. */
 	struct device_manager device_manager;			/**< Device manager. */
 	struct riot_key_manager_state riot_state;		/**< Context for the RIoT key manager. */

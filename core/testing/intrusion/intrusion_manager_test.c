@@ -47,7 +47,7 @@ const uint8_t INTRUSION_MANAGER_TESTING_UNKNOWN[] = {
 struct intrusion_manager_testing {
 	struct intrusion_state_mock state;	/**< Mock for intrusion state. */
 	struct pcr_store store;				/**< PCR manager for testing. */
-	HASH_TESTING_ENGINE hash;			/**< Hash engine for PCR testing. */
+	HASH_TESTING_ENGINE (hash);			/**< Hash engine for PCR testing. */
 	struct hash_engine_mock hash_mock;	/**< Mock for the hash engine. */
 	uint16_t pcr_id;					/**< The measurement ID used for testing. */
 	struct intrusion_manager test;		/**< Intrusion manager being tested. */

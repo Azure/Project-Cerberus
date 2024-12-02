@@ -218,7 +218,7 @@ const size_t PFM_PLATFORM_ID_LEN = sizeof (PFM_PLATFORM_ID) - 1;
  * Dependencies for testing PFMs.
  */
 struct pfm_flash_testing {
-	HASH_TESTING_ENGINE hash;							/**< Hashing engine for validation. */
+	HASH_TESTING_ENGINE (hash);							/**< Hashing engine for validation. */
 	struct signature_verification_mock verification;	/**< PFM signature verification. */
 	struct flash_master_mock flash_mock;				/**< Flash master for the PFM flash. */
 	struct spi_flash_state state;						/**< PFM flash context. */

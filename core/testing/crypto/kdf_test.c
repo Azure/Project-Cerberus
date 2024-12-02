@@ -462,7 +462,7 @@ int kdf_testing_expect_hkdf_expand (struct hash_engine_mock *hash, enum hash_typ
 
 static void kdf_test_nist800_108_counter_mode_sha1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t ko[sizeof (KDF_TESTING_NIST800_108_CTR_KO_SHA1)] = {0};
 	int status;
 
@@ -489,7 +489,7 @@ static void kdf_test_nist800_108_counter_mode_sha1 (CuTest *test)
 
 static void kdf_test_nist800_108_counter_mode_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t ko[sizeof (KDF_TESTING_NIST800_108_CTR_KO_SHA256)];
 	int status;
 
@@ -512,7 +512,7 @@ static void kdf_test_nist800_108_counter_mode_sha256 (CuTest *test)
 
 static void kdf_test_nist800_108_counter_mode_sha256_two_rounds (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t ko[sizeof (KDF_TESTING_NIST800_108_CTR_KO_SHA256_TWICE)] = {0};
 	int status;
 
@@ -535,7 +535,7 @@ static void kdf_test_nist800_108_counter_mode_sha256_two_rounds (CuTest *test)
 
 static void kdf_test_nist800_108_counter_mode_sha256_three_rounds (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t ko[sizeof (KDF_TESTING_NIST800_108_CTR_KO_SHA256_THRICE)] = {0};
 	int status;
 
@@ -559,7 +559,7 @@ static void kdf_test_nist800_108_counter_mode_sha256_three_rounds (CuTest *test)
 static void kdf_test_nist800_108_counter_mode_sha256_key_larger_than_hash_not_exact_multiple (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t ko[sizeof (KDF_TESTING_NIST800_108_CTR_KO_SHA256_NOT_EVEN_MULTIPLE)] = {0};
 	int status;
 
@@ -583,7 +583,7 @@ static void kdf_test_nist800_108_counter_mode_sha256_key_larger_than_hash_not_ex
 
 static void kdf_test_nist800_108_counter_mode_sha384_no_context (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t ko[sizeof (KDF_TESTING_NIST800_108_CTR_KO_SHA384_NO_CONTEXT)] = {0};
 	int status;
 
@@ -648,7 +648,7 @@ static void kdf_test_nist800_108_counter_mode_null (CuTest *test)
 
 static void kdf_test_nist800_108_counter_mode_unknown_hmac (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t ko[sizeof (KDF_TESTING_NIST800_108_CTR_KO_SHA1)] = {0};
 	int status;
 
@@ -910,7 +910,7 @@ static void kdf_test_nist800_108_counter_mode_finish_hmac_fail (CuTest *test)
 
 static void kdf_test_hkdf_expand_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t okm[sizeof (KDF_TESTING_HKDF_EXPAND_SHA256_OKM)] = {0};
 	int status;
 
@@ -931,7 +931,7 @@ static void kdf_test_hkdf_expand_sha256 (CuTest *test)
 
 static void kdf_test_hkdf_expand_sha256_longer_output (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t okm[sizeof (KDF_TESTING_HKDF_EXPAND_SHA256_OKM_LONGER_OUTPUT)] = {0};
 	int status;
 
@@ -954,7 +954,7 @@ static void kdf_test_hkdf_expand_sha256_longer_output (CuTest *test)
 
 static void kdf_test_hkdf_expand_sha256_shorter_output (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t okm[sizeof (KDF_TESTING_HKDF_EXPAND_SHA256_OKM_SHORTER_OUTPUT)] = {0};
 	int status;
 
@@ -977,7 +977,7 @@ static void kdf_test_hkdf_expand_sha256_shorter_output (CuTest *test)
 
 static void kdf_test_hkdf_expand_sha256_with_info (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t okm[sizeof (KDF_TESTING_HKDF_EXPAND_SHA256_OKM_WITH_INFO)] = {0};
 	int status;
 
@@ -1000,7 +1000,7 @@ static void kdf_test_hkdf_expand_sha256_with_info (CuTest *test)
 
 static void kdf_test_hkdf_expand_sha256_with_info_longer_output (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t okm[sizeof (KDF_TESTING_HKDF_EXPAND_SHA256_OKM_WITH_INFO_LONGER_OUTPUT)] = {0};
 	int status;
 
@@ -1023,7 +1023,7 @@ static void kdf_test_hkdf_expand_sha256_with_info_longer_output (CuTest *test)
 
 static void kdf_test_hkdf_expand_sha256_with_info_shorter_output (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t okm[sizeof (KDF_TESTING_HKDF_EXPAND_SHA256_OKM_WITH_INFO_SHORTER_OUTPUT)] = {0};
 	int status;
 
@@ -1046,7 +1046,7 @@ static void kdf_test_hkdf_expand_sha256_with_info_shorter_output (CuTest *test)
 
 static void kdf_test_hkdf_expand_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t okm[sizeof (KDF_TESTING_HKDF_EXPAND_SHA384_OKM)] = {0};
 	int status;
 
@@ -1072,7 +1072,7 @@ static void kdf_test_hkdf_expand_sha384 (CuTest *test)
 #ifdef HASH_ENABLE_SHA384
 static void kdf_test_hkdf_expand_sha384_longer_output (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t okm[sizeof (KDF_TESTING_HKDF_EXPAND_SHA384_OKM_LONGER_OUTPUT)] = {0};
 	int status;
 
@@ -1094,7 +1094,7 @@ static void kdf_test_hkdf_expand_sha384_longer_output (CuTest *test)
 
 static void kdf_test_hkdf_expand_sha384_shorter_output (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t okm[sizeof (KDF_TESTING_HKDF_EXPAND_SHA384_OKM_SHORTER_OUTPUT)] = {0};
 	int status;
 
@@ -1116,7 +1116,7 @@ static void kdf_test_hkdf_expand_sha384_shorter_output (CuTest *test)
 
 static void kdf_test_hkdf_expand_sha384_with_info (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t okm[sizeof (KDF_TESTING_HKDF_EXPAND_SHA384_OKM_WITH_INFO)] = {0};
 	int status;
 
@@ -1139,7 +1139,7 @@ static void kdf_test_hkdf_expand_sha384_with_info (CuTest *test)
 
 static void kdf_test_hkdf_expand_sha384_with_info_longer_output (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t okm[sizeof (KDF_TESTING_HKDF_EXPAND_SHA384_OKM_WITH_INFO_LONGER_OUTPUT)] = {0};
 	int status;
 
@@ -1162,7 +1162,7 @@ static void kdf_test_hkdf_expand_sha384_with_info_longer_output (CuTest *test)
 
 static void kdf_test_hkdf_expand_sha384_with_info_shorter_output (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t okm[sizeof (KDF_TESTING_HKDF_EXPAND_SHA384_OKM_WITH_INFO_SHORTER_OUTPUT)] = {0};
 	int status;
 
@@ -1213,7 +1213,7 @@ static void kdf_test_hkdf_expand_null (CuTest *test)
 
 static void kdf_test_hkdf_expand_unknown_hmac (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t okm[SHA256_HASH_LENGTH] = {0};
 	int status;
 
@@ -1231,7 +1231,7 @@ static void kdf_test_hkdf_expand_unknown_hmac (CuTest *test)
 
 static void kdf_test_hkdf_expand_prk_too_short (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t okm[SHA256_HASH_LENGTH] = {0};
 	int status;
 
@@ -1249,7 +1249,7 @@ static void kdf_test_hkdf_expand_prk_too_short (CuTest *test)
 
 static void kdf_test_hkdf_expand_okm_too_long (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	uint8_t okm[SHA256_HASH_LENGTH] = {0};
 	int status;
 

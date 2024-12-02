@@ -64,7 +64,7 @@ const uint8_t IMAGE_HEADER_TEST_SHA512[] = {
  * Dependencies for testing.
  */
 struct image_header_testing {
-	HASH_TESTING_ENGINE hash;			/**< Hash engine for testing. */
+	HASH_TESTING_ENGINE (hash);			/**< Hash engine for testing. */
 	struct hash_engine_mock hash_mock;	/**< Mock for hash operations. */
 	struct flash_mock flash;			/**< Mock for the updater flash device. */
 	struct image_header test;			/**< Image header for testing. */

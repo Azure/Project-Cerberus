@@ -26,8 +26,8 @@
  * Dependencies for testing.
  */
 struct host_processor_single_testing {
-	HASH_TESTING_ENGINE hash;								/**< Hash engine for API arguments. */
-	RSA_TESTING_ENGINE rsa;									/**< RSA engine for API arguments. */
+	HASH_TESTING_ENGINE (hash);								/**< Hash engine for API arguments. */
+	RSA_TESTING_ENGINE (rsa);								/**< RSA engine for API arguments. */
 	struct flash_master_mock flash_mock_state;				/**< Flash mock for host state information. */
 	struct spi_flash_state flash_context;					/**< Host state flash context. */
 	struct spi_flash flash_state;							/**< Host state flash. */

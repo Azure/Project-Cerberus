@@ -112,7 +112,7 @@ int x509_testing_corrupt_signature (uint8_t *der);
 	const uint8_t *exp_algo; \
 	size_t exp_algo_len; \
 	uint8_t tmp; \
-	HASH_TESTING_ENGINE hash_verify; \
+	HASH_TESTING_ENGINE (hash_verify); \
 	uint8_t actual_hash[SHA512_HASH_LENGTH]; \
 	uint8_t actual_header_len; \
 	int actual_total_len; \
@@ -175,7 +175,7 @@ int x509_testing_corrupt_signature (uint8_t *der);
  * Verify an ECC signature on the certificate.
  */
 #define	x509_testing_verify_signature_ecc(test, actual, key, hash_algo) do { \
-	ECC_TESTING_ENGINE ecc_verify; \
+	ECC_TESTING_ENGINE (ecc_verify); \
 	struct ecc_public_key key_verify; \
 	int hash_length; \
 	int exp_hash_length; \
@@ -211,7 +211,7 @@ int x509_testing_corrupt_signature (uint8_t *der);
  * Verify an RSA signature on the certificate.
  */
 #define	x509_testing_verify_signature_rsa(test, actual, hash_algo) do { \
-	RSA_TESTING_ENGINE rsa_verify; \
+	RSA_TESTING_ENGINE (rsa_verify); \
 	int hash_length; \
 	int exp_hash_length; \
     \

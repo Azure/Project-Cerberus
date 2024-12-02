@@ -29,8 +29,8 @@ TEST_SUITE_LABEL ("manifest_cmd_handler_pfm");
  * Dependencies for testing.
  */
 struct manifest_cmd_handler_pfm_testing {
-	HASH_TESTING_ENGINE hash;					/**< Hash engine for verification. */
-	RSA_TESTING_ENGINE rsa;						/**< RSA engine for verification. */
+	HASH_TESTING_ENGINE (hash);					/**< Hash engine for verification. */
+	RSA_TESTING_ENGINE (rsa);					/**< RSA engine for verification. */
 	struct manifest_manager_mock manifest;		/**< Mock for the manifest manager. */
 	struct logging_mock log;					/**< Mock for debug logging. */
 	struct event_task_mock task;				/**< Mock for the command task. */

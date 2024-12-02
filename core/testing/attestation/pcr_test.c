@@ -731,7 +731,7 @@ const uint8_t PCR_TESTING_SHA512_PCR_NONE_VALID_MEASUREMENT1[] = {
  * Dependencies for testing measurements and PCRs.
  */
 struct pcr_testing {
-	HASH_TESTING_ENGINE hash;				/**< Hash engine for testing measurements. */
+	HASH_TESTING_ENGINE (hash);				/**< Hash engine for testing measurements. */
 	struct hash_engine_mock hash_mock;		/**< Mock for hash operations. */
 	struct flash_mock flash;				/**< Mock for flash operations. */
 	struct pcr_bank test;					/**< PCR under test. */

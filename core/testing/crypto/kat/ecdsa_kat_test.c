@@ -66,8 +66,8 @@ int64_t ecdsa_kat_testing_check_expected_k (const struct mock_call *expected,
 
 static void ecdsa_kat_test_verify_kat_vectors_p256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct ecc_public_key pub_key;
 	uint8_t priv_raw[ECC_KEY_LENGTH_256];
 	struct ecc_point_public_key pub_raw;
@@ -156,8 +156,8 @@ static void ecdsa_kat_test_verify_kat_vectors_p256 (CuTest *test)
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 static void ecdsa_kat_test_verify_kat_vectors_p384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct ecc_public_key pub_key;
 	uint8_t priv_raw[ECC_KEY_LENGTH_384];
 	struct ecc_point_public_key pub_raw;
@@ -247,8 +247,8 @@ static void ecdsa_kat_test_verify_kat_vectors_p384 (CuTest *test)
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 static void ecdsa_kat_test_verify_kat_vectors_p521 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct ecc_public_key pub_key;
 	uint8_t priv_raw[ECC_KEY_LENGTH_521];
 	struct ecc_point_public_key pub_raw;
@@ -337,7 +337,7 @@ static void ecdsa_kat_test_verify_kat_vectors_p521 (CuTest *test)
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 	struct ecdsa_kat_testing_k k = {
@@ -376,7 +376,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256 (CuTest *test)
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256_mismatch_length (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 	struct ecdsa_kat_testing_k k = {
@@ -418,7 +418,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256_mismatch_length
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256_mismatch_r (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 	struct ecdsa_kat_testing_k k = {
@@ -460,7 +460,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256_mismatch_r (CuT
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256_mismatch_s (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 	struct ecdsa_kat_testing_k k = {
@@ -502,7 +502,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256_mismatch_s (CuT
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 
@@ -528,7 +528,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256_null (CuTest *t
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 
@@ -560,7 +560,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256_error (CuTest *
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 	struct ecdsa_kat_testing_k k = {
@@ -599,7 +599,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384 (CuTest *test)
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384_mismatch_length (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 	struct ecdsa_kat_testing_k k = {
@@ -641,7 +641,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384_mismatch_length
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384_mismatch_r (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 	struct ecdsa_kat_testing_k k = {
@@ -683,7 +683,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384_mismatch_r (CuT
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384_mismatch_s (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 	struct ecdsa_kat_testing_k k = {
@@ -725,7 +725,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384_mismatch_s (CuT
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 
@@ -751,7 +751,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384_null (CuTest *t
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 
@@ -784,7 +784,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384_error (CuTest *
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 	struct ecdsa_kat_testing_k k = {
@@ -823,7 +823,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512 (CuTest *test)
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512_mismatch_length (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 	struct ecdsa_kat_testing_k k = {
@@ -865,7 +865,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512_mismatch_length
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512_mismatch_r (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 	struct ecdsa_kat_testing_k k = {
@@ -907,7 +907,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512_mismatch_r (CuT
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512_mismatch_s (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 	struct ecdsa_kat_testing_k k = {
@@ -949,7 +949,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512_mismatch_s (CuT
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 
@@ -975,7 +975,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512_null (CuTest *t
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 
@@ -1007,7 +1007,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512_error (CuTest *
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 
@@ -1039,7 +1039,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256 (CuTest *test
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256_bad_signature (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 
@@ -1072,7 +1072,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256_bad_signature
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 
@@ -1098,7 +1098,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256_null (CuTest 
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 
@@ -1132,7 +1132,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256_error (CuTest
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 
@@ -1164,7 +1164,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384 (CuTest *test
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384_bad_signature (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 
@@ -1197,7 +1197,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384_bad_signature
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 
@@ -1223,7 +1223,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384_null (CuTest 
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 
@@ -1258,7 +1258,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384_error (CuTest
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 
@@ -1290,7 +1290,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512 (CuTest *test
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512_bad_signature (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 
@@ -1323,7 +1323,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512_bad_signature
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 
@@ -1349,7 +1349,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512_null (CuTest 
 
 static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
 

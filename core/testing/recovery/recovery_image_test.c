@@ -336,7 +336,7 @@ static int setup_expect_copy_to_host_flash (struct flash_master_mock *mock_dest,
  * @param verification The signature verification mock to initialize.
  */
 static void setup_recovery_image_mock_test (CuTest *test, struct flash_mock *flash,
-	struct pfm_mock *pfm, struct pfm_manager_mock *manager, HASH_TESTING_ENGINE *hash,
+	struct pfm_mock *pfm, struct pfm_manager_mock *manager, HASH_TESTING_ENGINE_PARAM (*hash),
 	struct signature_verification_mock *verification)
 {
 	int status;
@@ -369,7 +369,7 @@ static void setup_recovery_image_mock_test (CuTest *test, struct flash_mock *fla
  * @param recovery_image The recovery image instance to release.
  */
 static void complete_recovery_image_test (CuTest *test, struct flash_mock *flash,
-	struct pfm_mock *pfm, struct pfm_manager_mock *manager, HASH_TESTING_ENGINE *hash,
+	struct pfm_mock *pfm, struct pfm_manager_mock *manager, HASH_TESTING_ENGINE_PARAM (*hash),
 	struct signature_verification_mock *verification, struct recovery_image *recovery_image)
 {
 	int status;
@@ -461,8 +461,8 @@ static void recovery_image_test_release_no_init (CuTest *test)
 
 static void recovery_image_test_verify (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	struct pfm_manager_mock manager;
@@ -471,7 +471,8 @@ static void recovery_image_test_verify (CuTest *test)
 
 	TEST_START;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -534,14 +535,14 @@ static void recovery_image_test_verify (CuTest *test)
 		&manager.base);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_verify_with_multiple_recovery_sections (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	struct pfm_manager_mock manager;
@@ -550,7 +551,8 @@ static void recovery_image_test_verify_with_multiple_recovery_sections (CuTest *
 
 	TEST_START;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -631,14 +633,14 @@ static void recovery_image_test_verify_with_multiple_recovery_sections (CuTest *
 		&manager.base);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_verify_second_recovery_section_header_too_long (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	struct pfm_manager_mock manager;
@@ -651,7 +653,8 @@ static void recovery_image_test_verify_second_recovery_section_header_too_long (
 	memcpy (bad_image, RECOVERY_IMAGE_DATA2, RECOVERY_IMAGE_DATA_LEN);
 	*((uint16_t*) &bad_image[RECOVERY_IMAGE_DATA2_SECTION_2_OFFSET]) += 1;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -719,14 +722,14 @@ static void recovery_image_test_verify_second_recovery_section_header_too_long (
 		&manager.base);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_MALFORMED, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_verify_image_length_too_long (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
@@ -739,7 +742,8 @@ static void recovery_image_test_verify_image_length_too_long (CuTest *test)
 	memcpy (bad_image, RECOVERY_IMAGE_DATA, RECOVERY_IMAGE_DATA_LEN);
 	*((uint32_t*) &bad_image[IMAGE_HEADER_BASE_LEN + CERBERUS_PROTOCOL_FW_VERSION_LEN]) += 1;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -802,14 +806,14 @@ static void recovery_image_test_verify_image_length_too_long (CuTest *test)
 		&manager.base);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_MALFORMED, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_verify_image_length_too_short (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
@@ -822,7 +826,8 @@ static void recovery_image_test_verify_image_length_too_short (CuTest *test)
 	memcpy (bad_image, RECOVERY_IMAGE_DATA, RECOVERY_IMAGE_DATA_LEN);
 	*((uint32_t*) &bad_image[IMAGE_HEADER_BASE_LEN + CERBERUS_PROTOCOL_FW_VERSION_LEN]) -= 1;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -882,14 +887,14 @@ static void recovery_image_test_verify_image_length_too_short (CuTest *test)
 		&manager.base);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_MALFORMED, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_verify_section_image_length_too_long (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
@@ -904,7 +909,8 @@ static void recovery_image_test_verify_section_image_length_too_long (CuTest *te
 		4])	+=
 		1;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -964,14 +970,14 @@ static void recovery_image_test_verify_section_image_length_too_long (CuTest *te
 		&manager.base);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_MALFORMED, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_verify_section_image_length_too_short (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
@@ -986,7 +992,8 @@ static void recovery_image_test_verify_section_image_length_too_short (CuTest *t
 		4])	-=
 		1;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -1049,14 +1056,14 @@ static void recovery_image_test_verify_section_image_length_too_short (CuTest *t
 		&manager.base);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_MALFORMED, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_verify_bad_signature (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
@@ -1124,8 +1131,8 @@ static void recovery_image_test_verify_bad_signature (CuTest *test)
 
 static void recovery_image_test_verify_bad_signature_with_hash_out (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
@@ -1198,8 +1205,8 @@ static void recovery_image_test_verify_bad_signature_with_hash_out (CuTest *test
 
 static void recovery_image_test_verify_bad_hash (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	uint8_t bad_hash[RECOVERY_IMAGE_HASH_LEN];
@@ -1266,8 +1273,8 @@ static void recovery_image_test_verify_bad_hash (CuTest *test)
 
 static void recovery_image_test_verify_null (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	struct pfm_manager_mock manager;
@@ -1312,8 +1319,8 @@ static void recovery_image_test_verify_null (CuTest *test)
 
 static void recovery_image_test_verify_with_hash_out (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	uint8_t hash_out[SHA256_HASH_LENGTH];
@@ -1323,7 +1330,8 @@ static void recovery_image_test_verify_with_hash_out (CuTest *test)
 
 	TEST_START;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -1389,14 +1397,14 @@ static void recovery_image_test_verify_with_hash_out (CuTest *test)
 	status = testing_validate_array (RECOVERY_IMAGE_HASH, hash_out, RECOVERY_IMAGE_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_verify_small_hash_buffer (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	uint8_t hash_out[SHA256_HASH_LENGTH - 1];
@@ -1433,8 +1441,8 @@ static void recovery_image_test_verify_small_hash_buffer (CuTest *test)
 
 static void recovery_image_test_verify_signature_read_error (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	struct pfm_manager_mock manager;
@@ -1443,7 +1451,8 @@ static void recovery_image_test_verify_signature_read_error (CuTest *test)
 
 	TEST_START;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -1468,14 +1477,14 @@ static void recovery_image_test_verify_signature_read_error (CuTest *test)
 		&manager.base);
 	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_verify_no_active_pfm (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	struct pfm_manager_mock manager;
@@ -1484,7 +1493,8 @@ static void recovery_image_test_verify_no_active_pfm (CuTest *test)
 
 	TEST_START;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -1537,14 +1547,14 @@ static void recovery_image_test_verify_no_active_pfm (CuTest *test)
 		&manager.base);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_verify_platform_id_mismatch (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	struct pfm_manager_mock manager;
@@ -1554,7 +1564,8 @@ static void recovery_image_test_verify_platform_id_mismatch (CuTest *test)
 
 	TEST_START;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -1602,14 +1613,14 @@ static void recovery_image_test_verify_platform_id_mismatch (CuTest *test)
 		&manager.base);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_INCOMPATIBLE, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_verify_platform_id_error (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	struct pfm_manager_mock manager;
@@ -1618,7 +1629,8 @@ static void recovery_image_test_verify_platform_id_error (CuTest *test)
 
 	TEST_START;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -1662,14 +1674,14 @@ static void recovery_image_test_verify_platform_id_error (CuTest *test)
 		&manager.base);
 	CuAssertIntEquals (test, MANIFEST_GET_PLATFORM_ID_FAILED, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_verify_recovery_section_header_length_too_short (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
@@ -1682,7 +1694,8 @@ static void recovery_image_test_verify_recovery_section_header_length_too_short 
 	memcpy (bad_image, RECOVERY_IMAGE_DATA, RECOVERY_IMAGE_DATA_LEN);
 	*((uint16_t*) &bad_image[RECOVERY_IMAGE_HEADER_FORMAT_0_TOTAL_LEN]) -= 1;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -1735,14 +1748,14 @@ static void recovery_image_test_verify_recovery_section_header_length_too_short 
 		&manager.base);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_MALFORMED, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_verify_recovery_section_header_length_too_long (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
@@ -1755,7 +1768,8 @@ static void recovery_image_test_verify_recovery_section_header_length_too_long (
 	memcpy (bad_image, RECOVERY_IMAGE_DATA, RECOVERY_IMAGE_DATA_LEN);
 	*((uint16_t*) &bad_image[RECOVERY_IMAGE_HEADER_FORMAT_0_TOTAL_LEN]) += 1;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -1808,14 +1822,14 @@ static void recovery_image_test_verify_recovery_section_header_length_too_long (
 		&manager.base);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_MALFORMED, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_verify_no_recovery_section_image (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	struct pfm_manager_mock manager;
@@ -1832,7 +1846,8 @@ static void recovery_image_test_verify_no_recovery_section_image (CuTest *test)
 	*((uint32_t*) &bad_image[IMAGE_HEADER_BASE_LEN + CERBERUS_PROTOCOL_FW_VERSION_LEN]) =
 		RECOVERY_IMAGE_HEADER_FORMAT_0_TOTAL_LEN + RECOVERY_IMAGE_HEADER_SIGNATURE_LEN;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -1878,14 +1893,14 @@ static void recovery_image_test_verify_no_recovery_section_image (CuTest *test)
 		&manager.base);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_MALFORMED, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_verify_read_error (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	struct pfm_manager_mock manager;
@@ -1894,7 +1909,8 @@ static void recovery_image_test_verify_read_error (CuTest *test)
 
 	TEST_START;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -1924,14 +1940,14 @@ static void recovery_image_test_verify_read_error (CuTest *test)
 		&manager.base);
 	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_verify_read_error_with_hash_out (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	uint8_t hash_out[SHA256_HASH_LENGTH];
@@ -1942,7 +1958,8 @@ static void recovery_image_test_verify_read_error_with_hash_out (CuTest *test)
 
 	TEST_START;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -1978,14 +1995,14 @@ static void recovery_image_test_verify_read_error_with_hash_out (CuTest *test)
 	status = testing_validate_array (empty, hash_out, sizeof (empty));
 	CuAssertIntEquals (test, 0, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_verify_bad_magic_number (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	struct pfm_manager_mock manager;
@@ -1998,7 +2015,8 @@ static void recovery_image_test_verify_bad_magic_number (CuTest *test)
 	memcpy (bad_image, RECOVERY_IMAGE_DATA, IMAGE_HEADER_BASE_LEN);
 	bad_image[IMAGE_HEADER_BASE_LEN - 1] ^= 0x55;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -2013,14 +2031,14 @@ static void recovery_image_test_verify_bad_magic_number (CuTest *test)
 		&manager.base);
 	CuAssertIntEquals (test, IMAGE_HEADER_BAD_MARKER, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_verify_section_address_overlap (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	struct pfm_manager_mock manager;
@@ -2038,7 +2056,8 @@ static void recovery_image_test_verify_section_address_overlap (CuTest *test)
 	*((uint32_t*) &bad_image[RECOVERY_IMAGE_DATA2_SECTION_2_OFFSET + IMAGE_HEADER_BASE_LEN]) =
 		bad_addr;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -2116,14 +2135,14 @@ static void recovery_image_test_verify_section_address_overlap (CuTest *test)
 		&manager.base);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_INVALID_SECTION_ADDRESS, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_verify_bad_recovery_image_header (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
-	HASH_TESTING_ENGINE hash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
 	struct pfm_manager_mock manager;
@@ -2136,7 +2155,8 @@ static void recovery_image_test_verify_bad_recovery_image_header (CuTest *test)
 	memcpy (bad_header, RECOVERY_IMAGE_HEADER_FORMAT_0, RECOVERY_IMAGE_HEADER_FORMAT_0_TOTAL_LEN);
 	bad_header[IMAGE_HEADER_BASE_LEN] = '\0';
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -2157,13 +2177,13 @@ static void recovery_image_test_verify_bad_recovery_image_header (CuTest *test)
 		&manager.base);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_HEADER_BAD_VERSION_ID, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_get_hash (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct recovery_image recovery_image;
 	uint8_t hash_out[SHA256_HASH_LENGTH];
@@ -2209,7 +2229,7 @@ static void recovery_image_test_get_hash (CuTest *test)
 
 static void recovery_image_test_get_hash_after_verify (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
@@ -2220,7 +2240,8 @@ static void recovery_image_test_get_hash_after_verify (CuTest *test)
 
 	TEST_START;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -2289,13 +2310,13 @@ static void recovery_image_test_get_hash_after_verify (CuTest *test)
 	status = testing_validate_array (RECOVERY_IMAGE_HASH, hash_out, RECOVERY_IMAGE_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_get_hash_after_verify_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
@@ -2306,7 +2327,8 @@ static void recovery_image_test_get_hash_after_verify_error (CuTest *test)
 
 	TEST_START;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -2428,13 +2450,13 @@ static void recovery_image_test_get_hash_after_verify_error (CuTest *test)
 	status = testing_validate_array (RECOVERY_IMAGE_HASH, hash_out, RECOVERY_IMAGE_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_get_hash_after_verify_bad_signature (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
@@ -2449,7 +2471,8 @@ static void recovery_image_test_get_hash_after_verify_bad_signature (CuTest *tes
 	memcpy (bad_image, RECOVERY_IMAGE_DATA, RECOVERY_IMAGE_DATA_LEN);
 	bad_image[RECOVERY_IMAGE_SIGNATURE_OFFSET] ^= 0x55;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -2510,7 +2533,7 @@ static void recovery_image_test_get_hash_after_verify_bad_signature (CuTest *tes
 
 static void recovery_image_test_get_hash_after_verify_sig_read_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct signature_verification_mock verification;
 	struct recovery_image recovery_image;
@@ -2521,7 +2544,8 @@ static void recovery_image_test_get_hash_after_verify_sig_read_error (CuTest *te
 
 	TEST_START;
 
-	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification);
 
 	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
@@ -2637,13 +2661,13 @@ static void recovery_image_test_get_hash_after_verify_sig_read_error (CuTest *te
 	status = testing_validate_array (RECOVERY_IMAGE_HASH, hash_out, RECOVERY_IMAGE_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
-		&recovery_image);
+	complete_recovery_image_test (test, &flash, &pfm, &manager, HASH_TESTING_ENGINE_ARG (&hash),
+		&verification, &recovery_image);
 }
 
 static void recovery_image_test_get_hash_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct recovery_image recovery_image;
 	uint8_t hash_out[SHA256_HASH_LENGTH];
@@ -2678,7 +2702,7 @@ static void recovery_image_test_get_hash_null (CuTest *test)
 
 static void recovery_image_test_get_hash_small_hash_buffer (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct recovery_image recovery_image;
 	uint8_t hash_out[SHA256_HASH_LENGTH - 1];
@@ -2707,7 +2731,7 @@ static void recovery_image_test_get_hash_small_hash_buffer (CuTest *test)
 
 static void recovery_image_test_get_hash_read_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct recovery_image recovery_image;
 	uint8_t hash_out[SHA256_HASH_LENGTH];
@@ -2750,7 +2774,7 @@ static void recovery_image_test_get_hash_read_error (CuTest *test)
 
 static void recovery_image_test_get_hash_bad_magic_number (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct recovery_image recovery_image;
 	uint8_t hash_out[SHA256_HASH_LENGTH];

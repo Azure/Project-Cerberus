@@ -15,7 +15,7 @@
 TEST_SUITE_LABEL ("spdm_transcript_manager");
 
 
-#define HASH_ENGINE_COUNT 	SPDM_TRANSCRIPT_MANAGER_HASH_ENGINE_REQUIRED_COUNT + \
+#define HASH_ENGINE_COUNT	SPDM_TRANSCRIPT_MANAGER_HASH_ENGINE_REQUIRED_COUNT + \
 	(SPDM_MAX_SESSION_COUNT * SPDM_TRANSCRIPT_MANAGER_SESSION_HASH_ENGINE_REQUIRED_COUNT)
 
 #define SESSION_0_L1L2_HASH_CONTEXT_INDEX	2
@@ -25,12 +25,12 @@ TEST_SUITE_LABEL ("spdm_transcript_manager");
  * Dependencies for testing.
  */
 struct spdm_transcript_manager_testing {
-	struct spdm_transcript_manager transcript_manager;				/**< The transcript manager being tested. */
-	struct spdm_transcript_manager_state state;						/**< The transcript manager state. */
-	struct hash_engine_mock hash_engine_mock[HASH_ENGINE_COUNT];	/**< Mock hash engines. */
-	HASH_TESTING_ENGINE hash_engine_real[HASH_ENGINE_COUNT];		/**< Real hash engines. */
-	struct hash_engine *hash_engine[HASH_ENGINE_COUNT];				/**< Hash engines. */
-	bool use_mock;													/**< Use mocks object. */
+	struct spdm_transcript_manager transcript_manager;					/**< The transcript manager being tested. */
+	struct spdm_transcript_manager_state state;							/**< The transcript manager state. */
+	struct hash_engine_mock hash_engine_mock[HASH_ENGINE_COUNT];		/**< Mock hash engines. */
+	HASH_TESTING_ENGINE_ARRAY (hash_engine_real, HASH_ENGINE_COUNT);	/**< Real hash engines. */
+	struct hash_engine *hash_engine[HASH_ENGINE_COUNT];					/**< Hash engines. */
+	bool use_mock;														/**< Use mocks object. */
 };
 
 
@@ -53,7 +53,7 @@ static void spdm_transcript_manager_testing_init_dependencies (CuTest *test,
 			testing->hash_engine[idx] = &testing->hash_engine_mock[idx].base;
 		}
 		else {
-			status = HASH_TESTING_ENGINE_INIT (&testing->hash_engine_real[idx]);
+			status = HASH_TESTING_ENGINE_INIT_ARRAY (&testing->hash_engine_real, idx);
 			testing->hash_engine[idx] = &testing->hash_engine_real[idx].base;
 		}
 

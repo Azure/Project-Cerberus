@@ -33,7 +33,7 @@ TEST_SUITE_LABEL ("cmd_background_handler");
  * Dependencies for testing.
  */
 struct cmd_background_handler_testing {
-	HASH_TESTING_ENGINE hash;						/**< Hash engine for attestation. */
+	HASH_TESTING_ENGINE (hash);						/**< Hash engine for attestation. */
 	struct config_reset_testing_keys keys;			/**< RIoT and aux keys. */
 	struct authorized_execution_mock execution;		/**< Mock for an operation execution context. */
 	struct attestation_responder_mock attestation;	/**< Mock for attestation requests. */

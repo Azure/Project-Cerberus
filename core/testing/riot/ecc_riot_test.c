@@ -31,9 +31,9 @@ TEST_SUITE_LABEL ("ecc_riot");
 
 static void ecc_riot_test_init (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -62,9 +62,9 @@ static void ecc_riot_test_init (CuTest *test)
 
 static void ecc_riot_test_init_null (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	int status;
 	struct ecc_engine_riot engine;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -90,10 +90,10 @@ static void ecc_riot_test_release_null (CuTest *test)
 
 static void ecc_riot_test_public_key_init_key_pair_and_verify (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_public_key pub_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -122,10 +122,10 @@ static void ecc_riot_test_public_key_init_key_pair_and_verify (CuTest *test)
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 static void ecc_riot_test_public_key_init_key_pair_and_verify_p384 (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_public_key pub_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -143,10 +143,10 @@ static void ecc_riot_test_public_key_init_key_pair_and_verify_p384 (CuTest *test
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 static void ecc_riot_test_public_key_init_key_pair_and_verify_p521 (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_public_key pub_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -163,10 +163,10 @@ static void ecc_riot_test_public_key_init_key_pair_and_verify_p521 (CuTest *test
 
 static void ecc_riot_test_public_key_init_key_pair_and_verify_bad_sig (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_public_key pub_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -192,11 +192,11 @@ static void ecc_riot_test_public_key_init_key_pair_and_verify_bad_sig (CuTest *t
 
 static void ecc_riot_test_private_key_init_key_pair_and_sign (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	int status;
 	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -224,11 +224,11 @@ static void ecc_riot_test_private_key_init_key_pair_and_sign (CuTest *test)
 
 static void ecc_riot_test_public_key_init_key_pair_and_sign (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_public_key pub_key;
 	int status;
 	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -256,13 +256,13 @@ static void ecc_riot_test_public_key_init_key_pair_and_sign (CuTest *test)
 
 static void ecc_riot_test_init_key_pair_and_sign_and_verify (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
 	int out_len;
 	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -295,13 +295,13 @@ static void ecc_riot_test_init_key_pair_and_sign_and_verify (CuTest *test)
 
 static void ecc_riot_test_init_key_pair_and_sign_and_verify_no_pubkey (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
 	int out_len;
 	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -335,11 +335,11 @@ static void ecc_riot_test_init_key_pair_and_sign_and_verify_no_pubkey (CuTest *t
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 static void ecc_riot_test_init_key_pair_and_sign_and_verify_p384 (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -357,11 +357,11 @@ static void ecc_riot_test_init_key_pair_and_sign_and_verify_p384 (CuTest *test)
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 static void ecc_riot_test_init_key_pair_and_sign_and_verify_p521 (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -378,12 +378,12 @@ static void ecc_riot_test_init_key_pair_and_sign_and_verify_p521 (CuTest *test)
 
 static void ecc_riot_test_init_key_pair_and_sign_with_public_key (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
 	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -413,9 +413,9 @@ static void ecc_riot_test_init_key_pair_and_sign_with_public_key (CuTest *test)
 
 static void ecc_riot_test_init_key_pair_no_keys (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -435,11 +435,11 @@ static void ecc_riot_test_init_key_pair_no_keys (CuTest *test)
 
 static void ecc_riot_test_init_key_pair_null (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -466,10 +466,10 @@ static void ecc_riot_test_init_key_pair_null (CuTest *test)
 
 static void ecc_riot_test_init_key_pair_with_public_key (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_public_key pub_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -490,10 +490,10 @@ static void ecc_riot_test_init_key_pair_with_public_key (CuTest *test)
 
 static void ecc_riot_test_init_key_pair_with_rsa_key (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_public_key pub_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -514,10 +514,10 @@ static void ecc_riot_test_init_key_pair_with_rsa_key (CuTest *test)
 
 static void ecc_riot_test_public_key_generate_derived_key_pair_and_verify (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_public_key pub_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -544,10 +544,10 @@ static void ecc_riot_test_public_key_generate_derived_key_pair_and_verify (CuTes
 
 static void ecc_riot_test_public_key_generate_derived_key_pair_and_verify_p384 (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_public_key pub_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -563,10 +563,10 @@ static void ecc_riot_test_public_key_generate_derived_key_pair_and_verify_p384 (
 
 static void ecc_riot_test_public_key_generate_derived_key_pair_and_verify_p521 (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_public_key pub_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -582,10 +582,10 @@ static void ecc_riot_test_public_key_generate_derived_key_pair_and_verify_p521 (
 
 static void ecc_riot_test_public_key_generate_derived_key_pair_and_verify_bad_sig (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_public_key pub_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -611,11 +611,11 @@ static void ecc_riot_test_public_key_generate_derived_key_pair_and_verify_bad_si
 
 static void ecc_riot_test_private_key_generate_derived_key_pair_and_sign (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	int status;
 	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -642,11 +642,11 @@ static void ecc_riot_test_private_key_generate_derived_key_pair_and_sign (CuTest
 
 static void ecc_riot_test_public_key_generate_derived_key_pair_and_sign (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_public_key pub_key;
 	int status;
 	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -673,13 +673,13 @@ static void ecc_riot_test_public_key_generate_derived_key_pair_and_sign (CuTest 
 
 static void ecc_riot_test_generate_derived_key_pair_and_sign_and_verify (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
 	int out_len;
 	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -710,11 +710,11 @@ static void ecc_riot_test_generate_derived_key_pair_and_sign_and_verify (CuTest 
 
 static void ecc_riot_test_generate_derived_key_pair_and_sign_and_verify_p384 (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -730,11 +730,11 @@ static void ecc_riot_test_generate_derived_key_pair_and_sign_and_verify_p384 (Cu
 
 static void ecc_riot_test_generate_derived_key_pair_and_sign_and_verify_p521 (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -750,12 +750,12 @@ static void ecc_riot_test_generate_derived_key_pair_and_sign_and_verify_p521 (Cu
 
 static void ecc_riot_test_generate_derived_key_pair_and_sign_with_public_key (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
 	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -783,9 +783,9 @@ static void ecc_riot_test_generate_derived_key_pair_and_sign_with_public_key (Cu
 
 static void ecc_riot_test_generate_derived_key_pair_no_keys (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -805,11 +805,11 @@ static void ecc_riot_test_generate_derived_key_pair_no_keys (CuTest *test)
 
 static void ecc_riot_test_generate_derived_key_pair_null (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -837,11 +837,11 @@ static void ecc_riot_test_generate_derived_key_pair_null (CuTest *test)
 
 static void ecc_riot_test_generate_derived_key_pair_unsupported_key_length (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -857,12 +857,12 @@ static void ecc_riot_test_generate_derived_key_pair_unsupported_key_length (CuTe
 
 static void ecc_riot_test_sign_null (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
 	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -900,12 +900,12 @@ static void ecc_riot_test_sign_null (CuTest *test)
 
 static void ecc_riot_test_sign_small_buffer (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
 	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -931,12 +931,12 @@ static void ecc_riot_test_sign_small_buffer (CuTest *test)
 
 static void ecc_riot_test_sign_unsupported_hash (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
 	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -962,11 +962,11 @@ static void ecc_riot_test_sign_unsupported_hash (CuTest *test)
 
 static void ecc_riot_test_verify_null (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -1012,11 +1012,11 @@ static void ecc_riot_test_verify_null (CuTest *test)
 
 static void ecc_riot_test_verify_corrupt_signature (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_public_key pub_key;
 	int status;
 	uint8_t bad_sig[ECC_SIG_TEST_LEN];
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -1047,10 +1047,10 @@ static void ecc_riot_test_verify_corrupt_signature (CuTest *test)
 
 static void ecc_riot_test_get_signature_max_length (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -1075,10 +1075,10 @@ static void ecc_riot_test_get_signature_max_length (CuTest *test)
 
 static void ecc_riot_test_get_signature_max_length_derived_key (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -1103,10 +1103,10 @@ static void ecc_riot_test_get_signature_max_length_derived_key (CuTest *test)
 
 static void ecc_riot_test_get_signature_max_length_null (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	int status;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -1134,12 +1134,12 @@ static void ecc_riot_test_get_signature_max_length_null (CuTest *test)
 
 static void ecc_riot_test_get_private_key_der_derived_key_pair (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -1170,12 +1170,12 @@ static void ecc_riot_test_get_private_key_der_derived_key_pair (CuTest *test)
 
 static void ecc_riot_test_get_private_key_der_null (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	int status;
 	uint8_t *der;
 	size_t length;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -1215,12 +1215,12 @@ static void ecc_riot_test_get_private_key_der_null (CuTest *test)
 
 static void ecc_riot_test_get_private_key_der_derived_public_key_from_private (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_public_key pub_key;
 	int status;
 	uint8_t *der = (uint8_t*) &status;
 	size_t length;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -1247,12 +1247,12 @@ static void ecc_riot_test_get_private_key_der_derived_public_key_from_private (C
 
 static void ecc_riot_test_get_public_key_der_derived_key_pair (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_public_key pub_key;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -1283,12 +1283,12 @@ static void ecc_riot_test_get_public_key_der_derived_key_pair (CuTest *test)
 
 static void ecc_riot_test_get_public_key_der_null (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_public_key pub_key;
 	int status;
 	uint8_t *der;
 	size_t length;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 
@@ -1328,12 +1328,12 @@ static void ecc_riot_test_get_public_key_der_null (CuTest *test)
 
 static void ecc_riot_test_get_public_key_der_private_key (CuTest *test)
 {
+	RNG_TESTING_ENGINE (rng);
 	struct ecc_engine_riot engine;
 	struct ecc_private_key priv_key;
 	int status;
 	uint8_t *der = (uint8_t*) &status;
 	size_t length;
-	RNG_TESTING_ENGINE rng;
 
 	TEST_START;
 

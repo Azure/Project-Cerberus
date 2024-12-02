@@ -29,7 +29,7 @@ TEST_SUITE_LABEL ("firmware_update_handler_no_revocation");
  * Dependencies for testing.
  */
 struct firmware_update_handler_no_revocation_testing {
-	HASH_TESTING_ENGINE hash;							/**< Hash engine for API arguments. */
+	HASH_TESTING_ENGINE (hash);							/**< Hash engine for API arguments. */
 	struct firmware_image_mock fw;						/**< Mock for the FW image updater.handler. */
 	struct app_context_mock app;						/**< Mock for the application context. */
 	struct key_manifest_mock manifest;					/**< Mock for the key updater.manifest. */

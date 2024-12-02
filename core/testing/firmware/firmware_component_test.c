@@ -2401,7 +2401,7 @@ static void firmware_component_test_get_hash_type_null (CuTest *test)
 
 static void firmware_component_test_get_hash (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	int status;
@@ -2466,7 +2466,7 @@ static void firmware_component_test_get_hash (CuTest *test)
 
 static void firmware_component_test_get_hash_no_type_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	int status;
@@ -2529,7 +2529,7 @@ static void firmware_component_test_get_hash_no_type_out (CuTest *test)
 
 static void firmware_component_test_get_hash_header_format1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	int status;
@@ -2588,7 +2588,7 @@ static void firmware_component_test_get_hash_header_format1 (CuTest *test)
 
 static void firmware_component_test_get_hash_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	int status;
@@ -2655,7 +2655,7 @@ static void firmware_component_test_get_hash_sha384 (CuTest *test)
 
 static void firmware_component_test_get_hash_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	int status;
@@ -2722,7 +2722,7 @@ static void firmware_component_test_get_hash_sha512 (CuTest *test)
 
 static void firmware_component_test_get_hash_with_header (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	int status;
@@ -2794,7 +2794,7 @@ static void firmware_component_test_get_hash_with_header (CuTest *test)
 
 static void firmware_component_test_get_hash_with_header_zero_length (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	int status;
@@ -2860,7 +2860,7 @@ static void firmware_component_test_get_hash_with_header_zero_length (CuTest *te
 
 static void firmware_component_test_get_hash_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	int status;
@@ -2915,7 +2915,7 @@ static void firmware_component_test_get_hash_null (CuTest *test)
 
 static void firmware_component_test_get_hash_unknown_hash (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	int status;
@@ -2966,7 +2966,7 @@ static void firmware_component_test_get_hash_unknown_hash (CuTest *test)
 
 static void firmware_component_test_get_hash_small_buffer (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	int status;
@@ -3013,7 +3013,7 @@ static void firmware_component_test_get_hash_small_buffer (CuTest *test)
 
 static void firmware_component_test_get_hash_small_buffer_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	int status;
@@ -3061,7 +3061,7 @@ static void firmware_component_test_get_hash_small_buffer_sha384 (CuTest *test)
 
 static void firmware_component_test_get_hash_small_buffer_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	int status;
@@ -3109,7 +3109,7 @@ static void firmware_component_test_get_hash_small_buffer_sha512 (CuTest *test)
 
 static void firmware_component_test_get_hash_read_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	int status;
@@ -3161,7 +3161,7 @@ static void firmware_component_test_get_hash_read_error (CuTest *test)
 
 static void firmware_component_test_verification (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -3239,7 +3239,7 @@ static void firmware_component_test_verification (CuTest *test)
 
 static void firmware_component_test_verification_with_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -3321,7 +3321,7 @@ static void firmware_component_test_verification_with_hash_out (CuTest *test)
 
 static void firmware_component_test_verification_with_hash_type_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -3401,7 +3401,7 @@ static void firmware_component_test_verification_with_hash_type_out (CuTest *tes
 
 static void firmware_component_test_verification_header_format1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -3479,7 +3479,7 @@ static void firmware_component_test_verification_header_format1 (CuTest *test)
 
 static void firmware_component_test_verification_header_format1_with_expected_version (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -3557,7 +3557,7 @@ static void firmware_component_test_verification_header_format1_with_expected_ve
 
 static void firmware_component_test_verification_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -3643,7 +3643,7 @@ static void firmware_component_test_verification_sha384 (CuTest *test)
 
 static void firmware_component_test_verification_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -3729,7 +3729,7 @@ static void firmware_component_test_verification_sha512 (CuTest *test)
 
 static void firmware_component_test_verification_with_header (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -3814,7 +3814,7 @@ static void firmware_component_test_verification_with_header (CuTest *test)
 
 static void firmware_component_test_verification_with_header_zero_length (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -3893,7 +3893,7 @@ static void firmware_component_test_verification_with_header_zero_length (CuTest
 
 static void firmware_component_test_verification_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -3953,7 +3953,7 @@ static void firmware_component_test_verification_null (CuTest *test)
 
 static void firmware_component_test_verification_unknown_hash (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -4009,7 +4009,7 @@ static void firmware_component_test_verification_unknown_hash (CuTest *test)
 
 static void firmware_component_test_verification_small_hash_buffer (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -4062,7 +4062,7 @@ static void firmware_component_test_verification_small_hash_buffer (CuTest *test
 
 static void firmware_component_test_verification_small_hash_buffer_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -4116,7 +4116,7 @@ static void firmware_component_test_verification_small_hash_buffer_sha384 (CuTes
 
 static void firmware_component_test_verification_small_hash_buffer_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -4170,7 +4170,7 @@ static void firmware_component_test_verification_small_hash_buffer_sha512 (CuTes
 
 static void firmware_component_test_verification_read_signature_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -4228,7 +4228,7 @@ static void firmware_component_test_verification_read_signature_error (CuTest *t
 
 static void firmware_component_test_verification_read_data_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -4291,7 +4291,7 @@ static void firmware_component_test_verification_read_data_error (CuTest *test)
 
 static void firmware_component_test_verification_verify_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -4370,7 +4370,7 @@ static void firmware_component_test_verification_verify_error (CuTest *test)
 
 static void firmware_component_test_verification_header_format0_with_expected_version (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -4423,7 +4423,7 @@ static void firmware_component_test_verification_header_format0_with_expected_ve
 static void firmware_component_test_verification_header_format1_with_unexpected_version (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -5218,7 +5218,7 @@ static void firmware_component_test_get_data_addr_null (CuTest *test)
 
 static void firmware_component_test_load_and_verify (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -5301,7 +5301,7 @@ static void firmware_component_test_load_and_verify (CuTest *test)
 
 static void firmware_component_test_load_and_verify_no_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -5380,7 +5380,7 @@ static void firmware_component_test_load_and_verify_no_hash_out (CuTest *test)
 
 static void firmware_component_test_load_and_verify_no_hash_type_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -5461,7 +5461,7 @@ static void firmware_component_test_load_and_verify_no_hash_type_out (CuTest *te
 
 static void firmware_component_test_load_and_verify_no_length_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -5542,7 +5542,7 @@ static void firmware_component_test_load_and_verify_no_length_out (CuTest *test)
 
 static void firmware_component_test_load_and_verify_header_format1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -5628,7 +5628,7 @@ static void firmware_component_test_load_and_verify_header_format1 (CuTest *test
 static void firmware_component_test_load_and_verify_header_format1_no_expected_version (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -5712,7 +5712,7 @@ static void firmware_component_test_load_and_verify_header_format1_no_expected_v
 
 static void firmware_component_test_load_and_verify_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -5798,7 +5798,7 @@ static void firmware_component_test_load_and_verify_sha384 (CuTest *test)
 
 static void firmware_component_test_load_and_verify_sha384_no_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -5879,7 +5879,7 @@ static void firmware_component_test_load_and_verify_sha384_no_hash_out (CuTest *
 
 static void firmware_component_test_load_and_verify_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -5965,7 +5965,7 @@ static void firmware_component_test_load_and_verify_sha512 (CuTest *test)
 
 static void firmware_component_test_load_and_verify_sha512_no_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -6046,7 +6046,7 @@ static void firmware_component_test_load_and_verify_sha512_no_hash_out (CuTest *
 
 static void firmware_component_test_load_and_verify_extra_header (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -6141,7 +6141,7 @@ static void firmware_component_test_load_and_verify_extra_header (CuTest *test)
 
 static void firmware_component_test_load_and_verify_extra_header_zero_length (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -6225,7 +6225,7 @@ static void firmware_component_test_load_and_verify_extra_header_zero_length (Cu
 
 static void firmware_component_test_load_and_verify_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -6293,7 +6293,7 @@ static void firmware_component_test_load_and_verify_null (CuTest *test)
 
 static void firmware_component_test_load_and_verify_unknown_hash (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -6353,7 +6353,7 @@ static void firmware_component_test_load_and_verify_unknown_hash (CuTest *test)
 
 static void firmware_component_test_load_and_verify_small_hash_buffer (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -6413,7 +6413,7 @@ static void firmware_component_test_load_and_verify_small_hash_buffer (CuTest *t
 
 static void firmware_component_test_load_and_verify_small_hash_buffer_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -6474,7 +6474,7 @@ static void firmware_component_test_load_and_verify_small_hash_buffer_sha384 (Cu
 
 static void firmware_component_test_load_and_verify_small_hash_buffer_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -6535,7 +6535,7 @@ static void firmware_component_test_load_and_verify_small_hash_buffer_sha512 (Cu
 
 static void firmware_component_test_load_and_verify_read_signature_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -6597,7 +6597,7 @@ static void firmware_component_test_load_and_verify_read_signature_error (CuTest
 
 static void firmware_component_test_load_and_verify_verify_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -7402,7 +7402,7 @@ static void firmware_component_test_load_and_verify_extra_header_hash_error (CuT
 static void firmware_component_test_load_and_verify_header_format0_with_expected_version (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -7456,7 +7456,7 @@ static void firmware_component_test_load_and_verify_header_format0_with_expected
 static void firmware_component_test_load_and_verify_header_format1_with_unexpected_version (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -7510,7 +7510,7 @@ static void firmware_component_test_load_and_verify_header_format1_with_unexpect
 
 static void firmware_component_test_load_and_verify_with_header (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -7601,7 +7601,7 @@ static void firmware_component_test_load_and_verify_with_header (CuTest *test)
 
 static void firmware_component_test_load_and_verify_with_header_no_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -7686,7 +7686,7 @@ static void firmware_component_test_load_and_verify_with_header_no_hash_out (CuT
 
 static void firmware_component_test_load_and_verify_with_header_no_hash_type_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -7775,7 +7775,7 @@ static void firmware_component_test_load_and_verify_with_header_no_hash_type_out
 
 static void firmware_component_test_load_and_verify_with_header_no_length_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -7864,7 +7864,7 @@ static void firmware_component_test_load_and_verify_with_header_no_length_out (C
 
 static void firmware_component_test_load_and_verify_with_header_header_format1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -7957,7 +7957,7 @@ static void firmware_component_test_load_and_verify_with_header_header_format1 (
 static void firmware_component_test_load_and_verify_with_header_header_format1_no_expected_version (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -8049,7 +8049,7 @@ static void firmware_component_test_load_and_verify_with_header_header_format1_n
 
 static void firmware_component_test_load_and_verify_with_header_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -8142,7 +8142,7 @@ static void firmware_component_test_load_and_verify_with_header_sha384 (CuTest *
 
 static void firmware_component_test_load_and_verify_with_header_sha384_no_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -8230,7 +8230,7 @@ static void firmware_component_test_load_and_verify_with_header_sha384_no_hash_o
 
 static void firmware_component_test_load_and_verify_with_header_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -8323,7 +8323,7 @@ static void firmware_component_test_load_and_verify_with_header_sha512 (CuTest *
 
 static void firmware_component_test_load_and_verify_with_header_sha512_no_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -8411,7 +8411,7 @@ static void firmware_component_test_load_and_verify_with_header_sha512_no_hash_o
 
 static void firmware_component_test_load_and_verify_with_header_read_from_flash (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -8508,7 +8508,7 @@ static void firmware_component_test_load_and_verify_with_header_read_from_flash 
 static void firmware_component_test_load_and_verify_with_header_zero_length_read_from_flash (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -8593,7 +8593,7 @@ static void firmware_component_test_load_and_verify_with_header_zero_length_read
 
 static void firmware_component_test_load_and_verify_with_header_no_flash_header (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -8683,7 +8683,7 @@ static void firmware_component_test_load_and_verify_with_header_no_flash_header 
 
 static void firmware_component_test_load_and_verify_with_header_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -8761,7 +8761,7 @@ static void firmware_component_test_load_and_verify_with_header_null (CuTest *te
 
 static void firmware_component_test_load_and_verify_with_header_unknown_hash (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -8828,7 +8828,7 @@ static void firmware_component_test_load_and_verify_with_header_unknown_hash (Cu
 
 static void firmware_component_test_load_and_verify_with_header_small_hash_buffer (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -8896,7 +8896,7 @@ static void firmware_component_test_load_and_verify_with_header_small_hash_buffe
 static void firmware_component_test_load_and_verify_with_header_small_hash_buffer_sha384 (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -8965,7 +8965,7 @@ static void firmware_component_test_load_and_verify_with_header_small_hash_buffe
 static void firmware_component_test_load_and_verify_with_header_small_hash_buffer_sha512 (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -9033,7 +9033,7 @@ static void firmware_component_test_load_and_verify_with_header_small_hash_buffe
 
 static void firmware_component_test_load_and_verify_with_header_read_signature_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -9102,7 +9102,7 @@ static void firmware_component_test_load_and_verify_with_header_read_signature_e
 
 static void firmware_component_test_load_and_verify_with_header_verify_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -10099,7 +10099,7 @@ static void firmware_component_test_load_and_verify_with_header_extra_header_has
 static void firmware_component_test_load_and_verify_with_header_header_format0_with_expected_version (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -10160,7 +10160,7 @@ static void firmware_component_test_load_and_verify_with_header_header_format0_w
 static void firmware_component_test_load_and_verify_with_header_header_format1_with_unexpected_version (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -12087,7 +12087,7 @@ static void firmware_component_test_load_to_memory_load_error (CuTest *test)
 
 static void firmware_component_test_load_to_memory_and_verify_header_format0 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -12149,7 +12149,7 @@ static void firmware_component_test_load_to_memory_and_verify_header_format0 (Cu
 
 static void firmware_component_test_load_to_memory_and_verify_header_format1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -12249,7 +12249,7 @@ static void firmware_component_test_load_to_memory_and_verify_header_format1 (Cu
 
 static void firmware_component_test_load_to_memory_and_verify_no_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -12344,7 +12344,7 @@ static void firmware_component_test_load_to_memory_and_verify_no_hash_out (CuTes
 
 static void firmware_component_test_load_to_memory_and_verify_no_hash_type_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -12442,7 +12442,7 @@ static void firmware_component_test_load_to_memory_and_verify_no_hash_type_out (
 
 static void firmware_component_test_load_to_memory_and_verify_no_length_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -12540,7 +12540,7 @@ static void firmware_component_test_load_to_memory_and_verify_no_length_out (CuT
 
 static void firmware_component_test_load_to_memory_and_verify_no_expected_version (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -12639,7 +12639,7 @@ static void firmware_component_test_load_to_memory_and_verify_no_expected_versio
 
 static void firmware_component_test_load_to_memory_and_verify_encrypted_image (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -12740,7 +12740,7 @@ static void firmware_component_test_load_to_memory_and_verify_encrypted_image (C
 
 static void firmware_component_test_load_to_memory_and_verify_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -12840,7 +12840,7 @@ static void firmware_component_test_load_to_memory_and_verify_sha384 (CuTest *te
 
 static void firmware_component_test_load_to_memory_and_verify_sha384_no_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -12936,7 +12936,7 @@ static void firmware_component_test_load_to_memory_and_verify_sha384_no_hash_out
 
 static void firmware_component_test_load_to_memory_and_verify_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -13036,7 +13036,7 @@ static void firmware_component_test_load_to_memory_and_verify_sha512 (CuTest *te
 
 static void firmware_component_test_load_to_memory_and_verify_sha512_no_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -13132,7 +13132,7 @@ static void firmware_component_test_load_to_memory_and_verify_sha512_no_hash_out
 
 static void firmware_component_test_load_to_memory_and_verify_extra_header (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -13241,7 +13241,7 @@ static void firmware_component_test_load_to_memory_and_verify_extra_header (CuTe
 static void firmware_component_test_load_to_memory_and_verify_extra_header_zero_length (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -13341,7 +13341,7 @@ static void firmware_component_test_load_to_memory_and_verify_extra_header_zero_
 
 static void firmware_component_test_load_to_memory_and_verify_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -13420,7 +13420,7 @@ static void firmware_component_test_load_to_memory_and_verify_null (CuTest *test
 
 static void firmware_component_test_load_to_memory_and_verify_with_unexpected_version (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -13484,7 +13484,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_unexpected_ve
 
 static void firmware_component_test_load_to_memory_and_verify_unknown_hash (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -13551,7 +13551,7 @@ static void firmware_component_test_load_to_memory_and_verify_unknown_hash (CuTe
 
 static void firmware_component_test_load_to_memory_and_verify_small_hash_buffer (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -13621,7 +13621,7 @@ static void firmware_component_test_load_to_memory_and_verify_small_hash_buffer 
 static void firmware_component_test_load_to_memory_and_verify_small_hash_buffer_sha384 (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -13691,7 +13691,7 @@ static void firmware_component_test_load_to_memory_and_verify_small_hash_buffer_
 static void firmware_component_test_load_to_memory_and_verify_small_hash_buffer_sha512 (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -13760,7 +13760,7 @@ static void firmware_component_test_load_to_memory_and_verify_small_hash_buffer_
 
 static void firmware_component_test_load_to_memory_and_verify_read_signature_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -13830,7 +13830,7 @@ static void firmware_component_test_load_to_memory_and_verify_read_signature_err
 
 static void firmware_component_test_load_to_memory_and_verify_verify_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -14629,7 +14629,7 @@ static void firmware_component_test_load_to_memory_and_verify_extra_header_hash_
 static void firmware_component_test_load_to_memory_and_verify_with_header_header_format0 (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -14699,7 +14699,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_header
 static void firmware_component_test_load_to_memory_and_verify_with_header_header_format1 (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -14806,7 +14806,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_header
 
 static void firmware_component_test_load_to_memory_and_verify_with_header_no_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -14909,7 +14909,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_no_has
 static void firmware_component_test_load_to_memory_and_verify_with_header_no_hash_type_out (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -15015,7 +15015,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_no_has
 static void firmware_component_test_load_to_memory_and_verify_with_header_no_length_out (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -15121,7 +15121,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_no_len
 static void firmware_component_test_load_to_memory_and_verify_with_header_no_expected_version (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -15229,7 +15229,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_no_exp
 static void firmware_component_test_load_to_memory_and_verify_with_header_encrypted_image (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -15338,7 +15338,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_encryp
 
 static void firmware_component_test_load_to_memory_and_verify_with_header_sha384 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -15446,7 +15446,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_sha384
 static void firmware_component_test_load_to_memory_and_verify_with_header_sha384_no_hash_out (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -15548,7 +15548,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_sha384
 
 static void firmware_component_test_load_to_memory_and_verify_with_header_sha512 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -15656,7 +15656,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_sha512
 static void firmware_component_test_load_to_memory_and_verify_with_header_sha512_no_hash_out (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -15759,7 +15759,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_sha512
 static void firmware_component_test_load_to_memory_and_verify_with_header_read_from_flash (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -15872,7 +15872,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_read_f
 static void firmware_component_test_load_to_memory_and_verify_with_header_zero_length_read_from_flash (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -15977,7 +15977,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_zero_l
 static void firmware_component_test_load_to_memory_and_verify_with_header_no_flash_header (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -16083,7 +16083,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_no_fla
 
 static void firmware_component_test_load_to_memory_and_verify_with_header_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -16169,7 +16169,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_null (
 static void firmware_component_test_load_to_memory_and_verify_with_header_with_unexpected_version (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -16240,7 +16240,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_with_u
 static void firmware_component_test_load_to_memory_and_verify_with_header_unknown_hash (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -16314,7 +16314,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_unknow
 static void firmware_component_test_load_to_memory_and_verify_with_header_small_hash_buffer (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -16390,7 +16390,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_small_
 static void firmware_component_test_load_to_memory_and_verify_with_header_small_hash_buffer_sha384 (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -16466,7 +16466,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_small_
 static void firmware_component_test_load_to_memory_and_verify_with_header_small_hash_buffer_sha512 (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -16542,7 +16542,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_small_
 static void firmware_component_test_load_to_memory_and_verify_with_header_read_signature_error (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;
@@ -16619,7 +16619,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_read_s
 static void firmware_component_test_load_to_memory_and_verify_with_header_verify_error (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	struct firmware_component image;
 	struct signature_verification_mock verification;

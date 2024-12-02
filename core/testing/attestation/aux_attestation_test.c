@@ -644,7 +644,7 @@ static void aux_attestation_testing_release_riot_keys (CuTest *test,
  * Initialize all dependencies for attestation testing.
  *
  * @param test The testing framework.
- * @param aux Dependecies to initialize.
+ * @param aux Dependencies to initialize.
  */
 static void aux_attestation_testing_init_dependencies (CuTest *test,
 	struct aux_attestation_testing *aux)
@@ -1027,9 +1027,9 @@ static void aux_attestation_test_create_certificate (CuTest *test)
 
 static void aux_attestation_test_create_certificate_authenticate (CuTest *test)
 {
-	RSA_TESTING_ENGINE rsa;
-	X509_TESTING_ENGINE x509;
-	RNG_TESTING_ENGINE rng;
+	RSA_TESTING_ENGINE (rsa);
+	X509_TESTING_ENGINE (x509);
+	RNG_TESTING_ENGINE (rng);
 	struct aux_attestation_testing aux;
 	int status;
 	const struct der_cert *cert;
@@ -1109,9 +1109,9 @@ static void aux_attestation_test_create_certificate_authenticate (CuTest *test)
 
 static void aux_attestation_test_create_certificate_twice (CuTest *test)
 {
-	RSA_TESTING_ENGINE rsa;
-	X509_TESTING_ENGINE x509;
-	RNG_TESTING_ENGINE rng;
+	RSA_TESTING_ENGINE (rsa);
+	X509_TESTING_ENGINE (x509);
+	RNG_TESTING_ENGINE (rng);
 	struct aux_attestation_testing aux;
 	int status;
 	const struct der_cert *cert;
@@ -4396,8 +4396,8 @@ static void aux_attestation_test_unseal_bad_hmac (CuTest *test)
 
 static void aux_attestation_test_unseal_rsa_oaep_sha1_no_mock (CuTest *test)
 {
-	RSA_TESTING_ENGINE rsa;
-	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE (rsa);
+	HASH_TESTING_ENGINE (hash);
 	struct aux_attestation_testing aux;
 	struct pcr_store pcr;
 	const struct pcr_config pcr_config[1] = {
@@ -4461,8 +4461,8 @@ static void aux_attestation_test_unseal_rsa_oaep_sha1_no_mock (CuTest *test)
 
 static void aux_attestation_test_unseal_rsa_oaep_sha256_no_mock (CuTest *test)
 {
-	RSA_TESTING_ENGINE rsa;
-	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE (rsa);
+	HASH_TESTING_ENGINE (hash);
 	struct aux_attestation_testing aux;
 	struct pcr_store pcr;
 	const struct pcr_config pcr_config[1] = {
@@ -4526,8 +4526,8 @@ static void aux_attestation_test_unseal_rsa_oaep_sha256_no_mock (CuTest *test)
 
 static void aux_attestation_test_unseal_ecdh_raw_no_mock (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
-	HASH_TESTING_ENGINE hash;
+	ECC_TESTING_ENGINE (ecc);
+	HASH_TESTING_ENGINE (hash);
 	struct aux_attestation_testing aux;
 	struct pcr_store pcr;
 	const struct pcr_config pcr_config[1] = {
@@ -4577,8 +4577,8 @@ static void aux_attestation_test_unseal_ecdh_raw_no_mock (CuTest *test)
 
 static void aux_attestation_test_unseal_ecdh_sha256_no_mock (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
-	HASH_TESTING_ENGINE hash;
+	ECC_TESTING_ENGINE (ecc);
+	HASH_TESTING_ENGINE (hash);
 	struct aux_attestation_testing aux;
 	struct pcr_store pcr;
 	const struct pcr_config pcr_config[1] = {
@@ -4630,8 +4630,8 @@ static void aux_attestation_test_unseal_ecdh_sha256_no_mock (CuTest *test)
 #if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
 static void aux_attestation_test_unseal_pcr_sha384_no_mock (CuTest *test)
 {
-	RSA_TESTING_ENGINE rsa;
-	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE (rsa);
+	HASH_TESTING_ENGINE (hash);
 	struct aux_attestation_testing aux;
 	struct pcr_store pcr;
 	const struct pcr_config pcr_config[1] = {
@@ -4698,8 +4698,8 @@ static void aux_attestation_test_unseal_pcr_sha384_no_mock (CuTest *test)
 #if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
 static void aux_attestation_test_unseal_pcr_sha512_no_mock (CuTest *test)
 {
-	RSA_TESTING_ENGINE rsa;
-	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE (rsa);
+	HASH_TESTING_ENGINE (hash);
 	struct aux_attestation_testing aux;
 	struct pcr_store pcr;
 	const struct pcr_config pcr_config[1] = {
@@ -4765,8 +4765,8 @@ static void aux_attestation_test_unseal_pcr_sha512_no_mock (CuTest *test)
 
 static void aux_attestation_test_unseal_rsa_no_ecc (CuTest *test)
 {
-	RSA_TESTING_ENGINE rsa;
-	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE (rsa);
+	HASH_TESTING_ENGINE (hash);
 	struct aux_attestation_testing aux;
 	struct pcr_store pcr;
 	const struct pcr_config pcr_config[1] = {
@@ -4829,8 +4829,8 @@ static void aux_attestation_test_unseal_rsa_no_ecc (CuTest *test)
 
 static void aux_attestation_test_unseal_ecdh_no_rsa (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
-	HASH_TESTING_ENGINE hash;
+	ECC_TESTING_ENGINE (ecc);
+	HASH_TESTING_ENGINE (hash);
 	struct aux_attestation_testing aux;
 	struct pcr_store pcr;
 	const struct pcr_config pcr_config[1] = {
@@ -6666,7 +6666,7 @@ static void aux_attestation_test_decrypt_sha256 (CuTest *test)
 
 static void aux_attestation_test_decrypt_no_mock (CuTest *test)
 {
-	RSA_TESTING_ENGINE rsa;
+	RSA_TESTING_ENGINE (rsa);
 	struct aux_attestation_testing aux;
 	uint8_t decrypted[RSA_KEY_LENGTH_3K];
 	uint8_t *key_der;
@@ -6710,7 +6710,7 @@ static void aux_attestation_test_decrypt_no_mock (CuTest *test)
 
 static void aux_attestation_test_decrypt_sha256_no_mock (CuTest *test)
 {
-	RSA_TESTING_ENGINE rsa;
+	RSA_TESTING_ENGINE (rsa);
 	struct aux_attestation_testing aux;
 	uint8_t decrypted[RSA_KEY_LENGTH_3K];
 	uint8_t *key_der;
@@ -6998,7 +6998,7 @@ static void aux_attestation_test_generate_ecdh_seed_sha256 (CuTest *test)
 
 static void aux_attestation_test_generate_ecdh_seed_no_mock (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
+	ECC_TESTING_ENGINE (ecc);
 	struct aux_attestation_testing aux;
 	int status;
 	uint8_t seed[32];
@@ -7028,8 +7028,8 @@ static void aux_attestation_test_generate_ecdh_seed_no_mock (CuTest *test)
 
 static void aux_attestation_test_generate_ecdh_seed_sha256_no_mock (CuTest *test)
 {
-	ECC_TESTING_ENGINE ecc;
-	HASH_TESTING_ENGINE hash;
+	ECC_TESTING_ENGINE (ecc);
+	HASH_TESTING_ENGINE (hash);
 	struct aux_attestation_testing aux;
 	int status;
 	uint8_t seed[32];

@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "pfm_manager_mock.h"
-#include "testing/engines/hash_testing_engine.h"
 
 
 static struct pfm* pfm_manager_mock_get_active_pfm (const struct pfm_manager *manager)
@@ -182,7 +181,6 @@ static const char* pfm_manager_mock_arg_name_map (void *func, int arg)
  */
 int pfm_manager_mock_init (struct pfm_manager_mock *mock)
 {
-	HASH_TESTING_ENGINE *hash;
 	int status;
 
 	if (mock == NULL) {
@@ -191,28 +189,18 @@ int pfm_manager_mock_init (struct pfm_manager_mock *mock)
 
 	memset (mock, 0, sizeof (struct pfm_manager_mock));
 
-	hash = platform_malloc (sizeof (HASH_TESTING_ENGINE));
-	if (hash == NULL) {
-		return MOCK_NO_MEMORY;
-	}
-
-	status = HASH_TESTING_ENGINE_INIT (hash);
+	status = HASH_TESTING_ENGINE_INIT (&mock->hash);
 	if (status != 0) {
-		platform_free (hash);
-
 		return status;
 	}
 
-	status = pfm_manager_init (&mock->base, &hash->base, -1);
+	status = pfm_manager_init (&mock->base, &mock->hash.base, -1);
 	if (status != 0) {
-		platform_free (hash);
-
 		return status;
 	}
 
 	status = mock_init (&mock->mock);
 	if (status != 0) {
-		platform_free (hash);
 		pfm_manager_release (&mock->base);
 
 		return status;
@@ -244,8 +232,7 @@ int pfm_manager_mock_init (struct pfm_manager_mock *mock)
 void pfm_manager_mock_release (struct pfm_manager_mock *mock)
 {
 	if (mock) {
-		HASH_TESTING_ENGINE_RELEASE ((HASH_TESTING_ENGINE*) mock->base.base.hash);
-		platform_free (mock->base.base.hash);
+		HASH_TESTING_ENGINE_RELEASE (&mock->hash);
 		pfm_manager_release (&mock->base);
 		mock_release (&mock->mock);
 	}

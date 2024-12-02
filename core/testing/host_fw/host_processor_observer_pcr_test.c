@@ -113,7 +113,7 @@ static void host_processor_observer_pcr_testing_suite_tear_down (CuTest *test)
 
 static void host_processor_observer_pcr_test_init (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -173,7 +173,7 @@ static void host_processor_observer_pcr_test_init (CuTest *test)
 
 static void host_processor_observer_pcr_test_init_valid (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -225,7 +225,7 @@ static void host_processor_observer_pcr_test_init_valid (CuTest *test)
 
 static void host_processor_observer_pcr_test_init_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -273,7 +273,7 @@ static void host_processor_observer_pcr_test_init_null (CuTest *test)
 
 static void host_processor_observer_pcr_test_init_invalid_measurement (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -309,7 +309,7 @@ static void host_processor_observer_pcr_test_init_invalid_measurement (CuTest *t
 
 static void host_processor_observer_pcr_test_on_bypass_mode (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -449,7 +449,7 @@ static void host_processor_observer_pcr_test_on_bypass_mode_error (CuTest *test)
 
 static void host_processor_observer_pcr_test_on_active_mode (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -589,7 +589,7 @@ static void host_processor_observer_pcr_test_on_active_mode_error (CuTest *test)
 
 static void host_processor_observer_pcr_test_on_recovery (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -729,7 +729,7 @@ static void host_processor_observer_pcr_test_on_recovery_error (CuTest *test)
 
 static void host_processor_observer_pcr_test_on_inactive_dirty_dirty (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -788,7 +788,7 @@ static void host_processor_observer_pcr_test_on_inactive_dirty_dirty (CuTest *te
 
 static void host_processor_observer_pcr_test_on_inactive_dirty_not_dirty (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct pcr_store store;
 	const struct pcr_config pcr_config[2] = {
 		{

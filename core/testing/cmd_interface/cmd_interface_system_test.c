@@ -118,7 +118,7 @@ struct cmd_interface_system_testing {
 	struct host_processor_mock host_1;						/**< The host interface mock for port 1. */
 	struct keystore_mock keystore;							/**< RIoT keystore. */
 	struct x509_engine_mock x509_mock;						/**< The X.509 engine mock for the RIoT keys. */
-	X509_TESTING_ENGINE x509;								/**< X.509 engine for the RIoT keys. */
+	X509_TESTING_ENGINE (x509);								/**< X.509 engine for the RIoT keys. */
 	struct flash_mock flash;								/**< The flash mock to set expectations on. */
 	struct host_state_manager state;						/**< The state manager. */
 	struct flash_mock flash_state;							/**< The mock for the flash state storage. */
@@ -535,6 +535,7 @@ static void cmd_interface_system_testing_suite_tear_down (CuTest *test)
 
 static void cmd_interface_system_test_init (CuTest *test)
 {
+	X509_TESTING_ENGINE (x509);
 	struct cmd_interface_system interface;
 	struct firmware_update_control_mock update;
 	struct manifest_cmd_interface_mock pfm_0;
@@ -561,7 +562,6 @@ static void cmd_interface_system_test_init (CuTest *test)
 	struct host_control_mock host_ctrl_1;
 	struct cmd_device_mock cmd_device;
 	struct session_manager_mock session;
-	X509_TESTING_ENGINE x509;
 	uint8_t *dev_id_der = NULL;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -756,6 +756,7 @@ static void cmd_interface_system_test_init (CuTest *test)
 
 static void cmd_interface_system_test_init_null (CuTest *test)
 {
+	X509_TESTING_ENGINE (x509);
 	struct cmd_interface_system interface;
 	struct firmware_update_control_mock update;
 	struct manifest_cmd_interface_mock pfm_0;
@@ -782,7 +783,6 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 	struct host_control_mock host_ctrl_1;
 	struct cmd_device_mock cmd_device;
 	struct session_manager_mock session;
-	X509_TESTING_ENGINE x509;
 	uint8_t *dev_id_der = NULL;
 	const struct pcr_config pcr_config[2] = {
 		{

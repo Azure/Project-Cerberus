@@ -1076,8 +1076,8 @@ static void host_irq_handler_test_power_on_static_init (CuTest *test)
 
 static void host_irq_handler_test_power_on_alternate_hash (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash2);
 	struct host_irq_handler_testing handler;
-	HASH_TESTING_ENGINE hash2;
 	int status;
 
 	TEST_START;
@@ -1216,8 +1216,8 @@ static void host_irq_handler_test_power_on_flash_rollback (CuTest *test)
 
 static void host_irq_handler_test_power_on_flash_rollback_alternate_hash (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash2);
 	struct host_irq_handler_testing handler;
-	HASH_TESTING_ENGINE hash2;
 	int status;
 
 	TEST_START;
@@ -1453,8 +1453,8 @@ static void host_irq_handler_test_power_on_apply_recovery_image (CuTest *test)
 
 static void host_irq_handler_test_power_on_apply_recovery_image_alternate_hash (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash2);
 	struct host_irq_handler_testing handler;
-	HASH_TESTING_ENGINE hash2;
 	int status;
 
 	TEST_START;

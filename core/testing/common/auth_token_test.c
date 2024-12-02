@@ -30,16 +30,16 @@ TEST_SUITE_LABEL ("auth_token");
  * Dependencies for testing authorization token management.
  */
 struct auth_token_testing {
-	X509_TESTING_ENGINE x509;						/**< X.509 handler for the key manager. */
+	X509_TESTING_ENGINE (x509);						/**< X.509 handler for the key manager. */
 	struct keystore_mock keystore;					/**< Mock for the device keystore. */
 	struct riot_keys keys;							/**< Device keys for the key manager. */
 	struct riot_key_manager_state key_state;		/**< Context for device key manager. */
 	struct riot_key_manager device_keys;			/**< Device key manager for testing. */
-	RNG_TESTING_ENGINE rng;							/**< RNG for testing. */
+	RNG_TESTING_ENGINE (rng);						/**< RNG for testing. */
 	struct rng_engine_mock rng_mock;				/**< Mock for the RNG. */
-	HASH_TESTING_ENGINE hash;						/**< Hash engine for testing. */
+	HASH_TESTING_ENGINE (hash);						/**< Hash engine for testing. */
 	struct hash_engine_mock hash_mock;				/**< Mock for the hash engine. */
-	ECC_TESTING_ENGINE ecc;							/**< ECC engine for testing. */
+	ECC_TESTING_ENGINE (ecc);						/**< ECC engine for testing. */
 	struct ecc_engine_mock ecc_mock;				/**< Mock for the ECC engine. */
 	struct ecc_public_key token_key;				/**< Public key for token signing. */
 	struct signature_verification_mock authority;	/**< Mock for authority signature verification. */

@@ -26,7 +26,7 @@ TEST_SUITE_LABEL ("intrusion_manager_async");
 struct intrusion_manager_async_testing {
 	struct intrusion_state_mock state;		/**< Mock for intrusion state. */
 	struct pcr_store store;					/**< PCR manager for testing. */
-	HASH_TESTING_ENGINE hash;				/**< Hash engine for PCR testing. */
+	HASH_TESTING_ENGINE (hash);				/**< Hash engine for PCR testing. */
 	struct hash_engine_mock hash_mock;		/**< Mock for the hash engine. */
 	uint16_t pcr_id;						/**< The measurement ID used for testing. */
 	struct logging_mock log;				/**< Mock for the debug log. */

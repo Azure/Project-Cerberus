@@ -11,10 +11,9 @@
 
 
 /**
- * An mbedTLS context for calculating hashes.
+ * Variable context for hashing with mbedTLS.
  */
-struct hash_engine_mbedtls {
-	struct hash_engine base;			/**< The base hash engine. */
+struct hash_engine_mbedtls_state {
 	union {
 #ifdef HASH_ENABLE_SHA1
 		mbedtls_sha1_context sha1;		/**< Context for SHA1 hashes. */
@@ -27,8 +26,16 @@ struct hash_engine_mbedtls {
 	uint8_t active;						/**< The active hash context. */
 };
 
+/**
+ * An mbedTLS context for calculating hashes.
+ */
+struct hash_engine_mbedtls {
+	struct hash_engine base;					/**< The base hash engine. */
+	struct hash_engine_mbedtls_state *state;	/**< Variable context for the hash engine. */
+};
 
-int hash_mbedtls_init (struct hash_engine_mbedtls *engine);
+
+int hash_mbedtls_init (struct hash_engine_mbedtls *engine, struct hash_engine_mbedtls_state *state);
 void hash_mbedtls_release (struct hash_engine_mbedtls *engine);
 
 
