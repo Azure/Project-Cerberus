@@ -13,6 +13,7 @@
 # d. GET_DIGESTS
 # e. GET_CERTIFICATE
 # f. GET_MEASUREMENTS - Takes CFM XML as input to compare the measurements
+# Also takes PCD XML as input to validate the PCIe Identifiers.
 #
 # Usage:
 # To execute this script, run the following command in your terminal:
@@ -21,20 +22,22 @@
 # ./cerberus_spdm_compliance_check_tool.sh -e 0x5
 # ./cerberus_spdm_compliance_check_tool.sh -e 0x5 -v 0x10 // To specify SPDM version (1.0 - 0x10, 1.1 - 0x11, 1.2 - 0x12)
 # ./cerberus_spdm_compliance_check_tool.sh -e 0x5 -v 0x11 -x cfm.xml // To specify CFM XML file
+# ./cerberus_spdm_compliance_check_tool.sh -e 0x5 -v 0x12 -c component_name -p pcd.xml // To specify component name and PCD XML file
 # ./cerberus_spdm_compliance_check_tool.sh -e 0x5 -v 0x12 -x cfm.xml -d 1 // To enable debug mode (0 - No debug, 1 - Basic debug, 2 - Detailed debug)
 # ./cerberus_spdm_compliance_check_tool.sh -e 0x5 -v 0x12 -x cfm.xml -d 1 -s // To enable stress test
 # ./cerberus_spdm_compliance_check_tool.sh -e 0x5 -v 0x12 -x cfm.xml -d 1 -s -l // To enable logging
 
 #TODOS:
-#1. Add support for validating the cerberus discovery flows using PCD xml as input.
-#2. Add support for validating the measurement signature using the certificate chain.
-#3. Add support for other SPDM commands - CHALLENGE, KEY_EXCHANGE, FINISH, PSK_EXCHANGE, PSK_FINISH etc.
+#1. Add support for validating the measurement signature using the certificate chain.
+#2. Add support for other SPDM commands - CHALLENGE, KEY_EXCHANGE, FINISH, PSK_EXCHANGE, PSK_FINISH etc.
 
 # Set default values for optional arguments
 spdm_version=0x12 # Default SPDM version is 1.2
 max_buffer_size_requester=4096 # 4096 bytes
 base_hash_algo_bytes=48 # 48 bytes
 cfm_xml_filename="" # CFM XML filename
+component_name="" # Component name
+pcd_xml_filename="" # PCD XML filename
 debug_level=0 # Debug level
 stress_enabled=0 # Stress test enabled
 total_count=0 # Number of stress iterations
@@ -50,6 +53,7 @@ declare -A spdm_cmd_1_1=()
 declare -A spdm_cmd_1_2=()
 
 #initialize the command arguments for different SPDM versions and commands
+mctp_get_message_type="0x00 0x80 0x05"
 spdm_cmd_common["GET_VERSION"]="0x05 0x10 0x84 0x00 0x00"
 spdm_cmd_1_0["GET_CAPABILITIES"]="0x05 0x10 0xE1 0x0 0x0"
 spdm_cmd_1_1["GET_CAPABILITIES"]="0x05 $spdm_version 0xE1 0x00 0x00 0x00 0x1F 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x10 0x00 0x00 0x00 0x10 0x00 0x00"
@@ -62,16 +66,21 @@ spdm_cmd_common["GET_MEASUREMENT_DIGEST"]="0x05 $spdm_version 0xE0 0x01"
 spdm_cmd_common["GET_MEASUREMENT_NONCE"]="0xdb 0x6b 0xf3 0xa5 0xb5 0xab 0x4d 0x67 0xbd 0xb1 0x18 0x40 0x29 0x10 0x7b 0x88 0x8e 0x69 0x4b 0xac 0xf4 0x62 0xe5 0x4a 0x6d 0x68 0xd9 0xd4 0xc6 0xb4 0x60 0x81"
 spdm_cmd_1_1["GET_MEASUREMENT_SLOTID"]="0x00"
 spdm_cmd_1_2["GET_MEASUREMENT_SLOTID"]="0x00"
+spdm_cmd_common["GET_MEASUREMENT_WITHOUT_SIGNATURE"]="0x05 $spdm_version 0xE0 0x02"
 
 # Variables to store parsed values
 declare -A measurement_data=()
 declare -A measurement_mask=()
 declare -A measurement_digest=()
 declare -A printed_ids=()
+declare pcd_device_id=""
+declare pcd_vendor_id=""
+declare pcd_subsystem_device_id=""
+declare pcd_subsystem_vendor_id=""
 
 # Function to display usage information
 usage() {
-    echo "Usage: $0 -e <component_eid> -v [spdm_version] -x [cfm_xml_filename] -d [debug_level] -s -l"
+    echo "Usage: $0 -e <component_eid> -v [spdm_version] -x [cfm_xml_filename] -c [component_name] -p [pcd_xml_filename] -d [debug_level] -s -l"
     echo "Options:"
     echo " -s : Enable stress test"
     echo " -l : Enable logging"
@@ -79,7 +88,7 @@ usage() {
 }
 
 # Parse arguments using getopts
-while getopts ":e:v:x:d:sl" opt; do
+while getopts ":e:v:x:c:p:d:sl" opt; do
     case ${opt} in
         e )
             component_eid=$OPTARG
@@ -90,6 +99,12 @@ while getopts ":e:v:x:d:sl" opt; do
 	    x )
 	        cfm_xml_filename=$OPTARG
 	    ;;
+        c )
+            component_name=$OPTARG
+            ;;
+        p )
+            pcd_xml_filename=$OPTARG
+            ;;
         d )
             debug_level=$OPTARG
             ;;
@@ -116,7 +131,7 @@ if [ -z "$component_eid" ] || [ -z "$spdm_version" ]; then
 fi
 
 # Display input parameters
-echo "Input Params: component_eid $component_eid, spdm_version $spdm_version, cfm_xml_filename "$cfm_xml_filename", debug_level $debug_level, stress_enabled $stress_enabled"
+echo "Input Params: component_eid $component_eid, spdm_version $spdm_version, cfm_xml_filename "$cfm_xml_filename", pcd_xml_filename "$pcd_xml_filename", debug_level $debug_level, stress_enabled $stress_enabled"
 echo ""
 
 # Helper functions
@@ -275,6 +290,22 @@ send_mctp_raw_request() {
     fi
 
     echo "$response"
+    return 0 # Success
+}
+
+# Function to MCTP GET_MESSAGE_TYPE request
+send_get_message_type() {
+    local command_name="GET_MESSAGE_TYPE"
+
+    log_debug 1 "$command_name"
+
+    response=$(send_mctp_raw_request "$command_name" $mctp_get_message_type)
+    if [ $? -ne 0 ]; then
+        log_error "$command_name.. Failed"
+        return 1 # Failure
+    fi
+
+    log_debug 1 "$command_name.. OK"
     return 0 # Success
 }
 
@@ -575,6 +606,28 @@ spdm_validate_certificates_using_openssl() {
     return 0 # Success
 }
 
+# Function to parse PCD XML for PCIe Identifiers
+parse_pcd_xml() {
+    local component_name="$1"
+    local pcd_xml_filename="$2"
+
+    # Extract the relevant component block
+    component_block=$(sed -n "/<Component type=\"$component_name\"/,/<\/Component>/p" "$pcd_xml_filename")
+    if [ -z "$component_block" ]; then
+        log_error "Failed to extract component block for $component_name from PCD XML."
+        return 1 # Failure
+    fi
+
+    # Extract values using grep and sed
+    # Extract individual values
+    pcd_device_id=$(echo "$component_block" | grep "<DeviceID>" | sed -e 's/<[^>]*>//g' -e 's/^[ \t]*//')
+    pcd_vendor_id=$(echo "$component_block" | grep "<VendorID>" | sed -e 's/<[^>]*>//g' -e 's/^[ \t]*//')
+    pcd_subsystem_device_id=$(echo "$component_block" | grep "<SubsystemDeviceID>" | sed -e 's/<[^>]*>//g' -e 's/^[ \t]*//')
+    pcd_subsystem_vendor_id=$(echo "$component_block" | grep "<SubsystemVendorID>" | sed -e 's/<[^>]*>//g' -e 's/^[ \t]*//')
+
+    return 0 # Success
+}
+
 # Function to parse MeasurementData and Measurement
 parse_cfm_xml() {
   local cfm_xml_filename="$1"
@@ -833,6 +886,165 @@ main() {
     do
         echo -n "."
 
+        # Dicover the component EID
+        if [ -n "$pcd_xml_filename" ] && [ -n "$component_name" ]; then
+            local command_name="GET_MEASUREMENT"
+            local measurement_id=""
+
+            log_debug 1 "Device Discovery.."
+
+            if [[ "$spdm_version" != "0x11" && "$spdm_version" != "0x12" ]]; then
+                log_error "Unsupported SPDM version: $spdm_version"
+                failure_count=$((failure_count + 1))
+                if [ $stress_enabled -eq 0 ]; then
+                    break
+                else
+                    continue
+                fi
+            fi
+
+            log_debug 1 "Component Name: $component_name, PCD XML File: $pcd_xml_filename"
+            parse_pcd_xml $component_name $pcd_xml_filename
+	    if [ $? -ne 0 ]; then
+		log_error "Failed to parse PCD XML."
+		failure_count=$((failure_count + 1))
+		if [ $stress_enabled -eq 0 ]; then
+		    break
+		else
+		    continue
+		fi
+	    fi
+
+            send_get_message_type
+            if [ $? -ne 0 ]; then
+                log_error "GET_MESSAGE_TYPE command failed."
+                failure_count=$((failure_count + 1))
+                if [ $stress_enabled -eq 0 ]; then
+                    break
+                else
+                    continue
+                fi
+            fi
+
+            send_get_version_request
+            if [ $? -ne 0 ]; then
+                log_error "GET_VERSION command failed."
+                failure_count=$((failure_count + 1))
+                if [ $stress_enabled -eq 0 ]; then
+                    break
+                else
+                    continue
+                fi
+            fi
+
+            max_buffer_size_requester=$(send_get_capabilities_request)
+            if [ $? -ne 0 ]; then
+                log_error "GET_CAPABILITIES command failed."
+                failure_count=$((failure_count + 1))
+                if [ $stress_enabled -eq 0 ]; then
+                    break
+                else
+                    continue
+                fi
+            fi
+
+            log_debug 1 "Max Buffer Size: $max_buffer_size_requester"
+
+            send_negotiate_algorithms_request
+            if [ $? -ne 0 ]; then
+                log_error "NEGOTIATE_ALGORITHMS command failed."
+                failure_count=$((failure_count + 1))
+                if [ $stress_enabled -eq 0 ]; then
+                    break
+                else
+                    continue
+                fi
+            fi
+
+            log_debug 1 "Base Hash Algo Bytes: $base_hash_algo_bytes"
+
+            if [[ "$spdm_version" == "0x11" ]]; then
+                measurement_id=0x0
+            elif [[ "$spdm_version" == "0x12" ]]; then
+                measurement_id=0xef
+            fi
+
+            log_debug 1 "$command_name ($measurement_id)"
+            response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_WITHOUT_SIGNATURE"]} $measurement_id)
+
+            if [ $? -ne 0 ]; then
+                log_error "$command_name.. Failed"
+                return 1 # Failure
+            else
+                log_debug 1 "$command_name ($measurement_id).. OK"
+            fi
+
+            local vendor_id_offset=27
+            local vendor_id_length=2
+            local device_id_offset=33
+            local device_id_length=2
+            local subsystem_vendor_id_offset=39
+            local subsystem_vendor_id_length=2
+            local subsystem_device_id_offset=45
+            local subsystem_device_id_length=2
+            local number_of_blocks_offset=5
+            local number_of_blocks_length=1
+
+            if [[ "$spdm_version" == "0x11" ]]; then
+                local processed_response=$(echo "$response" | sed -n 's/.*mctptool: Rx: //p')
+                local number_of_blocks_hex=$(echo $processed_response | cut -d ' ' -f $((number_of_blocks_offset))-$((number_of_blocks_offset + number_of_blocks_length - 1)) | tr -d ' ')
+                local number_of_blocks_swapped_hex=$(echo $number_of_blocks_hex | sed 's/^\(..\)\(..\)$/\2\1/')
+                local number_of_blocks=$((16#$number_of_blocks_swapped_hex))
+                measurement_id=$((number_of_blocks - 1))
+
+                log_debug 1 "$command_name ($measurement_id)"
+                response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_WITHOUT_SIGNATURE"]} $measurement_id)
+
+                if [ $? -ne 0 ]; then
+                    log_error "$command_name.. Failed"
+                    return 1 # Failure
+                else
+                    log_debug 1 "$command_name ($measurement_id).. OK"
+                fi
+            fi
+
+            local processed_response=$(echo "$response" | sed -n 's/.*mctptool: Rx: //p')
+            local device_id_hex=$(echo $processed_response | cut -d ' ' -f $((device_id_offset))-$((device_id_offset + device_id_length - 1)) | tr -d ' ')
+            local device_id_swapped_hex=$(echo $device_id_hex | sed 's/^\(..\)\(..\)$/\2\1/')
+            local device_id="0x$device_id_swapped_hex"
+
+            local vendor_id_hex=$(echo $processed_response | cut -d ' ' -f $((vendor_id_offset))-$((vendor_id_offset + vendor_id_length - 1)) | tr -d ' ')
+            local vendor_id_swapped_hex=$(echo $vendor_id_hex | sed 's/^\(..\)\(..\)$/\2\1/')
+            local vendor_id="0x$vendor_id_swapped_hex"
+
+            local subsystem_device_id_hex=$(echo $processed_response | cut -d ' ' -f $((subsystem_device_id_offset))-$((subsystem_device_id_offset + subsystem_device_id_length - 1)) | tr -d ' ')
+            local subsystem_device_id_swapped_hex=$(echo $subsystem_device_id_hex | sed 's/^\(..\)\(..\)$/\2\1/')
+            local subsystem_device_id="0x$subsystem_device_id_swapped_hex"
+
+            local subsystem_vendor_id_hex=$(echo $processed_response | cut -d ' ' -f $((subsystem_vendor_id_offset))-$((subsystem_vendor_id_offset + subsystem_vendor_id_length - 1)) | tr -d ' ')
+            local subsystem_vendor_id_swapped_hex=$(echo $subsystem_vendor_id_hex | sed 's/^\(..\)\(..\)$/\2\1/')
+            local subsystem_vendor_id="0x$subsystem_vendor_id_swapped_hex"
+
+            if [ "${pcd_device_id,,}" != "${device_id,,}" ] || [ "${pcd_vendor_id,,}" != "${vendor_id,,}" ] || [ "${pcd_subsystem_device_id,,}" != "${subsystem_device_id,,}" ] || [ "${pcd_subsystem_vendor_id,,}" != "${subsystem_vendor_id,,}" ]; then
+                log_error "Device Discovery.. Failed"
+
+                log_debug 1 "pcd_device_id=$pcd_device_id, pcd_vendor_id=$pcd_vendor_id, pcd_subsystem_device_id=$pcd_subsystem_device_id, pcd_subsystem_vendor_id=$pcd_subsystem_vendor_id"
+                log_debug 1 "device_id_recieved=$device_id, vendor_id_recieved=$vendor_id, subsystem_device_id_recieved=$subsystem_device_id, subsystem_vendor_id_recieved=$subsystem_vendor_id"
+                log_debug 1 ""
+                log_debug 1  "rx_data=$processed_response"
+
+                failure_count=$((failure_count + 1))
+                if [ $stress_enabled -eq 0 ]; then
+                    break
+                else
+                    continue
+                fi
+            else
+                log_debug 1 "Device Discovery.. OK"
+            fi
+        fi
+
+        # Validate the measurements
         send_get_version_request
         if [ $? -ne 0 ]; then
             log_error "GET_VERSION command failed."
