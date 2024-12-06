@@ -49,7 +49,7 @@ typedef int (*pcr_data_get_measured_data) (void *context, size_t offset, uint8_t
  *
  * @return 0 if the hash was successfully updated or an error code.
  */
-typedef int (*pcr_data_hash_measured_data) (void *context, struct hash_engine *hash);
+typedef int (*pcr_data_hash_measured_data) (void *context, const struct hash_engine *hash);
 
 /**
  * Measurement data used for PCR measurement.

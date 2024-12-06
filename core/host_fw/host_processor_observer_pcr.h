@@ -29,14 +29,14 @@ struct host_processor_observer_pcr {
 	struct host_processor_observer base;	/**< Base observer for receiving notifications. */
 	struct host_state_observer base_state;	/**< Base observer for host state notifications. */
 	struct pcr_store *store;				/**< Storage for the PCR to manage. */
-	struct hash_engine *hash;				/**< Hash engine for PCR calculation. */
+	const struct hash_engine *hash;			/**< Hash engine for PCR calculation. */
 	uint32_t *state;						/**< Storage for the raw state value. */
 	uint16_t pcr;							/**< PCR measurement ID to manage. */
 };
 
 
 int host_processor_observer_pcr_init (struct host_processor_observer_pcr *host,
-	struct hash_engine *hash, struct pcr_store *store, uint16_t pcr, uint32_t *init_state);
+	const struct hash_engine *hash, struct pcr_store *store, uint16_t pcr, uint32_t *init_state);
 void host_processor_observer_pcr_release (struct host_processor_observer_pcr *host);
 
 

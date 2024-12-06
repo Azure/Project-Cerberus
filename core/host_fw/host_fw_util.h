@@ -23,23 +23,24 @@ bool host_fw_are_images_different (const struct pfm_image_list *img_list1,
 	const struct pfm_image_list *img_list2);
 
 int host_fw_verify_images (const struct spi_flash *flash, const struct pfm_image_list *img_list,
-	struct hash_engine *hash, struct rsa_engine *rsa);
+	const struct hash_engine *hash, const struct rsa_engine *rsa);
 int host_fw_verify_offset_images (const struct spi_flash *flash,
-	const struct pfm_image_list *img_list, uint32_t offset, struct hash_engine *hash,
-	struct rsa_engine *rsa);
+	const struct pfm_image_list *img_list, uint32_t offset, const struct hash_engine *hash,
+	const struct rsa_engine *rsa);
 int host_fw_verify_images_multiple_fw (const struct spi_flash *flash,
-	const struct pfm_image_list *img_list, size_t fw_count, struct hash_engine *hash,
-	struct rsa_engine *rsa);
+	const struct pfm_image_list *img_list, size_t fw_count, const struct hash_engine *hash,
+	const struct rsa_engine *rsa);
 int host_fw_verify_offset_images_multiple_fw (const struct spi_flash *flash,
 	const struct pfm_image_list *img_list, size_t fw_count, uint32_t offset,
-	struct hash_engine *hash, struct rsa_engine *rsa);
+	const struct hash_engine *hash, const struct rsa_engine *rsa);
 
 int host_fw_full_flash_verification (const struct spi_flash *flash,
 	const struct pfm_image_list *img_list, const struct pfm_read_write_regions *writable,
-	uint8_t unused_byte, struct hash_engine *hash, struct rsa_engine *rsa);
+	uint8_t unused_byte, const struct hash_engine *hash, const struct rsa_engine *rsa);
 int host_fw_full_flash_verification_multiple_fw (const struct spi_flash *flash,
 	const struct pfm_image_list *img_list, const struct pfm_read_write_regions *writable,
-	size_t fw_count, uint8_t unused_byte, struct hash_engine *hash, struct rsa_engine *rsa);
+	size_t fw_count, uint8_t unused_byte, const struct hash_engine *hash,
+	const struct rsa_engine *rsa);
 
 bool host_fw_are_read_write_regions_different (const struct pfm_read_write_regions *rw1,
 	const struct pfm_read_write_regions *rw2);

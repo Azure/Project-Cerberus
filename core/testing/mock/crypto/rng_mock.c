@@ -7,7 +7,7 @@
 #include "rng_mock.h"
 
 
-static int rng_mock_generate_random_buffer (struct rng_engine *engine, size_t rand_len,
+static int rng_mock_generate_random_buffer (const struct rng_engine *engine, size_t rand_len,
 	uint8_t *buf)
 {
 	struct rng_engine_mock *mock = (struct rng_engine_mock*) engine;

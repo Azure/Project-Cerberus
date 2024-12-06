@@ -19,7 +19,7 @@
 static const char *NO_FW_IDS[] = {NULL};
 
 
-static int pfm_flash_verify (struct manifest *pfm, struct hash_engine *hash,
+static int pfm_flash_verify (struct manifest *pfm, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
 	struct pfm_flash *pfm_flash = (struct pfm_flash*) pfm;
@@ -145,8 +145,8 @@ static void pfm_flash_free_platform_id (struct manifest *manifest, char *id)
 	/* Don't need to do anything.  Manifest allocated buffers use the internal static buffer. */
 }
 
-static int pfm_flash_get_hash (struct manifest *pfm, struct hash_engine *hash, uint8_t *hash_out,
-	size_t hash_length)
+static int pfm_flash_get_hash (struct manifest *pfm, const struct hash_engine *hash,
+	uint8_t *hash_out, size_t hash_length)
 {
 	struct pfm_flash *pfm_flash = (struct pfm_flash*) pfm;
 
@@ -248,7 +248,7 @@ static int pfm_flash_read_firmware_element_v2 (struct pfm_flash *pfm, uint8_t *e
 	int status;
 
 	status = manifest_flash_read_element_data (&pfm->base_flash, pfm->base_flash.hash, PFM_FIRMWARE,
-		*entry, MANIFEST_NO_PARENT, 0, entry, NULL, NULL, &element,	sizeof (*fw_element));
+		*entry, MANIFEST_NO_PARENT, 0, entry, NULL, NULL, &element, sizeof (*fw_element));
 	if (ROT_IS_ERROR (status)) {
 		return status;
 	}
@@ -1531,9 +1531,9 @@ static int pfm_flash_get_firmware_images (struct pfm *pfm, const char *fw, const
  *
  * @return 0 if the PFM instance was initialized successfully or an error code.
  */
-int pfm_flash_init (struct pfm_flash *pfm, const struct flash *flash, struct hash_engine *hash,
-	uint32_t base_addr, uint8_t *signature_cache, size_t max_signature, uint8_t *platform_id_cache,
-	size_t max_platform_id)
+int pfm_flash_init (struct pfm_flash *pfm, const struct flash *flash,
+	const struct hash_engine *hash, uint32_t base_addr, uint8_t *signature_cache,
+	size_t max_signature, uint8_t *platform_id_cache, size_t max_platform_id)
 {
 	int status;
 

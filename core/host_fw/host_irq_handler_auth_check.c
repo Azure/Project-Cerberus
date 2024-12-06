@@ -38,7 +38,7 @@ void host_irq_handler_auth_check_exit_reset (const struct host_irq_handler *hand
  * @return 0 if the IRQ handler was successfully initialized or an error code.
  */
 int host_irq_handler_auth_check_init (struct host_irq_handler_auth_check *handler,
-	struct host_processor *host, struct hash_engine *hash, struct rsa_engine *rsa,
+	struct host_processor *host, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	struct bmc_recovery *recovery, const struct host_control *control,
 	const struct host_irq_control *irq)
 {

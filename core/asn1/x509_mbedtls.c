@@ -251,12 +251,12 @@ static int x509_mbedtls_add_custom_extension (const struct x509_extension_builde
 	return status;
 }
 
-static int x509_mbedtls_create_csr (struct x509_engine *engine, const uint8_t *priv_key,
+int x509_mbedtls_create_csr (const struct x509_engine *engine, const uint8_t *priv_key,
 	size_t key_length, enum hash_type sig_hash, const char *name, int type, const uint8_t *eku,
 	size_t eku_length, const struct x509_extension_builder *const *extra_extensions,
 	size_t ext_count, uint8_t **csr, size_t *csr_length)
 {
-	struct x509_engine_mbedtls *mbedtls = (struct x509_engine_mbedtls*) engine;
+	const struct x509_engine_mbedtls *mbedtls = (const struct x509_engine_mbedtls*) engine;
 	mbedtls_x509write_csr x509;
 	mbedtls_pk_context key;
 	mbedtls_md_type_t md_alg;
@@ -388,8 +388,8 @@ static int x509_mbedtls_create_csr (struct x509_engine *engine, const uint8_t *p
 	}
 
 	mbedtls_x509write_csr_set_md_alg (&x509, md_alg);
-	status = mbedtls_x509write_csr_der (&x509, mbedtls->der_buf, X509_MAX_SIZE,
-		mbedtls_ctr_drbg_random, &mbedtls->ctr_drbg);
+	status = mbedtls_x509write_csr_der (&x509, mbedtls->state->der_buf, X509_MAX_SIZE,
+		mbedtls_ctr_drbg_random, &mbedtls->state->ctr_drbg);
 	if (status < 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_X509_CSR_DER_WRITE_EC, status, 0);
@@ -403,7 +403,7 @@ static int x509_mbedtls_create_csr (struct x509_engine *engine, const uint8_t *p
 		goto err_free_subject;
 	}
 
-	memcpy (*csr, &mbedtls->der_buf[X509_MAX_SIZE - status], status);
+	memcpy (*csr, &mbedtls->state->der_buf[X509_MAX_SIZE - status], status);
 	*csr_length = status;
 	status = 0;
 
@@ -438,7 +438,7 @@ err_free_csr:
  *
  * @return 0 if the certificate was successfully created or an error code.
  */
-static int x509_mbedtls_create_certificate (struct x509_engine_mbedtls *mbedtls,
+static int x509_mbedtls_create_certificate (const struct x509_engine_mbedtls *mbedtls,
 	struct x509_certificate *cert, mbedtls_pk_context *cert_key, enum hash_type sig_hash,
 	const uint8_t *serial_num, size_t serial_length, const char *name, int type,
 	mbedtls_pk_context *ca_key, const struct x509_certificate *ca_cert,
@@ -605,8 +605,8 @@ static int x509_mbedtls_create_certificate (struct x509_engine_mbedtls *mbedtls,
 	}
 
 	mbedtls_x509write_crt_set_md_alg (&x509_build, md_alg);
-	status = mbedtls_x509write_crt_der (&x509_build, mbedtls->der_buf, X509_MAX_SIZE,
-		mbedtls_ctr_drbg_random, &mbedtls->ctr_drbg);
+	status = mbedtls_x509write_crt_der (&x509_build, mbedtls->state->der_buf, X509_MAX_SIZE,
+		mbedtls_ctr_drbg_random, &mbedtls->state->ctr_drbg);
 	if (status < 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_CRT_WRITE_DER_EC, status, 0);
@@ -620,7 +620,8 @@ static int x509_mbedtls_create_certificate (struct x509_engine_mbedtls *mbedtls,
 		goto err_free_subject;
 	}
 
-	status = mbedtls_x509_crt_parse_der (x509, &mbedtls->der_buf[X509_MAX_SIZE - status], status);
+	status = mbedtls_x509_crt_parse_der (x509, &mbedtls->state->der_buf[X509_MAX_SIZE - status],
+		status);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_CRT_PARSE_DER_EC, status, 0);
@@ -640,7 +641,7 @@ err_free_crt:
 	return status;
 }
 
-static int x509_mbedtls_create_self_signed_certificate (struct x509_engine *engine,
+int x509_mbedtls_create_self_signed_certificate (const struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *priv_key, size_t key_length,
 	enum hash_type sig_hash, const uint8_t *serial_num, size_t serial_length, const char *name,
 	int type, const struct x509_extension_builder *const *extra_extensions, size_t ext_count)
@@ -665,8 +666,9 @@ static int x509_mbedtls_create_self_signed_certificate (struct x509_engine *engi
 		goto err_exit;
 	}
 
-	status = x509_mbedtls_create_certificate ((struct x509_engine_mbedtls*) engine, cert, &cert_key,
-		sig_hash, serial_num, serial_length, name, type, NULL, NULL, extra_extensions, ext_count);
+	status = x509_mbedtls_create_certificate ((const struct x509_engine_mbedtls*) engine, cert,
+		&cert_key, sig_hash, serial_num, serial_length, name, type, NULL, NULL, extra_extensions,
+		ext_count);
 
 	mbedtls_pk_free (&cert_key);
 err_exit:
@@ -674,7 +676,7 @@ err_exit:
 	return status;
 }
 
-static int x509_mbedtls_create_ca_signed_certificate (struct x509_engine *engine,
+int x509_mbedtls_create_ca_signed_certificate (const struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *key, size_t key_length, const uint8_t *serial_num,
 	size_t serial_length, const char *name, int type, const uint8_t *ca_priv_key,
 	size_t ca_key_length, enum hash_type sig_hash, const struct x509_certificate *ca_cert,
@@ -710,9 +712,9 @@ static int x509_mbedtls_create_ca_signed_certificate (struct x509_engine *engine
 		goto err_free_key;
 	}
 
-	status = x509_mbedtls_create_certificate ((struct x509_engine_mbedtls*) engine, cert, &cert_key,
-		sig_hash, serial_num, serial_length, name, type, &ca_key, ca_cert, extra_extensions,
-		ext_count);
+	status = x509_mbedtls_create_certificate ((const struct x509_engine_mbedtls*) engine, cert,
+		&cert_key, sig_hash, serial_num, serial_length, name, type, &ca_key, ca_cert,
+		extra_extensions, ext_count);
 
 	mbedtls_pk_free (&ca_key);
 err_free_key:
@@ -723,7 +725,7 @@ err_exit:
 }
 #endif
 
-static int x509_mbedtls_load_certificate (struct x509_engine *engine, struct x509_certificate *cert,
+int x509_mbedtls_load_certificate (const struct x509_engine *engine, struct x509_certificate *cert,
 	const uint8_t *der, size_t length)
 {
 	mbedtls_x509_crt *x509;
@@ -752,7 +754,7 @@ static int x509_mbedtls_load_certificate (struct x509_engine *engine, struct x50
 	return status;
 }
 
-static void x509_mbedtls_release_certificate (struct x509_engine *engine,
+void x509_mbedtls_release_certificate (const struct x509_engine *engine,
 	struct x509_certificate *cert)
 {
 	UNUSED (engine);
@@ -764,7 +766,7 @@ static void x509_mbedtls_release_certificate (struct x509_engine *engine,
 }
 
 #ifdef X509_ENABLE_CREATE_CERTIFICATES
-static int x509_mbedtls_get_certificate_der (struct x509_engine *engine,
+int x509_mbedtls_get_certificate_der (const struct x509_engine *engine,
 	const struct x509_certificate *cert, uint8_t **der, size_t *length)
 {
 	mbedtls_x509_crt *x509;
@@ -793,7 +795,7 @@ static int x509_mbedtls_get_certificate_der (struct x509_engine *engine,
 #endif
 
 #ifdef X509_ENABLE_AUTHENTICATION
-static int x509_mbedtls_get_certificate_version (struct x509_engine *engine,
+int x509_mbedtls_get_certificate_version (const struct x509_engine *engine,
 	const struct x509_certificate *cert)
 {
 	if ((engine == NULL) || (cert == NULL)) {
@@ -803,7 +805,7 @@ static int x509_mbedtls_get_certificate_version (struct x509_engine *engine,
 	return ((mbedtls_x509_crt*) cert->context)->version;
 }
 
-static int x509_mbedtls_get_serial_number (struct x509_engine *engine,
+int x509_mbedtls_get_serial_number (const struct x509_engine *engine,
 	const struct x509_certificate *cert, uint8_t *serial_num, size_t length)
 {
 	mbedtls_x509_crt *x509;
@@ -822,7 +824,7 @@ static int x509_mbedtls_get_serial_number (struct x509_engine *engine,
 	return x509->serial.len;
 }
 
-static int x509_mbedtls_get_public_key_type (struct x509_engine *engine,
+int x509_mbedtls_get_public_key_type (const struct x509_engine *engine,
 	const struct x509_certificate *cert)
 {
 	if ((engine == NULL) || (cert == NULL)) {
@@ -844,7 +846,7 @@ static int x509_mbedtls_get_public_key_type (struct x509_engine *engine,
 	}
 }
 
-static int x509_mbedtls_get_public_key_length (struct x509_engine *engine,
+int x509_mbedtls_get_public_key_length (const struct x509_engine *engine,
 	const struct x509_certificate *cert)
 {
 	if ((engine == NULL) || (cert == NULL)) {
@@ -854,10 +856,10 @@ static int x509_mbedtls_get_public_key_length (struct x509_engine *engine,
 	return mbedtls_pk_get_bitlen (&((mbedtls_x509_crt*) (cert->context))->pk);
 }
 
-static int x509_mbedtls_get_public_key (struct x509_engine *engine,
+int x509_mbedtls_get_public_key (const struct x509_engine *engine,
 	const struct x509_certificate *cert, uint8_t **key, size_t *key_length)
 {
-	struct x509_engine_mbedtls *mbedtls = (struct x509_engine_mbedtls*) engine;
+	const struct x509_engine_mbedtls *mbedtls = (const struct x509_engine_mbedtls*) engine;
 	int status;
 
 	if (key == NULL) {
@@ -870,7 +872,7 @@ static int x509_mbedtls_get_public_key (struct x509_engine *engine,
 	}
 
 	status = mbedtls_pk_write_pubkey_der (&((mbedtls_x509_crt*) cert->context)->pk,
-		mbedtls->der_buf, X509_MAX_SIZE);
+		mbedtls->state->der_buf, X509_MAX_SIZE);
 	if (status < 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_PK_WRITE_PUBKEY_DER_EC, status, 0);
@@ -883,7 +885,7 @@ static int x509_mbedtls_get_public_key (struct x509_engine *engine,
 		return X509_ENGINE_NO_MEMORY;
 	}
 
-	memcpy (*key, &mbedtls->der_buf[X509_MAX_SIZE - status], status);
+	memcpy (*key, &mbedtls->state->der_buf[X509_MAX_SIZE - status], status);
 	*key_length = status;
 
 	return 0;
@@ -939,7 +941,7 @@ static bool x509_mbedtls_is_self_signed (mbedtls_x509_crt *x509)
 	}
 }
 
-static int x509_mbedtls_init_ca_cert_store (struct x509_engine *engine, struct x509_ca_certs *store)
+int x509_mbedtls_init_ca_cert_store (const struct x509_engine *engine, struct x509_ca_certs *store)
 {
 	struct x509_mbedtls_ca_store_context *store_ctx;
 
@@ -958,7 +960,7 @@ static int x509_mbedtls_init_ca_cert_store (struct x509_engine *engine, struct x
 	return 0;
 }
 
-static void x509_mbedtls_release_ca_cert_store (struct x509_engine *engine,
+void x509_mbedtls_release_ca_cert_store (const struct x509_engine *engine,
 	struct x509_ca_certs *store)
 {
 	UNUSED (engine);
@@ -988,8 +990,8 @@ static void x509_mbedtls_release_ca_cert_store (struct x509_engine *engine,
  *
  * @return 0 if the certificate chain was updated successfully or an error code.
  */
-static int x509_mbedtls_add_ca_to_cert_chain (struct x509_engine *engine, mbedtls_x509_crt **chain,
-	const uint8_t *der, size_t length, bool is_root)
+static int x509_mbedtls_add_ca_to_cert_chain (const struct x509_engine *engine,
+	mbedtls_x509_crt **chain, const uint8_t *der, size_t length, bool is_root)
 {
 	struct x509_certificate cert;
 	mbedtls_x509_crt *x509;
@@ -1040,7 +1042,7 @@ err_exit:
 	return status;
 }
 
-static int x509_mbedtls_add_root_ca (struct x509_engine *engine, struct x509_ca_certs *store,
+int x509_mbedtls_add_root_ca (const struct x509_engine *engine, struct x509_ca_certs *store,
 	const uint8_t *der, size_t length)
 {
 	if (store == NULL) {
@@ -1051,7 +1053,7 @@ static int x509_mbedtls_add_root_ca (struct x509_engine *engine, struct x509_ca_
 		&((struct x509_mbedtls_ca_store_context*) store->context)->root_ca, der, length, true);
 }
 
-static int x509_mbedtls_add_trusted_ca (struct x509_engine *engine, struct x509_ca_certs *store,
+int x509_mbedtls_add_trusted_ca (const struct x509_engine *engine, struct x509_ca_certs *store,
 	const uint8_t *der, size_t length)
 {
 	if (store == NULL) {
@@ -1062,8 +1064,8 @@ static int x509_mbedtls_add_trusted_ca (struct x509_engine *engine, struct x509_
 		&((struct x509_mbedtls_ca_store_context*) store->context)->root_ca, der, length, false);
 }
 
-static int x509_mbedtls_add_intermediate_ca (struct x509_engine *engine,
-	struct x509_ca_certs *store, const uint8_t *der, size_t length)
+int x509_mbedtls_add_intermediate_ca (const struct x509_engine *engine, struct x509_ca_certs *store,
+	const uint8_t *der, size_t length)
 {
 	if (store == NULL) {
 		return X509_ENGINE_INVALID_ARGUMENT;
@@ -1074,10 +1076,10 @@ static int x509_mbedtls_add_intermediate_ca (struct x509_engine *engine,
 		false);
 }
 
-static int x509_mbedtls_authenticate (struct x509_engine *engine,
+int x509_mbedtls_authenticate (const struct x509_engine *engine,
 	const struct x509_certificate *cert, const struct x509_ca_certs *store)
 {
-	struct x509_engine_mbedtls *mbedtls = (struct x509_engine_mbedtls*) engine;
+	const struct x509_engine_mbedtls *mbedtls = (const struct x509_engine_mbedtls*) engine;
 	struct x509_mbedtls_ca_store_context *store_ctx;
 	mbedtls_x509_crt *x509;
 	int status;
@@ -1112,30 +1114,17 @@ static int x509_mbedtls_authenticate (struct x509_engine *engine,
  * Initialize an instance for handling X.509 certificates using mbedTLS.
  *
  * @param engine The X.509 engine to initialize.
+ * @param state Variable context for X.509 operations.  This must be uninitialized.
  *
- * @return 0 if the X.509 engine  was successfully initialized or an error code.
+ * @return 0 if the X.509 engine was successfully initialized or an error code.
  */
-int x509_mbedtls_init (struct x509_engine_mbedtls *engine)
+int x509_mbedtls_init (struct x509_engine_mbedtls *engine, struct x509_engine_mbedtls_state *state)
 {
-	int status;
-
 	if (engine == NULL) {
 		return X509_ENGINE_INVALID_ARGUMENT;
 	}
 
 	memset (engine, 0, sizeof (struct x509_engine_mbedtls));
-
-	mbedtls_ctr_drbg_init (&engine->ctr_drbg);
-	mbedtls_entropy_init (&engine->entropy);
-
-	status = mbedtls_ctr_drbg_seed (&engine->ctr_drbg, mbedtls_entropy_func, &engine->entropy, NULL,
-		0);
-	if (status != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-			CRYPTO_LOG_MSG_MBEDTLS_CTR_DRBG_SEED_EC, status, 0);
-
-		goto exit;
-	}
 
 #ifdef X509_ENABLE_CREATE_CERTIFICATES
 	engine->base.create_csr = x509_mbedtls_create_csr;
@@ -1161,11 +1150,48 @@ int x509_mbedtls_init (struct x509_engine_mbedtls *engine)
 	engine->base.authenticate = x509_mbedtls_authenticate;
 #endif
 
+	engine->state = state;
+
+	return x509_mbedtls_init_state (engine);
+}
+
+/**
+ * Initialize only the variable state of on mbedTLS X.509 engine.  The rest of the instance is
+ * assumed to already have been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param engine The X.509 engine that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int x509_mbedtls_init_state (const struct x509_engine_mbedtls *engine)
+{
+	int status;
+
+	if ((engine == NULL) || (engine->state == NULL)) {
+		return X509_ENGINE_INVALID_ARGUMENT;
+	}
+
+	memset (engine->state, 0, sizeof (*engine->state));
+
+	mbedtls_ctr_drbg_init (&engine->state->ctr_drbg);
+	mbedtls_entropy_init (&engine->state->entropy);
+
+	status = mbedtls_ctr_drbg_seed (&engine->state->ctr_drbg, mbedtls_entropy_func,
+		&engine->state->entropy, NULL, 0);
+	if (status != 0) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
+			CRYPTO_LOG_MSG_MBEDTLS_CTR_DRBG_SEED_EC, status, 0);
+
+		goto exit;
+	}
+
 	return 0;
 
 exit:
-	mbedtls_entropy_free (&engine->entropy);
-	mbedtls_ctr_drbg_free (&engine->ctr_drbg);
+	mbedtls_entropy_free (&engine->state->entropy);
+	mbedtls_ctr_drbg_free (&engine->state->ctr_drbg);
 
 	return status;
 }
@@ -1175,10 +1201,10 @@ exit:
  *
  * @param engine The X.509 engine to release.
  */
-void x509_mbedtls_release (struct x509_engine_mbedtls *engine)
+void x509_mbedtls_release (const struct x509_engine_mbedtls *engine)
 {
 	if (engine) {
-		mbedtls_entropy_free (&engine->entropy);
-		mbedtls_ctr_drbg_free (&engine->ctr_drbg);
+		mbedtls_entropy_free (&engine->state->entropy);
+		mbedtls_ctr_drbg_free (&engine->state->ctr_drbg);
 	}
 }

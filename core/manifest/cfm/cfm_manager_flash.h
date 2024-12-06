@@ -20,7 +20,7 @@ struct cfm_manager_flash {
 
 
 int cfm_manager_flash_init (struct cfm_manager_flash *manager, struct cfm_flash *cfm_region1,
-	struct cfm_flash *cfm_region2, struct state_manager *state, struct hash_engine *hash,
+	struct cfm_flash *cfm_region2, struct state_manager *state, const struct hash_engine *hash,
 	const struct signature_verification *verification);
 void cfm_manager_flash_release (struct cfm_manager_flash *manager);
 

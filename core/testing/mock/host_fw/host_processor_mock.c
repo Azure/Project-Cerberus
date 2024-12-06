@@ -8,7 +8,7 @@
 
 
 static int host_processor_mock_power_on_reset (struct host_processor *host,
-	struct hash_engine *hash, struct rsa_engine *rsa)
+	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
 
@@ -20,8 +20,8 @@ static int host_processor_mock_power_on_reset (struct host_processor *host,
 		MOCK_ARG_PTR_CALL (rsa));
 }
 
-static int host_processor_mock_soft_reset (struct host_processor *host, struct hash_engine *hash,
-	struct rsa_engine *rsa)
+static int host_processor_mock_soft_reset (struct host_processor *host,
+	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
 
@@ -34,7 +34,7 @@ static int host_processor_mock_soft_reset (struct host_processor *host, struct h
 }
 
 static int host_processor_mock_run_time_verification (struct host_processor *host,
-	struct hash_engine *hash, struct rsa_engine *rsa)
+	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
 
@@ -47,7 +47,8 @@ static int host_processor_mock_run_time_verification (struct host_processor *hos
 }
 
 static int host_processor_mock_flash_rollback (struct host_processor *host,
-	struct hash_engine *hash, struct rsa_engine *rsa, bool disable_bypass, bool no_reset)
+	const struct hash_engine *hash, const struct rsa_engine *rsa, bool disable_bypass,
+	bool no_reset)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
 

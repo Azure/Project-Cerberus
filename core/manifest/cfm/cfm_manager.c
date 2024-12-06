@@ -52,7 +52,7 @@ int cfm_manager_remove_observer (struct cfm_manager *manager, const struct cfm_o
  *
  * @return 0 if the CFM manager was initialized successfully or an error code.
  */
-int cfm_manager_init (struct cfm_manager *manager, struct hash_engine *hash)
+int cfm_manager_init (struct cfm_manager *manager, const struct hash_engine *hash)
 {
 	int status;
 
@@ -213,7 +213,7 @@ int cfm_manager_get_id_measured_data (struct cfm_manager *manager, size_t offset
  *
  * @return 0 if the hash was updated successfully or an error code.
  */
-int cfm_manager_hash_id_measured_data (struct cfm_manager *manager, struct hash_engine *hash)
+int cfm_manager_hash_id_measured_data (struct cfm_manager *manager, const struct hash_engine *hash)
 {
 	int status;
 	struct cfm *active;
@@ -278,7 +278,7 @@ int cfm_manager_get_platform_id_measured_data (struct cfm_manager *manager, size
  * @return 0 if the hash was updated successfully or an error code.
  */
 int cfm_manager_hash_platform_id_measured_data (struct cfm_manager *manager,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
 	int status;
 	struct cfm *active;
@@ -347,7 +347,7 @@ int cfm_manager_get_cfm_measured_data (struct cfm_manager *manager, size_t offse
  *
  * @return 0 if the hash was updated successfully or an error code.
  */
-int cfm_manager_hash_cfm_measured_data (struct cfm_manager *manager, struct hash_engine *hash)
+int cfm_manager_hash_cfm_measured_data (struct cfm_manager *manager, const struct hash_engine *hash)
 {
 	int status;
 	struct cfm *active;

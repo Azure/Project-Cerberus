@@ -13,14 +13,14 @@
  * A context for ECC operations that use a generic hardware accelerator.
  */
 struct ecc_engine_ecc_hw {
-	struct ecc_engine base;		/**< The base ECC engine. */
-	const struct ecc_hw *hw;	/**< Interface to the ECC hardware accelerator. */
-	struct rng_engine *rng;		/**< Optional RNG to use for signature generation. */
+	struct ecc_engine base;			/**< The base ECC engine. */
+	const struct ecc_hw *hw;		/**< Interface to the ECC hardware accelerator. */
+	const struct rng_engine *rng;	/**< Optional RNG to use for signature generation. */
 };
 
 
 int ecc_ecc_hw_init (struct ecc_engine_ecc_hw *engine, const struct ecc_hw *hw,
-	struct rng_engine *rng);
+	const struct rng_engine *rng);
 void ecc_ecc_hw_release (const struct ecc_engine_ecc_hw *engine);
 
 

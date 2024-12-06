@@ -34,45 +34,46 @@ struct flash_region {
 
 
 int flash_verify_contents (const struct flash *flash, uint32_t start_addr, size_t length,
-	struct hash_engine *hash, enum hash_type type, struct rsa_engine *rsa, const uint8_t *signature,
-	size_t sig_length, const struct rsa_public_key *pub_key, uint8_t *hash_out, size_t hash_length);
+	const struct hash_engine *hash, enum hash_type type, const struct rsa_engine *rsa,
+	const uint8_t *signature, size_t sig_length, const struct rsa_public_key *pub_key,
+	uint8_t *hash_out, size_t hash_length);
 int flash_verify_noncontiguous_contents (const struct flash *flash,
-	const struct flash_region *regions, size_t count, struct hash_engine *hash, enum hash_type type,
-	struct rsa_engine *rsa, const uint8_t *signature, size_t sig_length,
+	const struct flash_region *regions, size_t count, const struct hash_engine *hash,
+	enum hash_type type, const struct rsa_engine *rsa, const uint8_t *signature, size_t sig_length,
 	const struct rsa_public_key *pub_key, uint8_t *hash_out, size_t hash_length);
 int flash_verify_noncontiguous_contents_at_offset (const struct flash *flash, uint32_t offset,
-	const struct flash_region *regions, size_t count, struct hash_engine *hash, enum hash_type type,
-	struct rsa_engine *rsa, const uint8_t *signature, size_t sig_length,
+	const struct flash_region *regions, size_t count, const struct hash_engine *hash,
+	enum hash_type type, const struct rsa_engine *rsa, const uint8_t *signature, size_t sig_length,
 	const struct rsa_public_key *pub_key, uint8_t *hash_out, size_t hash_length);
 
 int flash_contents_verification (const struct flash *flash, uint32_t start_addr, size_t length,
-	struct hash_engine *hash, enum hash_type type,
+	const struct hash_engine *hash, enum hash_type type,
 	const struct signature_verification *verification, const uint8_t *signature, size_t sig_length,
 	uint8_t *hash_out, size_t hash_length);
 int flash_noncontiguous_contents_verification (const struct flash *flash,
-	const struct flash_region *regions, size_t count, struct hash_engine *hash, enum hash_type type,
-	const struct signature_verification *verification, const uint8_t *signature, size_t sig_length,
-	uint8_t *hash_out, size_t hash_length);
+	const struct flash_region *regions, size_t count, const struct hash_engine *hash,
+	enum hash_type type, const struct signature_verification *verification,
+	const uint8_t *signature, size_t sig_length, uint8_t *hash_out, size_t hash_length);
 int flash_noncontiguous_contents_verification_at_offset (const struct flash *flash, uint32_t offset,
-	const struct flash_region *regions, size_t count, struct hash_engine *hash, enum hash_type type,
-	const struct signature_verification *verification, const uint8_t *signature, size_t sig_length,
-	uint8_t *hash_out, size_t hash_length);
+	const struct flash_region *regions, size_t count, const struct hash_engine *hash,
+	enum hash_type type, const struct signature_verification *verification,
+	const uint8_t *signature, size_t sig_length, uint8_t *hash_out, size_t hash_length);
 
 int flash_hash_contents (const struct flash *flash, uint32_t start_addr, size_t length,
-	struct hash_engine *hash, enum hash_type type, uint8_t *hash_out, size_t hash_length);
+	const struct hash_engine *hash, enum hash_type type, uint8_t *hash_out, size_t hash_length);
 int flash_hash_noncontiguous_contents (const struct flash *flash,
-	const struct flash_region *regions, size_t count, struct hash_engine *hash, enum hash_type type,
-	uint8_t *hash_out, size_t hash_length);
+	const struct flash_region *regions, size_t count, const struct hash_engine *hash,
+	enum hash_type type, uint8_t *hash_out, size_t hash_length);
 int flash_hash_noncontiguous_contents_at_offset (const struct flash *flash, uint32_t offset,
-	const struct flash_region *regions, size_t count, struct hash_engine *hash, enum hash_type type,
-	uint8_t *hash_out, size_t hash_length);
+	const struct flash_region *regions, size_t count, const struct hash_engine *hash,
+	enum hash_type type, uint8_t *hash_out, size_t hash_length);
 
 int flash_hash_update_contents (const struct flash *flash, uint32_t start_addr, size_t length,
-	struct hash_engine *hash);
+	const struct hash_engine *hash);
 int flash_hash_update_noncontiguous_contents (const struct flash *flash,
-	const struct flash_region *regions, size_t count, struct hash_engine *hash);
+	const struct flash_region *regions, size_t count, const struct hash_engine *hash);
 int flash_hash_update_noncontiguous_contents_at_offset (const struct flash *flash, uint32_t offset,
-	const struct flash_region *regions, size_t count, struct hash_engine *hash);
+	const struct flash_region *regions, size_t count, const struct hash_engine *hash);
 
 int flash_erase_region (const struct flash *flash, uint32_t start_addr, size_t length);
 int flash_sector_erase_region (const struct flash *flash, uint32_t start_addr, size_t length);

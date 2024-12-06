@@ -7,7 +7,7 @@
 #include "pfm_mock.h"
 
 
-static int pfm_mock_verify (struct manifest *pfm, struct hash_engine *hash,
+static int pfm_mock_verify (struct manifest *pfm, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
 	struct pfm_mock *mock = (struct pfm_mock*) pfm;
@@ -55,8 +55,8 @@ static void pfm_mock_free_platform_id (struct manifest *pfm, char *id)
 	MOCK_VOID_RETURN (&mock->mock, pfm_mock_free_platform_id, pfm, MOCK_ARG_PTR_CALL (id));
 }
 
-static int pfm_mock_get_hash (struct manifest *pfm, struct hash_engine *hash, uint8_t *hash_out,
-	size_t hash_length)
+static int pfm_mock_get_hash (struct manifest *pfm, const struct hash_engine *hash,
+	uint8_t *hash_out, size_t hash_length)
 {
 	struct pfm_mock *mock = (struct pfm_mock*) pfm;
 

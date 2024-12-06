@@ -140,7 +140,7 @@ int image_header_get_format (const struct image_header *header)
  *
  * @return 0 if the header was hashed successfully or an error code.
  */
-int image_header_hash_header (const struct image_header *header, struct hash_engine *hash,
+int image_header_hash_header (const struct image_header *header, const struct hash_engine *hash,
 	enum hash_type type, uint8_t *digest, size_t length)
 {
 	int status;
@@ -184,7 +184,8 @@ error:
  *
  * @return 0 if the hash was updated successfully or an error code.
  */
-int image_header_hash_update_header (const struct image_header *header, struct hash_engine *hash)
+int image_header_hash_update_header (const struct image_header *header,
+	const struct hash_engine *hash)
 {
 	int status;
 

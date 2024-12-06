@@ -53,7 +53,7 @@ int pfm_manager_remove_observer (struct pfm_manager *manager, const struct pfm_o
  *
  * @return 0 if the PFM manager was initialized successfully or an error code.
  */
-int pfm_manager_init (struct pfm_manager *manager, struct hash_engine *hash, int port)
+int pfm_manager_init (struct pfm_manager *manager, const struct hash_engine *hash, int port)
 {
 	int status;
 
@@ -218,7 +218,7 @@ int pfm_manager_get_id_measured_data (struct pfm_manager *manager, size_t offset
  *
  * @return 0 if the hash was updated successfully or an error code.
  */
-int pfm_manager_hash_id_measured_data (struct pfm_manager *manager, struct hash_engine *hash)
+int pfm_manager_hash_id_measured_data (struct pfm_manager *manager, const struct hash_engine *hash)
 {
 	int status;
 	struct pfm *active;
@@ -283,7 +283,7 @@ int pfm_manager_get_platform_id_measured_data (struct pfm_manager *manager, size
  * @return 0 if the hash was updated successfully or an error code.
  */
 int pfm_manager_hash_platform_id_measured_data (struct pfm_manager *manager,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
 	int status;
 	struct pfm *active;
@@ -352,7 +352,7 @@ int pfm_manager_get_pfm_measured_data (struct pfm_manager *manager, size_t offse
  *
  * @return 0 if the hash was updated successfully or an error code.
  */
-int pfm_manager_hash_pfm_measured_data (struct pfm_manager *manager, struct hash_engine *hash)
+int pfm_manager_hash_pfm_measured_data (struct pfm_manager *manager, const struct hash_engine *hash)
 {
 	int status;
 	struct pfm *active;

@@ -289,7 +289,7 @@ exit:
  * @return 0 if request processed successfully (including TDISP error msg) or an error code.
  */
 int tdisp_lock_interface (struct tdisp_state *tdisp_state, const struct tdisp_driver *tdisp_driver,
-	struct rng_engine *rng_engine, struct cmd_interface_msg *request)
+	const struct rng_engine *rng_engine, struct cmd_interface_msg *request)
 {
 	int status = 0;
 	const struct tdisp_lock_interface_request *tdisp_request;

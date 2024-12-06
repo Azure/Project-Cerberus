@@ -29,7 +29,7 @@ int aes_gcm_mbedtls_decrypt_with_add_data (const struct aes_gcm_engine *engine,
 /**
  * Constant initializer for the AES-GCM API.
  */
-#define	AES_GCM_MBEDTLS_API_STATIC_INIT { \
+#define	AES_GCM_MBEDTLS_API_INIT { \
 		.set_key = aes_gcm_mbedtls_set_key, \
 		.encrypt_data = aes_gcm_mbedtls_encrypt_data, \
 		.encrypt_with_add_data = aes_gcm_mbedtls_encrypt_with_add_data, \
@@ -46,7 +46,7 @@ int aes_gcm_mbedtls_decrypt_with_add_data (const struct aes_gcm_engine *engine,
  * @param state_ptr Variable context for AES operations.
  */
 #define	aes_gcm_mbedtls_static_init(state_ptr) { \
-		.base = AES_GCM_MBEDTLS_API_STATIC_INIT, \
+		.base = AES_GCM_MBEDTLS_API_INIT, \
 		.state = state_ptr, \
 	}
 

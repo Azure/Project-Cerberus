@@ -55,19 +55,20 @@ int cfm_manager_remove_observer (struct cfm_manager *manager, const struct cfm_o
 
 int cfm_manager_get_id_measured_data (struct cfm_manager *manager, size_t offset, uint8_t *buffer,
 	size_t length, uint32_t *total_len);
-int cfm_manager_hash_id_measured_data (struct cfm_manager *manager, struct hash_engine *hash);
+int cfm_manager_hash_id_measured_data (struct cfm_manager *manager, const struct hash_engine *hash);
 
 int cfm_manager_get_platform_id_measured_data (struct cfm_manager *manager, size_t offset,
 	uint8_t *buffer, size_t length, uint32_t *total_len);
 int cfm_manager_hash_platform_id_measured_data (struct cfm_manager *manager,
-	struct hash_engine *hash);
+	const struct hash_engine *hash);
 
 int cfm_manager_get_cfm_measured_data (struct cfm_manager *manager, size_t offset, uint8_t *buffer,
 	size_t length, uint32_t *total_len);
-int cfm_manager_hash_cfm_measured_data (struct cfm_manager *manager, struct hash_engine *hash);
+int cfm_manager_hash_cfm_measured_data (struct cfm_manager *manager,
+	const struct hash_engine *hash);
 
 /* Internal functions for use by derived types. */
-int cfm_manager_init (struct cfm_manager *manager, struct hash_engine *hash);
+int cfm_manager_init (struct cfm_manager *manager, const struct hash_engine *hash);
 void cfm_manager_release (struct cfm_manager *manager);
 
 void cfm_manager_on_cfm_verified (struct cfm_manager *manager);

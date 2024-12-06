@@ -46,7 +46,7 @@ struct firmware_image {
 	 * incorrect signature, FIRMWARE_IMAGE_BAD_SIGNATURE will be returned, regardless of the
 	 * underlying signature verification algorithm.
 	 */
-	int (*verify) (const struct firmware_image *fw, struct hash_engine *hash);
+	int (*verify) (const struct firmware_image *fw, const struct hash_engine *hash);
 
 	/**
 	 * Get the total size of the firmware image.

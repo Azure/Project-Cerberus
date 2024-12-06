@@ -251,10 +251,10 @@ static void attestation_requester_testing_add_certs_to_riot_key_manager (CuTest 
 		MOCK_ARG (X509_CERTCA_ECC_CA_NOPL_DER_LEN));
 	status |= mock_expect (&testing->x509_mock.mock, testing->x509_mock.base.add_intermediate_ca,
 		&testing->x509_mock, 0, MOCK_ARG_SAVED_ARG (5),
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SIGNED_CERT,	RIOT_CORE_DEVID_SIGNED_CERT_LEN),
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SIGNED_CERT, RIOT_CORE_DEVID_SIGNED_CERT_LEN),
 		MOCK_ARG (RIOT_CORE_DEVID_SIGNED_CERT_LEN));
 	status |= mock_expect (&testing->x509_mock.mock, testing->x509_mock.base.authenticate,
-		&testing->x509_mock, 0, MOCK_ARG_SAVED_ARG (4),	MOCK_ARG_SAVED_ARG (5));
+		&testing->x509_mock, 0, MOCK_ARG_SAVED_ARG (4), MOCK_ARG_SAVED_ARG (5));
 	status |= mock_expect (&testing->x509_mock.mock, testing->x509_mock.base.release_ca_cert_store,
 		&testing->x509_mock, 0, MOCK_ARG_SAVED_ARG (5));
 	status |= mock_expect (&testing->x509_mock.mock, testing->x509_mock.base.release_certificate,
@@ -415,7 +415,7 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, &testing->attestation_responder.base,
 		&testing->device_mgr, &testing->store, &testing->primary_hash.base,
 		&testing->background.base, NULL, NULL, &testing->fw_version, &testing->riot,
-		&testing->authorization.base, NULL, NULL, NULL,	NULL, NULL, NULL, &testing->device.base, 1,
+		&testing->authorization.base, NULL, NULL, NULL, NULL, NULL, NULL, &testing->device.base, 1,
 		2, 3, 4, NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -432,7 +432,7 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 
 	if (init_attestation) {
 		status = attestation_requester_init (&testing->test, &testing->state, &testing->mctp,
-			&testing->channel.base,	&testing->primary_hash.base, &testing->secondary_hash.base,
+			&testing->channel.base, &testing->primary_hash.base, &testing->secondary_hash.base,
 			&testing->ecc.base, NULL, &testing->x509.base, &testing->rng.base, &testing->riot,
 			&testing->device_mgr, &testing->cfm_manager.base);
 		CuAssertIntEquals (test, 0, status);
@@ -626,7 +626,7 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 	}
 
 	status = device_manager_update_mctp_bridge_device_entry (&testing->device_mgr, 1, 0xAA, 0xBB,
-		0xCC, 0xDD,	1, component_id, 1);
+		0xCC, 0xDD, 1, component_id, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&testing->device_mgr, 1,
@@ -658,7 +658,7 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 		}
 		else {
 			status = attestation_requester_init (&testing->test, &testing->state, &testing->mctp,
-				&testing->channel.base,	&testing->primary_hash.base, &testing->secondary_hash.base,
+				&testing->channel.base, &testing->primary_hash.base, &testing->secondary_hash.base,
 				&testing->ecc.base, NULL, x509, &testing->rng.base, &testing->riot,
 				&testing->device_mgr, &testing->cfm_manager.base);
 			CuAssertIntEquals (test, 0, status);
@@ -1514,7 +1514,7 @@ static void attestation_requester_testing_send_and_receive_cerberus_challenge (C
 	status = mock_expect (&testing->primary_hash.mock, testing->primary_hash.base.start_sha256,
 		&testing->primary_hash, 0);
 	status |= mock_expect (&testing->primary_hash.mock, testing->primary_hash.base.update,
-		&testing->primary_hash, hash_update_result,	MOCK_ARG_PTR_CONTAINS_TMP (
+		&testing->primary_hash, hash_update_result, MOCK_ARG_PTR_CONTAINS_TMP (
 			&tx_packet.data[sizeof (struct mctp_base_protocol_transport_header) +
 				sizeof (struct cerberus_protocol_header)],
 			sizeof (struct attestation_challenge)),
@@ -1525,18 +1525,18 @@ static void attestation_requester_testing_send_and_receive_cerberus_challenge (C
 	}
 	else {
 		status |= mock_expect (&testing->primary_hash.mock, testing->primary_hash.base.update,
-			&testing->primary_hash,	hash_update_rsp_result, MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+			&testing->primary_hash, hash_update_rsp_result, MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
 
 		if (hash_update_rsp_result == 0) {
 			status |= mock_expect (&testing->primary_hash.mock, testing->primary_hash.base.finish,
-				&testing->primary_hash,	hash_finish_result, MOCK_ARG_NOT_NULL,
+				&testing->primary_hash, hash_finish_result, MOCK_ARG_NOT_NULL,
 				MOCK_ARG (HASH_MAX_HASH_LEN));
 			status |= mock_expect_output_tmp (&testing->primary_hash.mock, 0, digest,
 				sizeof (digest), -1);
 		}
 		if ((hash_update_rsp_result != 0) || (hash_finish_result != 0)) {
 			status |= mock_expect (&testing->primary_hash.mock, testing->primary_hash.base.cancel,
-				&testing->primary_hash,	0);
+				&testing->primary_hash, 0);
 		}
 	}
 	CuAssertIntEquals (test, 0, status);
@@ -1689,7 +1689,7 @@ static void attestation_requester_testing_verify_cerberus_root_ca_with_mocks (Cu
 		status |= mock_expect (&testing->primary_hash.mock,
 			testing->primary_hash.base.calculate_sha256, &testing->primary_hash, 0,
 			MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC_CA_NOPL_DER, X509_CERTSS_ECC_CA_NOPL_DER_LEN),
-			MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN),	MOCK_ARG_NOT_NULL,
+			MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
 			MOCK_ARG (HASH_MAX_HASH_LEN));
 		status |= mock_expect_output_tmp (&testing->primary_hash.mock, 2,
 			&root_ca_digests->digests.digests[SHA256_HASH_LENGTH], SHA256_HASH_LENGTH, -1);
@@ -3999,7 +3999,7 @@ static void attestation_requester_testing_verify_spdm_root_ca_with_mocks (CuTest
 		status |= mock_expect (&testing->primary_hash.mock,
 			testing->primary_hash.base.calculate_sha256, &testing->primary_hash, 0,
 			MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC_CA_NOPL_DER, X509_CERTSS_ECC_CA_NOPL_DER_LEN),
-			MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN),	MOCK_ARG_NOT_NULL,
+			MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
 				MOCK_ARG (HASH_MAX_HASH_LEN));
 		status |= mock_expect_output_tmp (&testing->primary_hash.mock, 2,
 			&root_ca_digests->digests.digests[SHA256_HASH_LENGTH], SHA256_HASH_LENGTH, -1);
@@ -5212,7 +5212,7 @@ static void attestation_requester_test_init_state (CuTest *test)
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, &testing.attestation_responder.base,
 		&testing.device_mgr, &testing.store, &testing.primary_hash.base,
 		&testing.background.base, NULL, NULL, &testing.fw_version, &testing.riot,
-		&testing.authorization.base, NULL, NULL, NULL,	NULL, NULL, NULL, &testing.device.base, 1,
+		&testing.authorization.base, NULL, NULL, NULL, NULL, NULL, NULL, &testing.device.base, 1,
 		2, 3, 4, NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5418,7 +5418,7 @@ static void attestation_requester_test_attest_device_cerberus_ecc_untrusted_root
 		false, false, false, false, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG (0),	MOCK_ARG_NOT_NULL);
+		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 2, &pmr_digest,
 		sizeof (struct cfm_pmr_digest), -1);
 	status |= mock_expect_save_arg (&testing.cfm.mock, 2, 1);
@@ -6425,7 +6425,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ad
 		&testing.x509_mock, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.x509_mock.mock, 0, 0);
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.add_root_ca,
-		&testing.x509_mock,	X509_ENGINE_NO_MEMORY, MOCK_ARG_SAVED_ARG (0),
+		&testing.x509_mock, X509_ENGINE_NO_MEMORY, MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_RSA_CA_NOPL_DER, X509_CERTSS_RSA_CA_NOPL_DER_LEN),
 		MOCK_ARG (X509_CERTSS_RSA_CA_NOPL_DER_LEN));
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
@@ -6479,10 +6479,10 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.init_ca_cert_store,
-		&testing.x509_mock,	0, MOCK_ARG_NOT_NULL);
+		&testing.x509_mock, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.x509_mock.mock, 0, 0);
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.add_root_ca,
-		&testing.x509_mock,	X509_ENGINE_NO_MEMORY, MOCK_ARG_SAVED_ARG (0),
+		&testing.x509_mock, X509_ENGINE_NO_MEMORY, MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_RSA_CA_NOPL_DER, X509_CERTSS_RSA_CA_NOPL_DER_LEN),
 		MOCK_ARG (X509_CERTSS_RSA_CA_NOPL_DER_LEN));
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
@@ -6556,7 +6556,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 	status = mock_expect (&testing.primary_hash.mock,
 		testing.primary_hash.base.calculate_sha256, &testing.primary_hash, HASH_ENGINE_NO_MEMORY,
 		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC_CA_NOPL_DER, X509_CERTSS_ECC_CA_NOPL_DER_LEN),
-		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN),	MOCK_ARG_NOT_NULL,
+		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (HASH_MAX_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
@@ -6629,7 +6629,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 	status = mock_expect (&testing.primary_hash.mock,
 		testing.primary_hash.base.calculate_sha256, &testing.primary_hash, 0,
 		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC_CA_NOPL_DER, X509_CERTSS_ECC_CA_NOPL_DER_LEN),
-		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN),	MOCK_ARG_NOT_NULL,
+		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (HASH_MAX_HASH_LEN));
 	status |= mock_expect_output_tmp (&testing.primary_hash.mock, 2, out_digest, SHA256_HASH_LENGTH,
 		-1);
@@ -6702,7 +6702,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 	status = mock_expect (&testing.primary_hash.mock,
 		testing.primary_hash.base.calculate_sha256, &testing.primary_hash, 0,
 		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC_CA_NOPL_DER, X509_CERTSS_ECC_CA_NOPL_DER_LEN),
-		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN),	MOCK_ARG_NOT_NULL,
+		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (HASH_MAX_HASH_LEN));
 	status |= mock_expect_output_tmp (&testing.primary_hash.mock, 2,
 		&ca_digests[SHA256_HASH_LENGTH], SHA256_HASH_LENGTH, -1);
@@ -6712,7 +6712,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 		&testing.x509_mock, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.x509_mock.mock, 0, 0);
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.add_root_ca,
-		&testing.x509_mock,	X509_ENGINE_NO_MEMORY, MOCK_ARG_SAVED_ARG (0),
+		&testing.x509_mock, X509_ENGINE_NO_MEMORY, MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC_CA_NOPL_DER, X509_CERTSS_ECC_CA_NOPL_DER_LEN),
 		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN));
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
@@ -27536,6 +27536,9 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	status = cfm_mock_init (&testing.cfm);
 	CuAssertIntEquals (test, 0, status);
 
+	status = X509_TESTING_ENGINE_INIT (&testing.x509);
+	CuAssertIntEquals (test, 0, status);
+
 	status = mock_expect (&testing.keystore.mock, testing.keystore.base.load_key,
 		&testing.keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.keystore.mock, 1, &testing.dev_id_der,
@@ -27588,7 +27591,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, &testing.attestation_responder.base,
 		&testing.device_mgr, &testing.store, &testing.primary_hash.base,
 		&testing.background.base, NULL, NULL, &testing.fw_version, &testing.riot,
-		&testing.authorization.base, NULL, NULL, NULL,	NULL, NULL, NULL, &testing.device.base, 1,
+		&testing.authorization.base, NULL, NULL, NULL, NULL, NULL, NULL, &testing.device.base, 1,
 		2, 3, 4, NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -27688,7 +27691,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	cert_chain->length = testing.cert_buffer_len;
 
 	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 1, 0xAA, 0xBB,
-		0xCC, 0xDD,	1, component_id, 1);
+		0xCC, 0xDD, 1, component_id, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&testing.device_mgr, 1,
@@ -28805,7 +28808,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_init_c
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.init_ca_cert_store,
-		&testing.x509_mock,	X509_ENGINE_NO_MEMORY, MOCK_ARG_NOT_NULL);
+		&testing.x509_mock, X509_ENGINE_NO_MEMORY, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
@@ -28865,10 +28868,10 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_add_ro
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.init_ca_cert_store,
-		&testing.x509_mock,	0, MOCK_ARG_NOT_NULL);
+		&testing.x509_mock, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.x509_mock.mock, 0, 0);
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.add_root_ca,
-		&testing.x509_mock,	X509_ENGINE_NO_MEMORY, MOCK_ARG_SAVED_ARG (0),
+		&testing.x509_mock, X509_ENGINE_NO_MEMORY, MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_RSA_CA_NOPL_DER, X509_CERTSS_RSA_CA_NOPL_DER_LEN),
 		MOCK_ARG (X509_CERTSS_RSA_CA_NOPL_DER_LEN));
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
@@ -28932,7 +28935,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rio
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.init_ca_cert_store,
-		&testing.x509_mock,	0, MOCK_ARG_NOT_NULL);
+		&testing.x509_mock, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.x509_mock.mock, 0, 0);
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.add_root_ca,
 		&testing.x509_mock, X509_ENGINE_NO_MEMORY, MOCK_ARG_SAVED_ARG (0),
@@ -29075,7 +29078,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 	status = mock_expect (&testing.primary_hash.mock,
 		testing.primary_hash.base.calculate_sha256, &testing.primary_hash, HASH_ENGINE_NO_MEMORY,
 		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC_CA_NOPL_DER, X509_CERTSS_ECC_CA_NOPL_DER_LEN),
-		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN),	MOCK_ARG_NOT_NULL,
+		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (HASH_MAX_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
@@ -29158,7 +29161,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 	status = mock_expect (&testing.primary_hash.mock,
 		testing.primary_hash.base.calculate_sha256, &testing.primary_hash, 0,
 		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC_CA_NOPL_DER, X509_CERTSS_ECC_CA_NOPL_DER_LEN),
-		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN),	MOCK_ARG_NOT_NULL,
+		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (HASH_MAX_HASH_LEN));
 	status |= mock_expect_output_tmp (&testing.primary_hash.mock, 2, out_digest, SHA256_HASH_LENGTH,
 		-1);
@@ -29241,14 +29244,14 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 	status = mock_expect (&testing.primary_hash.mock,
 		testing.primary_hash.base.calculate_sha256, &testing.primary_hash, 0,
 		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC_CA_NOPL_DER, X509_CERTSS_ECC_CA_NOPL_DER_LEN),
-		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN),	MOCK_ARG_NOT_NULL,
+		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (HASH_MAX_HASH_LEN));
 	status |= mock_expect_output_tmp (&testing.primary_hash.mock, 2,
 		&ca_digests[SHA256_HASH_LENGTH], SHA256_HASH_LENGTH, -1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.init_ca_cert_store,
-		&testing.x509_mock,	0, MOCK_ARG_NOT_NULL);
+		&testing.x509_mock, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.x509_mock.mock, 0, 0);
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.add_root_ca,
 		&testing.x509_mock, X509_ENGINE_NO_MEMORY, MOCK_ARG_SAVED_ARG (0),
@@ -36643,6 +36646,9 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 	status = rng_mock_init (&testing.rng);
 	CuAssertIntEquals (test, 0, status);
 
+	status = x509_mock_init (&testing.x509_mock);
+	CuAssertIntEquals (test, 0, status);
+
 	status = keystore_mock_init (&testing.keystore);
 	CuAssertIntEquals (test, 0, status);
 
@@ -36673,6 +36679,9 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 	status = cfm_mock_init (&testing.cfm);
 	CuAssertIntEquals (test, 0, status);
 
+	status = X509_TESTING_ENGINE_INIT (&testing.x509);
+	CuAssertIntEquals (test, 0, status);
+
 	status = mock_expect (&testing.keystore.mock, testing.keystore.base.load_key,
 		&testing.keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.keystore.mock, 1, &testing.dev_id_der,
@@ -36700,7 +36709,7 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 1, 0xAA, 0xBB,
-		0xCC, 0xDD,	1, component_id, 1);
+		0xCC, 0xDD, 1, component_id, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_interface_multi_handler_msg_type_init (&testing.mctp_ctrl,
@@ -36722,7 +36731,7 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, &testing.attestation_responder.base,
 		&testing.device_mgr, &testing.store, &testing.primary_hash.base,
 		&testing.background.base, NULL, NULL, &testing.fw_version, &testing.riot,
-		&testing.authorization.base, NULL, NULL, NULL,	NULL, NULL, NULL, &testing.device.base, 1,
+		&testing.authorization.base, NULL, NULL, NULL, NULL, NULL, NULL, &testing.device.base, 1,
 		2, 3, 4, NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -36738,7 +36747,7 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
-		&testing.channel.base,	&testing.primary_hash.base, &testing.secondary_hash.base,
+		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
 		&testing.ecc.base, NULL, &testing.x509.base, &testing.rng.base, &testing.riot,
 		&testing.device_mgr, &testing.cfm_manager.base);
 	CuAssertIntEquals (test, 0, status);
@@ -38615,7 +38624,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, &testing.attestation_responder.base,
 		&testing.device_mgr, &testing.store, &testing.primary_hash.base,
 		&testing.background.base, NULL, NULL, &testing.fw_version, &testing.riot,
-		&testing.authorization.base, NULL, NULL, NULL,	NULL, NULL, NULL, &testing.device.base, 1,
+		&testing.authorization.base, NULL, NULL, NULL, NULL, NULL, NULL, &testing.device.base, 1,
 		2, 3, 4, NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -38720,15 +38729,15 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	cert_chain->length = testing.cert_buffer_len;
 
 	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 1, 0xAA, 0xBB,
-		0xCC, 0xDD,	1, component_id, 1);
+		0xCC, 0xDD, 1, component_id, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 2, 0xAB, 0xBC,
-		0xCD, 0xDE,	1, component_id2, 2);
+		0xCD, 0xDE, 1, component_id2, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
-		&testing.channel.base,	&testing.primary_hash.base, &testing.secondary_hash.base,
+		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
 		&testing.ecc.base, NULL, &testing.x509_mock.base, &testing.rng.base, &testing.riot,
 		&testing.device_mgr, &testing.cfm_manager.base);
 	CuAssertIntEquals (test, 0, status);

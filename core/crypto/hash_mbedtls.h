@@ -36,7 +36,8 @@ struct hash_engine_mbedtls {
 
 
 int hash_mbedtls_init (struct hash_engine_mbedtls *engine, struct hash_engine_mbedtls_state *state);
-void hash_mbedtls_release (struct hash_engine_mbedtls *engine);
+int hash_mbedtls_init_state (const struct hash_engine_mbedtls *engine);
+void hash_mbedtls_release (const struct hash_engine_mbedtls *engine);
 
 
 #endif	/* HASH_MBEDTLS_H_ */

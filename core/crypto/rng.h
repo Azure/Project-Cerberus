@@ -23,7 +23,7 @@ struct rng_engine {
 	 *
 	 * @return 0 if the random buffer was successfully filled or an error code.
 	 */
-	int (*generate_random_buffer) (struct rng_engine *engine, size_t rand_len, uint8_t *buf);
+	int (*generate_random_buffer) (const struct rng_engine *engine, size_t rand_len, uint8_t *buf);
 };
 
 

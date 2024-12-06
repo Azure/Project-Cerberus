@@ -375,7 +375,7 @@ int pcr_update_digest (struct pcr_bank *pcr, uint8_t measurement_index, const ui
  *
  * @return Completion status, 0 if success or an error code
  */
-static int pcr_update_buffer_common (struct pcr_bank *pcr, struct hash_engine *hash,
+static int pcr_update_buffer_common (struct pcr_bank *pcr, const struct hash_engine *hash,
 	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event,
 	bool include_version, bool is_constant, uint8_t version)
 {
@@ -453,8 +453,8 @@ hash_cancel:
  *
  * @return Completion status, 0 if success or an error code.
  */
-int pcr_update_buffer (struct pcr_bank *pcr, struct hash_engine *hash, uint8_t measurement_index,
-	const uint8_t *buf, size_t buf_len, bool include_event)
+int pcr_update_buffer (struct pcr_bank *pcr, const struct hash_engine *hash,
+	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event)
 {
 	if ((pcr == NULL) || (hash == NULL)) {
 		return PCR_INVALID_ARGUMENT;
@@ -479,7 +479,7 @@ int pcr_update_buffer (struct pcr_bank *pcr, struct hash_engine *hash, uint8_t m
  *
  * @return Completion status, 0 if success or an error code.
  */
-int pcr_update_versioned_buffer (struct pcr_bank *pcr, struct hash_engine *hash,
+int pcr_update_versioned_buffer (struct pcr_bank *pcr, const struct hash_engine *hash,
 	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event,
 	uint8_t version)
 {
@@ -523,7 +523,7 @@ int pcr_const_update_digest (struct pcr_bank *pcr, uint8_t measurement_index, co
  *
  * @return Completion status, 0 if success or an error code.
  */
-int pcr_const_update_buffer (struct pcr_bank *pcr, struct hash_engine *hash,
+int pcr_const_update_buffer (struct pcr_bank *pcr, const struct hash_engine *hash,
 	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event)
 {
 	if ((pcr == NULL) || (hash == NULL)) {
@@ -550,7 +550,7 @@ int pcr_const_update_buffer (struct pcr_bank *pcr, struct hash_engine *hash,
  *
  * @return Completion status, 0 if success or an error code.
  */
-int pcr_const_update_versioned_buffer (struct pcr_bank *pcr, struct hash_engine *hash,
+int pcr_const_update_versioned_buffer (struct pcr_bank *pcr, const struct hash_engine *hash,
 	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event,
 	uint8_t version)
 {
@@ -617,8 +617,8 @@ int pcr_invalidate_measurement (struct pcr_bank *pcr, uint8_t measurement_index)
  * @return Length of the generated PCR value or an error code.  Use ROT_IS_ERROR to check the return
  * status.
  */
-int pcr_compute (struct pcr_bank *pcr, struct hash_engine *hash, bool lock, uint8_t *measurement,
-	size_t length)
+int pcr_compute (struct pcr_bank *pcr, const struct hash_engine *hash, bool lock,
+	uint8_t *measurement, size_t length)
 {
 	uint8_t prev_measurement[PCR_MAX_DIGEST_LENGTH] = {0};
 	int hash_length;
@@ -1049,7 +1049,7 @@ int pcr_get_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index, s
  * ROT_IS_ERROR to check the return value.
  */
 int pcr_hash_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
-	struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer, size_t length)
+	const struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer, size_t length)
 {
 	const struct pcr_measured_data *measured_data;
 	int hash_length;

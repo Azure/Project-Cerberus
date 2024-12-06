@@ -61,7 +61,7 @@ struct intrusion_manager {
 	int (*check_state) (struct intrusion_manager *manager);
 
 	struct intrusion_state *state;			/**< The handler for intrusion state. */
-	struct hash_engine *hash;				/**< Hash engine for generating measurements. */
+	const struct hash_engine *hash;			/**< Hash engine for generating measurements. */
 	struct pcr_store *pcr;					/**< Storage for intrusion measurement. */
 	uint16_t measurement;					/**< Id for the intrusion measurement. */
 	struct pcr_measured_data event_data;	/**< Data for the intrusion measurement. */
@@ -70,7 +70,7 @@ struct intrusion_manager {
 
 
 int intrusion_manager_init (struct intrusion_manager *manager, struct intrusion_state *state,
-	struct hash_engine *hash, struct pcr_store *pcr, uint16_t measurement);
+	const struct hash_engine *hash, struct pcr_store *pcr, uint16_t measurement);
 void intrusion_manager_release (struct intrusion_manager *manager);
 
 /* Internal functions for use by derived types. */

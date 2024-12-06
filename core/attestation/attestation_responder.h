@@ -85,8 +85,8 @@ struct attestation_responder {
 	 * @return 0 if the unsealing was successful or an error code.
 	 */
 	int (*aux_attestation_unseal) (struct attestation_responder *attestation,
-		struct hash_engine *hash, enum aux_attestation_key_length key_type, const uint8_t *seed,
-		size_t seed_length, enum aux_attestation_seed_type seed_type,
+		const struct hash_engine *hash, enum aux_attestation_key_length key_type,
+		const uint8_t *seed, size_t seed_length, enum aux_attestation_seed_type seed_type,
 		enum aux_attestation_seed_param seed_param, const uint8_t *hmac, enum hmac_hash hmac_type,
 		const uint8_t *ciphertext, size_t cipher_length, const uint8_t sealing[][64],
 		size_t pcr_count, uint8_t *key, size_t key_length);
@@ -127,9 +127,9 @@ struct attestation_responder {
 		size_t key_length, bool hash_seed, uint8_t *seed, size_t seed_length);
 
 	struct ecc_private_key ecc_priv_key;	/**< RIoT ECC private key. */
-	struct hash_engine *hash;				/**< The hashing engine for attestation authentication operations. */
+	const struct hash_engine *hash;			/**< The hashing engine for attestation authentication operations. */
 	struct ecc_engine *ecc;					/**< The ECC engine for attestation authentication operations. */
-	struct rng_engine *rng;					/**< The RNG engine for attestation authentication operations. */
+	const struct rng_engine *rng;			/**< The RNG engine for attestation authentication operations. */
 	const struct riot_key_manager *riot;	/**< The manager for RIoT keys. */
 	struct pcr_store *pcr_store;			/**< Storage for device measurements. */
 	struct aux_attestation *aux;			/**< Auxiliary attestation service handler. */
@@ -141,12 +141,12 @@ struct attestation_responder {
 
 
 int attestation_responder_init (struct attestation_responder *attestation,
-	const struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
-	struct rng_engine *rng, struct pcr_store *store, struct aux_attestation *aux,
+	const struct riot_key_manager *riot, const struct hash_engine *hash, struct ecc_engine *ecc,
+	const struct rng_engine *rng, struct pcr_store *store, struct aux_attestation *aux,
 	uint8_t min_protocol_version, uint8_t max_protocol_version);
 int attestation_responder_init_no_aux (struct attestation_responder *attestation,
-	const struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
-	struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version,
+	const struct riot_key_manager *riot, const struct hash_engine *hash, struct ecc_engine *ecc,
+	const struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version,
 	uint8_t max_protocol_version);
 
 void attestation_responder_release (struct attestation_responder *attestation);

@@ -9,7 +9,7 @@
 #include "mbedtls/base64.h"
 
 
-static int base64_mbedtls_encode (struct base64_engine *engine, const uint8_t *data, size_t length,
+int base64_mbedtls_encode (const struct base64_engine *engine, const uint8_t *data, size_t length,
 	uint8_t *encoded, size_t enc_length)
 {
 	int status;
@@ -51,7 +51,7 @@ int base64_mbedtls_init (struct base64_engine_mbedtls *engine)
  *
  * @param engine The base64 engine to release.
  */
-void base64_mbedtls_release (struct base64_engine_mbedtls *engine)
+void base64_mbedtls_release (const struct base64_engine_mbedtls *engine)
 {
 	UNUSED (engine);
 }

@@ -36,7 +36,7 @@ static void host_processor_dual_force_bypass_mode (struct host_processor_filtere
 }
 
 static int host_processor_dual_power_on_reset (struct host_processor *host,
-	struct hash_engine *hash, struct rsa_engine *rsa)
+	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	struct host_processor_filtered *dual = (struct host_processor_filtered*) host;
 
@@ -47,8 +47,8 @@ static int host_processor_dual_power_on_reset (struct host_processor *host,
 	return host_processor_filtered_power_on_reset (dual, hash, rsa, false);
 }
 
-static int host_processor_dual_soft_reset (struct host_processor *host, struct hash_engine *hash,
-	struct rsa_engine *rsa)
+static int host_processor_dual_soft_reset (struct host_processor *host,
+	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	struct host_processor_filtered *dual = (struct host_processor_filtered*) host;
 
@@ -60,7 +60,7 @@ static int host_processor_dual_soft_reset (struct host_processor *host, struct h
 }
 
 static int host_processor_dual_run_time_verification (struct host_processor *host,
-	struct hash_engine *hash, struct rsa_engine *rsa)
+	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	struct host_processor_filtered *dual = (struct host_processor_filtered*) host;
 
@@ -73,7 +73,8 @@ static int host_processor_dual_run_time_verification (struct host_processor *hos
 }
 
 static int host_processor_dual_flash_rollback (struct host_processor *host,
-	struct hash_engine *hash, struct rsa_engine *rsa, bool disable_bypass, bool no_reset)
+	const struct hash_engine *hash, const struct rsa_engine *rsa, bool disable_bypass,
+	bool no_reset)
 {
 	struct host_processor_filtered *dual = (struct host_processor_filtered*) host;
 	struct pfm *active_pfm;

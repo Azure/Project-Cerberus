@@ -16,7 +16,7 @@ struct rng_engine_openssl {
 };
 
 int rng_openssl_init (struct rng_engine_openssl *engine);
-void rng_openssl_release (struct rng_engine_openssl *engine);
+void rng_openssl_release (const struct rng_engine_openssl *engine);
 
 
 #endif // RNG_OPENSSL_H_

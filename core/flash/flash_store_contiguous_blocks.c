@@ -778,7 +778,7 @@ int flash_store_contiguous_blocks_init_storage_common (struct flash_store_contig
  */
 static int flash_store_contiguous_blocks_init (struct flash_store_contiguous_blocks *store,
 	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,
-	uint32_t base_addr, size_t block_count, size_t data_length, struct hash_engine *hash,
+	uint32_t base_addr, size_t block_count, size_t data_length, const struct hash_engine *hash,
 	bool decreasing, bool variable)
 {
 	int status;
@@ -824,7 +824,7 @@ static int flash_store_contiguous_blocks_init (struct flash_store_contiguous_blo
  */
 int flash_store_contiguous_blocks_init_fixed_storage (struct flash_store_contiguous_blocks *store,
 	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,
-	uint32_t base_addr, size_t block_count, size_t data_length, struct hash_engine *hash)
+	uint32_t base_addr, size_t block_count, size_t data_length, const struct hash_engine *hash)
 {
 	return flash_store_contiguous_blocks_init (store, state, flash, base_addr, block_count,
 		data_length, hash, false, false);
@@ -849,7 +849,7 @@ int flash_store_contiguous_blocks_init_fixed_storage (struct flash_store_contigu
 int flash_store_contiguous_blocks_init_fixed_storage_decreasing (
 	struct flash_store_contiguous_blocks *store, struct flash_store_contiguous_blocks_state *state,
 	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t data_length,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
 	return flash_store_contiguous_blocks_init (store, state, flash, base_addr, block_count,
 		data_length, hash, true, false);
@@ -874,7 +874,7 @@ int flash_store_contiguous_blocks_init_fixed_storage_decreasing (
 int flash_store_contiguous_blocks_init_variable_storage (
 	struct flash_store_contiguous_blocks *store, struct flash_store_contiguous_blocks_state *state,
 	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
 	return flash_store_contiguous_blocks_init (store, state, flash, base_addr, block_count,
 		min_length,	hash, false, true);
@@ -900,7 +900,7 @@ int flash_store_contiguous_blocks_init_variable_storage (
 int flash_store_contiguous_blocks_init_variable_storage_decreasing (
 	struct flash_store_contiguous_blocks *store, struct flash_store_contiguous_blocks_state *state,
 	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
 	return flash_store_contiguous_blocks_init (store, state, flash, base_addr, block_count,
 		min_length,	hash, true, true);

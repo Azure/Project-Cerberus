@@ -8,7 +8,7 @@
 
 
 static int host_irq_handler_mock_power_on (const struct host_irq_handler *handler,
-	bool allow_unsecure, struct hash_engine *hash)
+	bool allow_unsecure, const struct hash_engine *hash)
 {
 	struct host_irq_handler_mock *mock = (struct host_irq_handler_mock*) handler;
 

@@ -56,7 +56,7 @@ struct key_manifest {
 	 *
 	 * @return 0 if the manifest is valid or an error code.
 	 */
-	int (*verify) (const struct key_manifest *manifest, struct hash_engine *hash);
+	int (*verify) (const struct key_manifest *manifest, const struct hash_engine *hash);
 
 	/**
 	 * Check if the key manifest is allowed to be used on this device.  An allowed manifest is one

@@ -63,7 +63,7 @@ enum aux_attestation_key_length {
  */
 struct aux_attestation {
 	const struct keystore *keystore;		/**< Storage for the attestation private key. */
-	struct rsa_engine *rsa;					/**< Interface for RSA operations with the private key. */
+	const struct rsa_engine *rsa;			/**< Interface for RSA operations with the private key. */
 	const struct riot_key_manager *riot;	/**< Storage for the ECC attestation key. */
 	struct ecc_engine *ecc;					/**< Interface for ECC unsealing operations. */
 	struct der_cert cert;					/**< The certificate for the attestation private key. */
@@ -72,14 +72,14 @@ struct aux_attestation {
 
 
 int aux_attestation_init (struct aux_attestation *aux, const struct keystore *keystore,
-	struct rsa_engine *rsa, const struct riot_key_manager *riot, struct ecc_engine *ecc);
+	const struct rsa_engine *rsa, const struct riot_key_manager *riot, struct ecc_engine *ecc);
 void aux_attestation_release (struct aux_attestation *aux);
 
 int aux_attestation_generate_key (struct aux_attestation *aux);
 int aux_attestation_erase_key (struct aux_attestation *aux);
 
-int aux_attestation_create_certificate (struct aux_attestation *aux, struct x509_engine *x509,
-	struct rng_engine *rng, const uint8_t *ca, size_t ca_length, const uint8_t *ca_key,
+int aux_attestation_create_certificate (struct aux_attestation *aux, const struct x509_engine *x509,
+	const struct rng_engine *rng, const uint8_t *ca, size_t ca_length, const uint8_t *ca_key,
 	size_t key_length);
 int aux_attestation_set_certificate (struct aux_attestation *aux, uint8_t *cert, size_t length);
 int aux_attestation_set_static_certificate (struct aux_attestation *aux, const uint8_t *cert,
@@ -87,7 +87,7 @@ int aux_attestation_set_static_certificate (struct aux_attestation *aux, const u
 const struct der_cert* aux_attestation_get_certificate (struct aux_attestation *aux);
 
 
-int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *hash,
+int aux_attestation_unseal (struct aux_attestation *aux, const struct hash_engine *hash,
 	struct pcr_store *pcr, enum aux_attestation_key_length key_type, const uint8_t *seed,
 	size_t seed_length, enum aux_attestation_seed_type seed_type,
 	enum aux_attestation_seed_param seed_param, const uint8_t *hmac, enum hmac_hash hmac_type,
@@ -98,7 +98,7 @@ int aux_attestation_decrypt (struct aux_attestation *aux, const uint8_t *encrypt
 	size_t len_encrypted, const uint8_t *label, size_t len_label, enum hash_type pad_hash,
 	uint8_t *decrypted, size_t len_decrypted);
 int aux_attestation_generate_ecdh_seed (struct aux_attestation *aux, const uint8_t *ecc_key,
-	size_t key_length, struct hash_engine *hash, uint8_t *seed, size_t seed_length);
+	size_t key_length, const struct hash_engine *hash, uint8_t *seed, size_t seed_length);
 
 
 #define	AUX_ATTESTATION_ERROR(code)		ROT_ERROR (ROT_MODULE_AUX_ATTESTATION, code)

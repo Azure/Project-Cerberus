@@ -84,8 +84,8 @@ int manifest_cmd_handler_pfm_activation (const struct manifest_cmd_handler *hand
 int manifest_cmd_handler_pfm_init (struct manifest_cmd_handler_pfm *handler,
 	struct manifest_cmd_handler_state *state, const struct manifest_manager *manifest,
 	const struct event_task *task, struct host_processor *host,
-	struct host_state_manager *host_state, struct hash_engine *hash, struct rsa_engine *rsa,
-	const struct spi_filter_interface *filter)
+	struct host_state_manager *host_state, const struct hash_engine *hash,
+	const struct rsa_engine *rsa, const struct spi_filter_interface *filter)
 {
 	int status;
 

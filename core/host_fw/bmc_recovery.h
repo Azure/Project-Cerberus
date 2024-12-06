@@ -57,8 +57,8 @@ struct bmc_recovery {
 	 * @return 0 if recovery was successful or no recovery was performed.  Otherwise, the error
 	 * status of the recovery operation.
 	 */
-	int (*on_host_cs1) (struct bmc_recovery *recovery, struct hash_engine *hash,
-		struct rsa_engine *rsa);
+	int (*on_host_cs1) (struct bmc_recovery *recovery, const struct hash_engine *hash,
+		const struct rsa_engine *rsa);
 
 	const struct host_irq_control *irq;		/**< Control for enabling and disable host IRQs. */
 	struct host_processor *host;			/**< The BMC host for recovery operations. */

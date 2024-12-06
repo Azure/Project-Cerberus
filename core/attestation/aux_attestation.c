@@ -37,7 +37,7 @@ static const char AUX_ATTESTATION_SIGNING_LABEL[] = "signing key";
  * @return 0 if the attestation handler was successfully initialized or an error code.
  */
 int aux_attestation_init (struct aux_attestation *aux, const struct keystore *keystore,
-	struct rsa_engine *rsa, const struct riot_key_manager *riot, struct ecc_engine *ecc)
+	const struct rsa_engine *rsa, const struct riot_key_manager *riot, struct ecc_engine *ecc)
 {
 	if ((aux == NULL) || ((rsa != NULL) && (keystore == NULL)) ||
 		((ecc != NULL) && (riot == NULL))) {
@@ -171,8 +171,8 @@ int aux_attestation_erase_key (struct aux_attestation *aux)
  * @return 0 if the certificate was create successfully or an error code.  The certificate itself
  * can be retrieved from aux_attestation_get_certificate.
  */
-int aux_attestation_create_certificate (struct aux_attestation *aux, struct x509_engine *x509,
-	struct rng_engine *rng, const uint8_t *ca, size_t ca_length, const uint8_t *ca_key,
+int aux_attestation_create_certificate (struct aux_attestation *aux, const struct x509_engine *x509,
+	const struct rng_engine *rng, const uint8_t *ca, size_t ca_length, const uint8_t *ca_key,
 	size_t key_length)
 {
 	uint8_t *priv;
@@ -216,7 +216,7 @@ int aux_attestation_create_certificate (struct aux_attestation *aux, struct x509
 		}
 	} while (i == sizeof (serial_num));
 
-	status = x509->create_ca_signed_certificate (x509, &attestation_cert, priv, length,	serial_num,
+	status = x509->create_ca_signed_certificate (x509, &attestation_cert, priv, length, serial_num,
 		sizeof (serial_num), "AUX", X509_CERT_END_ENTITY, ca_key, key_length, HASH_TYPE_SHA256,
 		&ca_cert, NULL, 0);
 	if (status != 0) {
@@ -338,7 +338,7 @@ const struct der_cert* aux_attestation_get_certificate (struct aux_attestation *
  *
  * @return 0 if the unsealing was successful or an error code.
  */
-int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *hash,
+int aux_attestation_unseal (struct aux_attestation *aux, const struct hash_engine *hash,
 	struct pcr_store *pcr, enum aux_attestation_key_length key_type, const uint8_t *seed,
 	size_t seed_length, enum aux_attestation_seed_type seed_type,
 	enum aux_attestation_seed_param seed_param, const uint8_t *hmac, enum hmac_hash hmac_type,
@@ -585,7 +585,7 @@ rsa_init_error:
  * @return Length of generated seed or an error code.  Use ROT_IS_ERROR to check the return value.
  */
 int aux_attestation_generate_ecdh_seed (struct aux_attestation *aux, const uint8_t *ecc_key,
-	size_t key_length, struct hash_engine *hash, uint8_t *seed, size_t seed_length)
+	size_t key_length, const struct hash_engine *hash, uint8_t *seed, size_t seed_length)
 {
 #ifdef ATTESTATION_SUPPORT_ECDH_UNSEAL
 	struct ecc_private_key priv;

@@ -73,7 +73,7 @@ static void intrusion_manager_async_on_error (struct intrusion_state_observer *o
  * @return 0 if the intrusion manager was successfully initialized or an error code.
  */
 int intrusion_manager_async_init (struct intrusion_manager_async *manager,
-	struct intrusion_state *state, struct hash_engine *hash, struct pcr_store *pcr,
+	struct intrusion_state *state, const struct hash_engine *hash, struct pcr_store *pcr,
 	uint16_t measurement)
 {
 	int status;

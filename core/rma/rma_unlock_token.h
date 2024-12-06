@@ -31,7 +31,7 @@ struct rma_unlock_token {
 	int (*authenticate) (const struct rma_unlock_token *handler, const uint8_t *data,
 		size_t length);
 
-	struct hash_engine *hash;						/**< Hash engine for token digests. */
+	const struct hash_engine *hash;					/**< Hash engine for token digests. */
 	const struct signature_verification *authority;	/**< Verification handler for the token signing authority. */
 	const uint8_t *authority_key;					/**< Public key for the token signing authority. */
 	size_t auth_key_length;							/**< Length of the authority public key. */
@@ -45,9 +45,9 @@ struct rma_unlock_token {
 
 
 int rma_unlock_token_init (struct rma_unlock_token *handler, const uint8_t *authority_key,
-	size_t key_length, const struct signature_verification *authority, struct hash_engine *hash,
-	enum hash_type auth_hash, const struct cmd_device *uuid, const uint8_t *oid, size_t oid_length,
-	const uint8_t *dice_hash, size_t hash_length);
+	size_t key_length, const struct signature_verification *authority,
+	const struct hash_engine *hash, enum hash_type auth_hash, const struct cmd_device *uuid,
+	const uint8_t *oid, size_t oid_length, const uint8_t *dice_hash, size_t hash_length);
 void rma_unlock_token_release (const struct rma_unlock_token *handler);
 
 

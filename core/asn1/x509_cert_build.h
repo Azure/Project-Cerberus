@@ -28,15 +28,15 @@
  *   - Certificate signing using an RSA CA is not supported.
  */
 struct x509_engine_cert_build {
-	struct x509_engine base;	/**< The base X.509 engine. */
-	struct ecc_engine *ecc;		/**< The ECC engine to use for certificate signing. */
-	struct hash_engine *hash;	/**< The hash engine to use digest calculation. */
-	size_t max_cert_length;		/**< The maximum certificate length supported. */
+	struct x509_engine base;		/**< The base X.509 engine. */
+	struct ecc_engine *ecc;			/**< The ECC engine to use for certificate signing. */
+	const struct hash_engine *hash;	/**< The hash engine to use digest calculation. */
+	size_t max_cert_length;			/**< The maximum certificate length supported. */
 };
 
 
 int x509_cert_build_init (struct x509_engine_cert_build *engine, struct ecc_engine *ecc,
-	struct hash_engine *hash, size_t max_cert_length);
+	const struct hash_engine *hash, size_t max_cert_length);
 void x509_cert_build_release (struct x509_engine_cert_build *engine);
 
 

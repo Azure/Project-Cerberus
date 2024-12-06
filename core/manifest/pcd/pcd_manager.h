@@ -44,19 +44,20 @@ int pcd_manager_remove_observer (struct pcd_manager *manager, const struct pcd_o
 
 int pcd_manager_get_id_measured_data (struct pcd_manager *manager, size_t offset, uint8_t *buffer,
 	size_t length, uint32_t *total_len);
-int pcd_manager_hash_id_measured_data (struct pcd_manager *manager, struct hash_engine *hash);
+int pcd_manager_hash_id_measured_data (struct pcd_manager *manager, const struct hash_engine *hash);
 
 int pcd_manager_get_platform_id_measured_data (struct pcd_manager *manager, size_t offset,
 	uint8_t *buffer, size_t length, uint32_t *total_len);
 int pcd_manager_hash_platform_id_measured_data (struct pcd_manager *manager,
-	struct hash_engine *hash);
+	const struct hash_engine *hash);
 
 int pcd_manager_get_pcd_measured_data (struct pcd_manager *manager, size_t offset, uint8_t *buffer,
 	size_t length, uint32_t *total_len);
-int pcd_manager_hash_pcd_measured_data (struct pcd_manager *manager, struct hash_engine *hash);
+int pcd_manager_hash_pcd_measured_data (struct pcd_manager *manager,
+	const struct hash_engine *hash);
 
 /* Internal functions for use by derived types. */
-int pcd_manager_init (struct pcd_manager *manager, struct hash_engine *hash);
+int pcd_manager_init (struct pcd_manager *manager, const struct hash_engine *hash);
 void pcd_manager_release (struct pcd_manager *manager);
 
 void pcd_manager_on_pcd_verified (struct pcd_manager *manager, struct pcd *pending);

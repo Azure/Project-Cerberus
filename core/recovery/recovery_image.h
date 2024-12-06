@@ -31,7 +31,7 @@ struct recovery_image {
 	 *
 	 * @return 0 if the recovery image is valid or an error code.
 	 */
-	int (*verify) (struct recovery_image *image, struct hash_engine *hash,
+	int (*verify) (struct recovery_image *image, const struct hash_engine *hash,
 		const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length,
 		struct pfm_manager *pfm);
 
@@ -45,8 +45,8 @@ struct recovery_image {
 	 *
 	 * @return 0 if the hash was calculated successfully or an error code.
 	 */
-	int (*get_hash) (struct recovery_image *image, struct hash_engine *hash, uint8_t *hash_out,
-		size_t hash_length);
+	int (*get_hash) (struct recovery_image *image, const struct hash_engine *hash,
+		uint8_t *hash_out, size_t hash_length);
 
 	/**
 	 * Get the version of the recovery image.

@@ -29,7 +29,7 @@ struct spdm_transcript_manager_testing {
 	struct spdm_transcript_manager_state state;							/**< The transcript manager state. */
 	struct hash_engine_mock hash_engine_mock[HASH_ENGINE_COUNT];		/**< Mock hash engines. */
 	HASH_TESTING_ENGINE_ARRAY (hash_engine_real, HASH_ENGINE_COUNT);	/**< Real hash engines. */
-	struct hash_engine *hash_engine[HASH_ENGINE_COUNT];					/**< Hash engines. */
+	const struct hash_engine *hash_engine[HASH_ENGINE_COUNT];			/**< Hash engines. */
 	bool use_mock;														/**< Use mocks object. */
 };
 
@@ -154,7 +154,7 @@ static void spdm_transcript_manager_test_static_init_invalid_params (CuTest *tes
 {
 	int status;
 	struct spdm_transcript_manager_testing testing;
-	struct hash_engine *backup;
+	const struct hash_engine *backup;
 
 	TEST_START;
 
@@ -224,7 +224,7 @@ static void spdm_transcript_manager_test_init_invalid_params (CuTest *test)
 {
 	int status;
 	struct spdm_transcript_manager_testing testing;
-	struct hash_engine *backup;
+	const struct hash_engine *backup;
 
 	TEST_START;
 

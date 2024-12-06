@@ -35,7 +35,7 @@ static void pcd_observer_pcr_on_clear_active (const struct pcd_observer *observe
  *
  * @return 0 if the observer was successfully initialized or an error code.
  */
-int pcd_observer_pcr_init (struct pcd_observer_pcr *observer, struct hash_engine *hash,
+int pcd_observer_pcr_init (struct pcd_observer_pcr *observer, const struct hash_engine *hash,
 	struct pcr_store *store, uint16_t manifest_measurement, uint16_t manifest_id_measurement,
 	uint16_t platform_id_measurement)
 {

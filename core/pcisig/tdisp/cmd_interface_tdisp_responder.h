@@ -16,13 +16,13 @@ struct cmd_interface_tdisp_responder {
 	const struct tdisp_driver *tdisp_driver;	/**< TDISP driver interface. */
 	const uint8_t *version_num;					/**< Supported TDISP versions. */
 	uint8_t version_num_count;					/**< Number of supported TDISP versions. */
-	struct rng_engine *rng_engine;				/**< Engine for random number generation. */
+	const struct rng_engine *rng_engine;		/**< Engine for random number generation. */
 };
 
 
 int cmd_interface_tdisp_responder_init (struct cmd_interface_tdisp_responder *tdisp_responder,
 	struct tdisp_state *state, struct tdisp_driver *tdisp_driver, const uint8_t *version_num,
-	uint8_t version_num_count, struct rng_engine *rng_engine);
+	uint8_t version_num_count, const struct rng_engine *rng_engine);
 
 int cmd_interface_tdisp_responder_init_state (
 	const struct cmd_interface_tdisp_responder *tdisp_responder);

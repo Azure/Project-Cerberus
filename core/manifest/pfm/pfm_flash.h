@@ -22,9 +22,9 @@ struct pfm_flash {
 };
 
 
-int pfm_flash_init (struct pfm_flash *pfm, const struct flash *flash, struct hash_engine *hash,
-	uint32_t base_addr, uint8_t *signature_cache, size_t max_signature, uint8_t *platform_id_cache,
-	size_t max_platform_id);
+int pfm_flash_init (struct pfm_flash *pfm, const struct flash *flash,
+	const struct hash_engine *hash, uint32_t base_addr, uint8_t *signature_cache,
+	size_t max_signature, uint8_t *platform_id_cache, size_t max_platform_id);
 void pfm_flash_release (struct pfm_flash *pfm);
 
 

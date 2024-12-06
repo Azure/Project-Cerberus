@@ -80,7 +80,7 @@ int signature_verification_rsa_is_key_valid (const struct signature_verification
  * @return 0 if the verification instance was successfully initialized or an error code.
  */
 int signature_verification_rsa_init (struct signature_verification_rsa *verification,
-	struct signature_verification_rsa_state *state, struct rsa_engine *rsa,
+	struct signature_verification_rsa_state *state, const struct rsa_engine *rsa,
 	const struct rsa_public_key *key)
 {
 	int status;
@@ -107,7 +107,7 @@ int signature_verification_rsa_init (struct signature_verification_rsa *verifica
  * SIG_VERIFICATION_INVALID_ARGUMENT if there are null parameters.
  */
 int signature_verification_rsa_init_api (struct signature_verification_rsa *verification,
-	struct signature_verification_rsa_state *state, struct rsa_engine *rsa)
+	struct signature_verification_rsa_state *state, const struct rsa_engine *rsa)
 {
 	if ((verification == NULL) || (state == NULL) || (rsa == NULL)) {
 		return SIG_VERIFICATION_INVALID_ARGUMENT;

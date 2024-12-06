@@ -52,26 +52,26 @@ struct flash_store_contiguous_blocks {
 	bool decreasing;									/**< Flag indicating block storage grows down in the address space. */
 	bool variable;										/**< Flag indicating block storage is variable length. */
 	const struct flash *flash;							/**< Flash device used for storage. */
-	struct hash_engine *hash;							/**< Hash engine for integrity checking. */
+	const struct hash_engine *hash;						/**< Hash engine for integrity checking. */
 };
 
 
 int flash_store_contiguous_blocks_init_fixed_storage (struct flash_store_contiguous_blocks *store,
 	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,
-	uint32_t base_addr, size_t block_count, size_t data_length, struct hash_engine *hash);
+	uint32_t base_addr, size_t block_count, size_t data_length, const struct hash_engine *hash);
 int flash_store_contiguous_blocks_init_fixed_storage_decreasing (
 	struct flash_store_contiguous_blocks *store, struct flash_store_contiguous_blocks_state *state,
 	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t data_length,
-	struct	hash_engine *hash);
+	const struct hash_engine *hash);
 
 int flash_store_contiguous_blocks_init_variable_storage (
 	struct flash_store_contiguous_blocks *store, struct flash_store_contiguous_blocks_state *state,
 	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
-	struct hash_engine *hash);
+	const struct hash_engine *hash);
 int flash_store_contiguous_blocks_init_variable_storage_decreasing (
 	struct flash_store_contiguous_blocks *store, struct flash_store_contiguous_blocks_state *state,
 	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
-	struct hash_engine *hash);
+	const struct hash_engine *hash);
 
 int flash_store_contiguous_blocks_init_state (
 	const struct flash_store_contiguous_blocks *store, size_t block_count, size_t data_length);

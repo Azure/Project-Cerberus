@@ -173,14 +173,14 @@ int cmd_interface_spdm_process_response (const struct cmd_interface *intf,
  */
 int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm_responder,
 	struct spdm_state *state, const struct spdm_transcript_manager *transcript_manager,
-	struct hash_engine **hash_engine, uint8_t hash_engine_count,
+	const struct hash_engine *const *hash_engine, uint8_t hash_engine_count,
 	const struct spdm_version_num_entry *version_num, uint8_t version_num_count,
 	const struct spdm_version_num_entry *secure_message_version_num,
 	uint8_t secure_message_version_num_count,
 	const struct spdm_device_capability *local_capabilities,
 	const struct spdm_local_device_algorithms *local_algorithms,
 	const struct riot_key_manager *key_manager, const struct spdm_measurements *measurements,
-	struct ecc_engine *ecc_engine, struct rng_engine *rng_engine,
+	struct ecc_engine *ecc_engine, const struct rng_engine *rng_engine,
 	struct spdm_secure_session_manager *session_manager, const struct cmd_interface *vdm_handler)
 {
 	int status;

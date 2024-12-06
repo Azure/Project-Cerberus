@@ -19,7 +19,7 @@ struct ecdsa_kat_rng {
 };
 
 
-static int ecdsa_kat_rng_generate_random_buffer (struct rng_engine *engine, size_t rand_len,
+static int ecdsa_kat_rng_generate_random_buffer (const struct rng_engine *engine, size_t rand_len,
 	uint8_t *buf)
 {
 	const struct ecdsa_kat_rng *rng = (const struct ecdsa_kat_rng*) engine;
@@ -56,7 +56,7 @@ static int ecdsa_kat_rng_generate_random_buffer (struct rng_engine *engine, size
  * @return 0 if the self-test completed successfully or an error code.
  */
 int ecdsa_kat_run_self_test_ecc_hw_sign_p256_sha256 (const struct ecc_hw *ecc_hw,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
 	struct ecdsa_kat_rng rng =
 		ecdsa_kat_rng_static_init (ECC_KAT_VECTORS_P256_SHA256_ECDSA_K, ECC_KEY_LENGTH_256);
@@ -100,7 +100,7 @@ int ecdsa_kat_run_self_test_ecc_hw_sign_p256_sha256 (const struct ecc_hw *ecc_hw
  * @return 0 if the self-test completed successfully or an error code.
  */
 int ecdsa_kat_run_self_test_ecc_hw_sign_p384_sha384 (const struct ecc_hw *ecc_hw,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 	struct ecdsa_kat_rng rng =
@@ -151,7 +151,7 @@ int ecdsa_kat_run_self_test_ecc_hw_sign_p384_sha384 (const struct ecc_hw *ecc_hw
  * @return 0 if the self-test completed successfully or an error code.
  */
 int ecdsa_kat_run_self_test_ecc_hw_sign_p521_sha512 (const struct ecc_hw *ecc_hw,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 	struct ecdsa_kat_rng rng =
@@ -202,7 +202,7 @@ int ecdsa_kat_run_self_test_ecc_hw_sign_p521_sha512 (const struct ecc_hw *ecc_hw
  * @return 0 if the self-test completed successfully or an error code.
  */
 int ecdsa_kat_run_self_test_ecc_hw_verify_p256_sha256 (const struct ecc_hw *ecc_hw,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
 	int status;
 
@@ -229,7 +229,7 @@ int ecdsa_kat_run_self_test_ecc_hw_verify_p256_sha256 (const struct ecc_hw *ecc_
  * @return 0 if the self-test completed successfully or an error code.
  */
 int ecdsa_kat_run_self_test_ecc_hw_verify_p384_sha384 (const struct ecc_hw *ecc_hw,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 	int status;
@@ -263,7 +263,7 @@ int ecdsa_kat_run_self_test_ecc_hw_verify_p384_sha384 (const struct ecc_hw *ecc_
  * @return 0 if the self-test completed successfully or an error code.
  */
 int ecdsa_kat_run_self_test_ecc_hw_verify_p521_sha512 (const struct ecc_hw *ecc_hw,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 	int status;

@@ -25,9 +25,19 @@
 struct ecc_engine_mbedtls ecc;
 
 /**
+ * Variable context for the hash handler.
+ */
+struct hash_engine_mbedtls_state hash_context;
+
+/**
  * Hash handler for unsealing.
  */
 struct hash_engine_mbedtls hash;
+
+/**
+ * Variable context for the X.509 handler.
+ */
+struct x509_engine_mbedtls x509_context;
 
 /**
  * X.509 handler for device certs.
@@ -164,13 +174,13 @@ void init_unseal (const struct unseal_data *alias_key)
 		exit (1);
 	}
 
-	status = hash_mbedtls_init (&hash);
+	status = hash_mbedtls_init (&hash, &hash_context);
 	if (status != 0) {
 		printf ("hash_mbedtls_init failed: 0x%x\n", status);
 		exit (1);
 	}
 
-	status = x509_mbedtls_init (&x509);
+	status = x509_mbedtls_init (&x509, &x509_context);
 	if (status != 0) {
 		printf ("x509_mbedtls_init failed: 0x%x\n", status);
 		exit (1);

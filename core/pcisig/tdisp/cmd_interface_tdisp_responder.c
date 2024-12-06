@@ -119,7 +119,7 @@ int cmd_interface_tdisp_responder_process_response (const struct cmd_interface *
  */
 int cmd_interface_tdisp_responder_init (struct cmd_interface_tdisp_responder *tdisp_responder,
 	struct tdisp_state *tdisp_state, struct tdisp_driver *tdisp_driver,	const uint8_t *version_num,
-	uint8_t version_num_count, struct rng_engine *rng_engine)
+	uint8_t version_num_count, const struct rng_engine *rng_engine)
 {
 	int status = 0;
 

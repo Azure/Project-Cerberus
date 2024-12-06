@@ -34,8 +34,9 @@ static const struct spi_flash* host_flash_manager_mock_get_read_write_flash (
 }
 
 static int host_flash_manager_mock_validate_read_only_flash (struct host_flash_manager *manager,
-	struct pfm *pfm, struct pfm *good_pfm, struct hash_engine *hash, struct rsa_engine *rsa,
-	bool full_validation, struct host_flash_manager_rw_regions *host_rw)
+	struct pfm *pfm, struct pfm *good_pfm, const struct hash_engine *hash,
+	const struct rsa_engine *rsa, bool full_validation,
+	struct host_flash_manager_rw_regions *host_rw)
 {
 	struct host_flash_manager_mock *mock = (struct host_flash_manager_mock*) manager;
 
@@ -49,7 +50,7 @@ static int host_flash_manager_mock_validate_read_only_flash (struct host_flash_m
 }
 
 static int host_flash_manager_mock_validate_read_write_flash (struct host_flash_manager *manager,
-	struct pfm *pfm, struct hash_engine *hash, struct rsa_engine *rsa,
+	struct pfm *pfm, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	struct host_flash_manager_rw_regions *host_rw)
 {
 	struct host_flash_manager_mock *mock = (struct host_flash_manager_mock*) manager;

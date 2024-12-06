@@ -30,7 +30,7 @@ int spdm_measurements_discovery_get_measurement_count (const struct spdm_measure
  * @return The size of the constructed measurement block or an error code.
  */
 static int spdm_measurements_discovery_build_device_id_block (
-	const struct spdm_measurements *handler, bool raw_bit_stream, struct hash_engine *hash,
+	const struct spdm_measurements *handler, bool raw_bit_stream, const struct hash_engine *hash,
 	enum hash_type hash_type, uint8_t *buffer, size_t length)
 {
 	const struct spdm_measurements_discovery *discovery =
@@ -81,7 +81,7 @@ static int spdm_measurements_discovery_build_device_id_block (
 }
 
 int spdm_measurements_discovery_get_measurement_block (const struct spdm_measurements *handler,
-	uint8_t block_id, bool raw_bit_stream, struct hash_engine *hash, enum hash_type hash_type,
+	uint8_t block_id, bool raw_bit_stream, const struct hash_engine *hash, enum hash_type hash_type,
 	uint8_t *buffer, size_t length)
 {
 	int status;
@@ -116,7 +116,7 @@ int spdm_measurements_discovery_get_measurement_block_length (
 }
 
 int spdm_measurements_discovery_get_all_measurement_blocks (const struct spdm_measurements *handler,
-	bool raw_bit_stream, struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer,
+	bool raw_bit_stream, const struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer,
 	size_t length)
 {
 	int record_length;
@@ -160,8 +160,8 @@ int spdm_measurements_discovery_get_all_measurement_blocks_length (
 }
 
 int spdm_measurements_discovery_get_measurement_summary_hash (
-	const struct spdm_measurements *handler, struct hash_engine *summary_hash,
-	enum hash_type summary_hash_type, struct hash_engine *measurement_hash,
+	const struct spdm_measurements *handler, const struct hash_engine *summary_hash,
+	enum hash_type summary_hash_type, const struct hash_engine *measurement_hash,
 	enum hash_type measurement_hash_type, bool only_tcb, uint8_t *buffer, size_t length)
 {
 	uint8_t block[spdm_measurements_block_size (HASH_MAX_HASH_LEN)];

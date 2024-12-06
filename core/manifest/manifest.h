@@ -29,7 +29,7 @@ struct manifest {
 	 *
 	 * @return 0 if the manifest is valid or an error code.
 	 */
-	int (*verify) (struct manifest *manifest, struct hash_engine *hash,
+	int (*verify) (struct manifest *manifest, const struct hash_engine *hash,
 		const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length);
 
 	/**
@@ -79,7 +79,7 @@ struct manifest {
 	 * @return Length of the hash if it was calculated successfully or an error code.  Use
 	 * ROT_IS_ERROR to check the return value.
 	 */
-	int (*get_hash) (struct manifest *manifest, struct hash_engine *hash, uint8_t *hash_out,
+	int (*get_hash) (struct manifest *manifest, const struct hash_engine *hash, uint8_t *hash_out,
 		size_t hash_length);
 
 	/**

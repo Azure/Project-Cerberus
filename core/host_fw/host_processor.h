@@ -55,8 +55,8 @@ struct host_processor {
 	 *
 	 * @return 0 if all power-on reset tasks were completed successfully or an error code.
 	 */
-	int (*power_on_reset) (struct host_processor *host, struct hash_engine *hash,
-		struct rsa_engine *rsa);
+	int (*power_on_reset) (struct host_processor *host, const struct hash_engine *hash,
+		const struct rsa_engine *rsa);
 
 	/**
 	 * Execute soft reset firmware verification for the host processor.
@@ -67,8 +67,8 @@ struct host_processor {
 	 *
 	 * @return 0 if all soft reset tasks were completed successfully or an error code.
 	 */
-	int (*soft_reset) (struct host_processor *host, struct hash_engine *hash,
-		struct rsa_engine *rsa);
+	int (*soft_reset) (struct host_processor *host, const struct hash_engine *hash,
+		const struct rsa_engine *rsa);
 
 	/**
 	 * Execute run-time firmware verification for the host processor.
@@ -86,8 +86,8 @@ struct host_processor {
 	 *
 	 * @return 0 if firmware verification was completed successfully or an error code.
 	 */
-	int (*run_time_verification) (struct host_processor *host, struct hash_engine *hash,
-		struct rsa_engine *rsa);
+	int (*run_time_verification) (struct host_processor *host, const struct hash_engine *hash,
+		const struct rsa_engine *rsa);
 
 	/**
 	 * Attempt to rollback to a previously valid image.  Rollback will only be allowed to an image
@@ -103,8 +103,8 @@ struct host_processor {
 	 *
 	 * @return 0 if the rollback was successful or an error code.
 	 */
-	int (*flash_rollback) (struct host_processor *host, struct hash_engine *hash,
-		struct rsa_engine *rsa, bool disable_bypass, bool no_reset);
+	int (*flash_rollback) (struct host_processor *host, const struct hash_engine *hash,
+		const struct rsa_engine *rsa, bool disable_bypass, bool no_reset);
 
 	/**
 	 * Recover read/write data for the active image.

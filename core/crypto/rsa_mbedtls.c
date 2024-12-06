@@ -54,10 +54,10 @@ static void rsa_mbedtls_free_key_context (void *context)
 #endif
 
 #ifdef RSA_ENABLE_PRIVATE_KEY
-static int rsa_mbedtls_generate_key (struct rsa_engine *engine, struct rsa_private_key *key,
+int rsa_mbedtls_generate_key (const struct rsa_engine *engine, struct rsa_private_key *key,
 	int bits)
 {
-	struct rsa_engine_mbedtls *mbedtls = (struct rsa_engine_mbedtls*) engine;
+	const struct rsa_engine_mbedtls *mbedtls = (const struct rsa_engine_mbedtls*) engine;
 	mbedtls_pk_context *rsa;
 	uint8_t msg_code;
 	int status;
@@ -78,7 +78,7 @@ static int rsa_mbedtls_generate_key (struct rsa_engine *engine, struct rsa_priva
 	}
 
 	status = mbedtls_rsa_gen_key (mbedtls_pk_rsa (*rsa), mbedtls_ctr_drbg_random,
-		&mbedtls->ctr_drbg, bits, 65537);
+		&mbedtls->state->ctr_drbg, bits, 65537);
 	if (status != 0) {
 		msg_code = CRYPTO_LOG_MSG_MBEDTLS_RSA_GEN_KEY_EC;
 		goto error;
@@ -98,7 +98,7 @@ error:
 	return status;
 }
 
-static int rsa_mbedtls_init_private_key (struct rsa_engine *engine, struct rsa_private_key *key,
+int rsa_mbedtls_init_private_key (const struct rsa_engine *engine, struct rsa_private_key *key,
 	const uint8_t *der, size_t length)
 {
 	mbedtls_pk_context *rsa;
@@ -138,14 +138,14 @@ error:
 	return status;
 }
 
-static void rsa_mbedtls_release_key (struct rsa_engine *engine, struct rsa_private_key *key)
+void rsa_mbedtls_release_key (const struct rsa_engine *engine, struct rsa_private_key *key)
 {
 	if (engine && key) {
 		rsa_mbedtls_free_key_context (key->context);
 	}
 }
 
-static int rsa_mbedtls_get_private_key_der (struct rsa_engine *engine,
+int rsa_mbedtls_get_private_key_der (const struct rsa_engine *engine,
 	const struct rsa_private_key *key, uint8_t **der, size_t *length)
 {
 	int status;
@@ -182,11 +182,11 @@ static int rsa_mbedtls_get_private_key_der (struct rsa_engine *engine,
 	return status;
 }
 
-static int rsa_mbedtls_decrypt (struct rsa_engine *engine, const struct rsa_private_key *key,
+int rsa_mbedtls_decrypt (const struct rsa_engine *engine, const struct rsa_private_key *key,
 	const uint8_t *encrypted, size_t in_length, const uint8_t *label, size_t label_length,
 	enum hash_type pad_hash, uint8_t *decrypted, size_t out_length)
 {
-	struct rsa_engine_mbedtls *mbedtls = (struct rsa_engine_mbedtls*) engine;
+	const struct rsa_engine_mbedtls *mbedtls = (const struct rsa_engine_mbedtls*) engine;
 	int status;
 	size_t length;
 
@@ -216,8 +216,8 @@ static int rsa_mbedtls_decrypt (struct rsa_engine *engine, const struct rsa_priv
 	}
 
 	status = mbedtls_rsa_rsaes_oaep_decrypt (rsa_mbedtls_get_rsa_key (key), mbedtls_ctr_drbg_random,
-		&mbedtls->ctr_drbg, MBEDTLS_RSA_PRIVATE, label, label_length, &length, encrypted, decrypted,
-		out_length);
+		&mbedtls->state->ctr_drbg, MBEDTLS_RSA_PRIVATE, label, label_length, &length, encrypted,
+		decrypted, out_length);
 	if (status == 0) {
 		status = length;
 	}
@@ -238,7 +238,7 @@ static int rsa_mbedtls_decrypt (struct rsa_engine *engine, const struct rsa_priv
 #endif
 
 #ifdef RSA_ENABLE_DER_PUBLIC_KEY
-static int rsa_mbedtls_init_public_key (struct rsa_engine *engine, struct rsa_public_key *key,
+int rsa_mbedtls_init_public_key (const struct rsa_engine *engine, struct rsa_public_key *key,
 	const uint8_t *der, size_t length)
 {
 	mbedtls_pk_context *pk;
@@ -309,7 +309,7 @@ exit:
 	return status;
 }
 
-static int rsa_mbedtls_get_public_key_der (struct rsa_engine *engine,
+int rsa_mbedtls_get_public_key_der (const struct rsa_engine *engine,
 	const struct rsa_private_key *key, uint8_t **der, size_t *length)
 {
 	int status;
@@ -399,7 +399,7 @@ exit:
 	return status;
 }
 
-static int rsa_mbedtls_sig_verify (struct rsa_engine *engine, const struct rsa_public_key *key,
+int rsa_mbedtls_sig_verify (const struct rsa_engine *engine, const struct rsa_public_key *key,
 	const uint8_t *signature, size_t sig_length, enum hash_type sig_hash, const uint8_t *match,
 	size_t match_length)
 {
@@ -465,29 +465,17 @@ static int rsa_mbedtls_sig_verify (struct rsa_engine *engine, const struct rsa_p
  * Initialize an mbedTLS RSA engine.
  *
  * @param engine The RSA engine to initialize.
+ * @param state Variable context for RSA operations.  This must be uninitialized.
  *
  * @return 0 if the RSA engine was successfully initialize or an error code.
  */
-int rsa_mbedtls_init (struct rsa_engine_mbedtls *engine)
+int rsa_mbedtls_init (struct rsa_engine_mbedtls *engine, struct rsa_engine_mbedtls_state *state)
 {
-	int status;
-
 	if (engine == NULL) {
 		return RSA_ENGINE_INVALID_ARGUMENT;
 	}
 
 	memset (engine, 0, sizeof (struct rsa_engine_mbedtls));
-
-	mbedtls_ctr_drbg_init (&engine->ctr_drbg);
-	mbedtls_entropy_init (&engine->entropy);
-
-	status = mbedtls_ctr_drbg_seed (&engine->ctr_drbg, mbedtls_entropy_func, &engine->entropy, NULL,
-		0);
-	if (status != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-			CRYPTO_LOG_MSG_MBEDTLS_CTR_DRBG_SEED_EC, status, 0);
-		goto exit;
-	}
 
 #ifdef RSA_ENABLE_PRIVATE_KEY
 	engine->base.generate_key = rsa_mbedtls_generate_key;
@@ -502,11 +490,47 @@ int rsa_mbedtls_init (struct rsa_engine_mbedtls *engine)
 #endif
 	engine->base.sig_verify = rsa_mbedtls_sig_verify;
 
+	engine->state = state;
+
+	return rsa_mbedtls_init_state (engine);
+}
+
+/**
+ * Initialize only the variable state of an mbedTLS RSA engine.  The rest of the instance is assumed
+ * to already have been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param engine The RSA engine that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int rsa_mbedtls_init_state (const struct rsa_engine_mbedtls *engine)
+{
+	int status;
+
+	if ((engine == NULL) || (engine->state == NULL)) {
+		return RSA_ENGINE_INVALID_ARGUMENT;
+	}
+
+	memset (engine->state, 0, sizeof (*engine->state));
+
+	mbedtls_ctr_drbg_init (&engine->state->ctr_drbg);
+	mbedtls_entropy_init (&engine->state->entropy);
+
+	status = mbedtls_ctr_drbg_seed (&engine->state->ctr_drbg, mbedtls_entropy_func,
+		&engine->state->entropy, NULL, 0);
+	if (status != 0) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
+			CRYPTO_LOG_MSG_MBEDTLS_CTR_DRBG_SEED_EC, status, 0);
+		goto exit;
+	}
+
 	return 0;
 
 exit:
-	mbedtls_entropy_free (&engine->entropy);
-	mbedtls_ctr_drbg_free (&engine->ctr_drbg);
+	mbedtls_entropy_free (&engine->state->entropy);
+	mbedtls_ctr_drbg_free (&engine->state->ctr_drbg);
 
 	return status;
 }
@@ -516,10 +540,10 @@ exit:
  *
  * @param engine The RSA engine to release.
  */
-void rsa_mbedtls_release (struct rsa_engine_mbedtls *engine)
+void rsa_mbedtls_release (const struct rsa_engine_mbedtls *engine)
 {
 	if (engine) {
-		mbedtls_entropy_free (&engine->entropy);
-		mbedtls_ctr_drbg_free (&engine->ctr_drbg);
+		mbedtls_entropy_free (&engine->state->entropy);
+		mbedtls_ctr_drbg_free (&engine->state->ctr_drbg);
 	}
 }

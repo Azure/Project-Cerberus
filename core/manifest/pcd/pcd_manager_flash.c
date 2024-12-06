@@ -149,7 +149,7 @@ static int pcd_manager_flash_clear_all_manifests (const struct manifest_manager 
  * @return 0 if the PCD manager was successfully initialized or an error code.
  */
 int pcd_manager_flash_init (struct pcd_manager_flash *manager, struct pcd_flash *pcd_region1,
-	struct pcd_flash *pcd_region2, struct state_manager *state, struct hash_engine *hash,
+	struct pcd_flash *pcd_region2, struct state_manager *state, const struct hash_engine *hash,
 	const struct signature_verification *verification)
 {
 	int status;

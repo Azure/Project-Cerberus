@@ -7,7 +7,7 @@
 #include "cfm_mock.h"
 
 
-static int cfm_mock_verify (struct manifest *cfm, struct hash_engine *hash,
+static int cfm_mock_verify (struct manifest *cfm, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
 	struct cfm_mock *mock = (struct cfm_mock*) cfm;
@@ -55,8 +55,8 @@ static void cfm_mock_free_platform_id (struct manifest *cfm, char *id)
 	MOCK_VOID_RETURN (&mock->mock, cfm_mock_free_platform_id, cfm, MOCK_ARG_PTR_CALL (id));
 }
 
-static int cfm_mock_get_hash (struct manifest *cfm, struct hash_engine *hash, uint8_t *hash_out,
-	size_t hash_length)
+static int cfm_mock_get_hash (struct manifest *cfm, const struct hash_engine *hash,
+	uint8_t *hash_out, size_t hash_length)
 {
 	struct cfm_mock *mock = (struct cfm_mock*) cfm;
 

@@ -59,7 +59,7 @@ struct ecc_hw {
 	 * @return 0 if the signature was successfully generated or an error code.
 	 */
 	int (*ecdsa_sign) (const struct ecc_hw *ecc_hw, const uint8_t *priv_key, size_t key_length,
-		const uint8_t *digest, size_t digest_length, struct rng_engine *rng,
+		const uint8_t *digest, size_t digest_length, const struct rng_engine *rng,
 		struct ecc_ecdsa_signature *signature);
 
 	/**

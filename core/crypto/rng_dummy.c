@@ -14,10 +14,10 @@
 #define	RNG_DUMMY_XOR		0x78879EBC
 
 
-static int rng_dummy_generate_random_buffer (struct rng_engine *engine, size_t rand_len,
+int rng_dummy_generate_random_buffer (const struct rng_engine *engine, size_t rand_len,
 	uint8_t *buf)
 {
-	struct rng_engine_dummy *dummy = (struct rng_engine_dummy*) engine;
+	const struct rng_engine_dummy *dummy = (const struct rng_engine_dummy*) engine;
 	size_t copy_len;
 
 	if ((dummy == NULL) || (buf == NULL)) {
@@ -26,12 +26,12 @@ static int rng_dummy_generate_random_buffer (struct rng_engine *engine, size_t r
 
 	while (rand_len > 0) {
 		copy_len = (rand_len >= sizeof (uint32_t)) ? sizeof (uint32_t) : rand_len;
-		memcpy (buf, &dummy->random, copy_len);
+		memcpy (buf, &dummy->state->random, copy_len);
 
 		buf += copy_len;
 		rand_len -= copy_len;
 
-		dummy->random = (dummy->random * RNG_DUMMY_MULT) ^ RNG_DUMMY_XOR;
+		dummy->state->random = (dummy->state->random * RNG_DUMMY_MULT) ^ RNG_DUMMY_XOR;
 	}
 
 	return 0;
@@ -42,11 +42,13 @@ static int rng_dummy_generate_random_buffer (struct rng_engine *engine, size_t r
  * generator.
  *
  * @param rng The dummy RNG to initialize.
+ * @param state Variable context for the RNG engine.  This must be uninitialized.
  * @param seed A seed to use for generating the random numbers.
  *
  * @return 0 if the RNG was successfully initialized or an error code.
  */
-int rng_dummy_init (struct rng_engine_dummy *rng, uint32_t seed)
+int rng_dummy_init (struct rng_engine_dummy *rng, struct rng_engine_dummy_state *state,
+	uint32_t seed)
 {
 	if (rng == NULL) {
 		return RNG_ENGINE_INVALID_ARGUMENT;
@@ -56,7 +58,31 @@ int rng_dummy_init (struct rng_engine_dummy *rng, uint32_t seed)
 
 	rng->base.generate_random_buffer = rng_dummy_generate_random_buffer;
 
-	rng->random = (seed * RNG_DUMMY_MULT) ^ RNG_DUMMY_XOR;
+	rng->state = state;
+
+	return rng_dummy_init_state (rng, seed);
+}
+
+/**
+ * Initialize only the variable state of a dummy RNG for testing or development environments.  The
+ * rest of the instance is assumed to already have been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param engine The RNG engine that contains the state to initialize.
+ * @param seed A seed to use for generating the random numbers.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int rng_dummy_init_state (const struct rng_engine_dummy *rng, uint32_t seed)
+{
+	if ((rng == NULL) || (rng->state == NULL)) {
+		return RNG_ENGINE_INVALID_ARGUMENT;
+	}
+
+	memset (rng->state, 0, sizeof (*rng->state));
+
+	rng->state->random = (seed * RNG_DUMMY_MULT) ^ RNG_DUMMY_XOR;
 
 	return 0;
 }
@@ -67,7 +93,7 @@ int rng_dummy_init (struct rng_engine_dummy *rng, uint32_t seed)
  * @param rng The dummy RNG to release.
  *
  */
-void rng_dummy_release (struct rng_engine_dummy *rng)
+void rng_dummy_release (const struct rng_engine_dummy *rng)
 {
 	UNUSED (rng);
 }

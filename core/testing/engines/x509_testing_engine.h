@@ -10,6 +10,7 @@
 #ifndef	X509_TESTING_ENGINE_NAME
 #include "asn1/x509_mbedtls.h"
 #define	X509_TESTING_ENGINE_NAME	mbedtls
+#define	X509_TESTING_ENGINE_HAS_STATE
 #endif
 
 

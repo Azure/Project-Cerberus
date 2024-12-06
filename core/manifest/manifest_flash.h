@@ -21,7 +21,7 @@
  */
 struct manifest_flash {
 	const struct flash *flash;				/**< The flash device that contains the manifest. */
-	struct hash_engine *hash;				/**, Hash engine to use for element verification. */
+	const struct hash_engine *hash;			/**, Hash engine to use for element verification. */
 	uint32_t addr;							/**< The starting address in flash of the manifest. */
 	uint16_t magic_num_v1;					/**< The magic number identifying a v1 manifest. */
 	uint16_t magic_num_v2;					/**< The magic number identifying a v2 manifest. */
@@ -45,29 +45,30 @@ struct manifest_flash {
 int manifest_flash_init (struct manifest_flash *manifest, const struct flash *flash,
 	uint32_t base_addr, uint16_t magic_num_v1);
 int manifest_flash_v2_init (struct manifest_flash *manifest, const struct flash *flash,
-	struct hash_engine *hash, uint32_t base_addr, uint16_t magic_num_v1, uint16_t magic_num_v2,
-	uint8_t *signature_cache, size_t max_signature, uint8_t *platform_id_cache,
-	size_t max_platform_id);
+	const struct hash_engine *hash, uint32_t base_addr, uint16_t magic_num_v1,
+	uint16_t magic_num_v2, uint8_t *signature_cache, size_t max_signature,
+	uint8_t *platform_id_cache,	size_t max_platform_id);
 void manifest_flash_release (struct manifest_flash *manifest);
 
 int manifest_flash_read_header (struct manifest_flash *manifest, struct manifest_header *header);
 
-int manifest_flash_verify (struct manifest_flash *manifest, struct hash_engine *hash,
+int manifest_flash_verify (struct manifest_flash *manifest, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length);
 int manifest_flash_get_id (struct manifest_flash *manifest, uint32_t *id);
 int manifest_flash_get_platform_id (struct manifest_flash *manifest, char **id, size_t length);
-int manifest_flash_get_hash (struct manifest_flash *manifest, struct hash_engine *hash,
+int manifest_flash_get_hash (struct manifest_flash *manifest, const struct hash_engine *hash,
 	uint8_t *hash_out, size_t hash_length);
 int manifest_flash_get_signature (struct manifest_flash *manifest, uint8_t *signature,
 	size_t length);
 
-int manifest_flash_read_element_data (struct manifest_flash *manifest, struct hash_engine *hash,
-	uint8_t type, int start, uint8_t parent_type, uint32_t read_offset, uint8_t *found,
-	uint8_t *format, size_t *total_len, uint8_t **element, size_t length);
+int manifest_flash_read_element_data (struct manifest_flash *manifest,
+	const struct hash_engine *hash,	uint8_t type, int start, uint8_t parent_type,
+	uint32_t read_offset, uint8_t *found, uint8_t *format, size_t *total_len, uint8_t **element,
+	size_t length);
 
 int manifest_flash_get_child_elements_info (struct manifest_flash *manifest,
-	struct hash_engine *hash, int entry, uint8_t type, uint8_t parent_type, uint8_t child_type,
-	size_t *child_len, int *child_count, int *first_entry);
+	const struct hash_engine *hash, int entry, uint8_t type, uint8_t parent_type,
+	uint8_t child_type,	size_t *child_len, int *child_count, int *first_entry);
 
 uint32_t manifest_flash_get_addr (struct manifest_flash *manifest);
 const struct flash* manifest_flash_get_flash (struct manifest_flash *manifest);

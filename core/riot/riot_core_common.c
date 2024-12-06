@@ -326,8 +326,8 @@ int riot_core_common_get_alias_key_cert (const struct riot_core *riot, uint8_t *
  * @return 0 if RIoT Core was been initialize successfully or an error code.
  */
 int riot_core_common_init (struct riot_core_common *riot, struct riot_core_common_state *state,
-	struct hash_engine *hash, struct ecc_engine *ecc, struct x509_engine *x509,
-	struct base64_engine *base64, size_t key_length,
+	const struct hash_engine *hash, struct ecc_engine *ecc, const struct x509_engine *x509,
+	const struct base64_engine *base64, size_t key_length,
 	const struct x509_extension_builder *const *device_id_ext, size_t device_id_ext_count,
 	const struct x509_extension_builder *const *alias_ext, size_t alias_ext_count)
 {

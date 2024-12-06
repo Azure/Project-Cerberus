@@ -341,7 +341,7 @@ int cerberus_protocol_generate_get_certificate_digest_request (uint8_t slot_num,
 	uint8_t *buf, size_t buf_len);
 int cerberus_protocol_generate_get_certificate_request (uint8_t slot_num, uint8_t cert_num,
 	uint8_t *buf, size_t buf_len, uint16_t offset, uint16_t length);
-int cerberus_protocol_generate_challenge_request (struct rng_engine *rng, uint8_t eid,
+int cerberus_protocol_generate_challenge_request (const struct rng_engine *rng, uint8_t eid,
 	uint8_t slot_num, uint8_t *buf, size_t buf_len);
 
 int cerberus_protocol_generate_get_device_capabilities_request (struct device_manager *device_mgr,

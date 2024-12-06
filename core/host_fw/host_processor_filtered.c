@@ -441,9 +441,9 @@ int host_processor_filtered_restore_read_write_data (struct host_processor_filte
  * @return 0 if the flash was successfully validated or an error code.
  */
 static int host_processor_filtered_validate_flash (struct host_processor_filtered *host,
-	struct hash_engine *hash, struct rsa_engine *rsa, struct pfm *pfm, struct pfm *active,
-	bool is_pending, bool is_bypass, bool skip_ro, bool skip_ro_config, bool apply_filter_cfg,
-	bool is_validated, bool single, bool *config_fail)
+	const struct hash_engine *hash, const struct rsa_engine *rsa, struct pfm *pfm,
+	struct pfm *active, bool is_pending, bool is_bypass, bool skip_ro, bool skip_ro_config,
+	bool apply_filter_cfg, bool is_validated, bool single, bool *config_fail)
 {
 	struct host_flash_manager_rw_regions rw_list;
 	int status = HOST_PROCESSOR_RW_SKIPPED;
@@ -668,7 +668,7 @@ static int host_processor_filtered_check_force_bypass_mode (struct host_processo
  * @return 0 if the event was handled successfully or an error code.
  */
 int host_processor_filtered_power_on_reset (struct host_processor_filtered *host,
-	struct hash_engine *hash, struct rsa_engine *rsa, bool single)
+	const struct hash_engine *hash, const struct rsa_engine *rsa, bool single)
 {
 	struct pfm *active_pfm = NULL;
 	struct pfm *pending_pfm = NULL;
@@ -829,7 +829,8 @@ static void host_processor_filtered_clear_host_dirty_state (
  * @return 0 if the event was handled successfully or an error code.
  */
 int host_processor_filtered_update_verification (struct host_processor_filtered *host,
-	struct hash_engine *hash, struct rsa_engine *rsa, bool single, bool reset, int bypass_status)
+	const struct hash_engine *hash, const struct rsa_engine *rsa, bool single, bool reset,
+	int bypass_status)
 {
 	struct pfm *active_pfm;
 	struct pfm *pending_pfm;

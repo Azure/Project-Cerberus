@@ -8,16 +8,16 @@
 
 
 #ifdef HASH_ENABLE_SHA1
-static int hash_openssl_calculate_sha1 (struct hash_engine *engine, const uint8_t *data,
+int hash_openssl_calculate_sha1 (const struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
-	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+	const struct hash_engine_openssl *openssl = (const struct hash_engine_openssl*) engine;
 
 	if ((openssl == NULL) || ((data == NULL) && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (openssl->active != HASH_ACTIVE_NONE) {
+	if (openssl->state->active != HASH_ACTIVE_NONE) {
 		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
@@ -30,20 +30,20 @@ static int hash_openssl_calculate_sha1 (struct hash_engine *engine, const uint8_
 	return 0;
 }
 
-static int hash_openssl_start_sha1 (struct hash_engine *engine)
+int hash_openssl_start_sha1 (const struct hash_engine *engine)
 {
-	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+	const struct hash_engine_openssl *openssl = (const struct hash_engine_openssl*) engine;
 
 	if (openssl == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (openssl->active != HASH_ACTIVE_NONE) {
+	if (openssl->state->active != HASH_ACTIVE_NONE) {
 		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
-	if (EVP_DigestInit (openssl->sha, EVP_sha1 ()) == 1) {
-		openssl->active = HASH_ACTIVE_SHA1;
+	if (EVP_DigestInit (openssl->state->sha, EVP_sha1 ()) == 1) {
+		openssl->state->active = HASH_ACTIVE_SHA1;
 		return 0;
 	}
 	else {
@@ -52,16 +52,16 @@ static int hash_openssl_start_sha1 (struct hash_engine *engine)
 }
 #endif
 
-static int hash_openssl_calculate_sha256 (struct hash_engine *engine, const uint8_t *data,
+int hash_openssl_calculate_sha256 (const struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
-	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+	const struct hash_engine_openssl *openssl = (const struct hash_engine_openssl*) engine;
 
 	if ((openssl == NULL) || ((data == NULL)  && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (openssl->active != HASH_ACTIVE_NONE) {
+	if (openssl->state->active != HASH_ACTIVE_NONE) {
 		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
@@ -74,20 +74,20 @@ static int hash_openssl_calculate_sha256 (struct hash_engine *engine, const uint
 	return 0;
 }
 
-static int hash_openssl_start_sha256 (struct hash_engine *engine)
+int hash_openssl_start_sha256 (const struct hash_engine *engine)
 {
-	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+	const struct hash_engine_openssl *openssl = (const struct hash_engine_openssl*) engine;
 
 	if (openssl == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (openssl->active != HASH_ACTIVE_NONE) {
+	if (openssl->state->active != HASH_ACTIVE_NONE) {
 		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
-	if (EVP_DigestInit (openssl->sha, EVP_sha256 ()) == 1) {
-		openssl->active = HASH_ACTIVE_SHA256;
+	if (EVP_DigestInit (openssl->state->sha, EVP_sha256 ()) == 1) {
+		openssl->state->active = HASH_ACTIVE_SHA256;
 		return 0;
 	}
 	else {
@@ -96,16 +96,16 @@ static int hash_openssl_start_sha256 (struct hash_engine *engine)
 }
 
 #ifdef HASH_ENABLE_SHA384
-static int hash_openssl_calculate_sha384 (struct hash_engine *engine, const uint8_t *data,
+int hash_openssl_calculate_sha384 (const struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
-	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+	const struct hash_engine_openssl *openssl = (const struct hash_engine_openssl*) engine;
 
 	if ((openssl == NULL) || ((data == NULL)  && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (openssl->active != HASH_ACTIVE_NONE) {
+	if (openssl->state->active != HASH_ACTIVE_NONE) {
 		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
@@ -118,20 +118,20 @@ static int hash_openssl_calculate_sha384 (struct hash_engine *engine, const uint
 	return 0;
 }
 
-static int hash_openssl_start_sha384 (struct hash_engine *engine)
+int hash_openssl_start_sha384 (const struct hash_engine *engine)
 {
-	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+	const struct hash_engine_openssl *openssl = (const struct hash_engine_openssl*) engine;
 
 	if (openssl == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (openssl->active != HASH_ACTIVE_NONE) {
+	if (openssl->state->active != HASH_ACTIVE_NONE) {
 		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
-	if (EVP_DigestInit (openssl->sha, EVP_sha384 ()) == 1) {
-		openssl->active = HASH_ACTIVE_SHA384;
+	if (EVP_DigestInit (openssl->state->sha, EVP_sha384 ()) == 1) {
+		openssl->state->active = HASH_ACTIVE_SHA384;
 		return 0;
 	}
 	else {
@@ -141,16 +141,16 @@ static int hash_openssl_start_sha384 (struct hash_engine *engine)
 #endif
 
 #ifdef HASH_ENABLE_SHA512
-static int hash_openssl_calculate_sha512 (struct hash_engine *engine, const uint8_t *data,
+int hash_openssl_calculate_sha512 (const struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
-	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+	const struct hash_engine_openssl *openssl = (const struct hash_engine_openssl*) engine;
 
 	if ((openssl == NULL) || ((data == NULL)  && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (openssl->active != HASH_ACTIVE_NONE) {
+	if (openssl->state->active != HASH_ACTIVE_NONE) {
 		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
@@ -163,20 +163,20 @@ static int hash_openssl_calculate_sha512 (struct hash_engine *engine, const uint
 	return 0;
 }
 
-static int hash_openssl_start_sha512 (struct hash_engine *engine)
+int hash_openssl_start_sha512 (const struct hash_engine *engine)
 {
-	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+	const struct hash_engine_openssl *openssl = (const struct hash_engine_openssl*) engine;
 
 	if (openssl == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (openssl->active != HASH_ACTIVE_NONE) {
+	if (openssl->state->active != HASH_ACTIVE_NONE) {
 		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
-	if (EVP_DigestInit (openssl->sha, EVP_sha512 ()) == 1) {
-		openssl->active = HASH_ACTIVE_SHA512;
+	if (EVP_DigestInit (openssl->state->sha, EVP_sha512 ()) == 1) {
+		openssl->state->active = HASH_ACTIVE_SHA512;
 		return 0;
 	}
 	else {
@@ -185,20 +185,20 @@ static int hash_openssl_start_sha512 (struct hash_engine *engine)
 }
 #endif
 
-static int hash_openssl_update (struct hash_engine *engine, const uint8_t *data, size_t length)
+int hash_openssl_update (const struct hash_engine *engine, const uint8_t *data, size_t length)
 {
-	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+	const struct hash_engine_openssl *openssl = (const struct hash_engine_openssl*) engine;
 	int status;
 
 	if ((openssl == NULL) || ((data == NULL) && (length != 0))) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (openssl->active == HASH_ACTIVE_NONE) {
+	if (openssl->state->active == HASH_ACTIVE_NONE) {
 		return HASH_ENGINE_NO_ACTIVE_HASH;
 	}
 
-	status = EVP_DigestUpdate (openssl->sha, data, length);
+	status = EVP_DigestUpdate (openssl->state->sha, data, length);
 	if (status == 1) {
 		return 0;
 	}
@@ -218,7 +218,7 @@ static int hash_openssl_update (struct hash_engine *engine, const uint8_t *data,
 static int hash_openssl_check_output_buffer_length (const struct hash_engine_openssl *openssl,
 	size_t hash_length)
 {
-	switch (openssl->active) {
+	switch (openssl->state->active) {
 #ifdef HASH_ENABLE_SHA1
 		case HASH_ACTIVE_SHA1:
 			if (hash_length < SHA1_HASH_LENGTH) {
@@ -256,9 +256,9 @@ static int hash_openssl_check_output_buffer_length (const struct hash_engine_ope
 	return 0;
 }
 
-static int hash_openssl_get_hash (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
+int hash_openssl_get_hash (const struct hash_engine *engine, uint8_t *hash, size_t hash_length)
 {
-	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+	const struct hash_engine_openssl *openssl = (const struct hash_engine_openssl*) engine;
 	EVP_MD_CTX *clone;
 	int status;
 
@@ -266,7 +266,7 @@ static int hash_openssl_get_hash (struct hash_engine *engine, uint8_t *hash, siz
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (openssl->active == HASH_ACTIVE_NONE) {
+	if (openssl->state->active == HASH_ACTIVE_NONE) {
 		return HASH_ENGINE_NO_ACTIVE_HASH;
 	}
 
@@ -280,7 +280,7 @@ static int hash_openssl_get_hash (struct hash_engine *engine, uint8_t *hash, siz
 		return HASH_ENGINE_NO_MEMORY;
 	}
 
-	status = EVP_MD_CTX_copy (clone, openssl->sha);
+	status = EVP_MD_CTX_copy (clone, openssl->state->sha);
 	if (status == 0) {
 		status = HASH_ENGINE_GET_HASH_FAILED;
 		goto exit;
@@ -299,9 +299,9 @@ exit:
 	return status;
 }
 
-static int hash_openssl_finish (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
+int hash_openssl_finish (const struct hash_engine *engine, uint8_t *hash, size_t hash_length)
 {
-	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+	const struct hash_engine_openssl *openssl = (const struct hash_engine_openssl*) engine;
 	int status = 0;
 
 	if ((openssl == NULL) || (hash == NULL)) {
@@ -313,9 +313,9 @@ static int hash_openssl_finish (struct hash_engine *engine, uint8_t *hash, size_
 		return status;
 	}
 
-	status = EVP_DigestFinal (openssl->sha, hash, NULL);
+	status = EVP_DigestFinal (openssl->state->sha, hash, NULL);
 	if (status == 1) {
-		openssl->active = HASH_ACTIVE_NONE;
+		openssl->state->active = HASH_ACTIVE_NONE;
 		status = 0;
 	}
 	else if (status == 0) {
@@ -325,12 +325,12 @@ static int hash_openssl_finish (struct hash_engine *engine, uint8_t *hash, size_
 	return status;
 }
 
-static void hash_openssl_cancel (struct hash_engine *engine)
+void hash_openssl_cancel (const struct hash_engine *engine)
 {
-	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+	const struct hash_engine_openssl *openssl = (const struct hash_engine_openssl*) engine;
 
 	if (openssl) {
-		openssl->active = HASH_ACTIVE_NONE;
+		openssl->state->active = HASH_ACTIVE_NONE;
 	}
 }
 
@@ -338,21 +338,17 @@ static void hash_openssl_cancel (struct hash_engine *engine)
  * Initialize an OpenSSL engine for calculating hashes.
  *
  * @param engine The hash engine to initialize.
+ * @param state Variable context for the hash engine.  This must be uninitialized.
  *
  * @return 0 if the hash engine was initialize successfully or an error code.
  */
-int hash_openssl_init (struct hash_engine_openssl *engine)
+int hash_openssl_init (struct hash_engine_openssl *engine, struct hash_engine_openssl_state *state)
 {
 	if (engine == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
 	memset (engine, 0, sizeof (struct hash_engine_openssl));
-
-	engine->sha = EVP_MD_CTX_new ();
-	if (engine->sha == NULL) {
-		return HASH_ENGINE_NO_MEMORY;
-	}
 
 #ifdef HASH_ENABLE_SHA1
 	engine->base.calculate_sha1 = hash_openssl_calculate_sha1;
@@ -373,7 +369,35 @@ int hash_openssl_init (struct hash_engine_openssl *engine)
 	engine->base.finish = hash_openssl_finish;
 	engine->base.cancel = hash_openssl_cancel;
 
-	engine->active = HASH_ACTIVE_NONE;
+	engine->state = state;
+
+	return hash_openssl_init_state (engine);
+}
+
+/**
+ * Initialize only the variable state of an OpenSSL hash engine.  The rest of the instance is
+ * assumed to already have been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param engine The hash engine that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int hash_openssl_init_state (const struct hash_engine_openssl *engine)
+{
+	if ((engine == NULL) || (engine->state == NULL)) {
+		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	memset (engine->state, 0, sizeof (*engine->state));
+
+	engine->state->sha = EVP_MD_CTX_new ();
+	if (engine->state->sha == NULL) {
+		return HASH_ENGINE_NO_MEMORY;
+	}
+
+	engine->state->active = HASH_ACTIVE_NONE;
 
 	return 0;
 }
@@ -383,9 +407,9 @@ int hash_openssl_init (struct hash_engine_openssl *engine)
  *
  * @param engine The hash engine to release.
  */
-void hash_openssl_release (struct hash_engine_openssl *engine)
+void hash_openssl_release (const struct hash_engine_openssl *engine)
 {
 	if (engine != NULL) {
-		EVP_MD_CTX_free (engine->sha);
+		EVP_MD_CTX_free (engine->state->sha);
 	}
 }

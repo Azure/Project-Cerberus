@@ -116,8 +116,8 @@ struct spdm_measurements {
 	 *   returned.
 	 */
 	int (*get_measurement_block) (const struct spdm_measurements *handler, uint8_t block_id,
-		bool raw_bit_stream, struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer,
-		size_t length);
+		bool raw_bit_stream, const struct hash_engine *hash, enum hash_type hash_type,
+		uint8_t *buffer, size_t length);
 
 	/**
 	 * Get the total data length for a single measurement block.  This length will include the
@@ -154,7 +154,7 @@ struct spdm_measurements {
 	 * cannot be performed, SPDM_MEASUREMENTS_HASH_NOT_POSSIBLE will be returned.
 	 */
 	int (*get_all_measurement_blocks) (const struct spdm_measurements *handler, bool raw_bit_stream,
-		struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer, size_t length);
+		const struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer, size_t length);
 
 	/**
 	 * Get the total length for a measurement record that contains all measurements supported by the
@@ -191,9 +191,9 @@ struct spdm_measurements {
 	 * determined by the summary hash algorithm.
 	 */
 	int (*get_measurement_summary_hash) (const struct spdm_measurements *handler,
-		struct hash_engine *summary_hash, enum hash_type summary_hash_type,
-		struct hash_engine *measurement_hash, enum hash_type measurement_hash_type, bool only_tcb,
-		uint8_t *buffer, size_t length);
+		const struct hash_engine *summary_hash, enum hash_type summary_hash_type,
+		const struct hash_engine *measurement_hash, enum hash_type measurement_hash_type,
+		bool only_tcb, uint8_t *buffer, size_t length);
 
 	struct pcr_store *store;	/**< Device measurement management. */
 };
@@ -205,22 +205,22 @@ void spdm_measurements_release (const struct spdm_measurements *handler);
 /* Internal functions for use by derived types. */
 int spdm_measurements_get_measurement_count (const struct spdm_measurements *handler);
 int spdm_measurements_get_measurement_block (const struct spdm_measurements *handler,
-	uint8_t block_id, bool raw_bit_stream, struct hash_engine *hash, enum hash_type hash_type,
+	uint8_t block_id, bool raw_bit_stream, const struct hash_engine *hash, enum hash_type hash_type,
 	uint8_t *buffer, size_t length);
 int spdm_measurements_get_measurement_block_length (const struct spdm_measurements *handler,
 	uint8_t block_id);
 
 int spdm_measurements_get_all_measurement_blocks (const struct spdm_measurements *handler,
-	bool raw_bit_stream, struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer,
+	bool raw_bit_stream, const struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer,
 	size_t length);
 int spdm_measurements_get_all_measurement_blocks_length (const struct spdm_measurements *handler,
 	bool raw_bit_stream, enum hash_type hash_type);
 
 int spdm_measurements_start_summary_hash (const struct spdm_measurements *handler,
-	struct hash_engine *summary_hash, enum hash_type summary_hash_type,
-	struct hash_engine *measurement_hash, uint8_t *buffer, size_t length);
+	const struct hash_engine *summary_hash, enum hash_type summary_hash_type,
+	const struct hash_engine *measurement_hash, uint8_t *buffer, size_t length);
 int spdm_measurements_update_summary_hash (const struct spdm_measurements *handler,
-	struct hash_engine *summary_hash, struct hash_engine *measurement_hash,
+	const struct hash_engine *summary_hash, const struct hash_engine *measurement_hash,
 	enum hash_type measurement_hash_type, bool only_tcb);
 
 

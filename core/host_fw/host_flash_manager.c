@@ -166,8 +166,8 @@ void host_flash_manager_free_images (struct host_flash_manager_images *host_img)
  *
  * @return 0 if the validation was successful or an error code.
  */
-int host_flash_manager_validate_flash (struct pfm *pfm, struct hash_engine *hash,
-	struct rsa_engine *rsa, bool full_validation, const struct spi_flash *flash,
+int host_flash_manager_validate_flash (struct pfm *pfm, const struct hash_engine *hash,
+	const struct rsa_engine *rsa, bool full_validation, const struct spi_flash *flash,
 	struct host_flash_manager_rw_regions *host_rw)
 {
 	return host_flash_manager_validate_offset_flash (pfm, hash, rsa, full_validation, flash, 0,
@@ -189,9 +189,9 @@ int host_flash_manager_validate_flash (struct pfm *pfm, struct hash_engine *hash
  *
  * @return 0 if the validation was successful or an error code.
  */
-int host_flash_manager_validate_offset_flash (struct pfm *pfm, struct hash_engine *hash,
-	struct rsa_engine *rsa, bool full_validation, const struct spi_flash *flash, uint32_t offset,
-	struct host_flash_manager_rw_regions *host_rw)
+int host_flash_manager_validate_offset_flash (struct pfm *pfm, const struct hash_engine *hash,
+	const struct rsa_engine *rsa, bool full_validation, const struct spi_flash *flash,
+	uint32_t offset, struct host_flash_manager_rw_regions *host_rw)
 {
 	struct pfm_firmware host_fw;
 	struct pfm_firmware_versions versions;
@@ -255,7 +255,7 @@ free_host:
  * @return 0 if the validation was successful or an error code.
  */
 int host_flash_manager_validate_pfm (struct pfm *pfm, struct pfm *good_pfm,
-	struct hash_engine *hash, struct rsa_engine *rsa, const struct spi_flash *flash,
+	const struct hash_engine *hash, const struct rsa_engine *rsa, const struct spi_flash *flash,
 	struct host_flash_manager_rw_regions *host_rw)
 {
 	struct pfm_firmware host_fw;

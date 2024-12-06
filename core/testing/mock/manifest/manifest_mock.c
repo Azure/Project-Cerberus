@@ -7,7 +7,7 @@
 #include "manifest_mock.h"
 
 
-static int manifest_mock_verify (struct manifest *manifest, struct hash_engine *hash,
+static int manifest_mock_verify (struct manifest *manifest, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
 	struct manifest_mock *mock = (struct manifest_mock*) manifest;
@@ -56,7 +56,7 @@ static void manifest_mock_free_platform_id (struct manifest *manifest, char *id)
 		MOCK_ARG_PTR_CALL (id));
 }
 
-static int manifest_mock_get_hash (struct manifest *manifest, struct hash_engine *hash,
+static int manifest_mock_get_hash (struct manifest *manifest, const struct hash_engine *hash,
 	uint8_t *hash_out, size_t hash_length)
 {
 	struct manifest_mock *mock = (struct manifest_mock*) manifest;

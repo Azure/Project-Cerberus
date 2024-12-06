@@ -218,7 +218,7 @@ int cerberus_protocol_get_log_info (struct pcr_store *pcr_store, struct cmd_inte
  *
  * @return 0 if request completed successfully or an error code.
  */
-int cerberus_protocol_log_read (struct pcr_store *pcr_store, struct hash_engine *hash,
+int cerberus_protocol_log_read (struct pcr_store *pcr_store, const struct hash_engine *hash,
 	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_log *rq = (struct cerberus_protocol_get_log*) request->data;

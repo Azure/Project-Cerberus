@@ -608,7 +608,7 @@ const PEMHeadersFooters PEMhf[LAST_CERT_TYPE] = {
 
 int DERtoPEM (
 	DERBuilderContext *Context, uint32_t Type, char *PEM, uint32_t *Length,
-	struct base64_engine *base64)
+	const struct base64_engine *base64)
 // Note that this function does not support extra header information for
 // encrypted keys. Expand the header buffer to ~128 bytes to support this.
 {

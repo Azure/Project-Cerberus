@@ -8,108 +8,108 @@
 
 
 #ifdef HASH_ENABLE_SHA1
-static int hash_thread_safe_calculate_sha1 (struct hash_engine *engine, const uint8_t *data,
+int hash_thread_safe_calculate_sha1 (const struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
-	struct hash_engine_thread_safe *sha = (struct hash_engine_thread_safe*) engine;
+	const struct hash_engine_thread_safe *sha = (const struct hash_engine_thread_safe*) engine;
 	int status;
 
 	if (sha == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&sha->lock);
+	platform_mutex_lock (&sha->state->lock);
 	status = sha->engine->calculate_sha1 (sha->engine, data, length, hash, hash_length);
-	platform_mutex_unlock (&sha->lock);
+	platform_mutex_unlock (&sha->state->lock);
 
 	return status;
 }
 
-static int hash_thread_safe_start_sha1 (struct hash_engine *engine)
+int hash_thread_safe_start_sha1 (const struct hash_engine *engine)
 {
-	struct hash_engine_thread_safe *sha = (struct hash_engine_thread_safe*) engine;
+	const struct hash_engine_thread_safe *sha = (const struct hash_engine_thread_safe*) engine;
 	int status;
 
 	if (sha == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&sha->lock);
+	platform_mutex_lock (&sha->state->lock);
 	status = sha->engine->start_sha1 (sha->engine);
 	if (status != 0) {
-		platform_mutex_unlock (&sha->lock);
+		platform_mutex_unlock (&sha->state->lock);
 	}
 
 	return status;
 }
 #endif
 
-static int hash_thread_safe_calculate_sha256 (struct hash_engine *engine, const uint8_t *data,
+int hash_thread_safe_calculate_sha256 (const struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
-	struct hash_engine_thread_safe *sha = (struct hash_engine_thread_safe*) engine;
+	const struct hash_engine_thread_safe *sha = (const struct hash_engine_thread_safe*) engine;
 	int status;
 
 	if (sha == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&sha->lock);
+	platform_mutex_lock (&sha->state->lock);
 	status = sha->engine->calculate_sha256 (sha->engine, data, length, hash, hash_length);
-	platform_mutex_unlock (&sha->lock);
+	platform_mutex_unlock (&sha->state->lock);
 
 	return status;
 }
 
-static int hash_thread_safe_start_sha256 (struct hash_engine *engine)
+int hash_thread_safe_start_sha256 (const struct hash_engine *engine)
 {
-	struct hash_engine_thread_safe *sha = (struct hash_engine_thread_safe*) engine;
+	const struct hash_engine_thread_safe *sha = (const struct hash_engine_thread_safe*) engine;
 	int status;
 
 	if (sha == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&sha->lock);
+	platform_mutex_lock (&sha->state->lock);
 	status = sha->engine->start_sha256 (sha->engine);
 	if (status != 0) {
-		platform_mutex_unlock (&sha->lock);
+		platform_mutex_unlock (&sha->state->lock);
 	}
 
 	return status;
 }
 
 #ifdef HASH_ENABLE_SHA384
-static int hash_thread_safe_calculate_sha384 (struct hash_engine *engine, const uint8_t *data,
+int hash_thread_safe_calculate_sha384 (const struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
-	struct hash_engine_thread_safe *sha = (struct hash_engine_thread_safe*) engine;
+	const struct hash_engine_thread_safe *sha = (const struct hash_engine_thread_safe*) engine;
 	int status;
 
 	if (sha == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&sha->lock);
+	platform_mutex_lock (&sha->state->lock);
 	status = sha->engine->calculate_sha384 (sha->engine, data, length, hash, hash_length);
-	platform_mutex_unlock (&sha->lock);
+	platform_mutex_unlock (&sha->state->lock);
 
 	return status;
 }
 
-static int hash_thread_safe_start_sha384 (struct hash_engine *engine)
+int hash_thread_safe_start_sha384 (const struct hash_engine *engine)
 {
-	struct hash_engine_thread_safe *sha = (struct hash_engine_thread_safe*) engine;
+	const struct hash_engine_thread_safe *sha = (const struct hash_engine_thread_safe*) engine;
 	int status;
 
 	if (sha == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&sha->lock);
+	platform_mutex_lock (&sha->state->lock);
 	status = sha->engine->start_sha384 (sha->engine);
 	if (status != 0) {
-		platform_mutex_unlock (&sha->lock);
+		platform_mutex_unlock (&sha->state->lock);
 	}
 
 	return status;
@@ -117,45 +117,45 @@ static int hash_thread_safe_start_sha384 (struct hash_engine *engine)
 #endif
 
 #ifdef HASH_ENABLE_SHA512
-static int hash_thread_safe_calculate_sha512 (struct hash_engine *engine, const uint8_t *data,
+int hash_thread_safe_calculate_sha512 (const struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
-	struct hash_engine_thread_safe *sha = (struct hash_engine_thread_safe*) engine;
+	const struct hash_engine_thread_safe *sha = (const struct hash_engine_thread_safe*) engine;
 	int status;
 
 	if (sha == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&sha->lock);
+	platform_mutex_lock (&sha->state->lock);
 	status = sha->engine->calculate_sha512 (sha->engine, data, length, hash, hash_length);
-	platform_mutex_unlock (&sha->lock);
+	platform_mutex_unlock (&sha->state->lock);
 
 	return status;
 }
 
-static int hash_thread_safe_start_sha512 (struct hash_engine *engine)
+int hash_thread_safe_start_sha512 (const struct hash_engine *engine)
 {
-	struct hash_engine_thread_safe *sha = (struct hash_engine_thread_safe*) engine;
+	const struct hash_engine_thread_safe *sha = (const struct hash_engine_thread_safe*) engine;
 	int status;
 
 	if (sha == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&sha->lock);
+	platform_mutex_lock (&sha->state->lock);
 	status = sha->engine->start_sha512 (sha->engine);
 	if (status != 0) {
-		platform_mutex_unlock (&sha->lock);
+		platform_mutex_unlock (&sha->state->lock);
 	}
 
 	return status;
 }
 #endif
 
-static int hash_thread_safe_update (struct hash_engine *engine, const uint8_t *data, size_t length)
+int hash_thread_safe_update (const struct hash_engine *engine, const uint8_t *data, size_t length)
 {
-	struct hash_engine_thread_safe *sha = (struct hash_engine_thread_safe*) engine;
+	const struct hash_engine_thread_safe *sha = (const struct hash_engine_thread_safe*) engine;
 
 	if (sha == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
@@ -164,9 +164,9 @@ static int hash_thread_safe_update (struct hash_engine *engine, const uint8_t *d
 	return sha->engine->update (sha->engine, data, length);
 }
 
-static int hash_thread_safe_finish (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
+int hash_thread_safe_finish (const struct hash_engine *engine, uint8_t *hash, size_t hash_length)
 {
-	struct hash_engine_thread_safe *sha = (struct hash_engine_thread_safe*) engine;
+	const struct hash_engine_thread_safe *sha = (const struct hash_engine_thread_safe*) engine;
 	int status;
 
 	if (sha == NULL) {
@@ -177,27 +177,27 @@ static int hash_thread_safe_finish (struct hash_engine *engine, uint8_t *hash, s
 	if (status == 0) {
 		/* Only release the lock if finish is successful.  Unsuccessful calls require retry or
 		 * cancel. */
-		platform_mutex_unlock (&sha->lock);
+		platform_mutex_unlock (&sha->state->lock);
 	}
 
 	return status;
 }
 
-static void hash_thread_safe_cancel (struct hash_engine *engine)
+void hash_thread_safe_cancel (const struct hash_engine *engine)
 {
-	struct hash_engine_thread_safe *sha = (struct hash_engine_thread_safe*) engine;
+	const struct hash_engine_thread_safe *sha = (const struct hash_engine_thread_safe*) engine;
 
 	if (sha == NULL) {
 		return;
 	}
 
 	sha->engine->cancel (sha->engine);
-	platform_mutex_unlock (&sha->lock);
+	platform_mutex_unlock (&sha->state->lock);
 }
 
-static int hash_thread_safe_get_hash (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
+int hash_thread_safe_get_hash (const struct hash_engine *engine, uint8_t *hash, size_t hash_length)
 {
-	struct hash_engine_thread_safe *sha = (struct hash_engine_thread_safe*) engine;
+	const struct hash_engine_thread_safe *sha = (const struct hash_engine_thread_safe*) engine;
 	int status;
 
 	if (sha == NULL) {
@@ -217,9 +217,10 @@ static int hash_thread_safe_get_hash (struct hash_engine *engine, uint8_t *hash,
  *
  * @return 0 if the engine was successfully initialized or an error code.
  */
-int hash_thread_safe_init (struct hash_engine_thread_safe *engine, struct hash_engine *target)
+int hash_thread_safe_init (struct hash_engine_thread_safe *engine,
+	struct hash_engine_thread_safe_state *state, const struct hash_engine *target)
 {
-	if ((engine == NULL) || (target == NULL)) {
+	if ((engine == NULL) || (state == NULL) || (target == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
@@ -244,9 +245,31 @@ int hash_thread_safe_init (struct hash_engine_thread_safe *engine, struct hash_e
 	engine->base.finish = hash_thread_safe_finish;
 	engine->base.cancel = hash_thread_safe_cancel;
 
+	engine->state = state;
 	engine->engine = target;
 
-	return platform_mutex_init (&engine->lock);
+	return hash_thread_safe_init_state (engine);
+}
+
+/**
+ * Initialize only the variable state of thread-state hash engine wrapper.  The rest of the instance
+ * is assumed to already have been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param engine The hash engine that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int hash_thread_safe_init_state (const struct hash_engine_thread_safe *engine)
+{
+	if ((engine == NULL) || (engine->state == NULL) || (engine->engine == NULL)) {
+		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	memset (engine->state, 0, sizeof (*engine->state));
+
+	return platform_mutex_init (&engine->state->lock);
 }
 
 /**
@@ -254,9 +277,9 @@ int hash_thread_safe_init (struct hash_engine_thread_safe *engine, struct hash_e
  *
  * @param engine The thread-safe engine to release.
  */
-void hash_thread_safe_release (struct hash_engine_thread_safe *engine)
+void hash_thread_safe_release (const struct hash_engine_thread_safe *engine)
 {
 	if (engine != NULL) {
-		platform_mutex_free (&engine->lock);
+		platform_mutex_free (&engine->state->lock);
 	}
 }

@@ -53,14 +53,15 @@ struct cmd_background_handler {
 	const struct event_task *task;				/**< The task context executing the handler. */
 #ifdef CMD_ENABLE_UNSEAL
 	struct attestation_responder *attestation;	/**< Attestation responder to utilize for attestation operations. */
-	struct hash_engine *hash;					/**< Hash engine to be used in attestation operations. */
+	const struct hash_engine *hash;				/**< Hash engine to be used in attestation operations. */
 #endif
 };
 
 
 int cmd_background_handler_init (struct cmd_background_handler *handler,
 	struct cmd_background_handler_state *state, struct attestation_responder *attestation,
-	struct hash_engine *hash, const struct riot_key_manager *riot, const struct event_task *task);
+	const struct hash_engine *hash, const struct riot_key_manager *riot,
+	const struct event_task *task);
 int cmd_background_handler_init_state (const struct cmd_background_handler *handler);
 void cmd_background_handler_release (const struct cmd_background_handler *handler);
 

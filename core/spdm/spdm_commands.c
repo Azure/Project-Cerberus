@@ -1044,7 +1044,7 @@ exit:
  * @return 0 if the digest was calculated successfully or an error code.
  */
 static int spdm_get_certificate_chain_digest (const struct riot_key_manager *key_manager,
-	struct hash_engine *hash_engine, enum hash_type hash_type, uint8_t *digest)
+	const struct hash_engine *hash_engine, enum hash_type hash_type, uint8_t *digest)
 {
 	int status;
 	uint8_t i_cert;
@@ -1224,8 +1224,8 @@ static void spdm_create_signing_context (struct spdm_state *state, uint8_t op_co
  */
 static int spdm_responder_data_sign (struct spdm_state *state,
 	const struct riot_key_manager *key_manager, struct ecc_engine *ecc_engine,
-	struct hash_engine *hash_engine, uint8_t op_code, const uint8_t *message_hash, size_t hash_size,
-	uint8_t *signature, size_t sig_size)
+	const struct hash_engine *hash_engine, uint8_t op_code, const uint8_t *message_hash,
+	size_t hash_size, uint8_t *signature, size_t sig_size)
 {
 	int status;
 	uint8_t *message;
@@ -1332,8 +1332,8 @@ exit:
 static int spdm_generate_measurement_signature (
 	const struct spdm_transcript_manager *transcript_manager, struct spdm_state *state,
 	const struct riot_key_manager *key_manager, struct ecc_engine *ecc_engine,
-	struct hash_engine *hash_engine, struct spdm_secure_session *session_info, uint8_t *signature,
-	size_t sig_size)
+	const struct hash_engine *hash_engine, struct spdm_secure_session *session_info,
+	uint8_t *signature, size_t sig_size)
 {
 	int status;
 	uint8_t l1l2_hash[HASH_MAX_HASH_LEN];
@@ -1393,7 +1393,7 @@ exit:
 static int spdm_generate_key_exchange_rsp_signature (
 	const struct spdm_transcript_manager *transcript_manager, struct spdm_state *state,
 	const struct riot_key_manager *key_manager, struct ecc_engine *ecc_engine,
-	struct hash_engine *hash_engine, struct spdm_secure_session *session, uint8_t *signature,
+	const struct hash_engine *hash_engine, struct spdm_secure_session *session, uint8_t *signature,
 	uint32_t sig_size)
 {
 	int status;
@@ -1437,7 +1437,7 @@ exit:
  */
 static int spdm_calculate_th_hmac_for_key_exchange_rsp (
 	const struct spdm_transcript_manager *transcript_manager, struct spdm_state *state,
-	struct ecc_engine *ecc_engine, struct hash_engine *hash_engine,
+	struct ecc_engine *ecc_engine, const struct hash_engine *hash_engine,
 	struct spdm_secure_session *session, uint8_t *th_hmac_buffer)
 {
 	int status;
@@ -1481,7 +1481,7 @@ exit:
  * @return 0 if the HMAC is verified successfully, error code otherwise.
  */
 static int spdm_verify_finish_req_hmac (const struct spdm_transcript_manager *transcript_manager,
-	struct hash_engine *hash_engine, struct spdm_secure_session *session, const uint8_t *hmac,
+	const struct hash_engine *hash_engine, struct spdm_secure_session *session, const uint8_t *hmac,
 	size_t hmac_size)
 {
 	int status;
@@ -2459,7 +2459,7 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct spdm_state *state;
 	const struct spdm_device_capability *local_capabilities;
 	const struct riot_key_manager *key_manager;
-	struct hash_engine *hash_engine;
+	const struct hash_engine *hash_engine;
 	enum hash_type hash_type;
 	struct spdm_secure_session_manager *session_manager;
 	struct spdm_secure_session *session = NULL;
@@ -2683,7 +2683,7 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 	struct spdm_state *state;
 	const struct spdm_device_capability *local_capabilities;
 	const struct riot_key_manager *key_manager;
-	struct hash_engine *hash_engine;
+	const struct hash_engine *hash_engine;
 	enum hash_type hash_type;
 	const struct riot_keys *keys = NULL;
 	struct spdm_secure_session_manager *session_manager;
@@ -2974,9 +2974,9 @@ int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct spdm_state *state;
 	const struct spdm_device_capability *local_capabilities;
 	const struct spdm_transcript_manager *transcript_manager;
-	struct hash_engine *hash_engine;
+	const struct hash_engine *hash_engine;
 	const struct riot_key_manager *key_manager;
-	struct rng_engine *rng_engine;
+	const struct rng_engine *rng_engine;
 	struct ecc_engine *ecc_engine;
 	enum hash_type hash_type;
 	int hash_size;
@@ -3264,13 +3264,13 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 	const struct spdm_transcript_manager *transcript_manager;
 	struct spdm_state *state;
 	const struct spdm_device_capability *local_capabilities;
-	struct hash_engine *hash_engine;
+	const struct hash_engine *hash_engine;
 	enum hash_type hash_type;
 	size_t signature_size;
 	size_t request_size;
 	size_t response_size;
 	const struct spdm_measurements *measurements;
-	struct rng_engine *rng_engine;
+	const struct rng_engine *rng_engine;
 	uint8_t measurement_operation;
 	int measurement_count;
 	int measurement_length;
@@ -3686,8 +3686,8 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 	struct spdm_state *state;
 	const struct spdm_device_capability *local_capabilities;
 	const struct riot_key_manager *key_manager;
-	struct hash_engine *hash_engine;
-	struct rng_engine *rng_engine;
+	const struct hash_engine *hash_engine;
+	const struct rng_engine *rng_engine;
 	bool release_session = false;
 	uint8_t cert_chain_hash[HASH_MAX_HASH_LEN];
 	struct spdm_secure_session_manager *session_manager;
@@ -4488,7 +4488,7 @@ exit:
  *
  * @return 0 if completed successfully, or an error code
  */
-int spdm_format_signature_digest (struct hash_engine *hash, enum hash_type hash_type,
+int spdm_format_signature_digest (const struct hash_engine *hash, enum hash_type hash_type,
 	uint8_t spdm_minor_version, char *spdm_context, uint8_t *digest)
 {
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};

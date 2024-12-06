@@ -73,7 +73,7 @@ static void host_processor_observer_pcr_on_inactive_dirty (struct host_state_obs
  * @return 0 if initialization was successful or an error code.
  */
 int host_processor_observer_pcr_init (struct host_processor_observer_pcr *host,
-	struct hash_engine *hash, struct pcr_store *store, uint16_t pcr, uint32_t *init_state)
+	const struct hash_engine *hash, struct pcr_store *store, uint16_t pcr, uint32_t *init_state)
 {
 	uint32_t state_copy;
 	int status;

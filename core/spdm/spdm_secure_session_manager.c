@@ -17,7 +17,7 @@
  */
 static void spdm_secure_session_manager_init_session_state (
 	const struct spdm_secure_session_manager *session_manager, uint32_t session_index,
-	uint32_t session_id, bool is_requester,	const struct spdm_connection_info *connection_info)
+	uint32_t session_id, bool is_requester, const struct spdm_connection_info *connection_info)
 {
 	enum spdm_secure_session_type session_type;
 	struct spdm_get_capabilities_flags_format req_capability;
@@ -376,7 +376,7 @@ static void spdm_secure_session_manager_bin_concat (struct spdm_version_number v
  *
  * @return 0 if the SPDM finished key for a session is generated, error code otherwise.
  */
-static int spdm_secure_session_manager_generate_finished_key (struct hash_engine *hash_engine,
+static int spdm_secure_session_manager_generate_finished_key (const struct hash_engine *hash_engine,
 	struct spdm_secure_session *session, enum hmac_hash hmac_hash_type,
 	const uint8_t *handshake_secret, uint8_t *finished_key)
 {
@@ -392,7 +392,7 @@ static int spdm_secure_session_manager_generate_finished_key (struct hash_engine
 		sizeof (SPDM_BIN_STR_7_LABEL) - 1, NULL, (uint16_t) hash_size, hash_size, bin_str7,
 		&bin_str7_size);
 
-	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, handshake_secret, hash_size,	bin_str7,
+	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, handshake_secret, hash_size, bin_str7,
 		bin_str7_size, finished_key, hash_size);
 	if (status != 0) {
 		goto exit;
@@ -415,8 +415,8 @@ exit:
  *
  * @return 0 if the SPDM AEAD key and IV are generated, error code otherwise.
  */
-static int spdm_session_manager_generate_aead_key_and_iv (struct hash_engine *hash_engine,
-	struct spdm_secure_session *session, enum hmac_hash hmac_hash_type,	const uint8_t *major_secret,
+static int spdm_session_manager_generate_aead_key_and_iv (const struct hash_engine *hash_engine,
+	struct spdm_secure_session *session, enum hmac_hash hmac_hash_type, const uint8_t *major_secret,
 	uint8_t *key, uint8_t *iv)
 {
 	bool status;
@@ -466,7 +466,7 @@ int spdm_secure_session_manager_generate_session_handshake_keys (
 {
 	int status;
 	const struct spdm_transcript_manager *transcript_manager;
-	struct hash_engine *hash_engine;
+	const struct hash_engine *hash_engine;
 	uint8_t th1_hash[HASH_MAX_HASH_LEN];
 	size_t hash_size;
 	uint8_t bin_str1[128];
@@ -511,7 +511,7 @@ int spdm_secure_session_manager_generate_session_handshake_keys (
 		&bin_str1_size);
 
 	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, session->master_secret.handshake_secret,
-		hash_size, bin_str1, bin_str1_size,	session->handshake_secret.request_handshake_secret,
+		hash_size, bin_str1, bin_str1_size, session->handshake_secret.request_handshake_secret,
 		hash_size);
 	if (status != 0) {
 		goto exit;
@@ -524,7 +524,7 @@ int spdm_secure_session_manager_generate_session_handshake_keys (
 		&bin_str2_size);
 
 	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, session->master_secret.handshake_secret,
-		hash_size, bin_str2, bin_str2_size,	session->handshake_secret.response_handshake_secret,
+		hash_size, bin_str2, bin_str2_size, session->handshake_secret.response_handshake_secret,
 		hash_size);
 	if (status != 0) {
 		goto exit;
@@ -608,7 +608,7 @@ int spdm_secure_session_manager_generate_session_data_keys (
 	size_t bin_str8_size;
 	uint8_t zero_filled_buffer[HASH_MAX_HASH_LEN];
 	enum hmac_hash hmac_hash_type;
-	struct hash_engine *hash_engine;
+	const struct hash_engine *hash_engine;
 	const struct spdm_transcript_manager *transcript_manager;
 	uint8_t th2_hash[HASH_MAX_HASH_LEN];
 
@@ -680,7 +680,7 @@ int spdm_secure_session_manager_generate_session_data_keys (
 		&bin_str8_size);
 
 	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, session->master_secret.master_secret,
-		hash_size, bin_str8, bin_str8_size,	session->export_master_secret, hash_size);
+		hash_size, bin_str8, bin_str8_size, session->export_master_secret, hash_size);
 	if (status != 0) {
 		goto exit;
 	}
@@ -926,7 +926,7 @@ int spdm_secure_session_manager_decode_secure_message (
 
 	switch (session_type) {
 		case SPDM_SESSION_TYPE_ENC_MAC:
-			status = spdm_secure_session_manager_decrypt_message (session_manager, session,	request,
+			status = spdm_secure_session_manager_decrypt_message (session_manager, session, request,
 				sequence_number, sequence_num_in_header_size, key, salt, iv);
 			break;
 
@@ -958,7 +958,7 @@ exit:
  */
 static int spdm_secure_session_manager_encrypt_message (
 	const struct spdm_secure_session_manager *session_manager, struct spdm_secure_session *session,
-	struct cmd_interface_msg *request, uint8_t sequence_num_in_header_size,	const uint8_t *key,
+	struct cmd_interface_msg *request, uint8_t sequence_num_in_header_size, const uint8_t *key,
 	const uint8_t *iv)
 {
 	int status;
@@ -1114,7 +1114,7 @@ int spdm_secure_session_manager_encode_secure_message (
 
 	switch (session_type) {
 		case SPDM_SESSION_TYPE_ENC_MAC:
-			status = spdm_secure_session_manager_encrypt_message (session_manager, session,	request,
+			status = spdm_secure_session_manager_encrypt_message (session_manager, session, request,
 				sequence_num_in_header_size, key, iv);
 			break;
 
@@ -1164,8 +1164,8 @@ int spdm_secure_session_manager_init (struct spdm_secure_session_manager *sessio
 	struct spdm_secure_session_manager_state *state,
 	const struct spdm_device_capability *local_capabilities,
 	const struct spdm_device_algorithms *local_algorithms, const struct aes_gcm_engine *aes_engine,
-	struct hash_engine *hash_engine, struct rng_engine *rng_engine, struct ecc_engine *ecc_engine,
-	const struct spdm_transcript_manager *transcript_manager)
+	const struct hash_engine *hash_engine, const struct rng_engine *rng_engine,
+	struct ecc_engine *ecc_engine, const struct spdm_transcript_manager *transcript_manager)
 {
 	int status;
 

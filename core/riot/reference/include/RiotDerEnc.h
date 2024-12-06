@@ -128,7 +128,7 @@ int DERTbsToCert (
 
 int DERtoPEM (
 	DERBuilderContext *Context,	uint32_t Type, char *PEM, uint32_t *Length,
-	struct base64_engine *base64);
+	const struct base64_engine *base64);
 
 int DERAddNull (
 	DERBuilderContext *Context);

@@ -25,8 +25,8 @@
  *
  * @return 0 if the PCR manager was successfully initialized or an error code.
  */
-int manifest_pcr_init (struct manifest_pcr *pcr, struct hash_engine *hash, struct pcr_store *store,
-	uint16_t manifest_measurement, uint16_t manifest_id_measurement,
+int manifest_pcr_init (struct manifest_pcr *pcr, const struct hash_engine *hash,
+	struct pcr_store *store, uint16_t manifest_measurement, uint16_t manifest_id_measurement,
 	uint16_t manifest_platform_id_measurement, int error)
 {
 	int status;

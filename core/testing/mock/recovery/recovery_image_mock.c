@@ -6,7 +6,7 @@
 #include "manifest/pfm/pfm_manager.h"
 
 
-static int recovery_image_mock_verify (struct recovery_image *img, struct hash_engine *hash,
+static int recovery_image_mock_verify (struct recovery_image *img, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length,
 	struct pfm_manager *pfm)
 {
@@ -21,7 +21,7 @@ static int recovery_image_mock_verify (struct recovery_image *img, struct hash_e
 		MOCK_ARG_PTR_CALL (pfm));
 }
 
-static int recovery_image_mock_get_hash (struct recovery_image *img, struct hash_engine *hash,
+static int recovery_image_mock_get_hash (struct recovery_image *img, const struct hash_engine *hash,
 	uint8_t *hash_out, size_t hash_length)
 {
 	struct recovery_image_mock *mock = (struct recovery_image_mock*) img;

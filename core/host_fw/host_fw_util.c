@@ -333,7 +333,7 @@ bool host_fw_are_images_different (const struct pfm_image_list *img_list1,
  */
 static int host_fw_verify_images_on_flash (const struct spi_flash *flash,
 	const struct pfm_image_list *img_list, bool validate_all, uint32_t offset,
-	struct hash_engine *hash, struct rsa_engine *rsa)
+	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	size_t i;
 	int status = 0;
@@ -381,7 +381,7 @@ static int host_fw_verify_images_on_flash (const struct spi_flash *flash,
  * @return 0 if all images that should be validated are good or an error code.
  */
 int host_fw_verify_images (const struct spi_flash *flash, const struct pfm_image_list *img_list,
-	struct hash_engine *hash, struct rsa_engine *rsa)
+	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	return host_fw_verify_offset_images_multiple_fw (flash, img_list, 1, 0, hash, rsa);
 }
@@ -400,8 +400,8 @@ int host_fw_verify_images (const struct spi_flash *flash, const struct pfm_image
  * @return 0 if all images that should be validated are good or an error code.
  */
 int host_fw_verify_offset_images (const struct spi_flash *flash,
-	const struct pfm_image_list *img_list, uint32_t offset, struct hash_engine *hash,
-	struct rsa_engine *rsa)
+	const struct pfm_image_list *img_list, uint32_t offset, const struct hash_engine *hash,
+	const struct rsa_engine *rsa)
 {
 	return host_fw_verify_offset_images_multiple_fw (flash, img_list, 1, offset, hash, rsa);
 }
@@ -419,8 +419,8 @@ int host_fw_verify_offset_images (const struct spi_flash *flash,
  * @return 0 if all images that should be validated are good or an error code.
  */
 int host_fw_verify_images_multiple_fw (const struct spi_flash *flash,
-	const struct pfm_image_list *img_list, size_t fw_count, struct hash_engine *hash,
-	struct rsa_engine *rsa)
+	const struct pfm_image_list *img_list, size_t fw_count, const struct hash_engine *hash,
+	const struct rsa_engine *rsa)
 {
 	return host_fw_verify_offset_images_multiple_fw (flash, img_list, fw_count, 0, hash, rsa);
 }
@@ -442,7 +442,7 @@ int host_fw_verify_images_multiple_fw (const struct spi_flash *flash,
  */
 int host_fw_verify_offset_images_multiple_fw (const struct spi_flash *flash,
 	const struct pfm_image_list *img_list, size_t fw_count, uint32_t offset,
-	struct hash_engine *hash, struct rsa_engine *rsa)
+	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	size_t i;
 	int status;
@@ -588,7 +588,7 @@ static const struct flash_region* host_fw_find_next_flash_region (uint32_t last_
  */
 int host_fw_full_flash_verification (const struct spi_flash *flash,
 	const struct pfm_image_list *img_list, const struct pfm_read_write_regions *writable,
-	uint8_t unused_byte, struct hash_engine *hash, struct rsa_engine *rsa)
+	uint8_t unused_byte, const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	return host_fw_full_flash_verification_multiple_fw (flash, img_list, writable, 1, unused_byte,
 		hash, rsa);
@@ -615,7 +615,8 @@ int host_fw_full_flash_verification (const struct spi_flash *flash,
  */
 int host_fw_full_flash_verification_multiple_fw (const struct spi_flash *flash,
 	const struct pfm_image_list *img_list, const struct pfm_read_write_regions *writable,
-	size_t fw_count, uint8_t unused_byte, struct hash_engine *hash, struct rsa_engine *rsa)
+	size_t fw_count, uint8_t unused_byte, const struct hash_engine *hash,
+	const struct rsa_engine *rsa)
 {
 	const struct flash_region *pos;
 	uint32_t flash_size;

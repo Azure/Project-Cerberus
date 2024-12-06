@@ -44,7 +44,7 @@ static int riot_key_manager_authenticate_stored_certificates (const struct riot_
 	status = riot->keystore->load_key (riot->keystore, 0, &signed_devid, &devid_length);
 	if (status == 0) {
 		status = riot->keystore->load_key (riot->keystore, 1,
-			(uint8_t**) &riot->state->root_ca.cert,	&riot->state->root_ca.length);
+			(uint8_t**) &riot->state->root_ca.cert, &riot->state->root_ca.length);
 		if (status == 0) {
 			status = riot->keystore->load_key (riot->keystore, 2,
 				(uint8_t**) &riot->state->intermediate_ca.cert,
@@ -241,8 +241,8 @@ static int riot_key_manager_init_cert_state (const struct riot_key_manager *riot
  */
 static int riot_key_manager_init_certs (struct riot_key_manager *riot,
 	struct riot_key_manager_state *state, const struct keystore *keystore,
-	const struct riot_keys *keys, struct x509_engine *x509,	const struct der_cert *const extra_csr,
-	size_t csr_count, bool static_keys)
+	const struct riot_keys *keys, const struct x509_engine *x509,
+	const struct der_cert *const extra_csr, size_t csr_count, bool static_keys)
 {
 	if ((riot == NULL) || (state == NULL) || (keystore == NULL) || (keys == NULL) ||
 		(x509 == NULL)) {
@@ -280,7 +280,7 @@ static int riot_key_manager_init_certs (struct riot_key_manager *riot,
  * @return 0 if the manager was successfully initialized or an error code.
  */
 int riot_key_manager_init (struct riot_key_manager *riot, struct riot_key_manager_state *state,
-	const struct keystore *keystore, const struct riot_keys *keys, struct x509_engine *x509,
+	const struct keystore *keystore, const struct riot_keys *keys, const struct x509_engine *x509,
 	const struct der_cert *const extra_csr, size_t csr_count)
 {
 	return riot_key_manager_init_certs (riot, state, keystore, keys, x509, extra_csr, csr_count,
@@ -307,8 +307,8 @@ int riot_key_manager_init (struct riot_key_manager *riot, struct riot_key_manage
  */
 int riot_key_manager_init_static_keys (struct riot_key_manager *riot,
 	struct riot_key_manager_state *state, const struct keystore *keystore,
-	const struct riot_keys *keys, struct x509_engine *x509, const struct der_cert *const extra_csr,
-	size_t csr_count)
+	const struct riot_keys *keys, const struct x509_engine *x509,
+	const struct der_cert *const extra_csr, size_t csr_count)
 {
 	return riot_key_manager_init_certs (riot, state, keystore, keys, x509, extra_csr, csr_count,
 		true);
@@ -429,7 +429,7 @@ int riot_key_manager_store_root_ca (const struct riot_key_manager *riot, const u
  * @return 0 if the Intermediate CA certificate was successfully stored or an error code.
  */
 int riot_key_manager_store_intermediate_ca (const struct riot_key_manager *riot,
-	const uint8_t *intr_ca,	size_t length)
+	const uint8_t *intr_ca, size_t length)
 {
 	return riot_key_manager_store_certificate (riot, 2, intr_ca, length);
 }

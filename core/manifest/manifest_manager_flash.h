@@ -39,7 +39,7 @@ struct manifest_manager_flash {
 	struct manifest_manager_flash_region region1;		/**< The first flash region for a manifest. */
 	struct manifest_manager_flash_region region2;		/**< The second flash region for a manifest. */
 	struct state_manager *state;						/**< State manager interface. */
-	struct hash_engine *hash;							/**< The hash engine for manifest validation. */
+	const struct hash_engine *hash;						/**< The hash engine for manifest validation. */
 	const struct signature_verification *verification;	/**< Verification module for verifying manifest signatures. */
 	struct flash_updater *updating;						/**< The update manager being used to write new manifest data. */
 	platform_mutex lock;								/**< Synchronization for flash manager state. */
@@ -61,7 +61,7 @@ struct manifest_manager_flash {
 int manifest_manager_flash_init (struct manifest_manager_flash *manager,
 	struct manifest_manager *base, struct manifest *region1, struct manifest *region2,
 	struct manifest_flash *region1_flash, struct manifest_flash *region2_flash,
-	struct state_manager *state, struct hash_engine *hash,
+	struct state_manager *state, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t manifest_index,
 	uint8_t log_msg_empty, bool sku_upgrade_permitted);
 void manifest_manager_flash_release (struct manifest_manager_flash *manager);

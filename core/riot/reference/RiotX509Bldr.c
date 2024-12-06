@@ -38,7 +38,7 @@ const int ueidOID[] = {2, 23, 133, 5, 4, 4, -1};
 
 
 static int GenerateGuidFromSeed (char *nameBuf, size_t *nameBufLen, const uint8_t *seed,
-	size_t seedLen,	struct hash_engine *hash, struct base64_engine *base64)
+	size_t seedLen, const struct hash_engine *hash, const struct base64_engine *base64)
 {
 	uint8_t digest[SHA256_DIGEST_LENGTH];
 	int result;
@@ -57,7 +57,7 @@ static int GenerateGuidFromSeed (char *nameBuf, size_t *nameBufLen, const uint8_
 }
 
 static int X509AddKeyUsageExtension (
-	DERBuilderContext *Tbs,	int	Type)
+	DERBuilderContext *Tbs, int	Type)
 {
 	uint8_t keyUsage;
 	uint8_t bits;
@@ -86,7 +86,7 @@ Error:
 }
 
 static int X509AddExtendedKeyUsageExtension (
-	DERBuilderContext *Tbs,	int Type, const uint8_t *Oid, size_t OidLength)
+	DERBuilderContext *Tbs, int Type, const uint8_t *Oid, size_t OidLength)
 {
 	if (Type == X509_CERT_END_ENTITY) {
 		CHK (DERStartSequenceOrSet (Tbs, true));
@@ -117,7 +117,7 @@ Error:
 }
 
 static int X509AddBasicConstraintsExtension (
-	DERBuilderContext *Tbs,	int	Type)
+	DERBuilderContext *Tbs, int	Type)
 {
 	if (Type) {
 		CHK (DERStartSequenceOrSet (Tbs, true));
@@ -141,8 +141,8 @@ Error:
 }
 
 static int X509AddRiotExtension (
-	DERBuilderContext *Tbs,	const uint8_t *DevIdPub, size_t	DevIdPubLen, const uint8_t *Fwid,
-	size_t FwidLen,	const int *shaOID)
+	DERBuilderContext *Tbs, const uint8_t *DevIdPub, size_t	DevIdPubLen, const uint8_t *Fwid,
+	size_t FwidLen, const int *shaOID)
 {
 	CHK (DERStartSequenceOrSet (Tbs, true));
 	CHK (DERAddOID (Tbs, riotOID));
@@ -171,7 +171,7 @@ Error:
 }
 
 static int X509AddTcbInfoExtension (
-	DERBuilderContext *Tbs,	const struct tcg_dice_tcbinfo *Tcb,	const int *shaOID, size_t FwidLen)
+	DERBuilderContext *Tbs, const struct tcg_dice_tcbinfo *Tcb, const int *shaOID, size_t FwidLen)
 {
 	if (Tcb) {
 		CHK (DERStartSequenceOrSet (Tbs, true));
@@ -198,7 +198,7 @@ Error:
 }
 
 static int X509AddSubjectKeyIdentifierExtension (
-	DERBuilderContext *Tbs,	const uint8_t *subjectKeyIdentifier)
+	DERBuilderContext *Tbs, const uint8_t *subjectKeyIdentifier)
 {
 	CHK (DERStartSequenceOrSet (Tbs, true));
 	CHK (DERAddOID (Tbs, extSubjectKeyIdentifierOID));
@@ -214,7 +214,7 @@ Error:
 }
 
 static int X509AddAuthorityKeyIdentifierExtension (
-	DERBuilderContext *Tbs,	const uint8_t *authKeyIdentifier)
+	DERBuilderContext *Tbs, const uint8_t *authKeyIdentifier)
 {
 	CHK (DERStartSequenceOrSet (Tbs, true));
 	CHK (DERAddOID (Tbs, extAuthKeyIdentifierOID));
@@ -232,7 +232,7 @@ Error:
 }
 
 static int X509AddX501Name (
-	DERBuilderContext *Context,	const char *CommonName,	const char *OrgName,
+	DERBuilderContext *Context, const char *CommonName, const char *OrgName,
 	const char *CountryName)
 {
 	CHK (DERStartSequenceOrSet (Context, true));
@@ -408,9 +408,9 @@ Error:
 }
 
 int X509GetAliasCertTBS (
-	DERBuilderContext *Tbs,	RIOT_X509_TBS_DATA *TbsData, RIOT_ECC_PUBLIC *AliasKeyPub,
-	RIOT_ECC_PUBLIC *DevIdKeyPub, uint8_t *Fwid, size_t FwidLen, int type, struct hash_engine *hash,
-	struct base64_engine *base64)
+	DERBuilderContext *Tbs, RIOT_X509_TBS_DATA *TbsData, RIOT_ECC_PUBLIC *AliasKeyPub,
+	RIOT_ECC_PUBLIC *DevIdKeyPub, uint8_t *Fwid, size_t FwidLen, int type,
+	const struct hash_engine *hash, const struct base64_engine *base64)
 {
 	int result;
 	char guidBuffer[64];
@@ -509,7 +509,7 @@ Error:
 }
 
 int X509GetDEREccPub (
-	DERBuilderContext *Context,	RIOT_ECC_PUBLIC	Pub)
+	DERBuilderContext *Context, RIOT_ECC_PUBLIC	Pub)
 {
 	uint8_t encBuffer[65];
 	size_t encBufferLen;

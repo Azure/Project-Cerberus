@@ -7,19 +7,20 @@
 #include "base64_thread_safe.h"
 
 
-static int base64_thread_safe_encode (struct base64_engine *engine, const uint8_t *data,
+int base64_thread_safe_encode (const struct base64_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *encoded, size_t enc_length)
 {
-	struct base64_engine_thread_safe *base64 = (struct base64_engine_thread_safe*) engine;
+	const struct base64_engine_thread_safe *base64 =
+		(const struct base64_engine_thread_safe*) engine;
 	int status;
 
 	if (base64 == NULL) {
 		return BASE64_ENGINE_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&base64->lock);
+	platform_mutex_lock (&base64->state->lock);
 	status = base64->engine->encode (base64->engine, data, length, encoded, enc_length);
-	platform_mutex_unlock (&base64->lock);
+	platform_mutex_unlock (&base64->state->lock);
 
 	return status;
 }
@@ -28,13 +29,15 @@ static int base64_thread_safe_encode (struct base64_engine *engine, const uint8_
  * Initialize a thread-safe wrapper for a Base64 engine.
  *
  * @param engine The thread-safe engine to initialize.
+ * @param state Variable context for the thread-safe engine.  This must be uninitialized.
  * @param target The target engine that will be used to execute operations.
  *
  * @return 0 if the engine was successfully initialized or an error code.
  */
-int base64_thread_safe_init (struct base64_engine_thread_safe *engine, struct base64_engine *target)
+int base64_thread_safe_init (struct base64_engine_thread_safe *engine,
+	struct base64_engine_thread_safe_state *state, const struct base64_engine *target)
 {
-	if ((engine == NULL) || (target == NULL)) {
+	if (engine == NULL) {
 		return BASE64_ENGINE_INVALID_ARGUMENT;
 	}
 
@@ -42,9 +45,31 @@ int base64_thread_safe_init (struct base64_engine_thread_safe *engine, struct ba
 
 	engine->base.encode = base64_thread_safe_encode;
 
+	engine->state = state;
 	engine->engine = target;
 
-	return platform_mutex_init (&engine->lock);
+	return base64_thread_safe_init_state (engine);
+}
+
+/**
+ * Initialize only the variable state of thread-state Base64 engine wrapper.  The rest of the
+ * instance is assumed to already have been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param engine The Base64 engine that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int base64_thread_safe_init_state (const struct base64_engine_thread_safe *engine)
+{
+	if ((engine == NULL) || (engine->state == NULL) || (engine->engine == NULL)) {
+		return BASE64_ENGINE_INVALID_ARGUMENT;
+	}
+
+	memset (engine->state, 0, sizeof (*engine->state));
+
+	return platform_mutex_init (&engine->state->lock);
 }
 
 /**
@@ -52,9 +77,9 @@ int base64_thread_safe_init (struct base64_engine_thread_safe *engine, struct ba
  *
  * @param engine The thread-safe engine to release.
  */
-void base64_thread_safe_release (struct base64_engine_thread_safe *engine)
+void base64_thread_safe_release (const struct base64_engine_thread_safe *engine)
 {
 	if (engine != NULL) {
-		platform_mutex_free (&engine->lock);
+		platform_mutex_free (&engine->state->lock);
 	}
 }

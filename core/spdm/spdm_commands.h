@@ -1395,7 +1395,7 @@ int spdm_finish (const struct cmd_interface_spdm_responder *spdm_responder,
 int spdm_end_session (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct cmd_interface_msg *request);
 
-int spdm_format_signature_digest (struct hash_engine *hash, enum hash_type hash_type,
+int spdm_format_signature_digest (const struct hash_engine *hash, enum hash_type hash_type,
 	uint8_t spdm_minor_version, char *spdm_state, uint8_t *digest);
 
 enum hash_type spdm_get_hash_type (uint32_t hash_algo);

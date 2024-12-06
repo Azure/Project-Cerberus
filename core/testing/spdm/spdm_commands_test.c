@@ -92,7 +92,7 @@ struct spdm_command_testing {
 	struct spdm_secure_session_manager_mock session_manager_mock;								/**< The session manager. */
 	struct spdm_secure_session_manager_state session_manager_state;								/**< The session manager state. */
 	struct hash_engine_mock hash_engine_mock[SPDM_RESPONDER_HASH_ENGINE_REQUIRED_COUNT];		/**< Mock hash engine for the responder. */
-	struct hash_engine *hash_engine[SPDM_RESPONDER_HASH_ENGINE_REQUIRED_COUNT];					/**< Hash engines. */
+	const struct hash_engine *hash_engine[SPDM_RESPONDER_HASH_ENGINE_REQUIRED_COUNT];			/**< Hash engines. */
 	struct spdm_version_num_entry version_num[2];												/**< Version number entries. */
 	struct spdm_version_num_entry secured_message_version_num[SECURED_MESSAGE_VERSION_COUNT];	/**< Secured version number entries. */
 	struct spdm_device_capability local_capabilities;											/**< Local capabilities. */

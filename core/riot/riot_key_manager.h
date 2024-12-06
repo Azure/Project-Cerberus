@@ -34,19 +34,19 @@ struct riot_key_manager_state {
 struct riot_key_manager {
 	struct riot_key_manager_state *state;	/**< Variable context for the manager. */
 	const struct keystore *keystore;		/**< Storage for DICE identity keys. */
-	struct x509_engine *x509;				/**< X.509 engine for certificate authentication. */
+	const struct x509_engine *x509;			/**< X.509 engine for certificate authentication. */
 	const struct der_cert *extra_csr;		/**< A list of extra CSRs available for the device. */
 	size_t csr_count;						/**< The number of CSRs in the list. */
 };
 
 
 int riot_key_manager_init (struct riot_key_manager *riot, struct riot_key_manager_state *state,
-	const struct keystore *keystore, const struct riot_keys *keys, struct x509_engine *x509,
+	const struct keystore *keystore, const struct riot_keys *keys, const struct x509_engine *x509,
 	const struct der_cert *const extra_csr, size_t csr_count);
 int riot_key_manager_init_static_keys (struct riot_key_manager *riot,
 	struct riot_key_manager_state *state, const struct keystore *keystore,
-	const struct riot_keys *keys, struct x509_engine *x509, const struct der_cert *const extra_csr,
-	size_t csr_count);
+	const struct riot_keys *keys, const struct x509_engine *x509,
+	const struct der_cert *const extra_csr, size_t csr_count);
 
 int riot_key_manager_init_state (const struct riot_key_manager *riot, const struct riot_keys *keys);
 int riot_key_manager_init_state_static_keys (const struct riot_key_manager *riot,
@@ -59,7 +59,7 @@ int riot_key_manager_store_signed_device_id (const struct riot_key_manager *riot
 int riot_key_manager_store_root_ca (const struct riot_key_manager *riot, const uint8_t *root_ca,
 	size_t length);
 int riot_key_manager_store_intermediate_ca (const struct riot_key_manager *riot,
-	const uint8_t *intr_ca,	size_t length);
+	const uint8_t *intr_ca, size_t length);
 int riot_key_manager_verify_stored_certs (const struct riot_key_manager *riot);
 
 int riot_key_manager_erase_all_certificates (const struct riot_key_manager *riot);

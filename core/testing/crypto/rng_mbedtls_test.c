@@ -7,6 +7,7 @@
 #include <string.h>
 #include "testing.h"
 #include "crypto/rng_mbedtls.h"
+#include "crypto/rng_mbedtls_static.h"
 
 
 TEST_SUITE_LABEL ("rng_mbedtls");
@@ -18,12 +19,13 @@ TEST_SUITE_LABEL ("rng_mbedtls");
 
 static void rng_mbedtls_test_init (CuTest *test)
 {
+	struct rng_engine_mbedtls_state state;
 	struct rng_engine_mbedtls engine;
 	int status;
 
 	TEST_START;
 
-	status = rng_mbedtls_init (&engine);
+	status = rng_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, engine.base.generate_random_buffer);
@@ -33,11 +35,46 @@ static void rng_mbedtls_test_init (CuTest *test)
 
 static void rng_mbedtls_test_init_null (CuTest *test)
 {
+	struct rng_engine_mbedtls_state state;
+	struct rng_engine_mbedtls engine;
 	int status;
 
 	TEST_START;
 
-	status = rng_mbedtls_init (NULL);
+	status = rng_mbedtls_init (NULL, &state);
+	CuAssertIntEquals (test, RNG_ENGINE_INVALID_ARGUMENT, status);
+
+	status = rng_mbedtls_init (&engine, NULL);
+	CuAssertIntEquals (test, RNG_ENGINE_INVALID_ARGUMENT, status);
+}
+
+static void rng_mbedtls_test_static_init (CuTest *test)
+{
+	struct rng_engine_mbedtls_state state;
+	struct rng_engine_mbedtls engine = rng_mbedtls_static_init (&state);
+	int status;
+
+	TEST_START;
+
+	CuAssertPtrNotNull (test, engine.base.generate_random_buffer);
+
+	status = rng_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	rng_mbedtls_release (&engine);
+}
+
+static void rng_mbedtls_test_static_init_null (CuTest *test)
+{
+	struct rng_engine_mbedtls null_state = rng_mbedtls_static_init (NULL);
+	int status;
+
+	TEST_START;
+
+	status = rng_mbedtls_init_state (NULL);
+	CuAssertIntEquals (test, RNG_ENGINE_INVALID_ARGUMENT, status);
+
+	status = rng_mbedtls_init_state (&null_state);
 	CuAssertIntEquals (test, RNG_ENGINE_INVALID_ARGUMENT, status);
 }
 
@@ -50,6 +87,7 @@ static void rng_mbedtls_test_release_null (CuTest *test)
 
 static void rng_mbedtls_test_generate_random_buffer (CuTest *test)
 {
+	struct rng_engine_mbedtls_state state;
 	struct rng_engine_mbedtls engine;
 	uint8_t buffer[32] = {0};
 	uint8_t zero[32] = {0};
@@ -57,7 +95,7 @@ static void rng_mbedtls_test_generate_random_buffer (CuTest *test)
 
 	TEST_START;
 
-	status = rng_mbedtls_init (&engine);
+	status = rng_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_random_buffer (&engine.base, 32, buffer);
@@ -71,6 +109,7 @@ static void rng_mbedtls_test_generate_random_buffer (CuTest *test)
 
 static void rng_mbedtls_test_generate_random_buffer_not_word_aligned (CuTest *test)
 {
+	struct rng_engine_mbedtls_state state;
 	struct rng_engine_mbedtls engine;
 	uint8_t buffer[13] = {0};
 	uint8_t pad[4] = {0};
@@ -79,7 +118,7 @@ static void rng_mbedtls_test_generate_random_buffer_not_word_aligned (CuTest *te
 
 	TEST_START;
 
-	status = rng_mbedtls_init (&engine);
+	status = rng_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_random_buffer (&engine.base, 13, buffer);
@@ -96,6 +135,7 @@ static void rng_mbedtls_test_generate_random_buffer_not_word_aligned (CuTest *te
 
 static void rng_mbedtls_test_generate_random_buffer_start_not_word_aligned (CuTest *test)
 {
+	struct rng_engine_mbedtls_state state;
 	struct rng_engine_mbedtls engine;
 	uint8_t buffer[14] = {0};
 	uint8_t pad[4] = {0};
@@ -107,7 +147,7 @@ static void rng_mbedtls_test_generate_random_buffer_start_not_word_aligned (CuTe
 
 	CuAssertTrue (test, (((uintptr_t) out & 0x3) != 0));
 
-	status = rng_mbedtls_init (&engine);
+	status = rng_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_random_buffer (&engine.base, 12, out);
@@ -124,6 +164,7 @@ static void rng_mbedtls_test_generate_random_buffer_start_not_word_aligned (CuTe
 
 static void rng_mbedtls_test_generate_random_buffer_twice (CuTest *test)
 {
+	struct rng_engine_mbedtls_state state;
 	struct rng_engine_mbedtls engine;
 	uint8_t buffer[32];
 	uint8_t buffer2[32];
@@ -132,7 +173,7 @@ static void rng_mbedtls_test_generate_random_buffer_twice (CuTest *test)
 
 	TEST_START;
 
-	status = rng_mbedtls_init (&engine);
+	status = rng_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_random_buffer (&engine.base, 32, buffer);
@@ -154,6 +195,7 @@ static void rng_mbedtls_test_generate_random_buffer_twice (CuTest *test)
 
 static void rng_mbedtls_test_generate_random_buffer_no_data (CuTest *test)
 {
+	struct rng_engine_mbedtls_state state;
 	struct rng_engine_mbedtls engine;
 	uint8_t buffer[32] = {0};
 	uint8_t zero[32] = {0};
@@ -161,7 +203,7 @@ static void rng_mbedtls_test_generate_random_buffer_no_data (CuTest *test)
 
 	TEST_START;
 
-	status = rng_mbedtls_init (&engine);
+	status = rng_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_random_buffer (&engine.base, 0, buffer);
@@ -173,15 +215,38 @@ static void rng_mbedtls_test_generate_random_buffer_no_data (CuTest *test)
 	rng_mbedtls_release (&engine);
 }
 
+static void rng_mbedtls_test_generate_random_buffer_static_init (CuTest *test)
+{
+	struct rng_engine_mbedtls_state state;
+	struct rng_engine_mbedtls engine = rng_mbedtls_static_init (&state);
+	uint8_t buffer[32] = {0};
+	uint8_t zero[32] = {0};
+	int status;
+
+	TEST_START;
+
+	status = rng_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.generate_random_buffer (&engine.base, 32, buffer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (zero, buffer, sizeof (buffer));
+	CuAssertTrue (test, (status != 0));
+
+	rng_mbedtls_release (&engine);
+}
+
 static void rng_mbedtls_test_generate_random_buffer_null (CuTest *test)
 {
+	struct rng_engine_mbedtls_state state;
 	struct rng_engine_mbedtls engine;
 	uint8_t buffer[32];
 	int status;
 
 	TEST_START;
 
-	status = rng_mbedtls_init (&engine);
+	status = rng_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_random_buffer (NULL, 32, buffer);
@@ -199,12 +264,15 @@ TEST_SUITE_START (rng_mbedtls);
 
 TEST (rng_mbedtls_test_init);
 TEST (rng_mbedtls_test_init_null);
+TEST (rng_mbedtls_test_static_init);
+TEST (rng_mbedtls_test_static_init_null);
 TEST (rng_mbedtls_test_release_null);
 TEST (rng_mbedtls_test_generate_random_buffer);
 TEST (rng_mbedtls_test_generate_random_buffer_not_word_aligned);
 TEST (rng_mbedtls_test_generate_random_buffer_start_not_word_aligned);
 TEST (rng_mbedtls_test_generate_random_buffer_twice);
 TEST (rng_mbedtls_test_generate_random_buffer_no_data);
+TEST (rng_mbedtls_test_generate_random_buffer_static_init);
 TEST (rng_mbedtls_test_generate_random_buffer_null);
 
 TEST_SUITE_END;

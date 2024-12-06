@@ -9,7 +9,7 @@
 
 
 int host_irq_handler_power_on (const struct host_irq_handler *handler, bool allow_unsecure,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
 	int status;
 	int retries;
@@ -157,7 +157,7 @@ int host_irq_handler_force_recovery (const struct host_irq_handler *handler)
  * @return 0 if the IRQ handler was successfully initialized or an error code.
  */
 static int host_irq_handler_init_internal (struct host_irq_handler *handler,
-	struct host_processor *host, struct hash_engine *hash, struct rsa_engine *rsa,
+	struct host_processor *host, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	struct bmc_recovery *recovery, const struct host_irq_control *control, bool notify_exit_reset)
 {
 	if ((handler == NULL) || (host == NULL) || (hash == NULL) || (rsa == NULL)) {
@@ -195,7 +195,7 @@ static int host_irq_handler_init_internal (struct host_irq_handler *handler,
  * @return 0 if the IRQ handler was successfully initialized or an error code.
  */
 int host_irq_handler_init (struct host_irq_handler *handler, struct host_processor *host,
-	struct hash_engine *hash, struct rsa_engine *rsa, struct bmc_recovery *recovery)
+	const struct hash_engine *hash, const struct rsa_engine *rsa, struct bmc_recovery *recovery)
 {
 	return host_irq_handler_init_internal (handler, host, hash, rsa, recovery, NULL, false);
 }
@@ -214,7 +214,7 @@ int host_irq_handler_init (struct host_irq_handler *handler, struct host_process
  * @return 0 if the IRQ handler was successfully initialized or an error code.
  */
 int host_irq_handler_init_with_irq_ctrl (struct host_irq_handler *handler,
-	struct host_processor *host, struct hash_engine *hash, struct rsa_engine *rsa,
+	struct host_processor *host, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	struct bmc_recovery *recovery, const struct host_irq_control *control)
 {
 	if (control == NULL) {
@@ -238,7 +238,7 @@ int host_irq_handler_init_with_irq_ctrl (struct host_irq_handler *handler,
  * @return 0 if the IRQ handler was successfully initialized or an error code.
  */
 int host_irq_handler_init_enable_exit_reset (struct host_irq_handler *handler,
-	struct host_processor *host, struct hash_engine *hash, struct rsa_engine *rsa,
+	struct host_processor *host, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	struct bmc_recovery *recovery, const struct host_irq_control *control)
 {
 	int status;

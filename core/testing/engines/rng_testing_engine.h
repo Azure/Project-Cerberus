@@ -10,6 +10,7 @@
 #ifndef	RNG_TESTING_ENGINE_NAME
 #include "crypto/rng_mbedtls.h"
 #define	RNG_TESTING_ENGINE_NAME	mbedtls
+#define	RNG_TESTING_ENGINE_HAS_STATE
 #endif
 
 

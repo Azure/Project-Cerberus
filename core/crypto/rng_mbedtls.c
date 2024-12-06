@@ -2,48 +2,75 @@
 // Licensed under the MIT license.
 
 #include <stdint.h>
+#include <string.h>
 #include "rng_mbedtls.h"
 
 
-static int rng_mbedtls_generate_random_buffer (struct rng_engine *engine, size_t rand_len,
+int rng_mbedtls_generate_random_buffer (const struct rng_engine *engine, size_t rand_len,
 	uint8_t *buf)
 {
-	struct rng_engine_mbedtls *mbedtls_engine = (struct rng_engine_mbedtls*) engine;
+	const struct rng_engine_mbedtls *mbedtls = (const struct rng_engine_mbedtls*) engine;
 
-	if ((mbedtls_engine == NULL) || (buf == NULL)) {
+	if ((mbedtls == NULL) || (buf == NULL)) {
 		return RNG_ENGINE_INVALID_ARGUMENT;
 	}
 
-	return mbedtls_ctr_drbg_random (&mbedtls_engine->ctr_drbg, buf, rand_len);
+	return mbedtls_ctr_drbg_random (&mbedtls->state->ctr_drbg, buf, rand_len);
 }
 
 /**
- * Initialize an mbedTLS engine for generating random numbers.
+ * Initialize an mbedTLS engine for generating random numbers using a software DRBG.
  *
  * @param engine The mbedTLS RNG engine to initialize.
+ * @param state Variable context for the RNG engine.  This must be uninitialized.
  *
  * @return 0 if the RNG engine was initialized successfully or an error code.
  */
-int rng_mbedtls_init (struct rng_engine_mbedtls *engine)
+int rng_mbedtls_init (struct rng_engine_mbedtls *engine, struct rng_engine_mbedtls_state *state)
 {
-	int status;
-
 	if (engine == NULL) {
 		return RNG_ENGINE_INVALID_ARGUMENT;
 	}
 
-	mbedtls_ctr_drbg_init (&engine->ctr_drbg);
-	mbedtls_entropy_init (&engine->entropy);
+	memset (engine, 0, sizeof (*engine));
 
-	status = mbedtls_ctr_drbg_seed (&engine->ctr_drbg, mbedtls_entropy_func, &engine->entropy, NULL,
-		0);
+	engine->base.generate_random_buffer = rng_mbedtls_generate_random_buffer;
+
+	engine->state = state;
+
+	return rng_mbedtls_init_state (engine);
+}
+
+/**
+ * Initialize only the variable state of an mbedTLS DRBG.  The rest of the instance is assumed to
+ * already have been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param engine The RNG engine that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int rng_mbedtls_init_state (const struct rng_engine_mbedtls *engine)
+{
+	int status;
+
+	if ((engine == NULL) || (engine->state == NULL)) {
+		return RNG_ENGINE_INVALID_ARGUMENT;
+	}
+
+	memset (engine->state, 0, sizeof (*engine->state));
+
+	mbedtls_ctr_drbg_init (&engine->state->ctr_drbg);
+	mbedtls_entropy_init (&engine->state->entropy);
+
+	status = mbedtls_ctr_drbg_seed (&engine->state->ctr_drbg, mbedtls_entropy_func,
+		&engine->state->entropy, NULL, 0);
 	if (status != 0) {
 		rng_mbedtls_release (engine);
 
 		return status;
 	}
-
-	engine->base.generate_random_buffer = rng_mbedtls_generate_random_buffer;
 
 	return 0;
 }
@@ -53,10 +80,10 @@ int rng_mbedtls_init (struct rng_engine_mbedtls *engine)
  *
  * @param engine The mbedTLS RNG engine to release.
  */
-void rng_mbedtls_release (struct rng_engine_mbedtls *engine)
+void rng_mbedtls_release (const struct rng_engine_mbedtls *engine)
 {
 	if (engine != NULL) {
-		mbedtls_ctr_drbg_free (&engine->ctr_drbg);
-		mbedtls_entropy_free (&engine->entropy);
+		mbedtls_ctr_drbg_free (&engine->state->ctr_drbg);
+		mbedtls_entropy_free (&engine->state->entropy);
 	}
 }

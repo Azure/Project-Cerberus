@@ -228,7 +228,7 @@ static int manifest_verification_verify_key (const struct manifest_verification 
  * @return 0 if manifest verification was successfully initialized or an error code.
  */
 int manifest_verification_init (struct manifest_verification *verification,
-	struct manifest_verification_state *state, struct hash_engine *hash,
+	struct manifest_verification_state *state, const struct hash_engine *hash,
 	const struct signature_verification *sig_verify, const uint8_t *root_key,
 	size_t root_key_length, const struct manifest_verification_key *manifest_key,
 	const struct keystore *manifest_keystore, int key_id)

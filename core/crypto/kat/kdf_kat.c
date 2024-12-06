@@ -13,7 +13,7 @@
  *
  * @return 0 if the test passed successfully or an error code.
  */
-int kdf_kat_run_self_test_nist800_108_counter_mode_sha1 (struct hash_engine *hash)
+int kdf_kat_run_self_test_nist800_108_counter_mode_sha1 (const struct hash_engine *hash)
 {
 	uint8_t ko[KDF_KAT_VECTORS_NIST800_108_CTR_SHA1_KO_LEN] = {0};
 	int status;
@@ -46,7 +46,7 @@ int kdf_kat_run_self_test_nist800_108_counter_mode_sha1 (struct hash_engine *has
  *
  * @return 0 if the test passed successfully or an error code.
  */
-int kdf_kat_run_self_test_nist800_108_counter_mode_sha256 (struct hash_engine *hash)
+int kdf_kat_run_self_test_nist800_108_counter_mode_sha256 (const struct hash_engine *hash)
 {
 	uint8_t ko[KDF_KAT_VECTORS_NIST800_108_CTR_SHA256_KO_LEN] = {0};
 	int status;
@@ -80,7 +80,7 @@ int kdf_kat_run_self_test_nist800_108_counter_mode_sha256 (struct hash_engine *h
  *
  * @return 0 if the test passed successfully or an error code.
  */
-int kdf_kat_run_self_test_nist800_108_counter_mode_sha384 (struct hash_engine *hash)
+int kdf_kat_run_self_test_nist800_108_counter_mode_sha384 (const struct hash_engine *hash)
 {
 	uint8_t ko[KDF_KAT_VECTORS_NIST800_108_CTR_SHA384_KO_LEN] = {0};
 	int status;
@@ -114,7 +114,7 @@ int kdf_kat_run_self_test_nist800_108_counter_mode_sha384 (struct hash_engine *h
  *
  * @return 0 if the test passed successfully or an error code.
  */
-int kdf_kat_run_self_test_nist800_108_counter_mode_sha512 (struct hash_engine *hash)
+int kdf_kat_run_self_test_nist800_108_counter_mode_sha512 (const struct hash_engine *hash)
 {
 	uint8_t ko[KDF_KAT_VECTORS_NIST800_108_CTR_SHA512_KO_LEN] = {0};
 	int status;
@@ -148,7 +148,7 @@ int kdf_kat_run_self_test_nist800_108_counter_mode_sha512 (struct hash_engine *h
  *
  * @return 0 if the test passed successfully or an error code.
  */
-int kdf_kat_run_self_test_hkdf_expand_sha1 (struct hash_engine *hash)
+int kdf_kat_run_self_test_hkdf_expand_sha1 (const struct hash_engine *hash)
 {
 	uint8_t okm[KDF_KAT_VECTORS_HKDF_EXPAND_SHA1_OKM_LEN] = {0};
 	int status;
@@ -179,7 +179,7 @@ int kdf_kat_run_self_test_hkdf_expand_sha1 (struct hash_engine *hash)
  *
  * @return 0 if the test passed successfully or an error code.
  */
-int kdf_kat_run_self_test_hkdf_expand_sha256 (struct hash_engine *hash)
+int kdf_kat_run_self_test_hkdf_expand_sha256 (const struct hash_engine *hash)
 {
 	uint8_t okm[KDF_KAT_VECTORS_HKDF_EXPAND_SHA256_OKM_LEN] = {0};
 	int status;
@@ -210,7 +210,7 @@ int kdf_kat_run_self_test_hkdf_expand_sha256 (struct hash_engine *hash)
  *
  * @return 0 if the test passed successfully or an error code.
  */
-int kdf_kat_run_self_test_hkdf_expand_sha384 (struct hash_engine *hash)
+int kdf_kat_run_self_test_hkdf_expand_sha384 (const struct hash_engine *hash)
 {
 	uint8_t okm[KDF_KAT_VECTORS_HKDF_EXPAND_SHA384_OKM_LEN] = {0};
 	int status;
@@ -241,7 +241,7 @@ int kdf_kat_run_self_test_hkdf_expand_sha384 (struct hash_engine *hash)
  *
  * @return 0 if the test passed successfully or an error code.
  */
-int kdf_kat_run_self_test_hkdf_expand_sha512 (struct hash_engine *hash)
+int kdf_kat_run_self_test_hkdf_expand_sha512 (const struct hash_engine *hash)
 {
 	uint8_t okm[KDF_KAT_VECTORS_HKDF_EXPAND_SHA512_OKM_LEN] = {0};
 	int status;

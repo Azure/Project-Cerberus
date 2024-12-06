@@ -29,7 +29,7 @@ struct cert_device_hw {
 	 * returned if the root key is not valid.
 	 */
 	int (*verify_root_key) (struct cert_device_hw *hw, const uint8_t *root_key, size_t key_length,
-		struct hash_engine *hash);
+		const struct hash_engine *hash);
 
 	/**
 	 * Determine if the root key for the certificate is trusted by the hardware.

@@ -17,7 +17,7 @@ struct base64_engine_core {
 
 
 int base64_core_init (struct base64_engine_core *engine);
-void base64_core_release (struct base64_engine_core *engine);
+void base64_core_release (const struct base64_engine_core *engine);
 
 
 #endif	/* BASE64_CORE_H_ */

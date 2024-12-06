@@ -18,7 +18,7 @@ struct intrusion_manager_async {
 
 
 int intrusion_manager_async_init (struct intrusion_manager_async *manager,
-	struct intrusion_state *state, struct hash_engine *hash, struct pcr_store *pcr,
+	struct intrusion_state *state, const struct hash_engine *hash, struct pcr_store *pcr,
 	uint16_t measurement);
 void intrusion_manager_async_release (struct intrusion_manager_async *manager);
 

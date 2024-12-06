@@ -121,7 +121,7 @@ void BigValToBigInt (void *out, const bigval_t *tgt);
 //          - RIOT_ERR_SECURITY otherwise
 //
 RIOT_STATUS RIOT_GenerateDHKeyPair (ecc_publickey *publicKey, ecc_privatekey *privateKey,
-	struct rng_engine *rng);
+	const struct rng_engine *rng);
 
 //
 // Generates the Diffie-Hellman share secret.
@@ -145,7 +145,7 @@ RIOT_STATUS RIOT_GenerateShareSecret (ecc_publickey *peerPublicKey, ecc_privatek
 //          - RIOT_ERR_SECURITY otherwise
 //
 RIOT_STATUS RIOT_GenerateDSAKeyPair (ecc_publickey *publicKey, ecc_privatekey *privateKey,
-	struct rng_engine *rng);
+	const struct rng_engine *rng);
 
 //
 // Derives a DSA key pair from the source value
@@ -172,8 +172,8 @@ RIOT_STATUS RIOT_DeriveDsaKeyPair (ecc_publickey *publicKey, ecc_privatekey *pri
 // @return  - RIOT_SUCCESS if the signing process succeeds
 //          - RIOT_FAILURE otherwise
 RIOT_STATUS RIOT_DSASignDigest (const uint8_t *digest, size_t digest_size,
-	const ecc_privatekey *signingPrivateKey, uint8_t *buf, size_t buf_len, struct rng_engine *rng,
-	int *out_len);
+	const ecc_privatekey *signingPrivateKey, uint8_t *buf, size_t buf_len,
+	const struct rng_engine *rng, int *out_len);
 
 //
 // Sign a buffer using the DSA key
@@ -186,7 +186,7 @@ RIOT_STATUS RIOT_DSASignDigest (const uint8_t *digest, size_t digest_size,
 // @return  - RIOT_SUCCESS if the signing process succeeds
 //          - RIOT_FAILURE otherwise
 RIOT_STATUS RIOT_DSASign (const uint8_t *buf, uint16_t len, const ecc_privatekey *signingPrivateKey,
-	struct rng_engine *rng, struct hash_engine *hash, ecc_signature *sig);
+	const struct rng_engine *rng, const struct hash_engine *hash, ecc_signature *sig);
 
 //
 // Verify DSA signature of a digest
@@ -211,7 +211,7 @@ RIOT_STATUS RIOT_DSAVerifyDigest (const uint8_t *digest, size_t digest_size,
 //          - RIOT_ERR_SECURITY otherwise
 //
 RIOT_STATUS RIOT_DSAVerify (const uint8_t *buf, uint16_t len, const ecc_signature *sig,
-	const ecc_publickey *pubKey, struct hash_engine *hash);
+	const ecc_publickey *pubKey, const struct hash_engine *hash);
 
 //
 // Checks if the private key integer is a valid value

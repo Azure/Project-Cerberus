@@ -14,7 +14,7 @@
 #include "manifest/manifest_flash.h"
 
 
-static int cfm_flash_verify (struct manifest *cfm, struct hash_engine *hash,
+static int cfm_flash_verify (struct manifest *cfm, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
 	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
@@ -57,8 +57,8 @@ static void cfm_flash_free_platform_id (struct manifest *manifest, char *id)
 	/* Don't need to do anything.  Manifest allocated buffers use the internal static buffer. */
 }
 
-static int cfm_flash_get_hash (struct manifest *cfm, struct hash_engine *hash, uint8_t *hash_out,
-	size_t hash_length)
+static int cfm_flash_get_hash (struct manifest *cfm, const struct hash_engine *hash,
+	uint8_t *hash_out, size_t hash_length)
 {
 	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
 
@@ -188,7 +188,7 @@ static int cfm_flash_get_pmr_id_list (struct cfm_flash *cfm_flash, uint8_t entry
 
 	for (i_pmr_id = 0; i_pmr_id < num_pmr_ids; ++i_pmr_id) {
 		status = manifest_flash_read_element_data (&cfm_flash->base_flash,
-			cfm_flash->base_flash.hash,	CFM_PMR_DIGEST, entry, CFM_COMPONENT_DEVICE, 0, &entry,
+			cfm_flash->base_flash.hash, CFM_PMR_DIGEST, entry, CFM_COMPONENT_DEVICE, 0, &entry,
 			NULL, NULL, (uint8_t**) &pmr_digest_element_ptr,
 			sizeof (struct cfm_pmr_digest_element));
 		if (ROT_IS_ERROR (status)) {
@@ -378,7 +378,7 @@ static int cfm_flash_get_next_element (struct cfm_flash *cfm_flash, uint32_t com
 	}
 
 	status = manifest_flash_read_element_data (&cfm_flash->base_flash, cfm_flash->base_flash.hash,
-		element_type, element_entry, CFM_COMPONENT_DEVICE, 0, &element_entry, NULL,	buffer_len_ptr,
+		element_type, element_entry, CFM_COMPONENT_DEVICE, 0, &element_entry, NULL, buffer_len_ptr,
 		(uint8_t**) buffer, (buffer_len == NULL) ? 0 : *buffer_len);
 	if (ROT_IS_ERROR (status)) {
 		if (status == MANIFEST_CHILD_NOT_FOUND) {
@@ -903,7 +903,7 @@ static int cfm_flash_get_next_measurement_data (struct cfm *cfm,
 	for (i_allowable_data = 0; i_allowable_data < num_allowable_data; ++i_allowable_data) {
 		// Read Allowable Data element
 		status = manifest_flash_read_element_data (&cfm_flash->base_flash,
-			cfm_flash->base_flash.hash,	CFM_ALLOWABLE_DATA, *entry, CFM_MEASUREMENT_DATA, 0, NULL,
+			cfm_flash->base_flash.hash, CFM_ALLOWABLE_DATA, *entry, CFM_MEASUREMENT_DATA, 0, NULL,
 			NULL, NULL, (uint8_t**) &allowable_data_element_ptr,
 			sizeof (struct cfm_allowable_data_element));
 		if (ROT_IS_ERROR (status)) {
@@ -942,7 +942,7 @@ static int cfm_flash_get_next_measurement_data (struct cfm *cfm,
 
 			// Read bitmask from Allowable Data element
 			status = manifest_flash_read_element_data (&cfm_flash->base_flash,
-				cfm_flash->base_flash.hash,	CFM_ALLOWABLE_DATA, *entry, CFM_MEASUREMENT_DATA,
+				cfm_flash->base_flash.hash, CFM_ALLOWABLE_DATA, *entry, CFM_MEASUREMENT_DATA,
 				offset, NULL, NULL, NULL, (uint8_t**) &allowable_data_ptr->bitmask,
 				allowable_data_ptr->bitmask_length);
 			if (ROT_IS_ERROR (status)) {
@@ -972,7 +972,7 @@ static int cfm_flash_get_next_measurement_data (struct cfm *cfm,
 		for (uint8_t i_data = 0; i_data < allowable_data_ptr->data_count; i_data++) {
 			// Read Data header
 			status = manifest_flash_read_element_data (&cfm_flash->base_flash,
-				cfm_flash->base_flash.hash,	CFM_ALLOWABLE_DATA, *entry, CFM_MEASUREMENT_DATA,
+				cfm_flash->base_flash.hash, CFM_ALLOWABLE_DATA, *entry, CFM_MEASUREMENT_DATA,
 				offset, entry, NULL, NULL, (uint8_t**) &allowable_data_element_entry_ptr,
 				sizeof (struct cfm_allowable_data_element_entry));
 			if (ROT_IS_ERROR (status)) {
@@ -997,7 +997,7 @@ static int cfm_flash_get_next_measurement_data (struct cfm *cfm,
 
 			// Read Data
 			status = manifest_flash_read_element_data (&cfm_flash->base_flash,
-				cfm_flash->base_flash.hash,	CFM_ALLOWABLE_DATA, *entry, CFM_MEASUREMENT_DATA,
+				cfm_flash->base_flash.hash, CFM_ALLOWABLE_DATA, *entry, CFM_MEASUREMENT_DATA,
 				offset, entry, NULL, NULL,
 				(uint8_t**) &allowable_data_ptr->allowable_data[i_data].data,
 				allowable_data_ptr->allowable_data[i_data].data_len);
@@ -1165,7 +1165,7 @@ static int cfm_flash_get_next_measurement_or_measurement_data (struct cfm *cfm,
 			container->measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 
 			status = cfm_flash_get_next_measurement (cfm, &container->measurement.digest,
-				context->comp_device_hash_type,	&context->element_entry);
+				context->comp_device_hash_type, &context->element_entry);
 		}
 	}
 
@@ -1306,7 +1306,7 @@ static int cfm_flash_get_next_manifest (struct cfm *cfm, uint32_t component_id, 
 
 	// All allowable manifest elements have the same format, so use allowable PFM element containers
 	status = cfm_flash_get_next_element (cfm_flash, component_id,
-		(uint8_t**) &allowable_pfm_element_ptr,	&allowable_pfm_element_len, element_entry_ptr,
+		(uint8_t**) &allowable_pfm_element_ptr, &allowable_pfm_element_len, element_entry_ptr,
 		manifest_type);
 	if (ROT_IS_ERROR (status)) {
 		return status;
@@ -1340,7 +1340,7 @@ static int cfm_flash_get_next_manifest (struct cfm *cfm, uint32_t component_id, 
 	for (i_allowable_id = 0; i_allowable_id < num_allowable_id; ++i_allowable_id) {
 		// Read Allowable ID element
 		status = manifest_flash_read_element_data (&cfm_flash->base_flash,
-			cfm_flash->base_flash.hash,	CFM_ALLOWABLE_ID, *element_entry_ptr, manifest_type, 0,
+			cfm_flash->base_flash.hash, CFM_ALLOWABLE_ID, *element_entry_ptr, manifest_type, 0,
 			NULL, NULL, NULL, (uint8_t**) &allowable_id_element_ptr,
 			sizeof (struct cfm_allowable_id_element));
 		if (ROT_IS_ERROR (status)) {
@@ -1373,7 +1373,7 @@ static int cfm_flash_get_next_manifest (struct cfm *cfm, uint32_t component_id, 
 
 		// Read each ID
 		status = manifest_flash_read_element_data (&cfm_flash->base_flash,
-			cfm_flash->base_flash.hash,	CFM_ALLOWABLE_ID, *element_entry_ptr, manifest_type, offset,
+			cfm_flash->base_flash.hash, CFM_ALLOWABLE_ID, *element_entry_ptr, manifest_type, offset,
 			element_entry_ptr, NULL, NULL, (uint8_t**) &allowable_id_ptr->allowable_id, ids_len);
 		if (ROT_IS_ERROR (status)) {
 			goto free_manifest;
@@ -1436,9 +1436,9 @@ int cfm_flash_get_pcd (struct cfm *cfm, uint32_t component_id, struct cfm_manife
  *
  * @return 0 if the CFM instance was initialized successfully or an error code.
  */
-int cfm_flash_init (struct cfm_flash *cfm, const struct flash *flash, struct hash_engine *hash,
-	uint32_t base_addr, uint8_t *signature_cache, size_t max_signature, uint8_t *platform_id_cache,
-	size_t max_platform_id)
+int cfm_flash_init (struct cfm_flash *cfm, const struct flash *flash,
+	const struct hash_engine *hash, uint32_t base_addr, uint8_t *signature_cache,
+	size_t max_signature, uint8_t *platform_id_cache, size_t max_platform_id)
 {
 	int status;
 

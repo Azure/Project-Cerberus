@@ -58,7 +58,7 @@ struct rsa_engine {
 	 *
 	 * @return 0 if the key was successfully generated or an error code.
 	 */
-	int (*generate_key) (struct rsa_engine *engine, struct rsa_private_key *key, int bits);
+	int (*generate_key) (const struct rsa_engine *engine, struct rsa_private_key *key, int bits);
 
 	/**
 	 * Load a DER formatted RSA private key.
@@ -70,7 +70,7 @@ struct rsa_engine {
 	 *
 	 * @return 0 if the key was successfully initialized or an error code.
 	 */
-	int (*init_private_key) (struct rsa_engine *engine, struct rsa_private_key *key,
+	int (*init_private_key) (const struct rsa_engine *engine, struct rsa_private_key *key,
 		const uint8_t *der, size_t length);
 
 	/**
@@ -79,7 +79,7 @@ struct rsa_engine {
 	 * @param engine The RSA engine that initialized the key.
 	 * @param key The key to release.
 	 */
-	void (*release_key) (struct rsa_engine *engine, struct rsa_private_key *key);
+	void (*release_key) (const struct rsa_engine *engine, struct rsa_private_key *key);
 
 	/**
 	 * Get the DER formatted private key for an RSA key pair.
@@ -93,7 +93,7 @@ struct rsa_engine {
 	 *
 	 * @return 0 if the key was successfully encoded or an error code.
 	 */
-	int (*get_private_key_der) (struct rsa_engine *engine, const struct rsa_private_key *key,
+	int (*get_private_key_der) (const struct rsa_engine *engine, const struct rsa_private_key *key,
 		uint8_t **der, size_t *length);
 
 	/**
@@ -112,7 +112,7 @@ struct rsa_engine {
 	 * @return The length of the decrypted data or an error code.  Use ROT_IS_ERROR to check the
 	 * return value.
 	 */
-	int (*decrypt) (struct rsa_engine *engine, const struct rsa_private_key *key,
+	int (*decrypt) (const struct rsa_engine *engine, const struct rsa_private_key *key,
 		const uint8_t *encrypted, size_t in_length, const uint8_t *label, size_t label_length,
 		enum hash_type pad_hash, uint8_t *decrypted, size_t out_length);
 #endif
@@ -128,7 +128,7 @@ struct rsa_engine {
 	 *
 	 * @return 0 if the key was successfully initialized or an error code.
 	 */
-	int (*init_public_key) (struct rsa_engine *engine, struct rsa_public_key *key,
+	int (*init_public_key) (const struct rsa_engine *engine, struct rsa_public_key *key,
 		const uint8_t *der, size_t length);
 
 	/**
@@ -143,7 +143,7 @@ struct rsa_engine {
 	 *
 	 * @return 0 if the key was successfully encoded or an error code.
 	 */
-	int (*get_public_key_der) (struct rsa_engine *engine, const struct rsa_private_key *key,
+	int (*get_public_key_der) (const struct rsa_engine *engine, const struct rsa_private_key *key,
 		uint8_t **der, size_t *length);
 #endif
 
@@ -161,7 +161,7 @@ struct rsa_engine {
 	 *
 	 * @return 0 if the signature matches the digest or an error code.
 	 */
-	int (*sig_verify) (struct rsa_engine *engine, const struct rsa_public_key *key,
+	int (*sig_verify) (const struct rsa_engine *engine, const struct rsa_public_key *key,
 		const uint8_t *signature, size_t sig_length, enum hash_type sig_hash, const uint8_t *match,
 		size_t match_length);
 };

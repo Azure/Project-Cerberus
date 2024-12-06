@@ -14,7 +14,7 @@
 #include "manifest/manifest_flash.h"
 
 
-static int pcd_flash_verify (struct manifest *pcd, struct hash_engine *hash,
+static int pcd_flash_verify (struct manifest *pcd, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
 	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
@@ -57,8 +57,8 @@ static void pcd_flash_free_platform_id (struct manifest *manifest, char *id)
 	/* Don't need to do anything.  Manifest allocated buffers use the internal static buffer. */
 }
 
-static int pcd_flash_get_hash (struct manifest *pcd, struct hash_engine *hash, uint8_t *hash_out,
-	size_t hash_length)
+static int pcd_flash_get_hash (struct manifest *pcd, const struct hash_engine *hash,
+	uint8_t *hash_out, size_t hash_length)
 {
 	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
 
@@ -352,7 +352,7 @@ static int pcd_flash_buffer_supported_components (struct pcd *pcd, size_t offset
 	}
 
 	while ((i_components < rot_info.components_count) && (length > 0)) {
-		status = pcd_flash_get_next_mctp_bridge_component (pcd, &component,	(i_components == 0));
+		status = pcd_flash_get_next_mctp_bridge_component (pcd, &component, (i_components == 0));
 		if (status != 0) {
 			return status;
 		}
@@ -385,9 +385,9 @@ static int pcd_flash_buffer_supported_components (struct pcd *pcd, size_t offset
  *
  * @return 0 if the PCD instance was initialized successfully or an error code.
  */
-int pcd_flash_init (struct pcd_flash *pcd, const struct flash *flash, struct hash_engine *hash,
-	uint32_t base_addr, uint8_t *signature_cache, size_t max_signature, uint8_t *platform_id_cache,
-	size_t max_platform_id)
+int pcd_flash_init (struct pcd_flash *pcd, const struct flash *flash,
+	const struct hash_engine *hash, uint32_t base_addr, uint8_t *signature_cache,
+	size_t max_signature, uint8_t *platform_id_cache, size_t max_platform_id)
 {
 	int status;
 

@@ -977,7 +977,7 @@ int cerberus_protocol_fw_update_start (const struct firmware_update_control *con
 	struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_log_info (struct pcr_store *pcr_store, struct cmd_interface_msg *request);
-int cerberus_protocol_log_read (struct pcr_store *pcr_store, struct hash_engine *hash,
+int cerberus_protocol_log_read (struct pcr_store *pcr_store, const struct hash_engine *hash,
 	struct cmd_interface_msg *request);
 int cerberus_protocol_log_clear (const struct cmd_background *background,
 	struct cmd_interface_msg *request);

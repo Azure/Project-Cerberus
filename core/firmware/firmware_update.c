@@ -28,7 +28,7 @@
 int firmware_update_init (struct firmware_update *updater, struct firmware_update_state *state,
 	const struct firmware_flash_map *flash, const struct app_context *context,
 	const struct firmware_image *fw, const struct security_manager *security,
-	struct hash_engine *hash, int allowed_revision)
+	const struct hash_engine *hash, int allowed_revision)
 {
 	if (updater == NULL) {
 		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
@@ -68,7 +68,7 @@ int firmware_update_init (struct firmware_update *updater, struct firmware_updat
 int firmware_update_init_no_firmware_header (struct firmware_update *updater,
 	struct firmware_update_state *state, const struct firmware_flash_map *flash,
 	const struct app_context *context, const struct firmware_image *fw,
-	const struct security_manager *security, struct hash_engine *hash, int allowed_revision)
+	const struct security_manager *security, const struct hash_engine *hash, int allowed_revision)
 {
 	int status;
 

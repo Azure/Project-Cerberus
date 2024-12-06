@@ -267,7 +267,7 @@ err_push:
 	return status;
 }
 
-static int x509_openssl_create_csr (struct x509_engine *engine, const uint8_t *priv_key,
+int x509_openssl_create_csr (const struct x509_engine *engine, const uint8_t *priv_key,
 	size_t key_length, enum hash_type sig_hash, const char *name, int type, const uint8_t *eku,
 	size_t eku_length, const struct x509_extension_builder *const *extra_extensions,
 	size_t ext_count, uint8_t **csr, size_t *csr_length)
@@ -751,7 +751,7 @@ err_cert:
 	return status;
 }
 
-static int x509_openssl_create_self_signed_certificate (struct x509_engine *engine,
+int x509_openssl_create_self_signed_certificate (const struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *priv_key, size_t key_length,
 	enum hash_type sig_hash, const uint8_t *serial_num, size_t serial_length, const char *name,
 	int type, const struct x509_extension_builder *const *extra_extensions, size_t ext_count)
@@ -780,7 +780,7 @@ static int x509_openssl_create_self_signed_certificate (struct x509_engine *engi
 	return status;
 }
 
-static int x509_openssl_create_ca_signed_certificate (struct x509_engine *engine,
+int x509_openssl_create_ca_signed_certificate (const struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *key, size_t key_length, const uint8_t *serial_num,
 	size_t serial_length, const char *name, int type, const uint8_t* ca_priv_key,
 	size_t ca_key_length, enum hash_type sig_hash, const struct x509_certificate *ca_cert,
@@ -821,7 +821,7 @@ err_key:
 }
 #endif
 
-static int x509_openssl_load_certificate (struct x509_engine *engine, struct x509_certificate *cert,
+int x509_openssl_load_certificate (const struct x509_engine *engine, struct x509_certificate *cert,
 	const uint8_t *der, size_t length)
 {
 	X509 *x509;
@@ -855,7 +855,7 @@ err_bio:
 	return -status;
 }
 
-static void x509_openssl_release_certificate (struct x509_engine *engine,
+void x509_openssl_release_certificate (const struct x509_engine *engine,
 	struct x509_certificate *cert)
 {
 	UNUSED (engine);
@@ -867,7 +867,7 @@ static void x509_openssl_release_certificate (struct x509_engine *engine,
 }
 
 #ifdef X509_ENABLE_CREATE_CERTIFICATES
-static int x509_openssl_get_certificate_der (struct x509_engine *engine,
+int x509_openssl_get_certificate_der (const struct x509_engine *engine,
 	const struct x509_certificate *cert, uint8_t **der, size_t *length)
 {
 	int status;
@@ -897,7 +897,7 @@ static int x509_openssl_get_certificate_der (struct x509_engine *engine,
 #endif
 
 #ifdef X509_ENABLE_AUTHENTICATION
-static int x509_openssl_get_certificate_version (struct x509_engine *engine,
+int x509_openssl_get_certificate_version (const struct x509_engine *engine,
 	const struct x509_certificate *cert)
 {
 	if ((engine == NULL) || (cert == NULL)) {
@@ -907,7 +907,7 @@ static int x509_openssl_get_certificate_version (struct x509_engine *engine,
 	return X509_get_version ((X509*) cert->context) + 1;
 }
 
-static int x509_openssl_get_serial_number (struct x509_engine *engine,
+int x509_openssl_get_serial_number (const struct x509_engine *engine,
 	const struct x509_certificate *cert, uint8_t *serial_num, size_t length)
 {
 	ASN1_INTEGER *encoded;
@@ -939,7 +939,7 @@ err_length:
 	return bytes;
 }
 
-static int x509_openssl_get_public_key_type (struct x509_engine *engine,
+int x509_openssl_get_public_key_type (const struct x509_engine *engine,
 	const struct x509_certificate *cert)
 {
 	EVP_PKEY *key;
@@ -979,7 +979,7 @@ static int x509_openssl_get_public_key_type (struct x509_engine *engine,
 	return type;
 }
 
-static int x509_openssl_get_public_key_length (struct x509_engine *engine,
+int x509_openssl_get_public_key_length (const struct x509_engine *engine,
 	const struct x509_certificate *cert)
 {
 	EVP_PKEY *key;
@@ -1002,7 +1002,7 @@ static int x509_openssl_get_public_key_length (struct x509_engine *engine,
 	return bits;
 }
 
-static int x509_openssl_get_public_key (struct x509_engine *engine,
+int x509_openssl_get_public_key (const struct x509_engine *engine,
 	const struct x509_certificate *cert, uint8_t **key, size_t *key_length)
 {
 	EVP_PKEY *cert_key;
@@ -1039,7 +1039,7 @@ err_key:
 	return -status;
 }
 
-static int x509_openssl_init_ca_cert_store (struct x509_engine *engine, struct x509_ca_certs *store)
+int x509_openssl_init_ca_cert_store (const struct x509_engine *engine, struct x509_ca_certs *store)
 {
 	struct x509_openssl_ca_store_context *store_ctx;
 	int status;
@@ -1080,7 +1080,7 @@ ctx_free:
 	return status;
 }
 
-static void x509_openssl_release_ca_cert_store (struct x509_engine *engine,
+void x509_openssl_release_ca_cert_store (const struct x509_engine *engine,
 	struct x509_ca_certs *store)
 {
 	UNUSED (engine);
@@ -1095,7 +1095,7 @@ static void x509_openssl_release_ca_cert_store (struct x509_engine *engine,
 	}
 }
 
-static int x509_openssl_add_root_ca (struct x509_engine *engine, struct x509_ca_certs *store,
+int x509_openssl_add_root_ca (const struct x509_engine *engine, struct x509_ca_certs *store,
 	const uint8_t *der, size_t length)
 {
 	struct x509_certificate cert;
@@ -1157,7 +1157,7 @@ err_cert:
 	return status;
 }
 
-static int x509_openssl_add_trusted_ca (struct x509_engine *engine, struct x509_ca_certs *store,
+int x509_openssl_add_trusted_ca (const struct x509_engine *engine, struct x509_ca_certs *store,
 	const uint8_t *der, size_t length)
 {
 	struct x509_openssl_ca_store_context *store_ctx;
@@ -1206,7 +1206,7 @@ err_cert:
 	return status;
 }
 
-static int x509_openssl_add_intermediate_ca (struct x509_engine *engine,
+int x509_openssl_add_intermediate_ca (const struct x509_engine *engine,
 	struct x509_ca_certs *store, const uint8_t *der, size_t length)
 {
 	struct x509_certificate cert;
@@ -1248,16 +1248,15 @@ err_cert:
 	return status;
 }
 
-static int x509_openssl_authenticate (struct x509_engine *engine,
+int x509_openssl_authenticate (const struct x509_engine *engine,
 	const struct x509_certificate *cert, const struct x509_ca_certs *store)
 {
-	struct x509_engine_openssl *openssl = (struct x509_engine_openssl*) engine;
 	struct x509_openssl_ca_store_context *store_ctx = NULL;
 	X509_STORE_CTX *auth_ctx;
 	X509_VERIFY_PARAM *verify_param;
 	int status;
 
-	if ((openssl == NULL) || (cert == NULL) || (store == NULL)) {
+	if ((engine == NULL) || (cert == NULL) || (store == NULL)) {
 		return X509_ENGINE_INVALID_ARGUMENT;
 	}
 
@@ -1348,7 +1347,7 @@ int x509_openssl_init (struct x509_engine_openssl *engine)
  *
  * @param engine The X.509 engine to release.
  */
-void x509_openssl_release (struct x509_engine_openssl *engine)
+void x509_openssl_release (const struct x509_engine_openssl *engine)
 {
-
+	UNUSED (engine);
 }

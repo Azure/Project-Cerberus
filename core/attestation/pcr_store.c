@@ -394,7 +394,7 @@ int pcr_store_update_digest (struct pcr_store *store, uint16_t measurement_type,
  *
  * @return 0 if the measurement was updated successfully or an error code.
  */
-int pcr_store_update_buffer (struct pcr_store *store, struct hash_engine *hash,
+int pcr_store_update_buffer (struct pcr_store *store, const struct hash_engine *hash,
 	uint16_t measurement_type, const uint8_t *buf, size_t buf_len, bool include_event)
 {
 	uint8_t pcr_index = PCR_STORE_PCR_INDEX (measurement_type);
@@ -428,7 +428,7 @@ int pcr_store_update_buffer (struct pcr_store *store, struct hash_engine *hash,
  *
  * @return 0 if the measurement was updated successfully or an error code.
  */
-int pcr_store_update_versioned_buffer (struct pcr_store *store, struct hash_engine *hash,
+int pcr_store_update_versioned_buffer (struct pcr_store *store, const struct hash_engine *hash,
 	uint16_t measurement_type, const uint8_t *buf, size_t buf_len, bool include_event,
 	uint8_t version)
 {
@@ -489,7 +489,7 @@ int pcr_store_const_update_digest (struct pcr_store *store, uint16_t measurement
  *
  * @return 0 if the measurement was updated successfully or an error code.
  */
-int pcr_store_const_update_buffer (struct pcr_store *store, struct hash_engine *hash,
+int pcr_store_const_update_buffer (struct pcr_store *store, const struct hash_engine *hash,
 	uint16_t measurement_type, const uint8_t *buf, size_t buf_len, bool include_event)
 {
 	uint8_t pcr_index = PCR_STORE_PCR_INDEX (measurement_type);
@@ -523,9 +523,9 @@ int pcr_store_const_update_buffer (struct pcr_store *store, struct hash_engine *
  *
  * @return 0 if the measurement was updated successfully or an error code.
  */
-int pcr_store_const_update_versioned_buffer (struct pcr_store *store, struct hash_engine *hash,
-	uint16_t measurement_type, const uint8_t *buf, size_t buf_len, bool include_event,
-	uint8_t version)
+int pcr_store_const_update_versioned_buffer (struct pcr_store *store,
+	const struct hash_engine *hash, uint16_t measurement_type, const uint8_t *buf, size_t buf_len,
+	bool include_event, uint8_t version)
 {
 	uint8_t pcr_index = PCR_STORE_PCR_INDEX (measurement_type);
 	uint8_t measurement_index = PCR_STORE_MEASUREMENT_INDEX (measurement_type);
@@ -581,7 +581,7 @@ int pcr_store_invalidate_measurement (struct pcr_store *store, uint16_t measurem
  * @return Length of the generated PCR value or an error code.  Use ROT_IS_ERROR to check the return
  * status.
  */
-int pcr_store_compute_pcr (struct pcr_store *store, struct hash_engine *hash, uint8_t pcr_num,
+int pcr_store_compute_pcr (struct pcr_store *store, const struct hash_engine *hash, uint8_t pcr_num,
 	uint8_t *measurement, size_t length)
 {
 	if (store == NULL) {
@@ -704,7 +704,7 @@ int pcr_store_get_measurement_data (struct pcr_store *store, uint16_t measuremen
  * ROT_IS_ERROR to check the return value.
  */
 int pcr_store_hash_measurement_data (struct pcr_store *store, uint16_t measurement_type,
-	struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer, size_t length)
+	const struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer, size_t length)
 {
 	uint8_t pcr_index = PCR_STORE_PCR_INDEX (measurement_type);
 	uint8_t measurement_index = PCR_STORE_MEASUREMENT_INDEX (measurement_type);
@@ -841,8 +841,8 @@ int pcr_store_get_attestation_log_size (struct pcr_store *store)
  *
  * @return The number of bytes read from the log or an error code.
  */
-int pcr_store_get_attestation_log (struct pcr_store *store, struct hash_engine *hash, size_t offset,
-	uint8_t *contents, size_t length)
+int pcr_store_get_attestation_log (struct pcr_store *store, const struct hash_engine *hash,
+	size_t offset, uint8_t *contents, size_t length)
 {
 	union {
 		struct pcr_store_attestation_log_entry_base base;

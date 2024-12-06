@@ -24,9 +24,9 @@
  *
  * @return 0 if the ECDSA DRBG was instantiated successfully or an error code.
  */
-int ecdsa_deterministic_k_drbg_instantiate (struct hash_engine *hash, enum hmac_hash hmac_algo,
-	const uint8_t *message_digest, size_t digest_length, const uint8_t *priv_key, size_t key_length,
-	struct ecdsa_deterministic_k_drbg *drbg)
+int ecdsa_deterministic_k_drbg_instantiate (const struct hash_engine *hash,
+	enum hmac_hash hmac_algo, const uint8_t *message_digest, size_t digest_length,
+	const uint8_t *priv_key, size_t key_length,	struct ecdsa_deterministic_k_drbg *drbg)
 {
 	struct hmac_engine hmac;
 	int hash_length;
@@ -119,7 +119,7 @@ erase_context:
  *
  * @return 0 if k was generated successfully or an error code.
  */
-int ecdsa_deterministic_k_drbg_generate (struct hash_engine *hash,
+int ecdsa_deterministic_k_drbg_generate (const struct hash_engine *hash,
 	struct ecdsa_deterministic_k_drbg *drbg, uint8_t *k, size_t k_length)
 {
 	struct hmac_engine hmac;
@@ -221,9 +221,10 @@ void ecdsa_deterministic_k_drbg_clear (struct ecdsa_deterministic_k_drbg *drbg)
  *
  * @return 0 if the signature was generated successfully or an error code.
  */
-int ecdsa_ecc_hw_sign_message (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
-	enum hash_type hash_algo, struct rng_engine *rng, const uint8_t *priv_key, size_t key_length,
-	const uint8_t *message, size_t msg_length, struct ecc_ecdsa_signature *signature)
+int ecdsa_ecc_hw_sign_message (const struct ecc_hw *ecc_hw, const struct hash_engine *hash,
+	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,
+	size_t key_length, const uint8_t *message, size_t msg_length,
+	struct ecc_ecdsa_signature *signature)
 {
 	int status;
 
@@ -267,9 +268,9 @@ int ecdsa_ecc_hw_sign_message (const struct ecc_hw *ecc_hw, struct hash_engine *
  *
  * @return 0 if the signature was generated successfully or an error code.
  */
-int ecdsa_ecc_hw_sign_hash (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
-	enum hash_type hash_algo, struct rng_engine *rng, const uint8_t *priv_key, size_t key_length,
-	struct ecc_ecdsa_signature *signature)
+int ecdsa_ecc_hw_sign_hash (const struct ecc_hw *ecc_hw, const struct hash_engine *hash,
+	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,
+	size_t key_length, struct ecc_ecdsa_signature *signature)
 {
 	uint8_t digest[HASH_MAX_HASH_LEN];
 	size_t digest_length;
@@ -311,9 +312,9 @@ int ecdsa_ecc_hw_sign_hash (const struct ecc_hw *ecc_hw, struct hash_engine *has
  *
  * @return 0 if the signature was generated successfully or an error code.
  */
-int ecdsa_ecc_hw_sign_hash_and_finish (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
-	enum hash_type hash_algo, struct rng_engine *rng, const uint8_t *priv_key, size_t key_length,
-	struct ecc_ecdsa_signature *signature)
+int ecdsa_ecc_hw_sign_hash_and_finish (const struct ecc_hw *ecc_hw, const struct hash_engine *hash,
+	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,
+	size_t key_length, struct ecc_ecdsa_signature *signature)
 {
 	uint8_t digest[HASH_MAX_HASH_LEN];
 	size_t digest_length;
@@ -361,7 +362,7 @@ hash_cancel:
  *
  * @return 0 if the message was verified successfully or an error code.
  */
-int ecdsa_ecc_hw_verify_message (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
+int ecdsa_ecc_hw_verify_message (const struct ecc_hw *ecc_hw, const struct hash_engine *hash,
 	enum hash_type hash_algo, const uint8_t *message, size_t msg_length,
 	const struct ecc_point_public_key *pub_key, const struct ecc_ecdsa_signature *signature)
 {
@@ -404,7 +405,7 @@ int ecdsa_ecc_hw_verify_message (const struct ecc_hw *ecc_hw, struct hash_engine
  *
  * @return 0 if the hash was verified successfully or an error code.
  */
-int ecdsa_ecc_hw_verify_hash (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
+int ecdsa_ecc_hw_verify_hash (const struct ecc_hw *ecc_hw, const struct hash_engine *hash,
 	enum hash_type hash_algo, const struct ecc_point_public_key *pub_key,
 	const struct ecc_ecdsa_signature *signature)
 {
@@ -446,9 +447,9 @@ int ecdsa_ecc_hw_verify_hash (const struct ecc_hw *ecc_hw, struct hash_engine *h
  *
  * @return 0 if the hash was verified successfully or an error code.
  */
-int ecdsa_ecc_hw_verify_hash_and_finish (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
-	enum hash_type hash_algo, const struct ecc_point_public_key *pub_key,
-	const struct ecc_ecdsa_signature *signature)
+int ecdsa_ecc_hw_verify_hash_and_finish (const struct ecc_hw *ecc_hw,
+	const struct hash_engine *hash,	enum hash_type hash_algo,
+	const struct ecc_point_public_key *pub_key,	const struct ecc_ecdsa_signature *signature)
 {
 	uint8_t digest[HASH_MAX_HASH_LEN];
 	size_t digest_length;

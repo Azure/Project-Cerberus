@@ -155,9 +155,9 @@ int rma_unlock_token_authenticate (const struct rma_unlock_token *handler, const
  * @return 0 if the RMA token handler was initialized successfully or an error code.
  */
 int rma_unlock_token_init (struct rma_unlock_token *handler, const uint8_t *authority_key,
-	size_t key_length, const struct signature_verification *authority, struct hash_engine *hash,
-	enum hash_type auth_hash, const struct cmd_device *uuid, const uint8_t *oid, size_t oid_length,
-	const uint8_t *dice_hash, size_t hash_length)
+	size_t key_length, const struct signature_verification *authority,
+	const struct hash_engine *hash, enum hash_type auth_hash, const struct cmd_device *uuid,
+	const uint8_t *oid, size_t oid_length, const uint8_t *dice_hash, size_t hash_length)
 {
 	if ((handler == NULL) || (authority_key == NULL) || (key_length == 0) || (authority == NULL) ||
 		(hash == NULL) || (uuid == NULL) || (oid == NULL) || (oid_length == 0) ||

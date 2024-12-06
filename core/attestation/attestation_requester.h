@@ -93,12 +93,12 @@ struct attestation_requester {
 	struct attestation_requester_state *state;					/**< Variable context for the attestation requester. */
 	const struct cmd_channel *channel;							/**< Channel for communicating with BMC. */
 	const struct mctp_interface *mctp;							/**< MCTP interface to utilize for communication with BMC. */
-	struct hash_engine *primary_hash;							/**< The hashing engine for attestation authentication operations. */
-	struct hash_engine *secondary_hash;							/**< Secondary hash engine for SPDM attestation. Instance provided needs to be capable of running simultaneously with primary hash instance. */
+	const struct hash_engine *primary_hash;						/**< The hashing engine for attestation authentication operations. */
+	const struct hash_engine *secondary_hash;					/**< Secondary hash engine for SPDM attestation. Instance provided needs to be capable of running simultaneously with primary hash instance. */
 	struct ecc_engine *ecc;										/**< The ECC engine for attestation authentication operations. */
-	struct rsa_engine *rsa;										/**< The RSA engine for attestation authentication operations. */
-	struct x509_engine *x509;									/**< The X509 engine for attestation authentication operations. */
-	struct rng_engine *rng;										/**< The RNG engine for attestation authentication operations. */
+	const struct rsa_engine *rsa;								/**< The RSA engine for attestation authentication operations. */
+	const struct x509_engine *x509;								/**< The X509 engine for attestation authentication operations. */
+	const struct rng_engine *rng;								/**< The RNG engine for attestation authentication operations. */
 	const struct riot_key_manager *riot;						/**< RIoT key manager. */
 	struct device_manager *device_mgr;							/**< Device manager instance to utilize. */
 	struct cfm_manager *cfm_manager;							/**< CFM manager instance */
@@ -107,10 +107,11 @@ struct attestation_requester {
 
 int attestation_requester_init (struct attestation_requester *attestation,
 	struct attestation_requester_state *state, const struct mctp_interface *mctp,
-	const struct cmd_channel *channel, struct hash_engine *primary_hash,
-	struct hash_engine *secondary_hash, struct ecc_engine *ecc, struct rsa_engine *rsa,
-	struct x509_engine *x509, struct rng_engine *rng, const struct riot_key_manager *riot,
-	struct device_manager *device_mgr, struct cfm_manager *cfm_manager);
+	const struct cmd_channel *channel, const struct hash_engine *primary_hash,
+	const struct hash_engine *secondary_hash, struct ecc_engine *ecc, const struct rsa_engine *rsa,
+	const struct x509_engine *x509, const struct rng_engine *rng,
+	const struct riot_key_manager *riot, struct device_manager *device_mgr,
+	struct cfm_manager *cfm_manager);
 int attestation_requester_init_state (const struct attestation_requester *attestation);
 void attestation_requester_deinit (const struct attestation_requester *ctrl);
 

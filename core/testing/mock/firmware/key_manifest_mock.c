@@ -7,7 +7,8 @@
 #include "key_manifest_mock.h"
 
 
-static int key_manifest_mock_verify (const struct key_manifest *manifest, struct hash_engine *hash)
+static int key_manifest_mock_verify (const struct key_manifest *manifest,
+	const struct hash_engine *hash)
 {
 	struct key_manifest_mock *mock = (struct key_manifest_mock*) manifest;
 

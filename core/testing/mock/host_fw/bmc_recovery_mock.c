@@ -40,8 +40,8 @@ static void bmc_recovery_mock_on_host_cs0 (struct bmc_recovery *recovery)
 	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, bmc_recovery_mock_on_host_cs0, recovery);
 }
 
-static int bmc_recovery_mock_on_host_cs1 (struct bmc_recovery *recovery, struct hash_engine *hash,
-	struct rsa_engine *rsa)
+static int bmc_recovery_mock_on_host_cs1 (struct bmc_recovery *recovery,
+	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	struct bmc_recovery_mock *mock = (struct bmc_recovery_mock*) recovery;
 

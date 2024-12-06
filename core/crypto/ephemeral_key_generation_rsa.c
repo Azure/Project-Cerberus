@@ -59,7 +59,7 @@ int ephemeral_key_generation_rsa_generate_key (const struct ephemeral_key_genera
  * @return 0 if the key generator was successfully initialized or an error code.
  */
 int ephemeral_key_generation_rsa_init (struct ephemeral_key_generation_rsa *key_gen_rsa,
-	struct rsa_engine *engine)
+	const struct rsa_engine *engine)
 {
 	if ((key_gen_rsa == NULL) || (engine == NULL)) {
 		return EPHEMERAL_KEY_GEN_INVALID_ARGUMENT;

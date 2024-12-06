@@ -7,7 +7,7 @@
 
 
 static int cert_device_hw_mock_verify_root_key (struct cert_device_hw *hw, const uint8_t *root_key,
-	size_t key_length, struct hash_engine *hash)
+	size_t key_length, const struct hash_engine *hash)
 {
 	struct cert_device_hw_mock *mock = (struct cert_device_hw_mock*) hw;
 

@@ -7,7 +7,7 @@
 #include "x509_mock.h"
 
 
-static int x509_mock_create_csr (struct x509_engine *engine, const uint8_t *priv_key,
+static int x509_mock_create_csr (const struct x509_engine *engine, const uint8_t *priv_key,
 	size_t key_length, enum hash_type sig_hash, const char *name, int type, const uint8_t *eku,
 	size_t eku_length, const struct x509_extension_builder *const *extra_extensions,
 	size_t ext_count, uint8_t **csr, size_t *csr_length)
@@ -25,7 +25,7 @@ static int x509_mock_create_csr (struct x509_engine *engine, const uint8_t *priv
 		MOCK_ARG_PTR_CALL (csr_length));
 }
 
-static int x509_mock_create_self_signed_certificate (struct x509_engine *engine,
+static int x509_mock_create_self_signed_certificate (const struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *priv_key, size_t key_length,
 	enum hash_type sig_hash, const uint8_t *serial_num, size_t serial_length, const char *name,
 	int type, const struct x509_extension_builder *const *extra_extensions, size_t ext_count)
@@ -43,7 +43,7 @@ static int x509_mock_create_self_signed_certificate (struct x509_engine *engine,
 		MOCK_ARG_CALL (ext_count));
 }
 
-static int x509_mock_create_ca_signed_certificate (struct x509_engine *engine,
+static int x509_mock_create_ca_signed_certificate (const struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *key, size_t key_length, const uint8_t *serial_num,
 	size_t serial_length, const char *name, int type, const uint8_t *ca_priv_key,
 	size_t ca_key_length, enum hash_type sig_hash, const struct x509_certificate *ca_cert,
@@ -63,8 +63,8 @@ static int x509_mock_create_ca_signed_certificate (struct x509_engine *engine,
 		MOCK_ARG_CALL (ext_count));
 }
 
-static int x509_mock_load_certificate (struct x509_engine *engine, struct x509_certificate *cert,
-	const uint8_t *der, size_t length)
+static int x509_mock_load_certificate (const struct x509_engine *engine,
+	struct x509_certificate *cert, const uint8_t *der, size_t length)
 {
 	struct x509_engine_mock *mock = (struct x509_engine_mock*) engine;
 
@@ -76,7 +76,7 @@ static int x509_mock_load_certificate (struct x509_engine *engine, struct x509_c
 		MOCK_ARG_PTR_CALL (der), MOCK_ARG_CALL (length));
 }
 
-static void x509_mock_release_certificate (struct x509_engine *engine,
+static void x509_mock_release_certificate (const struct x509_engine *engine,
 	struct x509_certificate *cert)
 {
 	struct x509_engine_mock *mock = (struct x509_engine_mock*) engine;
@@ -88,7 +88,7 @@ static void x509_mock_release_certificate (struct x509_engine *engine,
 	MOCK_VOID_RETURN (&mock->mock, x509_mock_release_certificate, engine, MOCK_ARG_PTR_CALL (cert));
 }
 
-static int x509_mock_get_certificate_der (struct x509_engine *engine,
+static int x509_mock_get_certificate_der (const struct x509_engine *engine,
 	const struct x509_certificate *cert, uint8_t **der, size_t *length)
 {
 	struct x509_engine_mock *mock = (struct x509_engine_mock*) engine;
@@ -101,7 +101,7 @@ static int x509_mock_get_certificate_der (struct x509_engine *engine,
 		MOCK_ARG_PTR_CALL (der), MOCK_ARG_PTR_CALL (length));
 }
 
-static int x509_mock_get_certificate_version (struct x509_engine *engine,
+static int x509_mock_get_certificate_version (const struct x509_engine *engine,
 	const struct x509_certificate *cert)
 {
 	struct x509_engine_mock *mock = (struct x509_engine_mock*) engine;
@@ -113,7 +113,7 @@ static int x509_mock_get_certificate_version (struct x509_engine *engine,
 	MOCK_RETURN (&mock->mock, x509_mock_get_certificate_version, engine, MOCK_ARG_PTR_CALL (cert));
 }
 
-static int x509_mock_get_serial_number (struct x509_engine *engine,
+static int x509_mock_get_serial_number (const struct x509_engine *engine,
 	const struct x509_certificate *cert, uint8_t *serial_num, size_t length)
 {
 	struct x509_engine_mock *mock = (struct x509_engine_mock*) engine;
@@ -126,7 +126,7 @@ static int x509_mock_get_serial_number (struct x509_engine *engine,
 		MOCK_ARG_PTR_CALL (serial_num), MOCK_ARG_CALL (length));
 }
 
-static int x509_mock_get_public_key_type (struct x509_engine *engine,
+static int x509_mock_get_public_key_type (const struct x509_engine *engine,
 	const struct x509_certificate *cert)
 {
 	struct x509_engine_mock *mock = (struct x509_engine_mock*) engine;
@@ -138,7 +138,7 @@ static int x509_mock_get_public_key_type (struct x509_engine *engine,
 	MOCK_RETURN (&mock->mock, x509_mock_get_public_key_type, engine, MOCK_ARG_PTR_CALL (cert));
 }
 
-static int x509_mock_get_public_key_length (struct x509_engine *engine,
+static int x509_mock_get_public_key_length (const struct x509_engine *engine,
 	const struct x509_certificate *cert)
 {
 	struct x509_engine_mock *mock = (struct x509_engine_mock*) engine;
@@ -150,7 +150,7 @@ static int x509_mock_get_public_key_length (struct x509_engine *engine,
 	MOCK_RETURN (&mock->mock, x509_mock_get_public_key_length, engine, MOCK_ARG_PTR_CALL (cert));
 }
 
-static int x509_mock_get_public_key (struct x509_engine *engine,
+static int x509_mock_get_public_key (const struct x509_engine *engine,
 	const struct x509_certificate *cert, uint8_t **key, size_t *key_length)
 {
 	struct x509_engine_mock *mock = (struct x509_engine_mock*) engine;
@@ -163,7 +163,8 @@ static int x509_mock_get_public_key (struct x509_engine *engine,
 		MOCK_ARG_PTR_CALL (key), MOCK_ARG_PTR_CALL (key_length));
 }
 
-static int x509_mock_init_ca_cert_store (struct x509_engine *engine, struct x509_ca_certs *store)
+static int x509_mock_init_ca_cert_store (const struct x509_engine *engine,
+	struct x509_ca_certs *store)
 {
 	struct x509_engine_mock *mock = (struct x509_engine_mock*) engine;
 
@@ -171,10 +172,10 @@ static int x509_mock_init_ca_cert_store (struct x509_engine *engine, struct x509
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, x509_mock_init_ca_cert_store, engine,	MOCK_ARG_PTR_CALL (store));
+	MOCK_RETURN (&mock->mock, x509_mock_init_ca_cert_store, engine, MOCK_ARG_PTR_CALL (store));
 }
 
-static void x509_mock_release_ca_cert_store (struct x509_engine *engine,
+static void x509_mock_release_ca_cert_store (const struct x509_engine *engine,
 	struct x509_ca_certs *store)
 {
 	struct x509_engine_mock *mock = (struct x509_engine_mock*) engine;
@@ -187,7 +188,7 @@ static void x509_mock_release_ca_cert_store (struct x509_engine *engine,
 		MOCK_ARG_PTR_CALL (store));
 }
 
-static int x509_mock_add_root_ca (struct x509_engine *engine, struct x509_ca_certs *store,
+static int x509_mock_add_root_ca (const struct x509_engine *engine, struct x509_ca_certs *store,
 	const uint8_t *der, size_t length)
 {
 	struct x509_engine_mock *mock = (struct x509_engine_mock*) engine;
@@ -200,7 +201,7 @@ static int x509_mock_add_root_ca (struct x509_engine *engine, struct x509_ca_cer
 		MOCK_ARG_PTR_CALL (der), MOCK_ARG_CALL (length));
 }
 
-static int x509_mock_add_trusted_ca (struct x509_engine *engine, struct x509_ca_certs *store,
+static int x509_mock_add_trusted_ca (const struct x509_engine *engine, struct x509_ca_certs *store,
 	const uint8_t *der, size_t length)
 {
 	struct x509_engine_mock *mock = (struct x509_engine_mock*) engine;
@@ -213,8 +214,8 @@ static int x509_mock_add_trusted_ca (struct x509_engine *engine, struct x509_ca_
 		MOCK_ARG_PTR_CALL (der), MOCK_ARG_CALL (length));
 }
 
-static int x509_mock_add_intermediate_ca (struct x509_engine *engine, struct x509_ca_certs *store,
-	const uint8_t *der, size_t length)
+static int x509_mock_add_intermediate_ca (const struct x509_engine *engine,
+	struct x509_ca_certs *store, const uint8_t *der, size_t length)
 {
 	struct x509_engine_mock *mock = (struct x509_engine_mock*) engine;
 
@@ -226,8 +227,8 @@ static int x509_mock_add_intermediate_ca (struct x509_engine *engine, struct x50
 		MOCK_ARG_PTR_CALL (der), MOCK_ARG_CALL (length));
 }
 
-static int x509_mock_authenticate (struct x509_engine *engine, const struct x509_certificate *cert,
-	const struct x509_ca_certs *store)
+static int x509_mock_authenticate (const struct x509_engine *engine,
+	const struct x509_certificate *cert, const struct x509_ca_certs *store)
 {
 	struct x509_engine_mock *mock = (struct x509_engine_mock*) engine;
 

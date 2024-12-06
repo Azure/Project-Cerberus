@@ -7,6 +7,7 @@
 #include <string.h>
 #include "testing.h"
 #include "crypto/rng_openssl.h"
+#include "crypto/rng_openssl_static.h"
 
 
 TEST_SUITE_LABEL ("rng_openssl");
@@ -39,6 +40,17 @@ static void rng_openssl_test_init_null (CuTest *test)
 
 	status = rng_openssl_init (NULL);
 	CuAssertIntEquals (test, RNG_ENGINE_INVALID_ARGUMENT, status);
+}
+
+static void rng_openssl_test_static_init (CuTest *test)
+{
+	struct rng_engine_openssl engine = rng_openssl_static_init;
+
+	TEST_START;
+
+	CuAssertPtrNotNull (test, engine.base.generate_random_buffer);
+
+	rng_openssl_release (&engine);
 }
 
 static void rng_openssl_test_release_null (CuTest *test)
@@ -169,6 +181,20 @@ static void rng_openssl_test_generate_random_buffer_no_data (CuTest *test)
 	rng_openssl_release (&engine);
 }
 
+static void rng_openssl_test_generate_random_buffer_static_init (CuTest *test)
+{
+	struct rng_engine_openssl engine = rng_openssl_static_init;
+	uint8_t buffer[32];
+	int status;
+
+	TEST_START;
+
+	status = engine.base.generate_random_buffer (&engine.base, 32, buffer);
+	CuAssertIntEquals (test, 0, status);
+
+	rng_openssl_release (&engine);
+}
+
 static void rng_openssl_test_generate_random_buffer_null (CuTest *test)
 {
 	struct rng_engine_openssl engine;
@@ -194,12 +220,14 @@ TEST_SUITE_START (rng_openssl);
 
 TEST (rng_openssl_test_init);
 TEST (rng_openssl_test_init_null);
+TEST (rng_openssl_test_static_init);
 TEST (rng_openssl_test_release_null);
 TEST (rng_openssl_test_generate_random_buffer);
 TEST (rng_openssl_test_generate_random_buffer_not_word_aligned);
 TEST (rng_openssl_test_generate_random_buffer_start_not_word_aligned);
 TEST (rng_openssl_test_generate_random_buffer_twice);
 TEST (rng_openssl_test_generate_random_buffer_no_data);
+TEST (rng_openssl_test_generate_random_buffer_static_init);
 TEST (rng_openssl_test_generate_random_buffer_null);
 
 TEST_SUITE_END;

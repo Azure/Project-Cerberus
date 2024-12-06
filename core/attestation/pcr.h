@@ -192,24 +192,24 @@ int pcr_is_measurement_in_tcb (struct pcr_bank *pcr, uint8_t measurement_index);
 
 int pcr_update_digest (struct pcr_bank *pcr, uint8_t measurement_index, const uint8_t *digest,
 	size_t digest_len);
-int pcr_update_buffer (struct pcr_bank *pcr, struct hash_engine *hash, uint8_t measurement_index,
-	const uint8_t *buf, size_t buf_len, bool include_event);
-int pcr_update_versioned_buffer (struct pcr_bank *pcr, struct hash_engine *hash,
+int pcr_update_buffer (struct pcr_bank *pcr, const struct hash_engine *hash,
+	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event);
+int pcr_update_versioned_buffer (struct pcr_bank *pcr, const struct hash_engine *hash,
 	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event,
 	uint8_t version);
 
 int pcr_const_update_digest (struct pcr_bank *pcr, uint8_t measurement_index, const uint8_t *digest,
 	size_t digest_len);
-int pcr_const_update_buffer (struct pcr_bank *pcr, struct hash_engine *hash,
+int pcr_const_update_buffer (struct pcr_bank *pcr, const struct hash_engine *hash,
 	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event);
-int pcr_const_update_versioned_buffer (struct pcr_bank *pcr, struct hash_engine *hash,
+int pcr_const_update_versioned_buffer (struct pcr_bank *pcr, const struct hash_engine *hash,
 	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event,
 	uint8_t version);
 
 int pcr_invalidate_measurement (struct pcr_bank *pcr, uint8_t measurement_index);
 
-int pcr_compute (struct pcr_bank *pcr, struct hash_engine *hash, bool lock, uint8_t *measurement,
-	size_t length);
+int pcr_compute (struct pcr_bank *pcr, const struct hash_engine *hash, bool lock,
+	uint8_t *measurement, size_t length);
 int pcr_get_measurement (struct pcr_bank *pcr, uint8_t measurement_index,
 	struct pcr_measurement *measurement);
 int pcr_get_all_measurements (struct pcr_bank *pcr,
@@ -221,7 +221,7 @@ int pcr_set_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
 int pcr_get_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index, size_t offset,
 	uint8_t *buffer, size_t length, size_t *total_len);
 int pcr_hash_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
-	struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer, size_t length);
+	const struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer, size_t length);
 
 int pcr_get_tcg_log (struct pcr_bank *pcr, uint32_t pcr_num, size_t offset, uint8_t *buffer,
 	size_t length, size_t *total_len);

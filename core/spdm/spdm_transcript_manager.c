@@ -30,7 +30,7 @@ static int spdm_transcript_manager_add_msg (
 	size_t message_size, bool add_vca)
 {
 	int status;
-	struct hash_engine *hash_engine;
+	const struct hash_engine *hash_engine;
 
 	hash_engine = transcript_manager->hash_engine[hash_context->hash_engine_idx];
 
@@ -230,7 +230,7 @@ static void spdm_transcript_manager_reset_vca (
 static void spdm_transcript_manager_reset_m1m2 (
 	const struct spdm_transcript_manager *transcript_manager)
 {
-	struct hash_engine *m1m2;
+	const struct hash_engine *m1m2;
 	struct spdm_transcript_manager_state *state = transcript_manager->state;
 
 	if (state->m1m2.hash_started == true) {
@@ -253,7 +253,7 @@ static void spdm_transcript_manager_reset_l1l2 (
 	const struct spdm_transcript_manager *transcript_manager, bool use_session_context,
 	uint8_t session_idx)
 {
-	struct hash_engine *l1l2;
+	const struct hash_engine *l1l2;
 	struct spdm_transcript_manager_hash_context *hash_context;
 	struct spdm_transcript_manager_state *state = transcript_manager->state;
 
@@ -278,7 +278,7 @@ static void spdm_transcript_manager_reset_l1l2 (
 static void spdm_transcript_manager_reset_th (
 	const struct spdm_transcript_manager *transcript_manager, uint8_t session_idx)
 {
-	struct hash_engine *th;
+	const struct hash_engine *th;
 	struct spdm_transcript_manager_hash_context *hash_context;
 	struct spdm_transcript_manager_state *state = transcript_manager->state;
 
@@ -470,7 +470,7 @@ int spdm_transcript_manager_get_hash (
 	int status;
 	struct spdm_transcript_manager_state *state;
 	struct spdm_transcript_manager_hash_context *hash_context;
-	struct hash_engine *hash_engine;
+	const struct hash_engine *hash_engine;
 
 	if ((transcript_manager == NULL) || (hash == NULL) || (hash_size == 0)) {
 		status = SPDM_TRANSCRIPT_MANAGER_INVALID_ARGUMENT;
@@ -540,10 +540,10 @@ exit:
  * @param hash_engine			Array of hash engine instances.
  * @param hash_engine_count		Number of hash engine instances provided.
  *
- * @return 0 if a transcipt manager was instantiated successfully or an error code.
+ * @return 0 if a transcript manager was instantiated successfully or an error code.
  */
 int spdm_transcript_manager_init (struct spdm_transcript_manager *transcript_manager,
-	struct spdm_transcript_manager_state *state, struct hash_engine **hash_engine,
+	struct spdm_transcript_manager_state *state, const struct hash_engine *const *hash_engine,
 	uint8_t hash_engine_count)
 {
 	int status = 0;

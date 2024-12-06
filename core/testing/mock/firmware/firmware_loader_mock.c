@@ -50,7 +50,7 @@ static void firmware_loader_mock_unmap_address (const struct firmware_loader *lo
 
 static int firmware_loader_mock_load_image (const struct firmware_loader *loader,
 	const struct flash *flash, uint32_t src_addr, size_t length, uint8_t *dest_addr,
-	const uint8_t *iv, size_t iv_length, struct hash_engine *hash, enum hash_type hash_algo,
+	const uint8_t *iv, size_t iv_length, const struct hash_engine *hash, enum hash_type hash_algo,
 	uint8_t *digest, size_t digest_length)
 {
 	struct firmware_loader_mock *mock = (struct firmware_loader_mock*) loader;
@@ -67,7 +67,7 @@ static int firmware_loader_mock_load_image (const struct firmware_loader *loader
 
 static int firmware_loader_mock_load_image_update_digest (const struct firmware_loader *loader,
 	const struct flash *flash, uint32_t src_addr, size_t length, uint8_t *dest_addr,
-	const uint8_t *iv, size_t iv_length, struct hash_engine *hash)
+	const uint8_t *iv, size_t iv_length, const struct hash_engine *hash)
 {
 	struct firmware_loader_mock *mock = (struct firmware_loader_mock*) loader;
 
@@ -83,7 +83,7 @@ static int firmware_loader_mock_load_image_update_digest (const struct firmware_
 
 static int firmware_loader_mock_copy_image (const struct firmware_loader *loader,
 	const uint8_t *src_addr, size_t length, uint8_t *dest_addr, const uint8_t *iv, size_t iv_length,
-	struct hash_engine *hash, enum hash_type hash_algo, uint8_t *digest, size_t digest_length)
+	const struct hash_engine *hash, enum hash_type hash_algo, uint8_t *digest, size_t digest_length)
 {
 	struct firmware_loader_mock *mock = (struct firmware_loader_mock*) loader;
 
@@ -99,7 +99,7 @@ static int firmware_loader_mock_copy_image (const struct firmware_loader *loader
 
 static int firmware_loader_mock_copy_image_update_digest (const struct firmware_loader *loader,
 	const uint8_t *src_addr, size_t length, uint8_t *dest_addr, const uint8_t *iv, size_t iv_length,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
 	struct firmware_loader_mock *mock = (struct firmware_loader_mock*) loader;
 

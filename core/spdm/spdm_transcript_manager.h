@@ -234,14 +234,14 @@ struct spdm_transcript_manager {
 	void (*reset_session_transcript) (const struct spdm_transcript_manager *transcript_manager,
 		uint8_t session_idx);
 
-	struct hash_engine **hash_engine;				/**< Hash engine instance(s). */
+	const struct hash_engine *const *hash_engine;	/**< Hash engine instance(s). */
 	uint8_t hash_engine_count;						/**< Number of hash engine instances. */
 	struct spdm_transcript_manager_state *state;	/**< Variable context for SPDM Transcript manager. */
 };
 
 
 int spdm_transcript_manager_init (struct spdm_transcript_manager *transcript_manager,
-	struct spdm_transcript_manager_state *state, struct hash_engine **hash_engine,
+	struct spdm_transcript_manager_state *state, const struct hash_engine *const *hash_engine,
 	uint8_t hash_engine_count);
 
 int spdm_transcript_manager_init_state (const struct spdm_transcript_manager *transcript_manager);

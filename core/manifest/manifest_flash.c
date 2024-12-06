@@ -51,9 +51,9 @@ int manifest_flash_init (struct manifest_flash *manifest, const struct flash *fl
  * @return 0 if the manifest was initialized successfully or an error code.
  */
 int manifest_flash_v2_init (struct manifest_flash *manifest, const struct flash *flash,
-	struct hash_engine *hash, uint32_t base_addr, uint16_t magic_num_v1, uint16_t magic_num_v2,
-	uint8_t *signature_cache, size_t max_signature, uint8_t *platform_id_cache,
-	size_t max_platform_id)
+	const struct hash_engine *hash, uint32_t base_addr, uint16_t magic_num_v1,
+	uint16_t magic_num_v2, uint8_t *signature_cache, size_t max_signature,
+	uint8_t *platform_id_cache,	size_t max_platform_id)
 {
 	uint32_t block;
 	int status;
@@ -162,8 +162,9 @@ int manifest_flash_read_header (struct manifest_flash *manifest, struct manifest
  *
  * @return 0 if the manifest is valid or an error code.
  */
-static int manifest_flash_verify_v1 (struct manifest_flash *manifest, struct hash_engine *hash,
-	const struct signature_verification *verification, enum hash_type sig_hash, uint8_t *hash_out)
+static int manifest_flash_verify_v1 (struct manifest_flash *manifest,
+	const struct hash_engine *hash,	const struct signature_verification *verification,
+	enum hash_type sig_hash, uint8_t *hash_out)
 {
 	int status;
 
@@ -193,8 +194,9 @@ static int manifest_flash_verify_v1 (struct manifest_flash *manifest, struct has
  *
  * @return 0 if the manifest is valid or an error code.
  */
-static int manifest_flash_verify_v2 (struct manifest_flash *manifest, struct hash_engine *hash,
-	const struct signature_verification *verification, enum hash_type sig_hash, uint8_t *hash_out)
+static int manifest_flash_verify_v2 (struct manifest_flash *manifest,
+	const struct hash_engine *hash,	const struct signature_verification *verification,
+	enum hash_type sig_hash, uint8_t *hash_out)
 {
 	struct manifest_toc_entry entry;
 	struct manifest_platform_id plat_id_header;
@@ -375,7 +377,7 @@ error:
  *
  * @return 0 if the manifest is valid or an error code.
  */
-int manifest_flash_verify (struct manifest_flash *manifest, struct hash_engine *hash,
+int manifest_flash_verify (struct manifest_flash *manifest, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
 	enum hash_type sig_hash;
@@ -527,7 +529,7 @@ int manifest_flash_get_platform_id (struct manifest_flash *manifest, char **id, 
  * @return Length of the hash if it was calculated successfully or an error code.  Use
  * ROT_IS_ERROR to check the return value.
  */
-int manifest_flash_get_hash (struct manifest_flash *manifest, struct hash_engine *hash,
+int manifest_flash_get_hash (struct manifest_flash *manifest, const struct hash_engine *hash,
 	uint8_t *hash_out, size_t hash_length)
 {
 	struct manifest_header header;
@@ -665,9 +667,10 @@ int manifest_flash_get_signature (struct manifest_flash *manifest, uint8_t *sign
  * @return The amount of element data read or an error code.  Use ROT_IS_ERROR to check the return
  * value.
  */
-int manifest_flash_read_element_data (struct manifest_flash *manifest, struct hash_engine *hash,
-	uint8_t type, int start, uint8_t parent_type, uint32_t read_offset, uint8_t *found,
-	uint8_t *format, size_t *total_len, uint8_t **element, size_t length)
+int manifest_flash_read_element_data (struct manifest_flash *manifest,
+	const struct hash_engine *hash,	uint8_t type, int start, uint8_t parent_type,
+	uint32_t read_offset, uint8_t *found, uint8_t *format, size_t *total_len, uint8_t **element,
+	size_t length)
 {
 	struct manifest_toc_entry entry;
 	uint8_t entry_hash[SHA512_HASH_LENGTH];
@@ -906,8 +909,8 @@ error:
  * @return 0 if request completed successfully or an error code.
  */
 int manifest_flash_get_child_elements_info (struct manifest_flash *manifest,
-	struct hash_engine *hash, int entry, uint8_t type, uint8_t parent_type, uint8_t child_type,
-	size_t *child_len, int *child_count, int *first_entry)
+	const struct hash_engine *hash, int entry, uint8_t type, uint8_t parent_type,
+	uint8_t child_type,	size_t *child_len, int *child_count, int *first_entry)
 {
 	uint8_t validate_hash[SHA512_HASH_LENGTH];
 	struct manifest_toc_entry toc_entry;

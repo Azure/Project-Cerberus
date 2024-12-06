@@ -15,7 +15,7 @@
  *
  * @return 0 if the manifest manager was initialized successfully or an error code.
  */
-int manifest_manager_init (struct manifest_manager *manager, struct hash_engine *hash)
+int manifest_manager_init (struct manifest_manager *manager, const struct hash_engine *hash)
 {
 	if ((manager == NULL) || (hash == NULL)) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
@@ -131,7 +131,7 @@ int manifest_manager_get_id_measured_data (struct manifest *active, size_t offse
  *
  * @return 0 if the hash was updated successfully or an error code.
  */
-int manifest_manager_hash_id_measured_data (struct manifest *active, struct hash_engine *hash)
+int manifest_manager_hash_id_measured_data (struct manifest *active, const struct hash_engine *hash)
 {
 	uint8_t id[5];
 	int status;
@@ -213,7 +213,7 @@ exit:
  * @return 0 if the hash was updated successfully or an error code.
  */
 int manifest_manager_hash_platform_id_measured_data (struct manifest *active,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
 	char *id = NULL;
 	char empty_string = '\0';
@@ -298,7 +298,7 @@ int manifest_manager_get_manifest_measured_data (struct manifest_manager *manage
  * @return 0 if the hash was updated successfully or an error code.
  */
 int manifest_manager_hash_manifest_measured_data (struct manifest_manager *manager,
-	struct manifest *active, struct hash_engine *hash)
+	struct manifest *active, const struct hash_engine *hash)
 {
 	uint8_t hash_out[SHA512_HASH_LENGTH] = {0};
 	int hash_length = SHA256_HASH_LENGTH;

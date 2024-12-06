@@ -32,7 +32,7 @@ struct base64_engine {
 	 *
 	 * @return 0 if the data was encoded successfully or an error code.
 	 */
-	int (*encode) (struct base64_engine *engine, const uint8_t *data, size_t length,
+	int (*encode) (const struct base64_engine *engine, const uint8_t *data, size_t length,
 		uint8_t *encoded, size_t enc_length);
 };
 

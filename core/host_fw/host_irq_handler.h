@@ -27,7 +27,7 @@ struct host_irq_handler {
 	 * @return 0 if power on processing was successful or an error code.
 	 */
 	int (*power_on) (const struct host_irq_handler *handler, bool allow_unsecure,
-		struct hash_engine *hash);
+		const struct hash_engine *hash);
 
 	/**
 	 * Handler for when the host processor signals that it has been reset.
@@ -73,17 +73,17 @@ struct host_irq_handler {
 
 	struct host_processor *host;			/**< The host generating the IRQs. */
 	struct bmc_recovery *recovery;			/**< The recovery manager for BMC watchdog failover. */
-	struct hash_engine *hash;				/**< Hash engine to use for reset validation. */
-	struct rsa_engine *rsa;					/**< RSA engine to use for reset validation. */
+	const struct hash_engine *hash;			/**< Hash engine to use for reset validation. */
+	const struct rsa_engine *rsa;			/**< RSA engine to use for reset validation. */
 	const struct host_irq_control *control;	/**< Interface for enabling host interrupts. */
 	bool notify_exit_reset;					/**< Flag to enable host reset exit interrupts. */
 };
 
 
 int host_irq_handler_init (struct host_irq_handler *handler, struct host_processor *host,
-	struct hash_engine *hash, struct rsa_engine *rsa, struct bmc_recovery *recovery);
+	const struct hash_engine *hash, const struct rsa_engine *rsa, struct bmc_recovery *recovery);
 int host_irq_handler_init_enable_exit_reset (struct host_irq_handler *handler,
-	struct host_processor *host, struct hash_engine *hash, struct rsa_engine *rsa,
+	struct host_processor *host, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	struct bmc_recovery *recovery, const struct host_irq_control *control);
 int host_irq_handler_config_interrupts (const struct host_irq_handler *handler);
 void host_irq_handler_release (const struct host_irq_handler *handler);
@@ -92,11 +92,11 @@ int host_irq_handler_set_host (struct host_irq_handler *handler, struct host_pro
 
 /* Internal functions for use by derived types. */
 int host_irq_handler_init_with_irq_ctrl (struct host_irq_handler *handler,
-	struct host_processor *host, struct hash_engine *hash, struct rsa_engine *rsa,
+	struct host_processor *host, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	struct bmc_recovery *recovery, const struct host_irq_control *control);
 
 int host_irq_handler_power_on (const struct host_irq_handler *handler, bool allow_unsecure,
-	struct hash_engine *hash);
+	const struct hash_engine *hash);
 int host_irq_handler_enter_reset (const struct host_irq_handler *handler);
 void host_irq_handler_exit_reset (const struct host_irq_handler *handler);
 void host_irq_handler_assert_cs0 (const struct host_irq_handler *handler);

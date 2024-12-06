@@ -19,8 +19,8 @@
  *
  * @return 0 if the tests completed successfully or an error code.
  */
-static int hash_kat_run_calculate_self_test (struct hash_engine *hash, enum hash_type hash_algo,
-	const uint8_t *expected, int kat_error)
+static int hash_kat_run_calculate_self_test (const struct hash_engine *hash,
+	enum hash_type hash_algo, const uint8_t *expected, int kat_error)
 {
 	uint8_t digest[HASH_MAX_HASH_LEN];
 	size_t digest_length;
@@ -50,7 +50,7 @@ static int hash_kat_run_calculate_self_test (struct hash_engine *hash, enum hash
  *
  * @return 0 if the tests completed successfully or an error code.
  */
-int hash_kat_run_self_test_calculate_sha1 (struct hash_engine *hash)
+int hash_kat_run_self_test_calculate_sha1 (const struct hash_engine *hash)
 {
 	return hash_kat_run_calculate_self_test (hash, HASH_TYPE_SHA1,
 		SHA_KAT_VECTORS_CALCULATE_SHA1_DIGEST, HASH_ENGINE_SHA1_SELF_TEST_FAILED);
@@ -63,7 +63,7 @@ int hash_kat_run_self_test_calculate_sha1 (struct hash_engine *hash)
  *
  * @return 0 if the tests completed successfully or an error code.
  */
-int hash_kat_run_self_test_calculate_sha256 (struct hash_engine *hash)
+int hash_kat_run_self_test_calculate_sha256 (const struct hash_engine *hash)
 {
 	return hash_kat_run_calculate_self_test (hash, HASH_TYPE_SHA256,
 		SHA_KAT_VECTORS_CALCULATE_SHA256_DIGEST, HASH_ENGINE_SHA256_SELF_TEST_FAILED);
@@ -76,7 +76,7 @@ int hash_kat_run_self_test_calculate_sha256 (struct hash_engine *hash)
  *
  * @return 0 if the tests completed successfully or an error code.
  */
-int hash_kat_run_self_test_calculate_sha384 (struct hash_engine *hash)
+int hash_kat_run_self_test_calculate_sha384 (const struct hash_engine *hash)
 {
 	return hash_kat_run_calculate_self_test (hash, HASH_TYPE_SHA384,
 		SHA_KAT_VECTORS_CALCULATE_SHA384_DIGEST, HASH_ENGINE_SHA384_SELF_TEST_FAILED);
@@ -89,7 +89,7 @@ int hash_kat_run_self_test_calculate_sha384 (struct hash_engine *hash)
  *
  * @return 0 if the tests completed successfully or an error code.
  */
-int hash_kat_run_self_test_calculate_sha512 (struct hash_engine *hash)
+int hash_kat_run_self_test_calculate_sha512 (const struct hash_engine *hash)
 {
 	return hash_kat_run_calculate_self_test (hash, HASH_TYPE_SHA512,
 		SHA_KAT_VECTORS_CALCULATE_SHA512_DIGEST, HASH_ENGINE_SHA512_SELF_TEST_FAILED);
@@ -103,7 +103,7 @@ int hash_kat_run_self_test_calculate_sha512 (struct hash_engine *hash)
  *
  * @return 0 if the tests completed successfully or an error code.
  */
-int hash_kat_run_all_calculate_self_tests (struct hash_engine *hash)
+int hash_kat_run_all_calculate_self_tests (const struct hash_engine *hash)
 {
 	int status;
 
@@ -147,7 +147,7 @@ int hash_kat_run_all_calculate_self_tests (struct hash_engine *hash)
  *
  * @return 0 if the tests completed successfully or an error code.
  */
-static int hash_kat_run_update_self_test (struct hash_engine *hash, enum hash_type hash_algo,
+static int hash_kat_run_update_self_test (const struct hash_engine *hash, enum hash_type hash_algo,
 	const uint8_t *expected, int kat_error)
 {
 	uint8_t digest[HASH_MAX_HASH_LEN];
@@ -198,7 +198,7 @@ exit:
  *
  * @return 0 if the tests completed successfully or an error code.
  */
-int hash_kat_run_self_test_update_sha1 (struct hash_engine *hash)
+int hash_kat_run_self_test_update_sha1 (const struct hash_engine *hash)
 {
 	return hash_kat_run_update_self_test (hash, HASH_TYPE_SHA1,	SHA_KAT_VECTORS_UPDATE_SHA1_DIGEST,
 		HASH_ENGINE_SHA1_SELF_TEST_FAILED);
@@ -212,7 +212,7 @@ int hash_kat_run_self_test_update_sha1 (struct hash_engine *hash)
  *
  * @return 0 if the tests completed successfully or an error code.
  */
-int hash_kat_run_self_test_update_sha256 (struct hash_engine *hash)
+int hash_kat_run_self_test_update_sha256 (const struct hash_engine *hash)
 {
 	return hash_kat_run_update_self_test (hash, HASH_TYPE_SHA256,
 		SHA_KAT_VECTORS_UPDATE_SHA256_DIGEST, HASH_ENGINE_SHA256_SELF_TEST_FAILED);
@@ -226,7 +226,7 @@ int hash_kat_run_self_test_update_sha256 (struct hash_engine *hash)
  *
  * @return 0 if the tests completed successfully or an error code.
  */
-int hash_kat_run_self_test_update_sha384 (struct hash_engine *hash)
+int hash_kat_run_self_test_update_sha384 (const struct hash_engine *hash)
 {
 	return hash_kat_run_update_self_test (hash, HASH_TYPE_SHA384,
 		SHA_KAT_VECTORS_UPDATE_SHA384_DIGEST, HASH_ENGINE_SHA384_SELF_TEST_FAILED);
@@ -240,7 +240,7 @@ int hash_kat_run_self_test_update_sha384 (struct hash_engine *hash)
  *
  * @return 0 if the tests completed successfully or an error code.
  */
-int hash_kat_run_self_test_update_sha512 (struct hash_engine *hash)
+int hash_kat_run_self_test_update_sha512 (const struct hash_engine *hash)
 {
 	return hash_kat_run_update_self_test (hash, HASH_TYPE_SHA512,
 		SHA_KAT_VECTORS_UPDATE_SHA512_DIGEST, HASH_ENGINE_SHA512_SELF_TEST_FAILED);
@@ -254,7 +254,7 @@ int hash_kat_run_self_test_update_sha512 (struct hash_engine *hash)
  *
  * @return 0 if the tests completed successfully or an error code.
  */
-int hash_kat_run_all_update_self_tests (struct hash_engine *hash)
+int hash_kat_run_all_update_self_tests (const struct hash_engine *hash)
 {
 	int status;
 
@@ -297,7 +297,7 @@ int hash_kat_run_all_update_self_tests (struct hash_engine *hash)
  *
  * @return 0 if the tests completed successfully or an error code.
  */
-static int hash_kat_hmac_run_self_test (struct hash_engine *hash, enum hmac_hash hash_algo,
+static int hash_kat_hmac_run_self_test (const struct hash_engine *hash, enum hmac_hash hash_algo,
 	const uint8_t *expected, int kat_error)
 {
 	uint8_t mac[HASH_MAX_HASH_LEN];
@@ -329,7 +329,7 @@ static int hash_kat_hmac_run_self_test (struct hash_engine *hash, enum hmac_hash
  *
  * @return 0 if the tests completed successfully or an error code.
  */
-int hash_kat_hmac_run_self_test_sha1 (struct hash_engine *hash)
+int hash_kat_hmac_run_self_test_sha1 (const struct hash_engine *hash)
 {
 	return hash_kat_hmac_run_self_test (hash, HMAC_SHA1, HMAC_KAT_VECTORS_CALCULATE_SHA1_MAC,
 		HASH_ENGINE_HMAC_SHA1_SELF_TEST_FAILED);
@@ -342,7 +342,7 @@ int hash_kat_hmac_run_self_test_sha1 (struct hash_engine *hash)
  *
  * @return 0 if the tests completed successfully or an error code.
  */
-int hash_kat_hmac_run_self_test_sha256 (struct hash_engine *hash)
+int hash_kat_hmac_run_self_test_sha256 (const struct hash_engine *hash)
 {
 	return hash_kat_hmac_run_self_test (hash, HMAC_SHA256, HMAC_KAT_VECTORS_CALCULATE_SHA256_MAC,
 		HASH_ENGINE_HMAC_SHA256_SELF_TEST_FAILED);
@@ -355,7 +355,7 @@ int hash_kat_hmac_run_self_test_sha256 (struct hash_engine *hash)
  *
  * @return 0 if the tests completed successfully or an error code.
  */
-int hash_kat_hmac_run_self_test_sha384 (struct hash_engine *hash)
+int hash_kat_hmac_run_self_test_sha384 (const struct hash_engine *hash)
 {
 	return hash_kat_hmac_run_self_test (hash, HMAC_SHA384, HMAC_KAT_VECTORS_CALCULATE_SHA384_MAC,
 		HASH_ENGINE_HMAC_SHA384_SELF_TEST_FAILED);
@@ -371,7 +371,7 @@ int hash_kat_hmac_run_self_test_sha384 (struct hash_engine *hash)
  *
  * @return 0 if the tests completed successfully or an error code.
  */
-int hash_kat_hmac_run_self_test_sha512 (struct hash_engine *hash)
+int hash_kat_hmac_run_self_test_sha512 (const struct hash_engine *hash)
 {
 	return hash_kat_hmac_run_self_test (hash, HMAC_SHA512, HMAC_KAT_VECTORS_CALCULATE_SHA512_MAC,
 		HASH_ENGINE_HMAC_SHA512_SELF_TEST_FAILED);
@@ -384,7 +384,7 @@ int hash_kat_hmac_run_self_test_sha512 (struct hash_engine *hash)
  *
  * @return 0 if the tests completed successfully or an error code.
  */
-int hash_kat_hmac_run_all_self_tests (struct hash_engine *hash)
+int hash_kat_hmac_run_all_self_tests (const struct hash_engine *hash)
 {
 	int status;
 

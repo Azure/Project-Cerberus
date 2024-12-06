@@ -24,32 +24,33 @@ struct ecdsa_deterministic_k_drbg {
 };
 
 
-int ecdsa_deterministic_k_drbg_instantiate (struct hash_engine *hash, enum hmac_hash hmac_algo,
-	const uint8_t *message_digest, size_t digest_length, const uint8_t *priv_key, size_t key_length,
-	struct ecdsa_deterministic_k_drbg *drbg);
-int ecdsa_deterministic_k_drbg_generate (struct hash_engine *hash,
+int ecdsa_deterministic_k_drbg_instantiate (const struct hash_engine *hash,
+	enum hmac_hash hmac_algo, const uint8_t *message_digest, size_t digest_length,
+	const uint8_t *priv_key, size_t key_length,	struct ecdsa_deterministic_k_drbg *drbg);
+int ecdsa_deterministic_k_drbg_generate (const struct hash_engine *hash,
 	struct ecdsa_deterministic_k_drbg *drbg, uint8_t *k, size_t k_length);
 void ecdsa_deterministic_k_drbg_clear (struct ecdsa_deterministic_k_drbg *drbg);
 
-int ecdsa_ecc_hw_sign_message (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
-	enum hash_type hash_algo, struct rng_engine *rng, const uint8_t *priv_key, size_t key_length,
-	const uint8_t *message, size_t msg_length, struct ecc_ecdsa_signature *signature);
-int ecdsa_ecc_hw_sign_hash (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
-	enum hash_type hash_algo, struct rng_engine *rng, const uint8_t *priv_key, size_t key_length,
+int ecdsa_ecc_hw_sign_message (const struct ecc_hw *ecc_hw, const struct hash_engine *hash,
+	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,
+	size_t key_length, const uint8_t *message, size_t msg_length,
 	struct ecc_ecdsa_signature *signature);
-int ecdsa_ecc_hw_sign_hash_and_finish (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
-	enum hash_type hash_algo, struct rng_engine *rng, const uint8_t *priv_key, size_t key_length,
-	struct ecc_ecdsa_signature *signature);
+int ecdsa_ecc_hw_sign_hash (const struct ecc_hw *ecc_hw, const struct hash_engine *hash,
+	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,
+	size_t key_length, struct ecc_ecdsa_signature *signature);
+int ecdsa_ecc_hw_sign_hash_and_finish (const struct ecc_hw *ecc_hw, const struct hash_engine *hash,
+	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,
+	size_t key_length, struct ecc_ecdsa_signature *signature);
 
-int ecdsa_ecc_hw_verify_message (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
+int ecdsa_ecc_hw_verify_message (const struct ecc_hw *ecc_hw, const struct hash_engine *hash,
 	enum hash_type hash_algo, const uint8_t *message, size_t msg_length,
 	const struct ecc_point_public_key *pub_key, const struct ecc_ecdsa_signature *signature);
-int ecdsa_ecc_hw_verify_hash (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
+int ecdsa_ecc_hw_verify_hash (const struct ecc_hw *ecc_hw, const struct hash_engine *hash,
 	enum hash_type hash_algo, const struct ecc_point_public_key *pub_key,
 	const struct ecc_ecdsa_signature *signature);
-int ecdsa_ecc_hw_verify_hash_and_finish (const struct ecc_hw *ecc_hw, struct hash_engine *hash,
-	enum hash_type hash_algo, const struct ecc_point_public_key *pub_key,
-	const struct ecc_ecdsa_signature *signature);
+int ecdsa_ecc_hw_verify_hash_and_finish (const struct ecc_hw *ecc_hw,
+	const struct hash_engine *hash,	enum hash_type hash_algo,
+	const struct ecc_point_public_key *pub_key,	const struct ecc_ecdsa_signature *signature);
 
 
 #define	ECDSA_ERROR(code)		ROT_ERROR (ROT_MODULE_ECDSA, code)

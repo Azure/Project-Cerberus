@@ -55,7 +55,7 @@ err_free_pfm:
 	return status;
 }
 
-static int recovery_image_verify (struct recovery_image *image, struct hash_engine *hash,
+static int recovery_image_verify (struct recovery_image *image, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length,
 	struct pfm_manager *pfm)
 {
@@ -101,7 +101,7 @@ static int recovery_image_verify (struct recovery_image *image, struct hash_engi
 	}
 
 	status = flash_contents_verification (image->flash, image->addr, img_len - sig_len, hash,
-		HASH_TYPE_SHA256, verification, signature, sig_len,	image->hash_cache,
+		HASH_TYPE_SHA256, verification, signature, sig_len, image->hash_cache,
 		sizeof (image->hash_cache));
 
 	if ((status == 0) || (status == SIG_VERIFICATION_BAD_SIGNATURE)) {
@@ -130,7 +130,7 @@ static int recovery_image_verify (struct recovery_image *image, struct hash_engi
 
 	next_addr = image->addr + header_len;
 	while (rem_len > 0) {
-		status = recovery_image_section_header_init (&section_header, image->flash,	next_addr);
+		status = recovery_image_section_header_init (&section_header, image->flash, next_addr);
 		if (status != 0) {
 			status = RECOVERY_IMAGE_MALFORMED;
 			goto free_signature;
@@ -164,7 +164,7 @@ free_header:
 	return status;
 }
 
-static int recovery_image_get_hash (struct recovery_image *image, struct hash_engine *hash,
+static int recovery_image_get_hash (struct recovery_image *image, const struct hash_engine *hash,
 	uint8_t *hash_out, size_t hash_length)
 {
 	struct recovery_image_header header;

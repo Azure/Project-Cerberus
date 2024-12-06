@@ -1,19 +1,20 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
-#include <string.h>
 #include <openssl/bio.h>
-#include <openssl/pem.h>
-#include <openssl/rsa.h>
 #include <openssl/bn.h>
 #include <openssl/err.h>
-#include "rsa_openssl.h"
+#include <openssl/pem.h>
+#include <openssl/rsa.h>
+#include <stdlib.h>
+#include <string.h>
 #include "platform_api.h"
+#include "rsa_openssl.h"
+#include "common/unused.h"
 
 
 #ifdef RSA_ENABLE_PRIVATE_KEY
-static int rsa_openssl_generate_key (struct rsa_engine *engine, struct rsa_private_key *key,
+int rsa_openssl_generate_key (const struct rsa_engine *engine, struct rsa_private_key *key,
 	int bits)
 {
 	RSA *rsa;
@@ -47,16 +48,18 @@ static int rsa_openssl_generate_key (struct rsa_engine *engine, struct rsa_priva
 	key->context = rsa;
 
 	BN_free (exponent);
+
 	return 0;
 
 err_free_bn:
 	BN_free (exponent);
 err_free_rsa:
 	RSA_free (rsa);
+
 	return status;
 }
 
-static int rsa_openssl_init_private_key (struct rsa_engine *engine, struct rsa_private_key *key,
+int rsa_openssl_init_private_key (const struct rsa_engine *engine, struct rsa_private_key *key,
 	const uint8_t *der, size_t length)
 {
 	RSA *rsa;
@@ -84,10 +87,11 @@ static int rsa_openssl_init_private_key (struct rsa_engine *engine, struct rsa_p
 	status = 0;
 
 exit:
+
 	return status;
 }
 
-static void rsa_openssl_release_key (struct rsa_engine *engine, struct rsa_private_key *key)
+void rsa_openssl_release_key (const struct rsa_engine *engine, struct rsa_private_key *key)
 {
 	if (engine && key) {
 		RSA_free ((RSA*) key->context);
@@ -95,7 +99,7 @@ static void rsa_openssl_release_key (struct rsa_engine *engine, struct rsa_priva
 	}
 }
 
-static int rsa_openssl_get_private_key_der (struct rsa_engine *engine,
+int rsa_openssl_get_private_key_der (const struct rsa_engine *engine,
 	const struct rsa_private_key *key, uint8_t **der, size_t *length)
 {
 	int status;
@@ -123,7 +127,7 @@ static int rsa_openssl_get_private_key_der (struct rsa_engine *engine,
 	return status;
 }
 
-static int rsa_openssl_decrypt (struct rsa_engine *engine, const struct rsa_private_key *key,
+int rsa_openssl_decrypt (const struct rsa_engine *engine, const struct rsa_private_key *key,
 	const uint8_t *encrypted, size_t in_length, const uint8_t *label, size_t label_length,
 	enum hash_type pad_hash, uint8_t *decrypted, size_t out_length)
 {
@@ -170,12 +174,13 @@ static int rsa_openssl_decrypt (struct rsa_engine *engine, const struct rsa_priv
 
 exit:
 	platform_free (padded);
+
 	return status;
 }
 #endif
 
 #ifdef RSA_ENABLE_DER_PUBLIC_KEY
-static int rsa_openssl_init_public_key (struct rsa_engine *engine, struct rsa_public_key *key,
+int rsa_openssl_init_public_key (const struct rsa_engine *engine, struct rsa_public_key *key,
 	const uint8_t *der, size_t length)
 {
 	RSA *rsa;
@@ -224,7 +229,7 @@ exit:
 	return status;
 }
 
-static int rsa_openssl_get_public_key_der (struct rsa_engine *engine,
+int rsa_openssl_get_public_key_der (const struct rsa_engine *engine,
 	const struct rsa_private_key *key, uint8_t **der, size_t *length)
 {
 	int status;
@@ -298,10 +303,11 @@ err_key:
 	BN_free (n);
 	BN_free (e);
 	RSA_free (*rsa);
+
 	return status;
 }
 
-static int rsa_openssl_sig_verify (struct rsa_engine *engine, const struct rsa_public_key *key,
+int rsa_openssl_sig_verify (const struct rsa_engine *engine, const struct rsa_public_key *key,
 	const uint8_t *signature, size_t sig_length, enum hash_type sig_hash, const uint8_t *match,
 	size_t match_length)
 {
@@ -339,6 +345,7 @@ static int rsa_openssl_sig_verify (struct rsa_engine *engine, const struct rsa_p
 	status = RSA_verify (match_type, match, match_length, signature, sig_length, rsa);
 
 	RSA_free (rsa);
+
 	return (status == 1) ? 0 : RSA_ENGINE_BAD_SIGNATURE;
 }
 
@@ -378,7 +385,7 @@ int rsa_openssl_init (struct rsa_engine_openssl *engine)
  *
  * @param engine The RSA engine to release.
  */
-void rsa_openssl_release (struct rsa_engine_openssl *engine)
+void rsa_openssl_release (const struct rsa_engine_openssl *engine)
 {
-
+	UNUSED (engine);
 }

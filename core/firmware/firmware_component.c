@@ -271,7 +271,7 @@ static int firmware_component_prepare_for_verification (const struct firmware_co
  * @return 0 if the component hash was successfully started or an error code.
  */
 static int firmware_component_start_component_hash (const struct firmware_component *image,
-	struct hash_engine *hash, enum hash_type digest_type, const struct image_header *header)
+	const struct hash_engine *hash, enum hash_type digest_type, const struct image_header *header)
 {
 	int status;
 
@@ -328,7 +328,7 @@ exit:
  * @return 0 if the component verification completed successfully or an error code.
  */
 static int firmware_component_finish_verification (const struct firmware_component *image,
-	struct hash_engine *hash, const struct signature_verification *verification,
+	const struct hash_engine *hash, const struct signature_verification *verification,
 	enum hash_type digest_type, size_t digest_length, uint8_t *signature, size_t sig_length,
 	uint8_t *hash_out, size_t hash_length, enum hash_type *hash_type, size_t *load_length)
 {
@@ -378,7 +378,7 @@ exit:
  * @return 0 if the component image is valid or an error code.
  */
 int firmware_component_verification (const struct firmware_component *image,
-	struct hash_engine *hash, const struct signature_verification *verification,
+	const struct hash_engine *hash, const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *hash_type)
 {
@@ -479,7 +479,8 @@ int firmware_component_load (const struct firmware_component *image, uint8_t *lo
  * @return 0 if the component was loaded to memory and verified as good or an error code.
  */
 int firmware_component_load_and_verify (const struct firmware_component *image, uint8_t *load_addr,
-	size_t max_length, struct hash_engine *hash, const struct signature_verification *verification,
+	size_t max_length, const struct hash_engine *hash,
+	const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *hash_type, size_t *load_length)
 {
@@ -519,7 +520,7 @@ int firmware_component_load_and_verify (const struct firmware_component *image, 
  */
 int firmware_component_load_and_verify_with_header (const struct firmware_component *image,
 	uint8_t *load_addr, size_t max_length, const struct image_header *header,
-	struct hash_engine *hash, const struct signature_verification *verification,
+	const struct hash_engine *hash, const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *hash_type, size_t *load_length)
 {
@@ -661,7 +662,7 @@ int firmware_component_load_to_memory (const struct firmware_component *image,
  */
 int firmware_component_load_to_memory_and_verify (const struct firmware_component *image,
 	const struct firmware_loader *loader, const uint8_t *iv, size_t iv_length,
-	struct hash_engine *hash, const struct signature_verification *verification,
+	const struct hash_engine *hash, const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *hash_type, size_t *load_length)
 {
@@ -706,7 +707,7 @@ int firmware_component_load_to_memory_and_verify (const struct firmware_componen
  */
 int firmware_component_load_to_memory_and_verify_with_header (
 	const struct firmware_component *image, const struct firmware_loader *loader, const uint8_t *iv,
-	size_t iv_length, const struct image_header *header, struct hash_engine *hash,
+	size_t iv_length, const struct image_header *header, const struct hash_engine *hash,
 	const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *hash_type, size_t *load_length)
@@ -961,8 +962,9 @@ enum hash_type firmware_component_get_hash_type (const struct firmware_component
  * @return Length of the calculated hash or an error code.  Use ROT_IS_ERROR to check the return for
  * an error.
  */
-int firmware_component_get_hash (const struct firmware_component *image, struct hash_engine *hash,
-	uint8_t *hash_out, size_t hash_length, enum hash_type *hash_type)
+int firmware_component_get_hash (const struct firmware_component *image,
+	const struct hash_engine *hash, uint8_t *hash_out, size_t hash_length,
+	enum hash_type *hash_type)
 {
 	size_t length;
 	enum hash_type digest_type;

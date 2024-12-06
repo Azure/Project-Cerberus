@@ -27,13 +27,13 @@
 struct cmd_interface_spdm_responder {
 	struct cmd_interface base;											/**< Base command interface. */
 	struct spdm_state *state;											/**< SPDM state. */
-	struct hash_engine **hash_engine;									/**< Hash engines for hashing operations. */
+	const struct hash_engine *const *hash_engine;						/**< Hash engines for hashing operations. */
 	uint8_t hash_engine_count;											/**< Number of hash engine instances. */
 	const struct spdm_transcript_manager *transcript_manager;			/**< Transcript manager for SPDM. */
 	const struct riot_key_manager *key_manager;							/**< Manager for device certificate chain. */
 	const struct spdm_measurements *measurements;						/**< Measurements for the device. */
 	struct ecc_engine *ecc_engine;										/**< Engine for ECC operations. */
-	struct rng_engine *rng_engine;										/**< Engine for random number generation. */
+	const struct rng_engine *rng_engine;								/**< Engine for random number generation. */
 	const struct spdm_version_num_entry *version_num;					/**< Supported version number(s). */
 	uint8_t version_num_count;											/**< Number of supported version number(s). */
 	const struct spdm_version_num_entry *secure_message_version_num;	/**< Supported secure message version number(s). */
@@ -47,14 +47,14 @@ struct cmd_interface_spdm_responder {
 
 int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm_responder,
 	struct spdm_state *state, const struct spdm_transcript_manager *transcript_manager,
-	struct hash_engine **hash_engine, uint8_t hash_engine_count,
+	const struct hash_engine *const *hash_engine, uint8_t hash_engine_count,
 	const struct spdm_version_num_entry *version_num, uint8_t version_num_count,
 	const struct spdm_version_num_entry *secure_message_version_num,
 	uint8_t secure_message_version_num_count,
 	const struct spdm_device_capability *local_capabilities,
 	const struct spdm_local_device_algorithms *local_algorithms,
 	const struct riot_key_manager *key_manager, const struct spdm_measurements *measurements,
-	struct ecc_engine *ecc_engine, struct rng_engine *rng_engine,
+	struct ecc_engine *ecc_engine, const struct rng_engine *rng_engine,
 	struct spdm_secure_session_manager *session_manager, const struct cmd_interface *vdm_handler);
 
 int cmd_interface_spdm_responder_init_state (

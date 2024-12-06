@@ -14,7 +14,7 @@
  *
  * @return 0 if the hash engine was successfully configured or an error code.
  */
-int hash_start_new_hash (struct hash_engine *engine, enum hash_type type)
+int hash_start_new_hash (const struct hash_engine *engine, enum hash_type type)
 {
 	int status;
 
@@ -72,7 +72,7 @@ int hash_start_new_hash (struct hash_engine *engine, enum hash_type type)
  * @return The length of the calculated hash or an error code.  Use ROT_IS_ERROR to check the return
  * value.
  */
-int hash_calculate (struct hash_engine *engine, enum hash_type type, const uint8_t *data,
+int hash_calculate (const struct hash_engine *engine, enum hash_type type, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
 	int status = 0;
@@ -231,7 +231,7 @@ bool hash_is_alg_supported (enum hash_type type)
  *
  * @return 0 if the HMAC was successfully generated or an error code.
  */
-int hash_generate_hmac (struct hash_engine *engine, const uint8_t *key, size_t key_length,
+int hash_generate_hmac (const struct hash_engine *engine, const uint8_t *key, size_t key_length,
 	const uint8_t *data, size_t length, enum hmac_hash hash, uint8_t *hmac, size_t hmac_length)
 {
 	struct hmac_engine hmac_engine;
@@ -273,8 +273,8 @@ fail:
  *
  * @return 0 if the HMAC engine was successfully initialized or an error code.
  */
-int hash_hmac_init (struct hmac_engine *engine, struct hash_engine *hash, enum hmac_hash hash_type,
-	const uint8_t *key, size_t key_length)
+int hash_hmac_init (struct hmac_engine *engine, const struct hash_engine *hash,
+	enum hmac_hash hash_type, const uint8_t *key, size_t key_length)
 {
 	int status;
 	size_t i;

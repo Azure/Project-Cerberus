@@ -12,6 +12,7 @@
 #ifndef	RSA_TESTING_ENGINE_NAME
 #include "crypto/rsa_mbedtls.h"
 #define	RSA_TESTING_ENGINE_NAME	mbedtls
+#define	RSA_TESTING_ENGINE_HAS_STATE
 #endif
 
 

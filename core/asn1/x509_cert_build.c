@@ -386,7 +386,7 @@ error:
  * @return 0 if the certificate was signed successfully or an error code.
  */
 static int x509_cert_build_sign_certificate (DERBuilderContext *der,
-	struct ecc_private_key *priv_key, struct ecc_engine *ecc, struct hash_engine *hash,
+	const struct ecc_private_key *priv_key, struct ecc_engine *ecc, const struct hash_engine *hash,
 	enum hash_type sig_hash, const int *sig_oid)
 {
 	uint8_t digest[HASH_MAX_HASH_LEN];
@@ -430,7 +430,7 @@ error:
 	return status;
 }
 
-int x509_cert_build_create_csr (struct x509_engine *engine, const uint8_t *priv_key,
+int x509_cert_build_create_csr (const struct x509_engine *engine, const uint8_t *priv_key,
 	size_t key_length, enum hash_type sig_hash, const char *name, int type, const uint8_t *eku,
 	size_t eku_length, const struct x509_extension_builder *const *extra_extensions,
 	size_t ext_count, uint8_t **csr, size_t *csr_length)
@@ -621,7 +621,7 @@ error:
 	return status;
 }
 
-int x509_cert_build_create_self_signed_certificate (struct x509_engine *engine,
+int x509_cert_build_create_self_signed_certificate (const struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *priv_key, size_t key_length,
 	enum hash_type sig_hash, const uint8_t *serial_num, size_t serial_length, const char *name,
 	int type, const struct x509_extension_builder *const *extra_extensions, size_t ext_count)
@@ -729,7 +729,7 @@ err_free_key:
 	return status;
 }
 
-int x509_cert_build_create_ca_signed_certificate (struct x509_engine *engine,
+int x509_cert_build_create_ca_signed_certificate (const struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *key, size_t key_length, const uint8_t *serial_num,
 	size_t serial_length, const char *name, int type, const uint8_t *ca_priv_key,
 	size_t ca_key_length, enum hash_type sig_hash, const struct x509_certificate *ca_cert,
@@ -891,8 +891,8 @@ err_free_key:
 }
 #endif
 
-int x509_cert_build_load_certificate (struct x509_engine *engine, struct x509_certificate *cert,
-	const uint8_t *der, size_t length)
+int x509_cert_build_load_certificate (const struct x509_engine *engine,
+	struct x509_certificate *cert, const uint8_t *der, size_t length)
 {
 	const struct x509_engine_cert_build *x509 = (const struct x509_engine_cert_build*) engine;
 	DERBuilderContext *load_cert;
@@ -926,7 +926,8 @@ int x509_cert_build_load_certificate (struct x509_engine *engine, struct x509_ce
 	return 0;
 }
 
-void x509_cert_build_release_certificate (struct x509_engine *engine, struct x509_certificate *cert)
+void x509_cert_build_release_certificate (const struct x509_engine *engine,
+	struct x509_certificate *cert)
 {
 	UNUSED (engine);
 
@@ -937,7 +938,7 @@ void x509_cert_build_release_certificate (struct x509_engine *engine, struct x50
 }
 
 #ifdef X509_ENABLE_CREATE_CERTIFICATES
-int x509_cert_build_get_certificate_der (struct x509_engine *engine,
+int x509_cert_build_get_certificate_der (const struct x509_engine *engine,
 	const struct x509_certificate *cert, uint8_t **der, size_t *length)
 {
 	DERBuilderContext *cert_ctx;
@@ -979,7 +980,7 @@ int x509_cert_build_get_certificate_der (struct x509_engine *engine,
  * @return 0 if the X.509 engine was successfully initialized or an error code.
  */
 int x509_cert_build_init (struct x509_engine_cert_build *engine, struct ecc_engine *ecc,
-	struct hash_engine *hash, size_t max_cert_length)
+	const struct hash_engine *hash, size_t max_cert_length)
 {
 	if ((engine == NULL) || (ecc == NULL) || (hash == NULL) || (max_cert_length == 0)) {
 		return X509_ENGINE_INVALID_ARGUMENT;

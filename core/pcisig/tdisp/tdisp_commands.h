@@ -48,7 +48,7 @@ int tdisp_get_capabilities (const struct tdisp_driver *tdisp_driver, const uint8
 	uint32_t tdisp_messages_count, struct cmd_interface_msg *request);
 
 int tdisp_lock_interface (struct tdisp_state *tdisp_state, const struct tdisp_driver *tdisp_driver,
-	struct rng_engine *rng_engine, struct cmd_interface_msg *request);
+	const struct rng_engine *rng_engine, struct cmd_interface_msg *request);
 
 int tdisp_get_device_interface_report (const struct tdisp_driver *tdisp_driver,
 	struct cmd_interface_msg *request);

@@ -36,7 +36,7 @@ static int ecc_hw_mock_generate_ecc_key_pair (const struct ecc_hw *ecc_hw, size_
 }
 
 static int ecc_hw_mock_ecdsa_sign (const struct ecc_hw *ecc_hw, const uint8_t *priv_key,
-	size_t key_length, const uint8_t *digest, size_t digest_length, struct rng_engine *rng,
+	size_t key_length, const uint8_t *digest, size_t digest_length, const struct rng_engine *rng,
 	struct ecc_ecdsa_signature *signature)
 {
 	struct ecc_hw_mock *mock = (struct ecc_hw_mock*) ecc_hw;

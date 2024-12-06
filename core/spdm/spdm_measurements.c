@@ -79,8 +79,8 @@ static int spdm_measurements_get_bit_stream_length (const struct spdm_measuremen
  * @return The number of bytes written to the output buffer or an error code.
  */
 static int spdm_measurements_build_measurement_block (const struct spdm_measurements *handler,
-	uint8_t block_id, uint16_t measurement_type, bool raw_bit_stream, struct hash_engine *hash,
-	enum hash_type hash_type, uint8_t *buffer, size_t length)
+	uint8_t block_id, uint16_t measurement_type, bool raw_bit_stream,
+	const struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer, size_t length)
 {
 	struct spdm_measurements_measurement_block *block =
 		(struct spdm_measurements_measurement_block*) buffer;
@@ -148,7 +148,7 @@ static int spdm_measurements_build_measurement_block (const struct spdm_measurem
 }
 
 int spdm_measurements_get_measurement_block (const struct spdm_measurements *handler,
-	uint8_t block_id, bool raw_bit_stream, struct hash_engine *hash, enum hash_type hash_type,
+	uint8_t block_id, bool raw_bit_stream, const struct hash_engine *hash, enum hash_type hash_type,
 	uint8_t *buffer, size_t length)
 {
 	int measurement_type;
@@ -190,7 +190,7 @@ int spdm_measurements_get_measurement_block_length (const struct spdm_measuremen
 }
 
 int spdm_measurements_get_all_measurement_blocks (const struct spdm_measurements *handler,
-	bool raw_bit_stream, struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer,
+	bool raw_bit_stream, const struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer,
 	size_t length)
 {
 	size_t total_length = 0;
@@ -301,8 +301,8 @@ int spdm_measurements_get_all_measurement_blocks_length (const struct spdm_measu
  * @return 0 if the summary hash was started successfully or an error code.
  */
 int spdm_measurements_start_summary_hash (const struct spdm_measurements *handler,
-	struct hash_engine *summary_hash, enum hash_type summary_hash_type,
-	struct hash_engine *measurement_hash, uint8_t *buffer, size_t length)
+	const struct hash_engine *summary_hash, enum hash_type summary_hash_type,
+	const struct hash_engine *measurement_hash, uint8_t *buffer, size_t length)
 {
 	int status;
 
@@ -347,7 +347,7 @@ int spdm_measurements_start_summary_hash (const struct spdm_measurements *handle
  * @return 0 if the summary has was updated successfully or an error code.
  */
 int spdm_measurements_update_summary_hash (const struct spdm_measurements *handler,
-	struct hash_engine *summary_hash, struct hash_engine *measurement_hash,
+	const struct hash_engine *summary_hash, const struct hash_engine *measurement_hash,
 	enum hash_type measurement_hash_type, bool only_tcb)
 {
 	uint8_t block[spdm_measurements_block_size (HASH_MAX_HASH_LEN)];
@@ -390,8 +390,8 @@ int spdm_measurements_update_summary_hash (const struct spdm_measurements *handl
 }
 
 int spdm_measurements_get_measurement_summary_hash (const struct spdm_measurements *handler,
-	struct hash_engine *summary_hash, enum hash_type summary_hash_type,
-	struct hash_engine *measurement_hash, enum hash_type measurement_hash_type, bool only_tcb,
+	const struct hash_engine *summary_hash, enum hash_type summary_hash_type,
+	const struct hash_engine *measurement_hash, enum hash_type measurement_hash_type, bool only_tcb,
 	uint8_t *buffer, size_t length)
 {
 	int status;

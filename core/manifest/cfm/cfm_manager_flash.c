@@ -156,7 +156,7 @@ static int cfm_manager_flash_clear_all_manifests (const struct manifest_manager 
  * @return 0 if the cfm manager was successfully initialized or an error code.
  */
 int cfm_manager_flash_init (struct cfm_manager_flash *manager, struct cfm_flash *cfm_region1,
-	struct cfm_flash *cfm_region2, struct state_manager *state, struct hash_engine *hash,
+	struct cfm_flash *cfm_region2, struct state_manager *state, const struct hash_engine *hash,
 	const struct signature_verification *verification)
 {
 	int status;

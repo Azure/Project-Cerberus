@@ -79,7 +79,8 @@ struct firmware_loader {
 	 */
 	int (*load_image) (const struct firmware_loader *loader, const struct flash *flash,
 		uint32_t src_addr, size_t length, uint8_t *dest_addr, const uint8_t *iv, size_t iv_length,
-		struct hash_engine *hash, enum hash_type hash_algo, uint8_t *digest, size_t digest_length);
+		const struct hash_engine *hash, enum hash_type hash_algo, uint8_t *digest,
+		size_t digest_length);
 
 	/**
 	 * Load an image from flash into processor memory.
@@ -102,7 +103,7 @@ struct firmware_loader {
 	 */
 	int (*load_image_update_digest) (const struct firmware_loader *loader,
 		const struct flash *flash, uint32_t src_addr, size_t length, uint8_t *dest_addr,
-		const uint8_t *iv, size_t iv_length, struct hash_engine *hash);
+		const uint8_t *iv, size_t iv_length, const struct hash_engine *hash);
 
 	/**
 	 * Copy an image resident in directly accessible memory to the target location for execution.
@@ -130,7 +131,7 @@ struct firmware_loader {
 	 * @return 0 if the image was successfully copied to the target memory or an error code.
 	 */
 	int (*copy_image) (const struct firmware_loader *loader, const uint8_t *src_addr, size_t length,
-		uint8_t *dest_addr, const uint8_t *iv, size_t iv_length, struct hash_engine *hash,
+		uint8_t *dest_addr, const uint8_t *iv, size_t iv_length, const struct hash_engine *hash,
 		enum hash_type hash_algo, uint8_t *digest, size_t digest_length);
 
 	/**
@@ -154,7 +155,7 @@ struct firmware_loader {
 	 */
 	int (*copy_image_update_digest) (const struct firmware_loader *loader, const uint8_t *src_addr,
 		size_t length, uint8_t *dest_addr, const uint8_t *iv, size_t iv_length,
-		struct hash_engine *hash);
+		const struct hash_engine *hash);
 };
 
 

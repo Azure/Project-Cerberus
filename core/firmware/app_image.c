@@ -23,8 +23,8 @@
  * @return 0 if the application image is valid or an error code.
  */
 int app_image_verification (const struct flash *flash, uint32_t start_addr,
-	struct hash_engine *hash, struct rsa_engine *rsa, const struct rsa_public_key *pub_key,
-	uint8_t *hash_out, size_t hash_length)
+	const struct hash_engine *hash, const struct rsa_engine *rsa,
+	const struct rsa_public_key *pub_key, uint8_t *hash_out, size_t hash_length)
 {
 	return app_image_verification_with_header (flash, start_addr, 0, hash, rsa, pub_key, hash_out,
 		hash_length);
@@ -46,7 +46,7 @@ int app_image_verification (const struct flash *flash, uint32_t start_addr,
  * @return 0 if the application image and the additional header are valid or an error code.
  */
 int app_image_verification_with_header (const struct flash *flash, uint32_t start_addr,
-	size_t header_length, struct hash_engine *hash, struct rsa_engine *rsa,
+	size_t header_length, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	const struct rsa_public_key *pub_key, uint8_t *hash_out, size_t hash_legnth)
 {
 	uint32_t length;
@@ -138,7 +138,7 @@ int app_image_load (const struct flash *flash, uint32_t start_addr, uint8_t *loa
  * @return 0 if the application image was loaded to memory and verified as good or an error code.
  */
 int app_image_load_and_verify (const struct flash *flash, uint32_t start_addr, uint8_t *load_addr,
-	size_t max_length, struct hash_engine *hash, struct rsa_engine *rsa,
+	size_t max_length, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	const struct rsa_public_key *pub_key, uint8_t *hash_out, size_t hash_length,
 	size_t *load_length)
 {
@@ -167,8 +167,8 @@ int app_image_load_and_verify (const struct flash *flash, uint32_t start_addr, u
  * @return 0 if the application image was loaded to memory and verified as good or an error code.
  */
 int app_image_load_and_verify_with_header (const struct flash *flash, uint32_t start_addr,
-	size_t header_length, uint8_t *load_addr, size_t max_length, struct hash_engine *hash,
-	struct rsa_engine *rsa, const struct rsa_public_key *pub_key, uint8_t *hash_out,
+	size_t header_length, uint8_t *load_addr, size_t max_length, const struct hash_engine *hash,
+	const struct rsa_engine *rsa, const struct rsa_public_key *pub_key, uint8_t *hash_out,
 	size_t hash_length, size_t *load_length)
 {
 	size_t length;
@@ -301,8 +301,8 @@ int app_image_get_signature (const struct flash *flash, uint32_t start_addr, uin
  *
  * @return 0 if the image hash was successfully calculated or an error code.
  */
-int app_image_get_hash (const struct flash *flash, uint32_t start_addr, struct hash_engine *hash,
-	uint8_t *hash_out, size_t hash_length)
+int app_image_get_hash (const struct flash *flash, uint32_t start_addr,
+	const struct hash_engine *hash, uint8_t *hash_out, size_t hash_length)
 {
 	return app_image_get_hash_with_header (flash, start_addr, 0, hash, hash_out, hash_length);
 }
@@ -322,7 +322,7 @@ int app_image_get_hash (const struct flash *flash, uint32_t start_addr, struct h
  * @return 0 if the image hash was successfully calculated or an error code.
  */
 int app_image_get_hash_with_header (const struct flash *flash, uint32_t start_addr,
-	size_t header_length, struct hash_engine *hash, uint8_t *hash_out, size_t hash_length)
+	size_t header_length, const struct hash_engine *hash, uint8_t *hash_out, size_t hash_length)
 {
 	uint32_t length;
 	int status;

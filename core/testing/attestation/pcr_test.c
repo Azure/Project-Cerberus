@@ -853,7 +853,7 @@ static int pcr_testing_measurement_data_callback (void *context, size_t offset, 
  *
  * @return 0 if the hash was successful or an error code.
  */
-static int pcr_testing_measurement_hash_callback (void *context, struct hash_engine *hash)
+static int pcr_testing_measurement_hash_callback (void *context, const struct hash_engine *hash)
 {
 	if (context == NULL) {
 		return PCR_NO_MEMORY;

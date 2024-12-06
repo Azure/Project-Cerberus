@@ -25,7 +25,7 @@
  *
  * @return 0 if the output key was successfully generated or an error code.
  */
-int kdf_nist800_108_counter_mode (struct hash_engine *hash, enum hmac_hash hash_type,
+int kdf_nist800_108_counter_mode (const struct hash_engine *hash, enum hmac_hash hash_type,
 	const uint8_t *key_derivation_key, size_t key_derivation_key_len, const uint8_t *label,
 	size_t label_len, const uint8_t *context, size_t context_len, uint8_t *key, size_t key_len)
 {
@@ -130,7 +130,7 @@ fail:
  *
  * @return 0 if the keying material was successfully expanded or an error code.
  */
-int kdf_hkdf_expand (struct hash_engine *hash, enum hmac_hash hash_type,
+int kdf_hkdf_expand (const struct hash_engine *hash, enum hmac_hash hash_type,
 	const uint8_t *pseudorandom_key, size_t pseudorandom_key_len, const uint8_t *info,
 	size_t info_len, uint8_t *output_keying_material, size_t output_keying_material_len)
 {

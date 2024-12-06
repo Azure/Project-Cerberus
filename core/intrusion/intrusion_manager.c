@@ -176,7 +176,7 @@ static int intrusion_manager_check_state (struct intrusion_manager *manager)
  * @return 0 if the intrusion manager was successfully initialized or an error code.
  */
 int intrusion_manager_init (struct intrusion_manager *manager, struct intrusion_state *state,
-	struct hash_engine *hash, struct pcr_store *pcr, uint16_t measurement)
+	const struct hash_engine *hash, struct pcr_store *pcr, uint16_t measurement)
 {
 	int status;
 

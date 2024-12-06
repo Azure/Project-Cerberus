@@ -9,7 +9,7 @@
 
 
 static int host_processor_single_power_on_reset (struct host_processor *host,
-	struct hash_engine *hash, struct rsa_engine *rsa)
+	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	struct host_processor_filtered *single = (struct host_processor_filtered*) host;
 
@@ -20,8 +20,8 @@ static int host_processor_single_power_on_reset (struct host_processor *host,
 	return host_processor_filtered_power_on_reset (single, hash, rsa, true);
 }
 
-static int host_processor_single_soft_reset (struct host_processor *host, struct hash_engine *hash,
-	struct rsa_engine *rsa)
+static int host_processor_single_soft_reset (struct host_processor *host,
+	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	struct host_processor_filtered *single = (struct host_processor_filtered*) host;
 
@@ -33,7 +33,7 @@ static int host_processor_single_soft_reset (struct host_processor *host, struct
 }
 
 static int host_processor_single_run_time_verification (struct host_processor *host,
-	struct hash_engine *hash, struct rsa_engine *rsa)
+	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	struct host_processor_filtered *single = (struct host_processor_filtered*) host;
 
@@ -46,7 +46,8 @@ static int host_processor_single_run_time_verification (struct host_processor *h
 }
 
 static int host_processor_single_flash_rollback (struct host_processor *host,
-	struct hash_engine *hash, struct rsa_engine *rsa, bool disable_bypass, bool no_reset)
+	const struct hash_engine *hash, const struct rsa_engine *rsa, bool disable_bypass,
+	bool no_reset)
 {
 	UNUSED (disable_bypass);
 	UNUSED (no_reset);

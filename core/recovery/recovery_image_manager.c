@@ -411,7 +411,7 @@ exit:
  * @return 0 if the recovery image manager was initialized successfully or an error code.
  */
 int recovery_image_manager_init (struct recovery_image_manager *manager,
-	struct recovery_image *image, struct hash_engine *hash,
+	struct recovery_image *image, const struct hash_engine *hash,
 	const struct signature_verification *verification, struct pfm_manager *pfm, size_t max_size)
 {
 	int status;
@@ -485,7 +485,7 @@ release_observer:
  */
 int recovery_image_manager_init_two_region (struct recovery_image_manager *manager,
 	struct recovery_image *image1, struct recovery_image *image2, struct host_state_manager *state,
-	struct hash_engine *hash, const struct signature_verification *verification,
+	const struct hash_engine *hash, const struct signature_verification *verification,
 	struct pfm_manager *pfm, size_t max_size)
 {
 	enum recovery_image_region active_region;
@@ -669,7 +669,7 @@ int recovery_image_manager_get_measured_data (struct recovery_image_manager *man
  * @return 0 if the hash was updated successfully or an error code.
  */
 int recovery_image_manager_hash_measured_data (struct recovery_image_manager *manager,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
 	uint8_t hash_out[SHA256_HASH_LENGTH] = {0};
 	struct recovery_image *active;

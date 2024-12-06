@@ -217,7 +217,7 @@ int cerberus_protocol_generate_get_certificate_request (uint8_t slot_num, uint8_
  * @return Length of the generated request data if the request was successfully constructed or
  * an error code.
  */
-int cerberus_protocol_generate_challenge_request (struct rng_engine *rng, uint8_t eid,
+int cerberus_protocol_generate_challenge_request (const struct rng_engine *rng, uint8_t eid,
 	uint8_t slot_num, uint8_t *buf, size_t buf_len)
 {
 	struct cerberus_protocol_challenge *rq = (struct cerberus_protocol_challenge*) buf;

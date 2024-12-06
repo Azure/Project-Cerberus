@@ -120,7 +120,7 @@ static int attestation_requester_send_request_and_get_response (
 		 * callbacks will process response and update the request_status. */
 		status = mctp_interface_issue_request (attestation->mctp, attestation->channel, dest_addr,
 			dest_eid, attestation->state->txn.msg_buffer, request_len,
-			attestation->state->txn.msg_buffer,	sizeof (attestation->state->txn.msg_buffer),
+			attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer),
 			timeout_ms);
 		if (status != 0) {
 			if (status == MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT) {
@@ -177,7 +177,7 @@ static int attestation_requester_send_request_and_get_response (
 
 			request_len =
 				spdm_generate_respond_if_ready_request (attestation->state->spdm_msg_buffer,
-				ATTESTATION_REQUESTER_MAX_SPDM_REQUEST,	attestation->state->txn.requested_command,
+				ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.requested_command,
 				attestation->state->txn.respond_if_ready_token,
 				attestation->state->txn.spdm_minor_version);
 			if (ROT_IS_ERROR ((int) request_len)) {
@@ -650,7 +650,7 @@ static int attestation_requester_verify_ecdsa_signature (
  * @return 0 if completed successfully, or an error code
  */
 static int attestation_requester_verify_signature (const struct attestation_requester *attestation,
-	struct hash_engine *hash, uint8_t eid, uint8_t *signature, size_t signature_len,
+	const struct hash_engine *hash, uint8_t eid, uint8_t *signature, size_t signature_len,
 	char *spdm_context)
 {
 	uint8_t digest[HASH_MAX_HASH_LEN];
@@ -689,7 +689,7 @@ static int attestation_requester_verify_signature (const struct attestation_requ
 	}
 
 	if (alias_key->key_type == X509_PUBLIC_KEY_ECC) {
-		status = attestation_requester_verify_ecdsa_signature (attestation,	signature,
+		status = attestation_requester_verify_ecdsa_signature (attestation, signature,
 			signature_len, digest, transcript_hash_len, alias_key);
 
 		/* The endianess of the signature is not clearly declared in the SPDM 1.0 and 1.1
@@ -702,7 +702,7 @@ static int attestation_requester_verify_signature (const struct attestation_requ
 			buffer_reverse (signature, signature_len / 2);
 			buffer_reverse (signature + (signature_len / 2), signature_len / 2);
 
-			status = attestation_requester_verify_ecdsa_signature (attestation,	signature,
+			status = attestation_requester_verify_ecdsa_signature (attestation, signature,
 				signature_len, digest, transcript_hash_len, alias_key);
 		}
 	}
@@ -1020,7 +1020,7 @@ static int attestation_requester_get_digests_rsp_post_processing (
 
 	if (attestation->state->txn.msg_buffer_len != rsp_len) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RSP_LEN,	(device_eid << 8) | SPDM_RESPONSE_GET_DIGESTS,
+			ATTESTATION_LOGGING_UNEXPECTED_RSP_LEN, (device_eid << 8) | SPDM_RESPONSE_GET_DIGESTS,
 			((uint16_t) rsp_len) << 16 | ((uint16_t) device_eid));
 
 		return ATTESTATION_BAD_LENGTH;
@@ -1112,7 +1112,7 @@ static int attestation_requester_spdm_challenge_rsp_post_processing (
 	if (attestation->state->txn.msg_buffer_len <=
 		spdm_get_challenge_resp_length (rsp, transcript_hash_len, transcript_hash_len)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RSP_LEN,	(device_eid << 8) | SPDM_RESPONSE_CHALLENGE,
+			ATTESTATION_LOGGING_UNEXPECTED_RSP_LEN, (device_eid << 8) | SPDM_RESPONSE_CHALLENGE,
 			(((uint16_t) (spdm_get_challenge_resp_length (rsp, transcript_hash_len,
 				transcript_hash_len))) << 16) |
 					((uint16_t) attestation->state->txn.msg_buffer_len));
@@ -1765,10 +1765,11 @@ void attestation_requester_on_cfm_activation_request (const struct cfm_observer 
  */
 int attestation_requester_init (struct attestation_requester *attestation,
 	struct attestation_requester_state *state, const struct mctp_interface *mctp,
-	const struct cmd_channel *channel, struct hash_engine *primary_hash,
-	struct hash_engine *secondary_hash, struct ecc_engine *ecc, struct rsa_engine *rsa,
-	struct x509_engine *x509, struct rng_engine *rng, const struct riot_key_manager *riot,
-	struct device_manager *device_mgr, struct cfm_manager *cfm_manager)
+	const struct cmd_channel *channel, const struct hash_engine *primary_hash,
+	const struct hash_engine *secondary_hash, struct ecc_engine *ecc, const struct rsa_engine *rsa,
+	const struct x509_engine *x509, const struct rng_engine *rng,
+	const struct riot_key_manager *riot, struct device_manager *device_mgr,
+	struct cfm_manager *cfm_manager)
 {
 	if ((attestation == NULL) || (state == NULL) || (mctp == NULL) || (channel == NULL) ||
 		(primary_hash == NULL) || (ecc == NULL) || (x509 == NULL) || (rng == NULL) ||
@@ -1980,7 +1981,7 @@ static int attestation_requester_attest_device_cerberus_protocol (
 
 	status =
 		cerberus_protocol_generate_get_certificate_digest_request (attestation->state->txn.slot_num,
-		ATTESTATION_ECDHE_KEY_EXCHANGE,	attestation->state->txn.msg_buffer,
+		ATTESTATION_ECDHE_KEY_EXCHANGE, attestation->state->txn.msg_buffer,
 		sizeof (attestation->state->txn.msg_buffer));
 	if (ROT_IS_ERROR (status)) {
 		return status;
@@ -1993,7 +1994,7 @@ static int attestation_requester_attest_device_cerberus_protocol (
 	}
 
 	status = attestation->primary_hash->calculate_sha256 (attestation->primary_hash,
-		attestation->state->txn.msg_buffer, attestation->state->txn.msg_buffer_len,	digest,
+		attestation->state->txn.msg_buffer, attestation->state->txn.msg_buffer_len, digest,
 		sizeof (digest));
 	if (status != 0) {
 		return status;
@@ -2472,7 +2473,7 @@ static int attestation_requester_get_and_verify_all_spdm_measurement_blocks (
 
 	status = hash_calculate (attestation->primary_hash,
 		attestation->state->txn.measurement_hash_type, attestation->state->txn.msg_buffer,
-		attestation->state->txn.msg_buffer_len,	digest, sizeof (digest));
+		attestation->state->txn.msg_buffer_len, digest, sizeof (digest));
 	if (ROT_IS_ERROR (status)) {
 		goto free_pmr_digest;
 	}
@@ -2746,7 +2747,7 @@ static int attestation_requester_verify_data_in_allowable_list (
  * @return Completion status, 0 if success or an error code	otherwise
  */
 static int attestation_requester_get_and_verify_spdm_measurement_data_block (
-	const struct attestation_requester *attestation, struct cfm_measurement_data *data,	uint8_t eid,
+	const struct attestation_requester *attestation, struct cfm_measurement_data *data, uint8_t eid,
 	int device_addr)
 {
 	int status;
@@ -2904,7 +2905,7 @@ static int attestation_requester_retrieve_spdm_certificate_chain_portion (
 			goto exit;
 		}
 
-		status = attestation_requester_send_spdm_request_and_get_response (attestation,	rq_len,
+		status = attestation_requester_send_spdm_request_and_get_response (attestation, rq_len,
 			device_addr, eid, true, SPDM_REQUEST_GET_CERTIFICATE);
 		if (status != 0) {
 			goto exit;
@@ -3722,7 +3723,7 @@ void attestation_requester_discovery_and_attestation_loop (
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 					ATTESTATION_LOGGING_DEVICE_FAILED_ATTESTATION,
 					((eid << 16) | (attestation->state->txn.protocol << 8) |
-							attestation->state->txn.requested_command),	status);
+							attestation->state->txn.requested_command), status);
 			}
 		}
 		else if (eid != DEVICE_MGR_NO_DEVICES_AVAILABLE) {

@@ -18,7 +18,7 @@ struct cfm_observer_pcr {
 };
 
 
-int cfm_observer_pcr_init (struct cfm_observer_pcr *observer, struct hash_engine *hash,
+int cfm_observer_pcr_init (struct cfm_observer_pcr *observer, const struct hash_engine *hash,
 	struct pcr_store *store, uint16_t manifest_measurement, uint16_t manifest_id_measurement,
 	uint16_t platform_id_measurement);
 void cfm_observer_pcr_release (struct cfm_observer_pcr *observer);

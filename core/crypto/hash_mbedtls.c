@@ -36,10 +36,10 @@ static void hash_mbedtls_free_context (struct hash_engine_mbedtls_state *state)
 }
 
 #ifdef HASH_ENABLE_SHA1
-static int hash_mbedtls_calculate_sha1 (struct hash_engine *engine, const uint8_t *data,
+int hash_mbedtls_calculate_sha1 (const struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
-	struct hash_engine_mbedtls *mbedtls = (struct hash_engine_mbedtls*) engine;
+	const struct hash_engine_mbedtls *mbedtls = (const struct hash_engine_mbedtls*) engine;
 
 	if ((mbedtls == NULL) || ((data == NULL) && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
@@ -56,9 +56,9 @@ static int hash_mbedtls_calculate_sha1 (struct hash_engine *engine, const uint8_
 	return mbedtls_sha1_ret (data, length, hash);
 }
 
-static int hash_mbedtls_start_sha1 (struct hash_engine *engine)
+int hash_mbedtls_start_sha1 (const struct hash_engine *engine)
 {
-	struct hash_engine_mbedtls *mbedtls = (struct hash_engine_mbedtls*) engine;
+	const struct hash_engine_mbedtls *mbedtls = (const struct hash_engine_mbedtls*) engine;
 	int status;
 
 	if (mbedtls == NULL) {
@@ -81,10 +81,10 @@ static int hash_mbedtls_start_sha1 (struct hash_engine *engine)
 }
 #endif
 
-static int hash_mbedtls_calculate_sha256 (struct hash_engine *engine, const uint8_t *data,
+int hash_mbedtls_calculate_sha256 (const struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
-	struct hash_engine_mbedtls *mbedtls = (struct hash_engine_mbedtls*) engine;
+	const struct hash_engine_mbedtls *mbedtls = (const struct hash_engine_mbedtls*) engine;
 
 	if ((mbedtls == NULL) || ((data == NULL) && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
@@ -101,9 +101,9 @@ static int hash_mbedtls_calculate_sha256 (struct hash_engine *engine, const uint
 	return mbedtls_sha256_ret (data, length, hash, 0);
 }
 
-static int hash_mbedtls_start_sha256 (struct hash_engine *engine)
+int hash_mbedtls_start_sha256 (const struct hash_engine *engine)
 {
-	struct hash_engine_mbedtls *mbedtls = (struct hash_engine_mbedtls*) engine;
+	const struct hash_engine_mbedtls *mbedtls = (const struct hash_engine_mbedtls*) engine;
 	int status;
 
 	if (mbedtls == NULL) {
@@ -126,10 +126,10 @@ static int hash_mbedtls_start_sha256 (struct hash_engine *engine)
 }
 
 #ifdef HASH_ENABLE_SHA384
-static int hash_mbedtls_calculate_sha384 (struct hash_engine *engine, const uint8_t *data,
+int hash_mbedtls_calculate_sha384 (const struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
-	struct hash_engine_mbedtls *mbedtls = (struct hash_engine_mbedtls*) engine;
+	const struct hash_engine_mbedtls *mbedtls = (const struct hash_engine_mbedtls*) engine;
 
 	if ((mbedtls == NULL) || ((data == NULL) && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
@@ -146,9 +146,9 @@ static int hash_mbedtls_calculate_sha384 (struct hash_engine *engine, const uint
 	return mbedtls_sha512_ret (data, length, hash, 1);
 }
 
-static int hash_mbedtls_start_sha384 (struct hash_engine *engine)
+int hash_mbedtls_start_sha384 (const struct hash_engine *engine)
 {
-	struct hash_engine_mbedtls *mbedtls = (struct hash_engine_mbedtls*) engine;
+	const struct hash_engine_mbedtls *mbedtls = (const struct hash_engine_mbedtls*) engine;
 	int status;
 
 	if (mbedtls == NULL) {
@@ -172,10 +172,10 @@ static int hash_mbedtls_start_sha384 (struct hash_engine *engine)
 #endif
 
 #ifdef HASH_ENABLE_SHA512
-static int hash_mbedtls_calculate_sha512 (struct hash_engine *engine, const uint8_t *data,
+int hash_mbedtls_calculate_sha512 (const struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
-	struct hash_engine_mbedtls *mbedtls = (struct hash_engine_mbedtls*) engine;
+	const struct hash_engine_mbedtls *mbedtls = (const struct hash_engine_mbedtls*) engine;
 
 	if ((mbedtls == NULL) || ((data == NULL) && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
@@ -192,9 +192,9 @@ static int hash_mbedtls_calculate_sha512 (struct hash_engine *engine, const uint
 	return mbedtls_sha512_ret (data, length, hash, 0);
 }
 
-static int hash_mbedtls_start_sha512 (struct hash_engine *engine)
+int hash_mbedtls_start_sha512 (const struct hash_engine *engine)
 {
-	struct hash_engine_mbedtls *mbedtls = (struct hash_engine_mbedtls*) engine;
+	const struct hash_engine_mbedtls *mbedtls = (const struct hash_engine_mbedtls*) engine;
 	int status;
 
 	if (mbedtls == NULL) {
@@ -217,9 +217,9 @@ static int hash_mbedtls_start_sha512 (struct hash_engine *engine)
 }
 #endif
 
-static int hash_mbedtls_update (struct hash_engine *engine, const uint8_t *data, size_t length)
+int hash_mbedtls_update (const struct hash_engine *engine, const uint8_t *data, size_t length)
 {
-	struct hash_engine_mbedtls *mbedtls = (struct hash_engine_mbedtls*) engine;
+	const struct hash_engine_mbedtls *mbedtls = (const struct hash_engine_mbedtls*) engine;
 	int status;
 
 	if ((mbedtls == NULL) || ((data == NULL) && (length != 0))) {
@@ -251,11 +251,11 @@ static int hash_mbedtls_update (struct hash_engine *engine, const uint8_t *data,
 	return status;
 }
 
-static int hash_mbedtls_get_hash (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
+int hash_mbedtls_get_hash (const struct hash_engine *engine, uint8_t *hash, size_t hash_length)
 {
-	struct hash_engine_mbedtls *mbedtls = (struct hash_engine_mbedtls*) engine;
-	int status;
+	const struct hash_engine_mbedtls *mbedtls = (const struct hash_engine_mbedtls*) engine;
 	struct hash_engine_mbedtls_state mbedtls_clone;
+	int status;
 
 	if ((mbedtls == NULL) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
@@ -311,9 +311,9 @@ static int hash_mbedtls_get_hash (struct hash_engine *engine, uint8_t *hash, siz
 	return status;
 }
 
-static int hash_mbedtls_finish (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
+int hash_mbedtls_finish (const struct hash_engine *engine, uint8_t *hash, size_t hash_length)
 {
-	struct hash_engine_mbedtls *mbedtls = (struct hash_engine_mbedtls*) engine;
+	const struct hash_engine_mbedtls *mbedtls = (const struct hash_engine_mbedtls*) engine;
 	int status;
 
 	if ((mbedtls == NULL) || (hash == NULL)) {
@@ -370,9 +370,9 @@ static int hash_mbedtls_finish (struct hash_engine *engine, uint8_t *hash, size_
 	return status;
 }
 
-static void hash_mbedtls_cancel (struct hash_engine *engine)
+void hash_mbedtls_cancel (const struct hash_engine *engine)
 {
-	struct hash_engine_mbedtls *mbedtls = (struct hash_engine_mbedtls*) engine;
+	const struct hash_engine_mbedtls *mbedtls = (const struct hash_engine_mbedtls*) engine;
 
 	if (mbedtls) {
 		hash_mbedtls_free_context (mbedtls->state);
@@ -416,7 +416,26 @@ int hash_mbedtls_init (struct hash_engine_mbedtls *engine, struct hash_engine_mb
 
 	engine->state = state;
 
-	memset (state, 0, sizeof (*state));
+	return hash_mbedtls_init_state (engine);
+}
+
+/**
+ * Initialize only the variable state of an mbedTLS hash engine.  The rest of the instance is
+ * assumed to already have been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param engine The hash engine that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int hash_mbedtls_init_state (const struct hash_engine_mbedtls *engine)
+{
+	if ((engine == NULL) || (engine->state == NULL)) {
+		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	memset (engine->state, 0, sizeof (*engine->state));
 
 	engine->state->active = HASH_ACTIVE_NONE;
 
@@ -428,7 +447,7 @@ int hash_mbedtls_init (struct hash_engine_mbedtls *engine, struct hash_engine_mb
  *
  * @param engine The hash engine to release.
  */
-void hash_mbedtls_release (struct hash_engine_mbedtls *engine)
+void hash_mbedtls_release (const struct hash_engine_mbedtls *engine)
 {
 	if (engine != NULL) {
 		hash_mbedtls_free_context (engine->state);

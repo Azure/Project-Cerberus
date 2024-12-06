@@ -495,7 +495,7 @@ int ecc_ecc_hw_compute_shared_secret (struct ecc_engine *engine,
  * @return 0 if initialization was successful or an error code.
  */
 int ecc_ecc_hw_init (struct ecc_engine_ecc_hw *engine, const struct ecc_hw *hw,
-	struct rng_engine *rng)
+	const struct rng_engine *rng)
 {
 	if ((engine == NULL) || (hw == NULL)) {
 		return ECC_ENGINE_INVALID_ARGUMENT;

@@ -7,7 +7,7 @@
 #include "pcd_mock.h"
 
 
-static int pcd_mock_verify (struct manifest *pcd, struct hash_engine *hash,
+static int pcd_mock_verify (struct manifest *pcd, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
 	struct pcd_mock *mock = (struct pcd_mock*) pcd;
@@ -55,8 +55,8 @@ static void pcd_mock_free_platform_id (struct manifest *pcd, char *id)
 	MOCK_VOID_RETURN (&mock->mock, pcd_mock_free_platform_id, pcd, MOCK_ARG_PTR_CALL (id));
 }
 
-static int pcd_mock_get_hash (struct manifest *pcd, struct hash_engine *hash, uint8_t *hash_out,
-	size_t hash_length)
+static int pcd_mock_get_hash (struct manifest *pcd, const struct hash_engine *hash,
+	uint8_t *hash_out, size_t hash_length)
 {
 	struct pcd_mock *mock = (struct pcd_mock*) pcd;
 
