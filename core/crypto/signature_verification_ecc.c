@@ -124,8 +124,8 @@ int signature_verification_ecc_is_key_valid (const struct signature_verification
  * @return 0 if the verification instance was successfully initialized or an error code.
  */
 int signature_verification_ecc_init (struct signature_verification_ecc *verification,
-	struct signature_verification_ecc_state *state, struct ecc_engine *ecc, const uint8_t *key,
-	size_t length)
+	struct signature_verification_ecc_state *state, const struct ecc_engine *ecc,
+	const uint8_t *key,	size_t length)
 {
 	int status;
 
@@ -151,7 +151,7 @@ int signature_verification_ecc_init (struct signature_verification_ecc *verifica
  * SIG_VERIFICATION_INVALID_ARGUMENT if there are null parameters.
  */
 int signature_verification_ecc_init_api (struct signature_verification_ecc *verification,
-	struct signature_verification_ecc_state *state, struct ecc_engine *ecc)
+	struct signature_verification_ecc_state *state, const struct ecc_engine *ecc)
 {
 	if ((verification == NULL) || (state == NULL) || (ecc == NULL)) {
 		return SIG_VERIFICATION_INVALID_ARGUMENT;

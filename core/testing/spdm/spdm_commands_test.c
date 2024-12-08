@@ -13464,10 +13464,10 @@ static void spdm_test_challenge (CuTest *test)
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
 		&testing.ecc_mock.base, ECC384_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P384_ECDSA_MAX_LENGTH));
-	status |= mock_expect_output (&testing.ecc_mock.mock, 3, ECC384_SIGNATURE_TEST,
-		ECC384_SIG_TEST_LEN, 4);
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC384_SIGNATURE_TEST,
+		ECC384_SIG_TEST_LEN, 5);
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
@@ -14804,7 +14804,7 @@ static void spdm_test_challenge_sign_fail (CuTest *test)
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
 		&testing.ecc_mock.base, 0xff000000, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P384_ECDSA_MAX_LENGTH));
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
@@ -15073,10 +15073,10 @@ static void spdm_test_get_measurements_all_measurements_with_sig (CuTest *test)
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
 		&testing.ecc_mock.base, ECC384_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P384_ECDSA_MAX_LENGTH));
-	status |= mock_expect_output (&testing.ecc_mock.mock, 3, ECC384_SIGNATURE_TEST,
-		ECC384_SIG_TEST_LEN, 4);
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC384_SIGNATURE_TEST,
+		ECC384_SIG_TEST_LEN, 5);
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
@@ -17329,7 +17329,7 @@ static void spdm_test_get_measurements_v_1_2_sig_req_sign_fail (CuTest *test)
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
 		&testing.ecc_mock.base, ECC_ENGINE_SIGN_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P384_ECDSA_MAX_LENGTH));
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
@@ -17479,7 +17479,7 @@ static void spdm_test_get_measurements_v_1_1_sig_req_sign_fail (CuTest *test)
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
 		&testing.ecc_mock.base, ECC_ENGINE_SIGN_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P384_ECDSA_MAX_LENGTH));
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
@@ -17636,9 +17636,9 @@ static void spdm_test_get_measurements_ecc_der_decode_ecdsa_signature_fail (CuTe
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
 		&testing.ecc_mock.base, ECC384_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P384_ECDSA_MAX_LENGTH));
-	status |= mock_expect_output (&testing.ecc_mock.mock, 3, buf, ECC384_SIG_TEST_LEN, 4);
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, buf, ECC384_SIG_TEST_LEN, 5);
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
@@ -17866,10 +17866,10 @@ static void spdm_test_key_exchange (CuTest *test)
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
 		&testing.ecc_mock.base, ECC384_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P384_ECDSA_MAX_LENGTH));
-	status |= mock_expect_output (&testing.ecc_mock.mock, 3, ECC384_SIGNATURE_TEST,
-		ECC384_SIG_TEST_LEN, 4);
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC384_SIGNATURE_TEST,
+		ECC384_SIG_TEST_LEN, 5);
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
@@ -22637,7 +22637,7 @@ static void spdm_test_key_exchange_signature_generation_v_1_2_sig_req_sign_fail 
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
 		&testing.ecc_mock.base, ECC_ENGINE_SIGN_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P384_ECDSA_MAX_LENGTH));
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
@@ -22865,9 +22865,9 @@ static void spdm_test_key_exchange_signature_generation_ecc_der_decode_ecdsa_sig
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
 		&testing.ecc_mock.base, ECC384_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P384_ECDSA_MAX_LENGTH));
-	status |= mock_expect_output (&testing.ecc_mock.mock, 3, buf, ECC384_SIG_TEST_LEN, 4);
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, buf, ECC384_SIG_TEST_LEN, 5);
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
@@ -23093,10 +23093,10 @@ static void spdm_test_key_exchange_add_signature_to_th_session_hash_context_fail
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
 		&testing.ecc_mock.base, ECC384_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P384_ECDSA_MAX_LENGTH));
-	status |= mock_expect_output (&testing.ecc_mock.mock, 3, ECC384_SIGNATURE_TEST,
-		ECC384_SIG_TEST_LEN, 4);
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC384_SIGNATURE_TEST,
+		ECC384_SIG_TEST_LEN, 5);
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
@@ -23327,10 +23327,10 @@ static void spdm_test_key_exchange_generate_session_handshake_keys_fail (CuTest 
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
 		&testing.ecc_mock.base, ECC384_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P384_ECDSA_MAX_LENGTH));
-	status |= mock_expect_output (&testing.ecc_mock.mock, 3, ECC384_SIGNATURE_TEST,
-		ECC384_SIG_TEST_LEN, 4);
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC384_SIGNATURE_TEST,
+		ECC384_SIG_TEST_LEN, 5);
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
@@ -23566,10 +23566,10 @@ static void spdm_test_key_exchange_hmac_generation_get_hash_fail (CuTest *test)
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
 		&testing.ecc_mock.base, ECC384_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P384_ECDSA_MAX_LENGTH));
-	status |= mock_expect_output (&testing.ecc_mock.mock, 3, ECC384_SIGNATURE_TEST,
-		ECC384_SIG_TEST_LEN, 4);
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC384_SIGNATURE_TEST,
+		ECC384_SIG_TEST_LEN, 5);
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
@@ -23811,10 +23811,10 @@ static void spdm_test_key_exchange_add_hmac_to_th_session_transcript_fail (CuTes
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
 		&testing.ecc_mock.base, ECC384_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P384_ECDSA_MAX_LENGTH));
-	status |= mock_expect_output (&testing.ecc_mock.mock, 3, ECC384_SIGNATURE_TEST,
-		ECC384_SIG_TEST_LEN, 4);
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC384_SIGNATURE_TEST,
+		ECC384_SIG_TEST_LEN, 5);
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));

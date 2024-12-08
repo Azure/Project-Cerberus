@@ -145,8 +145,8 @@ pub_error:
 	return status;
 }
 
-int ecc_ecc_hw_init_key_pair (struct ecc_engine *engine, const uint8_t *key, size_t key_length,
-	struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
+int ecc_ecc_hw_init_key_pair (const struct ecc_engine *engine, const uint8_t *key,
+	size_t key_length, struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
 	uint8_t priv[ECC_MAX_KEY_LENGTH];
 	int priv_key_length;
@@ -169,8 +169,8 @@ int ecc_ecc_hw_init_key_pair (struct ecc_engine *engine, const uint8_t *key, siz
 		priv_key_length, NULL, priv_key, pub_key);
 }
 
-int ecc_ecc_hw_init_public_key (struct ecc_engine *engine, const uint8_t *key, size_t key_length,
-	struct ecc_public_key *pub_key)
+int ecc_ecc_hw_init_public_key (const struct ecc_engine *engine, const uint8_t *key,
+	size_t key_length, struct ecc_public_key *pub_key)
 {
 	int pub_key_length;
 
@@ -203,7 +203,7 @@ int ecc_ecc_hw_init_public_key (struct ecc_engine *engine, const uint8_t *key, s
 }
 
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
-int ecc_ecc_hw_generate_derived_key_pair (struct ecc_engine *engine, const uint8_t *priv,
+int ecc_ecc_hw_generate_derived_key_pair (const struct ecc_engine *engine, const uint8_t *priv,
 	size_t key_length, struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
 	if ((engine == NULL) || (priv == NULL) || (key_length == 0)) {
@@ -228,7 +228,7 @@ int ecc_ecc_hw_generate_derived_key_pair (struct ecc_engine *engine, const uint8
 		NULL, priv_key, pub_key);
 }
 
-int ecc_ecc_hw_generate_key_pair (struct ecc_engine *engine, size_t key_length,
+int ecc_ecc_hw_generate_key_pair (const struct ecc_engine *engine, size_t key_length,
 	struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
 	const struct ecc_engine_ecc_hw *ecc = (const struct ecc_engine_ecc_hw*) engine;
@@ -263,7 +263,7 @@ int ecc_ecc_hw_generate_key_pair (struct ecc_engine *engine, size_t key_length,
 }
 #endif
 
-void ecc_ecc_hw_release_key_pair (struct ecc_engine *engine, struct ecc_private_key *priv_key,
+void ecc_ecc_hw_release_key_pair (const struct ecc_engine *engine, struct ecc_private_key *priv_key,
 	struct ecc_public_key *pub_key)
 {
 	UNUSED (engine);
@@ -279,7 +279,7 @@ void ecc_ecc_hw_release_key_pair (struct ecc_engine *engine, struct ecc_private_
 	}
 }
 
-int ecc_ecc_hw_get_signature_max_length (struct ecc_engine *engine,
+int ecc_ecc_hw_get_signature_max_length (const struct ecc_engine *engine,
 	const struct ecc_private_key *key)
 {
 	if ((engine == NULL) || (key == NULL)) {
@@ -306,8 +306,8 @@ int ecc_ecc_hw_get_signature_max_length (struct ecc_engine *engine,
 }
 
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
-int ecc_ecc_hw_get_private_key_der (struct ecc_engine *engine, const struct ecc_private_key *key,
-	uint8_t **der, size_t *length)
+int ecc_ecc_hw_get_private_key_der (const struct ecc_engine *engine,
+	const struct ecc_private_key *key, uint8_t **der, size_t *length)
 {
 	const struct ecc_engine_ecc_hw *ecc = (const struct ecc_engine_ecc_hw*) engine;
 	struct ecc_point_public_key pub_key;
@@ -344,8 +344,8 @@ int ecc_ecc_hw_get_private_key_der (struct ecc_engine *engine, const struct ecc_
 	return 0;
 }
 
-int ecc_ecc_hw_get_public_key_der (struct ecc_engine *engine, const struct ecc_public_key *key,
-	uint8_t **der, size_t *length)
+int ecc_ecc_hw_get_public_key_der (const struct ecc_engine *engine,
+	const struct ecc_public_key *key, uint8_t **der, size_t *length)
 {
 	if (der == NULL) {
 		return ECC_ENGINE_INVALID_ARGUMENT;
@@ -374,8 +374,9 @@ int ecc_ecc_hw_get_public_key_der (struct ecc_engine *engine, const struct ecc_p
 }
 #endif
 
-int ecc_ecc_hw_sign (struct ecc_engine *engine, const struct ecc_private_key *key,
-	const uint8_t *digest, size_t length, uint8_t *signature, size_t sig_length)
+int ecc_ecc_hw_sign (const struct ecc_engine *engine, const struct ecc_private_key *key,
+	const uint8_t *digest, size_t length, const struct rng_engine *rng, uint8_t *signature,
+	size_t sig_length)
 {
 	const struct ecc_engine_ecc_hw *ecc = (const struct ecc_engine_ecc_hw*) engine;
 	struct ecc_ecdsa_signature raw_signature;
@@ -400,8 +401,14 @@ int ecc_ecc_hw_sign (struct ecc_engine *engine, const struct ecc_private_key *ke
 			return ECC_ENGINE_UNSUPPORTED_HASH_TYPE;
 	}
 
+	if (rng == NULL) {
+		/* When no RNG has been provided, use the internal default RNG.  This may also be null, but
+		 * there is no need to check for that here. */
+		rng = ecc->rng;
+	}
+
 	status = ecc->hw->ecdsa_sign (ecc->hw, ecc_ecc_hw_private_key (key).d,
-		ecc_ecc_hw_private_key (key).key_length, digest, length, ecc->rng, &raw_signature);
+		ecc_ecc_hw_private_key (key).key_length, digest, length, rng, &raw_signature);
 	if (status != 0) {
 		return status;
 	}
@@ -415,7 +422,7 @@ int ecc_ecc_hw_sign (struct ecc_engine *engine, const struct ecc_private_key *ke
 	return status;
 }
 
-int ecc_ecc_hw_verify (struct ecc_engine *engine, const struct ecc_public_key *key,
+int ecc_ecc_hw_verify (const struct ecc_engine *engine, const struct ecc_public_key *key,
 	const uint8_t *digest, size_t length, const uint8_t *signature, size_t sig_length)
 {
 	const struct ecc_engine_ecc_hw *ecc = (const struct ecc_engine_ecc_hw*) engine;
@@ -448,7 +455,7 @@ int ecc_ecc_hw_verify (struct ecc_engine *engine, const struct ecc_public_key *k
 }
 
 #ifdef ECC_ENABLE_ECDH
-int ecc_ecc_hw_get_shared_secret_max_length (struct ecc_engine *engine,
+int ecc_ecc_hw_get_shared_secret_max_length (const struct ecc_engine *engine,
 	const struct ecc_private_key *key)
 {
 	if ((engine == NULL) || (key == NULL)) {
@@ -458,7 +465,7 @@ int ecc_ecc_hw_get_shared_secret_max_length (struct ecc_engine *engine,
 	return ecc_ecc_hw_private_key (key).key_length;
 }
 
-int ecc_ecc_hw_compute_shared_secret (struct ecc_engine *engine,
+int ecc_ecc_hw_compute_shared_secret (const struct ecc_engine *engine,
 	const struct ecc_private_key *priv_key, const struct ecc_public_key *pub_key, uint8_t *secret,
 	size_t length)
 {

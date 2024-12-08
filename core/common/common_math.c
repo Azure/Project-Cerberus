@@ -372,6 +372,93 @@ int common_math_set_next_bit_in_array_odd_count (uint8_t *bytes, size_t length)
 }
 
 /**
+ * Shift all the bits in an array to the right, starting from the beginning of the array.  Left-most
+ * bits will be filled with zeros.
+ *
+ * @param bytes The byte array to shift.
+ * @param length Length of the byte array.
+ * @param shift_bits The number of bits to shift the array.
+ *
+ * @return 0 if the array was shifted successfully or an error code.
+ */
+void common_math_right_shift_array (uint8_t *bytes, size_t length, size_t shift_bits)
+{
+	size_t i;
+	size_t shift_bytes;
+
+	if ((bytes == NULL) || (length == 0) || (shift_bits == 0)) {
+		/* Nothing to do. */
+		return;
+	}
+
+	shift_bytes = shift_bits / 8;
+	shift_bits %= 8;
+
+	if (shift_bytes >= length) {
+		/* The requested shift is larger then the array, so just clear the entire array. */
+		memset (bytes, 0, length);
+
+		return;
+	}
+
+	/* Handle full bytes by moving the whole array to the right. */
+	memmove (&bytes[shift_bytes], bytes, length - shift_bytes);
+	memset (bytes, 0, shift_bytes);
+
+	/* Shift each byte, wrapping from the previous byte. */
+	for (i = (length - 1); i > shift_bytes; i--) {
+		bytes[i] = (bytes[i - 1] << (8 - shift_bits)) | (bytes[i] >> shift_bits);
+	}
+
+	/* Shift the first byte. */
+	bytes[shift_bytes] >>= shift_bits;
+}
+
+/**
+ * Shift all the bits in an array to the left, starting from the beginning of the array.  Right-most
+ * bits will be filled with zeros.
+ *
+ * @param bytes The byte array to shift.
+ * @param length Length of the byte array.
+ * @param shift_bits The number of bits to shift the array.
+ *
+ * @return 0 if the array was shifted successfully or an error code.
+ */
+void common_math_left_shift_array (uint8_t *bytes, size_t length, size_t shift_bits)
+{
+	size_t i;
+	size_t shift_bytes;
+
+	if ((bytes == NULL) || (length == 0) || (shift_bits == 0)) {
+		/* Nothing to do. */
+		return;
+	}
+
+	shift_bytes = shift_bits / 8;
+	shift_bits %= 8;
+
+	if (shift_bytes >= length) {
+		/* The requested shift is larger then the array, so just clear the entire array. */
+		memset (bytes, 0, length);
+
+		return;
+	}
+
+	/* Handle full bytes by moving the whole array to the left. */
+	length -= shift_bytes;
+	memmove (bytes, &bytes[shift_bytes], length);
+	memset (&bytes[length], 0, shift_bytes);
+
+	/* Shift each byte, wrapping from the next byte. */
+	for (i = 0; i < (length - 1); i++) {
+		bytes[i] = (bytes[i] << shift_bits) | (bytes[i + 1] >> (8 - shift_bits));
+	}
+
+	/* Shift the last byte. */
+	bytes[length - 1] <<= shift_bits;
+}
+
+/**
  * Saturating increment for 8-bit unsigned integer.
  *
  * @param value The value to increment.

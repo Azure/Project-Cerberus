@@ -65,14 +65,15 @@ struct aux_attestation {
 	const struct keystore *keystore;		/**< Storage for the attestation private key. */
 	const struct rsa_engine *rsa;			/**< Interface for RSA operations with the private key. */
 	const struct riot_key_manager *riot;	/**< Storage for the ECC attestation key. */
-	struct ecc_engine *ecc;					/**< Interface for ECC unsealing operations. */
+	const struct ecc_engine *ecc;			/**< Interface for ECC unsealing operations. */
 	struct der_cert cert;					/**< The certificate for the attestation private key. */
 	bool is_static;							/**< Flag indicating if the certificate is in static memory. */
 };
 
 
 int aux_attestation_init (struct aux_attestation *aux, const struct keystore *keystore,
-	const struct rsa_engine *rsa, const struct riot_key_manager *riot, struct ecc_engine *ecc);
+	const struct rsa_engine *rsa, const struct riot_key_manager *riot,
+	const struct ecc_engine *ecc);
 void aux_attestation_release (struct aux_attestation *aux);
 
 int aux_attestation_generate_key (struct aux_attestation *aux);

@@ -20,6 +20,11 @@
 
 
 /**
+ * Variable context for mbedTLS ECC.
+ */
+struct ecc_engine_mbedtls_state ecc_context;
+
+/**
  * ECC handler for ECDH unsealing.
  */
 struct ecc_engine_mbedtls ecc;
@@ -48,6 +53,11 @@ struct x509_engine_mbedtls x509;
  * Empty keystore for device keys.
  */
 const struct keystore_null keystore = keystore_null_static_init;
+
+/**
+ * Variable context for the alias key manager.
+ */
+struct riot_key_manager_state riot_context;
 
 /**
  * Handler for the alias key used for unseal operations.
@@ -168,7 +178,7 @@ void init_unseal (const struct unseal_data *alias_key)
 	keys.alias_key = alias_key->data;
 	keys.alias_key_length = alias_key->length;
 
-	status = ecc_mbedtls_init (&ecc);
+	status = ecc_mbedtls_init (&ecc, &ecc_context);
 	if (status != 0) {
 		printf ("ecc_mbedtls_init failed: 0x%x\n", status);
 		exit (1);
@@ -186,7 +196,8 @@ void init_unseal (const struct unseal_data *alias_key)
 		exit (1);
 	}
 
-	status = riot_key_manager_init (&riot, &keystore.base, &keys, &x509.base);
+	status = riot_key_manager_init (&riot, &riot_context, &keystore.base, &keys, &x509.base, NULL,
+		0);
 	if (status != 0) {
 		printf ("riot_key_manager_init failed: 0x%x\n", status);
 		exit (1);

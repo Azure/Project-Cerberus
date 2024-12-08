@@ -44,7 +44,7 @@ struct riot_core_common {
 	struct riot_core base;									/**< The base RIoT core instance. */
 	struct riot_core_common_state *state;					/**< Variable context for RIoT Core. */
 	const struct hash_engine *hash;							/**< The hash engine for RIoT Core operations. */
-	struct ecc_engine *ecc;									/**< The ECC engine for RIoT Core operations. */
+	const struct ecc_engine *ecc;							/**< The ECC engine for RIoT Core operations. */
 	const struct base64_engine *base64;						/**< The base64 engine for RIoT Core operations. */
 	const struct x509_engine *x509;							/**< The X.509 engine for RIoT Core operations. */
 	const struct x509_extension_builder *const *dev_id_ext;	/**< List of custom extensions added to the Device ID certificate. */
@@ -56,7 +56,7 @@ struct riot_core_common {
 
 
 int riot_core_common_init (struct riot_core_common *riot, struct riot_core_common_state *state,
-	const struct hash_engine *hash, struct ecc_engine *ecc, const struct x509_engine *x509,
+	const struct hash_engine *hash, const struct ecc_engine *ecc, const struct x509_engine *x509,
 	const struct base64_engine *base64, size_t key_length,
 	const struct x509_extension_builder *const *device_id_ext, size_t device_id_ext_count,
 	const struct x509_extension_builder *const *alias_ext, size_t alias_ext_count);

@@ -32,7 +32,7 @@ struct cmd_interface_spdm_responder {
 	const struct spdm_transcript_manager *transcript_manager;			/**< Transcript manager for SPDM. */
 	const struct riot_key_manager *key_manager;							/**< Manager for device certificate chain. */
 	const struct spdm_measurements *measurements;						/**< Measurements for the device. */
-	struct ecc_engine *ecc_engine;										/**< Engine for ECC operations. */
+	const struct ecc_engine *ecc_engine;								/**< Engine for ECC operations. */
 	const struct rng_engine *rng_engine;								/**< Engine for random number generation. */
 	const struct spdm_version_num_entry *version_num;					/**< Supported version number(s). */
 	uint8_t version_num_count;											/**< Number of supported version number(s). */
@@ -54,7 +54,7 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	const struct spdm_device_capability *local_capabilities,
 	const struct spdm_local_device_algorithms *local_algorithms,
 	const struct riot_key_manager *key_manager, const struct spdm_measurements *measurements,
-	struct ecc_engine *ecc_engine, const struct rng_engine *rng_engine,
+	const struct ecc_engine *ecc_engine, const struct rng_engine *rng_engine,
 	struct spdm_secure_session_manager *session_manager, const struct cmd_interface *vdm_handler);
 
 int cmd_interface_spdm_responder_init_state (

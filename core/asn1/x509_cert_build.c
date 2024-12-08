@@ -386,8 +386,8 @@ error:
  * @return 0 if the certificate was signed successfully or an error code.
  */
 static int x509_cert_build_sign_certificate (DERBuilderContext *der,
-	const struct ecc_private_key *priv_key, struct ecc_engine *ecc, const struct hash_engine *hash,
-	enum hash_type sig_hash, const int *sig_oid)
+	const struct ecc_private_key *priv_key, const struct ecc_engine *ecc,
+	const struct hash_engine *hash, enum hash_type sig_hash, const int *sig_oid)
 {
 	uint8_t digest[HASH_MAX_HASH_LEN];
 	uint8_t tbs_sig[ECC_DER_ECDSA_MAX_LENGTH];
@@ -410,7 +410,7 @@ static int x509_cert_build_sign_certificate (DERBuilderContext *der,
 		return status;
 	}
 
-	sig_len = ecc->sign (ecc, priv_key, digest, status, tbs_sig, sizeof (tbs_sig));
+	sig_len = ecc->sign (ecc, priv_key, digest, status, NULL, tbs_sig, sizeof (tbs_sig));
 	if (ROT_IS_ERROR (sig_len)) {
 		return sig_len;
 	}
@@ -979,7 +979,7 @@ int x509_cert_build_get_certificate_der (const struct x509_engine *engine,
  *
  * @return 0 if the X.509 engine was successfully initialized or an error code.
  */
-int x509_cert_build_init (struct x509_engine_cert_build *engine, struct ecc_engine *ecc,
+int x509_cert_build_init (struct x509_engine_cert_build *engine, const struct ecc_engine *ecc,
 	const struct hash_engine *hash, size_t max_cert_length)
 {
 	if ((engine == NULL) || (ecc == NULL) || (hash == NULL) || (max_cert_length == 0)) {

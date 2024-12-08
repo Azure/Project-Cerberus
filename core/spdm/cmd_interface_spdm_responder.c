@@ -180,7 +180,7 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	const struct spdm_device_capability *local_capabilities,
 	const struct spdm_local_device_algorithms *local_algorithms,
 	const struct riot_key_manager *key_manager, const struct spdm_measurements *measurements,
-	struct ecc_engine *ecc_engine, const struct rng_engine *rng_engine,
+	const struct ecc_engine *ecc_engine, const struct rng_engine *rng_engine,
 	struct spdm_secure_session_manager *session_manager, const struct cmd_interface *vdm_handler)
 {
 	int status;

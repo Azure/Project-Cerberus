@@ -44,6 +44,9 @@ int common_math_set_next_bit_in_array (uint8_t *bytes, size_t length);
 int common_math_set_next_bit_in_array_even_count (uint8_t *bytes, size_t length);
 int common_math_set_next_bit_in_array_odd_count (uint8_t *bytes, size_t length);
 
+void common_math_right_shift_array (uint8_t *bytes, size_t length, size_t shift_bits);
+void common_math_left_shift_array (uint8_t *bytes, size_t length, size_t shift_bits);
+
 uint8_t common_math_saturating_increment_u8 (uint8_t value);
 uint16_t common_math_saturating_increment_u16 (uint16_t value);
 uint32_t common_math_saturating_increment_u32 (uint32_t value);

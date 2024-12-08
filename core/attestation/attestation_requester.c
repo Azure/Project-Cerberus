@@ -1766,8 +1766,8 @@ void attestation_requester_on_cfm_activation_request (const struct cfm_observer 
 int attestation_requester_init (struct attestation_requester *attestation,
 	struct attestation_requester_state *state, const struct mctp_interface *mctp,
 	const struct cmd_channel *channel, const struct hash_engine *primary_hash,
-	const struct hash_engine *secondary_hash, struct ecc_engine *ecc, const struct rsa_engine *rsa,
-	const struct x509_engine *x509, const struct rng_engine *rng,
+	const struct hash_engine *secondary_hash, const struct ecc_engine *ecc,
+	const struct rsa_engine *rsa, const struct x509_engine *x509, const struct rng_engine *rng,
 	const struct riot_key_manager *riot, struct device_manager *device_mgr,
 	struct cfm_manager *cfm_manager)
 {

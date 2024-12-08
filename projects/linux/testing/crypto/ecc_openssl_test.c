@@ -1,15 +1,18 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
 #include "crypto/ecc_openssl.h"
+#include "crypto/ecc_openssl_static.h"
+#include "crypto/kat/ecc_kat_vectors.h"
 #include "testing/crypto/ecc_testing.h"
-#include "testing/crypto/signature_testing.h"
 #include "testing/crypto/rsa_testing.h"
+#include "testing/crypto/signature_testing.h"
+#include "testing/mock/crypto/rng_mock.h"
 
 
 TEST_SUITE_LABEL ("ecc_openssl");
@@ -53,6 +56,28 @@ static void ecc_openssl_test_init_null (CuTest *test)
 
 	status = ecc_openssl_init (NULL);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
+}
+
+static void ecc_openssl_test_static_init (CuTest *test)
+{
+	struct ecc_engine_openssl engine = ecc_openssl_static_init ();
+
+	TEST_START;
+
+	CuAssertPtrNotNull (test, engine.base.init_key_pair);
+	CuAssertPtrNotNull (test, engine.base.init_public_key);
+	CuAssertPtrNotNull (test, engine.base.generate_derived_key_pair);
+	CuAssertPtrNotNull (test, engine.base.generate_key_pair);
+	CuAssertPtrNotNull (test, engine.base.release_key_pair);
+	CuAssertPtrNotNull (test, engine.base.get_signature_max_length);
+	CuAssertPtrNotNull (test, engine.base.get_private_key_der);
+	CuAssertPtrNotNull (test, engine.base.get_public_key_der);
+	CuAssertPtrNotNull (test, engine.base.sign);
+	CuAssertPtrNotNull (test, engine.base.verify);
+	CuAssertPtrNotNull (test, engine.base.get_shared_secret_max_length);
+	CuAssertPtrNotNull (test, engine.base.compute_shared_secret);
+
+	ecc_openssl_release (&engine);
 }
 
 static void ecc_openssl_test_release_null (CuTest *test)
@@ -128,8 +153,7 @@ static void ecc_openssl_test_public_key_init_key_pair_and_verify_extra_buffer (C
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_key_pair (&engine.base, privkey, sizeof (privkey), NULL,
-		&pub_key);
+	status = engine.base.init_key_pair (&engine.base, privkey, sizeof (privkey), NULL, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, pub_key.context);
 
@@ -210,8 +234,7 @@ static void ecc_openssl_test_public_key_init_key_pair_and_verify_p384_extra_buff
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_key_pair (&engine.base, privkey, sizeof (privkey), NULL,
-		&pub_key);
+	status = engine.base.init_key_pair (&engine.base, privkey, sizeof (privkey), NULL, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, pub_key.context);
 
@@ -293,8 +316,7 @@ static void ecc_openssl_test_public_key_init_key_pair_and_verify_p521_extra_buff
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_key_pair (&engine.base, privkey, sizeof (privkey), NULL,
-		&pub_key);
+	status = engine.base.init_key_pair (&engine.base, privkey, sizeof (privkey), NULL, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, pub_key.context);
 
@@ -350,7 +372,7 @@ static void ecc_openssl_test_private_key_init_key_pair_and_sign (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, priv_key.context);
 
-	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
+	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (status));
 	CuAssertTrue (test, status <= ECC_TESTING_ECC256_DSA_MAX_LENGTH);
@@ -379,7 +401,7 @@ static void ecc_openssl_test_public_key_init_key_pair_and_sign (CuTest *test)
 	CuAssertPtrNotNull (test, pub_key.context);
 
 	status = engine.base.sign (&engine.base, (struct ecc_private_key*) &pub_key, SIG_HASH_TEST,
-		SIG_HASH_LEN, out, sizeof (out));
+		SIG_HASH_LEN, NULL, out, sizeof (out));
 	CuAssertTrue (test, (status < 0));
 
 	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
@@ -408,7 +430,7 @@ static void ecc_openssl_test_init_key_pair_and_sign_and_verify (CuTest *test)
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	out_len = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
+	out_len = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
 	CuAssertTrue (test, out_len <= ECC_TESTING_ECC256_DSA_MAX_LENGTH);
@@ -443,7 +465,7 @@ static void ecc_openssl_test_init_key_pair_and_sign_and_verify_no_pubkey (CuTest
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	out_len = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
+	out_len = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
 	CuAssertTrue (test, out_len <= ECC_TESTING_ECC256_DSA_MAX_LENGTH);
@@ -481,7 +503,7 @@ static void ecc_openssl_test_init_key_pair_and_sign_and_verify_extra_buffer (CuT
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	out_len = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
+	out_len = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
 	CuAssertTrue (test, out_len <= ECC_TESTING_ECC256_DSA_MAX_LENGTH);
@@ -517,8 +539,8 @@ static void ecc_openssl_test_init_key_pair_and_sign_and_verify_p384 (CuTest *tes
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	out_len = engine.base.sign (&engine.base, &priv_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
-		sizeof (out));
+	out_len = engine.base.sign (&engine.base, &priv_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, NULL,
+		out, sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
 	CuAssertTrue (test, out_len <= ECC_TESTING_ECC384_DSA_MAX_LENGTH);
 
@@ -553,8 +575,8 @@ static void ecc_openssl_test_init_key_pair_and_sign_and_verify_p384_no_pubkey (C
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	out_len = engine.base.sign (&engine.base, &priv_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
-		sizeof (out));
+	out_len = engine.base.sign (&engine.base, &priv_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, NULL,
+		out, sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
 	CuAssertTrue (test, out_len <= ECC_TESTING_ECC384_DSA_MAX_LENGTH);
 
@@ -592,8 +614,8 @@ static void ecc_openssl_test_init_key_pair_and_sign_and_verify_p384_extra_buffer
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	out_len = engine.base.sign (&engine.base, &priv_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
-		sizeof (out));
+	out_len = engine.base.sign (&engine.base, &priv_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, NULL,
+		out, sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
 	CuAssertTrue (test, out_len <= ECC_TESTING_ECC384_DSA_MAX_LENGTH);
 
@@ -630,8 +652,8 @@ static void ecc_openssl_test_init_key_pair_and_sign_and_verify_p521 (CuTest *tes
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	out_len = engine.base.sign (&engine.base, &priv_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
-		sizeof (out));
+	out_len = engine.base.sign (&engine.base, &priv_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, NULL,
+		out, sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
 	CuAssertTrue (test, out_len <= ECC_TESTING_ECC521_DSA_MAX_LENGTH);
 
@@ -666,8 +688,8 @@ static void ecc_openssl_test_init_key_pair_and_sign_and_verify_p521_no_pubkey (C
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	out_len = engine.base.sign (&engine.base, &priv_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
-		sizeof (out));
+	out_len = engine.base.sign (&engine.base, &priv_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, NULL,
+		out, sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
 	CuAssertTrue (test, out_len <= ECC_TESTING_ECC521_DSA_MAX_LENGTH);
 
@@ -702,8 +724,8 @@ static void ecc_openssl_test_init_key_pair_and_sign_and_verify_p521_no_leading_z
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	out_len = engine.base.sign (&engine.base, &priv_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
-		sizeof (out));
+	out_len = engine.base.sign (&engine.base, &priv_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, NULL,
+		out, sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
 	CuAssertTrue (test, out_len <= ECC_TESTING_ECC521_DSA_MAX_LENGTH);
 
@@ -741,8 +763,8 @@ static void ecc_openssl_test_init_key_pair_and_sign_and_verify_p521_extra_buffer
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	out_len = engine.base.sign (&engine.base, &priv_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
-		sizeof (out));
+	out_len = engine.base.sign (&engine.base, &priv_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, NULL,
+		out, sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
 	CuAssertTrue (test, out_len <= ECC_TESTING_ECC521_DSA_MAX_LENGTH);
 
@@ -778,7 +800,7 @@ static void ecc_openssl_test_init_key_pair_and_sign_with_public_key (CuTest *tes
 	CuAssertPtrNotNull (test, pub_key.context);
 
 	status = engine.base.sign (&engine.base, (struct ecc_private_key*) &pub_key, SIG_HASH_TEST,
-		SIG_HASH_LEN, out, sizeof (out));
+		SIG_HASH_LEN, NULL, out, sizeof (out));
 	CuAssertTrue (test, (status < 0));
 
 	engine.base.release_key_pair (&engine.base, &priv_key, &pub_key);
@@ -805,6 +827,38 @@ static void ecc_openssl_test_init_key_pair_no_keys (CuTest *test)
 	ecc_openssl_release (&engine);
 }
 
+static void ecc_openssl_test_init_key_pair_and_sign_and_verify_static_init (CuTest *test)
+{
+	struct ecc_engine_openssl engine = ecc_openssl_static_init ();
+	struct ecc_private_key priv_key;
+	struct ecc_public_key pub_key;
+	int status;
+	int out_len;
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
+
+	TEST_START;
+
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		&priv_key, &pub_key);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, priv_key.context);
+	CuAssertPtrNotNull (test, pub_key.context);
+
+	out_len = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL, out,
+		sizeof (out));
+	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
+	CuAssertTrue (test, out_len <= ECC_TESTING_ECC256_DSA_MAX_LENGTH);
+
+	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, out, out_len);
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.release_key_pair (&engine.base, &priv_key, &pub_key);
+	CuAssertPtrEquals (test, NULL, priv_key.context);
+	CuAssertPtrEquals (test, NULL, pub_key.context);
+
+	ecc_openssl_release (&engine);
+}
+
 static void ecc_openssl_test_init_key_pair_null (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -817,16 +871,15 @@ static void ecc_openssl_test_init_key_pair_null (CuTest *test)
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_key_pair (NULL, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		&priv_key,  &pub_key);
+	status = engine.base.init_key_pair (NULL, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,	&priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_key_pair (&engine.base, NULL, ECC_PRIVKEY_DER_LEN,
-		&priv_key, &pub_key);
+	status = engine.base.init_key_pair (&engine.base, NULL, ECC_PRIVKEY_DER_LEN, &priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, 0,
-		&priv_key, &pub_key);
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, 0, &priv_key, &pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	ecc_openssl_release (&engine);
@@ -1059,6 +1112,28 @@ static void ecc_openssl_test_init_public_key_and_verify_bad_sig (CuTest *test)
 	ecc_openssl_release (&engine);
 }
 
+static void ecc_openssl_test_init_public_key_and_verify_static_init (CuTest *test)
+{
+	struct ecc_engine_openssl engine = ecc_openssl_static_init ();
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		&pub_key);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, pub_key.context);
+
+	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
+		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	ecc_openssl_release (&engine);
+}
+
 static void ecc_openssl_test_init_public_key_null (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -1070,20 +1145,16 @@ static void ecc_openssl_test_init_public_key_null (CuTest *test)
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_public_key (NULL, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
-		&pub_key);
+	status = engine.base.init_public_key (NULL, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,	&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_public_key (&engine.base, NULL, ECC_PUBKEY_DER_LEN,
-		&pub_key);
+	status = engine.base.init_public_key (&engine.base, NULL, ECC_PUBKEY_DER_LEN, &pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, 0,
-		&pub_key);
+	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, 0, &pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
-		NULL);
+	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,	NULL);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	ecc_openssl_release (&engine);
@@ -1249,7 +1320,7 @@ static void ecc_openssl_test_private_key_generate_derived_key_pair_and_sign (CuT
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, priv_key.context);
 
-	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
+	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (status));
 	CuAssertTrue (test, status <= ECC_TESTING_ECC256_DSA_MAX_LENGTH);
@@ -1277,7 +1348,7 @@ static void ecc_openssl_test_public_key_generate_derived_key_pair_and_sign (CuTe
 	CuAssertPtrNotNull (test, pub_key.context);
 
 	status = engine.base.sign (&engine.base, (struct ecc_private_key*) &pub_key, SIG_HASH_TEST,
-		SIG_HASH_LEN, out, sizeof (out));
+		SIG_HASH_LEN, NULL, out, sizeof (out));
 	CuAssertTrue (test, (status < 0));
 
 	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
@@ -1305,7 +1376,7 @@ static void ecc_openssl_test_generate_derived_key_pair_and_sign_and_verify (CuTe
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	out_len = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
+	out_len = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
 	CuAssertTrue (test, out_len <= ECC_TESTING_ECC256_DSA_MAX_LENGTH);
@@ -1324,6 +1395,7 @@ static void ecc_openssl_test_generate_derived_key_pair_and_sign_and_verify_p384 
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
+
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 	int out_len;
 	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
@@ -1341,8 +1413,8 @@ static void ecc_openssl_test_generate_derived_key_pair_and_sign_and_verify_p384 
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	out_len = engine.base.sign (&engine.base, &priv_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
-		sizeof (out));
+	out_len = engine.base.sign (&engine.base, &priv_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, NULL,
+		out, sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
 	CuAssertTrue (test, out_len <= ECC_TESTING_ECC384_DSA_MAX_LENGTH);
 
@@ -1364,6 +1436,7 @@ static void ecc_openssl_test_generate_derived_key_pair_and_sign_and_verify_p521 
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
+
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 	int out_len;
 	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
@@ -1381,8 +1454,8 @@ static void ecc_openssl_test_generate_derived_key_pair_and_sign_and_verify_p521 
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	out_len = engine.base.sign (&engine.base, &priv_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
-		sizeof (out));
+	out_len = engine.base.sign (&engine.base, &priv_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, NULL,
+		out, sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
 	CuAssertTrue (test, out_len <= ECC_TESTING_ECC521_DSA_MAX_LENGTH);
 
@@ -1418,7 +1491,7 @@ static void ecc_openssl_test_generate_derived_key_pair_and_sign_with_public_key 
 	CuAssertPtrNotNull (test, pub_key.context);
 
 	status = engine.base.sign (&engine.base, (struct ecc_private_key*) &pub_key, SIG_HASH_TEST,
-		SIG_HASH_LEN, out, sizeof (out));
+		SIG_HASH_LEN, NULL, out, sizeof (out));
 	CuAssertTrue (test, (status < 0));
 
 	engine.base.release_key_pair (&engine.base, &priv_key, &pub_key);
@@ -1443,6 +1516,37 @@ static void ecc_openssl_test_generate_derived_key_pair_no_keys (CuTest *test)
 	ecc_openssl_release (&engine);
 }
 
+static void ecc_openssl_test_generate_derived_key_pair_and_sign_and_verify_static_init (
+	CuTest *test)
+{
+	struct ecc_engine_openssl engine = ecc_openssl_static_init ();
+	struct ecc_private_key priv_key;
+	struct ecc_public_key pub_key;
+	int status;
+	int out_len;
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
+
+	TEST_START;
+
+	status = engine.base.generate_derived_key_pair (&engine.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN,
+		&priv_key, &pub_key);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, priv_key.context);
+	CuAssertPtrNotNull (test, pub_key.context);
+
+	out_len = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL, out,
+		sizeof (out));
+	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
+	CuAssertTrue (test, out_len <= ECC_TESTING_ECC256_DSA_MAX_LENGTH);
+
+	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, out, out_len);
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.release_key_pair (&engine.base, &priv_key, &pub_key);
+
+	ecc_openssl_release (&engine);
+}
+
 static void ecc_openssl_test_generate_derived_key_pair_null (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -1455,16 +1559,16 @@ static void ecc_openssl_test_generate_derived_key_pair_null (CuTest *test)
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_derived_key_pair (NULL, ECC_PRIVKEY, ECC_PRIVKEY_LEN,
-		&priv_key, &pub_key);
+	status = engine.base.generate_derived_key_pair (NULL, ECC_PRIVKEY, ECC_PRIVKEY_LEN,	&priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.generate_derived_key_pair (&engine.base, NULL, ECC_PRIVKEY_LEN,
-		&priv_key, &pub_key);
+	status = engine.base.generate_derived_key_pair (&engine.base, NULL, ECC_PRIVKEY_LEN, &priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.generate_derived_key_pair (&engine.base, ECC_PRIVKEY, 0,
-		&priv_key, &pub_key);
+	status = engine.base.generate_derived_key_pair (&engine.base, ECC_PRIVKEY, 0, &priv_key,
+		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	ecc_openssl_release (&engine);
@@ -1525,7 +1629,7 @@ static void ecc_openssl_test_private_key_generate_key_pair_and_sign (CuTest *tes
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, priv_key.context);
 
-	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
+	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (status));
 	CuAssertTrue (test, status <= ECC_TESTING_ECC256_DSA_MAX_LENGTH);
@@ -1552,7 +1656,7 @@ static void ecc_openssl_test_public_key_generate_key_pair_and_sign (CuTest *test
 	CuAssertPtrNotNull (test, pub_key.context);
 
 	status = engine.base.sign (&engine.base, (struct ecc_private_key*) &pub_key, SIG_HASH_TEST,
-		SIG_HASH_LEN, out, sizeof (out));
+		SIG_HASH_LEN, NULL, out, sizeof (out));
 	CuAssertTrue (test, (status < 0));
 
 	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
@@ -1579,7 +1683,7 @@ static void ecc_openssl_test_generate_key_pair_and_sign_and_verify (CuTest *test
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	out_len = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
+	out_len = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
 	CuAssertTrue (test, out_len <= ECC_TESTING_ECC256_DSA_MAX_LENGTH);
@@ -1598,6 +1702,7 @@ static void ecc_openssl_test_generate_key_pair_and_sign_and_verify_p384 (CuTest 
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
+
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 	int out_len;
 	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
@@ -1614,8 +1719,8 @@ static void ecc_openssl_test_generate_key_pair_and_sign_and_verify_p384 (CuTest 
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	out_len = engine.base.sign (&engine.base, &priv_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
-		sizeof (out));
+	out_len = engine.base.sign (&engine.base, &priv_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, NULL,
+		out, sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
 	CuAssertTrue (test, out_len <= ECC_TESTING_ECC384_DSA_MAX_LENGTH);
 
@@ -1637,6 +1742,7 @@ static void ecc_openssl_test_generate_key_pair_and_sign_and_verify_p521 (CuTest 
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
+
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 	int out_len;
 	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
@@ -1653,8 +1759,8 @@ static void ecc_openssl_test_generate_key_pair_and_sign_and_verify_p521 (CuTest 
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	out_len = engine.base.sign (&engine.base, &priv_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
-		sizeof (out));
+	out_len = engine.base.sign (&engine.base, &priv_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, NULL,
+		out, sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
 	CuAssertTrue (test, out_len <= ECC_TESTING_ECC521_DSA_MAX_LENGTH);
 
@@ -1689,7 +1795,7 @@ static void ecc_openssl_test_generate_key_pair_and_sign_with_public_key (CuTest 
 	CuAssertPtrNotNull (test, pub_key.context);
 
 	status = engine.base.sign (&engine.base, (struct ecc_private_key*) &pub_key, SIG_HASH_TEST,
-		SIG_HASH_LEN, out, sizeof (out));
+		SIG_HASH_LEN, NULL, out, sizeof (out));
 	CuAssertTrue (test, (status < 0));
 
 	engine.base.release_key_pair (&engine.base, &priv_key, &pub_key);
@@ -1709,6 +1815,35 @@ static void ecc_openssl_test_generate_key_pair_no_keys (CuTest *test)
 
 	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, NULL, NULL);
 	CuAssertIntEquals (test, 0, status);
+
+	ecc_openssl_release (&engine);
+}
+
+static void ecc_openssl_test_generate_key_pair_and_sign_and_verify_static_init (CuTest *test)
+{
+	struct ecc_engine_openssl engine = ecc_openssl_static_init ();
+	struct ecc_private_key priv_key;
+	struct ecc_public_key pub_key;
+	int status;
+	int out_len;
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
+
+	TEST_START;
+
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, &priv_key, &pub_key);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, priv_key.context);
+	CuAssertPtrNotNull (test, pub_key.context);
+
+	out_len = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL, out,
+		sizeof (out));
+	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
+	CuAssertTrue (test, out_len <= ECC_TESTING_ECC256_DSA_MAX_LENGTH);
+
+	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, out, out_len);
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.release_key_pair (&engine.base, &priv_key, &pub_key);
 
 	ecc_openssl_release (&engine);
 }
@@ -1749,6 +1884,115 @@ static void ecc_openssl_test_generate_key_pair_unsupported_key_length (CuTest *t
 	ecc_openssl_release (&engine);
 }
 
+static void ecc_openssl_test_sign_external_rng (CuTest *test)
+{
+	struct ecc_engine_openssl engine;
+	struct rng_engine_mock rng;
+	struct ecc_private_key priv_key;
+	int status;
+	int out_len;
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
+
+	TEST_START;
+
+	status = rng_mock_init (&rng);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_key_pair (&engine.base, ECC_KAT_VECTORS_P256_ECC_PRIVATE_DER,
+		ECC_KAT_VECTORS_P256_ECC_PRIVATE_DER_LEN, &priv_key, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, priv_key.context);
+
+	out_len = engine.base.sign (&engine.base, &priv_key, ECC_KAT_VECTORS_ECDSA_SHA256_DIGEST,
+		SHA256_HASH_LENGTH, &rng.base, out, sizeof (out));
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_OPERATION, out_len);
+
+	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
+	CuAssertPtrEquals (test, NULL, priv_key.context);
+
+	status = rng_mock_validate_and_release (&rng);
+	CuAssertIntEquals (test, 0, status);
+
+	ecc_openssl_release (&engine);
+}
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+static void ecc_openssl_test_sign_external_rng_p384 (CuTest *test)
+{
+	struct ecc_engine_openssl engine;
+	struct rng_engine_mock rng;
+	struct ecc_private_key priv_key;
+	int status;
+	int out_len;
+	uint8_t out[ECC_TESTING_ECC384_DSA_MAX_LENGTH * 2];
+
+	TEST_START;
+
+	status = rng_mock_init (&rng);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_key_pair (&engine.base, ECC_KAT_VECTORS_P384_ECC_PRIVATE_DER,
+		ECC_KAT_VECTORS_P384_ECC_PRIVATE_DER_LEN, &priv_key, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, priv_key.context);
+
+	out_len = engine.base.sign (&engine.base, &priv_key, ECC_KAT_VECTORS_ECDSA_SHA384_DIGEST,
+		SHA256_HASH_LENGTH, &rng.base, out, sizeof (out));
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_OPERATION, out_len);
+
+	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
+	CuAssertPtrEquals (test, NULL, priv_key.context);
+
+	status = rng_mock_validate_and_release (&rng);
+	CuAssertIntEquals (test, 0, status);
+
+	ecc_openssl_release (&engine);
+}
+#endif
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+static void ecc_openssl_test_sign_external_rng_p521 (CuTest *test)
+{
+	struct ecc_engine_openssl engine;
+	struct rng_engine_mock rng;
+	struct ecc_private_key priv_key;
+	int status;
+	int out_len;
+	uint8_t out[ECC_TESTING_ECC521_DSA_MAX_LENGTH * 2];
+
+	TEST_START;
+
+	status = rng_mock_init (&rng);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_key_pair (&engine.base, ECC_KAT_VECTORS_P521_ECC_PRIVATE_DER,
+		ECC_KAT_VECTORS_P521_ECC_PRIVATE_DER_LEN, &priv_key, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, priv_key.context);
+
+	out_len = engine.base.sign (&engine.base, &priv_key, ECC_KAT_VECTORS_ECDSA_SHA512_DIGEST,
+		SHA512_HASH_LENGTH, &rng.base, out, sizeof (out));
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_OPERATION, out_len);
+
+	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
+	CuAssertPtrEquals (test, NULL, priv_key.context);
+
+	status = rng_mock_validate_and_release (&rng);
+	CuAssertIntEquals (test, 0, status);
+
+	ecc_openssl_release (&engine);
+}
+#endif
+
 static void ecc_openssl_test_sign_null (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -1766,23 +2010,22 @@ static void ecc_openssl_test_sign_null (CuTest *test)
 		&priv_key, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.sign (NULL, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
+	status = engine.base.sign (NULL, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL, out,
 		sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sign (&engine.base, NULL, SIG_HASH_TEST, SIG_HASH_LEN, out,
+	status = engine.base.sign (&engine.base, NULL, SIG_HASH_TEST, SIG_HASH_LEN, NULL, out,
 		sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sign (&engine.base, &priv_key, NULL, SIG_HASH_LEN, out,
+	status = engine.base.sign (&engine.base, &priv_key, NULL, SIG_HASH_LEN, NULL, out,
 		sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, 0, out,
-		sizeof (out));
+	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, 0, NULL, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL,
+	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL, NULL,
 		sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
@@ -1808,7 +2051,7 @@ static void ecc_openssl_test_sign_small_buffer (CuTest *test)
 		&priv_key, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
+	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL, out,
 		ECC_TESTING_ECC256_DSA_MAX_LENGTH - 1);
 	CuAssertIntEquals (test, ECC_ENGINE_SIG_BUFFER_TOO_SMALL, status);
 
@@ -1834,7 +2077,7 @@ static void ecc_openssl_test_sign_unknown_hash (CuTest *test)
 		&priv_key, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.sign (&engine.base, &priv_key, SHA1_TEST_HASH, SHA1_HASH_LENGTH, out,
+	status = engine.base.sign (&engine.base, &priv_key, SHA1_TEST_HASH, SHA1_HASH_LENGTH, NULL, out,
 		ECC_TESTING_ECC256_DSA_MAX_LENGTH);
 	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_HASH_TYPE, status);
 
@@ -1859,24 +2102,24 @@ static void ecc_openssl_test_verify_null (CuTest *test)
 		&priv_key, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.verify (NULL, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
-		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+	status = engine.base.verify (NULL, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.verify (&engine.base, NULL, SIG_HASH_TEST, SIG_HASH_LEN,
 		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.verify (&engine.base, &pub_key, NULL, SIG_HASH_LEN,
-		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+	status = engine.base.verify (&engine.base, &pub_key, NULL, SIG_HASH_LEN, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, 0,
-		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, 0, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
-		NULL, ECC_SIG_TEST_LEN);
+	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
@@ -1908,8 +2151,8 @@ static void ecc_openssl_test_verify_corrupt_signature (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, pub_key.context);
 
-	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
-		bad_sig, sizeof (bad_sig));
+	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, bad_sig,
+		sizeof (bad_sig));
 	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
 
 	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
@@ -2026,6 +2269,26 @@ static void ecc_openssl_test_get_signature_max_length_random_key (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, &priv_key, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_length (&engine.base, &priv_key);
+	CuAssertIntEquals (test, ECC_TESTING_ECC256_DSA_MAX_LENGTH, status);
+
+	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
+
+	ecc_openssl_release (&engine);
+}
+
+static void ecc_openssl_test_get_signature_max_length_static_init (CuTest *test)
+{
+	struct ecc_engine_openssl engine = ecc_openssl_static_init ();
+	struct ecc_private_key priv_key;
+	int status;
+
+	TEST_START;
+
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		&priv_key, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_signature_max_length (&engine.base, &priv_key);
@@ -2170,6 +2433,26 @@ static void ecc_openssl_test_get_shared_secret_max_length_random_key (CuTest *te
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, &priv_key, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_shared_secret_max_length (&engine.base, &priv_key);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_256, status);
+
+	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
+
+	ecc_openssl_release (&engine);
+}
+
+static void ecc_openssl_test_get_shared_secret_max_length_static_init (CuTest *test)
+{
+	struct ecc_engine_openssl engine = ecc_openssl_static_init ();
+	struct ecc_private_key priv_key;
+	int status;
+
+	TEST_START;
+
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		&priv_key, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_shared_secret_max_length (&engine.base, &priv_key);
@@ -2392,7 +2675,7 @@ static void ecc_openssl_test_compute_shared_secret_different_keys (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	/* Prove the two keys are different. */
-	out_len1 = engine.base.sign (&engine.base, &priv_key1, SIG_HASH_TEST, SIG_HASH_LEN, sign,
+	out_len1 = engine.base.sign (&engine.base, &priv_key1, SIG_HASH_TEST, SIG_HASH_LEN, NULL, sign,
 		sizeof (sign));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len1));
 
@@ -2400,7 +2683,7 @@ static void ecc_openssl_test_compute_shared_secret_different_keys (CuTest *test)
 		out_len1);
 	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
 
-	out_len2 = engine.base.sign (&engine.base, &priv_key2, SIG_HASH_TEST, SIG_HASH_LEN, sign,
+	out_len2 = engine.base.sign (&engine.base, &priv_key2, SIG_HASH_TEST, SIG_HASH_LEN, NULL, sign,
 		sizeof (sign));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len2));
 
@@ -2426,6 +2709,33 @@ static void ecc_openssl_test_compute_shared_secret_different_keys (CuTest *test)
 	ecc_openssl_release (&engine);
 }
 
+static void ecc_openssl_test_compute_shared_secret_static_init (CuTest *test)
+{
+	struct ecc_engine_openssl engine = ecc_openssl_static_init ();
+	struct ecc_private_key priv_key;
+	struct ecc_public_key pub_key;
+	int status;
+	int out_len;
+	uint8_t out[ECC_DH_SECRET_LEN * 2];
+
+	TEST_START;
+
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		&priv_key, &pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	out_len = engine.base.compute_shared_secret (&engine.base, &priv_key, &pub_key, out,
+		sizeof (out));
+	CuAssertIntEquals (test, ECC_DH_SECRET_LEN, out_len);
+
+	status = testing_validate_array (ECC_DH_SECRET, out, out_len);
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.release_key_pair (&engine.base, &priv_key, &pub_key);
+
+	ecc_openssl_release (&engine);
+}
+
 static void ecc_openssl_test_compute_shared_secret_null (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -2443,16 +2753,13 @@ static void ecc_openssl_test_compute_shared_secret_null (CuTest *test)
 		&priv_key, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.compute_shared_secret (NULL, &priv_key, &pub_key, out,
-		sizeof (out));
+	status = engine.base.compute_shared_secret (NULL, &priv_key, &pub_key, out,	sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.compute_shared_secret (&engine.base, NULL, &pub_key, out,
-		sizeof (out));
+	status = engine.base.compute_shared_secret (&engine.base, NULL, &pub_key, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.compute_shared_secret (&engine.base, &priv_key, NULL, out,
-		sizeof (out));
+	status = engine.base.compute_shared_secret (&engine.base, &priv_key, NULL, out,	sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.compute_shared_secret (&engine.base, &priv_key, &pub_key, NULL,
@@ -2641,6 +2948,34 @@ static void ecc_openssl_test_get_private_key_der_generated_key_pair (CuTest *tes
 	if ((length > ECC_PRIVKEY_DER_LEN + 1) || (length < ECC_PRIVKEY_DER_LEN - 1)) {
 		CuAssertIntEquals (test, ECC_PRIVKEY_DER_LEN, length);
 	}
+
+	platform_free (der);
+	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
+
+	ecc_openssl_release (&engine);
+}
+
+static void ecc_openssl_test_get_private_key_der_static_init (CuTest *test)
+{
+	struct ecc_engine_openssl engine = ecc_openssl_static_init ();
+	struct ecc_private_key priv_key;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		&priv_key, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_private_key_der (&engine.base, &priv_key, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+	CuAssertIntEquals (test, ECC_PRIVKEY_DER_LEN, length);
+
+	status = testing_validate_array (ECC_PRIVKEY_DER, der, ECC_PRIVKEY_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
 
 	platform_free (der);
 	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
@@ -2897,6 +3232,34 @@ static void ecc_openssl_test_get_public_key_der_generated_key_pair (CuTest *test
 	ecc_openssl_release (&engine);
 }
 
+static void ecc_openssl_test_get_public_key_der_static_init (CuTest *test)
+{
+	struct ecc_engine_openssl engine = ecc_openssl_static_init ();
+	struct ecc_public_key pub_key;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, NULL,
+		&pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_public_key_der (&engine.base, &pub_key, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+	CuAssertIntEquals (test, ECC_PUBKEY_DER_LEN, length);
+
+	status = testing_validate_array (ECC_PUBKEY_DER, der, ECC_PUBKEY_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	platform_free (der);
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	ecc_openssl_release (&engine);
+}
+
 static void ecc_openssl_test_get_public_key_der_null (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -2969,6 +3332,7 @@ TEST_SUITE_START (ecc_openssl);
 
 TEST (ecc_openssl_test_init);
 TEST (ecc_openssl_test_init_null);
+TEST (ecc_openssl_test_static_init);
 TEST (ecc_openssl_test_release_null);
 TEST (ecc_openssl_test_public_key_init_key_pair_and_verify);
 TEST (ecc_openssl_test_public_key_init_key_pair_and_verify_no_pubkey);
@@ -3002,6 +3366,7 @@ TEST (ecc_openssl_test_init_key_pair_and_sign_and_verify_p521_extra_buffer);
 #endif
 TEST (ecc_openssl_test_init_key_pair_and_sign_with_public_key);
 TEST (ecc_openssl_test_init_key_pair_no_keys);
+TEST (ecc_openssl_test_init_key_pair_and_sign_and_verify_static_init);
 TEST (ecc_openssl_test_init_key_pair_null);
 TEST (ecc_openssl_test_init_key_pair_with_public_key);
 TEST (ecc_openssl_test_init_key_pair_with_rsa_key);
@@ -3016,6 +3381,7 @@ TEST (ecc_openssl_test_init_public_key_and_verify_p521);
 TEST (ecc_openssl_test_init_public_key_and_verify_p521_extra_buffer);
 #endif
 TEST (ecc_openssl_test_init_public_key_and_verify_bad_sig);
+TEST (ecc_openssl_test_init_public_key_and_verify_static_init);
 TEST (ecc_openssl_test_init_public_key_null);
 TEST (ecc_openssl_test_init_public_key_with_private_key);
 TEST (ecc_openssl_test_init_public_key_with_rsa_key);
@@ -3030,6 +3396,7 @@ TEST (ecc_openssl_test_generate_derived_key_pair_and_sign_and_verify_p384);
 TEST (ecc_openssl_test_generate_derived_key_pair_and_sign_and_verify_p521);
 TEST (ecc_openssl_test_generate_derived_key_pair_and_sign_with_public_key);
 TEST (ecc_openssl_test_generate_derived_key_pair_no_keys);
+TEST (ecc_openssl_test_generate_derived_key_pair_and_sign_and_verify_static_init);
 TEST (ecc_openssl_test_generate_derived_key_pair_null);
 TEST (ecc_openssl_test_generate_derived_key_pair_unsupported_key_length);
 TEST (ecc_openssl_test_public_key_generate_key_pair);
@@ -3040,8 +3407,16 @@ TEST (ecc_openssl_test_generate_key_pair_and_sign_and_verify_p384);
 TEST (ecc_openssl_test_generate_key_pair_and_sign_and_verify_p521);
 TEST (ecc_openssl_test_generate_key_pair_and_sign_with_public_key);
 TEST (ecc_openssl_test_generate_key_pair_no_keys);
+TEST (ecc_openssl_test_generate_key_pair_and_sign_and_verify_static_init);
 TEST (ecc_openssl_test_generate_key_pair_null);
 TEST (ecc_openssl_test_generate_key_pair_unsupported_key_length);
+TEST (ecc_openssl_test_sign_external_rng);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+TEST (ecc_openssl_test_sign_external_rng_p384);
+#endif
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+TEST (ecc_openssl_test_sign_external_rng_p521);
+#endif
 TEST (ecc_openssl_test_sign_null);
 TEST (ecc_openssl_test_sign_small_buffer);
 TEST (ecc_openssl_test_sign_unknown_hash);
@@ -3056,6 +3431,7 @@ TEST (ecc_openssl_test_get_signature_max_length_p521);
 #endif
 TEST (ecc_openssl_test_get_signature_max_length_derived_key);
 TEST (ecc_openssl_test_get_signature_max_length_random_key);
+TEST (ecc_openssl_test_get_signature_max_length_static_init);
 TEST (ecc_openssl_test_get_signature_max_length_null);
 TEST (ecc_openssl_test_get_shared_secret_max_length);
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
@@ -3066,6 +3442,7 @@ TEST (ecc_openssl_test_get_shared_secret_max_length_p521);
 #endif
 TEST (ecc_openssl_test_get_shared_secret_max_length_derived_key);
 TEST (ecc_openssl_test_get_shared_secret_max_length_random_key);
+TEST (ecc_openssl_test_get_shared_secret_max_length_static_init);
 TEST (ecc_openssl_test_get_shared_secret_max_length_null);
 TEST (ecc_openssl_test_compute_shared_secret);
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
@@ -3077,6 +3454,7 @@ TEST (ecc_openssl_test_compute_shared_secret_p521);
 TEST (ecc_openssl_test_compute_shared_secret_leading_zero);
 TEST (ecc_openssl_test_compute_shared_secret_derived_key);
 TEST (ecc_openssl_test_compute_shared_secret_different_keys);
+TEST (ecc_openssl_test_compute_shared_secret_static_init);
 TEST (ecc_openssl_test_compute_shared_secret_null);
 TEST (ecc_openssl_test_compute_shared_secret_small_buffer);
 TEST (ecc_openssl_test_get_private_key_der);
@@ -3088,6 +3466,7 @@ TEST (ecc_openssl_test_get_private_key_der_p521);
 #endif
 TEST (ecc_openssl_test_get_private_key_der_derived_key_pair);
 TEST (ecc_openssl_test_get_private_key_der_generated_key_pair);
+TEST (ecc_openssl_test_get_private_key_der_static_init);
 TEST (ecc_openssl_test_get_private_key_der_null);
 TEST (ecc_openssl_test_get_private_key_der_public_key_from_private);
 TEST (ecc_openssl_test_get_private_key_der_public_key);
@@ -3100,6 +3479,7 @@ TEST (ecc_openssl_test_get_public_key_der_p521);
 #endif
 TEST (ecc_openssl_test_get_public_key_der_derived_key_pair);
 TEST (ecc_openssl_test_get_public_key_der_generated_key_pair);
+TEST (ecc_openssl_test_get_public_key_der_static_init);
 TEST (ecc_openssl_test_get_public_key_der_null);
 TEST (ecc_openssl_test_get_public_key_der_private_key);
 

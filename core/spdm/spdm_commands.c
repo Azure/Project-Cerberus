@@ -1223,7 +1223,7 @@ static void spdm_create_signing_context (struct spdm_state *state, uint8_t op_co
  * @return 0 if signature is generated successfully, error code otherwise.
  */
 static int spdm_responder_data_sign (struct spdm_state *state,
-	const struct riot_key_manager *key_manager, struct ecc_engine *ecc_engine,
+	const struct riot_key_manager *key_manager, const struct ecc_engine *ecc_engine,
 	const struct hash_engine *hash_engine, uint8_t op_code, const uint8_t *message_hash,
 	size_t hash_size, uint8_t *signature, size_t sig_size)
 {
@@ -1285,10 +1285,10 @@ static int spdm_responder_data_sign (struct spdm_state *state,
 
 		/* Sign the full message hash. */
 		sig_size_der = ecc_engine->sign (ecc_engine, &alias_priv_key, full_message_hash, hash_size,
-			sig_der, sig_size_der);
+			NULL, sig_der, sig_size_der);
 	}
 	else {
-		sig_size_der = ecc_engine->sign (ecc_engine, &alias_priv_key, message_hash, hash_size,
+		sig_size_der = ecc_engine->sign (ecc_engine, &alias_priv_key, message_hash, hash_size, NULL,
 			sig_der, sig_size_der);
 	}
 	if (ROT_IS_ERROR (sig_size_der)) {
@@ -1331,7 +1331,7 @@ exit:
  */
 static int spdm_generate_measurement_signature (
 	const struct spdm_transcript_manager *transcript_manager, struct spdm_state *state,
-	const struct riot_key_manager *key_manager, struct ecc_engine *ecc_engine,
+	const struct riot_key_manager *key_manager, const struct ecc_engine *ecc_engine,
 	const struct hash_engine *hash_engine, struct spdm_secure_session *session_info,
 	uint8_t *signature, size_t sig_size)
 {
@@ -1392,7 +1392,7 @@ exit:
  */
 static int spdm_generate_key_exchange_rsp_signature (
 	const struct spdm_transcript_manager *transcript_manager, struct spdm_state *state,
-	const struct riot_key_manager *key_manager, struct ecc_engine *ecc_engine,
+	const struct riot_key_manager *key_manager, const struct ecc_engine *ecc_engine,
 	const struct hash_engine *hash_engine, struct spdm_secure_session *session, uint8_t *signature,
 	uint32_t sig_size)
 {
@@ -1437,7 +1437,7 @@ exit:
  */
 static int spdm_calculate_th_hmac_for_key_exchange_rsp (
 	const struct spdm_transcript_manager *transcript_manager, struct spdm_state *state,
-	struct ecc_engine *ecc_engine, const struct hash_engine *hash_engine,
+	const struct ecc_engine *ecc_engine, const struct hash_engine *hash_engine,
 	struct spdm_secure_session *session, uint8_t *th_hmac_buffer)
 {
 	int status;
@@ -2977,7 +2977,7 @@ int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
 	const struct hash_engine *hash_engine;
 	const struct riot_key_manager *key_manager;
 	const struct rng_engine *rng_engine;
-	struct ecc_engine *ecc_engine;
+	const struct ecc_engine *ecc_engine;
 	enum hash_type hash_type;
 	int hash_size;
 	size_t signature_size;

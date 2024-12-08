@@ -7,9 +7,12 @@
 #include <string.h>
 #include "testing.h"
 #include "crypto/ecc_thread_safe.h"
+#include "crypto/ecc_thread_safe_static.h"
+#include "crypto/kat/ecc_kat_vectors.h"
 #include "testing/crypto/ecc_testing.h"
 #include "testing/crypto/signature_testing.h"
 #include "testing/mock/crypto/ecc_mock.h"
+#include "testing/mock/crypto/rng_mock.h"
 
 
 TEST_SUITE_LABEL ("ecc_thread_safe");
@@ -21,6 +24,7 @@ TEST_SUITE_LABEL ("ecc_thread_safe");
 
 static void ecc_thread_safe_test_init (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	int status;
@@ -30,7 +34,7 @@ static void ecc_thread_safe_test_init (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, engine.base.init_key_pair);
@@ -54,6 +58,7 @@ static void ecc_thread_safe_test_init (CuTest *test)
 
 static void ecc_thread_safe_test_init_null (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	int status;
@@ -63,10 +68,73 @@ static void ecc_thread_safe_test_init_null (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (NULL, &mock.base);
+	status = ecc_thread_safe_init (NULL, &state, &mock.base);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = ecc_thread_safe_init (&engine, NULL);
+	status = ecc_thread_safe_init (&engine, NULL, &mock.base);
+	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
+
+	status = ecc_thread_safe_init (&engine, &state, NULL);
+	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
+
+	status = ecc_mock_validate_and_release (&mock);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void ecc_thread_safe_test_static_init (CuTest *test)
+{
+	struct ecc_engine_mock mock;
+	struct ecc_engine_thread_safe_state state;
+	struct ecc_engine_thread_safe engine = ecc_thread_safe_static_init (&state, &mock.base);
+	int status;
+
+	TEST_START;
+
+	CuAssertPtrNotNull (test, engine.base.init_key_pair);
+	CuAssertPtrNotNull (test, engine.base.init_public_key);
+	CuAssertPtrNotNull (test, engine.base.generate_derived_key_pair);
+	CuAssertPtrNotNull (test, engine.base.generate_key_pair);
+	CuAssertPtrNotNull (test, engine.base.release_key_pair);
+	CuAssertPtrNotNull (test, engine.base.get_signature_max_length);
+	CuAssertPtrNotNull (test, engine.base.get_private_key_der);
+	CuAssertPtrNotNull (test, engine.base.get_public_key_der);
+	CuAssertPtrNotNull (test, engine.base.sign);
+	CuAssertPtrNotNull (test, engine.base.verify);
+	CuAssertPtrNotNull (test, engine.base.get_shared_secret_max_length);
+	CuAssertPtrNotNull (test, engine.base.compute_shared_secret);
+
+	status = ecc_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_thread_safe_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_validate_and_release (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	ecc_thread_safe_release (&engine);
+}
+
+static void ecc_thread_safe_test_static_init_null (CuTest *test)
+{
+	struct ecc_engine_mock mock;
+	struct ecc_engine_thread_safe_state state;
+	struct ecc_engine_thread_safe null_state = ecc_thread_safe_static_init (NULL, &mock.base);
+	struct ecc_engine_thread_safe null_target = ecc_thread_safe_static_init (&state, NULL);
+	int status;
+
+	TEST_START;
+
+	status = ecc_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_thread_safe_init_state (NULL);
+	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
+
+	status = ecc_thread_safe_init_state (&null_state);
+	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
+
+	status = ecc_thread_safe_init_state (&null_target);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = ecc_mock_validate_and_release (&mock);
@@ -82,6 +150,7 @@ static void ecc_thread_safe_test_release_null (CuTest *test)
 
 static void ecc_thread_safe_test_init_key_pair (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -93,7 +162,44 @@ static void ecc_thread_safe_test_init_key_pair (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.init_key_pair, &mock, 0,
+		MOCK_ARG_PTR (ECC_PRIVKEY_DER), MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG_PTR (&priv_key),
+		MOCK_ARG_PTR (&pub_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_key_pair (&engine.base, (const uint8_t*) ECC_PRIVKEY_DER,
+		ECC_PRIVKEY_DER_LEN, &priv_key, &pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.init_key_pair (&engine.base, (const uint8_t*) ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+
+	ecc_mock_release (&mock);
+	ecc_thread_safe_release (&engine);
+}
+
+static void ecc_thread_safe_test_init_key_pair_static_init (CuTest *test)
+{
+	struct ecc_engine_mock mock;
+	struct ecc_engine_thread_safe_state state;
+	struct ecc_engine_thread_safe engine = ecc_thread_safe_static_init (&state, &mock.base);
+	struct ecc_private_key priv_key;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_thread_safe_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.init_key_pair, &mock, 0,
@@ -118,6 +224,7 @@ static void ecc_thread_safe_test_init_key_pair (CuTest *test)
 
 static void ecc_thread_safe_test_init_key_pair_error (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -129,7 +236,7 @@ static void ecc_thread_safe_test_init_key_pair_error (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.init_key_pair, &mock, ECC_ENGINE_KEY_PAIR_FAILED,
@@ -154,6 +261,7 @@ static void ecc_thread_safe_test_init_key_pair_error (CuTest *test)
 
 static void ecc_thread_safe_test_init_key_pair_null (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -165,7 +273,7 @@ static void ecc_thread_safe_test_init_key_pair_null (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_key_pair (NULL, (const uint8_t*) ECC_PRIVKEY_DER,	ECC_PRIVKEY_DER_LEN,
@@ -185,6 +293,7 @@ static void ecc_thread_safe_test_init_key_pair_null (CuTest *test)
 
 static void ecc_thread_safe_test_init_public_key (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_public_key pub_key;
@@ -195,7 +304,42 @@ static void ecc_thread_safe_test_init_public_key (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.init_public_key, &mock, 0,
+		MOCK_ARG_PTR (ECC_PUBKEY_DER), MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_PTR (&pub_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_public_key (&engine.base, (const uint8_t*) ECC_PUBKEY_DER,
+		ECC_PUBKEY_DER_LEN, &pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.init_key_pair (&engine.base, (const uint8_t*) ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+
+	ecc_mock_release (&mock);
+	ecc_thread_safe_release (&engine);
+}
+
+static void ecc_thread_safe_test_init_public_key_static_init (CuTest *test)
+{
+	struct ecc_engine_mock mock;
+	struct ecc_engine_thread_safe_state state;
+	struct ecc_engine_thread_safe engine = ecc_thread_safe_static_init (&state, &mock.base);
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_thread_safe_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.init_public_key, &mock, 0,
@@ -219,6 +363,7 @@ static void ecc_thread_safe_test_init_public_key (CuTest *test)
 
 static void ecc_thread_safe_test_init_public_key_error (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_public_key pub_key;
@@ -229,7 +374,7 @@ static void ecc_thread_safe_test_init_public_key_error (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.init_public_key, &mock,
@@ -254,6 +399,7 @@ static void ecc_thread_safe_test_init_public_key_error (CuTest *test)
 
 static void ecc_thread_safe_test_init_public_key_null (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_public_key pub_key;
@@ -264,7 +410,7 @@ static void ecc_thread_safe_test_init_public_key_null (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_public_key (NULL, (const uint8_t*) ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
@@ -284,6 +430,7 @@ static void ecc_thread_safe_test_init_public_key_null (CuTest *test)
 
 static void ecc_thread_safe_test_generate_derived_key_pair (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -295,7 +442,44 @@ static void ecc_thread_safe_test_generate_derived_key_pair (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.generate_derived_key_pair, &mock, 0,
+		MOCK_ARG_PTR (ECC_PRIVKEY), MOCK_ARG (ECC_PRIVKEY_LEN), MOCK_ARG_PTR (&priv_key),
+		MOCK_ARG_PTR (&pub_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.generate_derived_key_pair (&engine.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN,
+		&priv_key, &pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.init_key_pair (&engine.base, (const uint8_t*) ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+
+	ecc_mock_release (&mock);
+	ecc_thread_safe_release (&engine);
+}
+
+static void ecc_thread_safe_test_generate_derived_key_pair_static_init (CuTest *test)
+{
+	struct ecc_engine_mock mock;
+	struct ecc_engine_thread_safe_state state;
+	struct ecc_engine_thread_safe engine = ecc_thread_safe_static_init (&state, &mock.base);
+	struct ecc_private_key priv_key;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_thread_safe_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.generate_derived_key_pair, &mock, 0,
@@ -320,6 +504,7 @@ static void ecc_thread_safe_test_generate_derived_key_pair (CuTest *test)
 
 static void ecc_thread_safe_test_generate_derived_key_pair_error (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -331,7 +516,7 @@ static void ecc_thread_safe_test_generate_derived_key_pair_error (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.generate_derived_key_pair, &mock,
@@ -356,6 +541,7 @@ static void ecc_thread_safe_test_generate_derived_key_pair_error (CuTest *test)
 
 static void ecc_thread_safe_test_generate_derived_key_pair_null (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -367,7 +553,7 @@ static void ecc_thread_safe_test_generate_derived_key_pair_null (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_derived_key_pair (NULL, ECC_PRIVKEY, ECC_PRIVKEY_LEN,	&priv_key,
@@ -387,6 +573,7 @@ static void ecc_thread_safe_test_generate_derived_key_pair_null (CuTest *test)
 
 static void ecc_thread_safe_test_generate_key_pair (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -398,7 +585,42 @@ static void ecc_thread_safe_test_generate_key_pair (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.generate_key_pair, &mock, 0,
+		MOCK_ARG (ECC_KEY_LENGTH_256), MOCK_ARG_PTR (&priv_key), MOCK_ARG_PTR (&pub_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, &priv_key, &pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.init_key_pair (&engine.base, (const uint8_t*) ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+
+	ecc_mock_release (&mock);
+	ecc_thread_safe_release (&engine);
+}
+
+static void ecc_thread_safe_test_generate_key_pair_static_init (CuTest *test)
+{
+	struct ecc_engine_mock mock;
+	struct ecc_engine_thread_safe_state state;
+	struct ecc_engine_thread_safe engine = ecc_thread_safe_static_init (&state, &mock.base);
+	struct ecc_private_key priv_key;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_thread_safe_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.generate_key_pair, &mock, 0,
@@ -421,6 +643,7 @@ static void ecc_thread_safe_test_generate_key_pair (CuTest *test)
 
 static void ecc_thread_safe_test_generate_key_pair_error (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -432,7 +655,7 @@ static void ecc_thread_safe_test_generate_key_pair_error (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.generate_key_pair, &mock,
@@ -456,6 +679,7 @@ static void ecc_thread_safe_test_generate_key_pair_error (CuTest *test)
 
 static void ecc_thread_safe_test_generate_key_pair_null (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -467,7 +691,7 @@ static void ecc_thread_safe_test_generate_key_pair_null (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_key_pair (NULL, ECC_KEY_LENGTH_256, &priv_key, &pub_key);
@@ -486,6 +710,7 @@ static void ecc_thread_safe_test_generate_key_pair_null (CuTest *test)
 
 static void ecc_thread_safe_test_release_key_pair (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -497,7 +722,41 @@ static void ecc_thread_safe_test_release_key_pair (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.release_key_pair, &mock, 0,
+		MOCK_ARG_PTR (&priv_key), MOCK_ARG_PTR (&pub_key));
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.release_key_pair (&engine.base, &priv_key, &pub_key);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.init_key_pair (&engine.base, (const uint8_t*) ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+
+	ecc_mock_release (&mock);
+	ecc_thread_safe_release (&engine);
+}
+
+static void ecc_thread_safe_test_release_key_pair_static_init (CuTest *test)
+{
+	struct ecc_engine_mock mock;
+	struct ecc_engine_thread_safe_state state;
+	struct ecc_engine_thread_safe engine = ecc_thread_safe_static_init (&state, &mock.base);
+	struct ecc_private_key priv_key;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_thread_safe_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.release_key_pair, &mock, 0,
@@ -519,6 +778,7 @@ static void ecc_thread_safe_test_release_key_pair (CuTest *test)
 
 static void ecc_thread_safe_test_release_key_pair_null (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -530,7 +790,7 @@ static void ecc_thread_safe_test_release_key_pair_null (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	engine.base.release_key_pair (NULL, &priv_key, &pub_key);
@@ -548,6 +808,7 @@ static void ecc_thread_safe_test_release_key_pair_null (CuTest *test)
 
 static void ecc_thread_safe_test_get_signature_max_length (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_public_key pub_key;
@@ -559,7 +820,42 @@ static void ecc_thread_safe_test_get_signature_max_length (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.get_signature_max_length, &mock, 72,
+		MOCK_ARG_PTR (&priv_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_length (&engine.base, &priv_key);
+	CuAssertIntEquals (test, 72, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.init_key_pair (&engine.base, (const uint8_t*) ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+
+	ecc_mock_release (&mock);
+	ecc_thread_safe_release (&engine);
+}
+
+static void ecc_thread_safe_test_get_signature_max_length_static_init (CuTest *test)
+{
+	struct ecc_engine_mock mock;
+	struct ecc_engine_thread_safe_state state;
+	struct ecc_engine_thread_safe engine = ecc_thread_safe_static_init (&state, &mock.base);
+	struct ecc_public_key pub_key;
+	struct ecc_private_key priv_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_thread_safe_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_signature_max_length, &mock, 72,
@@ -582,6 +878,7 @@ static void ecc_thread_safe_test_get_signature_max_length (CuTest *test)
 
 static void ecc_thread_safe_test_get_signature_max_length_error (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -593,7 +890,7 @@ static void ecc_thread_safe_test_get_signature_max_length_error (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_signature_max_length, &mock,
@@ -616,6 +913,7 @@ static void ecc_thread_safe_test_get_signature_max_length_error (CuTest *test)
 
 static void ecc_thread_safe_test_get_signature_max_length_null (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -627,7 +925,7 @@ static void ecc_thread_safe_test_get_signature_max_length_null (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_signature_max_length (NULL, &priv_key);
@@ -646,6 +944,7 @@ static void ecc_thread_safe_test_get_signature_max_length_null (CuTest *test)
 
 static void ecc_thread_safe_test_get_private_key_der (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -659,7 +958,44 @@ static void ecc_thread_safe_test_get_private_key_der (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.get_private_key_der, &mock, 0,
+		MOCK_ARG_PTR (&priv_key), MOCK_ARG_PTR (&der), MOCK_ARG_PTR (&length));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_private_key_der (&engine.base, &priv_key, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.init_key_pair (&engine.base, (const uint8_t*) ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+
+	ecc_mock_release (&mock);
+	ecc_thread_safe_release (&engine);
+}
+
+static void ecc_thread_safe_test_get_private_key_der_static_init (CuTest *test)
+{
+	struct ecc_engine_mock mock;
+	struct ecc_engine_thread_safe_state state;
+	struct ecc_engine_thread_safe engine = ecc_thread_safe_static_init (&state, &mock.base);
+	struct ecc_private_key priv_key;
+	struct ecc_public_key pub_key;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = ecc_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_thread_safe_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_private_key_der, &mock, 0,
@@ -682,6 +1018,7 @@ static void ecc_thread_safe_test_get_private_key_der (CuTest *test)
 
 static void ecc_thread_safe_test_get_private_key_der_error (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -695,7 +1032,7 @@ static void ecc_thread_safe_test_get_private_key_der_error (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_private_key_der, &mock,
@@ -719,6 +1056,7 @@ static void ecc_thread_safe_test_get_private_key_der_error (CuTest *test)
 
 static void ecc_thread_safe_test_get_private_key_der_null (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -732,7 +1070,7 @@ static void ecc_thread_safe_test_get_private_key_der_null (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_private_key_der (NULL, &priv_key, &der, &length);
@@ -751,6 +1089,7 @@ static void ecc_thread_safe_test_get_private_key_der_null (CuTest *test)
 
 static void ecc_thread_safe_test_get_public_key_der (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_public_key pub_key;
@@ -763,7 +1102,43 @@ static void ecc_thread_safe_test_get_public_key_der (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.get_public_key_der, &mock, 0,
+		MOCK_ARG_PTR (&pub_key), MOCK_ARG_PTR (&der), MOCK_ARG_PTR (&length));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_public_key_der (&engine.base, &pub_key, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.init_key_pair (&engine.base, (const uint8_t*) ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+
+	ecc_mock_release (&mock);
+	ecc_thread_safe_release (&engine);
+}
+
+static void ecc_thread_safe_test_get_public_key_der_static_init (CuTest *test)
+{
+	struct ecc_engine_mock mock;
+	struct ecc_engine_thread_safe_state state;
+	struct ecc_engine_thread_safe engine = ecc_thread_safe_static_init (&state, &mock.base);
+	struct ecc_public_key pub_key;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = ecc_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_thread_safe_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_public_key_der, &mock, 0,
@@ -786,6 +1161,7 @@ static void ecc_thread_safe_test_get_public_key_der (CuTest *test)
 
 static void ecc_thread_safe_test_get_public_key_der_error (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_public_key pub_key;
@@ -798,7 +1174,7 @@ static void ecc_thread_safe_test_get_public_key_der_error (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_public_key_der, &mock,
@@ -822,6 +1198,7 @@ static void ecc_thread_safe_test_get_public_key_der_error (CuTest *test)
 
 static void ecc_thread_safe_test_get_public_key_der_null (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_public_key pub_key;
@@ -834,7 +1211,7 @@ static void ecc_thread_safe_test_get_public_key_der_null (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_public_key_der (NULL, &pub_key, &der, &length);
@@ -853,6 +1230,7 @@ static void ecc_thread_safe_test_get_public_key_der_null (CuTest *test)
 
 static void ecc_thread_safe_test_sign (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -865,15 +1243,99 @@ static void ecc_thread_safe_test_sign (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.sign, &mock, 72, MOCK_ARG_PTR (&priv_key),
-		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR (out),
-		MOCK_ARG (sizeof (out)));
+		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
+	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL, out,
+		sizeof (out));
+	CuAssertIntEquals (test, 72, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.init_key_pair (&engine.base, (const uint8_t*) ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+
+	ecc_mock_release (&mock);
+	ecc_thread_safe_release (&engine);
+}
+
+static void ecc_thread_safe_test_sign_external_rng (CuTest *test)
+{
+	struct ecc_engine_thread_safe_state state;
+	struct ecc_engine_thread_safe engine;
+	struct ecc_engine_mock mock;
+	struct rng_engine_mock rng;
+	struct ecc_private_key priv_key;
+	struct ecc_public_key pub_key;
+	int status;
+	uint8_t out[72];
+
+	TEST_START;
+
+	status = ecc_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = rng_mock_init (&rng);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.sign, &mock,
+		ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER_LEN, MOCK_ARG_PTR (&priv_key),
+		MOCK_ARG_PTR (ECC_KAT_VECTORS_ECDSA_SHA256_DIGEST), MOCK_ARG (SHA256_HASH_LENGTH),
+		MOCK_ARG_PTR (&rng), MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.sign (&engine.base, &priv_key, ECC_KAT_VECTORS_ECDSA_SHA256_DIGEST,
+		SHA256_HASH_LENGTH, &rng.base, out, sizeof (out));
+	CuAssertIntEquals (test, ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER_LEN, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.init_key_pair (&engine.base, (const uint8_t*) ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+
+	status = rng_mock_validate_and_release (&rng);
+	CuAssertIntEquals (test, 0, status);
+
+	ecc_mock_release (&mock);
+	ecc_thread_safe_release (&engine);
+}
+
+static void ecc_thread_safe_test_sign_static_init (CuTest *test)
+{
+	struct ecc_engine_mock mock;
+	struct ecc_engine_thread_safe_state state;
+	struct ecc_engine_thread_safe engine = ecc_thread_safe_static_init (&state, &mock.base);
+	struct ecc_private_key priv_key;
+	struct ecc_public_key pub_key;
+	int status;
+	uint8_t out[72];
+
+	TEST_START;
+
+	status = ecc_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_thread_safe_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.sign, &mock, 72, MOCK_ARG_PTR (&priv_key),
+		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL, out,
 		sizeof (out));
 	CuAssertIntEquals (test, 72, status);
 
@@ -890,6 +1352,7 @@ static void ecc_thread_safe_test_sign (CuTest *test)
 
 static void ecc_thread_safe_test_sign_error (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -902,15 +1365,15 @@ static void ecc_thread_safe_test_sign_error (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.sign, &mock, ECC_ENGINE_SIGN_FAILED,
 		MOCK_ARG_PTR (&priv_key), MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN),
-		MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
+	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL, out,
 		sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_SIGN_FAILED, status);
 
@@ -927,6 +1390,7 @@ static void ecc_thread_safe_test_sign_error (CuTest *test)
 
 static void ecc_thread_safe_test_sign_null (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -939,10 +1403,11 @@ static void ecc_thread_safe_test_sign_null (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.sign (NULL, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out, sizeof (out));
+	status = engine.base.sign (NULL, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, NULL, out,
+		sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);
@@ -958,6 +1423,7 @@ static void ecc_thread_safe_test_sign_null (CuTest *test)
 
 static void ecc_thread_safe_test_verify (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_public_key pub_key;
@@ -968,7 +1434,43 @@ static void ecc_thread_safe_test_verify (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.verify, &mock, 0, MOCK_ARG_PTR (&pub_key),
+		MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR (ECC_SIGNATURE_TEST),
+		MOCK_ARG (ECC_SIG_TEST_LEN));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN,
+		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.init_key_pair (&engine.base, (const uint8_t*) ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+
+	ecc_mock_release (&mock);
+	ecc_thread_safe_release (&engine);
+}
+
+static void ecc_thread_safe_test_verify_static_init (CuTest *test)
+{
+	struct ecc_engine_mock mock;
+	struct ecc_engine_thread_safe_state state;
+	struct ecc_engine_thread_safe engine = ecc_thread_safe_static_init (&state, &mock.base);
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_thread_safe_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.verify, &mock, 0, MOCK_ARG_PTR (&pub_key),
@@ -993,6 +1495,7 @@ static void ecc_thread_safe_test_verify (CuTest *test)
 
 static void ecc_thread_safe_test_verify_error (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_public_key pub_key;
@@ -1003,7 +1506,7 @@ static void ecc_thread_safe_test_verify_error (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.verify, &mock, ECC_ENGINE_VERIFY_FAILED,
@@ -1028,6 +1531,7 @@ static void ecc_thread_safe_test_verify_error (CuTest *test)
 
 static void ecc_thread_safe_test_verify_null (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_public_key pub_key;
@@ -1038,7 +1542,7 @@ static void ecc_thread_safe_test_verify_null (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.verify (NULL, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, ECC_SIGNATURE_TEST,
@@ -1058,6 +1562,7 @@ static void ecc_thread_safe_test_verify_null (CuTest *test)
 
 static void ecc_thread_safe_test_get_shared_secret_max_length (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -1069,7 +1574,42 @@ static void ecc_thread_safe_test_get_shared_secret_max_length (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.get_shared_secret_max_length, &mock,
+		ECC_KEY_LENGTH_256, MOCK_ARG_PTR (&priv_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_shared_secret_max_length (&engine.base, &priv_key);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_256, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.init_key_pair (&engine.base, (const uint8_t*) ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+
+	ecc_mock_release (&mock);
+	ecc_thread_safe_release (&engine);
+}
+
+static void ecc_thread_safe_test_get_shared_secret_max_length_static_init (CuTest *test)
+{
+	struct ecc_engine_mock mock;
+	struct ecc_engine_thread_safe_state state;
+	struct ecc_engine_thread_safe engine = ecc_thread_safe_static_init (&state, &mock.base);
+	struct ecc_private_key priv_key;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_thread_safe_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_shared_secret_max_length, &mock,
@@ -1092,6 +1632,7 @@ static void ecc_thread_safe_test_get_shared_secret_max_length (CuTest *test)
 
 static void ecc_thread_safe_test_get_shared_secret_max_length_error (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -1103,7 +1644,7 @@ static void ecc_thread_safe_test_get_shared_secret_max_length_error (CuTest *tes
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_shared_secret_max_length, &mock,
@@ -1126,6 +1667,7 @@ static void ecc_thread_safe_test_get_shared_secret_max_length_error (CuTest *tes
 
 static void ecc_thread_safe_test_get_shared_secret_max_length_null (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -1137,7 +1679,7 @@ static void ecc_thread_safe_test_get_shared_secret_max_length_null (CuTest *test
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_shared_secret_max_length (NULL, &priv_key);
@@ -1156,6 +1698,7 @@ static void ecc_thread_safe_test_get_shared_secret_max_length_null (CuTest *test
 
 static void ecc_thread_safe_test_compute_shared_secret (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -1168,7 +1711,45 @@ static void ecc_thread_safe_test_compute_shared_secret (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.compute_shared_secret, &mock, ECC_DH_SECRET_LEN,
+		MOCK_ARG_PTR (&priv_key), MOCK_ARG_PTR (&pub_key), MOCK_ARG_PTR (out),
+		MOCK_ARG (sizeof (out)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.compute_shared_secret (&engine.base, &priv_key, &pub_key, out,
+		sizeof (out));
+	CuAssertIntEquals (test, ECC_DH_SECRET_LEN, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.init_key_pair (&engine.base, (const uint8_t*) ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+
+	ecc_mock_release (&mock);
+	ecc_thread_safe_release (&engine);
+}
+
+static void ecc_thread_safe_test_compute_shared_secret_static_init (CuTest *test)
+{
+	struct ecc_engine_mock mock;
+	struct ecc_engine_thread_safe_state state;
+	struct ecc_engine_thread_safe engine = ecc_thread_safe_static_init (&state, &mock.base);
+	struct ecc_private_key priv_key;
+	struct ecc_public_key pub_key;
+	int status;
+	uint8_t out[ECC_DH_SECRET_LEN];
+
+	TEST_START;
+
+	status = ecc_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_thread_safe_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.compute_shared_secret, &mock, ECC_DH_SECRET_LEN,
@@ -1193,6 +1774,7 @@ static void ecc_thread_safe_test_compute_shared_secret (CuTest *test)
 
 static void ecc_thread_safe_test_compute_shared_secret_error (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -1205,7 +1787,7 @@ static void ecc_thread_safe_test_compute_shared_secret_error (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.compute_shared_secret, &mock,
@@ -1230,6 +1812,7 @@ static void ecc_thread_safe_test_compute_shared_secret_error (CuTest *test)
 
 static void ecc_thread_safe_test_compute_shared_secret_null (CuTest *test)
 {
+	struct ecc_engine_thread_safe_state state;
 	struct ecc_engine_thread_safe engine;
 	struct ecc_engine_mock mock;
 	struct ecc_private_key priv_key;
@@ -1242,7 +1825,7 @@ static void ecc_thread_safe_test_compute_shared_secret_null (CuTest *test)
 	status = ecc_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc_thread_safe_init (&engine, &mock.base);
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.compute_shared_secret (NULL, &priv_key, &pub_key, out,	sizeof (out));
@@ -1265,40 +1848,55 @@ TEST_SUITE_START (ecc_thread_safe);
 
 TEST (ecc_thread_safe_test_init);
 TEST (ecc_thread_safe_test_init_null);
+TEST (ecc_thread_safe_test_static_init);
+TEST (ecc_thread_safe_test_static_init_null);
 TEST (ecc_thread_safe_test_release_null);
 TEST (ecc_thread_safe_test_init_key_pair);
+TEST (ecc_thread_safe_test_init_key_pair_static_init);
 TEST (ecc_thread_safe_test_init_key_pair_error);
 TEST (ecc_thread_safe_test_init_key_pair_null);
 TEST (ecc_thread_safe_test_init_public_key);
+TEST (ecc_thread_safe_test_init_public_key_static_init);
 TEST (ecc_thread_safe_test_init_public_key_error);
 TEST (ecc_thread_safe_test_init_public_key_null);
 TEST (ecc_thread_safe_test_generate_derived_key_pair);
+TEST (ecc_thread_safe_test_generate_derived_key_pair_static_init);
 TEST (ecc_thread_safe_test_generate_derived_key_pair_error);
 TEST (ecc_thread_safe_test_generate_derived_key_pair_null);
 TEST (ecc_thread_safe_test_generate_key_pair);
+TEST (ecc_thread_safe_test_generate_key_pair_static_init);
 TEST (ecc_thread_safe_test_generate_key_pair_error);
 TEST (ecc_thread_safe_test_generate_key_pair_null);
 TEST (ecc_thread_safe_test_release_key_pair);
+TEST (ecc_thread_safe_test_release_key_pair_static_init);
 TEST (ecc_thread_safe_test_release_key_pair_null);
 TEST (ecc_thread_safe_test_get_signature_max_length);
+TEST (ecc_thread_safe_test_get_signature_max_length_static_init);
 TEST (ecc_thread_safe_test_get_signature_max_length_error);
 TEST (ecc_thread_safe_test_get_signature_max_length_null);
 TEST (ecc_thread_safe_test_get_private_key_der);
+TEST (ecc_thread_safe_test_get_private_key_der_static_init);
 TEST (ecc_thread_safe_test_get_private_key_der_error);
 TEST (ecc_thread_safe_test_get_private_key_der_null);
 TEST (ecc_thread_safe_test_get_public_key_der);
+TEST (ecc_thread_safe_test_get_public_key_der_static_init);
 TEST (ecc_thread_safe_test_get_public_key_der_error);
 TEST (ecc_thread_safe_test_get_public_key_der_null);
 TEST (ecc_thread_safe_test_sign);
+TEST (ecc_thread_safe_test_sign_external_rng);
+TEST (ecc_thread_safe_test_sign_static_init);
 TEST (ecc_thread_safe_test_sign_error);
 TEST (ecc_thread_safe_test_sign_null);
 TEST (ecc_thread_safe_test_verify);
+TEST (ecc_thread_safe_test_verify_static_init);
 TEST (ecc_thread_safe_test_verify_error);
 TEST (ecc_thread_safe_test_verify_null);
 TEST (ecc_thread_safe_test_get_shared_secret_max_length);
+TEST (ecc_thread_safe_test_get_shared_secret_max_length_static_init);
 TEST (ecc_thread_safe_test_get_shared_secret_max_length_error);
 TEST (ecc_thread_safe_test_get_shared_secret_max_length_null);
 TEST (ecc_thread_safe_test_compute_shared_secret);
+TEST (ecc_thread_safe_test_compute_shared_secret_static_init);
 TEST (ecc_thread_safe_test_compute_shared_secret_error);
 TEST (ecc_thread_safe_test_compute_shared_secret_null);
 

@@ -128,7 +128,7 @@ struct attestation_responder {
 
 	struct ecc_private_key ecc_priv_key;	/**< RIoT ECC private key. */
 	const struct hash_engine *hash;			/**< The hashing engine for attestation authentication operations. */
-	struct ecc_engine *ecc;					/**< The ECC engine for attestation authentication operations. */
+	const struct ecc_engine *ecc;			/**< The ECC engine for attestation authentication operations. */
 	const struct rng_engine *rng;			/**< The RNG engine for attestation authentication operations. */
 	const struct riot_key_manager *riot;	/**< The manager for RIoT keys. */
 	struct pcr_store *pcr_store;			/**< Storage for device measurements. */
@@ -141,13 +141,13 @@ struct attestation_responder {
 
 
 int attestation_responder_init (struct attestation_responder *attestation,
-	const struct riot_key_manager *riot, const struct hash_engine *hash, struct ecc_engine *ecc,
-	const struct rng_engine *rng, struct pcr_store *store, struct aux_attestation *aux,
-	uint8_t min_protocol_version, uint8_t max_protocol_version);
+	const struct riot_key_manager *riot, const struct hash_engine *hash,
+	const struct ecc_engine *ecc, const struct rng_engine *rng, struct pcr_store *store,
+	struct aux_attestation *aux, uint8_t min_protocol_version, uint8_t max_protocol_version);
 int attestation_responder_init_no_aux (struct attestation_responder *attestation,
-	const struct riot_key_manager *riot, const struct hash_engine *hash, struct ecc_engine *ecc,
-	const struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version,
-	uint8_t max_protocol_version);
+	const struct riot_key_manager *riot, const struct hash_engine *hash,
+	const struct ecc_engine *ecc, const struct rng_engine *rng, struct pcr_store *store,
+	uint8_t min_protocol_version, uint8_t max_protocol_version);
 
 void attestation_responder_release (struct attestation_responder *attestation);
 

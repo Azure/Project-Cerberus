@@ -344,7 +344,7 @@ static int attestation_responder_challenge_response (struct attestation_responde
 	}
 
 	status = attestation->ecc->sign (attestation->ecc, &attestation->ecc_priv_key, buf_hash,
-		SHA256_HASH_LENGTH, buf + response_len, buf_len - response_len);
+		SHA256_HASH_LENGTH, NULL, buf + response_len, buf_len - response_len);
 	if (ROT_IS_ERROR (status)) {
 		goto unlock;
 	}
@@ -471,9 +471,9 @@ static int attestation_responder_generate_ecdh_seed_unsupported (
  * @return Initialization status, 0 if success or an error code.
  */
 static int attestation_responder_init_common (struct attestation_responder *attestation,
-	const struct riot_key_manager *riot, const struct hash_engine *hash, struct ecc_engine *ecc,
-	const struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version,
-	uint8_t max_protocol_version)
+	const struct riot_key_manager *riot, const struct hash_engine *hash,
+	const struct ecc_engine *ecc, const struct rng_engine *rng, struct pcr_store *store,
+	uint8_t min_protocol_version, uint8_t max_protocol_version)
 {
 	const struct riot_keys *keys;
 	int status;
@@ -531,9 +531,9 @@ static int attestation_responder_init_common (struct attestation_responder *atte
  * @return Initialization status, 0 if success or an error code.
  */
 int attestation_responder_init (struct attestation_responder *attestation,
-	const struct riot_key_manager *riot, const struct hash_engine *hash, struct ecc_engine *ecc,
-	const struct rng_engine *rng, struct pcr_store *store, struct aux_attestation *aux,
-	uint8_t min_protocol_version, uint8_t max_protocol_version)
+	const struct riot_key_manager *riot, const struct hash_engine *hash,
+	const struct ecc_engine *ecc, const struct rng_engine *rng, struct pcr_store *store,
+	struct aux_attestation *aux, uint8_t min_protocol_version, uint8_t max_protocol_version)
 {
 	int status;
 
@@ -572,9 +572,9 @@ int attestation_responder_init (struct attestation_responder *attestation,
  * @return Initialization status, 0 if success or an error code.
  */
 int attestation_responder_init_no_aux (struct attestation_responder *attestation,
-	const struct riot_key_manager *riot, const struct hash_engine *hash, struct ecc_engine *ecc,
-	const struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version,
-	uint8_t max_protocol_version)
+	const struct riot_key_manager *riot, const struct hash_engine *hash,
+	const struct ecc_engine *ecc, const struct rng_engine *rng, struct pcr_store *store,
+	uint8_t min_protocol_version, uint8_t max_protocol_version)
 {
 	int status;
 

@@ -37,7 +37,7 @@ static const char AUX_ATTESTATION_SIGNING_LABEL[] = "signing key";
  * @return 0 if the attestation handler was successfully initialized or an error code.
  */
 int aux_attestation_init (struct aux_attestation *aux, const struct keystore *keystore,
-	const struct rsa_engine *rsa, const struct riot_key_manager *riot, struct ecc_engine *ecc)
+	const struct rsa_engine *rsa, const struct riot_key_manager *riot, const struct ecc_engine *ecc)
 {
 	if ((aux == NULL) || ((rsa != NULL) && (keystore == NULL)) ||
 		((ecc != NULL) && (riot == NULL))) {

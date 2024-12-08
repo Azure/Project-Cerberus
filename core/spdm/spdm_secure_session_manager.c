@@ -231,7 +231,7 @@ int spdm_secure_session_manager_generate_shared_secret (
 	int status;
 	uint8_t peer_pub_key_der[ECC_DER_MAX_PUBLIC_LENGTH];
 	int der_len;
-	struct ecc_engine *ecc_engine;
+	const struct ecc_engine *ecc_engine;
 	struct ecc_public_key peer_pub_key;
 	struct ecc_private_key local_priv_key;
 	struct ecc_public_key local_pub_key;
@@ -1165,7 +1165,7 @@ int spdm_secure_session_manager_init (struct spdm_secure_session_manager *sessio
 	const struct spdm_device_capability *local_capabilities,
 	const struct spdm_device_algorithms *local_algorithms, const struct aes_gcm_engine *aes_engine,
 	const struct hash_engine *hash_engine, const struct rng_engine *rng_engine,
-	struct ecc_engine *ecc_engine, const struct spdm_transcript_manager *transcript_manager)
+	const struct ecc_engine *ecc_engine, const struct spdm_transcript_manager *transcript_manager)
 {
 	int status;
 

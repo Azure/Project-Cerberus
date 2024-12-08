@@ -6,6 +6,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "crypto/rng.h"
 #include "status/rot_status.h"
 
 
@@ -93,7 +94,7 @@ struct ecc_engine {
 	 *
 	 * @return 0 if the key pair was successfully initialized or an error code.
 	 */
-	int (*init_key_pair) (struct ecc_engine *engine, const uint8_t *key, size_t key_length,
+	int (*init_key_pair) (const struct ecc_engine *engine, const uint8_t *key, size_t key_length,
 		struct ecc_private_key *priv_key, struct ecc_public_key *pub_key);
 
 	/**
@@ -107,7 +108,7 @@ struct ecc_engine {
 	 *
 	 * @return 0 if the public key was successfully initialized or an error code.
 	 */
-	int (*init_public_key) (struct ecc_engine *engine, const uint8_t *key, size_t key_length,
+	int (*init_public_key) (const struct ecc_engine *engine, const uint8_t *key, size_t key_length,
 		struct ecc_public_key *pub_key);
 
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
@@ -128,7 +129,7 @@ struct ecc_engine {
 	 *
 	 * @return 0 if the key pair was successfully generated or an error code.
 	 */
-	int (*generate_derived_key_pair) (struct ecc_engine *engine, const uint8_t *priv,
+	int (*generate_derived_key_pair) (const struct ecc_engine *engine, const uint8_t *priv,
 		size_t key_length, struct ecc_private_key *priv_key, struct ecc_public_key *pub_key);
 
 	/**
@@ -147,7 +148,7 @@ struct ecc_engine {
 	 *
 	 * @return 0 if the key pair was successfully generated or an error code.
 	 */
-	int (*generate_key_pair) (struct ecc_engine *engine, size_t key_length,
+	int (*generate_key_pair) (const struct ecc_engine *engine, size_t key_length,
 		struct ecc_private_key *priv_key, struct ecc_public_key *pub_key);
 #endif
 
@@ -158,7 +159,7 @@ struct ecc_engine {
 	 * @param priv_key The private key to release.  This can be null to not release a private key.
 	 * @param pub_key The public key to release.  This can be null to not release a public key.
 	 */
-	void (*release_key_pair) (struct ecc_engine *engine, struct ecc_private_key *priv_key,
+	void (*release_key_pair) (const struct ecc_engine *engine, struct ecc_private_key *priv_key,
 		struct ecc_public_key *pub_key);
 
 	/**
@@ -170,7 +171,8 @@ struct ecc_engine {
 	 * @return The maximum number of signature bytes or an error code.  Use ROT_IS_ERROR to check
 	 * the return value.
 	 */
-	int (*get_signature_max_length) (struct ecc_engine *engine, const struct ecc_private_key *key);
+	int (*get_signature_max_length) (const struct ecc_engine *engine,
+		const struct ecc_private_key *key);
 
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
 	/**
@@ -188,7 +190,7 @@ struct ecc_engine {
 	 *
 	 * @return 0 if the key was successfully encoded or an error code.
 	 */
-	int (*get_private_key_der) (struct ecc_engine *engine, const struct ecc_private_key *key,
+	int (*get_private_key_der) (const struct ecc_engine *engine, const struct ecc_private_key *key,
 		uint8_t **der, size_t *length);
 
 	/**
@@ -203,7 +205,7 @@ struct ecc_engine {
 	 *
 	 * @return 0 if the key was successfully encoded or an error code.
 	 */
-	int (*get_public_key_der) (struct ecc_engine *engine, const struct ecc_public_key *key,
+	int (*get_public_key_der) (const struct ecc_engine *engine, const struct ecc_public_key *key,
 		uint8_t **der, size_t *length);
 #endif
 
@@ -214,14 +216,18 @@ struct ecc_engine {
 	 * @param key The private key to sign with.
 	 * @param digest The digest to use to generate the signature.
 	 * @param length The length of the digest.
+	 * @param rng An optional random number generator to use for generating the random 'r' value in
+	 * the signature.  If this is null, the ECC instance will use an internally managed RNG for this
+	 * operation.
 	 * @param signature Output buffer for the ECDSA signature.  The signature will be DER encoded.
 	 * @param sig_length The length of the signature output buffer.
 	 *
 	 * @return The length of the signature or an error code.  Use ROT_IS_ERROR to check the return
 	 * value.
 	 */
-	int (*sign) (struct ecc_engine *engine, const struct ecc_private_key *key,
-		const uint8_t *digest, size_t length, uint8_t *signature, size_t sig_length);
+	int (*sign) (const struct ecc_engine *engine, const struct ecc_private_key *key,
+		const uint8_t *digest, size_t length, const struct rng_engine *rng, uint8_t *signature,
+		size_t sig_length);
 
 	/**
 	 * Verify an ECDSA signature against a SHA2 digest.
@@ -237,7 +243,7 @@ struct ecc_engine {
 	 *
 	 * @return 0 if the signature matches the digest or an error code.
 	 */
-	int (*verify) (struct ecc_engine *engine, const struct ecc_public_key *key,
+	int (*verify) (const struct ecc_engine *engine, const struct ecc_public_key *key,
 		const uint8_t *digest, size_t length, const uint8_t *signature, size_t sig_length);
 
 #ifdef ECC_ENABLE_ECDH
@@ -250,7 +256,7 @@ struct ecc_engine {
 	 * @return The maximum number of bytes in the secret or an error code.  Use ROT_IS_ERROR to
 	 * check the return value.
 	 */
-	int (*get_shared_secret_max_length) (struct ecc_engine *engine,
+	int (*get_shared_secret_max_length) (const struct ecc_engine *engine,
 		const struct ecc_private_key *key);
 
 	/**
@@ -266,8 +272,9 @@ struct ecc_engine {
 	 * @return The length of the shared secret or an error code.  Use ROT_IS_ERROR to check the
 	 * return value.
 	 */
-	int (*compute_shared_secret) (struct ecc_engine *engine, const struct ecc_private_key *priv_key,
-		const struct ecc_public_key *pub_key, uint8_t *secret, size_t length);
+	int (*compute_shared_secret) (const struct ecc_engine *engine,
+		const struct ecc_private_key *priv_key,	const struct ecc_public_key *pub_key,
+		uint8_t *secret, size_t length);
 #endif
 };
 

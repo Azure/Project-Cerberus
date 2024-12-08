@@ -2173,7 +2173,7 @@ static void auth_token_test_new_token_sign_error (CuTest *test)
 
 	status |= mock_expect (&auth.ecc_mock.mock, auth.ecc_mock.base.sign, &auth.ecc_mock,
 		ECC_ENGINE_SIGN_FAILED, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
 
 	status |= mock_expect (&auth.ecc_mock.mock, auth.ecc_mock.base.release_key_pair, &auth.ecc_mock,
@@ -3583,7 +3583,7 @@ static void auth_token_test_verify_data_after_new_token_key_error (CuTest *test)
 
 	status |= mock_expect (&auth.ecc_mock.mock, auth.ecc_mock.base.sign, &auth.ecc_mock,
 		ECC_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH),
-		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
 	status |= mock_expect_output (&auth.ecc_mock.mock, 3, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN, 4);
 
 	status |= mock_expect (&auth.ecc_mock.mock, auth.ecc_mock.base.release_key_pair, &auth.ecc_mock,
@@ -3667,7 +3667,7 @@ static void auth_token_test_verify_data_after_new_token_sign_error (CuTest *test
 
 	status |= mock_expect (&auth.ecc_mock.mock, auth.ecc_mock.base.sign, &auth.ecc_mock,
 		ECC_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH),
-		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
 	status |= mock_expect_output (&auth.ecc_mock.mock, 3, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN, 4);
 
 	status |= mock_expect (&auth.ecc_mock.mock, auth.ecc_mock.base.release_key_pair, &auth.ecc_mock,
@@ -3694,7 +3694,7 @@ static void auth_token_test_verify_data_after_new_token_sign_error (CuTest *test
 
 	status |= mock_expect (&auth.ecc_mock.mock, auth.ecc_mock.base.sign, &auth.ecc_mock,
 		ECC_ENGINE_SIGN_FAILED, MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
 
 	status |= mock_expect (&auth.ecc_mock.mock, auth.ecc_mock.base.release_key_pair, &auth.ecc_mock,

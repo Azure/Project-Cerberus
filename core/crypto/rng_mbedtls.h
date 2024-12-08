@@ -30,5 +30,7 @@ int rng_mbedtls_init (struct rng_engine_mbedtls *engine, struct rng_engine_mbedt
 int rng_mbedtls_init_state (const struct rng_engine_mbedtls *engine);
 void rng_mbedtls_release (const struct rng_engine_mbedtls *engine);
 
+int rng_mbedtls_rng_callback (void *rng_engine, unsigned char *output, size_t output_len);
+
 
 #endif	// RNG_MBEDTLS_H_

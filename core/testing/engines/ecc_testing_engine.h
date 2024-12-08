@@ -10,6 +10,7 @@
 #ifndef	ECC_TESTING_ENGINE_NAME
 #include "crypto/ecc_mbedtls.h"
 #define	ECC_TESTING_ENGINE_NAME	mbedtls
+#define	ECC_TESTING_ENGINE_HAS_STATE
 #endif
 
 

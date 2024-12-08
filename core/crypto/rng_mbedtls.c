@@ -87,3 +87,27 @@ void rng_mbedtls_release (const struct rng_engine_mbedtls *engine)
 		mbedtls_entropy_free (&engine->state->entropy);
 	}
 }
+
+/**
+ * mbedTLS callback function to generate random data from an arbitrary RNG engine.
+ *
+ * This is intended to work with any RNG engine implementation.  This provides a wrapper compatible
+ * with the random number generation function pointer used with mbedTLS API calls.
+ *
+ * @param rng_engine The RNG engine to query for random data.  This must be a #struct rng_engine
+ * instance.  It does not have to be an mbedTLS RNG implementation.
+ * @param output Output buffer to hold the random data.
+ * @param output_len Length of the output buffer.  Enough data will be generated to fill the buffer.
+ *
+ * @return 0 if random data was generated successfully or an error code.
+ */
+int rng_mbedtls_rng_callback (void *rng_engine, unsigned char *output, size_t output_len)
+{
+	const struct rng_engine *rng = (const struct rng_engine*) rng_engine;
+
+	if ((rng == NULL) || (output == NULL)) {
+		return RNG_ENGINE_INVALID_ARGUMENT;
+	}
+
+	return rng->generate_random_buffer (rng, output_len, output);
+}

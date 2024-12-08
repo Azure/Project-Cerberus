@@ -2088,10 +2088,10 @@ static void cmd_interface_spdm_responder_test_process_request_challenge (CuTest 
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
 		&testing.ecc_mock.base, ECC384_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P384_ECDSA_MAX_LENGTH));
-	status |= mock_expect_output (&testing.ecc_mock.mock, 3, ECC384_SIGNATURE_TEST,
-		ECC384_SIG_TEST_LEN, 4);
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC384_SIGNATURE_TEST,
+		ECC384_SIG_TEST_LEN, 5);
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
@@ -2586,10 +2586,10 @@ static void cmd_interface_spdm_responder_test_process_request_key_exchange (CuTe
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
 		&testing.ecc_mock.base, ECC384_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P384_ECDSA_MAX_LENGTH));
-	status |= mock_expect_output (&testing.ecc_mock.mock, 3, ECC384_SIGNATURE_TEST,
-		ECC384_SIG_TEST_LEN, 4);
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC384_SIGNATURE_TEST,
+		ECC384_SIG_TEST_LEN, 5);
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));

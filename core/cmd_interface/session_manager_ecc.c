@@ -126,7 +126,7 @@ static int session_manager_ecc_establish_session (struct session_manager *sessio
 		goto free_alias_key;
 	}
 
-	sig_len = session_mgr->ecc->sign (session_mgr->ecc, &alias_priv_key, hash, sizeof (hash),
+	sig_len = session_mgr->ecc->sign (session_mgr->ecc, &alias_priv_key, hash, sizeof (hash), NULL,
 		cerberus_protocol_key_exchange_type_0_response_sig_data (rsp),
 		CERBERUS_PROTOCOL_KEY_EXCHANGE_TYPE_0_RESPONSE_MAX_SIG_DATA (request));
 	if (ROT_IS_ERROR (sig_len)) {
@@ -227,9 +227,10 @@ free_device_key:
  * @return Initialization status, 0 if success or an error code.
  */
 int session_manager_ecc_init (struct session_manager_ecc *session, const struct aes_gcm_engine *aes,
-	struct ecc_engine *ecc, const struct hash_engine *hash, const struct riot_key_manager *riot,
-	struct session_manager_entry *sessions_table, size_t num_sessions, const uint8_t *pairing_eids,
-	size_t num_pairing_eids, const struct keystore *store)
+	const struct ecc_engine *ecc, const struct hash_engine *hash,
+	const struct riot_key_manager *riot, struct session_manager_entry *sessions_table,
+	size_t num_sessions, const uint8_t *pairing_eids, size_t num_pairing_eids,
+	const struct keystore *store)
 {
 	int status;
 

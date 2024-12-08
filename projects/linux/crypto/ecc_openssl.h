@@ -16,7 +16,7 @@ struct ecc_engine_openssl {
 
 
 int ecc_openssl_init (struct ecc_engine_openssl *engine);
-void ecc_openssl_release (struct ecc_engine_openssl *engine);
+void ecc_openssl_release (const struct ecc_engine_openssl *engine);
 
 
 #endif /* ECC_OPENSSL_H_ */

@@ -8,6 +8,8 @@
 #include "testing.h"
 #include "crypto/rng_mbedtls.h"
 #include "crypto/rng_mbedtls_static.h"
+#include "testing/crypto/hash_testing.h"
+#include "testing/mock/crypto/rng_mock.h"
 
 
 TEST_SUITE_LABEL ("rng_mbedtls");
@@ -258,6 +260,78 @@ static void rng_mbedtls_test_generate_random_buffer_null (CuTest *test)
 	rng_mbedtls_release (&engine);
 }
 
+static void rng_mbedtls_test_rng_callback (CuTest *test)
+{
+	struct rng_engine_mock engine;
+	int status;
+	uint8_t output[16] = {0};
+
+	TEST_START;
+
+	status = rng_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.generate_random_buffer, &engine, 0,
+		MOCK_ARG (sizeof (output)), MOCK_ARG_PTR (output));
+	status |= mock_expect_output (&engine.mock, 1, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = rng_mbedtls_rng_callback (&engine.base, output, sizeof (output));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (HASH_TESTING_FULL_BLOCK_512, output, sizeof (output));
+	CuAssertIntEquals (test, 0, status);
+
+	status = rng_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void rng_mbedtls_test_rng_callback_null (CuTest *test)
+{
+	struct rng_engine_mock engine;
+	int status;
+	uint8_t output[16] = {0};
+
+	TEST_START;
+
+	status = rng_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = rng_mbedtls_rng_callback (NULL, output, sizeof (output));
+	CuAssertIntEquals (test, RNG_ENGINE_INVALID_ARGUMENT, status);
+
+	status = rng_mbedtls_rng_callback (&engine.base, NULL, sizeof (output));
+	CuAssertIntEquals (test, RNG_ENGINE_INVALID_ARGUMENT, status);
+
+	status = rng_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void rng_mbedtls_test_rng_callback_error (CuTest *test)
+{
+	struct rng_engine_mock engine;
+	int status;
+	uint8_t output[16] = {0};
+
+	TEST_START;
+
+	status = rng_mock_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&engine.mock, engine.base.generate_random_buffer, &engine,
+		RNG_ENGINE_RANDOM_FAILED, MOCK_ARG (sizeof (output)), MOCK_ARG_PTR (output));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = rng_mbedtls_rng_callback (&engine.base, output, sizeof (output));
+	CuAssertIntEquals (test, RNG_ENGINE_RANDOM_FAILED, status);
+
+	status = rng_mock_validate_and_release (&engine);
+	CuAssertIntEquals (test, 0, status);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (rng_mbedtls);
@@ -274,6 +348,9 @@ TEST (rng_mbedtls_test_generate_random_buffer_twice);
 TEST (rng_mbedtls_test_generate_random_buffer_no_data);
 TEST (rng_mbedtls_test_generate_random_buffer_static_init);
 TEST (rng_mbedtls_test_generate_random_buffer_null);
+TEST (rng_mbedtls_test_rng_callback);
+TEST (rng_mbedtls_test_rng_callback_null);
+TEST (rng_mbedtls_test_rng_callback_error);
 
 TEST_SUITE_END;
 // *INDENT-ON*

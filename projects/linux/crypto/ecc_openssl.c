@@ -40,7 +40,7 @@ static EC_KEY* ecc_openssl_convert_private_to_public (EC_KEY *key, bool dup)
 	return pub;
 }
 
-static int ecc_openssl_init_key_pair (struct ecc_engine *engine, const uint8_t *key,
+int ecc_openssl_init_key_pair (const struct ecc_engine *engine, const uint8_t *key,
 	size_t key_length, struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
 	EC_KEY *ec;
@@ -95,7 +95,7 @@ err_load:
 	return status;
 }
 
-static int ecc_openssl_init_public_key (struct ecc_engine *engine, const uint8_t *key,
+int ecc_openssl_init_public_key (const struct ecc_engine *engine, const uint8_t *key,
 	size_t key_length, struct ecc_public_key *pub_key)
 {
 	EC_KEY *ec;
@@ -129,7 +129,7 @@ exit:
 }
 
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
-static int ecc_openssl_generate_derived_key_pair (struct ecc_engine *engine, const uint8_t *priv,
+int ecc_openssl_generate_derived_key_pair (const struct ecc_engine *engine, const uint8_t *priv,
 	size_t key_length, struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
 	EC_KEY *ec;
@@ -251,7 +251,7 @@ err_priv:
 	return (!status) ? ECC_ENGINE_NO_MEMORY : -status;
 }
 
-static int ecc_openssl_generate_key_pair (struct ecc_engine *engine, size_t key_length,
+int ecc_openssl_generate_key_pair (const struct ecc_engine *engine, size_t key_length,
 	struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
 	EC_KEY *ec;
@@ -323,7 +323,7 @@ static int ecc_openssl_generate_key_pair (struct ecc_engine *engine, size_t key_
 }
 #endif
 
-static void ecc_openssl_release_key_pair (struct ecc_engine *engine,
+void ecc_openssl_release_key_pair (const struct ecc_engine *engine,
 	struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
 	UNUSED (engine);
@@ -339,7 +339,7 @@ static void ecc_openssl_release_key_pair (struct ecc_engine *engine,
 	}
 }
 
-static int ecc_openssl_get_signature_max_length (struct ecc_engine *engine,
+int ecc_openssl_get_signature_max_length (const struct ecc_engine *engine,
 	const struct ecc_private_key *key)
 {
 	if ((engine == NULL) || (key == NULL)) {
@@ -350,7 +350,7 @@ static int ecc_openssl_get_signature_max_length (struct ecc_engine *engine,
 }
 
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
-static int ecc_openssl_get_private_key_der (struct ecc_engine *engine,
+int ecc_openssl_get_private_key_der (const struct ecc_engine *engine,
 	const struct ecc_private_key *key, uint8_t **der, size_t *length)
 {
 	int status;
@@ -381,7 +381,7 @@ static int ecc_openssl_get_private_key_der (struct ecc_engine *engine,
 	return status;
 }
 
-static int ecc_openssl_get_public_key_der (struct ecc_engine *engine,
+int ecc_openssl_get_public_key_der (const struct ecc_engine *engine,
 	const struct ecc_public_key *key, uint8_t **der, size_t *length)
 {
 	int status;
@@ -414,8 +414,9 @@ static int ecc_openssl_get_public_key_der (struct ecc_engine *engine,
 }
 #endif
 
-static int ecc_openssl_sign (struct ecc_engine *engine, const struct ecc_private_key *key,
-	const uint8_t *digest, size_t length, uint8_t *signature, size_t sig_length)
+int ecc_openssl_sign (const struct ecc_engine *engine, const struct ecc_private_key *key,
+	const uint8_t *digest, size_t length, const struct rng_engine *rng, uint8_t *signature,
+	size_t sig_length)
 {
 	unsigned int out_len;
 	int status;
@@ -441,12 +442,21 @@ static int ecc_openssl_sign (struct ecc_engine *engine, const struct ecc_private
 
 	ERR_clear_error ();
 
-	status = ECDSA_sign (-1, digest, length, signature, &out_len, (EC_KEY*) key->context);
+	if (rng == NULL) {
+		status = ECDSA_sign (-1, digest, length, signature, &out_len, (EC_KEY*) key->context);
+	}
+	else {
+		/* TODO:  It seems possible to support an external RNG using ECDSA_sign_ex and providing a
+		 * precomputed kinv value.  API availability here may change with OpenSSL 3.x, and this
+		 * implementation isn't used in any scenario where it's necessary to use an external RNG.
+		 * Defer this work until it becomes more relevant. */
+		return ECC_ENGINE_UNSUPPORTED_OPERATION;
+	}
 
 	return (status == 1) ? out_len : -ERR_get_error ();
 }
 
-static int ecc_openssl_verify (struct ecc_engine *engine, const struct ecc_public_key *key,
+int ecc_openssl_verify (const struct ecc_engine *engine, const struct ecc_public_key *key,
 	const uint8_t *digest, size_t length, const uint8_t *signature, size_t sig_length)
 {
 	int status;
@@ -463,7 +473,7 @@ static int ecc_openssl_verify (struct ecc_engine *engine, const struct ecc_publi
 }
 
 #ifdef ECC_ENABLE_ECDH
-static int ecc_openssl_get_shared_secret_max_length (struct ecc_engine *engine,
+int ecc_openssl_get_shared_secret_max_length (const struct ecc_engine *engine,
 	const struct ecc_private_key *key)
 {
 	if ((engine == NULL) || (key == NULL)) {
@@ -473,7 +483,7 @@ static int ecc_openssl_get_shared_secret_max_length (struct ecc_engine *engine,
 	return (EC_GROUP_get_degree (EC_KEY_get0_group ((EC_KEY*) key->context)) + 7) / 8;
 }
 
-static int ecc_openssl_compute_shared_secret (struct ecc_engine *engine,
+int ecc_openssl_compute_shared_secret (const struct ecc_engine *engine,
 	const struct ecc_private_key *priv_key, const struct ecc_public_key *pub_key, uint8_t *secret,
 	size_t length)
 {
@@ -541,7 +551,7 @@ int ecc_openssl_init (struct ecc_engine_openssl *engine)
  *
  * @param engine The ECC engine to release.
  */
-void ecc_openssl_release (struct ecc_engine_openssl *engine)
+void ecc_openssl_release (const struct ecc_engine_openssl *engine)
 {
-
+	UNUSED (engine);
 }
