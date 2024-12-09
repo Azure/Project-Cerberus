@@ -667,7 +667,7 @@ static int x509_openssl_create_certificate (struct x509_certificate *cert, EVP_P
 	}
 
 	status = x509_openssl_add_standard_v3_extension (x509, ca_x509,
-		NID_authority_key_identifier, "keyid");
+		NID_authority_key_identifier, "keyid:always");
 	if (status != 0) {
 		goto err_serial;
 	}

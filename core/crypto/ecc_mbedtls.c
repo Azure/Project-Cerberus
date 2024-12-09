@@ -449,7 +449,7 @@ int ecc_mbedtls_get_signature_max_length (const struct ecc_engine *engine,
 
 	key_len = mbedtls_pk_get_len ((mbedtls_pk_context*) key->context);
 
-	return (((key_len + 3) * 2) + ((key_len > 61) ? 3 : 2));
+	return (((key_len + 3) * 2) + ((key_len > 61) ? 1 : 2));
 }
 
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR

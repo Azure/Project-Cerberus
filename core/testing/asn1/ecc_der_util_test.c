@@ -3270,7 +3270,7 @@ static void ecc_der_encode_ecdsa_signature_test_p521 (CuTest *test)
 
 	TEST_START;
 
-	CuAssertIntEquals (test, ECC521_SIG_TEST_LEN + 3, ECC_DER_P521_ECDSA_MAX_LENGTH);
+	CuAssertIntEquals (test, ECC521_SIG_TEST_LEN + 1, ECC_DER_P521_ECDSA_MAX_LENGTH);
 
 	status = ecc_der_encode_ecdsa_signature (ECC521_SIGNATURE_TEST_RAW,
 		&ECC521_SIGNATURE_TEST_RAW[ECC_KEY_LENGTH_521], ECC_KEY_LENGTH_521, der, sizeof (der));

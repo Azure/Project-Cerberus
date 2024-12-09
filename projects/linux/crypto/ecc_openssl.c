@@ -1,20 +1,19 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <stdbool.h>
-#include <string.h>
-#include <openssl/bio.h>
-#include <openssl/pem.h>
 #include <openssl/ec.h>
-#include <openssl/ecdsa.h>
-#include <openssl/obj_mac.h>
 #include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/x509.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+#include "ecc_openssl.h"
+#include "openssl_check.h"
 #include "asn1/ecc_der_util.h"
-#include "crypto/hash.h"
-#include "crypto/ecc_openssl.h"
 #include "common/unused.h"
+#include "crypto/hash.h"
 
 
 /**
@@ -25,26 +24,43 @@
  *
  * @return The public key instance or null if there was an error.
  */
-static EC_KEY* ecc_openssl_convert_private_to_public (EC_KEY *key, bool dup)
+static EVP_PKEY* ecc_openssl_convert_private_to_public (EVP_PKEY *key, bool dup)
 {
-	EC_KEY *pub = key;
+	EVP_PKEY *ec_pub = NULL;
+	uint8_t *pub_key = NULL;
+	const uint8_t *parse_key;
+	int key_length;
 
-	if (dup) {
-		pub = EC_KEY_dup (pub);
+	/* Create a key context that only contains the public key by encoding just the public key from
+	 * the parsed key pair then decoding that into a new key context. */
+	key_length = i2d_PUBKEY (key, &pub_key);
+	if (key_length < 0) {
+		return NULL;
 	}
 
-	if (pub) {
-		EC_KEY_set_private_key (pub, NULL);
+	parse_key = pub_key;
+	ec_pub = d2i_PUBKEY (NULL, &parse_key, key_length);
+
+	if (ec_pub && !dup) {
+		EVP_PKEY_free (key);
 	}
 
-	return pub;
+	OPENSSL_free (pub_key);
+
+	return ec_pub;
 }
 
 int ecc_openssl_init_key_pair (const struct ecc_engine *engine, const uint8_t *key,
 	size_t key_length, struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
-	EC_KEY *ec;
+	EVP_PKEY *ec_priv = NULL;
 	int status;
+
+#if OPENSSL_IS_VERSION_3
+	const int ERROR_NOT_EC = 0x1e08010c;
+#else
+	const int ERROR_NOT_EC = 0xd0680a8;
+#endif
 
 	if ((engine == NULL) || (key == NULL) || (key_length == 0)) {
 		return ECC_ENGINE_INVALID_ARGUMENT;
@@ -63,20 +79,21 @@ int ecc_openssl_init_key_pair (const struct ecc_engine *engine, const uint8_t *k
 
 	ERR_clear_error ();
 
-	ec = d2i_ECPrivateKey (NULL, &key, key_length);
-	if (ec == NULL) {
+	ec_priv = d2i_PrivateKey (EVP_PKEY_EC, NULL, &key, key_length);
+	if (ec_priv == NULL) {
 		status = ERR_get_error ();
-		if (status == 0xd0680a8) {
+		if (status == ERROR_NOT_EC) {
 			status = ECC_ENGINE_NOT_EC_KEY;
 		}
 		else {
 			status = -status;
 		}
+
 		goto err_load;
 	}
 
 	if (pub_key) {
-		pub_key->context = ecc_openssl_convert_private_to_public (ec, (priv_key));
+		pub_key->context = ecc_openssl_convert_private_to_public (ec_priv, (priv_key));
 		if (pub_key->context == NULL) {
 			status = -ERR_get_error ();
 			goto err_pubkey;
@@ -84,21 +101,23 @@ int ecc_openssl_init_key_pair (const struct ecc_engine *engine, const uint8_t *k
 	}
 
 	if (priv_key) {
-		priv_key->context = ec;
+		priv_key->context = ec_priv;
 	}
 
 	return 0;
 
 err_pubkey:
-	EC_KEY_free (ec);
+	EVP_PKEY_free (ec_priv);
+
 err_load:
+
 	return status;
 }
 
 int ecc_openssl_init_public_key (const struct ecc_engine *engine, const uint8_t *key,
 	size_t key_length, struct ecc_public_key *pub_key)
 {
-	EC_KEY *ec;
+	EVP_PKEY *ec_pub = NULL;
 	int status;
 
 	if ((engine == NULL) || (key == NULL) || (key_length == 0) || (pub_key == NULL)) {
@@ -109,22 +128,20 @@ int ecc_openssl_init_public_key (const struct ecc_engine *engine, const uint8_t 
 
 	ERR_clear_error ();
 
-	ec = d2i_EC_PUBKEY (NULL, &key, key_length);
-	if (ec == NULL) {
-		status = ERR_get_error ();
-		if (status == 0x608308e) {
-			status = ECC_ENGINE_NOT_EC_KEY;
-		}
-		else {
-			status = -status;
-		}
-		goto exit;
+	ec_pub = d2i_PUBKEY (NULL, &key, key_length);
+	if (ec_pub == NULL) {
+		return -ERR_get_error ();
 	}
 
-	pub_key->context = ec;
+	if (EVP_PKEY_base_id (ec_pub) != EVP_PKEY_EC) {
+		EVP_PKEY_free (ec_pub);
+
+		return ECC_ENGINE_NOT_EC_KEY;
+	}
+
+	pub_key->context = ec_pub;
 	status = 0;
 
-exit:
 	return status;
 }
 
@@ -132,129 +149,31 @@ exit:
 int ecc_openssl_generate_derived_key_pair (const struct ecc_engine *engine, const uint8_t *priv,
 	size_t key_length, struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
-	EC_KEY *ec;
-	const EC_GROUP *curve;
-	BIGNUM *priv_val;
-	EC_POINT *pub_val;
-	BN_CTX *pub_ctx;
-	int status;
+	uint8_t der[ECC_DER_MAX_PRIVATE_NO_PUB_LENGTH];
+	int der_length;
 
 	if ((engine == NULL) || (priv == NULL) || (key_length == 0)) {
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (!priv_key && !pub_key) {
-		return 0;
+	/* It seems possible to use EVP_PKEY_fromdata (introduced in version 3.0) to generate a specific
+	 * private key context, but that path requires the caller to also have the public key.  Encoding
+	 * the private key as DER and parsing it causes OpenSSL to calculate the public key on it's own,
+	 * which makes this code much simpler.  This approach also works equally well for any version of
+	 * OpenSSL. */
+	der_length = ecc_der_encode_private_key (priv, NULL, NULL, key_length, der, sizeof (der));
+	if (ROT_IS_ERROR (der_length)) {
+		return ECC_ENGINE_UNSUPPORTED_KEY_LENGTH;
 	}
 
-	if (priv_key) {
-		memset (priv_key, 0, sizeof (struct ecc_private_key));
-	}
-	if (pub_key) {
-		memset (pub_key, 0, sizeof (struct ecc_public_key));
-	}
-
-	ERR_clear_error ();
-
-	switch (key_length) {
-		case ECC_KEY_LENGTH_256:
-			ec = EC_KEY_new_by_curve_name (NID_X9_62_prime256v1);
-			break;
-
-#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
-		case ECC_KEY_LENGTH_384:
-			ec = EC_KEY_new_by_curve_name (NID_secp384r1);
-			break;
-
-#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
-		case ECC_KEY_LENGTH_521:
-			ec = EC_KEY_new_by_curve_name (NID_secp521r1);
-			break;
-#endif
-#endif
-
-		default:
-			return ECC_ENGINE_UNSUPPORTED_KEY_LENGTH;
-	}
-	if (ec == NULL) {
-		return -ERR_get_error ();
-	}
-
-	EC_KEY_set_asn1_flag (ec, OPENSSL_EC_NAMED_CURVE);
-
-	curve = EC_KEY_get0_group (ec);
-	if (curve == NULL) {
-		status = ERR_get_error ();
-		goto err_priv;
-	}
-
-	priv_val = BN_bin2bn (priv, key_length, NULL);
-	if (priv_val == NULL) {
-		status = ERR_get_error ();
-		goto err_priv;
-	}
-
-	pub_ctx = BN_CTX_new ();
-	if (pub_ctx == NULL) {
-		status = ERR_get_error ();
-		goto err_ctx;
-	}
-
-	pub_val = EC_POINT_new (curve);
-	if (pub_val == NULL) {
-		status = ERR_get_error ();
-		goto err_point;
-	}
-
-	status = EC_POINT_mul (curve, pub_val, priv_val, NULL, NULL, pub_ctx);
-	if (status != 1) {
-		status = ERR_get_error ();
-		goto err_mult;
-	}
-
-	if (EC_KEY_set_private_key (ec, priv_val) != 1) {
-		status = ERR_get_error ();
-		goto err_mult;
-	}
-
-	if (EC_KEY_set_public_key (ec, pub_val) != 1) {
-		status = ERR_get_error ();
-		goto err_mult;
-	}
-
-	EC_POINT_clear_free (pub_val);
-	BN_CTX_free (pub_ctx);
-	BN_clear_free (priv_val);
-
-	if (pub_key) {
-		pub_key->context = ecc_openssl_convert_private_to_public (ec, (priv_key));
-		if (pub_key->context == NULL) {
-			status = ERR_get_error ();
-			goto err_priv;
-		}
-	}
-
-	if (priv_key) {
-		priv_key->context = ec;
-	}
-
-	return 0;
-
-err_mult:
-	EC_POINT_clear_free (pub_val);
-err_point:
-	BN_CTX_free (pub_ctx);
-err_ctx:
-	BN_clear_free (priv_val);
-err_priv:
-	EC_KEY_free (ec);
-	return (!status) ? ECC_ENGINE_NO_MEMORY : -status;
+	return ecc_openssl_init_key_pair (engine, der, der_length, priv_key, pub_key);
 }
 
 int ecc_openssl_generate_key_pair (const struct ecc_engine *engine, size_t key_length,
 	struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
-	EC_KEY *ec;
+	EVP_PKEY *ec_priv = NULL;
+	EVP_PKEY_CTX *ctx = NULL;
 	int status;
 
 	if (engine == NULL) {
@@ -274,52 +193,69 @@ int ecc_openssl_generate_key_pair (const struct ecc_engine *engine, size_t key_l
 
 	ERR_clear_error ();
 
+	ctx = EVP_PKEY_CTX_new_id (EVP_PKEY_EC, NULL);
+	if (ctx == NULL) {
+		return -ERR_get_error ();
+	}
+
+	status = EVP_PKEY_keygen_init (ctx);
+	if (status != 1) {
+		status = -ERR_get_error ();
+		goto exit;
+	}
+
 	switch (key_length) {
 		case ECC_KEY_LENGTH_256:
-			ec = EC_KEY_new_by_curve_name (NID_X9_62_prime256v1);
+			status = EVP_PKEY_CTX_set_ec_paramgen_curve_nid (ctx, NID_X9_62_prime256v1);
 			break;
 
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 		case ECC_KEY_LENGTH_384:
-			ec = EC_KEY_new_by_curve_name (NID_secp384r1);
+			status = EVP_PKEY_CTX_set_ec_paramgen_curve_nid (ctx, NID_secp384r1);
 			break;
 
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 		case ECC_KEY_LENGTH_521:
-			ec = EC_KEY_new_by_curve_name (NID_secp521r1);
+			status = EVP_PKEY_CTX_set_ec_paramgen_curve_nid (ctx, NID_secp521r1);
 			break;
 #endif
 #endif
 
 		default:
-			return ECC_ENGINE_UNSUPPORTED_KEY_LENGTH;
+			status = ECC_ENGINE_UNSUPPORTED_KEY_LENGTH;
+			goto exit;
 	}
-	if (ec == NULL) {
-		return -ERR_get_error ();
-	}
-
-	EC_KEY_set_asn1_flag (ec, OPENSSL_EC_NAMED_CURVE);
-
-	status = EC_KEY_generate_key (ec);
 	if (status != 1) {
-		EC_KEY_free (ec);
-		return -ERR_get_error ();
+		status = -ERR_get_error ();
+		goto exit;
+	}
+
+	status = EVP_PKEY_keygen (ctx, &ec_priv);
+	if (status != 1) {
+		status = -ERR_get_error ();
+		goto exit;
 	}
 
 	if (pub_key) {
-		pub_key->context = ecc_openssl_convert_private_to_public (ec, (priv_key));
+		pub_key->context = ecc_openssl_convert_private_to_public (ec_priv, (priv_key));
 		if (pub_key->context == NULL) {
 			status = -ERR_get_error ();
-			EC_KEY_free (ec);
+			EVP_PKEY_free (ec_priv);
+
 			return status;
 		}
 	}
 
 	if (priv_key) {
-		priv_key->context = ec;
+		priv_key->context = ec_priv;
 	}
 
-	return 0;
+	status = 0;
+
+exit:
+	EVP_PKEY_CTX_free (ctx);
+
+	return status;
 }
 #endif
 
@@ -329,12 +265,12 @@ void ecc_openssl_release_key_pair (const struct ecc_engine *engine,
 	UNUSED (engine);
 
 	if (priv_key) {
-		EC_KEY_free ((EC_KEY*) priv_key->context);
+		EVP_PKEY_free ((EVP_PKEY*) priv_key->context);
 		memset (priv_key, 0, sizeof (struct ecc_private_key));
 	}
 
 	if (pub_key) {
-		EC_KEY_free ((EC_KEY*) pub_key->context);
+		EVP_PKEY_free ((EVP_PKEY*) pub_key->context);
 		memset (pub_key, 0, sizeof (struct ecc_public_key));
 	}
 }
@@ -346,7 +282,39 @@ int ecc_openssl_get_signature_max_length (const struct ecc_engine *engine,
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	return ECDSA_size ((EC_KEY*) key->context);
+	return EVP_PKEY_size ((EVP_PKEY*) key->context);
+}
+
+/**
+ * Check an EC key context to see if contains a private key.
+ *
+ * @param key The key to check.
+ *
+ * @return 1 if it contains a private key, 0 if not, or an error code.
+ */
+static int ecc_openssl_has_private_key (EVP_PKEY *key)
+{
+#if OPENSSL_IS_VERSION_3
+	EVP_PKEY_CTX *ctx = NULL;
+	int status;
+
+	ctx = EVP_PKEY_CTX_new (key, NULL);
+	if (ctx == NULL) {
+		return -ERR_get_error ();
+	}
+
+	status = EVP_PKEY_private_check (ctx);
+	EVP_PKEY_CTX_free (ctx);
+	if (status != 1) {
+		return 0;
+	}
+
+	return 1;
+#else
+	EC_KEY *ec = EVP_PKEY_get0_EC_KEY (key);
+
+	return (EC_KEY_get0_private_key (ec) != NULL);
+#endif
 }
 
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
@@ -366,19 +334,40 @@ int ecc_openssl_get_private_key_der (const struct ecc_engine *engine,
 
 	ERR_clear_error ();
 
-	status = i2d_ECPrivateKey ((EC_KEY*) key->context, der);
-	if (status > 0) {
+	status = ecc_openssl_has_private_key ((EVP_PKEY*) key->context);
+	if (status != 1) {
+		if (status == 0) {
+			return ECC_ENGINE_NOT_PRIVATE_KEY;
+		}
+		else {
+			return status;
+		}
+	}
+
+#if OPENSSL_IS_VERSION_3
+	status = EVP_PKEY_set_int_param ((EVP_PKEY*) key->context, "include-public", 1);
+	if (status != 1) {
+		return -ERR_get_error ();
+	}
+#else
+	{
+		EC_KEY *ec = EVP_PKEY_get0_EC_KEY ((EVP_PKEY*) key->context);
+
+		status = EC_KEY_get_enc_flags (ec);
+		EC_KEY_set_enc_flags (ec, (status & ~EC_PKEY_NO_PUBKEY));
+	}
+#endif
+
+	status = i2d_PrivateKey ((EVP_PKEY*) key->context, der);
+	if (status >= 0) {
 		*length = status;
 		status = 0;
-	}
-	else if (status == 0) {
-		status = ECC_ENGINE_NOT_PRIVATE_KEY;
 	}
 	else {
 		status = -ERR_get_error ();
 	}
 
-	return status;
+	return 0;
 }
 
 int ecc_openssl_get_public_key_der (const struct ecc_engine *engine,
@@ -397,11 +386,17 @@ int ecc_openssl_get_public_key_der (const struct ecc_engine *engine,
 
 	ERR_clear_error ();
 
-	if (EC_KEY_get0_private_key ((EC_KEY*) key->context) != NULL) {
-		return ECC_ENGINE_NOT_PUBLIC_KEY;
+	status = ecc_openssl_has_private_key ((EVP_PKEY*) key->context);
+	if (status != 0) {
+		if (status == 1) {
+			return ECC_ENGINE_NOT_PUBLIC_KEY;
+		}
+		else {
+			return status;
+		}
 	}
 
-	status = i2d_EC_PUBKEY ((EC_KEY*) key->context, der);
+	status = i2d_PUBKEY ((EVP_PKEY*) key->context, der);
 	if (status >= 0) {
 		*length = status;
 		status = 0;
@@ -410,7 +405,7 @@ int ecc_openssl_get_public_key_der (const struct ecc_engine *engine,
 		status = -ERR_get_error ();
 	}
 
-	return status;
+	return 0;
 }
 #endif
 
@@ -418,7 +413,9 @@ int ecc_openssl_sign (const struct ecc_engine *engine, const struct ecc_private_
 	const uint8_t *digest, size_t length, const struct rng_engine *rng, uint8_t *signature,
 	size_t sig_length)
 {
-	unsigned int out_len;
+	EVP_PKEY_CTX *ctx = NULL;
+	const EVP_MD *sig_algo;
+	size_t out_len = sig_length;
 	int status;
 
 	if ((engine == NULL) || (key == NULL) || (digest == NULL) || (signature == NULL) ||
@@ -432,8 +429,15 @@ int ecc_openssl_sign (const struct ecc_engine *engine, const struct ecc_private_
 
 	switch (length) {
 		case SHA256_HASH_LENGTH:
+			sig_algo = EVP_sha256 ();
+			break;
+
 		case SHA384_HASH_LENGTH:
+			sig_algo = EVP_sha384 ();
+			break;
+
 		case SHA512_HASH_LENGTH:
+			sig_algo = EVP_sha512 ();
 			break;
 
 		default:
@@ -442,23 +446,48 @@ int ecc_openssl_sign (const struct ecc_engine *engine, const struct ecc_private_
 
 	ERR_clear_error ();
 
-	if (rng == NULL) {
-		status = ECDSA_sign (-1, digest, length, signature, &out_len, (EC_KEY*) key->context);
-	}
-	else {
-		/* TODO:  It seems possible to support an external RNG using ECDSA_sign_ex and providing a
-		 * precomputed kinv value.  API availability here may change with OpenSSL 3.x, and this
-		 * implementation isn't used in any scenario where it's necessary to use an external RNG.
-		 * Defer this work until it becomes more relevant. */
-		return ECC_ENGINE_UNSUPPORTED_OPERATION;
+	ctx = EVP_PKEY_CTX_new ((EVP_PKEY*) key->context, NULL);
+	if (ctx == NULL) {
+		return -ERR_get_error ();
 	}
 
-	return (status == 1) ? out_len : -ERR_get_error ();
+	status = EVP_PKEY_sign_init (ctx);
+	if (status != 1) {
+		status = -ERR_get_error ();
+		goto exit;
+	}
+
+	status = EVP_PKEY_CTX_set_signature_md (ctx, sig_algo);
+	if (status != 1) {
+		status = -ERR_get_error ();
+		goto exit;
+	}
+
+	if (rng == NULL) {
+		status = EVP_PKEY_sign (ctx, signature, &out_len, digest, length);
+		if (status != 1) {
+			status = -ERR_get_error ();
+		}
+	}
+	else {
+		/* TODO:  It's not clear how to leverage the EVP API to control the random number generation
+		 * for use in the signing operation.  This implementation isn't used in any scenario where
+		 * it's necessary to use an external RNG.  Defer this work until it becomes more
+		 * relevant. */
+		status = ECC_ENGINE_UNSUPPORTED_OPERATION;
+	}
+
+exit:
+	EVP_PKEY_CTX_free (ctx);
+
+	return (status == 1) ? (int) out_len : status;
 }
 
 int ecc_openssl_verify (const struct ecc_engine *engine, const struct ecc_public_key *key,
 	const uint8_t *digest, size_t length, const uint8_t *signature, size_t sig_length)
 {
+	EVP_PKEY_CTX *ctx = NULL;
+	const EVP_MD *sig_algo;
 	int status;
 
 	if ((engine == NULL) || (key == NULL) || (digest == NULL) || (signature == NULL) ||
@@ -466,8 +495,43 @@ int ecc_openssl_verify (const struct ecc_engine *engine, const struct ecc_public
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	status = ECDSA_verify (-1, digest, length, signature,
-		ecc_der_get_ecdsa_signature_length (signature, sig_length), (EC_KEY*) key->context);
+	switch (length) {
+		case SHA256_HASH_LENGTH:
+			sig_algo = EVP_sha256 ();
+			break;
+
+		case SHA384_HASH_LENGTH:
+			sig_algo = EVP_sha384 ();
+			break;
+
+		case SHA512_HASH_LENGTH:
+			sig_algo = EVP_sha512 ();
+			break;
+
+		default:
+			return ECC_ENGINE_UNSUPPORTED_HASH_TYPE;
+	}
+
+	ERR_clear_error ();
+
+	ctx = EVP_PKEY_CTX_new ((EVP_PKEY*) key->context, NULL);
+	if (ctx == NULL) {
+		return -ERR_get_error ();
+	}
+
+	status = EVP_PKEY_verify_init (ctx);
+	if (status != 1) {
+		return -ERR_get_error ();
+	}
+
+	status = EVP_PKEY_CTX_set_signature_md (ctx, sig_algo);
+	if (status != 1) {
+		return -ERR_get_error ();
+	}
+
+	status = EVP_PKEY_verify (ctx, signature,
+		ecc_der_get_ecdsa_signature_length (signature, sig_length), digest, length);
+	EVP_PKEY_CTX_free (ctx);
 
 	return (status == 1) ? 0 : ECC_ENGINE_BAD_SIGNATURE;
 }
@@ -480,13 +544,14 @@ int ecc_openssl_get_shared_secret_max_length (const struct ecc_engine *engine,
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	return (EC_GROUP_get_degree (EC_KEY_get0_group ((EC_KEY*) key->context)) + 7) / 8;
+	return (EVP_PKEY_bits ((EVP_PKEY*) key->context) + 7) / 8;
 }
 
 int ecc_openssl_compute_shared_secret (const struct ecc_engine *engine,
 	const struct ecc_private_key *priv_key, const struct ecc_public_key *pub_key, uint8_t *secret,
 	size_t length)
 {
+	EVP_PKEY_CTX *ctx = NULL;
 	int status;
 
 	if ((engine == NULL) || (priv_key == NULL) || (pub_key == NULL) || (secret == NULL)) {
@@ -499,13 +564,25 @@ int ecc_openssl_compute_shared_secret (const struct ecc_engine *engine,
 
 	ERR_clear_error ();
 
-	status = ECDH_compute_key (secret, length, EC_KEY_get0_public_key ((EC_KEY*) pub_key->context),
-		(EC_KEY*) priv_key->context, NULL);
-	if (status < 0) {
+	ctx = EVP_PKEY_CTX_new ((EVP_PKEY*) priv_key->context, NULL);
+	if (ctx == NULL) {
 		return -ERR_get_error ();
 	}
 
-	return status;
+	status = EVP_PKEY_derive_init (ctx);
+	if (status != 1) {
+		return -ERR_get_error ();
+	}
+
+	status = EVP_PKEY_derive_set_peer (ctx, (EVP_PKEY*) pub_key->context);
+	if (status != 1) {
+		return -ERR_get_error ();
+	}
+
+	status = EVP_PKEY_derive (ctx, secret, &length);
+	EVP_PKEY_CTX_free (ctx);
+
+	return (status == 1) ? length : -ERR_get_error ();
 }
 #endif
 

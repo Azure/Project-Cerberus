@@ -105,7 +105,7 @@ int aes_gcm_openssl_encrypt_with_add_data (const struct aes_gcm_engine *engine,
 		return AES_GCM_ENGINE_OUT_BUFFER_TOO_SMALL;
 	}
 
-	if (EVP_CIPHER_CTX_key_length (openssl->state->context) == 0) {
+	if (EVP_CIPHER_CTX_key_length (openssl->state->context) <= 0) {
 		return AES_GCM_ENGINE_NO_KEY;
 	}
 
@@ -180,7 +180,7 @@ int aes_gcm_openssl_decrypt_with_add_data (const struct aes_gcm_engine *engine,
 		return AES_GCM_ENGINE_OUT_BUFFER_TOO_SMALL;
 	}
 
-	if (EVP_CIPHER_CTX_key_length (openssl->state->context) == 0) {
+	if (EVP_CIPHER_CTX_key_length (openssl->state->context) <= 0) {
 		return AES_GCM_ENGINE_NO_KEY;
 	}
 

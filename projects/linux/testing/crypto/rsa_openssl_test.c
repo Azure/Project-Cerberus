@@ -1,19 +1,20 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/rsa.h>
+#include <openssl/sha.h>
 #include <stddef.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
 #include "crypto/rsa_openssl.h"
 #include "crypto/rsa_openssl_static.h"
-#include <openssl/rsa.h>
-#include <openssl/sha.h>
-#include <openssl/obj_mac.h>
-#include "testing/crypto/rsa_testing.h"
 #include "testing/crypto/ecc_testing.h"
+#include "testing/crypto/rsa_testing.h"
 #include "testing/crypto/signature_testing.h"
 
 
@@ -33,13 +34,22 @@ TEST_SUITE_LABEL ("rsa_openssl");
 static void rsa_openssl_testing_encrypt_data (CuTest *test, struct rsa_engine_openssl *engine,
 	struct rsa_private_key *key, const char *message, uint8_t *out, size_t *out_len)
 {
+	EVP_PKEY_CTX *ctx;
 	int status;
 
-	status = RSA_public_encrypt (strlen (message), (uint8_t*) message, out, (RSA*) key->context,
-		RSA_PKCS1_OAEP_PADDING);
-	CuAssertIntEquals (test, RSA_size ((RSA*) key->context), status);
+	ctx = EVP_PKEY_CTX_new ((EVP_PKEY*) key->context, NULL);
+	CuAssertPtrNotNull (test, ctx);
 
-	*out_len = status;
+	status = EVP_PKEY_encrypt_init (ctx);
+	CuAssertIntEquals (test, 1, status);
+
+	status = EVP_PKEY_CTX_set_rsa_padding (ctx, RSA_PKCS1_OAEP_PADDING);
+	CuAssertIntEquals (test, 1, status);
+
+	status = EVP_PKEY_encrypt (ctx, out, out_len, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 1, status);
+
+	EVP_PKEY_CTX_free (ctx);
 }
 
 /**
@@ -52,26 +62,47 @@ static void rsa_openssl_testing_encrypt_data (CuTest *test, struct rsa_engine_op
  * @param signature Output buffer for the signature.
  * @param sig_length The length of the signature buffer.
  *
- * @return 0 if the signature was successfully generated or an error cdoe.
+ * @return 0 if the signature was successfully generated or an error code.
  */
 int rsa_openssl_testing_sign_data (const uint8_t *data, size_t length, const uint8_t *key,
 	size_t key_length, uint8_t *signature, size_t sig_length)
 {
-	RSA *rsa;
+	EVP_PKEY *rsa;
+	EVP_PKEY_CTX *ctx;
 	uint8_t hash[SHA256_HASH_LENGTH];
 	int status;
-	unsigned int length_out;
 
-	SHA256 (data, length, hash);
-	rsa = d2i_RSAPrivateKey (NULL, &key, key_length);
+	rsa = d2i_PrivateKey (EVP_PKEY_RSA, NULL, &key, key_length);
 	if (rsa == NULL) {
-		return -1;
+		return -ERR_get_error ();
 	}
 
-	status = RSA_sign (NID_sha256, hash, sizeof (hash), signature, &length_out, rsa);
-	RSA_free (rsa);
+	ctx = EVP_PKEY_CTX_new (rsa, NULL);
+	if (ctx == NULL) {
+		return -ERR_get_error ();
+	}
 
-	return (status) ? 0 : -1;
+	status = EVP_PKEY_CTX_set_rsa_padding (ctx, RSA_PKCS1_PADDING);
+	if (status == 1) {
+		return -ERR_get_error ();
+	}
+
+	status = EVP_PKEY_CTX_set_signature_md (ctx, EVP_sha256 ());
+	if (status != 1) {
+		return -ERR_get_error ();
+	}
+
+	SHA256 (data, length, hash);
+
+	status = EVP_PKEY_sign (ctx, signature, &sig_length, hash, sizeof (hash));
+	EVP_PKEY_CTX_free (ctx);
+	if (status != 1) {
+		return -ERR_get_error ();
+	}
+
+	EVP_PKEY_free (rsa);
+
+	return 0;
 }
 
 
@@ -211,20 +242,20 @@ static void rsa_openssl_test_sig_verify_null (CuTest *test)
 	status = rsa_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.sig_verify (NULL, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
-		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
+	status = engine.base.sig_verify (NULL, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,	RSA_ENCRYPT_LEN,
+		HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sig_verify (&engine.base, NULL, RSA_SIGNATURE_TEST,
-		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
+	status = engine.base.sig_verify (&engine.base, NULL, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN,
+		HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, NULL,
-		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
+	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, NULL, RSA_ENCRYPT_LEN,
+		HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
-		0, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
+	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,	0,
+		HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
@@ -449,20 +480,17 @@ static void rsa_openssl_test_init_private_key_null (CuTest *test)
 	status = rsa_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_private_key (NULL, &key, RSA_PRIVKEY_DER,
-		RSA_PRIVKEY_DER_LEN);
+	status = engine.base.init_private_key (NULL, &key, RSA_PRIVKEY_DER,	RSA_PRIVKEY_DER_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.init_private_key (&engine.base, NULL, RSA_PRIVKEY_DER,
 		RSA_PRIVKEY_DER_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_private_key (&engine.base, &key, NULL,
-		RSA_PRIVKEY_DER_LEN);
+	status = engine.base.init_private_key (&engine.base, &key, NULL, RSA_PRIVKEY_DER_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_private_key (&engine.base, &key, RSA_PRIVKEY_DER,
-		0);
+	status = engine.base.init_private_key (&engine.base, &key, RSA_PRIVKEY_DER,	0);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	rsa_openssl_release (&engine);
@@ -1077,8 +1105,8 @@ static void rsa_openssl_test_decrypt_null (CuTest *test)
 		HASH_TYPE_SHA1, (uint8_t*) message, sizeof (message));
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.decrypt (&engine.base, &key, RSA_ENCRYPT_TEST, 0, NULL, 0,
-		HASH_TYPE_SHA1, (uint8_t*) message, sizeof (message));
+	status = engine.base.decrypt (&engine.base, &key, RSA_ENCRYPT_TEST, 0, NULL, 0,	HASH_TYPE_SHA1,
+		(uint8_t*) message, sizeof (message));
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.decrypt (&engine.base, &key, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN, NULL, 0,

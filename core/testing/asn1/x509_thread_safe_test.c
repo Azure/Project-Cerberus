@@ -1007,12 +1007,12 @@ static void x509_thread_safe_test_get_certificate_version (CuTest *test)
 	status = x509_thread_safe_init (&engine, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.get_certificate_version, &mock, X509_VERSION_3,
+	status = mock_expect (&mock.mock, mock.base.get_certificate_version, &mock, X509_CERT_VERSION_3,
 		MOCK_ARG_PTR (&cert));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_version (&engine.base, &cert);
-	CuAssertIntEquals (test, X509_VERSION_3, status);
+	CuAssertIntEquals (test, X509_CERT_VERSION_3, status);
 
 	status = mock_validate (&mock.mock);
 	CuAssertIntEquals (test, 0, status);
@@ -1040,12 +1040,12 @@ static void x509_thread_safe_test_get_certificate_version_static_init (CuTest *t
 	status = x509_thread_safe_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.get_certificate_version, &mock, X509_VERSION_3,
+	status = mock_expect (&mock.mock, mock.base.get_certificate_version, &mock, X509_CERT_VERSION_3,
 		MOCK_ARG_PTR (&cert));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_version (&engine.base, &cert);
-	CuAssertIntEquals (test, X509_VERSION_3, status);
+	CuAssertIntEquals (test, X509_CERT_VERSION_3, status);
 
 	status = mock_validate (&mock.mock);
 	CuAssertIntEquals (test, 0, status);

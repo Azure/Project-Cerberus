@@ -44,12 +44,12 @@ TEST_SUITE_LABEL ("cmd_interface_recovery");
 /**
  * Cerberus firmware version string.
  */
-const char RECOVERY_FW_VERSION[CERBERUS_PROTOCOL_FW_VERSION_LEN] = "A1.B2.C3.01";
+static const char RECOVERY_FW_VERSION[CERBERUS_PROTOCOL_FW_VERSION_LEN] = "A1.B2.C3.01";
 
 /**
  * List of FW version strings.
  */
-const char *fw_version_list[FW_VERSION_COUNT];
+static const char *cmd_interface_recovery_testing_fw_version_list[FW_VERSION_COUNT];
 
 /**
  * Dependencies for testing the recovery command interface.
@@ -105,9 +105,9 @@ static void setup_cmd_interface_recovery_mock_test_init (CuTest *test,
 static void setup_cmd_interface_recovery_mock_test_init_fw_version (
 	struct cmd_interface_recovery_testing *cmd, const char *fw_version,	size_t count)
 {
-	fw_version_list[0] = fw_version;
+	cmd_interface_recovery_testing_fw_version_list[0] = fw_version;
 	cmd->fw_version.count = count;
-	cmd->fw_version.id = fw_version_list;
+	cmd->fw_version.id = cmd_interface_recovery_testing_fw_version_list;
 }
 
 /**

@@ -56,9 +56,9 @@ enum {
  * The possible version numbers for X.509 certificates.
  */
 enum {
-	X509_VERSION_1 = 1,	/**< A version 1 certificate. */
-	X509_VERSION_2 = 2,	/**< A version 2 certificate. */
-	X509_VERSION_3 = 3,	/**< A version 3 certificate. */
+	X509_CERT_VERSION_1 = 1,	/**< A version 1 certificate. */
+	X509_CERT_VERSION_2 = 2,	/**< A version 2 certificate. */
+	X509_CERT_VERSION_3 = 3,	/**< A version 3 certificate. */
 };
 
 

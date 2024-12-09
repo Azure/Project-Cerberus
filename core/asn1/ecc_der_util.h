@@ -98,7 +98,7 @@ struct ecc_der_public_key {
 /* Max length of ASN.1/DER encoded ECDSA signatures. */
 #define	ECC_DER_P256_ECDSA_MAX_LENGTH			((ECC_KEY_LENGTH_256 * 2) + (8))
 #define	ECC_DER_P384_ECDSA_MAX_LENGTH			((ECC_KEY_LENGTH_384 * 2) + (8))
-#define	ECC_DER_P521_ECDSA_MAX_LENGTH			((ECC_KEY_LENGTH_521 * 2) + (9))
+#define	ECC_DER_P521_ECDSA_MAX_LENGTH			((ECC_KEY_LENGTH_521 * 2) + (7))
 
 /* Maximum possible length for any supported ASN.1/DER encoded ECDSA signature. */
 #if (ECC_MAX_KEY_LENGTH == ECC_KEY_LENGTH_521)

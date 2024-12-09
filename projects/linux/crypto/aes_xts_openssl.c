@@ -92,7 +92,7 @@ int aes_xts_openssl_encrypt_data (const struct aes_xts_engine *engine, const uin
 		return AES_XTS_ENGINE_INVALID_DATA_LENGTH;
 	}
 
-	if (EVP_CIPHER_CTX_key_length (openssl->state->encrypt) == 0) {
+	if (EVP_CIPHER_CTX_key_length (openssl->state->encrypt) <= 0) {
 		return AES_XTS_ENGINE_NO_KEY;
 	}
 
@@ -140,7 +140,7 @@ int aes_xts_openssl_decrypt_data (const struct aes_xts_engine *engine, const uin
 		return AES_XTS_ENGINE_INVALID_DATA_LENGTH;
 	}
 
-	if (EVP_CIPHER_CTX_key_length (openssl->state->decrypt) == 0) {
+	if (EVP_CIPHER_CTX_key_length (openssl->state->decrypt) <= 0) {
 		return AES_XTS_ENGINE_NO_KEY;
 	}
 

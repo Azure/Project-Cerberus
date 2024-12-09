@@ -5891,7 +5891,7 @@ static void x509_mbedtls_test_get_certificate_version (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_version (&engine.base, &cert);
-	CuAssertIntEquals (test, X509_VERSION_3, status);
+	CuAssertIntEquals (test, X509_CERT_VERSION_3, status);
 
 	engine.base.release_certificate (&engine.base, &cert);
 
@@ -5915,7 +5915,7 @@ static void x509_mbedtls_test_get_certificate_version_static_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_version (&engine.base, &cert);
-	CuAssertIntEquals (test, X509_VERSION_3, status);
+	CuAssertIntEquals (test, X509_CERT_VERSION_3, status);
 
 	engine.base.release_certificate (&engine.base, &cert);
 

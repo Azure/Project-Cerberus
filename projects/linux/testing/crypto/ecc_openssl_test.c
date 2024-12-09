@@ -9,6 +9,7 @@
 #include "crypto/ecc_openssl.h"
 #include "crypto/ecc_openssl_static.h"
 #include "crypto/kat/ecc_kat_vectors.h"
+#include "crypto/openssl_check.h"
 #include "testing/crypto/ecc_testing.h"
 #include "testing/crypto/rsa_testing.h"
 #include "testing/crypto/signature_testing.h"
@@ -2226,7 +2227,11 @@ static void ecc_openssl_test_get_signature_max_length_p521 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_signature_max_length (&engine.base, &priv_key);
+#if OPENSSL_IS_VERSION_3
 	CuAssertIntEquals (test, ECC_TESTING_ECC521_DSA_MAX_LENGTH, status);
+#else
+	CuAssertIntEquals (test, ECC_TESTING_ECC521_DSA_MAX_LENGTH + 2, status);
+#endif
 
 	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
 

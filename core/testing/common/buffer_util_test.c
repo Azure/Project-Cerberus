@@ -602,11 +602,13 @@ static void buffer_are_overlapping_test_same_buffer (CuTest *test)
 {
 	const size_t length = 32;
 	uint8_t buf[length];
+	uint8_t *buf1 = buf;
+	uint8_t *buf2 = buf;
 	int status;
 
 	TEST_START;
 
-	status = buffer_are_overlapping (buf, length, buf, length);
+	status = buffer_are_overlapping (buf1, length, buf2, length);
 	CuAssertIntEquals (test, 1, status);
 }
 
