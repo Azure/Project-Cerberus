@@ -155,7 +155,7 @@ struct attestation_requester_testing {
 	bool measurement_spec_unsupported;							/**< Flag indicating whether target doesn't support DMTF measurement spec */
 	bool asymmetric_key_signature_alg_unsupported;				/**< Flag indicating whether target doesn't support expected asymmetric key signature algorithms  */
 	bool asymmetric_key_signature_alg_mismatched;				/**< Flag indicating whether target doesn't support expected asymmetric key signature algorithms  */
-	bool rsp_len_invalid[2];									/**< Flag indicating whether target sends response with invalid length */
+	bool rsp_len_invalid[4];									/**< Flag indicating whether target sends response with invalid length */
 	bool unsupported_operation;									/**< Flag indicating whether target requests unsupported operation */
 	bool expected_slot_num_empty;								/**< Flag indicating whether target sends response with empty expected slot number */
 	bool cert_chain_digest_compare_fail;						/**< Flag indicating whether target sends incorrect cert chain digest */
@@ -2407,16 +2407,25 @@ static int64_t attestation_requester_testing_spdm_get_certificate_rsp_callback (
 	certificate_response->header.req_rsp_code = SPDM_RESPONSE_GET_CERTIFICATE;
 
 	certificate_response->slot_num = testing->slot_num[0];
-	certificate_response->portion_len = get_cert->resp_length;
+
+	if (testing->rsp_len_invalid[2]) {
+		certificate_response->portion_len = 0;
+	}
+	else {
+		certificate_response->portion_len = get_cert->resp_length + testing->rsp_len_invalid[3];
+	}
+
 	certificate_response->remainder_len = testing->cert_buffer_len -
 		(get_cert->req_offset + certificate_response->portion_len);
 
 	payload_len = sizeof (struct spdm_protocol_mctp_header) +
 		sizeof (struct spdm_get_certificate_response);
 
-	memcpy (&msg[payload_len], &cert_buffer[get_cert->req_offset], get_cert->resp_length);
+	if (!testing->rsp_len_invalid[2]) {
+		memcpy (&msg[payload_len], &cert_buffer[get_cert->req_offset], get_cert->resp_length + testing->rsp_len_invalid[3]);
 
-	payload_len += get_cert->resp_length;
+		payload_len += get_cert->resp_length + testing->rsp_len_invalid[3];
+	}
 
 	testing->second_response[0] = !testing->second_response[0];
 
@@ -3935,13 +3944,22 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate_
 	rsp->header.req_rsp_code = SPDM_RESPONSE_GET_CERTIFICATE;
 
 	rsp->slot_num = testing->slot_num[0];
-	rsp->portion_len = get_cert->resp_length;
-	rsp->remainder_len = testing->cert_buffer_len - (get_cert->req_offset + get_cert->resp_length);
 
-	memcpy (&rsp_buf[sizeof (struct spdm_get_certificate_response)],
-		&cert_buffer[get_cert->req_offset], get_cert->resp_length);
+	if (testing->rsp_len_invalid[2]) {
+		rsp->portion_len = 0;
+		rsp->remainder_len = testing->cert_buffer_len - get_cert->req_offset;
 
-	rsp_len = sizeof (struct spdm_get_certificate_response) + get_cert->resp_length;
+		rsp_len = sizeof (struct spdm_get_certificate_response);
+	}
+	else {
+		rsp->portion_len = get_cert->resp_length + testing->rsp_len_invalid[3];
+		rsp->remainder_len = testing->cert_buffer_len - (get_cert->req_offset + get_cert->resp_length + testing->rsp_len_invalid[3]);
+
+		memcpy (&rsp_buf[sizeof (struct spdm_get_certificate_response)],
+			&cert_buffer[get_cert->req_offset], get_cert->resp_length + testing->rsp_len_invalid[3]);
+
+		rsp_len = sizeof (struct spdm_get_certificate_response) + get_cert->resp_length + testing->rsp_len_invalid[3];
+	}
 
 	status = mock_expect (&testing->secondary_hash.mock, testing->secondary_hash.base.update,
 		&testing->secondary_hash, 0, MOCK_ARG_PTR_CONTAINS_TMP (&req, sizeof (req)),
@@ -24122,7 +24140,8 @@ static void attestation_requester_test_attest_device_spdm_cert_retrieval_more_th
 	testing.cert_msg[cert_msg_idx].cert_offset = alias_offset -
 		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
 	testing.cert_msg[cert_msg_idx].cert_length = RIOT_CORE_ALIAS_CERT_LEN;
-	testing.cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_ALIAS_CERT_LEN - 200;
+	testing.cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_ALIAS_CERT_LEN - 200 -
+		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
 
 	testing.cert_msg_count = cert_msg_idx;
 	CuAssertTrue (test, (cert_msg_idx <= ARRAY_SIZE (testing.cert_msg)));
@@ -28482,6 +28501,84 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_too_la
 	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
 	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
 	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_spdm_get_certificate_zero_rsp_len (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
+		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		0);
+
+	/* Update the expected cert messages, since it will fail after the second request. */
+	testing.cert_msg_count = 1;
+	testing.rsp_len_invalid[2] = true;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing);
+
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, ATTESTATION_INVALID_CERT_CHAIN, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CERTS, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_spdm_get_certificate_invalid_rsp_len (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
+		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		0);
+
+	/* Update the expected cert messages, since it will fail after the second request. */
+	testing.cert_msg_count = 1;
+	testing.rsp_len_invalid[3] = true;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing);
+
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, ATTESTATION_INVALID_CERT_CHAIN, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CERTS, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -39536,6 +39633,8 @@ TEST (attestation_requester_test_attest_device_spdm_get_certificate_no_rsp_alrea
 TEST (attestation_requester_test_attest_device_spdm_get_certificate_rsp_unexpected_slot_num);
 TEST (attestation_requester_test_attest_device_spdm_get_certificate_rsp_hash_update_fail);
 TEST (attestation_requester_test_attest_device_spdm_get_certificate_too_large);
+TEST (attestation_requester_test_attest_device_spdm_get_certificate_zero_rsp_len);
+TEST (attestation_requester_test_attest_device_spdm_get_certificate_invalid_rsp_len);
 TEST (attestation_requester_test_attest_device_spdm_get_certificate_non_contiguous_mask_single);
 TEST (attestation_requester_test_attest_device_spdm_get_certificate_non_contiguous_mask_multiple);
 TEST (attestation_requester_test_attest_device_spdm_get_certificate_init_ca_cert_store_fail);

@@ -2911,6 +2911,15 @@ static int attestation_requester_retrieve_spdm_certificate_chain_portion (
 			goto exit;
 		}
 
+		/* if portion_len is 0, or portion_len is greater than length, then the response is invalid */
+		if ((rsp->portion_len == 0) || (rsp->portion_len > length)) {
+			device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+				DEVICE_MANAGER_ATTESTATION_INVALID_CERTS);
+
+			status = ATTESTATION_INVALID_CERT_CHAIN;
+			goto exit;
+		}
+
 		if (cert_buffer == NULL) {
 			/* If all the requested data did not get returned in a single request, allocate a memory
 			 * buffer to accumulate the data. */
