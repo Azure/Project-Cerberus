@@ -34,6 +34,7 @@ enum {
 	CERBERUS_PROTOCOL_ATTESTATION_LOG,	/**< Attestation log type. */
 	CERBERUS_PROTOCOL_TAMPER_LOG,		/**< Tamper log type. */
 	CERBERUS_PROTOCOL_TCG_LOG,			/**< TCG formatted log type. */
+	CERBERUS_PROTOCOL_VENDOR_DEBUG_LOG,	/**< Vendor debug log type. */
 };
 
 /**
