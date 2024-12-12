@@ -1127,11 +1127,9 @@ int spdm_secure_session_manager_encode_secure_message (
 	if (status == 0) {
 		switch (req_rsp_code) {
 			case SPDM_RESPONSE_FINISH:
-				if ((session_manager->local_capabilities->flags.handshake_in_the_clear_cap == 0) &&
-					(session->peer_capabilities.flags.handshake_in_the_clear_cap == 0)) {
-					spdm_secure_session_manager_set_session_state (session_manager,
-						session->session_id, SPDM_SESSION_STATE_ESTABLISHED);
-				}
+				/* Change session state regardless of handshake type (in clear vs not)*/
+				spdm_secure_session_manager_set_session_state (session_manager,	session->session_id,
+					SPDM_SESSION_STATE_ESTABLISHED);
 				break;
 
 			case SPDM_RESPONSE_END_SESSION:

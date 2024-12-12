@@ -162,9 +162,7 @@ static void spdm_command_testing_init_key_manager (CuTest *test,
 		ca_der = platform_malloc (X509_CERTSS_ECC384_CA_NOPL_DER_LEN);
 		CuAssertPtrNotNull (test, ca_der);
 
-
-		memcpy (dev_id_der, RIOT_CORE_DEVID_SIGNED_CERT_384,
-			RIOT_CORE_DEVID_SIGNED_CERT_384_LEN);
+		memcpy (dev_id_der, RIOT_CORE_DEVID_SIGNED_CERT_384, RIOT_CORE_DEVID_SIGNED_CERT_384_LEN);
 		memcpy (ca_der, X509_CERTSS_ECC384_CA_NOPL_DER, X509_CERTSS_ECC384_CA_NOPL_DER_LEN);
 
 		status = mock_expect (&testing->keystore.mock, testing->keystore.base.load_key,
@@ -8915,8 +8913,7 @@ static void spdm_test_get_digests_no_root_and_intermediate_certs (CuTest *test)
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384, &testing.hash_engine_mock[0].base, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_CERT_384, RIOT_CORE_DEVID_CERT_384_LEN),
-		MOCK_ARG (RIOT_CORE_DEVID_CERT_384_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH));
+		MOCK_ARG (RIOT_CORE_DEVID_CERT_384_LEN), MOCK_ARG_NOT_NULL,	MOCK_ARG (SHA384_HASH_LENGTH));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.start_sha384, &testing.hash_engine_mock[0].base, 0);
@@ -9914,7 +9911,8 @@ static void spdm_test_get_digests_generate_root_cert_hash_fail (CuTest *test)
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384, &testing.hash_engine_mock[0].base,
-		HASH_ENGINE_SHA384_FAILED, MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC384_CA_NOPL_DER, X509_CERTSS_ECC384_CA_NOPL_DER_LEN),
+		HASH_ENGINE_SHA384_FAILED,
+		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC384_CA_NOPL_DER, X509_CERTSS_ECC384_CA_NOPL_DER_LEN),
 		MOCK_ARG (X509_CERTSS_ECC384_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA384_HASH_LENGTH));
 
@@ -17931,6 +17929,523 @@ static void spdm_test_key_exchange (CuTest *test)
 	spdm_command_testing_release_dependencies (test, &testing);
 }
 
+static void spdm_test_key_exchange_requester_hs_in_clear (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
+	struct spdm_key_exchange_response *rsp = (struct spdm_key_exchange_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
+	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
+	size_t sig_size = (ECC_KEY_LENGTH_384 << 1);
+	uint8_t *ptr;
+	uint16_t opaque_rq_data_length = sizeof (struct spdm_general_opaque_data_table_header) +
+		sizeof (struct spdm_secured_message_opaque_element_table_header) +
+		sizeof (struct spdm_secured_message_opaque_element_supported_version) +
+		sizeof (struct spdm_version_number) * 1	/* Secure Version Count */;
+
+	opaque_rq_data_length = (opaque_rq_data_length + 3) & ~3;	/* Add Padding. */
+
+	uint16_t opaque_resp_data_length = sizeof (struct spdm_general_opaque_data_table_header) +
+		sizeof (struct spdm_secured_message_opaque_element_table_header) +
+		sizeof (struct spdm_secured_message_opaque_element_version_selection);
+
+	opaque_resp_data_length = (opaque_resp_data_length + 3) & ~3;	/* Add Padding. */
+
+	size_t response_size = sizeof (struct spdm_key_exchange_response) + dhe_key_size +
+		SHA384_HASH_LENGTH /* measurement summary hash*/ + sizeof (uint16_t) +
+		opaque_resp_data_length + sig_size + SHA384_HASH_LENGTH	/* HMAC */;
+
+	struct spdm_general_opaque_data_table_header *general_opaque_data_table_header;
+	struct spdm_secured_message_opaque_element_table_header *opaque_element_table_header;
+	struct spdm_secured_message_opaque_element_supported_version *opaque_element_support_version;
+	struct spdm_version_number *versions_list;
+	struct spdm_secure_session secure_session = {0};
+	uint8_t idx;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length =
+		sizeof (struct spdm_key_exchange_request) + dhe_key_size + sizeof (uint16_t) +
+		opaque_rq_data_length;
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+	spdm_state->connection_info.peer_capabilities.flags.key_ex_cap = 1;
+	spdm_state->connection_info.peer_capabilities.flags.handshake_in_the_clear_cap = 1;
+	spdm_state->connection_info.peer_algorithms.measurement_spec = SPDM_MEASUREMENT_SPEC_DMTF;
+	spdm_state->connection_info.peer_algorithms.measurement_hash_algo =
+		SPDM_MEAS_RSP_TPM_ALG_SHA_384;
+	spdm_state->connection_info.peer_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	spdm_state->connection_info.peer_algorithms.base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P384;
+	spdm_state->connection_info.peer_algorithms.dhe_named_group =
+		SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
+	spdm_state->connection_info.peer_algorithms.other_params_support.opaque_data_format =
+		SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+	rq->measurement_summary_hash_type = SPDM_MEASUREMENT_SUMMARY_HASH_TCB;
+	rq->slot_id = 0;
+
+	/* Copy the DHE public key. */
+	ptr = (uint8_t*) rq + sizeof (struct spdm_key_exchange_request);
+	memcpy (ptr, &ECC384_PUBKEY_POINT.x, pub_key_component_size);
+	memcpy (&ptr[pub_key_component_size], &ECC384_PUBKEY_POINT.y, pub_key_component_size);
+	ptr += dhe_key_size;
+
+	/* Set opaque data length. */
+	ptr[0] = (uint8_t) (opaque_rq_data_length & 0xFF);
+	ptr[1] = (uint8_t) ((opaque_rq_data_length >> 8) & 0xFF);
+	ptr += sizeof (uint16_t);
+
+	general_opaque_data_table_header = (struct spdm_general_opaque_data_table_header*) ptr;
+	general_opaque_data_table_header->total_elements = 1;
+	opaque_element_table_header =
+		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
+			+
+			1);
+	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
+	opaque_element_table_header->vendor_len = 0;
+	opaque_element_table_header->opaque_element_data_len =
+		sizeof (struct spdm_secured_message_opaque_element_supported_version) +
+		sizeof (struct spdm_version_number) *
+		1 /* Secure Version Count */;
+
+	opaque_element_support_version = (void*) (opaque_element_table_header + 1);
+	opaque_element_support_version->sm_data_version =
+		SPDM_SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_DATA_VERSION;
+	opaque_element_support_version->sm_data_id =
+		SPDM_SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_ID_SUPPORTED_VERSION;
+	opaque_element_support_version->version_count = 1;	/*Secure Version Count */
+
+	versions_list = (void*) (opaque_element_support_version + 1);
+	versions_list->major_version = 1;
+	versions_list->minor_version = 0;
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.is_last_session_id_valid,
+		&testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.calculate_sha384, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC384_CA_NOPL_DER, X509_CERTSS_ECC384_CA_NOPL_DER_LEN),
+		MOCK_ARG (X509_CERTSS_ECC384_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.start_sha384, &testing.hash_engine_mock[0].base, 0);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	for (uint8_t i = 0; i < SPDM_MAX_CERT_COUNT_IN_CHAIN; i++) {
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	}
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_PTR (rq), MOCK_ARG (msg.payload_length),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.rng_mock.mock, testing.rng_mock.base.generate_random_buffer,
+		&testing.rng_mock, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.generate_shared_secret,
+		&testing.session_manager_mock.base, 0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.measurements_mock.mock,
+		testing.measurements_mock.base.get_measurement_summary_hash,
+		&testing.measurements_mock.base, 0, MOCK_ARG_PTR (testing.hash_engine[0]),
+		MOCK_ARG (HASH_TYPE_SHA384), MOCK_ARG_PTR (testing.hash_engine[1]),
+		MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG (rq->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (response_size - sig_size - SHA384_HASH_LENGTH	/* HMAC */), MOCK_ARG (true),
+		MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
+		&testing.ecc_mock.base, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY_384, RIOT_CORE_ALIAS_KEY_384_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_384_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 0);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.get_signature_max_length,
+		&testing.ecc_mock.base, ECC_DER_P384_ECDSA_MAX_LENGTH, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.calculate_sha384, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + SHA384_HASH_LENGTH),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+	status |= mock_expect_output (&testing.hash_engine_mock[0].mock, 2, SHA384_TEST_HASH,
+		SHA384_HASH_LENGTH, -1);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
+		&testing.ecc_mock.base, ECC384_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (ECC_DER_P384_ECDSA_MAX_LENGTH));
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC384_SIGNATURE_TEST,
+		ECC384_SIG_TEST_LEN, 4);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
+		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL, MOCK_ARG (sig_size),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.generate_session_handshake_keys,
+		&testing.session_manager_mock.base, 0, MOCK_ARG_PTR (&secure_session));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	/* HMAC Rounds. */
+	for (idx = 0; idx < 2; idx++) {
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.start_sha384, &testing.hash_engine_mock[0].base, 0);
+
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	}
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.set_session_state, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_SESSION_STATE_HANDSHAKING));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_key_exchange (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, response_size, msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_KEY_EXCHANGE, rsp->header.req_rsp_code);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_key_exchange_requester_and_responder_hs_in_clear (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
+	struct spdm_key_exchange_response *rsp = (struct spdm_key_exchange_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
+	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
+	size_t sig_size = (ECC_KEY_LENGTH_384 << 1);
+	uint8_t *ptr;
+	uint16_t opaque_rq_data_length = sizeof (struct spdm_general_opaque_data_table_header) +
+		sizeof (struct spdm_secured_message_opaque_element_table_header) +
+		sizeof (struct spdm_secured_message_opaque_element_supported_version) +
+		sizeof (struct spdm_version_number) * 1	/* Secure Version Count */;
+
+	opaque_rq_data_length = (opaque_rq_data_length + 3) & ~3;	/* Add Padding. */
+
+	uint16_t opaque_resp_data_length = sizeof (struct spdm_general_opaque_data_table_header) +
+		sizeof (struct spdm_secured_message_opaque_element_table_header) +
+		sizeof (struct spdm_secured_message_opaque_element_version_selection);
+
+	opaque_resp_data_length = (opaque_resp_data_length + 3) & ~3;	/* Add Padding. */
+
+	size_t response_size = sizeof (struct spdm_key_exchange_response) + dhe_key_size +
+		SHA384_HASH_LENGTH /* measurement summary hash*/ + sizeof (uint16_t) +
+		opaque_resp_data_length + sig_size;
+
+	struct spdm_general_opaque_data_table_header *general_opaque_data_table_header;
+	struct spdm_secured_message_opaque_element_table_header *opaque_element_table_header;
+	struct spdm_secured_message_opaque_element_supported_version *opaque_element_support_version;
+	struct spdm_version_number *versions_list;
+	struct spdm_secure_session secure_session = {0};
+
+	//uint8_t idx;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length =
+		sizeof (struct spdm_key_exchange_request) + dhe_key_size + sizeof (uint16_t) +
+		opaque_rq_data_length;
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+	spdm_state->connection_info.peer_capabilities.flags.key_ex_cap = 1;
+	spdm_state->connection_info.peer_capabilities.flags.handshake_in_the_clear_cap = 1;
+	spdm_state->connection_info.peer_algorithms.measurement_spec = SPDM_MEASUREMENT_SPEC_DMTF;
+	spdm_state->connection_info.peer_algorithms.measurement_hash_algo =
+		SPDM_MEAS_RSP_TPM_ALG_SHA_384;
+	spdm_state->connection_info.peer_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	spdm_state->connection_info.peer_algorithms.base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P384;
+	spdm_state->connection_info.peer_algorithms.dhe_named_group =
+		SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
+	spdm_state->connection_info.peer_algorithms.other_params_support.opaque_data_format =
+		SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1;
+
+	testing.local_capabilities.flags.handshake_in_the_clear_cap = 1;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+	rq->measurement_summary_hash_type = SPDM_MEASUREMENT_SUMMARY_HASH_TCB;
+	rq->slot_id = 0;
+
+	/* Copy the DHE public key. */
+	ptr = (uint8_t*) rq + sizeof (struct spdm_key_exchange_request);
+	memcpy (ptr, &ECC384_PUBKEY_POINT.x, pub_key_component_size);
+	memcpy (&ptr[pub_key_component_size], &ECC384_PUBKEY_POINT.y, pub_key_component_size);
+	ptr += dhe_key_size;
+
+	/* Set opaque data length. */
+	ptr[0] = (uint8_t) (opaque_rq_data_length & 0xFF);
+	ptr[1] = (uint8_t) ((opaque_rq_data_length >> 8) & 0xFF);
+	ptr += sizeof (uint16_t);
+
+	general_opaque_data_table_header = (struct spdm_general_opaque_data_table_header*) ptr;
+	general_opaque_data_table_header->total_elements = 1;
+	opaque_element_table_header =
+		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
+			+
+			1);
+	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
+	opaque_element_table_header->vendor_len = 0;
+	opaque_element_table_header->opaque_element_data_len =
+		sizeof (struct spdm_secured_message_opaque_element_supported_version) +
+		sizeof (struct spdm_version_number) *
+		1 /* Secure Version Count */;
+
+	opaque_element_support_version = (void*) (opaque_element_table_header + 1);
+	opaque_element_support_version->sm_data_version =
+		SPDM_SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_DATA_VERSION;
+	opaque_element_support_version->sm_data_id =
+		SPDM_SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_ID_SUPPORTED_VERSION;
+	opaque_element_support_version->version_count = 1;	/*Secure Version Count */
+
+	versions_list = (void*) (opaque_element_support_version + 1);
+	versions_list->major_version = 1;
+	versions_list->minor_version = 0;
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.is_last_session_id_valid,
+		&testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.calculate_sha384, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC384_CA_NOPL_DER, X509_CERTSS_ECC384_CA_NOPL_DER_LEN),
+		MOCK_ARG (X509_CERTSS_ECC384_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.start_sha384, &testing.hash_engine_mock[0].base, 0);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	for (uint8_t i = 0; i < SPDM_MAX_CERT_COUNT_IN_CHAIN; i++) {
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	}
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_PTR (rq), MOCK_ARG (msg.payload_length),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.rng_mock.mock, testing.rng_mock.base.generate_random_buffer,
+		&testing.rng_mock, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.generate_shared_secret,
+		&testing.session_manager_mock.base, 0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.measurements_mock.mock,
+		testing.measurements_mock.base.get_measurement_summary_hash,
+		&testing.measurements_mock.base, 0, MOCK_ARG_PTR (testing.hash_engine[0]),
+		MOCK_ARG (HASH_TYPE_SHA384), MOCK_ARG_PTR (testing.hash_engine[1]),
+		MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG (rq->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (response_size - sig_size), MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
+		&testing.ecc_mock.base, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY_384, RIOT_CORE_ALIAS_KEY_384_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_384_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 0);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.get_signature_max_length,
+		&testing.ecc_mock.base, ECC_DER_P384_ECDSA_MAX_LENGTH, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.calculate_sha384, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + SHA384_HASH_LENGTH),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+	status |= mock_expect_output (&testing.hash_engine_mock[0].mock, 2, SHA384_TEST_HASH,
+		SHA384_HASH_LENGTH, -1);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
+		&testing.ecc_mock.base, ECC384_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (ECC_DER_P384_ECDSA_MAX_LENGTH));
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC384_SIGNATURE_TEST,
+		ECC384_SIG_TEST_LEN, 4);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
+		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL, MOCK_ARG (sig_size),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.generate_session_handshake_keys,
+		&testing.session_manager_mock.base, 0, MOCK_ARG_PTR (&secure_session));
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.set_session_state, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_SESSION_STATE_HANDSHAKING));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_key_exchange (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, response_size, msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_KEY_EXCHANGE, rsp->header.req_rsp_code);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+
 static void spdm_test_key_exchange_null (CuTest *test)
 {
 	int status;
@@ -24250,6 +24765,52 @@ static void spdm_test_finish_incorrect_connection_state (CuTest *test)
 	spdm_command_testing_release_dependencies (test, &testing);
 }
 
+static void spdm_test_finish_requester_and_responder_hs_in_clear (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_finish_request *rq = (struct spdm_finish_request*) buf;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_finish_request);
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+	spdm_state->connection_info.peer_capabilities.flags.handshake_in_the_clear_cap = 1;
+
+	testing.local_capabilities.flags.handshake_in_the_clear_cap = 1;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+
+	status = spdm_finish (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_SESSION_REQUIRED, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
 static void spdm_test_finish_last_request_session_inactive (CuTest *test)
 {
 	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
@@ -27392,6 +27953,8 @@ TEST (spdm_test_get_measurements_v_1_2_sig_req_sign_fail);
 TEST (spdm_test_get_measurements_v_1_1_sig_req_sign_fail);
 TEST (spdm_test_get_measurements_ecc_der_decode_ecdsa_signature_fail);
 TEST (spdm_test_key_exchange);
+TEST (spdm_test_key_exchange_requester_hs_in_clear);
+TEST (spdm_test_key_exchange_requester_and_responder_hs_in_clear);
 TEST (spdm_test_key_exchange_null);
 TEST (spdm_test_key_exchange_no_session_manager);
 TEST (spdm_test_key_exchange_no_secure_versions);
@@ -27445,6 +28008,7 @@ TEST (spdm_test_finish_request_size_invalid);
 TEST (spdm_test_finish_incorrect_negotiated_version);
 TEST (spdm_test_finish_incorrect_response_state);
 TEST (spdm_test_finish_incorrect_connection_state);
+TEST (spdm_test_finish_requester_and_responder_hs_in_clear);
 TEST (spdm_test_finish_last_request_session_inactive);
 TEST (spdm_test_finish_last_request_session_id_invalid);
 TEST (spdm_test_finish_last_request_session_state_invalid);

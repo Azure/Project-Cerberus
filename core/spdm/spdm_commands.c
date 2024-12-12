@@ -3901,8 +3901,13 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 
 	/* Construct the response. */
 	response_size = sizeof (struct spdm_key_exchange_response) + dhe_key_size +
-		meas_summary_hash_size + sizeof (uint16_t) + opaque_key_exchange_rsp_size + sig_size +
-		hash_size /* HMAC */;
+		meas_summary_hash_size + sizeof (uint16_t) + opaque_key_exchange_rsp_size + sig_size;
+
+	if ((state->connection_info.peer_capabilities.flags.handshake_in_the_clear_cap == 0) ||
+		(local_capabilities->flags.handshake_in_the_clear_cap == 0)) {
+		response_size += hash_size;	/* HMAC */
+	}
+
 	if (response_size > cmd_interface_msg_get_max_response (request)) {
 		status = CMD_HANDLER_SPDM_RESPONDER_RESPONSE_TOO_LARGE;
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
@@ -3993,7 +3998,7 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 	}
 
 	/* Generate the responder verification data. */
-	if ((state->connection_info.peer_capabilities.flags.handshake_in_the_clear_cap == 0) &&
+	if ((state->connection_info.peer_capabilities.flags.handshake_in_the_clear_cap == 0) ||
 		(local_capabilities->flags.handshake_in_the_clear_cap == 0)) {
 		status = spdm_calculate_th_hmac_for_key_exchange_rsp (transcript_manager, state,
 			spdm_responder->ecc_engine, hash_engine, session, ptr);
@@ -4111,7 +4116,7 @@ int spdm_finish (const struct cmd_interface_spdm_responder *spdm_responder,
 	}
 
 	/* Confirm that we are in a session.*/
-	if ((local_capabilities->flags.handshake_in_the_clear_cap == 0) &&
+	if ((local_capabilities->flags.handshake_in_the_clear_cap == 0) ||
 		(state->connection_info.peer_capabilities.flags.handshake_in_the_clear_cap == 0)) {
 		if (session_manager->is_last_session_id_valid (session_manager) == false) {
 			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_CONNECTION_STATE;
