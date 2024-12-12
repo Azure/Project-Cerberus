@@ -1041,7 +1041,7 @@ int host_fw_config_spi_filter_read_write_regions_multiple_fw (
 	uint32_t last_addr = 0;
 	const struct flash_region *next = NULL;
 	const struct flash_region *prev = NULL;
-	size_t total_len;
+	size_t total_len = 0;
 	int status;
 
 	if ((filter == NULL) || ((writable == NULL) && (fw_count != 0))) {

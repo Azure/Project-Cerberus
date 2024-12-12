@@ -175,6 +175,53 @@ void cerberus_protocol_required_commands_testing_process_get_fw_version_unset_ve
 	CuAssertIntEquals (test, 0, status);
 }
 
+void cerberus_protocol_required_commands_testing_process_get_fw_version_maxlen_version (
+	CuTest *test, struct cmd_interface *cmd, const char *version)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_get_fw_version *req = (struct cerberus_protocol_get_fw_version*) data;
+	struct cerberus_protocol_get_fw_version_response *resp =
+		(struct cerberus_protocol_get_fw_version_response*) data;
+	char expected_version[CERBERUS_PROTOCOL_FW_VERSION_LEN] = {0};
+	int status;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	CuAssertTrue (test, strlen (version) >= CERBERUS_PROTOCOL_FW_VERSION_LEN);
+	strncpy (expected_version, version, CERBERUS_PROTOCOL_FW_VERSION_LEN);
+	expected_version[CERBERUS_PROTOCOL_FW_VERSION_LEN - 1] = '\0';
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_GET_FW_VERSION;
+
+	req->area = 0;
+	request.length = sizeof (struct cerberus_protocol_get_fw_version);
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = true;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_fw_version_response),
+		request.length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_FW_VERSION, resp->header.command);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+
+	status = testing_validate_array (expected_version, (uint8_t*) resp->version,
+		sizeof (resp->version));
+	CuAssertIntEquals (test, 0, status);
+}
+
 void cerberus_protocol_required_commands_testing_process_get_fw_version_invalid_len (CuTest *test,
 	struct cmd_interface *cmd)
 {

@@ -84,6 +84,12 @@ const size_t CMD_DEVICE_UUID_LEN = sizeof (CMD_DEVICE_UUID);
 const char CERBERUS_FW_VERSION[CERBERUS_PROTOCOL_FW_VERSION_LEN] = "AB.CD.EF.01";
 
 /**
+ * Cerberus firmware version string.
+ */
+const char CERBERUS_FW_VERSION_MAXLEN[CERBERUS_PROTOCOL_FW_VERSION_LEN] =
+	"AA.BB.CC.DD.XX.YY.ZZ.01.02.03.04";
+
+/**
  * RIoT core version string.
  */
 const char RIOT_CORE_VERSION[CERBERUS_PROTOCOL_FW_VERSION_LEN] = "1.0";
@@ -2458,6 +2464,33 @@ static void cmd_interface_system_test_process_get_fw_version_unset_version (CuTe
 
 	cerberus_protocol_required_commands_testing_process_get_fw_version_unset_version (test,
 		&cmd.handler.base);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_fw_version_maxlen_version (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	int status;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test_init (test, &cmd);
+	setup_cmd_interface_system_mock_test_init_fw_version (&cmd, CERBERUS_FW_VERSION_MAXLEN,
+		RIOT_CORE_VERSION, FW_VERSION_COUNT);
+
+	status = cmd_interface_system_init (&cmd.handler, &cmd.update.base, &cmd.pfm_0.base,
+		&cmd.pfm_1.base, &cmd.cfm.base, &cmd.pcd.base, &cmd.pfm_manager_0.base,
+		&cmd.pfm_manager_1.base, &cmd.cfm_manager.base, &cmd.pcd_manager.base,
+		&cmd.attestation.base, &cmd.device_manager, &cmd.store, &cmd.hash.base,
+		&cmd.background.base, &cmd.host_0.base, &cmd.host_1.base, &cmd.fw_version, &cmd.riot,
+		&cmd.auth.base, &cmd.host_ctrl_0.base, &cmd.host_ctrl_1.base, &cmd.recovery_0.base,
+		&cmd.recovery_1.base, &cmd.recovery_manager_0.base, &cmd.recovery_manager_1.base,
+		&cmd.cmd_device.base, 0, 0, 0, 0, &cmd.session.base);
+	CuAssertIntEquals (test, 0, status);
+
+	cerberus_protocol_required_commands_testing_process_get_fw_version_maxlen_version (test,
+		&cmd.handler.base, CERBERUS_FW_VERSION_MAXLEN);
 
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -8492,6 +8525,7 @@ TEST (cmd_interface_system_test_process_get_ext_update_status_invalid_len);
 TEST (cmd_interface_system_test_process_get_ext_update_status_invalid_type);
 TEST (cmd_interface_system_test_process_get_fw_version);
 TEST (cmd_interface_system_test_process_get_fw_version_unset_version);
+TEST (cmd_interface_system_test_process_get_fw_version_maxlen_version);
 TEST (cmd_interface_system_test_process_get_fw_version_unsupported_area);
 TEST (cmd_interface_system_test_process_get_fw_version_invalid_len);
 TEST (cmd_interface_system_test_process_get_fw_version_riot);

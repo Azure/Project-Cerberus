@@ -18,7 +18,6 @@
 #include "testing/mock/crypto/hash_mock.h"
 #include "testing/mock/keystore/keystore_mock.h"
 
-
 void cerberus_protocol_required_commands_testing_supports_all_required_commands (CuTest *test,
 	struct cmd_interface *cmd, const char *version,	struct attestation_responder_mock *attestation,
 	struct device_manager *device_manager, struct cmd_background_mock *background,
@@ -32,6 +31,8 @@ void cerberus_protocol_required_commands_testing_process_get_fw_version_riot (Cu
 	struct cmd_interface *cmd, const char *version);
 void cerberus_protocol_required_commands_testing_process_get_fw_version_unset_version (CuTest *test,
 	struct cmd_interface *cmd);
+void cerberus_protocol_required_commands_testing_process_get_fw_version_maxlen_version (
+	CuTest *test, struct cmd_interface *cmd, const char *version);
 void cerberus_protocol_required_commands_testing_process_get_fw_version_invalid_len (CuTest *test,
 	struct cmd_interface *cmd);
 void cerberus_protocol_required_commands_testing_process_get_fw_version_unsupported_area (

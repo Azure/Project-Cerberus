@@ -92,6 +92,7 @@ int cerberus_protocol_get_fw_version (const struct cmd_interface_fw_version *fw_
 
 	if (fw_version->id[area] != NULL) {
 		strncpy (rsp->version, fw_version->id[area], sizeof (rsp->version));
+		rsp->version[sizeof (rsp->version) - 1] = '\0';
 	}
 
 	request->length = sizeof (struct cerberus_protocol_get_fw_version_response);
