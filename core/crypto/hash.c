@@ -130,6 +130,33 @@ int hash_calculate (const struct hash_engine *engine, enum hash_type type, const
 }
 
 /**
+ * Get the hash algorithm used to generate a hash based on the output length.
+ *
+ * @param hash_length The length of the hash output.
+ *
+ * @return Hash algorithm used if the length is known or HASH_TYPE_INVALID.
+ */
+enum hash_type hash_get_type_from_length (size_t hash_length)
+{
+	switch (hash_length) {
+		case SHA1_HASH_LENGTH:
+			return HASH_TYPE_SHA1;
+
+		case SHA256_HASH_LENGTH:
+			return HASH_TYPE_SHA256;
+
+		case SHA384_HASH_LENGTH:
+			return HASH_TYPE_SHA384;
+
+		case SHA512_HASH_LENGTH:
+			return HASH_TYPE_SHA512;
+
+		default:
+			return HASH_TYPE_INVALID;
+	}
+}
+
+/**
  * Get the length of the output digest for the indicated hash algorithm.
  *
  * @param hash_type The hashing algorithm to check.

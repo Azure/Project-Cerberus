@@ -13,6 +13,7 @@ int signature_verification_rsa_verify_signature (const struct signature_verifica
 {
 	const struct signature_verification_rsa *rsa =
 		(const struct signature_verification_rsa*) verification;
+	enum hash_type sig_algo;
 	int status;
 
 	if (rsa == NULL) {
@@ -23,8 +24,13 @@ int signature_verification_rsa_verify_signature (const struct signature_verifica
 		return SIG_VERIFICATION_NO_KEY;
 	}
 
-	status = rsa->rsa->sig_verify (rsa->rsa, rsa->state->key, signature, sig_length,
-		HASH_TYPE_SHA256, digest, length);
+	sig_algo = hash_get_type_from_length (length);
+	if (sig_algo == HASH_TYPE_INVALID) {
+		return SIG_VERIFICATION_UNKNOWN_HASH;
+	}
+
+	status = rsa->rsa->sig_verify (rsa->rsa, rsa->state->key, signature, sig_length, sig_algo,
+		digest, length);
 	if (status == RSA_ENGINE_BAD_SIGNATURE) {
 		return SIG_VERIFICATION_BAD_SIGNATURE;
 	}

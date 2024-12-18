@@ -2188,6 +2188,7 @@ static void hash_kat_test_hmac_run_all_self_tests_sha512_fail (CuTest *test)
 #endif
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (hash_kat);
 
 TEST (hash_kat_test_run_self_test_calculate_sha1);
@@ -2309,3 +2310,4 @@ TEST (hash_kat_test_hmac_run_all_self_tests_sha512_fail);
 #endif
 
 TEST_SUITE_END;
+// *INDENT-ON*

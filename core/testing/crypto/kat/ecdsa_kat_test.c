@@ -8,8 +8,7 @@
 #include "asn1/ecc_der_util.h"
 #include "crypto/kat/ecc_kat_vectors.h"
 #include "crypto/kat/ecdsa_kat.h"
-#include "testing/crypto/ecc_testing.h"
-#include "testing/crypto/hash_testing.h"
+#include "crypto/signature_verification.h"
 #include "testing/engines/ecc_testing_engine.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/mock/crypto/ecc_hw_mock.h"
@@ -153,7 +152,7 @@ static void ecdsa_kat_test_verify_kat_vectors_p256 (CuTest *test)
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
-#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 static void ecdsa_kat_test_verify_kat_vectors_p384 (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
@@ -244,7 +243,7 @@ static void ecdsa_kat_test_verify_kat_vectors_p384 (CuTest *test)
 }
 #endif
 
-#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 static void ecdsa_kat_test_verify_kat_vectors_p521 (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
@@ -331,6 +330,1041 @@ static void ecdsa_kat_test_verify_kat_vectors_p521 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	ECC_TESTING_ENGINE_RELEASE (&ecc);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+#endif
+
+static void ecdsa_kat_test_run_self_test_verify_p256_sha256 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	HASH_TESTING_ENGINE (hash);
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_p256_sha256 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_p256_sha256_bad_signature (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct ecc_engine_mock ecc;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecc.mock, ecc.base.init_public_key, &ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
+
+	status |= mock_expect (&ecc.mock, ecc.base.verify, &ecc, ECC_ENGINE_BAD_SIGNATURE,
+		MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_ECDSA_SHA256_DIGEST, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER,
+		ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER_LEN));
+
+	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_PTR (NULL),
+		MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_p256_sha256 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, ECDSA_P256_VERIFY_SELF_TEST_FAILED, status);
+
+	status = ecc_mock_validate_and_release (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_p256_sha256_null (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	HASH_TESTING_ENGINE (hash);
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_p256_sha256 (NULL, &hash.base);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
+
+	status = ecdsa_kat_run_self_test_verify_p256_sha256 (&ecc.base, NULL);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_p256_sha256_error (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct ecc_engine_mock ecc;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecc.mock, ecc.base.init_public_key, &ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
+
+	status |= mock_expect (&ecc.mock, ecc.base.verify, &ecc, ECC_ENGINE_VERIFY_FAILED,
+		MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_ECDSA_SHA256_DIGEST, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER,
+		ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER_LEN));
+
+	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_PTR (NULL),
+		MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_p256_sha256 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, ECC_ENGINE_VERIFY_FAILED, status);
+
+	status = ecc_mock_validate_and_release (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_p384_sha384 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	HASH_TESTING_ENGINE (hash);
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_p384_sha384 (&ecc.base, &hash.base);
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+	CuAssertIntEquals (test, 0, status);
+#else
+	CuAssertIntEquals (test, ECDSA_UNSUPPORTED_SELF_TEST, status);
+#endif
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+static void ecdsa_kat_test_run_self_test_verify_p384_sha384_bad_signature (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct ecc_engine_mock ecc;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecc.mock, ecc.base.init_public_key, &ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
+
+	status |= mock_expect (&ecc.mock, ecc.base.verify, &ecc, ECC_ENGINE_BAD_SIGNATURE,
+		MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_ECDSA_SHA384_DIGEST, SHA384_HASH_LENGTH),
+		MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER,
+		ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER_LEN));
+
+	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_PTR (NULL),
+		MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_p384_sha384 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, ECDSA_P384_VERIFY_SELF_TEST_FAILED, status);
+
+	status = ecc_mock_validate_and_release (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_p384_sha384_null (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	HASH_TESTING_ENGINE (hash);
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_p384_sha384 (NULL, &hash.base);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
+
+	status = ecdsa_kat_run_self_test_verify_p384_sha384 (&ecc.base, NULL);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_p384_sha384_error (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct ecc_engine_mock ecc;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecc.mock, ecc.base.init_public_key, &ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
+
+	status |= mock_expect (&ecc.mock, ecc.base.verify, &ecc, ECC_ENGINE_VERIFY_FAILED,
+		MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_ECDSA_SHA384_DIGEST, SHA384_HASH_LENGTH),
+		MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER,
+		ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER_LEN));
+
+	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_PTR (NULL),
+		MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_p384_sha384 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, ECC_ENGINE_VERIFY_FAILED, status);
+
+	status = ecc_mock_validate_and_release (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+#endif
+
+static void ecdsa_kat_test_run_self_test_verify_p521_sha512 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	HASH_TESTING_ENGINE (hash);
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_p521_sha512 (&ecc.base, &hash.base);
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+	CuAssertIntEquals (test, 0, status);
+#else
+	CuAssertIntEquals (test, ECDSA_UNSUPPORTED_SELF_TEST, status);
+#endif
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+static void ecdsa_kat_test_run_self_test_verify_p521_sha512_bad_signature (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct ecc_engine_mock ecc;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecc.mock, ecc.base.init_public_key, &ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
+
+	status |= mock_expect (&ecc.mock, ecc.base.verify, &ecc, ECC_ENGINE_BAD_SIGNATURE,
+		MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_ECDSA_SHA512_DIGEST, SHA512_HASH_LENGTH),
+		MOCK_ARG (SHA512_HASH_LENGTH),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER,
+		ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER_LEN));
+
+	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_PTR (NULL),
+		MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_p521_sha512 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, ECDSA_P521_VERIFY_SELF_TEST_FAILED, status);
+
+	status = ecc_mock_validate_and_release (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_p521_sha512_null (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	HASH_TESTING_ENGINE (hash);
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_p521_sha512 (NULL, &hash.base);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
+
+	status = ecdsa_kat_run_self_test_verify_p521_sha512 (&ecc.base, NULL);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_p521_sha512_error (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct ecc_engine_mock ecc;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecc.mock, ecc.base.init_public_key, &ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
+
+	status |= mock_expect (&ecc.mock, ecc.base.verify, &ecc, ECC_ENGINE_VERIFY_FAILED,
+		MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_ECDSA_SHA512_DIGEST, SHA512_HASH_LENGTH),
+		MOCK_ARG (SHA512_HASH_LENGTH),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER,
+		ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER_LEN));
+
+	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_PTR (NULL),
+		MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_p521_sha512 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, ECC_ENGINE_VERIFY_FAILED, status);
+
+	status = ecc_mock_validate_and_release (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+#endif
+
+static void ecdsa_kat_test_run_self_test_verify_hash_p256_sha256 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	HASH_TESTING_ENGINE (hash);
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p256_sha256 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	/* The hash context should not be active. */
+	status = hash.base.update (&hash.base, ECC_KAT_VECTORS_ECDSA_SIGNED,
+		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_hash_p256_sha256_bad_signature (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct ecc_engine_mock ecc;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecc.mock, ecc.base.init_public_key, &ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
+
+	status |= mock_expect (&ecc.mock, ecc.base.verify, &ecc, ECC_ENGINE_BAD_SIGNATURE,
+		MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_ECDSA_SHA256_DIGEST, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER,
+		ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER_LEN));
+
+	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_PTR (NULL),
+		MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p256_sha256 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, ECDSA_P256_VERIFY_SELF_TEST_FAILED, status);
+
+	/* The hash context should not be active. */
+	status = hash.base.update (&hash.base, ECC_KAT_VECTORS_ECDSA_SIGNED,
+		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	status = ecc_mock_validate_and_release (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_hash_p256_sha256_null (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	HASH_TESTING_ENGINE (hash);
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p256_sha256 (NULL, &hash.base);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p256_sha256 (&ecc.base, NULL);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	/* The hash context should not be active. */
+	status = hash.base.update (&hash.base, ECC_KAT_VECTORS_ECDSA_SIGNED,
+		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_hash_p256_sha256_hash_start_error (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	struct hash_engine_mock hash;
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash,
+		HASH_ENGINE_START_SHA256_FAILED);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p256_sha256 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_hash_p256_sha256_hash_update_error (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	struct hash_engine_mock hash;
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
+
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_ECDSA_SIGNED, ECC_KAT_VECTORS_ECDSA_SIGNED_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_ECDSA_SIGNED_LEN));
+
+	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p256_sha256 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_hash_p256_sha256_verify_error (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct ecc_engine_mock ecc;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecc.mock, ecc.base.init_public_key, &ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
+
+	status |= mock_expect (&ecc.mock, ecc.base.verify, &ecc, ECC_ENGINE_VERIFY_FAILED,
+		MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_ECDSA_SHA256_DIGEST, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER,
+		ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER_LEN));
+
+	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_PTR (NULL),
+		MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p256_sha256 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, ECC_ENGINE_VERIFY_FAILED, status);
+
+	/* The hash context should not be active. */
+	status = hash.base.update (&hash.base, ECC_KAT_VECTORS_ECDSA_SIGNED,
+		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	status = ecc_mock_validate_and_release (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_hash_p384_sha384 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	HASH_TESTING_ENGINE (hash);
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p384_sha384 (&ecc.base, &hash.base);
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+	CuAssertIntEquals (test, 0, status);
+
+	/* The hash context should not be active. */
+	status = hash.base.update (&hash.base, ECC_KAT_VECTORS_ECDSA_SIGNED,
+		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+#else
+	CuAssertIntEquals (test, ECDSA_UNSUPPORTED_SELF_TEST, status);
+#endif
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+static void ecdsa_kat_test_run_self_test_verify_hash_p384_sha384_bad_signature (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct ecc_engine_mock ecc;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecc.mock, ecc.base.init_public_key, &ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
+
+	status |= mock_expect (&ecc.mock, ecc.base.verify, &ecc, ECC_ENGINE_BAD_SIGNATURE,
+		MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_ECDSA_SHA384_DIGEST, SHA384_HASH_LENGTH),
+		MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER,
+		ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER_LEN));
+
+	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_PTR (NULL),
+		MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p384_sha384 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, ECDSA_P384_VERIFY_SELF_TEST_FAILED, status);
+
+	/* The hash context should not be active. */
+	status = hash.base.update (&hash.base, ECC_KAT_VECTORS_ECDSA_SIGNED,
+		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	status = ecc_mock_validate_and_release (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_hash_p384_sha384_null (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	HASH_TESTING_ENGINE (hash);
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p384_sha384 (NULL, &hash.base);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p384_sha384 (&ecc.base, NULL);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	/* The hash context should not be active. */
+	status = hash.base.update (&hash.base, ECC_KAT_VECTORS_ECDSA_SIGNED,
+		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_hash_p384_sha384_hash_start_error (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	struct hash_engine_mock hash;
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hash.mock, hash.base.start_sha384, &hash,
+		HASH_ENGINE_START_SHA384_FAILED);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p384_sha384 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA384_FAILED, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_hash_p384_sha384_hash_update_error (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	struct hash_engine_mock hash;
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hash.mock, hash.base.start_sha384, &hash, 0);
+
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_ECDSA_SIGNED, ECC_KAT_VECTORS_ECDSA_SIGNED_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_ECDSA_SIGNED_LEN));
+
+	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p384_sha384 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_hash_p384_sha384_verify_error (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct ecc_engine_mock ecc;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecc.mock, ecc.base.init_public_key, &ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
+
+	status |= mock_expect (&ecc.mock, ecc.base.verify, &ecc, ECC_ENGINE_VERIFY_FAILED,
+		MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_ECDSA_SHA384_DIGEST, SHA384_HASH_LENGTH),
+		MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER,
+		ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER_LEN));
+
+	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_PTR (NULL),
+		MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p384_sha384 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, ECC_ENGINE_VERIFY_FAILED, status);
+
+	/* The hash context should not be active. */
+	status = hash.base.update (&hash.base, ECC_KAT_VECTORS_ECDSA_SIGNED,
+		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	status = ecc_mock_validate_and_release (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+#endif
+
+static void ecdsa_kat_test_run_self_test_verify_hash_p521_sha512 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	HASH_TESTING_ENGINE (hash);
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p521_sha512 (&ecc.base, &hash.base);
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+	CuAssertIntEquals (test, 0, status);
+
+	/* The hash context should not be active. */
+	status = hash.base.update (&hash.base, ECC_KAT_VECTORS_ECDSA_SIGNED,
+		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+#else
+	CuAssertIntEquals (test, ECDSA_UNSUPPORTED_SELF_TEST, status);
+#endif
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+static void ecdsa_kat_test_run_self_test_verify_hash_p521_sha512_bad_signature (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct ecc_engine_mock ecc;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecc.mock, ecc.base.init_public_key, &ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
+
+	status |= mock_expect (&ecc.mock, ecc.base.verify, &ecc, ECC_ENGINE_BAD_SIGNATURE,
+		MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_ECDSA_SHA512_DIGEST, SHA512_HASH_LENGTH),
+		MOCK_ARG (SHA512_HASH_LENGTH),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER,
+		ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER_LEN));
+
+	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_PTR (NULL),
+		MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p521_sha512 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, ECDSA_P521_VERIFY_SELF_TEST_FAILED, status);
+
+	/* The hash context should not be active. */
+	status = hash.base.update (&hash.base, ECC_KAT_VECTORS_ECDSA_SIGNED,
+		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	status = ecc_mock_validate_and_release (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_hash_p521_sha512_null (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	HASH_TESTING_ENGINE (hash);
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p521_sha512 (NULL, &hash.base);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p521_sha512 (&ecc.base, NULL);
+	CuAssertIntEquals (test, ECDSA_INVALID_ARGUMENT, status);
+
+	/* The hash context should not be active. */
+	status = hash.base.update (&hash.base, ECC_KAT_VECTORS_ECDSA_SIGNED,
+		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_hash_p521_sha512_hash_start_error (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	struct hash_engine_mock hash;
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hash.mock, hash.base.start_sha512, &hash,
+		HASH_ENGINE_START_SHA512_FAILED);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p521_sha512 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA512_FAILED, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_hash_p521_sha512_hash_update_error (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	struct hash_engine_mock hash;
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hash.mock, hash.base.start_sha512, &hash, 0);
+
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_ECDSA_SIGNED, ECC_KAT_VECTORS_ECDSA_SIGNED_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_ECDSA_SIGNED_LEN));
+
+	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p521_sha512 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+}
+
+static void ecdsa_kat_test_run_self_test_verify_hash_p521_sha512_verify_error (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct ecc_engine_mock ecc;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecc.mock, ecc.base.init_public_key, &ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
+
+	status |= mock_expect (&ecc.mock, ecc.base.verify, &ecc, ECC_ENGINE_VERIFY_FAILED,
+		MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_ECDSA_SHA512_DIGEST, SHA512_HASH_LENGTH),
+		MOCK_ARG (SHA512_HASH_LENGTH),
+		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER,
+		ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER_LEN),
+		MOCK_ARG (ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER_LEN));
+
+	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_PTR (NULL),
+		MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_verify_hash_p521_sha512 (&ecc.base, &hash.base);
+	CuAssertIntEquals (test, ECC_ENGINE_VERIFY_FAILED, status);
+
+	/* The hash context should not be active. */
+	status = hash.base.update (&hash.base, ECC_KAT_VECTORS_ECDSA_SIGNED,
+		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	status = ecc_mock_validate_and_release (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 #endif
@@ -557,7 +1591,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256_error (CuTest *
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
-#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384 (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
@@ -577,6 +1611,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384 (CuTest *test)
 	status = ecc_hw_mock_init (&ecc_hw);
 	CuAssertIntEquals (test, 0, status);
 
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 	status = mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_sign, &ecc_hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P384_ECC_PRIVATE, ECC_KEY_LENGTH_384),
 		MOCK_ARG (ECC_KEY_LENGTH_384),
@@ -587,9 +1622,14 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384 (CuTest *test)
 	status |= mock_expect_external_action (&ecc_hw.mock, ecdsa_kat_testing_check_expected_k, &k);
 
 	CuAssertIntEquals (test, 0, status);
+#endif
 
 	status = ecdsa_kat_run_self_test_ecc_hw_sign_p384_sha384 (&ecc_hw.base, &hash.base);
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 	CuAssertIntEquals (test, 0, status);
+#else
+	CuAssertIntEquals (test, ECDSA_UNSUPPORTED_SELF_TEST, status);
+#endif
 
 	status = ecc_hw_mock_validate_and_release (&ecc_hw);
 	CuAssertIntEquals (test, 0, status);
@@ -781,7 +1821,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384_error (CuTest *
 }
 #endif
 
-#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512 (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
@@ -801,6 +1841,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512 (CuTest *test)
 	status = ecc_hw_mock_init (&ecc_hw);
 	CuAssertIntEquals (test, 0, status);
 
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 	status = mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_sign, &ecc_hw, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_P521_ECC_PRIVATE, ECC_KEY_LENGTH_521),
 		MOCK_ARG (ECC_KEY_LENGTH_521),
@@ -811,9 +1852,14 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512 (CuTest *test)
 	status |= mock_expect_external_action (&ecc_hw.mock, ecdsa_kat_testing_check_expected_k, &k);
 
 	CuAssertIntEquals (test, 0, status);
+#endif
 
 	status = ecdsa_kat_run_self_test_ecc_hw_sign_p521_sha512 (&ecc_hw.base, &hash.base);
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 	CuAssertIntEquals (test, 0, status);
+#else
+	CuAssertIntEquals (test, ECDSA_UNSUPPORTED_SELF_TEST, status);
+#endif
 
 	status = ecc_hw_mock_validate_and_release (&ecc_hw);
 	CuAssertIntEquals (test, 0, status);
@@ -1129,7 +2175,6 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256_error (CuTest
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
-#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384 (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
@@ -1144,6 +2189,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384 (CuTest *test
 	status = ecc_hw_mock_init (&ecc_hw);
 	CuAssertIntEquals (test, 0, status);
 
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 	status = mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P384_ECC_PUBLIC,
 		sizeof (struct ecc_point_public_key)),
@@ -1152,9 +2198,14 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384 (CuTest *test
 		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_ECDSA_SHA384_DIGEST, SHA384_HASH_LENGTH),
 		MOCK_ARG (SHA384_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
+#endif
 
 	status = ecdsa_kat_run_self_test_ecc_hw_verify_p384_sha384 (&ecc_hw.base, &hash.base);
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 	CuAssertIntEquals (test, 0, status);
+#else
+	CuAssertIntEquals (test, ECDSA_UNSUPPORTED_SELF_TEST, status);
+#endif
 
 	status = ecc_hw_mock_validate_and_release (&ecc_hw);
 	CuAssertIntEquals (test, 0, status);
@@ -1162,6 +2213,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384 (CuTest *test
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384_bad_signature (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
@@ -1255,7 +2307,6 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384_error (CuTest
 }
 #endif
 
-#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512 (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
@@ -1270,6 +2321,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512 (CuTest *test
 	status = ecc_hw_mock_init (&ecc_hw);
 	CuAssertIntEquals (test, 0, status);
 
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 	status = mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P521_ECC_PUBLIC,
 		sizeof (struct ecc_point_public_key)),
@@ -1278,9 +2330,14 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512 (CuTest *test
 		MOCK_ARG_PTR_CONTAINS (ECC_KAT_VECTORS_ECDSA_SHA512_DIGEST, SHA512_HASH_LENGTH),
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
+#endif
 
 	status = ecdsa_kat_run_self_test_ecc_hw_verify_p521_sha512 (&ecc_hw.base, &hash.base);
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 	CuAssertIntEquals (test, 0, status);
+#else
+	CuAssertIntEquals (test, ECDSA_UNSUPPORTED_SELF_TEST, status);
+#endif
 
 	status = ecc_hw_mock_validate_and_release (&ecc_hw);
 	CuAssertIntEquals (test, 0, status);
@@ -1288,6 +2345,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512 (CuTest *test
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512_bad_signature (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
@@ -1382,14 +2440,53 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512_error (CuTest
 #endif
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (ecdsa_kat);
 
 TEST (ecdsa_kat_test_verify_kat_vectors_p256);
-#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 TEST (ecdsa_kat_test_verify_kat_vectors_p384);
 #endif
-#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 TEST (ecdsa_kat_test_verify_kat_vectors_p521);
+#endif
+TEST (ecdsa_kat_test_run_self_test_verify_p256_sha256);
+TEST (ecdsa_kat_test_run_self_test_verify_p256_sha256_bad_signature);
+TEST (ecdsa_kat_test_run_self_test_verify_p256_sha256_null);
+TEST (ecdsa_kat_test_run_self_test_verify_p256_sha256_error);
+TEST (ecdsa_kat_test_run_self_test_verify_p384_sha384);
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+TEST (ecdsa_kat_test_run_self_test_verify_p384_sha384_bad_signature);
+TEST (ecdsa_kat_test_run_self_test_verify_p384_sha384_null);
+TEST (ecdsa_kat_test_run_self_test_verify_p384_sha384_error);
+#endif
+TEST (ecdsa_kat_test_run_self_test_verify_p521_sha512);
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+TEST (ecdsa_kat_test_run_self_test_verify_p521_sha512_bad_signature);
+TEST (ecdsa_kat_test_run_self_test_verify_p521_sha512_null);
+TEST (ecdsa_kat_test_run_self_test_verify_p521_sha512_error);
+#endif
+TEST (ecdsa_kat_test_run_self_test_verify_hash_p256_sha256);
+TEST (ecdsa_kat_test_run_self_test_verify_hash_p256_sha256_bad_signature);
+TEST (ecdsa_kat_test_run_self_test_verify_hash_p256_sha256_null);
+TEST (ecdsa_kat_test_run_self_test_verify_hash_p256_sha256_hash_start_error);
+TEST (ecdsa_kat_test_run_self_test_verify_hash_p256_sha256_hash_update_error);
+TEST (ecdsa_kat_test_run_self_test_verify_hash_p256_sha256_verify_error);
+TEST (ecdsa_kat_test_run_self_test_verify_hash_p384_sha384);
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+TEST (ecdsa_kat_test_run_self_test_verify_hash_p384_sha384_bad_signature);
+TEST (ecdsa_kat_test_run_self_test_verify_hash_p384_sha384_null);
+TEST (ecdsa_kat_test_run_self_test_verify_hash_p384_sha384_hash_start_error);
+TEST (ecdsa_kat_test_run_self_test_verify_hash_p384_sha384_hash_update_error);
+TEST (ecdsa_kat_test_run_self_test_verify_hash_p384_sha384_verify_error);
+#endif
+TEST (ecdsa_kat_test_run_self_test_verify_hash_p521_sha512);
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+TEST (ecdsa_kat_test_run_self_test_verify_hash_p521_sha512_bad_signature);
+TEST (ecdsa_kat_test_run_self_test_verify_hash_p521_sha512_null);
+TEST (ecdsa_kat_test_run_self_test_verify_hash_p521_sha512_hash_start_error);
+TEST (ecdsa_kat_test_run_self_test_verify_hash_p521_sha512_hash_update_error);
+TEST (ecdsa_kat_test_run_self_test_verify_hash_p521_sha512_verify_error);
 #endif
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256_mismatch_length);
@@ -1397,16 +2494,16 @@ TEST (ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256_mismatch_r);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256_mismatch_s);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256_null);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256_error);
-#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384);
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384_mismatch_length);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384_mismatch_r);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384_mismatch_s);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384_null);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384_error);
 #endif
-#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512);
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512_mismatch_length);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512_mismatch_r);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512_mismatch_s);
@@ -1417,17 +2514,18 @@ TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256_bad_signature);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256_null);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256_error);
-#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384);
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384_bad_signature);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384_null);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384_error);
 #endif
-#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512);
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512_bad_signature);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512_null);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512_error);
 #endif
 
 TEST_SUITE_END;
+// *INDENT-ON*

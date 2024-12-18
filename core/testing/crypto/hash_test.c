@@ -3423,6 +3423,35 @@ static void hash_test_is_alg_supported (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 }
 
+static void hash_test_get_type_from_length (CuTest *test)
+{
+	enum hash_type type;
+
+	TEST_START;
+
+	type = hash_get_type_from_length (SHA1_HASH_LENGTH);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
+	type = hash_get_type_from_length (SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
+	type = hash_get_type_from_length (SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
+	type = hash_get_type_from_length (SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+}
+
+static void hash_test_get_type_from_length_unsupported (CuTest *test)
+{
+	enum hash_type type;
+
+	TEST_START;
+
+	type = hash_get_type_from_length (SHA256_HASH_LENGTH + 1);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (hash);
@@ -3550,6 +3579,8 @@ TEST (hash_test_hmac_get_hmac_length_unsupported);
 TEST (hash_test_get_block_size);
 TEST (hash_test_get_block_size_unsupported);
 TEST (hash_test_is_alg_supported);
+TEST (hash_test_get_type_from_length);
+TEST (hash_test_get_type_from_length_unsupported);
 
 TEST_SUITE_END;
 // *INDENT-ON*

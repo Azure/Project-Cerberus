@@ -754,6 +754,7 @@ static void kdf_test_kat_run_self_test_hkdf_expand_sha512_kdf_fail (CuTest *test
 #endif
 
 
+// *INDENT-OFF*
 TEST_SUITE_START (kdf_kat);
 
 TEST (kdf_test_kat_run_self_test_nist800_108_counter_mode_sha1);
@@ -802,3 +803,4 @@ TEST (kdf_test_kat_run_self_test_hkdf_expand_sha512_kdf_fail);
 #endif
 
 TEST_SUITE_END;
+// *INDENT-ON*

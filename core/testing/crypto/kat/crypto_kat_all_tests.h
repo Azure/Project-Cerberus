@@ -39,6 +39,12 @@ static void add_all_crypto_kat_tests (CuSuite *suite)
 	!defined TESTING_SKIP_KDF_KAT_SUITE
 	TESTING_RUN_SUITE (kdf_kat);
 #endif
+#if (defined TESTING_RUN_SIGNATURE_VERIFICATION_KAT_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_SIGNATURE_VERIFICATION_KAT_SUITE
+	TESTING_RUN_SUITE (signature_verification_kat);
+#endif
 }
 
 #endif /* CRYPTO_KAT_ALL_TESTS_H_ */

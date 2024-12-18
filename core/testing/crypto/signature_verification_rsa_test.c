@@ -248,6 +248,58 @@ static void signature_verification_rsa_test_verify_signature (CuTest *test)
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
 }
 
+#ifdef HASH_ENABLE_SHA384
+static void signature_verification_rsa_test_verify_signature_sha384 (CuTest *test)
+{
+	RSA_TESTING_ENGINE (rsa);
+	struct signature_verification_rsa_state state;
+	struct signature_verification_rsa verification;
+	int status;
+
+	TEST_START;
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_rsa_init (&verification, &state, &rsa.base, &RSA_PUBLIC_KEY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = verification.base.verify_signature (&verification.base, SHA384_TEST_HASH,
+		SHA384_HASH_LENGTH, RSA_SHA384_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	signature_verification_rsa_release (&verification);
+
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+#endif
+
+#ifdef HASH_ENABLE_SHA512
+static void signature_verification_rsa_test_verify_signature_sha512 (CuTest *test)
+{
+	RSA_TESTING_ENGINE (rsa);
+	struct signature_verification_rsa_state state;
+	struct signature_verification_rsa verification;
+	int status;
+
+	TEST_START;
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_rsa_init (&verification, &state, &rsa.base, &RSA_PUBLIC_KEY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = verification.base.verify_signature (&verification.base, SHA512_TEST_HASH,
+		SHA512_HASH_LENGTH, RSA_SHA512_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	signature_verification_rsa_release (&verification);
+
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+#endif
+
 static void signature_verification_rsa_test_verify_signature_bad_hash (CuTest *test)
 {
 	RSA_TESTING_ENGINE (rsa);
@@ -344,10 +396,6 @@ static void signature_verification_rsa_test_verify_signature_null (CuTest *test)
 		RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
-	status = verification.base.verify_signature (&verification.base, SIG_HASH_TEST, 0,
-		RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
-	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
-
 	status = verification.base.verify_signature (&verification.base, SIG_HASH_TEST, SIG_HASH_LEN,
 		NULL, RSA_ENCRYPT_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
@@ -355,6 +403,30 @@ static void signature_verification_rsa_test_verify_signature_null (CuTest *test)
 	status = verification.base.verify_signature (&verification.base, SIG_HASH_TEST, SIG_HASH_LEN,
 		RSA_SIGNATURE_TEST, 0);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
+
+	signature_verification_rsa_release (&verification);
+
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void signature_verification_rsa_test_verify_signature_unknown_hash_algorithm (CuTest *test)
+{
+	RSA_TESTING_ENGINE (rsa);
+	struct signature_verification_rsa_state state;
+	struct signature_verification_rsa verification;
+	int status;
+
+	TEST_START;
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_rsa_init (&verification, &state, &rsa.base, &RSA_PUBLIC_KEY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = verification.base.verify_signature (&verification.base, SIG_HASH_TEST,
+		SIG_HASH_LEN - 1, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	CuAssertIntEquals (test, SIG_VERIFICATION_UNKNOWN_HASH, status);
 
 	signature_verification_rsa_release (&verification);
 
@@ -732,10 +804,17 @@ TEST (signature_verification_rsa_test_static_init_no_key);
 TEST (signature_verification_rsa_test_static_init_null);
 TEST (signature_verification_rsa_test_release_null);
 TEST (signature_verification_rsa_test_verify_signature);
+#ifdef HASH_ENABLE_SHA384
+TEST (signature_verification_rsa_test_verify_signature_sha384);
+#endif
+#ifdef HASH_ENABLE_SHA512
+TEST (signature_verification_rsa_test_verify_signature_sha512);
+#endif
 TEST (signature_verification_rsa_test_verify_signature_bad_hash);
 TEST (signature_verification_rsa_test_verify_signature_bad_signature);
 TEST (signature_verification_rsa_test_verify_signature_static_init);
 TEST (signature_verification_rsa_test_verify_signature_null);
+TEST (signature_verification_rsa_test_verify_signature_unknown_hash_algorithm);
 TEST (signature_verification_rsa_test_verify_signature_no_key);
 TEST (signature_verification_rsa_test_set_verification_key);
 TEST (signature_verification_rsa_test_set_verification_key_clear_key);

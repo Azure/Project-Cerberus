@@ -6,6 +6,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "crypto/ecc.h"
 #include "crypto/ecc_hw.h"
 #include "crypto/hash.h"
 #include "crypto/rng.h"
@@ -30,6 +31,20 @@ int ecdsa_deterministic_k_drbg_instantiate (const struct hash_engine *hash,
 int ecdsa_deterministic_k_drbg_generate (const struct hash_engine *hash,
 	struct ecdsa_deterministic_k_drbg *drbg, uint8_t *k, size_t k_length);
 void ecdsa_deterministic_k_drbg_clear (struct ecdsa_deterministic_k_drbg *drbg);
+
+/* These verification functions are just wrappers around the common digital signature verification
+ * routines, leveraging an ephemeral signature_verification_ecc instance.  In most situations,
+ * directly interacting with the underlying signature verification calls with a statically allocated
+ * instance should be preferred. */
+int ecdsa_verify_message (const struct ecc_engine *ecc, const struct hash_engine *hash,
+	enum hash_type hash_algo, const uint8_t *message, size_t msg_length, const uint8_t *pub_key,
+	size_t key_length, const uint8_t *signature, size_t sig_length);
+int ecdsa_verify_hash (const struct ecc_engine *ecc, const struct hash_engine *hash,
+	enum hash_type hash_algo, const uint8_t *pub_key, size_t key_length, const uint8_t *signature,
+	size_t sig_length);
+int ecdsa_verify_hash_and_finish (const struct ecc_engine *ecc, const struct hash_engine *hash,
+	enum hash_type hash_algo, const uint8_t *pub_key, size_t key_length, const uint8_t *signature,
+	size_t sig_length);
 
 int ecdsa_ecc_hw_sign_message (const struct ecc_hw *ecc_hw, const struct hash_engine *hash,
 	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,

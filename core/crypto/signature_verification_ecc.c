@@ -71,8 +71,12 @@ int signature_verification_ecc_set_verification_key (
 		(const struct signature_verification_ecc*) verification;
 	int status = 0;
 
-	if ((ecdsa == NULL) || ((key != NULL) && (length == 0))) {
+	if (ecdsa == NULL) {
 		return SIG_VERIFICATION_INVALID_ARGUMENT;
+	}
+
+	if ((key != NULL) && (length == 0)) {
+		return SIG_VERIFICATION_INCONSISTENT_KEY;
 	}
 
 	if (ecdsa->state->key_valid) {

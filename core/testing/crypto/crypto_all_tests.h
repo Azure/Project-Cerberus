@@ -132,6 +132,12 @@ static void add_all_crypto_tests (CuSuite *suite)
 	!defined TESTING_SKIP_RSA_THREAD_SAFE_SUITE
 	TESTING_RUN_SUITE (rsa_thread_safe);
 #endif
+#if (defined TESTING_RUN_SIGNATURE_VERIFICATION_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_SIGNATURE_VERIFICATION_SUITE
+	TESTING_RUN_SUITE (signature_verification);
+#endif
 #if (defined TESTING_RUN_SIGNATURE_VERIFICATION_ECC_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

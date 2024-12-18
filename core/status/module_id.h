@@ -158,6 +158,7 @@ enum {
 	ROT_MODULE_MMIO_REGISTER = 0x0092,					/**< MMIO register operations */
 	ROT_MODULE_MPU = 0x0093,							/**< MPU interface */
 	ROT_MODULE_TDISP_TDI_CONTEXT_MANAGER = 0x0094,		/**< TDISP TDI context manager interface */
+	ROT_MODULE_RSASSA = 0x0095,							/**< RSASSA signature handling. */
 };
 
 
