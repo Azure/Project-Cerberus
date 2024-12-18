@@ -3907,11 +3907,14 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate 
  *
  * @param test The testing framework.
  * @param hash_update_fail Flag indicating whether to fail while hashing Get Certificate response.
+ * @param get_rsp Flag indicating whether to receive a response.
+ * @param rsp_fail Flag indicating whether to receive an error response or not.
+ * @param unexpected_rsp Flag indicating whether to send an unexpected response.
  * @param testing Testing instances.
  */
-static void attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (
-	CuTest *test, bool hash_update_fail, bool non_contiguous_slot_mask,
-	struct attestation_requester_testing *testing)
+static void attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_fail_rsp (
+	CuTest *test, bool hash_update_fail, bool get_rsp, bool rsp_fail, bool unexpected_rsp,
+	bool non_contiguous_slot_mask, struct attestation_requester_testing *testing)
 {
 	struct spdm_get_certificate_request req;
 	uint8_t rsp_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -3971,17 +3974,33 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate_
 		status |= mock_expect (&testing->secondary_hash.mock, testing->secondary_hash.base.cancel,
 			&testing->secondary_hash, 0);
 	}
-	else {
+	else if (get_rsp && !rsp_fail && !unexpected_rsp) {
 		status = mock_expect (&testing->secondary_hash.mock, testing->secondary_hash.base.update,
 			&testing->secondary_hash, 0, MOCK_ARG_PTR_CONTAINS_TMP (rsp_buf, rsp_len),
 			MOCK_ARG (rsp_len));
 	}
 	CuAssertIntEquals (test, 0, status);
 
-	attestation_requester_testing_send_and_receive_spdm_get_certificate (test, true, false, false,
-		non_contiguous_slot_mask, testing, req.offset, req.length);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate (test, get_rsp, rsp_fail,
+		unexpected_rsp, non_contiguous_slot_mask, testing, req.offset, req.length);
 
 	testing->next_cert_req++;
+}
+
+/**
+ * Helper function which sends and receives a SPDM Protocol Get Certificate, and sets up
+ * hashing mock
+ *
+ * @param test The testing framework.
+ * @param hash_update_fail Flag indicating whether to fail while hashing Get Certificate response.
+ * @param testing Testing instances.
+ */
+static void attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (
+	CuTest *test, bool hash_update_fail, bool non_contiguous_slot_mask,
+	struct attestation_requester_testing *testing)
+{
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_fail_rsp (test,
+		hash_update_fail, true, false, false, non_contiguous_slot_mask, testing);
 }
 
 /**
@@ -6261,6 +6280,10 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_fa
 		false, false, ATTESTATION_RIOT_SLOT_NUM, 0, X509_CERTSS_RSA_CA_NOPL_DER,
 		X509_CERTSS_RSA_CA_NOPL_DER_LEN, &testing);
 
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.cancel,
+		&testing.primary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
@@ -6302,6 +6325,10 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_un
 		true, false, ATTESTATION_RIOT_SLOT_NUM, 0, X509_CERTSS_RSA_CA_NOPL_DER,
 		X509_CERTSS_RSA_CA_NOPL_DER_LEN, &testing);
 
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.cancel,
+		&testing.primary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
@@ -6342,6 +6369,10 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_un
 	attestation_requester_testing_send_and_receive_cerberus_get_certificate (test, true, false,
 		false, true, ATTESTATION_RIOT_SLOT_NUM, 0, X509_CERTSS_RSA_CA_NOPL_DER,
 		X509_CERTSS_RSA_CA_NOPL_DER_LEN, &testing);
+
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.cancel,
+		&testing.primary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
@@ -7866,6 +7897,10 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 		false, false, ATTESTATION_RIOT_SLOT_NUM, 0, X509_CERTSS_RSA_CA_NOPL_DER,
 		X509_CERTSS_RSA_CA_NOPL_DER_LEN, &testing);
 
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.cancel,
+		&testing.primary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
@@ -7906,6 +7941,10 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 	attestation_requester_testing_send_and_receive_cerberus_get_certificate (test, false, false,
 		false, false, ATTESTATION_RIOT_SLOT_NUM, 0, X509_CERTSS_RSA_CA_NOPL_DER,
 		X509_CERTSS_RSA_CA_NOPL_DER_LEN, &testing);
+
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.cancel,
+		&testing.primary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
 		DEVICE_MANAGER_AUTHENTICATED);
@@ -7954,6 +7993,10 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 	attestation_requester_testing_send_and_receive_cerberus_get_certificate (test, false, false,
 		false, false, ATTESTATION_RIOT_SLOT_NUM, 0, X509_CERTSS_RSA_CA_NOPL_DER,
 		X509_CERTSS_RSA_CA_NOPL_DER_LEN, &testing);
+
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.cancel,
+		&testing.primary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
 		DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
@@ -28204,6 +28247,68 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
+static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp_intermediate_cert (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
+	uint32_t component_id = 50;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
+		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		component_id);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing);
+
+	attestation_requester_testing_verify_spdm_root_ca_with_mocks (test, &testing, true, 0,
+		HASH_TYPE_SHA384, &testing.cert_msg[2], NULL, component_id);
+
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_fail_rsp (test,
+		false, false, false, false, false, &testing);
+
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.cancel,
+		&testing.primary_hash, 0);
+
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
 static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp_already_authenticated (
 	CuTest *test)
 {
@@ -39628,6 +39733,7 @@ TEST (attestation_requester_test_attest_device_spdm_get_certificate_req_hash_upd
 TEST (attestation_requester_test_attest_device_spdm_get_certificate_fail);
 TEST (attestation_requester_test_attest_device_spdm_get_certificate_unexpected_rsp);
 TEST (attestation_requester_test_attest_device_spdm_get_certificate_no_rsp);
+TEST (attestation_requester_test_attest_device_spdm_get_certificate_no_rsp_intermediate_cert);
 TEST (attestation_requester_test_attest_device_spdm_get_certificate_no_rsp_already_authenticated);
 TEST (attestation_requester_test_attest_device_spdm_get_certificate_no_rsp_already_authenticated_with_timeout);
 TEST (attestation_requester_test_attest_device_spdm_get_certificate_rsp_unexpected_slot_num);

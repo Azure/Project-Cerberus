@@ -1751,8 +1751,10 @@ void attestation_requester_on_cfm_activation_request (const struct cfm_observer 
  * @param state Variable context for the attestation requester to utilize.
  * @param mctp MCTP interface instance to utilize.
  * @param channel Command channel instance to utilize.
- * @param primary_hash The primary hash engine to utilize.
- * @param secondary_hash The secondary hash engine to utilize for SPDM operations.
+ * @param primary_hash The hash engine to utilize for most attestation hashing operations.  This
+ * must be a dedicated hash engine that is not shared with any other component.
+ * @param secondary_hash The hash engine to utilize for SPDM transcript hashes.  This must be a
+ * dedicated hash engine that is not not shared with any other component.
  * @param ecc The ECC engine to utilize.
  * @param rsa The RSA engine to utilize. Optional, can be set to NULL if not utilized.
  * @param x509 The x509 engine to utilize.
@@ -1903,18 +1905,24 @@ static int attestation_requester_verify_and_load_leaf_key_cerberus (
 	size_t cert_idx;
 	int status;
 
+	/* TODO:  Cert chain digest calculation seems like it might be wrong for Cerberus now relative
+	 * to how GET_DIGESTS is handled. */
 	for (cert_idx = 0; cert_idx < attestation->state->txn.num_certs; ++cert_idx) {
 		status =
 			cerberus_protocol_generate_get_certificate_request (attestation->state->txn.slot_num,
 			cert_idx, attestation->state->txn.msg_buffer,
 			sizeof (attestation->state->txn.msg_buffer), 0, 0);
 		if (ROT_IS_ERROR (status)) {
+			attestation->primary_hash->cancel (attestation->primary_hash);
+
 			return status;
 		}
 
 		status = attestation_requester_send_request_and_get_response (attestation, status,
 			device_addr, eid, false, false, CERBERUS_PROTOCOL_GET_CERTIFICATE);
 		if (status != 0) {
+			attestation->primary_hash->cancel (attestation->primary_hash);
+
 			return status;
 		}
 
@@ -3093,6 +3101,8 @@ static int attestation_requester_verify_and_load_leaf_key_spdm (
 		status = attestation_requester_retrieve_individual_spdm_certificate (attestation, dest_addr,
 			eid, cert_offset, &cert_data, &cert_len);
 		if (status != 0) {
+			attestation->primary_hash->cancel (attestation->primary_hash);
+
 			return status;
 		}
 
