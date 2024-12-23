@@ -23,7 +23,8 @@ static int pcd_flash_verify (struct manifest *pcd, const struct hash_engine *has
 		return PCD_INVALID_ARGUMENT;
 	}
 
-	return manifest_flash_verify (&pcd_flash->base_flash, hash, verification, hash_out,
+	/* PCD only supports v2 manifests. */
+	return manifest_flash_v2_verify (&pcd_flash->base_flash, hash, verification, hash_out,
 		hash_length);
 }
 

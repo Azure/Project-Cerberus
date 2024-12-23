@@ -23,7 +23,8 @@ static int cfm_flash_verify (struct manifest *cfm, const struct hash_engine *has
 		return CFM_INVALID_ARGUMENT;
 	}
 
-	return manifest_flash_verify (&cfm_flash->base_flash, hash, verification, hash_out,
+	/* CFM only supports v2 manifests. */
+	return manifest_flash_v2_verify (&cfm_flash->base_flash, hash, verification, hash_out,
 		hash_length);
 }
 

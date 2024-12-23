@@ -54,6 +54,9 @@ int manifest_flash_read_header (struct manifest_flash *manifest, struct manifest
 
 int manifest_flash_verify (struct manifest_flash *manifest, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length);
+int manifest_flash_v2_verify (struct manifest_flash *manifest, const struct hash_engine *hash,
+	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length);
+
 int manifest_flash_get_id (struct manifest_flash *manifest, uint32_t *id);
 int manifest_flash_get_platform_id (struct manifest_flash *manifest, char **id, size_t length);
 int manifest_flash_get_hash (struct manifest_flash *manifest, const struct hash_engine *hash,

@@ -161,7 +161,7 @@ void manifest_flash_testing_verify_manifest (CuTest *test, struct manifest_flash
 	status |= flash_master_mock_expect_rx_xfer (&manifest->flash_mock, 0, manifest_data,
 		PFM_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, manifest->addr, 0, -1, PFM_HEADER_SIZE));
 
-	status = flash_master_mock_expect_rx_xfer (&manifest->flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manifest->flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manifest->flash_mock, 0, manifest_sig,
 		manifest_sig_len,
@@ -384,6 +384,33 @@ static void manifest_flash_test_verify_bad_magic_number (CuTest *test)
 	status = manifest_flash_verify (&manifest.test, &manifest.hash.base,
 		&manifest.verification.base, NULL, 0);
 	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
+
+	manifest_flash_testing_validate_and_release (test, &manifest);
+}
+
+static void manifest_flash_test_verify_length_less_than_header (CuTest *test)
+{
+	struct manifest_flash_testing manifest;
+	int status;
+	uint8_t pfm_bad_data[PFM_HEADER_SIZE];
+
+	TEST_START;
+
+	memcpy (pfm_bad_data, PFM_DATA, sizeof (pfm_bad_data));
+	*((uint16_t*) (&pfm_bad_data[0])) = sizeof (struct manifest_header) - 1;
+
+	manifest_flash_testing_init (test, &manifest, 0x10000, PFM_MAGIC_NUM);
+
+	status = flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manifest.flash_mock, 0, pfm_bad_data,
+		PFM_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_flash_verify (&manifest.test, &manifest.hash.base,
+		&manifest.verification.base, NULL, 0);
+	CuAssertIntEquals (test, MANIFEST_BAD_LENGTH, status);
 
 	manifest_flash_testing_validate_and_release (test, &manifest);
 }
@@ -2123,6 +2150,7 @@ TEST (manifest_flash_test_verify_null);
 TEST (manifest_flash_test_verify_small_hash_buffer);
 TEST (manifest_flash_test_verify_header_read_error);
 TEST (manifest_flash_test_verify_bad_magic_number);
+TEST (manifest_flash_test_verify_length_less_than_header);
 TEST (manifest_flash_test_verify_sig_longer_than_pfm);
 TEST (manifest_flash_test_verify_sig_same_length_as_pfm);
 TEST (manifest_flash_test_verify_sig_length_into_header);

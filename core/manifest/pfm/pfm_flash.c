@@ -19,6 +19,41 @@
 static const char *NO_FW_IDS[] = {NULL};
 
 
+/**
+ * Check a v2 formatted PFM for required elements.
+ *
+ * @param pfm_flash The v2 PFM to check.  This must have already been verified to be valid.
+ * @param hash Hash engine to use for element verification.
+ *
+ * @return 0 if the PFM is structured correctly or an error code.
+ */
+static int pfm_flash_verify_v2_elements (struct pfm_flash *pfm_flash,
+	const struct hash_engine *hash)
+{
+	uint8_t format;
+	uint8_t *element = (uint8_t*) &pfm_flash->flash_dev;
+	int status;
+
+	status = manifest_flash_read_element_data (&pfm_flash->base_flash, hash, PFM_FLASH_DEVICE, 0,
+		MANIFEST_NO_PARENT, 0, NULL, &format, NULL, &element, sizeof (pfm_flash->flash_dev));
+	if (ROT_IS_ERROR (status) && (status != MANIFEST_ELEMENT_NOT_FOUND)) {
+		return status;
+	}
+
+	if ((size_t) status < sizeof (pfm_flash->flash_dev)) {
+		return PFM_MALFORMED_FLASH_DEV_ELEMENT;
+	}
+
+	if (status != MANIFEST_ELEMENT_NOT_FOUND) {
+		pfm_flash->flash_dev_format = format;
+	}
+	else {
+		pfm_flash->flash_dev_format = -1;
+	}
+
+	return 0;
+}
+
 static int pfm_flash_verify (struct manifest *pfm, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
@@ -85,26 +120,39 @@ static int pfm_flash_verify (struct manifest *pfm, const struct hash_engine *has
 		pfm_flash->base_flash.platform_id[platform_section.id_length] = '\0';
 	}
 	else {
-		uint8_t format;
-		uint8_t *element = (uint8_t*) &pfm_flash->flash_dev;
-
-		status = manifest_flash_read_element_data (&pfm_flash->base_flash, hash, PFM_FLASH_DEVICE,
-			0, MANIFEST_NO_PARENT, 0, NULL, &format, NULL, &element, sizeof (pfm_flash->flash_dev));
-		if (ROT_IS_ERROR (status) && (status != MANIFEST_ELEMENT_NOT_FOUND)) {
+		status = pfm_flash_verify_v2_elements (pfm_flash, hash);
+		if (status != 0) {
 			goto error;
 		}
+	}
 
-		if ((size_t) status < sizeof (pfm_flash->flash_dev)) {
-			status = PFM_MALFORMED_FLASH_DEV_ELEMENT;
-			goto error;
-		}
+	return 0;
 
-		if (status != MANIFEST_ELEMENT_NOT_FOUND) {
-			pfm_flash->flash_dev_format = format;
-		}
-		else {
-			pfm_flash->flash_dev_format = -1;
-		}
+error:
+	pfm_flash->base_flash.manifest_valid = false;
+
+	return status;
+}
+
+static int pfm_flash_verify_v2_only (struct manifest *pfm, const struct hash_engine *hash,
+	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
+{
+	struct pfm_flash *pfm_flash = (struct pfm_flash*) pfm;
+	int status;
+
+	if (pfm_flash == NULL) {
+		return PFM_INVALID_ARGUMENT;
+	}
+
+	status = manifest_flash_v2_verify (&pfm_flash->base_flash, hash, verification, hash_out,
+		hash_length);
+	if (status != 0) {
+		return status;
+	}
+
+	status = pfm_flash_verify_v2_elements (pfm_flash, hash);
+	if (status != 0) {
+		goto error;
 	}
 
 	return 0;
@@ -194,6 +242,21 @@ static int pfm_flash_is_empty (struct manifest *pfm)
 	}
 
 	return status;
+}
+
+static int pfm_flash_is_empty_v2_only (struct manifest *pfm)
+{
+	struct pfm_flash *pfm_flash = (struct pfm_flash*) pfm;
+
+	if (pfm_flash == NULL) {
+		return PFM_INVALID_ARGUMENT;
+	}
+
+	if (!pfm_flash->base_flash.manifest_valid) {
+		return MANIFEST_NO_MANIFEST;
+	}
+
+	return (pfm_flash->flash_dev_format < 0) || (pfm_flash->flash_dev.fw_count == 0);
 }
 
 static void pfm_flash_free_firmware (struct pfm *pfm, struct pfm_firmware *fw)
@@ -336,6 +399,21 @@ static int pfm_flash_get_firmware (struct pfm *pfm, struct pfm_firmware *fw)
 	else {
 		return pfm_flash_get_firmware_v2 (pfm_flash, fw);
 	}
+}
+
+static int pfm_flash_get_firmware_v2_only (struct pfm *pfm, struct pfm_firmware *fw)
+{
+	struct pfm_flash *pfm_flash = (struct pfm_flash*) pfm;
+
+	if ((pfm_flash == NULL) || (fw == NULL)) {
+		return PFM_INVALID_ARGUMENT;
+	}
+
+	if (!pfm_flash->base_flash.manifest_valid) {
+		return MANIFEST_NO_MANIFEST;
+	}
+
+	return pfm_flash_get_firmware_v2 (pfm_flash, fw);
 }
 
 static void pfm_flash_free_fw_versions (struct pfm *pfm, struct pfm_firmware_versions *ver_list)
@@ -662,14 +740,81 @@ static int pfm_flash_get_supported_versions (struct pfm *pfm, const char *fw,
 	}
 }
 
+static int pfm_flash_get_supported_versions_v2_only (struct pfm *pfm, const char *fw,
+	struct pfm_firmware_versions *ver_list)
+{
+	struct pfm_flash *pfm_flash = (struct pfm_flash*) pfm;
+
+	if ((pfm_flash == NULL) || (ver_list == NULL)) {
+		return PFM_INVALID_ARGUMENT;
+	}
+
+	if (!pfm_flash->base_flash.manifest_valid) {
+		return MANIFEST_NO_MANIFEST;
+	}
+
+	return pfm_flash_get_supported_versions_v2 (pfm_flash, fw, ver_list, NULL, NULL, NULL, NULL);
+}
+
+/**
+ * Populate a buffer with the list of supported firmware versions from a v2 formatted PFM.
+ *
+ * @param pfm The PFM to query.
+ * @param fw The firmware to query.  If this is null, all firmware components will be queried
+ * and the firmware IDs will also be stored in the buffer.
+ * @param offset The offset within the overall list of firmware versions that should be
+ * returned.
+ * @param length The maximum length of version information that should be returned.
+ * @param ver_list Output buffer for the list of supported versions.
+ * @param bytes_out Output for the number of bytes that were buffered.
+ *
+ * @return 0 if the list was populated successfully or an error code.
+ */
+static int pfm_flash_buffer_supported_versions_v2 (struct pfm_flash *pfm, const char *fw,
+	size_t offset, size_t length, uint8_t *ver_list, int *bytes_out)
+{
+	struct pfm_firmware fw_list;
+	int bytes = 0;
+	int status;
+	size_t i;
+
+	if (fw == NULL) {
+		status = pfm_flash_get_firmware_v2 (pfm, &fw_list);
+		if (status != 0) {
+			return status;
+		}
+
+		i = 0;
+		while ((i < fw_list.count) && (length > 0) && (status == 0)) {
+			bytes += buffer_copy ((const uint8_t*) fw_list.ids[i], strlen (fw_list.ids[i]) + 1,
+				&offset, &length, &ver_list[bytes]);
+
+			if (length > 0) {
+				status = pfm_flash_get_supported_versions_v2 (pfm, fw_list.ids[i], NULL, &offset,
+					&length, ver_list, &bytes);
+			}
+
+			i++;
+		}
+
+		pfm_flash_free_firmware (&pfm->base, &fw_list);
+	}
+	else {
+		status = pfm_flash_get_supported_versions_v2 (pfm, fw, NULL, &offset, &length, ver_list,
+			&bytes);
+	}
+
+	*bytes_out = bytes;
+
+	return status;
+}
+
 static int pfm_flash_buffer_supported_versions (struct pfm *pfm, const char *fw, size_t offset,
 	size_t length, uint8_t *ver_list)
 {
 	struct pfm_flash *pfm_flash = (struct pfm_flash*) pfm;
-	struct pfm_firmware fw_list;
 	int bytes = 0;
-	int status = 0;
-	size_t i;
+	int status;
 
 	if ((pfm_flash == NULL) || (ver_list == NULL)) {
 		return PFM_INVALID_ARGUMENT;
@@ -688,32 +833,30 @@ static int pfm_flash_buffer_supported_versions (struct pfm *pfm, const char *fw,
 			&bytes);
 	}
 	else {
-		if (fw == NULL) {
-			status = pfm_flash_get_firmware_v2 (pfm_flash, &fw_list);
-			if (status != 0) {
-				return status;
-			}
-
-			i = 0;
-			while ((i < fw_list.count) && (length > 0) && (status == 0)) {
-				bytes += buffer_copy ((const uint8_t*) fw_list.ids[i], strlen (fw_list.ids[i]) + 1,
-					&offset, &length, &ver_list[bytes]);
-
-				if (length > 0) {
-					status = pfm_flash_get_supported_versions_v2 (pfm_flash, fw_list.ids[i], NULL,
-						&offset, &length, ver_list, &bytes);
-				}
-
-				i++;
-			}
-
-			pfm_flash_free_firmware (pfm, &fw_list);
-		}
-		else {
-			status = pfm_flash_get_supported_versions_v2 (pfm_flash, fw, NULL, &offset, &length,
-				ver_list, &bytes);
-		}
+		status = pfm_flash_buffer_supported_versions_v2 (pfm_flash, fw, offset, length, ver_list,
+			&bytes);
 	}
+
+	return (status == 0) ? bytes : status;
+}
+
+static int pfm_flash_buffer_supported_versions_v2_only (struct pfm *pfm, const char *fw,
+	size_t offset, size_t length, uint8_t *ver_list)
+{
+	struct pfm_flash *pfm_flash = (struct pfm_flash*) pfm;
+	int bytes = 0;
+	int status;
+
+	if ((pfm_flash == NULL) || (ver_list == NULL)) {
+		return PFM_INVALID_ARGUMENT;
+	}
+
+	if (!pfm_flash->base_flash.manifest_valid) {
+		return MANIFEST_NO_MANIFEST;
+	}
+
+	status = pfm_flash_buffer_supported_versions_v2 (pfm_flash, fw, offset, length, ver_list,
+		&bytes);
 
 	return (status == 0) ? bytes : status;
 }
@@ -1113,6 +1256,22 @@ static int pfm_flash_get_read_write_regions (struct pfm *pfm, const char *fw, co
 	else {
 		return pfm_flash_get_read_write_regions_v2 (pfm_flash, fw, version, writable);
 	}
+}
+
+static int pfm_flash_get_read_write_regions_v2_only (struct pfm *pfm, const char *fw,
+	const char *version, struct pfm_read_write_regions *writable)
+{
+	struct pfm_flash *pfm_flash = (struct pfm_flash*) pfm;
+
+	if ((pfm_flash == NULL) || (version == NULL) || (writable == NULL)) {
+		return PFM_INVALID_ARGUMENT;
+	}
+
+	if (!pfm_flash->base_flash.manifest_valid) {
+		return MANIFEST_NO_MANIFEST;
+	}
+
+	return pfm_flash_get_read_write_regions_v2 (pfm_flash, fw, version, writable);
 }
 
 static void pfm_flash_free_firmware_images (struct pfm *pfm, struct pfm_image_list *img_list)
@@ -1515,8 +1674,25 @@ static int pfm_flash_get_firmware_images (struct pfm *pfm, const char *fw, const
 	}
 }
 
+static int pfm_flash_get_firmware_images_v2_only (struct pfm *pfm, const char *fw,
+	const char *version, struct pfm_image_list *img_list)
+{
+	struct pfm_flash *pfm_flash = (struct pfm_flash*) pfm;
+
+	if ((pfm_flash == NULL) || (version == NULL) || (img_list == NULL)) {
+		return PFM_INVALID_ARGUMENT;
+	}
+
+	if (!pfm_flash->base_flash.manifest_valid) {
+		return MANIFEST_NO_MANIFEST;
+	}
+
+	return pfm_flash_get_firmware_images_v2 (pfm_flash, fw, version, img_list);
+}
+
 /**
- * Initialize the interface to a PFM residing in flash memory.
+ * Initialize the interface to a PFM residing in flash memory.  Both PFM version 1 and 2 will be
+ * supported.
  *
  * @param pfm The PFM instance to initialize.
  * @param flash The flash device that contains the PFM.
@@ -1565,6 +1741,63 @@ int pfm_flash_init (struct pfm_flash *pfm, const struct flash *flash,
 	pfm->base.get_read_write_regions = pfm_flash_get_read_write_regions;
 	pfm->base.free_read_write_regions = pfm_flash_free_read_write_regions;
 	pfm->base.get_firmware_images = pfm_flash_get_firmware_images;
+	pfm->base.free_firmware_images = pfm_flash_free_firmware_images;
+
+	return 0;
+}
+
+/**
+ * Initialize the interface to a PFM residing in flash memory.  Only PFM version 2 will be
+ * supported.
+ *
+ * @param pfm The PFM instance to initialize.
+ * @param flash The flash device that contains the PFM.
+ * @param hash A hash engine to use for validating run-time access to PFM information.  If it is
+ * possible for any PFM information to be requested concurrently by different threads, this hash
+ * engine MUST be thread-safe.  There is no internal synchronization around the hashing operations.
+ * @param base_addr The starting address of the PFM storage location.
+ * @param signature_cache Buffer to hold the manifest signature.
+ * @param max_signature The maximum supported length for a manifest signature.
+ * @param platform_id_cache Buffer to hold the manifest platform ID.
+ * @param max_platform_id The maximum platform ID length supported, including the NULL terminator.
+ *
+ * @return 0 if the PFM instance was initialized successfully or an error code.
+ */
+int pfm_flash_v2_init (struct pfm_flash *pfm, const struct flash *flash,
+	const struct hash_engine *hash, uint32_t base_addr, uint8_t *signature_cache,
+	size_t max_signature, uint8_t *platform_id_cache, size_t max_platform_id)
+{
+	int status;
+
+	if (pfm == NULL) {
+		return PFM_INVALID_ARGUMENT;
+	}
+
+	memset (pfm, 0, sizeof (struct pfm_flash));
+
+	status = manifest_flash_v2_init (&pfm->base_flash, flash, hash, base_addr,
+		MANIFEST_NOT_SUPPORTED, PFM_V2_MAGIC_NUM, signature_cache, max_signature, platform_id_cache,
+		max_platform_id);
+	if (status != 0) {
+		return status;
+	}
+
+	pfm->base.base.verify = pfm_flash_verify_v2_only;
+	pfm->base.base.get_id = pfm_flash_get_id;
+	pfm->base.base.get_platform_id = pfm_flash_get_platform_id;
+	pfm->base.base.free_platform_id = pfm_flash_free_platform_id;
+	pfm->base.base.get_hash = pfm_flash_get_hash;
+	pfm->base.base.get_signature = pfm_flash_get_signature;
+	pfm->base.base.is_empty = pfm_flash_is_empty_v2_only;
+
+	pfm->base.get_firmware = pfm_flash_get_firmware_v2_only;
+	pfm->base.free_firmware = pfm_flash_free_firmware;
+	pfm->base.get_supported_versions = pfm_flash_get_supported_versions_v2_only;
+	pfm->base.free_fw_versions = pfm_flash_free_fw_versions;
+	pfm->base.buffer_supported_versions = pfm_flash_buffer_supported_versions_v2_only;
+	pfm->base.get_read_write_regions = pfm_flash_get_read_write_regions_v2_only;
+	pfm->base.free_read_write_regions = pfm_flash_free_read_write_regions;
+	pfm->base.get_firmware_images = pfm_flash_get_firmware_images_v2_only;
 	pfm->base.free_firmware_images = pfm_flash_free_firmware_images;
 
 	return 0;
