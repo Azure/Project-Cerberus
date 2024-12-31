@@ -194,12 +194,19 @@ def check_max_rw_sections (all_rw_regions, max_rw_sections):
                 "Number of non-contiguous RW regions greater than maximum defined: {0} vs {1}".format (
                     len (permutation_copy), max_rw_sections))
 
-def check_overlapping_regions (all_regions):
+def check_overlapping_regions (all_regions, ignore_overlap = False):
     """
-    Ensure no regions overlap with regions from other FW types
+    Ensure no regions overlap with regions from other FW types.  Method gathers all overlapping
+    regions in a set and displays them at the end of the function.  If overlaps are found, method
+    will halt with a ValueError, unless `ignore_overlap` is True.
 
     :param all_regions: All RW and signed image regions for each FW type
+    :param ignore_overlap:  Bool - Flag to ignore overlapping regions.  Will create PFM even if
+           overlapping regions are found, if set to True.
     """
+
+    # Create empty set to store list of overlapping regions.
+    overlaps = set()
 
     for i_fw_type1 in range (len (all_regions)):
         for version1 in all_regions[i_fw_type1]:
@@ -210,21 +217,44 @@ def check_overlapping_regions (all_regions):
                     region2 = version1[i_region2]
 
                     if manifest_common.check_if_regions_overlap (region1, region2):
-                        raise ValueError (
-                            "Region at [0x{0}:0x{1}] overlapping with region at [0x{2}:0x{3}]".format (
-                                format (region1[0], 'x'), format (region1[1], 'x'),
-                                format (region2[0], 'x'), format (region2[1], 'x')))
+                        # add overlap to set
+                        overlaps.add(((region1[0], region1[1]), (region2[0],region2[1])))
 
                 for i_fw_type2 in range (i_fw_type1 + 1, len (all_regions)):
                     for version2 in all_regions[i_fw_type2]:
                         for region2 in version2:
                             if manifest_common.check_if_regions_overlap (region1, region2):
-                                raise ValueError (
-                                    "Region at [0x{0}:0x{1}] overlapping with region at [0x{2}:0x{3}]".format (
-                                        format (region1[0], 'x'), format (region1[1], 'x'),
-                                        format (region2[0], 'x'), format (region2[1], 'x')))
+                                # add overlap to set
+                                overlaps.add(((region1[0], region1[1]), (region2[0],region2[1])))
 
-def generate_fw_versions_list (xml_list, hash_engine, max_rw_sections):
+    # Output warning message if ignore_overlap flag is set, and there are actual overlaps found.
+    if ignore_overlap and overlaps:
+        print ()
+        print ()
+        print ("        ***   Warning:  ignore_overlap flag is set to TRUE.                                                  ***")
+        print ("        ***   Overlapping regions will be checked for, but ignored.                                          ***")        
+        print ("        ***   Overlapping Flash regions can cause Cerberus Flash Verification to fail when in active mode.   ***")
+        print ("        ***   PFM will be generated anyway.  See logs below for potential overlaps.                          ***")
+        print ()
+        print ()
+
+    # Output overlap message for each overlap found
+    for overlap in overlaps:
+        regionA = overlap[0]
+        regionB = overlap[1]
+        
+        message = "Region at [0x{0}:0x{1}] overlapping with region at [0x{2}:0x{3}]".format (
+            format (regionA[0], 'x'), format (regionA[1], 'x'),
+            format (regionB[0], 'x'), format (regionB[1], 'x')
+        )
+        
+        print(message)
+
+    # Halt if ignore_overlap flag is not set
+    if overlaps and not ignore_overlap:
+        raise ValueError ("Overlapping Regions have been found.  Halting!")
+
+def generate_fw_versions_list (xml_list, hash_engine, max_rw_sections, ignore_overlap = False):
     """
     Create a list of FW version struct instances for each FW type from parsed XML list
 
@@ -334,13 +364,13 @@ def generate_fw_versions_list (xml_list, hash_engine, max_rw_sections):
     for fw_id, fw_id_list in all_rw_regions.items():
         all_rw_regions_list.append (fw_id_list)
 
-    check_overlapping_regions (all_regions_list)
-    check_overlapping_regions (all_rw_regions_list)
+    check_overlapping_regions (all_regions_list, ignore_overlap)
+    check_overlapping_regions (all_rw_regions_list, ignore_overlap)
     check_max_rw_sections (all_rw_regions_list, max_rw_sections)
 
     return fw_version_list, runtime_update_list, unused_byte
 
-def generate_fw_buf (xml_list, hash_engine, max_rw_sections):
+def generate_fw_buf (xml_list, hash_engine, max_rw_sections, ignore_overlap = False):
     """
     Create a buffer of FW struct instances from parsed XML list
 
@@ -361,7 +391,7 @@ def generate_fw_buf (xml_list, hash_engine, max_rw_sections):
     fw_len = 0
 
     fw_version_list, runtime_update_list, unused_byte = generate_fw_versions_list (xml_list,
-        hash_engine, max_rw_sections)
+        hash_engine, max_rw_sections, ignore_overlap)
 
     for fw_id, fw_versions in fw_version_list.items ():
         fw_id_len = len (fw_id)
@@ -439,6 +469,8 @@ parser = argparse.ArgumentParser (description = 'Create a PFM')
 parser.add_argument ('config', nargs = '?', default = default_config,
     help = 'Path to configuration file')
 parser.add_argument ('--bypass', action = 'store_true', help = 'Create a bypass mode PFM')
+parser.add_argument ('--ignore_overlap', action = 'store_true',
+    help = 'Warn on PFM region overlaps, but output PFM anyway.')
 args = parser.parse_args ()
 
 processed_xml, sign, key_size, key, key_type, hash_type, pfm_id, output, xml_version, empty, \
@@ -463,7 +495,7 @@ if xml_version == manifest_types.VERSION_2:
 
     if not args.bypass:
         fw, num_fw, fw_toc_entries, fw_hashes, unused_byte = generate_fw_buf (processed_xml,
-            hash_engine, max_rw_sections)
+            hash_engine, max_rw_sections, args.ignore_overlap)
 
         flash_device, flash_device_toc_entry, flash_device_hash = generate_flash_device_buf (
             hash_engine, unused_byte, num_fw)
