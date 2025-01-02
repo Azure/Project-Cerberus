@@ -38,7 +38,7 @@
  * @return 0 if the operation was successful or an error code.
  */
 static int cerberus_protocol_get_curr_pfm (const struct pfm_manager *pfm_mgr, uint8_t region,
-	struct pfm **pfm)
+	const struct pfm **pfm)
 {
 	if (pfm_mgr == NULL) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
@@ -295,7 +295,8 @@ int cerberus_protocol_log_clear (const struct cmd_background *background,
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-static int cerberus_protocol_get_pfm_id_version (struct pfm *pfm, struct cmd_interface_msg *request)
+static int cerberus_protocol_get_pfm_id_version (const struct pfm *pfm,
+	struct cmd_interface_msg *request)
 {
 	return cerberus_protocol_get_manifest_id_version (&pfm->base, request);
 }
@@ -308,7 +309,7 @@ static int cerberus_protocol_get_pfm_id_version (struct pfm *pfm, struct cmd_int
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-static int cerberus_protocol_get_pfm_id_platform (struct pfm *pfm,
+static int cerberus_protocol_get_pfm_id_platform (const struct pfm *pfm,
 	struct cmd_interface_msg *request)
 {
 	return cerberus_protocol_get_manifest_id_platform (&pfm->base, request);
@@ -327,7 +328,7 @@ int cerberus_protocol_get_pfm_id (const struct pfm_manager *pfm_mgr[], uint8_t n
 	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_pfm_id *rq = (struct cerberus_protocol_get_pfm_id*) request->data;
-	struct pfm *curr_pfm = NULL;
+	const struct pfm *curr_pfm = NULL;
 	uint8_t port;
 	uint8_t id;
 	int status = 0;
@@ -382,7 +383,7 @@ int cerberus_protocol_get_pfm_fw (const struct pfm_manager *pfm_mgr[], uint8_t n
 		(struct cerberus_protocol_get_pfm_supported_fw*) request->data;
 	struct cerberus_protocol_get_pfm_supported_fw_response *rsp =
 		(struct cerberus_protocol_get_pfm_supported_fw_response*) request->data;
-	struct pfm *curr_pfm = NULL;
+	const struct pfm *curr_pfm = NULL;
 	size_t offset;
 	uint32_t port;
 	char *fw_id = NULL;

@@ -20,24 +20,26 @@
  * will be supported.
  *
  * @param manifest The manifest to initialize.
+ * @param state Variable context for the manifest.  This must be uninitialized.
  * @param flash The flash device that contains the manifest.
  * @param base_addr The starting address in flash of the manifest.
  * @param magic_num The magic number that identifies the manifest.
  *
  * @return 0 if the manifest was initialized successfully or an error code.
  */
-int manifest_flash_init (struct manifest_flash *manifest, const struct flash *flash,
-	uint32_t base_addr, uint16_t magic_num)
+int manifest_flash_init (struct manifest_flash *manifest, struct manifest_flash_state *state,
+	const struct flash *flash, uint32_t base_addr, uint16_t magic_num)
 {
-	return manifest_flash_v2_init (manifest, flash, NULL, base_addr, magic_num,
+	return manifest_flash_v2_init (manifest, state, flash, NULL, base_addr, magic_num,
 		MANIFEST_NOT_SUPPORTED, NULL, 0, NULL, 0);
 }
 
 /**
  * Initialize the common handling for manifests stored on flash.  Both version 1 and version 2 style
- * manifests will be supported.
+ * manifests can be supported.
  *
  * @param manifest The manifest to initialize.
+ * @param state Variable context for the manifest.  This must be uninitialized.
  * @param flash The flash device that contains the manifest.
  * @param hash A hash engine to use for validating run-time access of manifest elements.
  * @param base_addr The starting address in flash of the manifest.
@@ -50,15 +52,15 @@ int manifest_flash_init (struct manifest_flash *manifest, const struct flash *fl
  *
  * @return 0 if the manifest was initialized successfully or an error code.
  */
-int manifest_flash_v2_init (struct manifest_flash *manifest, const struct flash *flash,
-	const struct hash_engine *hash, uint32_t base_addr, uint16_t magic_num_v1,
-	uint16_t magic_num_v2, uint8_t *signature_cache, size_t max_signature,
-	uint8_t *platform_id_cache,	size_t max_platform_id)
+int manifest_flash_v2_init (struct manifest_flash *manifest, struct manifest_flash_state *state,
+	const struct flash *flash, const struct hash_engine *hash, uint32_t base_addr,
+	uint16_t magic_num_v1, uint16_t magic_num_v2, uint8_t *signature_cache, size_t max_signature,
+	uint8_t *platform_id_cache, size_t max_platform_id)
 {
 	uint32_t block;
 	int status;
 
-	if ((manifest == NULL) || (flash == NULL)) {
+	if ((manifest == NULL) || (state == NULL) || (flash == NULL)) {
 		return MANIFEST_INVALID_ARGUMENT;
 	}
 
@@ -89,6 +91,7 @@ int manifest_flash_v2_init (struct manifest_flash *manifest, const struct flash 
 		manifest->free_signature = true;
 	}
 
+	manifest->state = state;
 	manifest->flash = flash;
 	manifest->hash = hash;
 	manifest->addr = base_addr;
@@ -98,7 +101,47 @@ int manifest_flash_v2_init (struct manifest_flash *manifest, const struct flash 
 	manifest->max_signature = max_signature;
 	manifest->platform_id = (char*) platform_id_cache;
 	manifest->max_platform_id = max_platform_id - 1;
-	manifest->cache_valid = false;
+
+	memset (manifest->state, 0, sizeof (*manifest->state));
+
+	return 0;
+}
+
+/**
+ * Initialize only the variable state for a manifest on flash.  The rest of the handler is assumed
+ * to have already been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param manifest The manifest that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int manifest_flash_init_state (const struct manifest_flash *manifest)
+{
+	uint32_t block;
+	int status;
+
+	if ((manifest == NULL) || (manifest->state == NULL) || (manifest->flash == NULL)) {
+		return MANIFEST_INVALID_ARGUMENT;
+	}
+
+	if ((manifest->magic_num_v2 != MANIFEST_NOT_SUPPORTED) &&
+		((manifest->hash == NULL) || (manifest->platform_id == NULL) ||
+		(manifest->signature == NULL))) {
+		return MANIFEST_INVALID_ARGUMENT;
+	}
+
+	memset (manifest->state, 0, sizeof (*manifest->state));
+
+	status = manifest->flash->get_block_size (manifest->flash, &block);
+	if (status != 0) {
+		return status;
+	}
+
+	if (FLASH_REGION_OFFSET (manifest->addr, block) != 0) {
+		return MANIFEST_STORAGE_NOT_ALIGNED;
+	}
 
 	return 0;
 }
@@ -108,7 +151,7 @@ int manifest_flash_v2_init (struct manifest_flash *manifest, const struct flash 
  *
  * @param manifest The manifest to release.
  */
-void manifest_flash_release (struct manifest_flash *manifest)
+void manifest_flash_release (const struct manifest_flash *manifest)
 {
 	if (manifest && manifest->free_signature) {
 		platform_free (manifest->signature);
@@ -125,7 +168,8 @@ void manifest_flash_release (struct manifest_flash *manifest)
  *
  * @return 0 if the header was successfully read and checked or an error code.
  */
-int manifest_flash_read_header (struct manifest_flash *manifest, struct manifest_header *header)
+int manifest_flash_read_header (const struct manifest_flash *manifest,
+	struct manifest_header *header)
 {
 	int status;
 
@@ -166,10 +210,11 @@ int manifest_flash_read_header (struct manifest_flash *manifest, struct manifest
  *
  * @return 0 if the header was is valid or an error code.
  */
-static int manifest_flash_parse_header (struct manifest_flash *manifest,
+static int manifest_flash_parse_header (const struct manifest_flash *manifest,
 	const struct hash_engine *hash, const struct signature_verification *verification,
 	enum hash_type *sig_hash, uint8_t *hash_out, size_t hash_length)
 {
+	struct manifest_header *header;
 	int status;
 
 	if ((manifest == NULL) || (hash == NULL) || (verification == NULL)) {
@@ -180,36 +225,37 @@ static int manifest_flash_parse_header (struct manifest_flash *manifest,
 		return MANIFEST_HASH_BUFFER_TOO_SMALL;
 	}
 
-	manifest->manifest_valid = false;
-	manifest->cache_valid = false;
+	header = &manifest->state->header;
+	manifest->state->manifest_valid = false;
+	manifest->state->cache_valid = false;
 	if (hash_out != NULL) {
 		/* Clear the output hash buffer to indicate no hash was calculated. */
 		memset (hash_out, 0, hash_length);
 	}
 
-	status = manifest_flash_read_header (manifest, &manifest->header);
+	status = manifest_flash_read_header (manifest, header);
 	if (status != 0) {
 		return status;
 	}
 
-	if (manifest->header.sig_length > manifest->max_signature) {
+	if (header->sig_length > manifest->max_signature) {
 		return MANIFEST_SIG_BUFFER_TOO_SMALL;
 	}
 
-	switch (manifest_get_hash_type (manifest->header.sig_type)) {
+	switch (manifest_get_hash_type (header->sig_type)) {
 		case MANIFEST_HASH_SHA256:
 			*sig_hash = HASH_TYPE_SHA256;
-			manifest->hash_length = SHA256_HASH_LENGTH;
+			manifest->state->hash_length = SHA256_HASH_LENGTH;
 			break;
 
 		case MANIFEST_HASH_SHA384:
 			*sig_hash = HASH_TYPE_SHA384;
-			manifest->hash_length = SHA384_HASH_LENGTH;
+			manifest->state->hash_length = SHA384_HASH_LENGTH;
 			break;
 
 		case MANIFEST_HASH_SHA512:
 			*sig_hash = HASH_TYPE_SHA512;
-			manifest->hash_length = SHA512_HASH_LENGTH;
+			manifest->state->hash_length = SHA512_HASH_LENGTH;
 			break;
 
 		default:
@@ -217,14 +263,14 @@ static int manifest_flash_parse_header (struct manifest_flash *manifest,
 	}
 
 	if (hash_out != NULL) {
-		if (hash_length < manifest->hash_length) {
+		if (hash_length < manifest->state->hash_length) {
 			return MANIFEST_HASH_BUFFER_TOO_SMALL;
 		}
 	}
 
 	return manifest->flash->read (manifest->flash,
-		manifest->addr + manifest->header.length - manifest->header.sig_length, manifest->signature,
-		manifest->header.sig_length);
+		manifest->addr + header->length - header->sig_length, manifest->signature,
+		header->sig_length);
 }
 
 /**
@@ -238,21 +284,21 @@ static int manifest_flash_parse_header (struct manifest_flash *manifest,
  *
  * @return 0 if the manifest is valid or an error code.
  */
-static int manifest_flash_verify_v1 (struct manifest_flash *manifest,
-	const struct hash_engine *hash,	const struct signature_verification *verification,
+static int manifest_flash_verify_v1 (const struct manifest_flash *manifest,
+	const struct hash_engine *hash, const struct signature_verification *verification,
 	enum hash_type sig_hash, uint8_t *hash_out)
 {
 	int status;
 
 	status = flash_contents_verification (manifest->flash, manifest->addr,
-		manifest->header.length - manifest->header.sig_length, hash, sig_hash, verification,
-		manifest->signature, manifest->header.sig_length, manifest->hash_cache,
-		sizeof (manifest->hash_cache));
+		manifest->state->header.length - manifest->state->header.sig_length, hash, sig_hash,
+		verification, manifest->signature, manifest->state->header.sig_length,
+		manifest->state->hash_cache, sizeof (manifest->state->hash_cache));
 
 	if ((status == 0) || (status == SIG_VERIFICATION_BAD_SIGNATURE)) {
-		manifest->cache_valid = true;
+		manifest->state->cache_valid = true;
 		if (hash_out) {
-			memcpy (hash_out, manifest->hash_cache, manifest->hash_length);
+			memcpy (hash_out, manifest->state->hash_cache, manifest->state->hash_length);
 		}
 	}
 
@@ -270,15 +316,17 @@ static int manifest_flash_verify_v1 (struct manifest_flash *manifest,
  *
  * @return 0 if the manifest is valid or an error code.
  */
-static int manifest_flash_verify_v2 (struct manifest_flash *manifest,
-	const struct hash_engine *hash,	const struct signature_verification *verification,
+static int manifest_flash_verify_v2 (const struct manifest_flash *manifest,
+	const struct hash_engine *hash, const struct signature_verification *verification,
 	enum hash_type sig_hash, uint8_t *hash_out)
 {
+	struct manifest_toc_header *toc_header;
 	struct manifest_toc_entry entry;
 	struct manifest_platform_id plat_id_header;
 	uint32_t next_addr;
 	uint32_t toc_end;
-	uint32_t sig_addr = manifest->addr + manifest->header.length - manifest->header.sig_length;
+	uint32_t sig_addr =
+		manifest->addr + manifest->state->header.length - manifest->state->header.sig_length;
 	int i;
 	int status;
 
@@ -288,33 +336,36 @@ static int manifest_flash_verify_v2 (struct manifest_flash *manifest,
 		return status;
 	}
 
-	status = hash->update (hash, (uint8_t*) &manifest->header, sizeof (manifest->header));
+	status = hash->update (hash, (uint8_t*) &manifest->state->header,
+		sizeof (manifest->state->header));
 	if (status != 0) {
 		goto error;
 	}
 
 	/* Read and hash the table of contents header. */
-	next_addr = manifest->addr + sizeof (manifest->header);
-	status = manifest->flash->read (manifest->flash, next_addr, (uint8_t*) &manifest->toc_header,
-		sizeof (manifest->toc_header));
+	toc_header = &manifest->state->toc_header;
+
+	next_addr = manifest->addr + sizeof (manifest->state->header);
+	status = manifest->flash->read (manifest->flash, next_addr, (uint8_t*) toc_header,
+		sizeof (*toc_header));
 	if (status != 0) {
 		goto error;
 	}
 
-	switch (manifest->toc_header.hash_type) {
+	switch (toc_header->hash_type) {
 		case MANIFEST_HASH_SHA256:
-			manifest->toc_hash_type = HASH_TYPE_SHA256;
-			manifest->toc_hash_length = SHA256_HASH_LENGTH;
+			manifest->state->toc_hash_type = HASH_TYPE_SHA256;
+			manifest->state->toc_hash_length = SHA256_HASH_LENGTH;
 			break;
 
 		case MANIFEST_HASH_SHA384:
-			manifest->toc_hash_type = HASH_TYPE_SHA384;
-			manifest->toc_hash_length = SHA384_HASH_LENGTH;
+			manifest->state->toc_hash_type = HASH_TYPE_SHA384;
+			manifest->state->toc_hash_length = SHA384_HASH_LENGTH;
 			break;
 
 		case MANIFEST_HASH_SHA512:
-			manifest->toc_hash_type = HASH_TYPE_SHA512;
-			manifest->toc_hash_length = SHA512_HASH_LENGTH;
+			manifest->state->toc_hash_type = HASH_TYPE_SHA512;
+			manifest->state->toc_hash_length = SHA512_HASH_LENGTH;
 			break;
 
 		default:
@@ -322,13 +373,13 @@ static int manifest_flash_verify_v2 (struct manifest_flash *manifest,
 			goto error;
 	}
 
-	status = hash->update (hash, (uint8_t*) &manifest->toc_header, sizeof (manifest->toc_header));
+	status = hash->update (hash, (uint8_t*) toc_header, sizeof (*toc_header));
 	if (status != 0) {
 		goto error;
 	}
 
 	/* Find the platform ID element, hashing each entry as it is read in. */
-	next_addr += sizeof (manifest->toc_header);
+	next_addr += sizeof (*toc_header);
 	i = 0;
 	do {
 		status = manifest->flash->read (manifest->flash, next_addr, (uint8_t*) &entry,
@@ -344,7 +395,7 @@ static int manifest_flash_verify_v2 (struct manifest_flash *manifest,
 
 		next_addr += sizeof (entry);
 		i++;
-	} while ((entry.type_id != MANIFEST_PLATFORM_ID) && (i < manifest->toc_header.entry_count));
+	} while ((entry.type_id != MANIFEST_PLATFORM_ID) && (i < toc_header->entry_count));
 
 	if (entry.type_id != MANIFEST_PLATFORM_ID) {
 		status = MANIFEST_NO_PLATFORM_ID;
@@ -352,9 +403,9 @@ static int manifest_flash_verify_v2 (struct manifest_flash *manifest,
 	}
 
 	/* Hash the flash contents for the rest of the table of contents. */
-	toc_end = manifest->addr + sizeof (manifest->header) + sizeof (manifest->toc_header) +
-		(manifest->toc_header.entry_count * sizeof (entry)) +
-		(manifest->toc_header.hash_count * manifest->toc_hash_length);
+	toc_end = manifest->addr + sizeof (manifest->state->header) + sizeof (*toc_header) +
+		(toc_header->entry_count * sizeof (entry)) +
+		(toc_header->hash_count * manifest->state->toc_hash_length);
 	status = flash_hash_update_contents (manifest->flash, next_addr, toc_end - next_addr, hash);
 	if (status != 0) {
 		goto error;
@@ -362,19 +413,19 @@ static int manifest_flash_verify_v2 (struct manifest_flash *manifest,
 
 	/* Read and hash the table of contents hash. */
 	next_addr = toc_end;
-	status = manifest->flash->read (manifest->flash, next_addr, manifest->toc_hash,
-		manifest->toc_hash_length);
+	status = manifest->flash->read (manifest->flash, next_addr, manifest->state->toc_hash,
+		manifest->state->toc_hash_length);
 	if (status != 0) {
 		goto error;
 	}
 
-	status = hash->update (hash, manifest->toc_hash, manifest->toc_hash_length);
+	status = hash->update (hash, manifest->state->toc_hash, manifest->state->toc_hash_length);
 	if (status != 0) {
 		goto error;
 	}
 
 	/* Hash the flash contents until the platform ID element. */
-	next_addr += manifest->toc_hash_length;
+	next_addr += manifest->state->toc_hash_length;
 	status = flash_hash_update_contents (manifest->flash, next_addr,
 		manifest->addr + entry.offset - next_addr, hash);
 	if (status != 0) {
@@ -421,18 +472,18 @@ static int manifest_flash_verify_v2 (struct manifest_flash *manifest,
 	}
 
 	/* Verify the signature of the overall manifest data. */
-	status = hash->finish (hash, manifest->hash_cache, sizeof (manifest->hash_cache));
+	status = hash->finish (hash, manifest->state->hash_cache, sizeof (manifest->state->hash_cache));
 	if (status != 0) {
 		goto error;
 	}
 
-	manifest->cache_valid = true;
+	manifest->state->cache_valid = true;
 	if (hash_out) {
-		memcpy (hash_out, manifest->hash_cache, manifest->hash_length);
+		memcpy (hash_out, manifest->state->hash_cache, manifest->state->hash_length);
 	}
 
-	return verification->verify_signature (verification, manifest->hash_cache,
-		manifest->hash_length, manifest->signature, manifest->header.sig_length);
+	return verification->verify_signature (verification, manifest->state->hash_cache,
+		manifest->state->hash_length, manifest->signature, manifest->state->header.sig_length);
 
 error:
 	hash->cancel (hash);
@@ -453,7 +504,7 @@ error:
  *
  * @return 0 if the manifest is valid or an error code.
  */
-int manifest_flash_verify (struct manifest_flash *manifest, const struct hash_engine *hash,
+int manifest_flash_verify (const struct manifest_flash *manifest, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
 	enum hash_type sig_hash;
@@ -465,7 +516,7 @@ int manifest_flash_verify (struct manifest_flash *manifest, const struct hash_en
 		return status;
 	}
 
-	if (manifest->header.magic == manifest->magic_num_v1) {
+	if (manifest->state->header.magic == manifest->magic_num_v1) {
 		status = manifest_flash_verify_v1 (manifest, hash, verification, sig_hash, hash_out);
 	}
 	else {
@@ -473,7 +524,7 @@ int manifest_flash_verify (struct manifest_flash *manifest, const struct hash_en
 	}
 
 	if (status == 0) {
-		manifest->manifest_valid = true;
+		manifest->state->manifest_valid = true;
 	}
 
 	return status;
@@ -493,7 +544,7 @@ int manifest_flash_verify (struct manifest_flash *manifest, const struct hash_en
  *
  * @return 0 if the manifest is valid or an error code.
  */
-int manifest_flash_v2_verify (struct manifest_flash *manifest, const struct hash_engine *hash,
+int manifest_flash_v2_verify (const struct manifest_flash *manifest, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
 	enum hash_type sig_hash;
@@ -505,7 +556,7 @@ int manifest_flash_v2_verify (struct manifest_flash *manifest, const struct hash
 		return status;
 	}
 
-	if (manifest->header.magic == manifest->magic_num_v2) {
+	if (manifest->state->header.magic == manifest->magic_num_v2) {
 		status = manifest_flash_verify_v2 (manifest, hash, verification, sig_hash, hash_out);
 	}
 	else {
@@ -513,7 +564,7 @@ int manifest_flash_v2_verify (struct manifest_flash *manifest, const struct hash
 	}
 
 	if (status == 0) {
-		manifest->manifest_valid = true;
+		manifest->state->manifest_valid = true;
 	}
 
 	return status;
@@ -527,7 +578,7 @@ int manifest_flash_v2_verify (struct manifest_flash *manifest, const struct hash
  *
  * @return 0 if the ID was successfully retrieved or an error code.
  */
-int manifest_flash_get_id (struct manifest_flash *manifest, uint32_t *id)
+int manifest_flash_get_id (const struct manifest_flash *manifest, uint32_t *id)
 {
 	int status = 0;
 
@@ -535,9 +586,8 @@ int manifest_flash_get_id (struct manifest_flash *manifest, uint32_t *id)
 		return MANIFEST_INVALID_ARGUMENT;
 	}
 
-	if (manifest->manifest_valid) {
-		/* Use memcpy to account for architectures that don't allow unaligned memory accesses. */
-		memcpy (id, &manifest->header.id, sizeof (manifest->header.id));
+	if (manifest->state->manifest_valid) {
+		buffer_unaligned_copy32 (id, &manifest->state->header.id);
 	}
 	else {
 		status = MANIFEST_NO_MANIFEST;
@@ -558,13 +608,13 @@ int manifest_flash_get_id (struct manifest_flash *manifest, uint32_t *id)
  *
  * @return 0 if the platform ID was retrieved successfully or an error code.
  */
-int manifest_flash_get_platform_id (struct manifest_flash *manifest, char **id, size_t length)
+int manifest_flash_get_platform_id (const struct manifest_flash *manifest, char **id, size_t length)
 {
 	if ((manifest == NULL) || (id == NULL)) {
 		return MANIFEST_INVALID_ARGUMENT;
 	}
 
-	if (!manifest->manifest_valid) {
+	if (!manifest->state->manifest_valid) {
 		return MANIFEST_NO_MANIFEST;
 	}
 
@@ -594,7 +644,7 @@ int manifest_flash_get_platform_id (struct manifest_flash *manifest, char **id, 
  * @return Length of the hash if it was calculated successfully or an error code.  Use
  * ROT_IS_ERROR to check the return value.
  */
-int manifest_flash_get_hash (struct manifest_flash *manifest, const struct hash_engine *hash,
+int manifest_flash_get_hash (const struct manifest_flash *manifest, const struct hash_engine *hash,
 	uint8_t *hash_out, size_t hash_length)
 {
 	struct manifest_header header;
@@ -609,12 +659,12 @@ int manifest_flash_get_hash (struct manifest_flash *manifest, const struct hash_
 		return MANIFEST_HASH_BUFFER_TOO_SMALL;
 	}
 
-	if (manifest->cache_valid) {
-		if (hash_length < manifest->hash_length) {
+	if (manifest->state->cache_valid) {
+		if (hash_length < manifest->state->hash_length) {
 			return MANIFEST_HASH_BUFFER_TOO_SMALL;
 		}
 
-		memcpy (hash_out, manifest->hash_cache, manifest->hash_length);
+		memcpy (hash_out, manifest->state->hash_cache, manifest->state->hash_length);
 	}
 	else {
 		status = manifest_flash_read_header (manifest, &header);
@@ -625,24 +675,24 @@ int manifest_flash_get_hash (struct manifest_flash *manifest, const struct hash_
 		switch (manifest_get_hash_type (header.sig_type)) {
 			case MANIFEST_HASH_SHA256:
 				sig_hash = HASH_TYPE_SHA256;
-				manifest->hash_length = SHA256_HASH_LENGTH;
+				manifest->state->hash_length = SHA256_HASH_LENGTH;
 				break;
 
 			case MANIFEST_HASH_SHA384:
 				sig_hash = HASH_TYPE_SHA384;
-				manifest->hash_length = SHA384_HASH_LENGTH;
+				manifest->state->hash_length = SHA384_HASH_LENGTH;
 				break;
 
 			case MANIFEST_HASH_SHA512:
 				sig_hash = HASH_TYPE_SHA512;
-				manifest->hash_length = SHA512_HASH_LENGTH;
+				manifest->state->hash_length = SHA512_HASH_LENGTH;
 				break;
 
 			default:
 				return MANIFEST_SIG_UNKNOWN_HASH_TYPE;
 		}
 
-		if (hash_length < manifest->hash_length) {
+		if (hash_length < manifest->state->hash_length) {
 			return MANIFEST_HASH_BUFFER_TOO_SMALL;
 		}
 
@@ -653,7 +703,7 @@ int manifest_flash_get_hash (struct manifest_flash *manifest, const struct hash_
 		}
 	}
 
-	return manifest->hash_length;
+	return manifest->state->hash_length;
 }
 
 /**
@@ -666,21 +716,21 @@ int manifest_flash_get_hash (struct manifest_flash *manifest, const struct hash_
  * @return Length of the signature if it was successfully retrieved or an error code.  Use
  * ROT_IS_ERROR to check the return value.
  */
-int manifest_flash_get_signature (struct manifest_flash *manifest, uint8_t *signature,
+int manifest_flash_get_signature (const struct manifest_flash *manifest, uint8_t *signature,
 	size_t length)
 {
 	if ((manifest == NULL) || (signature == NULL)) {
 		return MANIFEST_INVALID_ARGUMENT;
 	}
 
-	if (manifest->manifest_valid) {
-		if (length < manifest->header.sig_length) {
+	if (manifest->state->manifest_valid) {
+		if (length < manifest->state->header.sig_length) {
 			return MANIFEST_SIG_BUFFER_TOO_SMALL;
 		}
 
-		memcpy (signature, manifest->signature, manifest->header.sig_length);
+		memcpy (signature, manifest->signature, manifest->state->header.sig_length);
 
-		return manifest->header.sig_length;
+		return manifest->state->header.sig_length;
 	}
 	else {
 		struct manifest_header header;
@@ -732,8 +782,8 @@ int manifest_flash_get_signature (struct manifest_flash *manifest, uint8_t *sign
  * @return The amount of element data read or an error code.  Use ROT_IS_ERROR to check the return
  * value.
  */
-int manifest_flash_read_element_data (struct manifest_flash *manifest,
-	const struct hash_engine *hash,	uint8_t type, int start, uint8_t parent_type,
+int manifest_flash_read_element_data (const struct manifest_flash *manifest,
+	const struct hash_engine *hash, uint8_t type, int start, uint8_t parent_type,
 	uint32_t read_offset, uint8_t *found, uint8_t *format, size_t *total_len, uint8_t **element,
 	size_t length)
 {
@@ -750,27 +800,29 @@ int manifest_flash_read_element_data (struct manifest_flash *manifest,
 		return MANIFEST_INVALID_ARGUMENT;
 	}
 
-	if (!manifest->manifest_valid) {
+	if (!manifest->state->manifest_valid) {
 		return MANIFEST_NO_MANIFEST;
 	}
 
-	if (start >= manifest->toc_header.entry_count) {
+	if (start >= manifest->state->toc_header.entry_count) {
 		return (parent_type == MANIFEST_NO_PARENT) ?
 				   MANIFEST_ELEMENT_NOT_FOUND : MANIFEST_CHILD_NOT_FOUND;
 	}
 
 	entry_addr =
 		manifest->addr + sizeof (struct manifest_header) + sizeof (struct manifest_toc_header);
-	hash_addr = entry_addr + (sizeof (entry) * manifest->toc_header.entry_count);
-	toc_end = hash_addr + (manifest->toc_hash_length * manifest->toc_header.hash_count);
+	hash_addr = entry_addr + (sizeof (entry) * manifest->state->toc_header.entry_count);
+	toc_end =
+		hash_addr + (manifest->state->toc_hash_length * manifest->state->toc_header.hash_count);
 
 	/* Start hashing to verify the TOC contents. */
-	status = hash_start_new_hash (hash, manifest->toc_hash_type);
+	status = hash_start_new_hash (hash, manifest->state->toc_hash_type);
 	if (status != 0) {
 		return status;
 	}
 
-	status = hash->update (hash, (uint8_t*) &manifest->toc_header, sizeof (manifest->toc_header));
+	status = hash->update (hash, (uint8_t*) &manifest->state->toc_header,
+		sizeof (manifest->state->toc_header));
 	if (status != 0) {
 		goto error;
 	}
@@ -805,7 +857,7 @@ int manifest_flash_read_element_data (struct manifest_flash *manifest,
 
 		i++;
 		entry_addr += sizeof (entry);
-	} while ((entry.type_id != type) && (i < manifest->toc_header.entry_count));
+	} while ((entry.type_id != type) && (i < manifest->state->toc_header.entry_count));
 
 	if (entry.type_id != type) {
 		status = (parent_type == MANIFEST_NO_PARENT) ?
@@ -813,9 +865,9 @@ int manifest_flash_read_element_data (struct manifest_flash *manifest,
 		goto error;
 	}
 
-	if (entry.hash_id < manifest->toc_header.hash_count) {
+	if (entry.hash_id < manifest->state->toc_header.hash_count) {
 		/* Find the address of the entry hash. */
-		hash_addr += (manifest->toc_hash_length * entry.hash_id);
+		hash_addr += (manifest->state->toc_hash_length * entry.hash_id);
 
 		/* Hash the unneeded TOC data until the entry hash. */
 		status = flash_hash_update_contents (manifest->flash, entry_addr, hash_addr - entry_addr,
@@ -826,18 +878,18 @@ int manifest_flash_read_element_data (struct manifest_flash *manifest,
 
 		/* Read the entry hash for element validation. */
 		status = manifest->flash->read (manifest->flash, hash_addr, entry_hash,
-			manifest->toc_hash_length);
+			manifest->state->toc_hash_length);
 		if (status != 0) {
 			goto error;
 		}
 
-		status = hash->update (hash, entry_hash, manifest->toc_hash_length);
+		status = hash->update (hash, entry_hash, manifest->state->toc_hash_length);
 		if (status != 0) {
 			goto error;
 		}
 
 		/* Hash the remaining TOC data. */
-		hash_addr += manifest->toc_hash_length;
+		hash_addr += manifest->state->toc_hash_length;
 		status = flash_hash_update_contents (manifest->flash, hash_addr, toc_end - hash_addr, hash);
 		if (status != 0) {
 			goto error;
@@ -857,7 +909,8 @@ int manifest_flash_read_element_data (struct manifest_flash *manifest,
 		goto error;
 	}
 
-	if (buffer_compare (validate_hash, manifest->toc_hash, manifest->toc_hash_length) != 0) {
+	if (buffer_compare (validate_hash, manifest->state->toc_hash,
+		manifest->state->toc_hash_length) != 0) {
 		return MANIFEST_TOC_INVALID;
 	}
 
@@ -894,9 +947,9 @@ int manifest_flash_read_element_data (struct manifest_flash *manifest,
 			length = entry.length;
 		}
 
-		if (entry.hash_id < manifest->toc_header.hash_count) {
+		if (entry.hash_id < manifest->state->toc_header.hash_count) {
 			/* Hash the element data to validate the contents. */
-			status = hash_start_new_hash (hash, manifest->toc_hash_type);
+			status = hash_start_new_hash (hash, manifest->state->toc_hash_type);
 			if (status != 0) {
 				return status;
 			}
@@ -916,7 +969,7 @@ int manifest_flash_read_element_data (struct manifest_flash *manifest,
 			goto error;
 		}
 
-		if (entry.hash_id < manifest->toc_header.hash_count) {
+		if (entry.hash_id < manifest->state->toc_header.hash_count) {
 			status = hash->update (hash, *element, length);
 			if (status != 0) {
 				goto error;
@@ -935,7 +988,7 @@ int manifest_flash_read_element_data (struct manifest_flash *manifest,
 				goto error;
 			}
 
-			if (buffer_compare (validate_hash, entry_hash, manifest->toc_hash_length) != 0) {
+			if (buffer_compare (validate_hash, entry_hash, manifest->state->toc_hash_length) != 0) {
 				return MANIFEST_ELEMENT_INVALID;
 			}
 		}
@@ -973,9 +1026,9 @@ error:
  *
  * @return 0 if request completed successfully or an error code.
  */
-int manifest_flash_get_child_elements_info (struct manifest_flash *manifest,
+int manifest_flash_get_child_elements_info (const struct manifest_flash *manifest,
 	const struct hash_engine *hash, int entry, uint8_t type, uint8_t parent_type,
-	uint8_t child_type,	size_t *child_len, int *child_count, int *first_entry)
+	uint8_t child_type, size_t *child_len, int *child_count, int *first_entry)
 {
 	uint8_t validate_hash[SHA512_HASH_LENGTH];
 	struct manifest_toc_entry toc_entry;
@@ -988,7 +1041,7 @@ int manifest_flash_get_child_elements_info (struct manifest_flash *manifest,
 		return MANIFEST_INVALID_ARGUMENT;
 	}
 
-	if (!manifest->manifest_valid) {
+	if (!manifest->state->manifest_valid) {
 		return MANIFEST_NO_MANIFEST;
 	}
 
@@ -1004,22 +1057,23 @@ int manifest_flash_get_child_elements_info (struct manifest_flash *manifest,
 		*first_entry = 0;
 	}
 
-	if (entry >= manifest->toc_header.entry_count) {
+	if (entry >= manifest->state->toc_header.entry_count) {
 		return 0;
 	}
 
 	entry_addr = manifest->addr + sizeof (struct manifest_header) +
 		sizeof (struct manifest_toc_header);
-	hash_addr = entry_addr + ((sizeof (struct manifest_toc_entry) + manifest->toc_hash_length) *
-		manifest->toc_header.entry_count);
+	hash_addr = entry_addr +
+		((sizeof (struct manifest_toc_entry) + manifest->state->toc_hash_length) *
+			manifest->state->toc_header.entry_count);
 
 	/* Start hashing to verify the TOC contents. */
-	status = hash_start_new_hash (hash, manifest->toc_hash_type);
+	status = hash_start_new_hash (hash, manifest->state->toc_hash_type);
 	if (status != 0) {
 		return status;
 	}
 
-	status = hash->update (hash, (uint8_t*) &manifest->toc_header,
+	status = hash->update (hash, (uint8_t*) &manifest->state->toc_header,
 		sizeof (struct manifest_toc_header));
 	if (status != 0) {
 		goto error;
@@ -1034,7 +1088,7 @@ int manifest_flash_get_child_elements_info (struct manifest_flash *manifest,
 
 	entry_addr += (sizeof (struct manifest_toc_entry) * entry);
 
-	for (; entry < manifest->toc_header.entry_count;
+	for (; entry < manifest->state->toc_header.entry_count;
 		++entry, entry_addr += sizeof (struct manifest_toc_entry)) {
 		status = manifest->flash->read (manifest->flash, entry_addr, (uint8_t*) &toc_entry,
 			sizeof (struct manifest_toc_entry));
@@ -1093,7 +1147,8 @@ int manifest_flash_get_child_elements_info (struct manifest_flash *manifest,
 		goto error;
 	}
 
-	if (buffer_compare (validate_hash, manifest->toc_hash, manifest->toc_hash_length) != 0) {
+	if (buffer_compare (validate_hash, manifest->state->toc_hash,
+		manifest->state->toc_hash_length) != 0) {
 		return MANIFEST_TOC_INVALID;
 	}
 
@@ -1112,7 +1167,7 @@ error:
  *
  * @return The manifest base flash address.
  */
-uint32_t manifest_flash_get_addr (struct manifest_flash *manifest)
+uint32_t manifest_flash_get_addr (const struct manifest_flash *manifest)
 {
 	if (manifest) {
 		return manifest->addr;
@@ -1129,7 +1184,7 @@ uint32_t manifest_flash_get_addr (struct manifest_flash *manifest)
  *
  * @return The flash device for the manifest.
  */
-const struct flash* manifest_flash_get_flash (struct manifest_flash *manifest)
+const struct flash* manifest_flash_get_flash (const struct manifest_flash *manifest)
 {
 	if (manifest) {
 		return manifest->flash;
@@ -1149,20 +1204,21 @@ const struct flash* manifest_flash_get_flash (struct manifest_flash *manifest)
  *
  * @return 0 if second manifest has a higher ID than the first, 1 if not, or an error code.
  */
-int manifest_flash_compare_id (struct manifest_flash *manifest1, struct manifest_flash *manifest2)
+int manifest_flash_compare_id (const struct manifest_flash *manifest1,
+	const struct manifest_flash *manifest2)
 {
 	if (manifest2 == NULL) {
 		return MANIFEST_INVALID_ARGUMENT;
 	}
 
-	if (!manifest2->manifest_valid) {
+	if (!manifest2->state->manifest_valid) {
 		return MANIFEST_NO_MANIFEST;
 	}
-	else if ((manifest1 == NULL) || !manifest1->manifest_valid) {
+	else if ((manifest1 == NULL) || !manifest1->state->manifest_valid) {
 		return 0;
 	}
 
-	if (manifest1->header.id < manifest2->header.id) {
+	if (manifest1->state->header.id < manifest2->state->header.id) {
 		return 0;
 	}
 	else {
@@ -1180,14 +1236,14 @@ int manifest_flash_compare_id (struct manifest_flash *manifest1, struct manifest
  *
  * @return 0 if both manifests have the same platform ID, 1 if not, or an error code.
  */
-int manifest_flash_compare_platform_id (struct manifest_flash *manifest1,
-	struct manifest_flash *manifest2, bool sku_upgrade_permitted)
+int manifest_flash_compare_platform_id (const struct manifest_flash *manifest1,
+	const struct manifest_flash *manifest2, bool sku_upgrade_permitted)
 {
 	if ((manifest1 == NULL) || (manifest2 == NULL)) {
 		return MANIFEST_INVALID_ARGUMENT;
 	}
 
-	if (!manifest1->manifest_valid || !manifest2->manifest_valid) {
+	if (!manifest1->state->manifest_valid || !manifest2->state->manifest_valid) {
 		return MANIFEST_NO_MANIFEST;
 	}
 

@@ -5,7 +5,9 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
+#include "common/unused.h"
 #include "manifest/manifest_manager.h"
+#include "manifest/manifest_manager_static.h"
 #include "testing/crypto/hash_testing.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/manifest/pfm/pfm_testing.h"
@@ -14,6 +16,47 @@
 
 
 TEST_SUITE_LABEL ("manifest_manager");
+
+
+int manifest_manager_testing_activate_pending_manifest (const struct manifest_manager *manager)
+{
+	UNUSED (manager);
+
+	return -1;
+}
+
+int manifest_manager_testing_clear_pending_region (const struct manifest_manager *manager,
+	size_t size)
+{
+	UNUSED (manager);
+	UNUSED (size);
+
+	return -1;
+}
+
+int manifest_manager_testing_write_pending_data (const struct manifest_manager *manager,
+	const uint8_t *data, size_t length)
+{
+	UNUSED (manager);
+	UNUSED (data);
+	UNUSED (length);
+
+	return -1;
+}
+
+int manifest_manager_testing_verify_pending_manifest (const struct manifest_manager *manager)
+{
+	UNUSED (manager);
+
+	return -1;
+}
+
+int manifest_manager_testing_clear_all_manifests (const struct manifest_manager *manager)
+{
+	UNUSED (manager);
+
+	return -1;
+}
 
 
 /*******************
@@ -33,6 +76,8 @@ static void manifest_manager_test_init (CuTest *test)
 
 	status = manifest_manager_init (&manager, &hash.base);
 	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 0, manifest_manager_get_port (&manager));
 
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
@@ -57,6 +102,54 @@ static void manifest_manager_test_init_null (CuTest *test)
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
+static void manifest_manager_test_static_init (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct manifest_manager manager =
+		manifest_manager_static_init (manifest_manager_testing_activate_pending_manifest,
+		manifest_manager_testing_clear_pending_region, manifest_manager_testing_write_pending_data,
+		manifest_manager_testing_verify_pending_manifest,
+		manifest_manager_testing_clear_all_manifests, &hash.base, 1);
+	int status;
+
+	TEST_START;
+
+	CuAssertPtrEquals (test, manifest_manager_testing_activate_pending_manifest,
+		manager.activate_pending_manifest);
+	CuAssertPtrEquals (test, manifest_manager_testing_clear_pending_region,
+		manager.clear_pending_region);
+	CuAssertPtrEquals (test, manifest_manager_testing_write_pending_data,
+		manager.write_pending_data);
+	CuAssertPtrEquals (test, manifest_manager_testing_verify_pending_manifest,
+		manager.verify_pending_manifest);
+	CuAssertPtrEquals (test, manifest_manager_testing_clear_all_manifests,
+		manager.clear_all_manifests);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 1, manifest_manager_get_port (&manager));
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void manifest_manager_test_static_init_negative_port (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct manifest_manager manager = manifest_manager_static_init (NULL, NULL, NULL, NULL, NULL,
+		&hash.base, -1);
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 0, manifest_manager_get_port (&manager));
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
 static void manifest_manager_test_set_port (CuTest *test)
 {
 	struct manifest_manager manager;
@@ -65,6 +158,16 @@ static void manifest_manager_test_set_port (CuTest *test)
 
 	manifest_manager_set_port (&manager, 1);
 	CuAssertIntEquals (test, 1, manifest_manager_get_port (&manager));
+}
+
+static void manifest_manager_test_set_port_negative (CuTest *test)
+{
+	struct manifest_manager manager;
+
+	TEST_START;
+
+	manifest_manager_set_port (&manager, -1);
+	CuAssertIntEquals (test, 0, manifest_manager_get_port (&manager));
 }
 
 static void manifest_manager_test_set_port_null (CuTest *test)
@@ -711,6 +814,45 @@ static void manifest_manager_test_get_manifest_measured_data_no_active_invalid_o
 		buffer, length, &total_len);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, total_len);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void manifest_manager_test_get_manifest_measured_data_static_init (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct manifest_manager manager = manifest_manager_static_init (NULL, NULL, NULL, NULL, NULL,
+		&hash.base, 0);
+	struct manifest_mock manifest;
+	uint8_t buffer[SHA256_HASH_LENGTH];
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_init (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manifest.mock, manifest.base.get_hash, &manifest, PFM_HASH_LEN,
+		MOCK_ARG_PTR (&hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&manifest.mock, 1, PFM_HASH, PFM_HASH_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_get_manifest_measured_data (&manager, &manifest.base, 0, buffer,
+		length, &total_len);
+	CuAssertIntEquals (test, PFM_HASH_LEN, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, total_len);
+
+	status = testing_validate_array (PFM_HASH, buffer, PFM_HASH_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_validate_and_release (&manifest);
+	CuAssertIntEquals (test, 0, status);
 
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
@@ -1599,6 +1741,47 @@ static void manifest_manager_test_hash_manifest_measured_data_no_active (CuTest 
 	HASH_TESTING_ENGINE_RELEASE (&mgr_hash);
 }
 
+static void manifest_manager_test_hash_manifest_measured_data_static_init (CuTest *test)
+{
+	HASH_TESTING_ENGINE (mgr_hash);
+	struct hash_engine_mock hash;
+	struct manifest_manager manager = manifest_manager_static_init (NULL, NULL, NULL, NULL, NULL,
+		&mgr_hash.base, 2);
+	struct manifest_mock manifest;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&mgr_hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_init (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manifest.mock, manifest.base.get_hash, &manifest, PFM_HASH_LEN,
+		MOCK_ARG_PTR (&mgr_hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&manifest.mock, 1, PFM_HASH, PFM_HASH_LEN, 2);
+
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
+		MOCK_ARG_PTR_CONTAINS (PFM_HASH, PFM_HASH_LEN), MOCK_ARG (PFM_HASH_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_hash_manifest_measured_data (&manager, &manifest.base, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_validate_and_release (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&mgr_hash);
+}
+
 static void manifest_manager_test_hash_manifest_measured_data_null (CuTest *test)
 {
 	HASH_TESTING_ENGINE (mgr_hash);
@@ -2016,7 +2199,10 @@ TEST_SUITE_START (manifest_manager);
 
 TEST (manifest_manager_test_init);
 TEST (manifest_manager_test_init_null);
+TEST (manifest_manager_test_static_init);
+TEST (manifest_manager_test_static_init_negative_port);
 TEST (manifest_manager_test_set_port);
+TEST (manifest_manager_test_set_port_negative);
 TEST (manifest_manager_test_set_port_null);
 TEST (manifest_manager_test_get_port_null);
 TEST (manifest_manager_test_get_manifest_measured_data);
@@ -2036,6 +2222,7 @@ TEST (manifest_manager_test_get_manifest_measured_data_no_active_0_bytes_read);
 TEST (manifest_manager_test_get_manifest_measured_data_invalid_offset);
 TEST (manifest_manager_test_get_manifest_measured_data_invalid_offset_sha384);
 TEST (manifest_manager_test_get_manifest_measured_data_no_active_invalid_offset);
+TEST (manifest_manager_test_get_manifest_measured_data_static_init);
 TEST (manifest_manager_test_get_manifest_measured_data_null);
 TEST (manifest_manager_test_get_manifest_measured_data_fail);
 TEST (manifest_manager_test_get_manifest_id_measured_data);
@@ -2066,6 +2253,7 @@ TEST (manifest_manager_test_hash_manifest_measured_data_sha384);
 TEST (manifest_manager_test_hash_manifest_measured_data_sha512);
 TEST (manifest_manager_test_hash_manifest_measured_data_no_active);
 TEST (manifest_manager_test_hash_manifest_measured_data_null);
+TEST (manifest_manager_test_hash_manifest_measured_data_static_init);
 TEST (manifest_manager_test_hash_manifest_measured_data_fail);
 TEST (manifest_manager_test_hash_manifest_measured_data_hash_update_fail);
 TEST (manifest_manager_test_hash_manifest_id_measured_data);

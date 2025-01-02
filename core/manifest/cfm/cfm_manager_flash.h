@@ -11,6 +11,14 @@
 
 
 /**
+ * Variable context for the manager of a set of CFMs in flash.
+ */
+struct cfm_manager_flash_state {
+	struct cfm_manager_state base;						/**< Base state information for CFM management. */
+	struct manifest_manager_flash_state flash_state;	/**< Context for common flash manifest management. */
+};
+
+/**
  * A manager for a single set of CFMs stored in flash.
  */
 struct cfm_manager_flash {
@@ -19,10 +27,12 @@ struct cfm_manager_flash {
 };
 
 
-int cfm_manager_flash_init (struct cfm_manager_flash *manager, struct cfm_flash *cfm_region1,
-	struct cfm_flash *cfm_region2, struct state_manager *state, const struct hash_engine *hash,
-	const struct signature_verification *verification);
-void cfm_manager_flash_release (struct cfm_manager_flash *manager);
+int cfm_manager_flash_init (struct cfm_manager_flash *manager,
+	struct cfm_manager_flash_state *state, const struct cfm_flash *cfm_region1,
+	const struct cfm_flash *cfm_region2, struct state_manager *state_mgr,
+	const struct hash_engine *hash, const struct signature_verification *verification);
+int cfm_manager_flash_init_state (const struct cfm_manager_flash *manager);
+void cfm_manager_flash_release (const struct cfm_manager_flash *manager);
 
 
 #endif	/* CFM_MANAGER_FLASH_H_ */

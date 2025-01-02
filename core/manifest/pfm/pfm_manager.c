@@ -18,13 +18,14 @@
  *
  * @return 0 if the observer was added for notifications or an error code.
  */
-int pfm_manager_add_observer (struct pfm_manager *manager, const struct pfm_observer *observer)
+int pfm_manager_add_observer (const struct pfm_manager *manager,
+	const struct pfm_observer *observer)
 {
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
-	return observable_add_observer (&manager->observable, (void*) observer);
+	return observable_add_observer (&manager->state->observable, (void*) observer);
 }
 
 /**
@@ -35,25 +36,28 @@ int pfm_manager_add_observer (struct pfm_manager *manager, const struct pfm_obse
  *
  * @return 0 if the observer was removed from future notifications or an error code.
  */
-int pfm_manager_remove_observer (struct pfm_manager *manager, const struct pfm_observer *observer)
+int pfm_manager_remove_observer (const struct pfm_manager *manager,
+	const struct pfm_observer *observer)
 {
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
-	return observable_remove_observer (&manager->observable, (void*) observer);
+	return observable_remove_observer (&manager->state->observable, (void*) observer);
 }
 
 /**
  * Initialize the base PFM manager.
  *
  * @param manager The manager to initialize.
+ * @param state Variable context for the PFM manager.  This must be uninitialized.
  * @param port The port identifier for the manager.  A negative value will use the default ID.
  * @param hash The hash engine to generate measurement data.
  *
  * @return 0 if the PFM manager was initialized successfully or an error code.
  */
-int pfm_manager_init (struct pfm_manager *manager, const struct hash_engine *hash, int port)
+int pfm_manager_init (struct pfm_manager *manager, struct pfm_manager_state *state,
+	const struct hash_engine *hash, int port)
 {
 	int status;
 
@@ -68,7 +72,30 @@ int pfm_manager_init (struct pfm_manager *manager, const struct hash_engine *has
 		manifest_manager_set_port (&manager->base, port);
 	}
 
-	return observable_init (&manager->observable);
+	manager->state = state;
+
+	return pfm_manager_init_state (manager);
+}
+
+/**
+ * Initialize only the variable state for a base PFM manager.  The rest of the manager is assumed to
+ * have already been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param manager The manager that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int pfm_manager_init_state (const struct pfm_manager *manager)
+{
+	if (manager->state == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	memset (manager->state, 0, sizeof (*manager->state));
+
+	return observable_init (&manager->state->observable);
 }
 
 /**
@@ -76,10 +103,10 @@ int pfm_manager_init (struct pfm_manager *manager, const struct hash_engine *has
  *
  * @param manager The manager to release.
  */
-void pfm_manager_release (struct pfm_manager *manager)
+void pfm_manager_release (const struct pfm_manager *manager)
 {
 	if (manager) {
-		observable_release (&manager->observable);
+		observable_release (&manager->state->observable);
 	}
 }
 
@@ -91,7 +118,7 @@ void pfm_manager_release (struct pfm_manager *manager)
  * @param pfm The PFM the event is for.
  * @param callback_offset The offset in the observer structure for the notification to call.
  */
-static void pfm_manager_notify_observers (struct pfm_manager *manager, struct pfm *pfm,
+static void pfm_manager_notify_observers (const struct pfm_manager *manager, const struct pfm *pfm,
 	size_t callback_offset)
 {
 	if (!pfm) {
@@ -99,7 +126,8 @@ static void pfm_manager_notify_observers (struct pfm_manager *manager, struct pf
 		return;
 	}
 
-	observable_notify_observers_with_ptr (&manager->observable, callback_offset, pfm);
+	observable_notify_observers_with_ptr (&manager->state->observable, callback_offset,
+		(void*) pfm);
 
 	manager->free_pfm (manager, pfm);
 }
@@ -109,7 +137,7 @@ static void pfm_manager_notify_observers (struct pfm_manager *manager, struct pf
  *
  * @param manager The manager generating the event.
  */
-void pfm_manager_on_pfm_verified (struct pfm_manager *manager)
+void pfm_manager_on_pfm_verified (const struct pfm_manager *manager)
 {
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
@@ -127,7 +155,7 @@ void pfm_manager_on_pfm_verified (struct pfm_manager *manager)
  *
  * @param manager The manager generating the event.
  */
-void pfm_manager_on_pfm_activated (struct pfm_manager *manager)
+void pfm_manager_on_pfm_activated (const struct pfm_manager *manager)
 {
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
@@ -145,7 +173,7 @@ void pfm_manager_on_pfm_activated (struct pfm_manager *manager)
  *
  * @param manager The manager generating the event.
  */
-void pfm_manager_on_clear_active (struct pfm_manager *manager)
+void pfm_manager_on_clear_active (const struct pfm_manager *manager)
 {
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
@@ -154,7 +182,7 @@ void pfm_manager_on_clear_active (struct pfm_manager *manager)
 		return;
 	}
 
-	observable_notify_observers (&manager->observable,
+	observable_notify_observers (&manager->state->observable,
 		offsetof (struct pfm_observer, on_clear_active));
 }
 
@@ -163,7 +191,7 @@ void pfm_manager_on_clear_active (struct pfm_manager *manager)
  *
  * @param manager The manager generating the event.
  */
-void pfm_manager_on_pfm_activation_request (struct pfm_manager *manager)
+void pfm_manager_on_pfm_activation_request (const struct pfm_manager *manager)
 {
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
@@ -172,7 +200,7 @@ void pfm_manager_on_pfm_activation_request (struct pfm_manager *manager)
 		return;
 	}
 
-	observable_notify_observers (&manager->observable,
+	observable_notify_observers (&manager->state->observable,
 		offsetof (struct pfm_observer, on_pfm_activation_request));
 }
 
@@ -187,11 +215,11 @@ void pfm_manager_on_pfm_activation_request (struct pfm_manager *manager)
  *
  * @return Length of the measured data if successfully retrieved or an error code.
  */
-int pfm_manager_get_id_measured_data (struct pfm_manager *manager, size_t offset, uint8_t *buffer,
-	size_t length, uint32_t *total_len)
+int pfm_manager_get_id_measured_data (const struct pfm_manager *manager, size_t offset,
+	uint8_t *buffer, size_t length, uint32_t *total_len)
 {
 	int status;
-	struct pfm *active;
+	const struct pfm *active;
 
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
@@ -218,10 +246,11 @@ int pfm_manager_get_id_measured_data (struct pfm_manager *manager, size_t offset
  *
  * @return 0 if the hash was updated successfully or an error code.
  */
-int pfm_manager_hash_id_measured_data (struct pfm_manager *manager, const struct hash_engine *hash)
+int pfm_manager_hash_id_measured_data (const struct pfm_manager *manager,
+	const struct hash_engine *hash)
 {
 	int status;
-	struct pfm *active;
+	const struct pfm *active;
 
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
@@ -250,11 +279,11 @@ int pfm_manager_hash_id_measured_data (struct pfm_manager *manager, const struct
  *
  * @return Length of the measured data if successfully retrieved or an error code.
  */
-int pfm_manager_get_platform_id_measured_data (struct pfm_manager *manager, size_t offset,
+int pfm_manager_get_platform_id_measured_data (const struct pfm_manager *manager, size_t offset,
 	uint8_t *buffer, size_t length, uint32_t *total_len)
 {
 	int status;
-	struct pfm *active;
+	const struct pfm *active;
 
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
@@ -282,11 +311,11 @@ int pfm_manager_get_platform_id_measured_data (struct pfm_manager *manager, size
  *
  * @return 0 if the hash was updated successfully or an error code.
  */
-int pfm_manager_hash_platform_id_measured_data (struct pfm_manager *manager,
+int pfm_manager_hash_platform_id_measured_data (const struct pfm_manager *manager,
 	const struct hash_engine *hash)
 {
 	int status;
-	struct pfm *active;
+	const struct pfm *active;
 
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
@@ -315,11 +344,11 @@ int pfm_manager_hash_platform_id_measured_data (struct pfm_manager *manager,
  *
  * @return Length of the measured data if successfully retrieved or an error code.
  */
-int pfm_manager_get_pfm_measured_data (struct pfm_manager *manager, size_t offset, uint8_t *buffer,
-	size_t length, uint32_t *total_len)
+int pfm_manager_get_pfm_measured_data (const struct pfm_manager *manager, size_t offset,
+	uint8_t *buffer, size_t length, uint32_t *total_len)
 {
 	int status;
-	struct pfm *active;
+	const struct pfm *active;
 
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
@@ -352,10 +381,11 @@ int pfm_manager_get_pfm_measured_data (struct pfm_manager *manager, size_t offse
  *
  * @return 0 if the hash was updated successfully or an error code.
  */
-int pfm_manager_hash_pfm_measured_data (struct pfm_manager *manager, const struct hash_engine *hash)
+int pfm_manager_hash_pfm_measured_data (const struct pfm_manager *manager,
+	const struct hash_engine *hash)
 {
 	int status;
-	struct pfm *active;
+	const struct pfm *active;
 
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;

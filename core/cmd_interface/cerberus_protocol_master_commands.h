@@ -414,9 +414,9 @@ int cerberus_protocol_process_device_capabilities_response (struct device_manage
 	struct cmd_interface_msg *response);
 
 /* Private functions for internal use */
-int cerberus_protocol_get_manifest_id_version (struct manifest *manifest,
+int cerberus_protocol_get_manifest_id_version (const struct manifest *manifest,
 	struct cmd_interface_msg *request);
-int cerberus_protocol_get_manifest_id_platform (struct manifest *manifest,
+int cerberus_protocol_get_manifest_id_platform (const struct manifest *manifest,
 	struct cmd_interface_msg *request);
 
 

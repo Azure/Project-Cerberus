@@ -16,28 +16,42 @@
 #ifndef PCD_FLASH_ATTESTATION_SUCCESS_RETRY_DEFAULT
 #define PCD_FLASH_ATTESTATION_SUCCESS_RETRY_DEFAULT						86400000
 #endif
+
 #ifndef PCD_FLASH_ATTESTATION_FAIL_RETRY_DEFAULT
 #define PCD_FLASH_ATTESTATION_FAIL_RETRY_DEFAULT						10000
 #endif
+
 #ifndef PCD_FLASH_DISCOVERY_FAIL_RETRY_DEFAULT
 #define PCD_FLASH_DISCOVERY_FAIL_RETRY_DEFAULT							10000
 #endif
+
 #ifndef PCD_FLASH_MCTP_CTRL_TIMEOUT_DEFAULT
 #define PCD_FLASH_MCTP_CTRL_TIMEOUT_DEFAULT								2000
 #endif
+
 #ifndef PCD_FLASH_MCTP_BRIDGE_GET_TABLE_WAIT_DEFAULT
 #define PCD_FLASH_MCTP_BRIDGE_GET_TABLE_WAIT_DEFAULT					3000
 #endif
+
 #ifndef PCD_FLASH_MCTP_BRIDGE_ADDITIONAL_TIMEOUT_DEFAULT
 #define PCD_FLASH_MCTP_BRIDGE_ADDITIONAL_TIMEOUT_DEFAULT				0
 #endif
+
 #ifndef PCD_FLASH_ATTESTATION_RSP_NOT_READY_MAX_DURATION_DEFAULT
 #define PCD_FLASH_ATTESTATION_RSP_NOT_READY_MAX_DURATION_DEFAULT		1000
 #endif
+
 #ifndef PCD_FLASH_ATTESTATION_RSP_NOT_READY_MAX_RETRY_DEFAULT
 #define PCD_FLASH_ATTESTATION_RSP_NOT_READY_MAX_RETRY_DEFAULT			3
-#endif	/* PCD_FLASH_H_ */
+#endif
 
+
+/**
+ * Variable context for a PCD that is stored in flash.
+ */
+struct pcd_flash_state {
+	struct manifest_flash_state base;	/**< Base state for the PCD instance. */
+};
 
 /**
  * Defines a PCD that is stored in flash memory.
@@ -48,10 +62,11 @@ struct pcd_flash {
 };
 
 
-int pcd_flash_init (struct pcd_flash *pcd, const struct flash *flash,
+int pcd_flash_init (struct pcd_flash *pcd, struct pcd_flash_state *state, const struct flash *flash,
 	const struct hash_engine *hash, uint32_t base_addr, uint8_t *signature_cache,
 	size_t max_signature, uint8_t *platform_id_cache, size_t max_platform_id);
-void pcd_flash_release (struct pcd_flash *pcd);
+int pcd_flash_init_state (const struct pcd_flash *pcd);
+void pcd_flash_release (const struct pcd_flash *pcd);
 
 
-#endif	//PCD_FLASH_H
+#endif	/* PCD_FLASH_H_ */

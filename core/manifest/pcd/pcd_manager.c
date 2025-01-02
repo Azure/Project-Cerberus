@@ -18,13 +18,14 @@
  *
  * @return 0 if the observer was added for notifications or an error code.
  */
-int pcd_manager_add_observer (struct pcd_manager *manager, const struct pcd_observer *observer)
+int pcd_manager_add_observer (const struct pcd_manager *manager,
+	const struct pcd_observer *observer)
 {
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
-	return observable_add_observer (&manager->observable, (void*) observer);
+	return observable_add_observer (&manager->state->observable, (void*) observer);
 }
 
 /**
@@ -35,35 +36,61 @@ int pcd_manager_add_observer (struct pcd_manager *manager, const struct pcd_obse
  *
  * @return 0 if the observer was removed from future notifications or an error code.
  */
-int pcd_manager_remove_observer (struct pcd_manager *manager, const struct pcd_observer *observer)
+int pcd_manager_remove_observer (const struct pcd_manager *manager,
+	const struct pcd_observer *observer)
 {
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
-	return observable_remove_observer (&manager->observable, (void*) observer);
+	return observable_remove_observer (&manager->state->observable, (void*) observer);
 }
 
 /**
  * Initialize the base PCD manager.
  *
  * @param manager The manager to initialize.
+ * @param state Variable context for the PCD manager.  This must be uninitialized.
  * @param hash The hash engine to generate measurement data.
  *
  * @return 0 if the PCD manager was initialized successfully or an error code.
  */
-int pcd_manager_init (struct pcd_manager *manager, const struct hash_engine *hash)
+int pcd_manager_init (struct pcd_manager *manager, struct pcd_manager_state *state,
+	const struct hash_engine *hash)
 {
 	int status;
 
 	memset (manager, 0, sizeof (struct pcd_manager));
 
-	status = observable_init (&manager->observable);
+	status = manifest_manager_init (&manager->base, hash);
 	if (status != 0) {
 		return status;
 	}
 
-	return manifest_manager_init (&manager->base, hash);
+	manager->state = state;
+
+	return pcd_manager_init_state (manager);
+}
+
+/**
+ * Initialize only the variable state for a base PCD manager.  The rest of the manager is assumed to
+ * have already been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param manager The manager that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int pcd_manager_init_state (const struct pcd_manager *manager)
+{
+	if (manager->state == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	memset (manager->state, 0, sizeof (*manager->state));
+
+	return observable_init (&manager->state->observable);
 }
 
 /**
@@ -71,10 +98,10 @@ int pcd_manager_init (struct pcd_manager *manager, const struct hash_engine *has
  *
  * @param manager The manager to release.
  */
-void pcd_manager_release (struct pcd_manager *manager)
+void pcd_manager_release (const struct pcd_manager *manager)
 {
 	if (manager) {
-		observable_release (&manager->observable);
+		observable_release (&manager->state->observable);
 	}
 }
 
@@ -86,7 +113,7 @@ void pcd_manager_release (struct pcd_manager *manager)
  * @param pcd The PCD the event is for.
  * @param callback_offset The offset in the observer structure for the notification to call.
  */
-static void pcd_manager_notify_observers (struct pcd_manager *manager, struct pcd *pcd,
+static void pcd_manager_notify_observers (const struct pcd_manager *manager, const struct pcd *pcd,
 	size_t callback_offset)
 {
 	if (!pcd) {
@@ -94,7 +121,8 @@ static void pcd_manager_notify_observers (struct pcd_manager *manager, struct pc
 		return;
 	}
 
-	observable_notify_observers_with_ptr (&manager->observable, callback_offset, pcd);
+	observable_notify_observers_with_ptr (&manager->state->observable, callback_offset,
+		(void*) pcd);
 
 	manager->free_pcd (manager, pcd);
 }
@@ -105,7 +133,7 @@ static void pcd_manager_notify_observers (struct pcd_manager *manager, struct pc
  * @param manager The manager generating the event.
  * @param pending The pending PCD that was verified.
  */
-void pcd_manager_on_pcd_verified (struct pcd_manager *manager, struct pcd *pending)
+void pcd_manager_on_pcd_verified (const struct pcd_manager *manager, const struct pcd *pending)
 {
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
@@ -123,7 +151,7 @@ void pcd_manager_on_pcd_verified (struct pcd_manager *manager, struct pcd *pendi
  *
  * @param manager The manager generating the event.
  */
-void pcd_manager_on_pcd_activated (struct pcd_manager *manager)
+void pcd_manager_on_pcd_activated (const struct pcd_manager *manager)
 {
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
@@ -141,7 +169,7 @@ void pcd_manager_on_pcd_activated (struct pcd_manager *manager)
  *
  * @param manager The manager generating the event.
  */
-void pcd_manager_on_clear_active (struct pcd_manager *manager)
+void pcd_manager_on_clear_active (const struct pcd_manager *manager)
 {
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
@@ -150,7 +178,7 @@ void pcd_manager_on_clear_active (struct pcd_manager *manager)
 		return;
 	}
 
-	observable_notify_observers (&manager->observable,
+	observable_notify_observers (&manager->state->observable,
 		offsetof (struct pcd_observer, on_clear_active));
 }
 
@@ -159,7 +187,7 @@ void pcd_manager_on_clear_active (struct pcd_manager *manager)
  *
  * @param manager The manager generating the event.
  */
-void pcd_manager_on_pcd_activation_request (struct pcd_manager *manager)
+void pcd_manager_on_pcd_activation_request (const struct pcd_manager *manager)
 {
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
@@ -168,7 +196,7 @@ void pcd_manager_on_pcd_activation_request (struct pcd_manager *manager)
 		return;
 	}
 
-	observable_notify_observers (&manager->observable,
+	observable_notify_observers (&manager->state->observable,
 		offsetof (struct pcd_observer, on_pcd_activation_request));
 }
 
@@ -183,11 +211,11 @@ void pcd_manager_on_pcd_activation_request (struct pcd_manager *manager)
  *
  * @return Length of the measured data if successfully retrieved or an error code.
  */
-int pcd_manager_get_id_measured_data (struct pcd_manager *manager, size_t offset, uint8_t *buffer,
-	size_t length, uint32_t *total_len)
+int pcd_manager_get_id_measured_data (const struct pcd_manager *manager, size_t offset,
+	uint8_t *buffer, size_t length, uint32_t *total_len)
 {
 	int status;
-	struct pcd *active;
+	const struct pcd *active;
 
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
@@ -214,10 +242,11 @@ int pcd_manager_get_id_measured_data (struct pcd_manager *manager, size_t offset
  *
  * @return 0 if the hash was updated successfully or an error code.
  */
-int pcd_manager_hash_id_measured_data (struct pcd_manager *manager, const struct hash_engine *hash)
+int pcd_manager_hash_id_measured_data (const struct pcd_manager *manager,
+	const struct hash_engine *hash)
 {
 	int status;
-	struct pcd *active;
+	const struct pcd *active;
 
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
@@ -246,11 +275,11 @@ int pcd_manager_hash_id_measured_data (struct pcd_manager *manager, const struct
  *
  * @return Length of the measured data if successfully retrieved or an error code.
  */
-int pcd_manager_get_platform_id_measured_data (struct pcd_manager *manager, size_t offset,
+int pcd_manager_get_platform_id_measured_data (const struct pcd_manager *manager, size_t offset,
 	uint8_t *buffer, size_t length, uint32_t *total_len)
 {
 	int status;
-	struct pcd *active;
+	const struct pcd *active;
 
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
@@ -278,11 +307,11 @@ int pcd_manager_get_platform_id_measured_data (struct pcd_manager *manager, size
  *
  * @return 0 if the hash was updated successfully or an error code.
  */
-int pcd_manager_hash_platform_id_measured_data (struct pcd_manager *manager,
+int pcd_manager_hash_platform_id_measured_data (const struct pcd_manager *manager,
 	const struct hash_engine *hash)
 {
 	int status;
-	struct pcd *active;
+	const struct pcd *active;
 
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
@@ -311,11 +340,11 @@ int pcd_manager_hash_platform_id_measured_data (struct pcd_manager *manager,
  *
  * @return Length of the measured data if successfully retrieved or an error code.
  */
-int pcd_manager_get_pcd_measured_data (struct pcd_manager *manager, size_t offset, uint8_t *buffer,
-	size_t length, uint32_t *total_len)
+int pcd_manager_get_pcd_measured_data (const struct pcd_manager *manager, size_t offset,
+	uint8_t *buffer, size_t length, uint32_t *total_len)
 {
 	int status;
-	struct pcd *active;
+	const struct pcd *active;
 
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
@@ -348,10 +377,11 @@ int pcd_manager_get_pcd_measured_data (struct pcd_manager *manager, size_t offse
  *
  * @return 0 if the hash was updated successfully or an error code.
  */
-int pcd_manager_hash_pcd_measured_data (struct pcd_manager *manager, const struct hash_engine *hash)
+int pcd_manager_hash_pcd_measured_data (const struct pcd_manager *manager,
+	const struct hash_engine *hash)
 {
 	int status;
-	struct pcd *active;
+	const struct pcd *active;
 
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;

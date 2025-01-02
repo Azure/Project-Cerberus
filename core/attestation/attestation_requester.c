@@ -254,7 +254,7 @@ static int attestation_requester_verify_digest_in_allowable_list (
  * 	an error code otherwise
  */
 static int attestation_requester_verify_pmr (const struct attestation_requester *attestation,
-	struct cfm *active_cfm, uint32_t component_id, uint8_t eid, uint8_t pmr_id)
+	const struct cfm *active_cfm, uint32_t component_id, uint8_t eid, uint8_t pmr_id)
 {
 	struct cfm_pmr_digest pmr_digest;
 	int status;
@@ -335,7 +335,7 @@ static int attestation_requester_update_cert_chain_digest (
  * @return 0 if the root cert is trusted or an error code.
  */
 static int attestation_requester_verify_and_load_root_cert (
-	const struct attestation_requester *attestation, uint8_t eid, struct cfm *active_cfm,
+	const struct attestation_requester *attestation, uint8_t eid, const struct cfm *active_cfm,
 	uint32_t component_id, const uint8_t *root_ca, size_t root_ca_length,
 	const uint8_t *header_data, size_t header_length, struct x509_ca_certs *certs_chain)
 {
@@ -1771,7 +1771,7 @@ int attestation_requester_init (struct attestation_requester *attestation,
 	const struct hash_engine *secondary_hash, const struct ecc_engine *ecc,
 	const struct rsa_engine *rsa, const struct x509_engine *x509, const struct rng_engine *rng,
 	const struct riot_key_manager *riot, struct device_manager *device_mgr,
-	struct cfm_manager *cfm_manager)
+	const struct cfm_manager *cfm_manager)
 {
 	if ((attestation == NULL) || (state == NULL) || (mctp == NULL) || (channel == NULL) ||
 		(primary_hash == NULL) || (ecc == NULL) || (x509 == NULL) || (rng == NULL) ||
@@ -1896,7 +1896,7 @@ void attestation_requester_deinit (const struct attestation_requester *attestati
  */
 static int attestation_requester_verify_and_load_leaf_key_cerberus (
 	const struct attestation_requester *attestation, uint8_t device_addr, uint8_t eid,
-	struct cfm *active_cfm, uint32_t component_id)
+	const struct cfm *active_cfm, uint32_t component_id)
 {
 	struct x509_ca_certs certs_chain;
 	struct x509_certificate cert;
@@ -1960,7 +1960,7 @@ static int attestation_requester_verify_and_load_leaf_key_cerberus (
  */
 static int attestation_requester_attest_device_cerberus_protocol (
 	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
-	struct cfm *active_cfm, uint32_t component_id)
+	const struct cfm *active_cfm, uint32_t component_id)
 {
 	struct cerberus_protocol_challenge *challenge_rq =
 		(struct cerberus_protocol_challenge*) attestation->state->txn.msg_buffer;
@@ -2460,7 +2460,7 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
  */
 static int attestation_requester_get_and_verify_all_spdm_measurement_blocks (
 	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
-	struct cfm *active_cfm, uint32_t component_id)
+	const struct cfm *active_cfm, uint32_t component_id)
 {
 	uint8_t digest[HASH_MAX_HASH_LEN];
 	struct cfm_pmr_digest pmr_digest;
@@ -2798,7 +2798,7 @@ static int attestation_requester_get_and_verify_spdm_measurement_data_block (
  */
 static int attestation_requester_get_and_verify_cfm_contents (
 	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
-	struct cfm *active_cfm, uint32_t component_id)
+	const struct cfm *active_cfm, uint32_t component_id)
 {
 	struct cfm_measurement_container container;
 	bool first = true;
@@ -3054,7 +3054,7 @@ static int attestation_requester_retrieve_individual_spdm_certificate (
  */
 static int attestation_requester_verify_and_load_leaf_key_spdm (
 	const struct attestation_requester *attestation, uint8_t dest_addr, uint8_t eid,
-	struct cfm *active_cfm, uint32_t component_id)
+	const struct cfm *active_cfm, uint32_t component_id)
 {
 	struct x509_ca_certs certs_chain;
 	struct x509_certificate cert;
@@ -3131,7 +3131,7 @@ static int attestation_requester_verify_and_load_leaf_key_spdm (
  */
 static int attestation_requester_attest_device_spdm (
 	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
-	struct cfm *active_cfm, uint32_t component_id)
+	const struct cfm *active_cfm, uint32_t component_id)
 {
 	const struct device_manager_key *alias_key;
 	uint8_t nonce[SPDM_NONCE_LEN];
@@ -3264,7 +3264,7 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 	uint8_t eid)
 {
 	struct cfm_component_device component_device;
-	struct cfm *active_cfm;
+	const struct cfm *active_cfm;
 	uint32_t component_id;
 	enum cfm_attestation_type attestation_protocol;
 	int device_addr;

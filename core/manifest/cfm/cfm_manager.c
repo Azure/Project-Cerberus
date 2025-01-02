@@ -18,13 +18,14 @@
  *
  * @return 0 if the observer was added for notifications or an error code.
  */
-int cfm_manager_add_observer (struct cfm_manager *manager, const struct cfm_observer *observer)
+int cfm_manager_add_observer (const struct cfm_manager *manager,
+	const struct cfm_observer *observer)
 {
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
-	return observable_add_observer (&manager->observable, (void*) observer);
+	return observable_add_observer (&manager->state->observable, (void*) observer);
 }
 
 /**
@@ -35,35 +36,61 @@ int cfm_manager_add_observer (struct cfm_manager *manager, const struct cfm_obse
  *
  * @return 0 if the observer was removed from future notifications or an error code.
  */
-int cfm_manager_remove_observer (struct cfm_manager *manager, const struct cfm_observer *observer)
+int cfm_manager_remove_observer (const struct cfm_manager *manager,
+	const struct cfm_observer *observer)
 {
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
-	return observable_remove_observer (&manager->observable, (void*) observer);
+	return observable_remove_observer (&manager->state->observable, (void*) observer);
 }
 
 /**
  * Initialize the base CFM manager.
  *
  * @param manager The manager to initialize.
+ * @param state Variable context for the CFM manager.  This must be uninitialized.
  * @param hash The hash engine to generate measurement data.
  *
  * @return 0 if the CFM manager was initialized successfully or an error code.
  */
-int cfm_manager_init (struct cfm_manager *manager, const struct hash_engine *hash)
+int cfm_manager_init (struct cfm_manager *manager, struct cfm_manager_state *state,
+	const struct hash_engine *hash)
 {
 	int status;
 
 	memset (manager, 0, sizeof (struct cfm_manager));
 
-	status = observable_init (&manager->observable);
+	status = manifest_manager_init (&manager->base, hash);
 	if (status != 0) {
 		return status;
 	}
 
-	return manifest_manager_init (&manager->base, hash);
+	manager->state = state;
+
+	return cfm_manager_init_state (manager);
+}
+
+/**
+ * Initialize only the variable state for a base CFM manager.  The rest of the manager is assumed to
+ * have already been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param manager The manager that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int cfm_manager_init_state (const struct cfm_manager *manager)
+{
+	if (manager->state == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	memset (manager->state, 0, sizeof (*manager->state));
+
+	return observable_init (&manager->state->observable);
 }
 
 /**
@@ -71,10 +98,10 @@ int cfm_manager_init (struct cfm_manager *manager, const struct hash_engine *has
  *
  * @param manager The manager to release.
  */
-void cfm_manager_release (struct cfm_manager *manager)
+void cfm_manager_release (const struct cfm_manager *manager)
 {
 	if (manager) {
-		observable_release (&manager->observable);
+		observable_release (&manager->state->observable);
 	}
 }
 
@@ -86,7 +113,7 @@ void cfm_manager_release (struct cfm_manager *manager)
  * @param cfm The CFM the event is for.
  * @param callback_offset The offset in the observer structure for the notification to call.
  */
-static void cfm_manager_notify_observers (struct cfm_manager *manager, struct cfm *cfm,
+static void cfm_manager_notify_observers (const struct cfm_manager *manager, const struct cfm *cfm,
 	size_t callback_offset)
 {
 	if (!cfm) {
@@ -94,7 +121,8 @@ static void cfm_manager_notify_observers (struct cfm_manager *manager, struct cf
 		return;
 	}
 
-	observable_notify_observers_with_ptr (&manager->observable, callback_offset, cfm);
+	observable_notify_observers_with_ptr (&manager->state->observable, callback_offset,
+		(void*) cfm);
 
 	manager->free_cfm (manager, cfm);
 }
@@ -104,7 +132,7 @@ static void cfm_manager_notify_observers (struct cfm_manager *manager, struct cf
  *
  * @param manager The manager generating the event.
  */
-void cfm_manager_on_cfm_verified (struct cfm_manager *manager)
+void cfm_manager_on_cfm_verified (const struct cfm_manager *manager)
 {
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
@@ -122,7 +150,7 @@ void cfm_manager_on_cfm_verified (struct cfm_manager *manager)
  *
  * @param manager The manager generating the event.
  */
-void cfm_manager_on_cfm_activated (struct cfm_manager *manager)
+void cfm_manager_on_cfm_activated (const struct cfm_manager *manager)
 {
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
@@ -140,7 +168,7 @@ void cfm_manager_on_cfm_activated (struct cfm_manager *manager)
  *
  * @param manager The manager generating the event.
  */
-void cfm_manager_on_clear_active (struct cfm_manager *manager)
+void cfm_manager_on_clear_active (const struct cfm_manager *manager)
 {
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
@@ -149,7 +177,7 @@ void cfm_manager_on_clear_active (struct cfm_manager *manager)
 		return;
 	}
 
-	observable_notify_observers (&manager->observable,
+	observable_notify_observers (&manager->state->observable,
 		offsetof (struct cfm_observer, on_clear_active));
 }
 
@@ -158,7 +186,7 @@ void cfm_manager_on_clear_active (struct cfm_manager *manager)
  *
  * @param manager The manager generating the event.
  */
-void cfm_manager_on_cfm_activation_request (struct cfm_manager *manager)
+void cfm_manager_on_cfm_activation_request (const struct cfm_manager *manager)
 {
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
@@ -167,7 +195,7 @@ void cfm_manager_on_cfm_activation_request (struct cfm_manager *manager)
 		return;
 	}
 
-	observable_notify_observers (&manager->observable,
+	observable_notify_observers (&manager->state->observable,
 		offsetof (struct cfm_observer, on_cfm_activation_request));
 }
 
@@ -182,11 +210,11 @@ void cfm_manager_on_cfm_activation_request (struct cfm_manager *manager)
  *
  *@return length of the measured data if successfully retrieved or an error code.
  */
-int cfm_manager_get_id_measured_data (struct cfm_manager *manager, size_t offset, uint8_t *buffer,
-	size_t length, uint32_t *total_len)
+int cfm_manager_get_id_measured_data (const struct cfm_manager *manager, size_t offset,
+	uint8_t *buffer, size_t length, uint32_t *total_len)
 {
 	int status;
-	struct cfm *active;
+	const struct cfm *active;
 
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
@@ -213,10 +241,11 @@ int cfm_manager_get_id_measured_data (struct cfm_manager *manager, size_t offset
  *
  * @return 0 if the hash was updated successfully or an error code.
  */
-int cfm_manager_hash_id_measured_data (struct cfm_manager *manager, const struct hash_engine *hash)
+int cfm_manager_hash_id_measured_data (const struct cfm_manager *manager,
+	const struct hash_engine *hash)
 {
 	int status;
-	struct cfm *active;
+	const struct cfm *active;
 
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
@@ -245,11 +274,11 @@ int cfm_manager_hash_id_measured_data (struct cfm_manager *manager, const struct
  *
  * @return Length of the measured data if successfully retrieved or an error code.
  */
-int cfm_manager_get_platform_id_measured_data (struct cfm_manager *manager, size_t offset,
+int cfm_manager_get_platform_id_measured_data (const struct cfm_manager *manager, size_t offset,
 	uint8_t *buffer, size_t length, uint32_t *total_len)
 {
 	int status;
-	struct cfm *active;
+	const struct cfm *active;
 
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
@@ -277,11 +306,11 @@ int cfm_manager_get_platform_id_measured_data (struct cfm_manager *manager, size
  *
  * @return 0 if the hash was updated successfully or an error code.
  */
-int cfm_manager_hash_platform_id_measured_data (struct cfm_manager *manager,
+int cfm_manager_hash_platform_id_measured_data (const struct cfm_manager *manager,
 	const struct hash_engine *hash)
 {
 	int status;
-	struct cfm *active;
+	const struct cfm *active;
 
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
@@ -310,11 +339,11 @@ int cfm_manager_hash_platform_id_measured_data (struct cfm_manager *manager,
  *
  * @return Length of the measured data if successfully retrieved or an error code.
  */
-int cfm_manager_get_cfm_measured_data (struct cfm_manager *manager, size_t offset, uint8_t *buffer,
-	size_t length, uint32_t *total_len)
+int cfm_manager_get_cfm_measured_data (const struct cfm_manager *manager, size_t offset,
+	uint8_t *buffer, size_t length, uint32_t *total_len)
 {
 	int status;
-	struct cfm *active;
+	const struct cfm *active;
 
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
@@ -347,10 +376,11 @@ int cfm_manager_get_cfm_measured_data (struct cfm_manager *manager, size_t offse
  *
  * @return 0 if the hash was updated successfully or an error code.
  */
-int cfm_manager_hash_cfm_measured_data (struct cfm_manager *manager, const struct hash_engine *hash)
+int cfm_manager_hash_cfm_measured_data (const struct cfm_manager *manager,
+	const struct hash_engine *hash)
 {
 	int status;
-	struct cfm *active;
+	const struct cfm *active;
 
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;

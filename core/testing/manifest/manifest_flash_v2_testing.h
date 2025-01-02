@@ -26,6 +26,7 @@ struct manifest_flash_v2_testing {
 	uint32_t addr;										/**< Base address of the PFM. */
 	uint8_t signature[512];								/**< Buffer for the manifest signature. */
 	uint8_t platform_id[256];							/**< Cache for the platform ID. */
+	struct manifest_flash_state state;					/**< Common manifest state for testing. */
 	struct manifest_flash test;							/**< Manifest instance for common testing. */
 };
 

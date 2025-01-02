@@ -21,10 +21,10 @@ struct pfm_observer_pcr {
 int pfm_observer_pcr_init (struct pfm_observer_pcr *observer, const struct hash_engine *hash,
 	struct pcr_store *store, uint16_t manifest_measurement, uint16_t manifest_id_measurement,
 	uint16_t platform_id_measurement);
-void pfm_observer_pcr_release (struct pfm_observer_pcr *observer);
+void pfm_observer_pcr_release (const struct pfm_observer_pcr *observer);
 
 void pfm_observer_pcr_record_measurement (const struct pfm_observer_pcr *observer,
-	struct pfm_manager *manager);
+	const struct pfm_manager *manager);
 
 
 #endif	/* PFM_OBSERVER_PCR_H_ */

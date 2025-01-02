@@ -21,6 +21,7 @@ int manifest_manager_init (struct manifest_manager *manager, const struct hash_e
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
+	manager->port = 0;
 	manager->hash = hash;
 
 	return 0;
@@ -49,7 +50,12 @@ void manifest_manager_set_port (struct manifest_manager *manager, int port)
 int manifest_manager_get_port (const struct manifest_manager *manager)
 {
 	if (manager) {
-		return manager->port;
+		if (manager->port < 0) {
+			return 0;
+		}
+		else {
+			return manager->port;
+		}
 	}
 	else {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
@@ -64,7 +70,8 @@ int manifest_manager_get_port (const struct manifest_manager *manager)
  *
  * @return 0 if the ID was retrieved successfully or an error code.
  */
-static int manifest_manager_construct_id_measurement_data (struct manifest *active, uint8_t *id)
+static int manifest_manager_construct_id_measurement_data (const struct manifest *active,
+	uint8_t *id)
 {
 	int status;
 
@@ -94,8 +101,8 @@ static int manifest_manager_construct_id_measurement_data (struct manifest *acti
  *
  * @return Length of the measured data if successfully retrieved or an error code.
  */
-int manifest_manager_get_id_measured_data (struct manifest *active, size_t offset, uint8_t *buffer,
-	size_t length, uint32_t *total_len)
+int manifest_manager_get_id_measured_data (const struct manifest *active, size_t offset,
+	uint8_t *buffer, size_t length, uint32_t *total_len)
 {
 	uint8_t id[5];
 	size_t id_length = sizeof (id);
@@ -131,7 +138,8 @@ int manifest_manager_get_id_measured_data (struct manifest *active, size_t offse
  *
  * @return 0 if the hash was updated successfully or an error code.
  */
-int manifest_manager_hash_id_measured_data (struct manifest *active, const struct hash_engine *hash)
+int manifest_manager_hash_id_measured_data (const struct manifest *active,
+	const struct hash_engine *hash)
 {
 	uint8_t id[5];
 	int status;
@@ -160,7 +168,7 @@ int manifest_manager_hash_id_measured_data (struct manifest *active, const struc
  *
  * @return Length of the measured data if successfully retrieved or an error code.
  */
-int manifest_manager_get_platform_id_measured_data (struct manifest *active, size_t offset,
+int manifest_manager_get_platform_id_measured_data (const struct manifest *active, size_t offset,
 	uint8_t *buffer, size_t length, uint32_t *total_len)
 {
 	char *id = NULL;
@@ -212,7 +220,7 @@ exit:
  *
  * @return 0 if the hash was updated successfully or an error code.
  */
-int manifest_manager_hash_platform_id_measured_data (struct manifest *active,
+int manifest_manager_hash_platform_id_measured_data (const struct manifest *active,
 	const struct hash_engine *hash)
 {
 	char *id = NULL;
@@ -255,8 +263,9 @@ int manifest_manager_hash_platform_id_measured_data (struct manifest *active,
  *
  * @return Length of the measured data if successfully retrieved or an error code.
  */
-int manifest_manager_get_manifest_measured_data (struct manifest_manager *manager,
-	struct manifest *active, size_t offset, uint8_t *buffer, size_t length, uint32_t *total_len)
+int manifest_manager_get_manifest_measured_data (const struct manifest_manager *manager,
+	const struct manifest *active, size_t offset, uint8_t *buffer, size_t length,
+	uint32_t *total_len)
 {
 	uint8_t hash_out[SHA512_HASH_LENGTH] = {0};
 	size_t bytes_read;
@@ -297,8 +306,8 @@ int manifest_manager_get_manifest_measured_data (struct manifest_manager *manage
  *
  * @return 0 if the hash was updated successfully or an error code.
  */
-int manifest_manager_hash_manifest_measured_data (struct manifest_manager *manager,
-	struct manifest *active, const struct hash_engine *hash)
+int manifest_manager_hash_manifest_measured_data (const struct manifest_manager *manager,
+	const struct manifest *active, const struct hash_engine *hash)
 {
 	uint8_t hash_out[SHA512_HASH_LENGTH] = {0};
 	int hash_length = SHA256_HASH_LENGTH;

@@ -22,13 +22,13 @@
  * @return 0 if the manifest was determined to be either valid or invalid. An error code if the
  * validity of the manifest could not be determined.
  */
-static int manifest_manager_flash_verify_manifest (struct manifest_manager_flash *manager,
-	struct manifest *manifest, struct manifest_manager_flash_region *region)
+static int manifest_manager_flash_verify_manifest (const struct manifest_manager_flash *manager,
+	const struct manifest *manifest, const struct manifest_manager_flash_region *region)
 {
 	int status = manifest->verify (manifest, manager->hash, manager->verification, NULL, 0);
 
 	if (status == 0) {
-		region->is_valid = true;
+		region->state->is_valid = true;
 	}
 	else if ((status == SIG_VERIFICATION_BAD_SIGNATURE) ||
 		(ROT_GET_MODULE (status) == ROT_MODULE_MANIFEST) ||
@@ -36,7 +36,7 @@ static int manifest_manager_flash_verify_manifest (struct manifest_manager_flash
 		(ROT_GET_MODULE (status) == ROT_MODULE_CFM) ||
 		(ROT_GET_MODULE (status) == ROT_MODULE_PCD)) {
 		/* Don't fail for any errors in the manifest data.  Just mark the region as invalid. */
-		region->is_valid = false;
+		region->state->is_valid = false;
 		status = 0;
 	}
 
@@ -52,19 +52,20 @@ static int manifest_manager_flash_verify_manifest (struct manifest_manager_flash
  *
  * @return 0 if the check completed successfully or an error code.
  */
-static int manifest_manager_flash_check_pending_manifest_id (struct manifest_manager_flash *manager)
+static int manifest_manager_flash_check_pending_manifest_id (
+	const struct manifest_manager_flash *manager)
 {
-	struct manifest_manager_flash_region *active;
-	struct manifest_manager_flash_region *pending;
+	const struct manifest_manager_flash_region *active;
+	const struct manifest_manager_flash_region *pending;
 	int status = 0;
 
 	active = manifest_manager_flash_get_region (manager, true);
 	pending = manifest_manager_flash_get_region (manager, false);
 
-	if (active->is_valid && pending->is_valid) {
+	if (active->state->is_valid && pending->state->is_valid) {
 		status = manifest_flash_compare_id (active->flash, pending->flash);
 		if (status != 0) {
-			pending->is_valid = false;
+			pending->state->is_valid = false;
 			status = MANIFEST_MANAGER_INVALID_ID;
 		}
 	}
@@ -80,24 +81,25 @@ static int manifest_manager_flash_check_pending_manifest_id (struct manifest_man
  *
  * @return 0 if the check completed successfully or an error code.
  */
-static int manifest_manager_flash_check_pending_platform_id (struct manifest_manager_flash *manager)
+static int manifest_manager_flash_check_pending_platform_id (
+	const struct manifest_manager_flash *manager)
 {
-	struct manifest_manager_flash_region *active;
-	struct manifest_manager_flash_region *pending;
+	const struct manifest_manager_flash_region *active;
+	const struct manifest_manager_flash_region *pending;
 	int status = 0;
 
 	active = manifest_manager_flash_get_region (manager, true);
 	pending = manifest_manager_flash_get_region (manager, false);
 
-	if (active->is_valid && pending->is_valid) {
+	if (active->state->is_valid && pending->state->is_valid) {
 		status = manifest_flash_compare_platform_id (active->flash, pending->flash,
 			manager->sku_upgrade_permitted);
 		if (status == 1) {
-			pending->is_valid = false;
+			pending->state->is_valid = false;
 			status = MANIFEST_MANAGER_INCOMPATIBLE;
 		}
 		else if (status != 0) {
-			pending->is_valid = false;
+			pending->state->is_valid = false;
 		}
 	}
 
@@ -112,14 +114,14 @@ static int manifest_manager_flash_check_pending_platform_id (struct manifest_man
  *
  * @return 0 if the check completed successfully or an error code.
  */
-static int manifest_manager_flash_check_empty_manifest (struct manifest_manager_flash *manager,
-	int clear_msg)
+static int manifest_manager_flash_check_empty_manifest (
+	const struct manifest_manager_flash *manager, int clear_msg)
 {
-	struct manifest_manager_flash_region *pending;
+	const struct manifest_manager_flash_region *pending;
 	int status = 0;
 
 	pending = manifest_manager_flash_get_region (manager, false);
-	if (pending->is_valid) {
+	if (pending->state->is_valid) {
 		status = pending->manifest->is_empty (pending->manifest);
 		if (status == 1) {
 			status = manifest_manager_flash_clear_all_manifests (manager, true);
@@ -135,15 +137,16 @@ static int manifest_manager_flash_check_empty_manifest (struct manifest_manager_
 }
 
 /**
- * Initialize the manager for handling manifests.
+ * Initialize a manager for handling manifests on flash.
  *
  * @param manager The manifest manager to initialize.
- * @param base The base manager instance
+ * @param state Variable context for managing the manifests on flash.  This must be uninitialized.
+ * @param base The base manager associated with this manager instance.
  * @param region1 The manifest instance for the first flash region that can hold a manifest.
  * @param region2 The manifest instance for the second flash region that can hold a manifest.
  * @param region1_flash Flash access for the region 1 manifest.
  * @param region2_flash Flash access for the region 2 manifest.
- * @param state The state information for manifest management.
+ * @param state_mgr The state information for manifest management.
  * @param hash The hash engine to be used for manifest validation.
  * @param verification The module to use for manifest verification.
  * @param manifest_index State manager manifest index to use for maintaining active region state.
@@ -153,40 +156,67 @@ static int manifest_manager_flash_check_empty_manifest (struct manifest_manager_
  * @return 0 if the manifest manager was successfully initialized or an error code.
  */
 int manifest_manager_flash_init (struct manifest_manager_flash *manager,
-	struct manifest_manager *base, struct manifest *region1, struct manifest *region2,
-	struct manifest_flash *region1_flash, struct manifest_flash *region2_flash,
-	struct state_manager *state, const struct hash_engine *hash,
+	struct manifest_manager_flash_state *state, const struct manifest_manager *base,
+	const struct manifest *region1, const struct manifest *region2,
+	const struct manifest_flash *region1_flash, const struct manifest_flash *region2_flash,
+	struct state_manager *state_mgr, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t manifest_index,
 	uint8_t log_msg_empty, bool sku_upgrade_permitted)
 {
-	int status;
-
-	if ((state == NULL) || (hash == NULL) || (verification == NULL)) {
-		return MANIFEST_MANAGER_INVALID_ARGUMENT;
-	}
-
+	manager->state = state;
 	manager->base = base;
 	manager->region1.manifest = region1;
 	manager->region1.flash = region1_flash;
+	manager->region1.state = &state->region1;
 	manager->region2.manifest = region2;
 	manager->region2.flash = region2_flash;
-	manager->state = state;
+	manager->region2.state = &state->region2;
+	manager->state_mgr = state_mgr;
 	manager->hash = hash;
 	manager->verification = verification;
 	manager->manifest_index = manifest_index;
 	manager->sku_upgrade_permitted = sku_upgrade_permitted;
 
-	status = state->is_manifest_valid (state, manifest_index);
+	return manifest_manager_flash_init_state (manager, log_msg_empty);
+}
+
+/**
+ * Initialize only the variable state for a manager handling manifests on flash.  The rest of the
+ * manager is assumed to have already been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param manager The manager that contains the state to initialize.
+ * @param log_msg_empty The log message identifier to use when an empty pending manifest is present.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int manifest_manager_flash_init_state (const struct manifest_manager_flash *manager,
+	uint8_t log_msg_empty)
+{
+	int status;
+
+	if ((manager->state == NULL) || (manager->region1.manifest == NULL) ||
+		(manager->region2.manifest == NULL) || (manager->state_mgr == NULL) ||
+		(manager->hash == NULL) || (manager->verification == NULL)) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	memset (manager->state, 0, sizeof (*manager->state));
+
+	status = manager->state_mgr->is_manifest_valid (manager->state_mgr, manager->manifest_index);
 	if (status != 0) {
 		return status;
 	}
 
-	status = manifest_manager_flash_verify_manifest (manager, region1, &manager->region1);
+	status = manifest_manager_flash_verify_manifest (manager, manager->region1.manifest,
+		&manager->region1);
 	if (status != 0) {
 		return status;
 	}
 
-	status = manifest_manager_flash_verify_manifest (manager, region2, &manager->region2);
+	status = manifest_manager_flash_verify_manifest (manager, manager->region2.manifest,
+		&manager->region2);
 	if (status != 0) {
 		return status;
 	}
@@ -201,16 +231,16 @@ int manifest_manager_flash_init (struct manifest_manager_flash *manager,
 		return status;
 	}
 
-	status = flash_updater_init (&manager->region1.updater,
-		manifest_flash_get_flash (region1_flash), manifest_flash_get_addr (region1_flash),
-		FLASH_BLOCK_SIZE);
+	status = flash_updater_init (&manager->region1.state->updater,
+		manifest_flash_get_flash (manager->region1.flash),
+		manifest_flash_get_addr (manager->region1.flash), FLASH_BLOCK_SIZE);
 	if (status != 0) {
 		return status;
 	}
 
-	status = flash_updater_init (&manager->region2.updater,
-		manifest_flash_get_flash (region2_flash), manifest_flash_get_addr (region2_flash),
-		FLASH_BLOCK_SIZE);
+	status = flash_updater_init (&manager->region2.state->updater,
+		manifest_flash_get_flash (manager->region2.flash),
+		manifest_flash_get_addr (manager->region2.flash), FLASH_BLOCK_SIZE);
 	if (status != 0) {
 		goto exit_region1;
 	}
@@ -220,7 +250,7 @@ int manifest_manager_flash_init (struct manifest_manager_flash *manager,
 		goto exit_region2;
 	}
 
-	status = platform_mutex_init (&manager->lock);
+	status = platform_mutex_init (&manager->state->lock);
 	if (status != 0) {
 		goto exit_region2;
 	}
@@ -228,9 +258,9 @@ int manifest_manager_flash_init (struct manifest_manager_flash *manager,
 	return 0;
 
 exit_region2:
-	flash_updater_release (&manager->region2.updater);
+	flash_updater_release (&manager->region2.state->updater);
 exit_region1:
-	flash_updater_release (&manager->region1.updater);
+	flash_updater_release (&manager->region1.state->updater);
 
 	return status;
 }
@@ -240,11 +270,11 @@ exit_region1:
  *
  * @param manager The manifest manager to release.
  */
-void manifest_manager_flash_release (struct manifest_manager_flash *manager)
+void manifest_manager_flash_release (const struct manifest_manager_flash *manager)
 {
-	platform_mutex_free (&manager->lock);
-	flash_updater_release (&manager->region1.updater);
-	flash_updater_release (&manager->region2.updater);
+	platform_mutex_free (&manager->state->lock);
+	flash_updater_release (&manager->region1.state->updater);
+	flash_updater_release (&manager->region2.state->updater);
 }
 
 /**
@@ -255,10 +285,10 @@ void manifest_manager_flash_release (struct manifest_manager_flash *manager)
  *
  * @return The manifest region.
  */
-struct manifest_manager_flash_region* manifest_manager_flash_get_region (
-	struct manifest_manager_flash *manager, bool active)
+const struct manifest_manager_flash_region* manifest_manager_flash_get_region (
+	const struct manifest_manager_flash *manager, bool active)
 {
-	enum manifest_region current = manager->state->get_active_manifest (manager->state,
+	enum manifest_region current = manager->state_mgr->get_active_manifest (manager->state_mgr,
 		manager->manifest_index);
 
 	if (current == MANIFEST_REGION_1) {
@@ -278,21 +308,21 @@ struct manifest_manager_flash_region* manifest_manager_flash_get_region (
  *
  * @return The active manifest region or null if there is no active manifest.
  */
-struct manifest_manager_flash_region* manifest_manager_flash_get_manifest_region (
-	struct manifest_manager_flash *manager, bool active)
+const struct manifest_manager_flash_region* manifest_manager_flash_get_manifest_region (
+	const struct manifest_manager_flash *manager, bool active)
 {
-	struct manifest_manager_flash_region *region;
+	const struct manifest_manager_flash_region *region;
 
-	platform_mutex_lock (&manager->lock);
+	platform_mutex_lock (&manager->state->lock);
 
 	region = manifest_manager_flash_get_region (manager, active);
-	if (region->is_valid) {
-		region->ref_count++;
+	if (region->state->is_valid) {
+		region->state->ref_count++;
 	}
 
-	platform_mutex_unlock (&manager->lock);
+	platform_mutex_unlock (&manager->state->lock);
 
-	return (region->is_valid) ? region : NULL;
+	return (region->state->is_valid) ? region : NULL;
 }
 
 /**
@@ -302,12 +332,12 @@ struct manifest_manager_flash_region* manifest_manager_flash_get_manifest_region
  * @param manager The manifest manager that allocated the manifest instance.
  * @param manifest The manifest to release.
  */
-void manifest_manager_flash_free_manifest (struct manifest_manager_flash *manager,
-	struct manifest *manifest)
+void manifest_manager_flash_free_manifest (const struct manifest_manager_flash *manager,
+	const struct manifest *manifest)
 {
-	struct manifest_manager_flash_region *region;
+	const struct manifest_manager_flash_region *region;
 
-	platform_mutex_lock (&manager->lock);
+	platform_mutex_lock (&manager->state->lock);
 
 	if (manifest == manager->region1.manifest) {
 		region = &manager->region1;
@@ -319,11 +349,11 @@ void manifest_manager_flash_free_manifest (struct manifest_manager_flash *manage
 		region = NULL;
 	}
 
-	if (region && (region->ref_count > 0)) {
-		region->ref_count--;
+	if (region && (region->state->ref_count > 0)) {
+		region->state->ref_count--;
 	}
 
-	platform_mutex_unlock (&manager->lock);
+	platform_mutex_unlock (&manager->state->lock);
 }
 
 /**
@@ -334,38 +364,38 @@ void manifest_manager_flash_free_manifest (struct manifest_manager_flash *manage
  * @return 0 if the pending manifest was successfully activated or an error if there no pending
  * manifest to activate.
  */
-int manifest_manager_flash_activate_pending_manifest (struct manifest_manager_flash *manager)
+int manifest_manager_flash_activate_pending_manifest (const struct manifest_manager_flash *manager)
 {
 	enum manifest_region active;
 	int status = 0;
 
-	platform_mutex_lock (&manager->lock);
+	platform_mutex_lock (&manager->state->lock);
 
-	active = manager->state->get_active_manifest (manager->state, manager->manifest_index);
+	active = manager->state_mgr->get_active_manifest (manager->state_mgr, manager->manifest_index);
 
 	if (active == MANIFEST_REGION_1) {
-		if (!manager->region2.is_valid) {
+		if (!manager->region2.state->is_valid) {
 			status = MANIFEST_MANAGER_NONE_PENDING;
 			goto exit;
 		}
 
-		manager->state->save_active_manifest (manager->state, manager->manifest_index,
+		manager->state_mgr->save_active_manifest (manager->state_mgr, manager->manifest_index,
 			MANIFEST_REGION_2);
-		manager->region1.is_valid = false;
+		manager->region1.state->is_valid = false;
 	}
 	else {
-		if (!manager->region1.is_valid) {
+		if (!manager->region1.state->is_valid) {
 			status = MANIFEST_MANAGER_NONE_PENDING;
 			goto exit;
 		}
 
-		manager->state->save_active_manifest (manager->state, manager->manifest_index,
+		manager->state_mgr->save_active_manifest (manager->state_mgr, manager->manifest_index,
 			MANIFEST_REGION_1);
-		manager->region2.is_valid = false;
+		manager->region2.state->is_valid = false;
 	}
 
 exit:
-	platform_mutex_unlock (&manager->lock);
+	platform_mutex_unlock (&manager->state->lock);
 
 	return status;
 }
@@ -378,35 +408,35 @@ exit:
  *
  * @return 0 if the pending manifest region was successfully cleared or an error code.
  */
-int manifest_manager_flash_clear_pending_region (struct manifest_manager_flash *manager,
+int manifest_manager_flash_clear_pending_region (const struct manifest_manager_flash *manager,
 	size_t size)
 {
-	struct manifest_manager_flash_region *region;
+	const struct manifest_manager_flash_region *region;
 	int status;
 
-	platform_mutex_lock (&manager->lock);
+	platform_mutex_lock (&manager->state->lock);
 
 	region = manifest_manager_flash_get_region (manager, false);
-	if (region->ref_count == 0) {
-		status = flash_updater_check_update_size (&region->updater, size);
+	if (region->state->ref_count == 0) {
+		status = flash_updater_check_update_size (&region->state->updater, size);
 		if (status != 0) {
-			platform_mutex_unlock (&manager->lock);
+			platform_mutex_unlock (&manager->state->lock);
 
 			return status;
 		}
 
-		manager->updating = &region->updater;
-		region->is_valid = false;
+		manager->state->updating = &region->state->updater;
+		region->state->is_valid = false;
 	}
 	else {
-		platform_mutex_unlock (&manager->lock);
+		platform_mutex_unlock (&manager->state->lock);
 
 		return MANIFEST_MANAGER_PENDING_IN_USE;
 	}
 
-	platform_mutex_unlock (&manager->lock);
+	platform_mutex_unlock (&manager->state->lock);
 
-	return flash_updater_prepare_for_update_erase_all (manager->updating, size);
+	return flash_updater_prepare_for_update_erase_all (manager->state->updating, size);
 }
 
 /**
@@ -418,18 +448,18 @@ int manifest_manager_flash_clear_pending_region (struct manifest_manager_flash *
  *
  * @return 0 if the data was successfully written or an error code.
  */
-int manifest_manager_flash_write_pending_data (struct manifest_manager_flash *manager,
+int manifest_manager_flash_write_pending_data (const struct manifest_manager_flash *manager,
 	const uint8_t *data, size_t length)
 {
 	if (data == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
-	if (manager->updating == NULL) {
+	if (manager->state->updating == NULL) {
 		return MANIFEST_MANAGER_NOT_CLEARED;
 	}
 
-	return flash_updater_write_update_data (manager->updating, data, length);
+	return flash_updater_write_update_data (manager->state->updating, data, length);
 }
 
 /**
@@ -440,25 +470,25 @@ int manifest_manager_flash_write_pending_data (struct manifest_manager_flash *ma
  *
  * @return 0 if the pending manifest was successfully validated or an error code.
  */
-int manifest_manager_flash_verify_pending_manifest (struct manifest_manager_flash *manager)
+int manifest_manager_flash_verify_pending_manifest (const struct manifest_manager_flash *manager)
 {
-	struct manifest_manager_flash_region *region;
+	const struct manifest_manager_flash_region *region;
 	int status = 0;
 
-	platform_mutex_lock (&manager->lock);
+	platform_mutex_lock (&manager->state->lock);
 
-	if (flash_updater_get_remaining_bytes (manager->updating) > 0) {
+	if (flash_updater_get_remaining_bytes (manager->state->updating) > 0) {
 		status = MANIFEST_MANAGER_INCOMPLETE_UPDATE;
 		goto exit;
 	}
 
 	region = manifest_manager_flash_get_region (manager, false);
-	if (!region->is_valid) {
-		if (manager->updating != NULL) {
+	if (!region->state->is_valid) {
+		if (manager->state->updating != NULL) {
 			status = region->manifest->verify (region->manifest, manager->hash,
 				manager->verification, NULL, 0);
 			if (status == 0) {
-				region->is_valid = true;
+				region->state->is_valid = true;
 			}
 		}
 		else {
@@ -489,9 +519,9 @@ int manifest_manager_flash_verify_pending_manifest (struct manifest_manager_flas
 	}
 
 exit:
-	manager->updating = NULL;
+	manager->state->updating = NULL;
 
-	platform_mutex_unlock (&manager->lock);
+	platform_mutex_unlock (&manager->state->lock);
 
 	return status;
 }
@@ -504,16 +534,17 @@ exit:
  *
  * @return 0 if the region was erased or an error code.
  */
-static int manifest_manager_flash_clear_manifest (struct manifest_manager_flash_region *region,
-	int in_use_error)
+static int manifest_manager_flash_clear_manifest (
+	const struct manifest_manager_flash_region *region, int in_use_error)
 {
-	if (region->ref_count != 0) {
+	if (region->state->ref_count != 0) {
 		return in_use_error;
 	}
 
-	region->is_valid = false;
+	region->state->is_valid = false;
 
-	return flash_erase_region (region->updater.flash, region->updater.base_addr, FLASH_BLOCK_SIZE);
+	return flash_erase_region (region->state->updater.flash, region->state->updater.base_addr,
+		FLASH_BLOCK_SIZE);
 }
 
 /**
@@ -524,13 +555,13 @@ static int manifest_manager_flash_clear_manifest (struct manifest_manager_flash_
  *
  * @return 0 if the manifests were erased or an error code.
  */
-int manifest_manager_flash_clear_all_manifests (struct manifest_manager_flash *manager,
+int manifest_manager_flash_clear_all_manifests (const struct manifest_manager_flash *manager,
 	bool no_lock)
 {
 	int status;
 
 	if (!no_lock) {
-		platform_mutex_lock (&manager->lock);
+		platform_mutex_lock (&manager->state->lock);
 	}
 
 	status = manifest_manager_flash_clear_manifest (manifest_manager_flash_get_region (manager,
@@ -539,13 +570,13 @@ int manifest_manager_flash_clear_all_manifests (struct manifest_manager_flash *m
 		goto exit;
 	}
 
-	manager->updating = NULL;
+	manager->state->updating = NULL;
 	status = manifest_manager_flash_clear_manifest (manifest_manager_flash_get_region (manager,
 		true), MANIFEST_MANAGER_ACTIVE_IN_USE);
 
 exit:
 	if (!no_lock) {
-		platform_mutex_unlock (&manager->lock);
+		platform_mutex_unlock (&manager->state->lock);
 	}
 
 	return status;

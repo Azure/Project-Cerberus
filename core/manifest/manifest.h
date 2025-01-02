@@ -29,7 +29,7 @@ struct manifest {
 	 *
 	 * @return 0 if the manifest is valid or an error code.
 	 */
-	int (*verify) (struct manifest *manifest, const struct hash_engine *hash,
+	int (*verify) (const struct manifest *manifest, const struct hash_engine *hash,
 		const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length);
 
 	/**
@@ -40,7 +40,7 @@ struct manifest {
 	 *
 	 * @return 0 if the ID was successfully retrieved or an error code.
 	 */
-	int (*get_id) (struct manifest *manifest, uint32_t *id);
+	int (*get_id) (const struct manifest *manifest, uint32_t *id);
 
 	/**
 	 * Get the string identifier of the platform for the manifest.
@@ -56,7 +56,7 @@ struct manifest {
 	 *
 	 * @return 0 if the platform ID was retrieved successfully or an error code.
 	 */
-	int (*get_platform_id) (struct manifest *manifest, char **id, size_t length);
+	int (*get_platform_id) (const struct manifest *manifest, char **id, size_t length);
 
 	/**
 	 * Free a platform identifier allocated by a manifest instance.  Do not call this function for
@@ -65,7 +65,7 @@ struct manifest {
 	 * @param manifest The manifest that allocated the platform identifier.
 	 * @param id The platform identifier to free.
 	 */
-	void (*free_platform_id) (struct manifest *manifest, char *id);
+	void (*free_platform_id) (const struct manifest *manifest, char *id);
 
 	/**
 	 * Get the hash of the manifest data, not including the signature.  The hash returned will be
@@ -79,8 +79,8 @@ struct manifest {
 	 * @return Length of the hash if it was calculated successfully or an error code.  Use
 	 * ROT_IS_ERROR to check the return value.
 	 */
-	int (*get_hash) (struct manifest *manifest, const struct hash_engine *hash, uint8_t *hash_out,
-		size_t hash_length);
+	int (*get_hash) (const struct manifest *manifest, const struct hash_engine *hash,
+		uint8_t *hash_out, size_t hash_length);
 
 	/**
 	 * Get the signature of the manifest.
@@ -92,7 +92,7 @@ struct manifest {
 	 * @return The length of the signature or an error code.  Use ROT_IS_ERROR to check the return
 	 * value.
 	 */
-	int (*get_signature) (struct manifest *manifest, uint8_t *signature, size_t length);
+	int (*get_signature) (const struct manifest *manifest, uint8_t *signature, size_t length);
 
 	/**
 	 * Determine if the manifest is considered to be empty.  What indicates an empty manifest will
@@ -103,7 +103,7 @@ struct manifest {
 	 *
 	 * @return 1 if the manifest is empty, 0 if it is not, or an error code.
 	 */
-	int (*is_empty) (struct manifest *manifest);
+	int (*is_empty) (const struct manifest *manifest);
 };
 
 

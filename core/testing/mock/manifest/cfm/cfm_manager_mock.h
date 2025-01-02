@@ -13,9 +13,10 @@
  * A mock for the CFM management API.
  */
 struct cfm_manager_mock {
-	struct cfm_manager base;	/**< The base manager instance. */
-	struct mock mock;			/**< The base mock interface. */
-	HASH_TESTING_ENGINE (hash);	/**< Manager hash instance. */
+	struct cfm_manager base;		/**< The base manager instance. */
+	struct mock mock;				/**< The base mock interface. */
+	struct cfm_manager_state state;	/**< Manager state instance. */
+	HASH_TESTING_ENGINE (hash);		/**< Manager hash instance. */
 };
 
 

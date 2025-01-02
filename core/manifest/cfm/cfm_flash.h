@@ -11,6 +11,13 @@
 
 
 /**
+ * Variable context for a CFM that is stored in flash.
+ */
+struct cfm_flash_state {
+	struct manifest_flash_state base;	/**< Base state for the CFM instance. */
+};
+
+/**
  * Defines a CFM that is stored in flash memory.
  */
 struct cfm_flash {
@@ -19,10 +26,11 @@ struct cfm_flash {
 };
 
 
-int cfm_flash_init (struct cfm_flash *cfm, const struct flash *flash,
+int cfm_flash_init (struct cfm_flash *cfm, struct cfm_flash_state *state, const struct flash *flash,
 	const struct hash_engine *hash, uint32_t base_addr, uint8_t *signature_cache,
 	size_t max_signature, uint8_t *platform_id_cache, size_t max_platform_id);
-void cfm_flash_release (struct cfm_flash *cfm);
+int cfm_flash_init_state (const struct cfm_flash *cfm);
+void cfm_flash_release (const struct cfm_flash *cfm);
 
 
 #endif	//CFM_FLASH_H

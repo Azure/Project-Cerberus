@@ -35,6 +35,7 @@ extern const struct pfm_v2_testing_data PFM_V2_BAD_REGIONS;
  */
 struct pfm_flash_v2_testing {
 	struct manifest_flash_v2_testing manifest;	/**< Common dependencies for manifest testing. */
+	struct pfm_flash_state state;				/**< Context for the PFM test instance. */
 	struct pfm_flash test;						/**< PFM instance under test. */
 };
 

@@ -33,7 +33,7 @@ struct recovery_image {
 	 */
 	int (*verify) (struct recovery_image *image, const struct hash_engine *hash,
 		const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length,
-		struct pfm_manager *pfm);
+		const struct pfm_manager *pfm);
 
 	/**
 	 * Get the SHA-256 hash of the recovery image data, not including the signature.

@@ -124,7 +124,7 @@ struct recovery_image_manager {
 	const struct hash_engine *hash;						/**< The hash engine for recovery image validation. */
 	const struct signature_verification *verification;	/**< Verification module for verifying recovery
 															 image signatures. */
-	struct pfm_manager *pfm;							/**< The PFM manager for recovery image verification. */
+	const struct pfm_manager *pfm;						/**< The PFM manager for recovery image verification. */
 	platform_mutex lock;								/**< Synchronization for recovery image manager state. */
 	int port;											/**< Port identifier for the manager. */
 	struct host_state_manager *state;					/**< State manager interface. */
@@ -135,11 +135,12 @@ struct recovery_image_manager {
 
 int recovery_image_manager_init (struct recovery_image_manager *manager,
 	struct recovery_image *image, const struct hash_engine *hash,
-	const struct signature_verification *verification, struct pfm_manager *pfm, size_t max_size);
+	const struct signature_verification *verification, const struct pfm_manager *pfm,
+	size_t max_size);
 int recovery_image_manager_init_two_region (struct recovery_image_manager *manager,
 	struct recovery_image *image1, struct recovery_image *image2, struct host_state_manager *state,
 	const struct hash_engine *hash, const struct signature_verification *verification,
-	struct pfm_manager *pfm, size_t max_size);
+	const struct pfm_manager *pfm, size_t max_size);
 void recovery_image_manager_release (struct recovery_image_manager *manager);
 
 int recovery_image_manager_add_observer (struct recovery_image_manager *manager,

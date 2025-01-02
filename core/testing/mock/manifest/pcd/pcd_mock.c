@@ -7,7 +7,7 @@
 #include "pcd_mock.h"
 
 
-static int pcd_mock_verify (struct manifest *pcd, const struct hash_engine *hash,
+static int pcd_mock_verify (const struct manifest *pcd, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
 	struct pcd_mock *mock = (struct pcd_mock*) pcd;
@@ -21,7 +21,7 @@ static int pcd_mock_verify (struct manifest *pcd, const struct hash_engine *hash
 		MOCK_ARG_CALL (hash_length));
 }
 
-static int pcd_mock_get_id (struct manifest *pcd, uint32_t *id)
+static int pcd_mock_get_id (const struct manifest *pcd, uint32_t *id)
 {
 	struct pcd_mock *mock = (struct pcd_mock*) pcd;
 
@@ -32,7 +32,7 @@ static int pcd_mock_get_id (struct manifest *pcd, uint32_t *id)
 	MOCK_RETURN (&mock->mock, pcd_mock_get_id, pcd, MOCK_ARG_PTR_CALL (id));
 }
 
-static int pcd_mock_get_platform_id (struct manifest *pcd, char **id, size_t length)
+static int pcd_mock_get_platform_id (const struct manifest *pcd, char **id, size_t length)
 {
 	struct pcd_mock *mock = (struct pcd_mock*) pcd;
 
@@ -44,7 +44,7 @@ static int pcd_mock_get_platform_id (struct manifest *pcd, char **id, size_t len
 		MOCK_ARG_CALL (length));
 }
 
-static void pcd_mock_free_platform_id (struct manifest *pcd, char *id)
+static void pcd_mock_free_platform_id (const struct manifest *pcd, char *id)
 {
 	struct pcd_mock *mock = (struct pcd_mock*) pcd;
 
@@ -55,7 +55,7 @@ static void pcd_mock_free_platform_id (struct manifest *pcd, char *id)
 	MOCK_VOID_RETURN (&mock->mock, pcd_mock_free_platform_id, pcd, MOCK_ARG_PTR_CALL (id));
 }
 
-static int pcd_mock_get_hash (struct manifest *pcd, const struct hash_engine *hash,
+static int pcd_mock_get_hash (const struct manifest *pcd, const struct hash_engine *hash,
 	uint8_t *hash_out, size_t hash_length)
 {
 	struct pcd_mock *mock = (struct pcd_mock*) pcd;
@@ -68,7 +68,7 @@ static int pcd_mock_get_hash (struct manifest *pcd, const struct hash_engine *ha
 		MOCK_ARG_PTR_CALL (hash_out), MOCK_ARG_CALL (hash_length));
 }
 
-static int pcd_mock_get_signature (struct manifest *pcd, uint8_t *signature, size_t length)
+static int pcd_mock_get_signature (const struct manifest *pcd, uint8_t *signature, size_t length)
 {
 	struct pcd_mock *mock = (struct pcd_mock*) pcd;
 
@@ -80,7 +80,7 @@ static int pcd_mock_get_signature (struct manifest *pcd, uint8_t *signature, siz
 		MOCK_ARG_CALL (length));
 }
 
-static int pcd_mock_is_empty (struct manifest *pcd)
+static int pcd_mock_is_empty (const struct manifest *pcd)
 {
 	struct pcd_mock *mock = (struct pcd_mock*) pcd;
 
@@ -91,8 +91,8 @@ static int pcd_mock_is_empty (struct manifest *pcd)
 	MOCK_RETURN_NO_ARGS (&mock->mock, pcd_mock_is_empty, pcd);
 }
 
-static int pcd_mock_buffer_supported_components (struct pcd *pcd, size_t offset, size_t length,
-	uint8_t *components)
+static int pcd_mock_buffer_supported_components (const struct pcd *pcd, size_t offset,
+	size_t length, uint8_t *components)
 {
 	struct pcd_mock *mock = (struct pcd_mock*) pcd;
 
@@ -104,7 +104,7 @@ static int pcd_mock_buffer_supported_components (struct pcd *pcd, size_t offset,
 		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (components));
 }
 
-static int pcd_mock_get_next_mctp_bridge_component (struct pcd *pcd,
+static int pcd_mock_get_next_mctp_bridge_component (const struct pcd *pcd,
 	struct pcd_mctp_bridge_components_info *component, bool first)
 {
 	struct pcd_mock *mock = (struct pcd_mock*) pcd;
@@ -117,7 +117,7 @@ static int pcd_mock_get_next_mctp_bridge_component (struct pcd *pcd,
 		MOCK_ARG_PTR_CALL (component), MOCK_ARG_CALL (first));
 }
 
-static int pcd_mock_get_rot_info (struct pcd *pcd, struct pcd_rot_info *info)
+static int pcd_mock_get_rot_info (const struct pcd *pcd, struct pcd_rot_info *info)
 {
 	struct pcd_mock *mock = (struct pcd_mock*) pcd;
 
@@ -128,7 +128,8 @@ static int pcd_mock_get_rot_info (struct pcd *pcd, struct pcd_rot_info *info)
 	MOCK_RETURN (&mock->mock, pcd_mock_get_rot_info, pcd, MOCK_ARG_PTR_CALL (info));
 }
 
-static int pcd_mock_get_port_info (struct pcd *pcd, uint8_t port_id, struct pcd_port_info *info)
+static int pcd_mock_get_port_info (const struct pcd *pcd, uint8_t port_id,
+	struct pcd_port_info *info)
 {
 	struct pcd_mock *mock = (struct pcd_mock*) pcd;
 
@@ -140,7 +141,7 @@ static int pcd_mock_get_port_info (struct pcd *pcd, uint8_t port_id, struct pcd_
 		MOCK_ARG_PTR_CALL (info));
 }
 
-static int pcd_mock_get_power_controller_info (struct pcd *pcd,
+static int pcd_mock_get_power_controller_info (const struct pcd *pcd,
 	struct pcd_power_controller_info *info)
 {
 	struct pcd_mock *mock = (struct pcd_mock*) pcd;

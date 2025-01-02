@@ -82,7 +82,7 @@ static void recovery_image_manager_notify_observers (struct recovery_image_manag
  */
 static int recovery_image_manager_verify_recovery_image (struct recovery_image_manager *manager,
 	struct recovery_image *image, struct recovery_image_manager_flash_region *region,
-	struct pfm_manager *pfm)
+	const struct pfm_manager *pfm)
 {
 	int status = image->verify (image, manager->hash, manager->verification, NULL, 0, pfm);
 
@@ -412,7 +412,8 @@ exit:
  */
 int recovery_image_manager_init (struct recovery_image_manager *manager,
 	struct recovery_image *image, const struct hash_engine *hash,
-	const struct signature_verification *verification, struct pfm_manager *pfm, size_t max_size)
+	const struct signature_verification *verification, const struct pfm_manager *pfm,
+	size_t max_size)
 {
 	int status;
 
@@ -486,7 +487,7 @@ release_observer:
 int recovery_image_manager_init_two_region (struct recovery_image_manager *manager,
 	struct recovery_image *image1, struct recovery_image *image2, struct host_state_manager *state,
 	const struct hash_engine *hash, const struct signature_verification *verification,
-	struct pfm_manager *pfm, size_t max_size)
+	const struct pfm_manager *pfm, size_t max_size)
 {
 	enum recovery_image_region active_region;
 	int status;

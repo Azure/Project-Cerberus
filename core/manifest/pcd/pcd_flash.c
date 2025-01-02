@@ -14,10 +14,10 @@
 #include "manifest/manifest_flash.h"
 
 
-static int pcd_flash_verify (struct manifest *pcd, const struct hash_engine *hash,
+int pcd_flash_verify (const struct manifest *pcd, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
-	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
+	const struct pcd_flash *pcd_flash = (const struct pcd_flash*) pcd;
 
 	if (pcd_flash == NULL) {
 		return PCD_INVALID_ARGUMENT;
@@ -28,9 +28,9 @@ static int pcd_flash_verify (struct manifest *pcd, const struct hash_engine *has
 		hash_length);
 }
 
-static int pcd_flash_get_id (struct manifest *pcd, uint32_t *id)
+int pcd_flash_get_id (const struct manifest *pcd, uint32_t *id)
 {
-	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
+	const struct pcd_flash *pcd_flash = (const struct pcd_flash*) pcd;
 
 	if (pcd_flash == NULL) {
 		return PCD_INVALID_ARGUMENT;
@@ -39,9 +39,9 @@ static int pcd_flash_get_id (struct manifest *pcd, uint32_t *id)
 	return manifest_flash_get_id (&pcd_flash->base_flash, id);
 }
 
-static int pcd_flash_get_platform_id (struct manifest *pcd, char **id, size_t length)
+int pcd_flash_get_platform_id (const struct manifest *pcd, char **id, size_t length)
 {
-	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
+	const struct pcd_flash *pcd_flash = (const struct pcd_flash*) pcd;
 
 	if (pcd_flash == NULL) {
 		return PCD_INVALID_ARGUMENT;
@@ -50,7 +50,7 @@ static int pcd_flash_get_platform_id (struct manifest *pcd, char **id, size_t le
 	return manifest_flash_get_platform_id (&pcd_flash->base_flash, id, length);
 }
 
-static void pcd_flash_free_platform_id (struct manifest *manifest, char *id)
+void pcd_flash_free_platform_id (const struct manifest *manifest, char *id)
 {
 	UNUSED (manifest);
 	UNUSED (id);
@@ -58,10 +58,10 @@ static void pcd_flash_free_platform_id (struct manifest *manifest, char *id)
 	/* Don't need to do anything.  Manifest allocated buffers use the internal static buffer. */
 }
 
-static int pcd_flash_get_hash (struct manifest *pcd, const struct hash_engine *hash,
+int pcd_flash_get_hash (const struct manifest *pcd, const struct hash_engine *hash,
 	uint8_t *hash_out, size_t hash_length)
 {
-	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
+	const struct pcd_flash *pcd_flash = (const struct pcd_flash*) pcd;
 
 	if (pcd_flash == NULL) {
 		return PCD_INVALID_ARGUMENT;
@@ -70,9 +70,9 @@ static int pcd_flash_get_hash (struct manifest *pcd, const struct hash_engine *h
 	return manifest_flash_get_hash (&pcd_flash->base_flash, hash, hash_out, hash_length);
 }
 
-static int pcd_flash_get_signature (struct manifest *pcd, uint8_t *signature, size_t length)
+int pcd_flash_get_signature (const struct manifest *pcd, uint8_t *signature, size_t length)
 {
-	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
+	const struct pcd_flash *pcd_flash = (const struct pcd_flash*) pcd;
 
 	if (pcd_flash == NULL) {
 		return PCD_INVALID_ARGUMENT;
@@ -81,20 +81,20 @@ static int pcd_flash_get_signature (struct manifest *pcd, uint8_t *signature, si
 	return manifest_flash_get_signature (&pcd_flash->base_flash, signature, length);
 }
 
-static int pcd_flash_is_empty (struct manifest *pcd)
+int pcd_flash_is_empty (const struct manifest *pcd)
 {
-	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
+	const struct pcd_flash *pcd_flash = (const struct pcd_flash*) pcd;
 
 	if (pcd_flash == NULL) {
 		return PCD_INVALID_ARGUMENT;
 	}
 
-	if (!pcd_flash->base_flash.manifest_valid) {
+	if (!pcd_flash->base_flash.state->manifest_valid) {
 		return MANIFEST_NO_MANIFEST;
 	}
 
 	/* Every PCD must have a platform ID.  If that is all we have, then it is an empty manifest. */
-	return (pcd_flash->base_flash.toc_header.entry_count == 1);
+	return (pcd_flash->base_flash.state->toc_header.entry_count == 1);
 }
 
 /**
@@ -107,10 +107,10 @@ static int pcd_flash_is_empty (struct manifest *pcd)
  *
  * @return 0 if completed successfully or an error code.
  */
-static int pcd_flash_get_rot_element_ptr (struct pcd *pcd, uint8_t *rot_element_ptr, uint8_t *found,
-	uint8_t *format)
+static int pcd_flash_get_rot_element_ptr (const struct pcd *pcd, uint8_t *rot_element_ptr,
+	uint8_t *found, uint8_t *format)
 {
-	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
+	const struct pcd_flash *pcd_flash = (const struct pcd_flash*) pcd;
 	int status;
 
 	status = manifest_flash_read_element_data (&pcd_flash->base_flash, pcd_flash->base_flash.hash,
@@ -128,9 +128,9 @@ static int pcd_flash_get_rot_element_ptr (struct pcd *pcd, uint8_t *rot_element_
 	return 0;
 }
 
-static int pcd_flash_get_rot_info (struct pcd *pcd, struct pcd_rot_info *info)
+int pcd_flash_get_rot_info (const struct pcd *pcd, struct pcd_rot_info *info)
 {
-	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
+	const struct pcd_flash *pcd_flash = (const struct pcd_flash*) pcd;
 	struct pcd_rot_element_v2 rot_element;
 	uint8_t format;
 	int status;
@@ -139,7 +139,7 @@ static int pcd_flash_get_rot_info (struct pcd *pcd, struct pcd_rot_info *info)
 		return PCD_INVALID_ARGUMENT;
 	}
 
-	if (!pcd_flash->base_flash.manifest_valid) {
+	if (!pcd_flash->base_flash.state->manifest_valid) {
 		return MANIFEST_NO_MANIFEST;
 	}
 
@@ -183,9 +183,9 @@ static int pcd_flash_get_rot_info (struct pcd *pcd, struct pcd_rot_info *info)
 	return 0;
 }
 
-static int pcd_flash_get_port_info (struct pcd *pcd, uint8_t port_id, struct pcd_port_info *info)
+int pcd_flash_get_port_info (const struct pcd *pcd, uint8_t port_id, struct pcd_port_info *info)
 {
-	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
+	const struct pcd_flash *pcd_flash = (const struct pcd_flash*) pcd;
 	struct pcd_port_element port_element;
 	uint8_t *port_element_ptr = (uint8_t*) &port_element;
 	struct pcd_rot_element_v2 rot_element;
@@ -199,7 +199,7 @@ static int pcd_flash_get_port_info (struct pcd *pcd, uint8_t port_id, struct pcd
 		return PCD_INVALID_ARGUMENT;
 	}
 
-	if (!pcd_flash->base_flash.manifest_valid) {
+	if (!pcd_flash->base_flash.state->manifest_valid) {
 		return MANIFEST_NO_MANIFEST;
 	}
 
@@ -248,10 +248,10 @@ static int pcd_flash_get_port_info (struct pcd *pcd, uint8_t port_id, struct pcd
 	return PCD_INVALID_PORT;
 }
 
-static int pcd_flash_get_power_controller_info (struct pcd *pcd,
+int pcd_flash_get_power_controller_info (const struct pcd *pcd,
 	struct pcd_power_controller_info *info)
 {
-	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
+	const struct pcd_flash *pcd_flash = (const struct pcd_flash*) pcd;
 	struct pcd_power_controller_element power_controller_element;
 	uint8_t *power_controller_element_ptr = (uint8_t*) &power_controller_element;
 	int status;
@@ -260,7 +260,7 @@ static int pcd_flash_get_power_controller_info (struct pcd *pcd,
 		return PCD_INVALID_ARGUMENT;
 	}
 
-	if (!pcd_flash->base_flash.manifest_valid) {
+	if (!pcd_flash->base_flash.state->manifest_valid) {
 		return MANIFEST_NO_MANIFEST;
 	}
 
@@ -280,10 +280,10 @@ static int pcd_flash_get_power_controller_info (struct pcd *pcd,
 	return 0;
 }
 
-static int pcd_flash_get_next_mctp_bridge_component (struct pcd *pcd,
+int pcd_flash_get_next_mctp_bridge_component (const struct pcd *pcd,
 	struct pcd_mctp_bridge_components_info *component, bool first)
 {
-	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
+	const struct pcd_flash *pcd_flash = (const struct pcd_flash*) pcd;
 	struct pcd_mctp_bridge_component_element bridge_component;
 	struct pcd_mctp_bridge_component_connection *connection;
 	uint8_t *element_ptr = (uint8_t*) &bridge_component;
@@ -294,7 +294,7 @@ static int pcd_flash_get_next_mctp_bridge_component (struct pcd *pcd,
 		return PCD_INVALID_ARGUMENT;
 	}
 
-	if (!pcd_flash->base_flash.manifest_valid) {
+	if (!pcd_flash->base_flash.state->manifest_valid) {
 		return MANIFEST_NO_MANIFEST;
 	}
 
@@ -328,10 +328,10 @@ static int pcd_flash_get_next_mctp_bridge_component (struct pcd *pcd,
 	return 0;
 }
 
-static int pcd_flash_buffer_supported_components (struct pcd *pcd, size_t offset, size_t length,
+int pcd_flash_buffer_supported_components (const struct pcd *pcd, size_t offset, size_t length,
 	uint8_t *pcd_component_ids)
 {
-	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
+	const struct pcd_flash *pcd_flash = (const struct pcd_flash*) pcd;
 	struct pcd_rot_info rot_info;
 	struct pcd_mctp_bridge_components_info component;
 	struct pcd_supported_component supported_component;
@@ -343,7 +343,7 @@ static int pcd_flash_buffer_supported_components (struct pcd *pcd, size_t offset
 		return PCD_INVALID_ARGUMENT;
 	}
 
-	if (!pcd_flash->base_flash.manifest_valid) {
+	if (!pcd_flash->base_flash.state->manifest_valid) {
 		return MANIFEST_NO_MANIFEST;
 	}
 
@@ -371,9 +371,11 @@ static int pcd_flash_buffer_supported_components (struct pcd *pcd, size_t offset
 }
 
 /**
- * Initialize the interface to a PCD residing in flash memory.
+ * Initialize the interface to a PCD residing in flash memory.  PCDs only support manifest version
+ * 2.
  *
  * @param pcd The PCD instance to initialize.
+ * @param state Variable context for the PCD instance.  This must be uninitialized.
  * @param flash The flash device that contains the PCD.
  * @param hash A hash engine to use for validating run-time access to PCD information. If it is
  * possible for any PCD information to be requested concurrently by different threads, this hash
@@ -386,20 +388,21 @@ static int pcd_flash_buffer_supported_components (struct pcd *pcd, size_t offset
  *
  * @return 0 if the PCD instance was initialized successfully or an error code.
  */
-int pcd_flash_init (struct pcd_flash *pcd, const struct flash *flash,
+int pcd_flash_init (struct pcd_flash *pcd, struct pcd_flash_state *state, const struct flash *flash,
 	const struct hash_engine *hash, uint32_t base_addr, uint8_t *signature_cache,
 	size_t max_signature, uint8_t *platform_id_cache, size_t max_platform_id)
 {
 	int status;
 
-	if ((pcd == NULL) || (signature_cache == NULL) || (platform_id_cache == NULL)) {
+	if ((pcd == NULL) || (state == NULL)) {
 		return PCD_INVALID_ARGUMENT;
 	}
 
 	memset (pcd, 0, sizeof (struct pcd_flash));
 
-	status = manifest_flash_v2_init (&pcd->base_flash, flash, hash, base_addr, PCD_MAGIC_NUM,
-		PCD_V2_MAGIC_NUM, signature_cache, max_signature, platform_id_cache, max_platform_id);
+	status = manifest_flash_v2_init (&pcd->base_flash, &state->base, flash, hash, base_addr,
+		MANIFEST_NOT_SUPPORTED, PCD_V2_MAGIC_NUM, signature_cache, max_signature, platform_id_cache,
+		max_platform_id);
 	if (status != 0) {
 		return status;
 	}
@@ -422,11 +425,30 @@ int pcd_flash_init (struct pcd_flash *pcd, const struct flash *flash,
 }
 
 /**
+ * Initialize only the variable state for a PCD on flash.  The rest of the handler is assumed to
+ * have already been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param pcd The PCD that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int pcd_flash_init_state (const struct pcd_flash *pcd)
+{
+	if (pcd == NULL) {
+		return PCD_INVALID_ARGUMENT;
+	}
+
+	return manifest_flash_init_state (&pcd->base_flash);
+}
+
+/**
  * Release the resources used by the PCD interface.
  *
  * @param pcd The PCD instance to release.
  */
-void pcd_flash_release (struct pcd_flash *pcd)
+void pcd_flash_release (const struct pcd_flash *pcd)
 {
 	if (pcd != NULL) {
 		manifest_flash_release (&pcd->base_flash);

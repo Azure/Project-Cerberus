@@ -27,10 +27,11 @@ struct host_processor_filtered {
 	struct host_flash_manager *flash;			/**< The manager for host processor flash devices. */
 	struct host_state_manager *state;			/**< State information for the host processor. */
 	const struct spi_filter_interface *filter;	/**< The SPI filter connected to host flash devices. */
-	struct pfm_manager *pfm;					/**< The manager for host processor PFMs. */
+	const struct pfm_manager *pfm;				/**< The manager for host processor PFMs. */
 	struct recovery_image_manager *recovery;	/**< The manager for recovery of the host processor. */
 	int reset_pulse;							/**< The length of the reset pulse for the host. */
-	bool reset_flash;							/**< The flag to indicate that the host flash should bereset based on every host processor reset. */
+	bool reset_flash;							/**< The flag to indicate that the host flash should
+													be reset based on every host processor reset. */
 	platform_mutex lock;						/**< Synchronization for verification routines. */
 
 	/**
@@ -53,16 +54,16 @@ struct host_processor_filtered {
 int host_processor_filtered_init (struct host_processor_filtered *host,
 	const struct host_control *control, struct host_flash_manager *flash,
 	struct host_state_manager *state, const struct spi_filter_interface *filter,
-	struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse,
+	const struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse,
 	bool reset_flash);
 void host_processor_filtered_release (struct host_processor_filtered *host);
 
 void host_processor_filtered_set_host_flash_access (struct host_processor_filtered *host);
 void host_processor_filtered_config_bypass (struct host_processor_filtered *host);
 void host_processor_filtered_swap_flash (struct host_processor_filtered *host,
-	struct host_flash_manager_rw_regions *rw_list, struct pfm_manager *pfm, bool no_migrate);
+	struct host_flash_manager_rw_regions *rw_list, const struct pfm_manager *pfm, bool no_migrate);
 int host_processor_filtered_restore_read_write_data (struct host_processor_filtered *host,
-	struct host_flash_manager_rw_regions *rw_list, struct pfm *pfm);
+	struct host_flash_manager_rw_regions *rw_list, const struct pfm *pfm);
 
 int host_processor_filtered_power_on_reset (struct host_processor_filtered *host,
 	const struct hash_engine *hash, const struct rsa_engine *rsa, bool single);

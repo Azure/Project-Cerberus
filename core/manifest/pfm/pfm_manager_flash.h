@@ -12,6 +12,14 @@
 
 
 /**
+ * Variable context for the manager of a set of PFMs in flash.
+ */
+struct pfm_manager_flash_state {
+	struct pfm_manager_state base;						/**< Base state information for PFM management. */
+	struct manifest_manager_flash_state flash_state;	/**< Context for common flash manifest management. */
+};
+
+/**
  * A manager for a single set of PFMs stored in flash.
  */
 struct pfm_manager_flash {
@@ -21,13 +29,16 @@ struct pfm_manager_flash {
 };
 
 
-int pfm_manager_flash_init (struct pfm_manager_flash *manager, struct pfm_flash *pfm_region1,
-	struct pfm_flash *pfm_region2, struct host_state_manager *state, const struct hash_engine *hash,
-	const struct signature_verification *verification);
-int pfm_manager_flash_init_port (struct pfm_manager_flash *manager, struct pfm_flash *pfm_region1,
-	struct pfm_flash *pfm_region2, struct host_state_manager *state, const struct hash_engine *hash,
-	const struct signature_verification *verification, int port);
-void pfm_manager_flash_release (struct pfm_manager_flash *manager);
+int pfm_manager_flash_init (struct pfm_manager_flash *manager,
+	struct pfm_manager_flash_state *state, const struct pfm_flash *pfm_region1,
+	const struct pfm_flash *pfm_region2, struct host_state_manager *state_mgr,
+	const struct hash_engine *hash, const struct signature_verification *verification);
+int pfm_manager_flash_init_port (struct pfm_manager_flash *manager,
+	struct pfm_manager_flash_state *state, const struct pfm_flash *pfm_region1,
+	const struct pfm_flash *pfm_region2, struct host_state_manager *state_mgr,
+	const struct hash_engine *hash, const struct signature_verification *verification, int port);
+int pfm_manager_flash_init_state (const struct pfm_manager_flash *manager);
+void pfm_manager_flash_release (const struct pfm_manager_flash *manager);
 
 /* Internal functions for use by derived types. */
 int pfm_manager_flash_verify_pending_manifest (const struct manifest_manager *manager);

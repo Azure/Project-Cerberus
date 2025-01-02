@@ -20,7 +20,7 @@ struct pcd_observer {
 	 * @param observer The observer being notified.
 	 * @param pending The PCD that passed verification and is pending.
 	 */
-	void (*on_pcd_verified) (const struct pcd_observer *observer, struct pcd *pending);
+	void (*on_pcd_verified) (const struct pcd_observer *observer, const struct pcd *pending);
 
 	/**
 	 * Notification that a new PCD has been made the active PCD.
@@ -30,7 +30,7 @@ struct pcd_observer {
 	 * @param observer The observer being notified.
 	 * @param active The PCD that was activated.
 	 */
-	void (*on_pcd_activated) (const struct pcd_observer *observer, struct pcd *active);
+	void (*on_pcd_activated) (const struct pcd_observer *observer, const struct pcd *active);
 
 	/**
 	 * Notification that the active PCD has been erased.

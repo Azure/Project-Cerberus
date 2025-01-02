@@ -7,7 +7,7 @@
 #include "manifest_mock.h"
 
 
-static int manifest_mock_verify (struct manifest *manifest, const struct hash_engine *hash,
+static int manifest_mock_verify (const struct manifest *manifest, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
 	struct manifest_mock *mock = (struct manifest_mock*) manifest;
@@ -21,7 +21,7 @@ static int manifest_mock_verify (struct manifest *manifest, const struct hash_en
 		MOCK_ARG_CALL (hash_length));
 }
 
-static int manifest_mock_get_id (struct manifest *manifest, uint32_t *id)
+static int manifest_mock_get_id (const struct manifest *manifest, uint32_t *id)
 {
 	struct manifest_mock *mock = (struct manifest_mock*) manifest;
 
@@ -32,7 +32,7 @@ static int manifest_mock_get_id (struct manifest *manifest, uint32_t *id)
 	MOCK_RETURN (&mock->mock, manifest_mock_get_id, manifest, MOCK_ARG_PTR_CALL (id));
 }
 
-static int manifest_mock_get_platform_id (struct manifest *manifest, char **id, size_t length)
+static int manifest_mock_get_platform_id (const struct manifest *manifest, char **id, size_t length)
 {
 	struct manifest_mock *mock = (struct manifest_mock*) manifest;
 
@@ -44,7 +44,7 @@ static int manifest_mock_get_platform_id (struct manifest *manifest, char **id, 
 		MOCK_ARG_CALL (length));
 }
 
-static void manifest_mock_free_platform_id (struct manifest *manifest, char *id)
+static void manifest_mock_free_platform_id (const struct manifest *manifest, char *id)
 {
 	struct manifest_mock *mock = (struct manifest_mock*) manifest;
 
@@ -56,7 +56,7 @@ static void manifest_mock_free_platform_id (struct manifest *manifest, char *id)
 		MOCK_ARG_PTR_CALL (id));
 }
 
-static int manifest_mock_get_hash (struct manifest *manifest, const struct hash_engine *hash,
+static int manifest_mock_get_hash (const struct manifest *manifest, const struct hash_engine *hash,
 	uint8_t *hash_out, size_t hash_length)
 {
 	struct manifest_mock *mock = (struct manifest_mock*) manifest;
@@ -69,7 +69,7 @@ static int manifest_mock_get_hash (struct manifest *manifest, const struct hash_
 		MOCK_ARG_PTR_CALL (hash_out), MOCK_ARG_CALL (hash_length));
 }
 
-static int manifest_mock_get_signature (struct manifest *manifest, uint8_t *signature,
+static int manifest_mock_get_signature (const struct manifest *manifest, uint8_t *signature,
 	size_t length)
 {
 	struct manifest_mock *mock = (struct manifest_mock*) manifest;
@@ -82,7 +82,7 @@ static int manifest_mock_get_signature (struct manifest *manifest, uint8_t *sign
 		MOCK_ARG_CALL (length));
 }
 
-static int manifest_mock_is_empty (struct manifest *manifest)
+static int manifest_mock_is_empty (const struct manifest *manifest)
 {
 	struct manifest_mock *mock = (struct manifest_mock*) manifest;
 

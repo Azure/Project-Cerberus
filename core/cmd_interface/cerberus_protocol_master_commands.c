@@ -26,7 +26,7 @@
  * @return 0 if the operation was successful or an error code.
  */
 int cerberus_protocol_get_curr_cfm (const struct cfm_manager *manager, uint8_t region,
-	struct cfm **cfm)
+	const struct cfm **cfm)
 {
 	if (manager == NULL) {
 		return CMD_HANDLER_UNSUPPORTED_COMMAND;
@@ -51,7 +51,7 @@ int cerberus_protocol_get_curr_cfm (const struct cfm_manager *manager, uint8_t r
  * @param manager The cfm manager releasing the cfm.
  * @param cfm The cfm to release.
  */
-static void cerberus_protocol_free_cfm (const struct cfm_manager *manager, struct cfm *cfm)
+static void cerberus_protocol_free_cfm (const struct cfm_manager *manager, const struct cfm *cfm)
 {
 	if (manager != NULL) {
 		manager->free_cfm (manager, cfm);
@@ -64,7 +64,7 @@ static void cerberus_protocol_free_cfm (const struct cfm_manager *manager, struc
  * @param manager The PCD manager releasing the PCD.
  * @param pcd The PCD to release.
  */
-static void cerberus_protocol_free_pcd (const struct pcd_manager *manager, struct pcd *pcd)
+static void cerberus_protocol_free_pcd (const struct pcd_manager *manager, const struct pcd *pcd)
 {
 	if (manager != NULL) {
 		manager->free_pcd (manager, pcd);
@@ -397,7 +397,7 @@ int cerberus_protocol_cfm_update_complete (const struct manifest_cmd_interface *
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_get_manifest_id_version (struct manifest *manifest,
+int cerberus_protocol_get_manifest_id_version (const struct manifest *manifest,
 	struct cmd_interface_msg *request)
 {
 	/* Just use the CFM structures since they are the same for all manifests. */
@@ -431,7 +431,7 @@ int cerberus_protocol_get_manifest_id_version (struct manifest *manifest,
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_get_manifest_id_platform (struct manifest *manifest,
+int cerberus_protocol_get_manifest_id_platform (const struct manifest *manifest,
 	struct cmd_interface_msg *request)
 {
 	/* Just use the CFM structures since the same same for all manifests. */
@@ -470,7 +470,8 @@ int cerberus_protocol_get_manifest_id_platform (struct manifest *manifest,
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-static int cerberus_protocol_get_cfm_id_version (struct cfm *cfm, struct cmd_interface_msg *request)
+static int cerberus_protocol_get_cfm_id_version (const struct cfm *cfm,
+	struct cmd_interface_msg *request)
 {
 	return cerberus_protocol_get_manifest_id_version (&cfm->base, request);
 }
@@ -483,7 +484,7 @@ static int cerberus_protocol_get_cfm_id_version (struct cfm *cfm, struct cmd_int
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-static int cerberus_protocol_get_cfm_id_platform (struct cfm *cfm,
+static int cerberus_protocol_get_cfm_id_platform (const struct cfm *cfm,
 	struct cmd_interface_msg *request)
 {
 	return cerberus_protocol_get_manifest_id_platform (&cfm->base, request);
@@ -501,7 +502,7 @@ int cerberus_protocol_get_cfm_id (const struct cfm_manager *cfm_mgr,
 	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_cfm_id *rq = (struct cerberus_protocol_get_cfm_id*) request->data;
-	struct cfm *curr_cfm = NULL;
+	const struct cfm *curr_cfm = NULL;
 	int status = 0;
 	int id;
 
@@ -551,7 +552,7 @@ int cerberus_protocol_get_cfm_component_ids (const struct cfm_manager *cfm_mgr,
 		(struct cerberus_protocol_get_cfm_component_ids*) request->data;
 	struct cerberus_protocol_get_cfm_component_ids_response *rsp =
 		(struct cerberus_protocol_get_cfm_component_ids_response*) request->data;
-	struct cfm *curr_cfm = NULL;
+	const struct cfm *curr_cfm = NULL;
 	uint32_t offset;
 	size_t length;
 	int status = 0;
@@ -656,7 +657,7 @@ int cerberus_protocol_pcd_update_complete (const struct manifest_cmd_interface *
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-static int cerberus_protocol_get_pcd_platform_id (struct pcd *pcd,
+static int cerberus_protocol_get_pcd_platform_id (const struct pcd *pcd,
 	struct cmd_interface_msg *request)
 {
 	return cerberus_protocol_get_manifest_id_platform (&pcd->base, request);
@@ -670,7 +671,8 @@ static int cerberus_protocol_get_pcd_platform_id (struct pcd *pcd,
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-static int cerberus_protocol_get_pcd_version_id (struct pcd *pcd, struct cmd_interface_msg *request)
+static int cerberus_protocol_get_pcd_version_id (const struct pcd *pcd,
+	struct cmd_interface_msg *request)
 {
 	return cerberus_protocol_get_manifest_id_version (&pcd->base, request);
 }
@@ -687,7 +689,7 @@ int cerberus_protocol_get_pcd_id (const struct pcd_manager *pcd_mgr,
 	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_pcd_id *rq = (struct cerberus_protocol_get_pcd_id*) request->data;
-	struct pcd *curr_pcd = NULL;
+	const struct pcd *curr_pcd = NULL;
 	int status;
 
 	if (request->length == (sizeof (struct cerberus_protocol_get_pcd_id) - sizeof (rq->id))) {
@@ -734,7 +736,7 @@ int cerberus_protocol_get_pcd_component_ids (const struct pcd_manager *pcd_mgr,
 		(struct cerberus_protocol_get_pcd_component_ids*) request->data;
 	struct cerberus_protocol_get_pcd_component_ids_response *rsp =
 		(struct cerberus_protocol_get_pcd_component_ids_response*) request->data;
-	struct pcd *curr_pcd = NULL;
+	const struct pcd *curr_pcd = NULL;
 	uint32_t offset;
 	size_t length;
 	int status = 0;

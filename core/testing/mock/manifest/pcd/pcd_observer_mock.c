@@ -8,7 +8,7 @@
 
 
 static void pcd_observer_mock_on_pcd_activated (const struct pcd_observer *observer,
-	struct pcd *active)
+	const struct pcd *active)
 {
 	struct pcd_observer_mock *mock = (struct pcd_observer_mock*) observer;
 
@@ -21,7 +21,7 @@ static void pcd_observer_mock_on_pcd_activated (const struct pcd_observer *obser
 }
 
 static void pcd_observer_mock_on_pcd_verified (const struct pcd_observer *observer,
-	struct pcd *pending)
+	const struct pcd *pending)
 {
 	struct pcd_observer_mock *mock = (struct pcd_observer_mock*) observer;
 

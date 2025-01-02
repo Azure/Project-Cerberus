@@ -8,15 +8,15 @@
 #include "manifest/manifest_logging.h"
 
 
-static void pfm_observer_pcr_on_pfm_activated (const struct pfm_observer *observer,
-	struct pfm *active)
+void pfm_observer_pcr_on_pfm_activated (const struct pfm_observer *observer,
+	const struct pfm *active)
 {
 	const struct pfm_observer_pcr *pcr = (const struct pfm_observer_pcr*) observer;
 
 	manifest_pcr_record_manifest_measurement (&pcr->pcr, &active->base);
 }
 
-static void pfm_observer_pcr_on_clear_active (const struct pfm_observer *observer)
+void pfm_observer_pcr_on_clear_active (const struct pfm_observer *observer)
 {
 	const struct pfm_observer_pcr *pcr = (const struct pfm_observer_pcr*) observer;
 
@@ -65,7 +65,7 @@ int pfm_observer_pcr_init (struct pfm_observer_pcr *observer, const struct hash_
  *
  * @param observer The observer to release.
  */
-void pfm_observer_pcr_release (struct pfm_observer_pcr *observer)
+void pfm_observer_pcr_release (const struct pfm_observer_pcr *observer)
 {
 	if (observer) {
 		manifest_pcr_release (&observer->pcr);
@@ -79,10 +79,10 @@ void pfm_observer_pcr_release (struct pfm_observer_pcr *observer)
  * @param manager The manager for the PFM measurement to update.
  */
 void pfm_observer_pcr_record_measurement (const struct pfm_observer_pcr *observer,
-	struct pfm_manager *manager)
+	const struct pfm_manager *manager)
 {
-	struct pfm *active;
-	struct pfm_observer_pcr *pcr = (struct pfm_observer_pcr*) observer;
+	const struct pfm *active;
+	const struct pfm_observer_pcr *pcr = (const struct pfm_observer_pcr*) observer;
 
 	if ((observer == NULL) || (manager == NULL)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,

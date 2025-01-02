@@ -8,7 +8,7 @@
 
 static int recovery_image_mock_verify (struct recovery_image *img, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length,
-	struct pfm_manager *pfm)
+	const struct pfm_manager *pfm)
 {
 	struct recovery_image_mock *mock = (struct recovery_image_mock*) img;
 

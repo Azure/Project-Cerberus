@@ -7,7 +7,7 @@
 #include "pfm_manager_mock.h"
 
 
-static struct pfm* pfm_manager_mock_get_active_pfm (const struct pfm_manager *manager)
+static const struct pfm* pfm_manager_mock_get_active_pfm (const struct pfm_manager *manager)
 {
 	struct pfm_manager_mock *mock = (struct pfm_manager_mock*) manager;
 
@@ -15,11 +15,11 @@ static struct pfm* pfm_manager_mock_get_active_pfm (const struct pfm_manager *ma
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct pfm*, pfm_manager_mock_get_active_pfm,
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, const struct pfm*, pfm_manager_mock_get_active_pfm,
 		manager);
 }
 
-static struct pfm* pfm_manager_mock_get_pending_pfm (const struct pfm_manager *manager)
+static const struct pfm* pfm_manager_mock_get_pending_pfm (const struct pfm_manager *manager)
 {
 	struct pfm_manager_mock *mock = (struct pfm_manager_mock*) manager;
 
@@ -27,11 +27,11 @@ static struct pfm* pfm_manager_mock_get_pending_pfm (const struct pfm_manager *m
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct pfm*, pfm_manager_mock_get_pending_pfm,
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, const struct pfm*, pfm_manager_mock_get_pending_pfm,
 		manager);
 }
 
-static void pfm_manager_mock_free_pfm (const struct pfm_manager *manager, struct pfm *pfm)
+static void pfm_manager_mock_free_pfm (const struct pfm_manager *manager, const struct pfm *pfm)
 {
 	struct pfm_manager_mock *mock = (struct pfm_manager_mock*) manager;
 
@@ -194,7 +194,7 @@ int pfm_manager_mock_init (struct pfm_manager_mock *mock)
 		return status;
 	}
 
-	status = pfm_manager_init (&mock->base, &mock->hash.base, -1);
+	status = pfm_manager_init (&mock->base, &mock->state, &mock->hash.base, -1);
 	if (status != 0) {
 		return status;
 	}

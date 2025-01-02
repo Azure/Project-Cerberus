@@ -16,7 +16,7 @@ int manifest_verification_is_key_valid (const struct signature_verification *ver
 	const uint8_t *key, size_t length);
 
 void manifest_verification_on_manifest_activated (const struct pfm_observer *observer,
-	struct manifest *active);
+	const struct manifest *active);
 
 void manifest_verification_on_update_start (const struct firmware_update_observer *observer,
 	int *update_allowed);
@@ -36,8 +36,8 @@ void manifest_verification_on_update_start (const struct firmware_update_observe
  */
 #define	MANIFEST_VERIFICATION_PFM_OBSERVER_API_INIT  { \
 		.on_pfm_verified = NULL, \
-		.on_pfm_activated = \
-			(void (*) (const struct pfm_observer*, struct pfm*)) manifest_verification_on_manifest_activated, \
+		.on_pfm_activated = (void (*) (const struct pfm_observer*, const struct pfm*)) \
+			manifest_verification_on_manifest_activated, \
 		.on_clear_active = NULL, \
 		.on_pfm_activation_request = NULL \
 	}

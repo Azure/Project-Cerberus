@@ -21,10 +21,10 @@ struct cfm_observer_pcr {
 int cfm_observer_pcr_init (struct cfm_observer_pcr *observer, const struct hash_engine *hash,
 	struct pcr_store *store, uint16_t manifest_measurement, uint16_t manifest_id_measurement,
 	uint16_t platform_id_measurement);
-void cfm_observer_pcr_release (struct cfm_observer_pcr *observer);
+void cfm_observer_pcr_release (const struct cfm_observer_pcr *observer);
 
 void cfm_observer_pcr_record_measurement (const struct cfm_observer_pcr *observer,
-	struct cfm_manager *manager);
+	const struct cfm_manager *manager);
 
 
 #endif	/* CFM_OBSERVER_PCR_H_ */

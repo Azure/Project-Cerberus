@@ -9,8 +9,8 @@
 #include "manifest/manifest_logging.h"
 
 
-static void pfm_observer_pending_reset_on_pfm_verified (const struct pfm_observer *observer,
-	struct pfm *pending)
+void pfm_observer_pending_reset_on_pfm_verified (const struct pfm_observer *observer,
+	const struct pfm *pending)
 {
 	const struct pfm_observer_pending_reset *reset =
 		(const struct pfm_observer_pending_reset*) observer;
@@ -25,7 +25,7 @@ static void pfm_observer_pending_reset_on_pfm_verified (const struct pfm_observe
 	}
 }
 
-static void pfm_observer_pending_reset_on_clear_active (const struct pfm_observer *observer)
+void pfm_observer_pending_reset_on_clear_active (const struct pfm_observer *observer)
 {
 	pfm_observer_pending_reset_on_pfm_verified (observer, NULL);
 }
@@ -60,7 +60,7 @@ int pfm_observer_pending_reset_init (struct pfm_observer_pending_reset *observer
  *
  * @param observer The observer to release.
  */
-void pfm_observer_pending_reset_release (struct pfm_observer_pending_reset *observer)
+void pfm_observer_pending_reset_release (const struct pfm_observer_pending_reset *observer)
 {
 	UNUSED (observer);
 }

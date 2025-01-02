@@ -8,7 +8,7 @@
 
 
 static void pfm_observer_mock_on_pfm_verified (const struct pfm_observer *observer,
-	struct pfm *pending)
+	const struct pfm *pending)
 {
 	struct pfm_observer_mock *mock = (struct pfm_observer_mock*) observer;
 
@@ -21,7 +21,7 @@ static void pfm_observer_mock_on_pfm_verified (const struct pfm_observer *observ
 }
 
 static void pfm_observer_mock_on_pfm_activated (const struct pfm_observer *observer,
-	struct pfm *active)
+	const struct pfm *active)
 {
 	struct pfm_observer_mock *mock = (struct pfm_observer_mock*) observer;
 

@@ -8,6 +8,7 @@
 #include "attestation/pcr_store.h"
 #include "common/array_size.h"
 #include "manifest/pcd/pcd_observer_pcr.h"
+#include "manifest/pcd/pcd_observer_pcr_static.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/manifest/manifest_observer_pcr_testing.h"
 #include "testing/manifest/pcd/pcd_testing.h"
@@ -207,6 +208,200 @@ static void pcd_observer_pcr_test_init_same_measurement_type (CuTest *test)
 	status = pcd_observer_pcr_init (&observer, &hash.base, &store, PCR_MEASUREMENT (0, 1),
 		PCR_MEASUREMENT (0, 1), PCR_MEASUREMENT (0, 1));
 	CuAssertIntEquals (test, PCD_OBSERVER_MEASUREMENTS_NOT_UNIQUE, status);
+
+	pcr_store_release (&store);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void pcd_observer_pcr_test_static_init (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct pcr_store store;
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	struct pcd_observer_pcr observer = pcd_observer_pcr_static_init (&hash.base, &store,
+		PCR_MEASUREMENT (0, 0), PCR_MEASUREMENT (0, 1), PCR_MEASUREMENT (0, 2));
+	int status;
+
+	TEST_START;
+
+	CuAssertPtrEquals (test, NULL, observer.base.on_pcd_verified);
+	CuAssertPtrNotNull (test, observer.base.on_pcd_activated);
+	CuAssertPtrNotNull (test, observer.base.on_clear_active);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_pcr_check_measurements (&observer.pcr, PCD_OBSERVER_INVALID_ARGUMENT,
+		PCD_OBSERVER_MEASUREMENTS_NOT_UNIQUE);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_observer_pcr_release (&observer);
+
+	pcr_store_release (&store);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void pcd_observer_pcr_test_static_init_null (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct pcr_store store;
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	struct pcd_observer_pcr null_hash = pcd_observer_pcr_static_init (NULL, &store,
+		PCR_MEASUREMENT (0, 0), PCR_MEASUREMENT (0, 1), PCR_MEASUREMENT (0, 2));
+	struct pcd_observer_pcr null_store = pcd_observer_pcr_static_init (&hash.base, NULL,
+		PCR_MEASUREMENT (0, 0), PCR_MEASUREMENT (0, 1), PCR_MEASUREMENT (0, 2));
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_pcr_check_measurements (NULL, PCD_OBSERVER_INVALID_ARGUMENT,
+		PCD_OBSERVER_MEASUREMENTS_NOT_UNIQUE);
+	CuAssertIntEquals (test, PCD_OBSERVER_INVALID_ARGUMENT, status);
+
+	status = manifest_pcr_check_measurements (&null_hash.pcr, PCD_OBSERVER_INVALID_ARGUMENT,
+		PCD_OBSERVER_MEASUREMENTS_NOT_UNIQUE);
+	CuAssertIntEquals (test, PCD_OBSERVER_INVALID_ARGUMENT, status);
+
+	status = manifest_pcr_check_measurements (&null_store.pcr, PCD_OBSERVER_INVALID_ARGUMENT,
+		PCD_OBSERVER_MEASUREMENTS_NOT_UNIQUE);
+	CuAssertIntEquals (test, PCD_OBSERVER_INVALID_ARGUMENT, status);
+
+	pcd_observer_pcr_release (&null_hash);
+	pcd_observer_pcr_release (&null_store);
+
+	pcr_store_release (&store);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void pcd_observer_pcr_test_static_init_bad_measurement_type (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct pcr_store store;
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	struct pcd_observer_pcr bad1 = pcd_observer_pcr_static_init (&hash.base, &store,
+		PCR_MEASUREMENT (0, 6), PCR_MEASUREMENT (0, 1), PCR_MEASUREMENT (0, 2));
+	struct pcd_observer_pcr bad2 = pcd_observer_pcr_static_init (&hash.base, &store,
+		PCR_MEASUREMENT (0, 0), PCR_MEASUREMENT (1, 7), PCR_MEASUREMENT (0, 2));
+	struct pcd_observer_pcr bad3 = pcd_observer_pcr_static_init (&hash.base, &store,
+		PCR_MEASUREMENT (0, 0), PCR_MEASUREMENT (0, 1), PCR_MEASUREMENT (0, 7));
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_pcr_check_measurements (&bad1.pcr, PCD_OBSERVER_INVALID_ARGUMENT,
+		PCD_OBSERVER_MEASUREMENTS_NOT_UNIQUE);
+	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
+
+	status = manifest_pcr_check_measurements (&bad2.pcr, PCD_OBSERVER_INVALID_ARGUMENT,
+		PCD_OBSERVER_MEASUREMENTS_NOT_UNIQUE);
+	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
+
+	status = manifest_pcr_check_measurements (&bad3.pcr, PCD_OBSERVER_INVALID_ARGUMENT,
+		PCD_OBSERVER_MEASUREMENTS_NOT_UNIQUE);
+	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
+
+	pcd_observer_pcr_release (&bad1);
+	pcd_observer_pcr_release (&bad2);
+	pcd_observer_pcr_release (&bad3);
+
+	pcr_store_release (&store);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void pcd_observer_pcr_test_static_init_same_measurement_type (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct pcr_store store;
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	struct pcd_observer_pcr same12 = pcd_observer_pcr_static_init (&hash.base, &store,
+		PCR_MEASUREMENT (0, 6), PCR_MEASUREMENT (0, 6), PCR_MEASUREMENT (0, 2));
+	struct pcd_observer_pcr same13 = pcd_observer_pcr_static_init (&hash.base, &store,
+		PCR_MEASUREMENT (0, 6), PCR_MEASUREMENT (0, 1), PCR_MEASUREMENT (0, 6));
+	struct pcd_observer_pcr same23 = pcd_observer_pcr_static_init (&hash.base, &store,
+		PCR_MEASUREMENT (0, 6), PCR_MEASUREMENT (0, 1), PCR_MEASUREMENT (0, 1));
+	struct pcd_observer_pcr same123 = pcd_observer_pcr_static_init (&hash.base, &store,
+		PCR_MEASUREMENT (0, 1), PCR_MEASUREMENT (0, 1), PCR_MEASUREMENT (0, 1));
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_pcr_check_measurements (&same12.pcr, PCD_OBSERVER_INVALID_ARGUMENT,
+		PCD_OBSERVER_MEASUREMENTS_NOT_UNIQUE);
+	CuAssertIntEquals (test, PCD_OBSERVER_MEASUREMENTS_NOT_UNIQUE, status);
+
+	status = manifest_pcr_check_measurements (&same13.pcr, PCD_OBSERVER_INVALID_ARGUMENT,
+		PCD_OBSERVER_MEASUREMENTS_NOT_UNIQUE);
+	CuAssertIntEquals (test, PCD_OBSERVER_MEASUREMENTS_NOT_UNIQUE, status);
+
+	status = manifest_pcr_check_measurements (&same23.pcr, PCD_OBSERVER_INVALID_ARGUMENT,
+		PCD_OBSERVER_MEASUREMENTS_NOT_UNIQUE);
+	CuAssertIntEquals (test, PCD_OBSERVER_MEASUREMENTS_NOT_UNIQUE, status);
+
+	status = manifest_pcr_check_measurements (&same123.pcr, PCD_OBSERVER_INVALID_ARGUMENT,
+		PCD_OBSERVER_MEASUREMENTS_NOT_UNIQUE);
+	CuAssertIntEquals (test, PCD_OBSERVER_MEASUREMENTS_NOT_UNIQUE, status);
+
+	pcd_observer_pcr_release (&same12);
+	pcd_observer_pcr_release (&same13);
+	pcd_observer_pcr_release (&same23);
+	pcd_observer_pcr_release (&same123);
 
 	pcr_store_release (&store);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
@@ -564,6 +759,120 @@ static void pcd_observer_pcr_test_on_pcd_activated_sha512 (CuTest *test)
 
 	status = testing_validate_array (hash_measurement, measurement.digest,
 		sizeof (hash_measurement));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, MANIFEST_ID_HASH_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (PCD_PLATFORM_ID_HASH, platform_id_measurement.digest,
+		PCD_PLATFORM_ID_HASH_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_mock_validate_and_release (&pcd);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_observer_pcr_release (&observer);
+
+	pcr_store_release (&store);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void pcd_observer_pcr_test_on_pcd_activated_static_init (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct pcr_store store;
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	struct pcd_observer_pcr observer = pcd_observer_pcr_static_init (&hash.base, &store,
+		PCR_MEASUREMENT (0, 0), PCR_MEASUREMENT (0, 1), PCR_MEASUREMENT (0, 2));
+	int status;
+	struct pcd_mock pcd;
+	struct pcr_measurement measurement;
+	struct pcr_measurement id_measurement;
+	struct pcr_measurement platform_id_measurement;
+	uint8_t invalid_measurement[SHA256_HASH_LENGTH] = {0};
+	uint32_t id = 0x1;
+	const uint8_t *platform_id = PCD_TESTING.manifest.plat_id;
+	uint32_t event = 0xaabbccdd;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 0), event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 1), event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 2), event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_mock_init (&pcd);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (invalid_measurement, id_measurement.digest,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (invalid_measurement, platform_id_measurement.digest,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash,
+		PCD_TESTING.manifest.hash_len, 2);
+
+	status |= mock_expect (&pcd.mock, pcd.base.base.get_id, &pcd, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&pcd.mock, 0, &id, sizeof (id), -1);
+
+	status |= mock_expect (&pcd.mock, pcd.base.base.get_platform_id, &pcd, 0,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&pcd.mock, 0, &platform_id, sizeof (platform_id), -1);
+
+	status |= mock_expect (&pcd.mock, pcd.base.base.free_platform_id, &pcd, 0,
+		MOCK_ARG_PTR (platform_id));
+
+	CuAssertIntEquals (test, 0, status);
+
+	observer.base.on_pcd_activated (&observer.base, &pcd.base);
+
+	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (PCD_HASH_DIGEST, measurement.digest,
+		PCD_TESTING.manifest.hash_len);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
@@ -1398,6 +1707,131 @@ static void pcd_observer_pcr_test_record_measurement_no_active (CuTest *test)
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
+static void pcd_observer_pcr_test_record_measurement_static_init (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct pcr_store store;
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	struct pcd_observer_pcr observer = pcd_observer_pcr_static_init (&hash.base, &store,
+		PCR_MEASUREMENT (0, 0), PCR_MEASUREMENT (0, 1), PCR_MEASUREMENT (0, 2));
+	int status;
+	struct pcd_mock pcd;
+	struct pcr_measurement measurement;
+	struct pcr_measurement id_measurement;
+	struct pcr_measurement platform_id_measurement;
+	struct pcd_manager_mock manager;
+	uint8_t invalid_measurement[SHA256_HASH_LENGTH] = {0};
+	uint32_t id = 0x1;
+	const uint8_t *platform_id = PCD_TESTING.manifest.plat_id;
+	uint32_t event = 0xaabbccdd;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 0), event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 1), event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 2), event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_mock_init (&pcd);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (invalid_measurement, id_measurement.digest,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (invalid_measurement, platform_id_measurement.digest,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
+		MOCK_RETURN_PTR (&pcd));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0, MOCK_ARG_PTR (&pcd));
+
+	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash,
+		PCD_TESTING.manifest.hash_len, 2);
+
+	status |= mock_expect (&pcd.mock, pcd.base.base.get_id, &pcd, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&pcd.mock, 0, &id, sizeof (id), -1);
+
+	status |= mock_expect (&pcd.mock, pcd.base.base.get_platform_id, &pcd, 0,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&pcd.mock, 0, &platform_id, sizeof (platform_id), -1);
+
+	status |= mock_expect (&pcd.mock, pcd.base.base.free_platform_id, &pcd, 0,
+		MOCK_ARG_PTR (platform_id));
+
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_observer_pcr_record_measurement (&observer, &manager.base);
+
+	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (PCD_HASH_DIGEST, measurement.digest,
+		PCD_TESTING.manifest.hash_len);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, MANIFEST_ID_HASH_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (PCD_PLATFORM_ID_HASH, platform_id_measurement.digest,
+		PCD_PLATFORM_ID_HASH_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_mock_validate_and_release (&pcd);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_observer_pcr_release (&observer);
+
+	pcr_store_release (&store);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
 static void pcd_observer_pcr_test_record_measurement_null (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
@@ -1939,10 +2373,15 @@ TEST (pcd_observer_pcr_test_init);
 TEST (pcd_observer_pcr_test_init_null);
 TEST (pcd_observer_pcr_test_init_bad_measurement_type);
 TEST (pcd_observer_pcr_test_init_same_measurement_type);
+TEST (pcd_observer_pcr_test_static_init);
+TEST (pcd_observer_pcr_test_static_init_null);
+TEST (pcd_observer_pcr_test_static_init_bad_measurement_type);
+TEST (pcd_observer_pcr_test_static_init_same_measurement_type);
 TEST (pcd_observer_pcr_test_release_null);
 TEST (pcd_observer_pcr_test_on_pcd_activated);
 TEST (pcd_observer_pcr_test_on_pcd_activated_sha384);
 TEST (pcd_observer_pcr_test_on_pcd_activated_sha512);
+TEST (pcd_observer_pcr_test_on_pcd_activated_static_init);
 TEST (pcd_observer_pcr_test_on_pcd_activated_hash_error);
 TEST (pcd_observer_pcr_test_on_pcd_activated_get_id_error);
 TEST (pcd_observer_pcr_test_on_pcd_activated_get_platform_id_error);
@@ -1950,6 +2389,7 @@ TEST (pcd_observer_pcr_test_record_measurement);
 TEST (pcd_observer_pcr_test_record_measurement_sha384);
 TEST (pcd_observer_pcr_test_record_measurement_sha512);
 TEST (pcd_observer_pcr_test_record_measurement_no_active);
+TEST (pcd_observer_pcr_test_record_measurement_static_init);
 TEST (pcd_observer_pcr_test_record_measurement_null);
 TEST (pcd_observer_pcr_test_record_measurement_hash_error);
 TEST (pcd_observer_pcr_test_record_measurement_get_id_error);

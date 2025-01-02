@@ -11,6 +11,7 @@
 #include "manifest/manifest_logging.h"
 #include "manifest/pcd/pcd_format.h"
 #include "manifest/pcd/pcd_manager_flash.h"
+#include "manifest/pcd/pcd_manager_flash_static.h"
 #include "system/system_state_manager.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/logging/debug_log_testing.h"
@@ -38,16 +39,19 @@ struct pcd_manager_flash_testing {
 	struct spi_flash_state flash_state_context;			/**< Host state flash context. */
 	struct spi_flash flash_state;						/**< Flash containing the host state. */
 	struct state_manager state_mgr;						/**< Manager for host state. */
+	struct pcd_flash_state pcd1_state;					/**< Context for the first PCD. */
 	struct pcd_flash pcd1;								/**< The first PCD. */
 	uint8_t signature1[256];							/**< Buffer for the first manifest signature. */
 	uint8_t platform_id1[256];							/**< Cache for the first platform ID. */
 	uint32_t pcd1_addr;									/**< Base address of the first PCD. */
+	struct pcd_flash_state pcd2_state;					/**< Context for the second PCD. */
 	struct pcd_flash pcd2;								/**< The second PCD. */
 	uint8_t signature2[256];							/**< Buffer for the second manifest signature. */
 	uint8_t platform_id2[256];							/**< Cache for the second platform ID. */
 	uint32_t pcd2_addr;									/**< Base address of the second PCD. */
 	struct pcd_observer_mock observer;					/**< Observer of manager events. */
 	struct logging_mock log;							/**< Mock for debug logging. */
+	struct pcd_manager_flash_state state;				/**< Context for the manager being tested. */
 	struct pcd_manager_flash test;						/**< Manager instance under test. */
 };
 
@@ -123,14 +127,14 @@ static void pcd_manager_flash_testing_init_dependencies (CuTest *test,
 
 	pcd_manager_flash_testing_init_system_state (test, manager);
 
-	status = pcd_flash_init (&manager->pcd1, &manager->flash.base, &manager->hash.base, addr1,
-		manager->signature1, sizeof (manager->signature1), manager->platform_id1,
-		sizeof (manager->platform_id1));
+	status = pcd_flash_init (&manager->pcd1, &manager->pcd1_state, &manager->flash.base,
+		&manager->hash.base, addr1, manager->signature1, sizeof (manager->signature1),
+		manager->platform_id1, sizeof (manager->platform_id1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_flash_init (&manager->pcd2, &manager->flash.base, &manager->hash.base, addr2,
-		manager->signature2, sizeof (manager->signature2), manager->platform_id2,
-		sizeof (manager->platform_id2));
+	status = pcd_flash_init (&manager->pcd2, &manager->pcd2_state, &manager->flash.base,
+		&manager->hash.base, addr2, manager->signature2, sizeof (manager->signature2),
+		manager->platform_id2, sizeof (manager->platform_id2));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_observer_mock_init (&manager->observer);
@@ -157,18 +161,10 @@ void pcd_manager_flash_testing_validate_and_release_dependencies (CuTest *test,
 	debug_log = NULL;
 
 	status = flash_master_mock_validate_and_release (&manager->flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&manager->flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&manager->verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd_observer_mock_validate_and_release (&manager->observer);
-	CuAssertIntEquals (test, 0, status);
-
-	status = logging_mock_validate_and_release (&manager->log);
+	status |= flash_master_mock_validate_and_release (&manager->flash_mock_state);
+	status |= signature_verification_mock_validate_and_release (&manager->verification);
+	status |= pcd_observer_mock_validate_and_release (&manager->observer);
+	status |= logging_mock_validate_and_release (&manager->log);
 	CuAssertIntEquals (test, 0, status);
 
 	state_manager_release (&manager->state_mgr);
@@ -373,7 +369,7 @@ static int pcd_manager_flash_testing_initial_pcd_validation (
 }
 
 /**
- * Initialize PCD manager for testing.
+ * Initialize a PCD manager for testing.
  *
  * @param test The testing framework.
  * @param manager The testing components to initialize.
@@ -400,17 +396,51 @@ static void pcd_manager_flash_testing_init (CuTest *test, struct pcd_manager_fla
 	status = pcd_manager_flash_testing_initial_pcd_validation (manager, pcd1, pcd2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_flash_init (&manager->test, &manager->pcd1, &manager->pcd2,
-		&manager->state_mgr, &manager->hash.base, &manager->verification.base);
+	status = pcd_manager_flash_init (&manager->test, &manager->state, &manager->pcd1,
+		&manager->pcd2, &manager->state_mgr, &manager->hash.base, &manager->verification.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&manager->flash_mock.mock);
+	status |= mock_validate (&manager->flash_mock_state.mock);
+	status |= mock_validate (&manager->verification.mock);
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Initialize a static PCD manager for testing.
+ *
+ * @param test The testing framework.
+ * @param manager The testing components to initialize.
+ * @param addr1 The base address for the first PCD.
+ * @param addr2 The base address for the second PCD.
+ * @param pcd1 The PCD verification function for region 1.
+ * @param pcd2 The PCD verification function for region 2.
+ * @param pcd1_active Flag indicating if region 1 is active.
+ */
+static void pcd_manager_flash_testing_init_static (CuTest *test,
+	struct pcd_manager_flash_testing *manager, uint32_t addr1, uint32_t addr2,
+	int (*pcd1) (struct pcd_manager_flash_testing*, uint32_t),
+	int (*pcd2) (struct pcd_manager_flash_testing*, uint32_t), bool pcd1_active)
+{
+	int status;
+
+	pcd_manager_flash_testing_init_dependencies (test, manager, addr1, addr2);
+
+	if (!pcd1_active) {
+		status = manager->state_mgr.save_active_manifest (&manager->state_mgr,
+			SYSTEM_STATE_MANIFEST_PCD, MANIFEST_REGION_2);
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	status = pcd_manager_flash_testing_initial_pcd_validation (manager, pcd1, pcd2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_validate (&manager->flash_mock_state.mock);
+	status = pcd_manager_flash_init_state (&manager->test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_validate (&manager->verification.mock);
+	status = mock_validate (&manager->flash_mock.mock);
+	status |= mock_validate (&manager->flash_mock_state.mock);
+	status |= mock_validate (&manager->verification.mock);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -465,7 +495,7 @@ static void pcd_manager_flash_test_init (CuTest *test)
 	status = pcd_manager_flash_testing_initial_pcd_validation (&manager, NULL, NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -496,7 +526,7 @@ static void pcd_manager_flash_test_init_region1 (CuTest *test)
 		pcd_manager_flash_testing_verify_pcd, NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -522,7 +552,7 @@ static void pcd_manager_flash_test_init_region2 (CuTest *test)
 		pcd_manager_flash_testing_verify_pcd);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -544,7 +574,7 @@ static void pcd_manager_flash_test_init_activate_pending (CuTest *test)
 		pcd_manager_flash_testing_verify_pcd, pcd_manager_flash_testing_verify_pcd2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, &manager.pcd2, manager.test.base.get_active_pcd (&manager.test.base));
@@ -585,7 +615,7 @@ static void pcd_manager_flash_test_init_only_pending_region2_empty_manifest (CuT
 
 	debug_log = &manager.log.base;
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -631,7 +661,7 @@ static void pcd_manager_flash_test_init_only_pending_region1_empty_manifest (CuT
 
 	debug_log = &manager.log.base;
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -673,7 +703,7 @@ static void pcd_manager_flash_test_init_active_and_pending_empty_manifest (CuTes
 
 	debug_log = &manager.log.base;
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -691,27 +721,31 @@ static void pcd_manager_flash_test_init_null (CuTest *test)
 
 	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = pcd_manager_flash_init (NULL, &manager.pcd1, &manager.pcd2, &manager.state_mgr,
-		&manager.hash.base, &manager.verification.base);
+	status = pcd_manager_flash_init (NULL, &manager.state, &manager.pcd1, &manager.pcd2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = pcd_manager_flash_init (&manager.test, NULL, &manager.pcd2, &manager.state_mgr,
-		&manager.hash.base, &manager.verification.base);
+	status = pcd_manager_flash_init (&manager.test, NULL, &manager.pcd1, &manager.pcd2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, NULL, &manager.state_mgr,
-		&manager.hash.base, &manager.verification.base);
+	status = pcd_manager_flash_init (&manager.test, &manager.state, NULL, &manager.pcd2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2, NULL,
-		&manager.hash.base, &manager.verification.base);
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, NULL,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
+		NULL, &manager.hash.base, &manager.verification.base);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
+
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, NULL, &manager.verification.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, NULL);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
@@ -731,7 +765,7 @@ static void pcd_manager_flash_test_init_region1_flash_error (CuTest *test)
 		FLASH_EXP_READ_STATUS_REG);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
@@ -754,7 +788,7 @@ static void pcd_manager_flash_test_init_region2_flash_error (CuTest *test)
 		FLASH_EXP_READ_STATUS_REG);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
@@ -774,14 +808,14 @@ static void pcd_manager_flash_test_init_small_signature_buffer (CuTest *test)
 	pcd_flash_release (&manager.pcd1);
 	pcd_flash_release (&manager.pcd2);
 
-	status = pcd_flash_init (&manager.pcd1, &manager.flash.base, &manager.hash.base, 0x10000,
-		manager.signature1, sizeof (manager.signature1) - 1, manager.platform_id1,
-		sizeof (manager.platform_id1));
+	status = pcd_flash_init (&manager.pcd1, &manager.pcd1_state, &manager.flash.base,
+		&manager.hash.base, 0x10000, manager.signature1, sizeof (manager.signature1) - 1,
+		manager.platform_id1, sizeof (manager.platform_id1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_flash_init (&manager.pcd2, &manager.flash.base, &manager.hash.base, 0x20000,
-		manager.signature2, sizeof (manager.signature2) - 1, manager.platform_id2,
-		sizeof (manager.platform_id2));
+	status = pcd_flash_init (&manager.pcd2, &manager.pcd2_state, &manager.flash.base,
+		&manager.hash.base, 0x20000, manager.signature2, sizeof (manager.signature2) - 1,
+		manager.platform_id2, sizeof (manager.platform_id2));
 	CuAssertIntEquals (test, 0, status);
 
 	/* Region 1 */
@@ -800,7 +834,7 @@ static void pcd_manager_flash_test_init_small_signature_buffer (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -828,7 +862,7 @@ static void pcd_manager_flash_test_init_pcd_bad_signature (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -864,7 +898,7 @@ static void pcd_manager_flash_test_init_bad_length (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -900,7 +934,7 @@ static void pcd_manager_flash_test_init_bad_magic_number (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -923,7 +957,7 @@ static void pcd_manager_flash_test_init_region2_pending_lower_id (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -946,7 +980,7 @@ static void pcd_manager_flash_test_init_region2_pending_same_id (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -970,7 +1004,7 @@ static void pcd_manager_flash_test_init_region2_pending_different_platform_id (C
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -997,7 +1031,7 @@ static void pcd_manager_flash_test_init_region1_pending_lower_id (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1024,7 +1058,7 @@ static void pcd_manager_flash_test_init_region1_pending_same_id (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1066,7 +1100,7 @@ static void pcd_manager_flash_test_init_empty_manifest_pending_erase_error (CuTe
 
 	debug_log = &manager.log.base;
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
@@ -1107,11 +1141,743 @@ static void pcd_manager_flash_test_init_empty_manifest_active_erase_error (CuTes
 
 	debug_log = &manager.log.base;
 
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+	status = pcd_manager_flash_init (&manager.test, &manager.state, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	/* Use blank check to simulate empty PCD regions. */
+	status = pcd_manager_flash_testing_initial_pcd_validation (&manager, NULL, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrNotNull (test, manager.test.base.get_active_pcd);
+	CuAssertPtrNotNull (test, manager.test.base.free_pcd);
+
+	CuAssertPtrNotNull (test, manager.test.base.base.activate_pending_manifest);
+	CuAssertPtrNotNull (test, manager.test.base.base.clear_pending_region);
+	CuAssertPtrNotNull (test, manager.test.base.base.write_pending_data);
+	CuAssertPtrNotNull (test, manager.test.base.base.verify_pending_manifest);
+	CuAssertPtrNotNull (test, manager.test.base.base.clear_all_manifests);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_region1 (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = pcd_manager_flash_testing_initial_pcd_validation (&manager,
+		pcd_manager_flash_testing_verify_pcd, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, &manager.pcd1, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_region2 (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = manager.state_mgr.save_active_manifest (&manager.state_mgr, SYSTEM_STATE_MANIFEST_PCD,
+		MANIFEST_REGION_2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_testing_initial_pcd_validation (&manager, NULL,
+		pcd_manager_flash_testing_verify_pcd);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, &manager.pcd2, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_activate_pending (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = pcd_manager_flash_testing_initial_pcd_validation (&manager,
+		pcd_manager_flash_testing_verify_pcd, pcd_manager_flash_testing_verify_pcd2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, &manager.pcd2, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_only_pending_region2_empty_manifest (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_WARNING,
+		.component = DEBUG_LOG_COMPONENT_MANIFEST,
+		.msg_index = MANIFEST_LOGGING_EMPTY_PCD,
+		.arg1 = 0,
+		.arg2 = 0
+	};
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = pcd_manager_flash_testing_initial_pcd_validation (&manager, NULL,
+		pcd_manager_flash_testing_verify_pcd_empty);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Erase manifest regions. */
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
+
+	status |= mock_expect (&manager.log.mock, manager.log.base.create_entry, &manager.log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &manager.log.base;
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_only_pending_region1_empty_manifest (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_WARNING,
+		.component = DEBUG_LOG_COMPONENT_MANIFEST,
+		.msg_index = MANIFEST_LOGGING_EMPTY_PCD,
+		.arg1 = 0,
+		.arg2 = 0
+	};
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = manager.state_mgr.save_active_manifest (&manager.state_mgr, SYSTEM_STATE_MANIFEST_PCD,
+		MANIFEST_REGION_2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_testing_initial_pcd_validation (&manager,
+		pcd_manager_flash_testing_verify_pcd_empty, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Erase manifest regions. */
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+
+	status |= mock_expect (&manager.log.mock, manager.log.base.create_entry, &manager.log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &manager.log.base;
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_active_and_pending_empty_manifest (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_WARNING,
+		.component = DEBUG_LOG_COMPONENT_MANIFEST,
+		.msg_index = MANIFEST_LOGGING_EMPTY_PCD,
+		.arg1 = 0,
+		.arg2 = 0
+	};
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = pcd_manager_flash_testing_initial_pcd_validation (&manager,
+		pcd_manager_flash_testing_verify_pcd, pcd_manager_flash_testing_verify_pcd_empty);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Erase manifest regions. */
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
+
+	status |= mock_expect (&manager.log.mock, manager.log.base.create_entry, &manager.log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &manager.log.base;
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_null (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+
+	struct pcd_manager_flash null_state = pcd_manager_flash_static_init (&manager.test,
+		(struct pcd_manager_flash_state*) NULL, &manager.pcd1, &manager.pcd2, &manager.state_mgr,
+		&manager.hash.base, &manager.verification.base);
+
+	struct pcd_manager_flash null_pcd1 = pcd_manager_flash_static_init (&manager.test,
+		&manager.state, (struct pcd_flash*) NULL, &manager.pcd2, &manager.state_mgr,
+		&manager.hash.base, &manager.verification.base);
+
+	struct pcd_manager_flash null_pcd2 = pcd_manager_flash_static_init (&manager.test,
+		&manager.state,	&manager.pcd1, (struct pcd_flash*) NULL, &manager.state_mgr,
+		&manager.hash.base, &manager.verification.base);
+
+	struct pcd_manager_flash null_state_mgr = pcd_manager_flash_static_init (&manager.test,
+		&manager.state,	&manager.pcd1, &manager.pcd2, NULL, &manager.hash.base,
+		&manager.verification.base);
+
+	struct pcd_manager_flash null_hash = pcd_manager_flash_static_init (&manager.test,
+		&manager.state,	&manager.pcd1, &manager.pcd2, &manager.state_mgr, NULL,
+		&manager.verification.base);
+
+	struct pcd_manager_flash null_verify = pcd_manager_flash_static_init (&manager.test,
+		&manager.state,	&manager.pcd1, &manager.pcd2, &manager.state_mgr, &manager.hash.base, NULL);
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = pcd_manager_flash_init_state (NULL);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
+
+	status = pcd_manager_flash_init_state (&null_state);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
+
+	status = pcd_manager_flash_init_state (&null_pcd1);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
+
+	status = pcd_manager_flash_init_state (&null_pcd2);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
+
+	status = pcd_manager_flash_init_state (&null_state_mgr);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
+
+	status = pcd_manager_flash_init_state (&null_hash);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
+
+	status = pcd_manager_flash_init_state (&null_verify);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
+
+	pcd_manager_flash_testing_validate_and_release_dependencies (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_region1_flash_error (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	pcd_manager_flash_testing_validate_and_release_dependencies (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_region2_flash_error (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	/* Use blank check to simulate empty PCD regions. */
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	pcd_manager_flash_testing_validate_and_release_dependencies (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_small_signature_buffer (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	/* Re-initialize PCD handlers with smaller buffers. */
+	pcd_flash_release (&manager.pcd1);
+	pcd_flash_release (&manager.pcd2);
+
+	status = pcd_flash_init (&manager.pcd1, &manager.pcd1_state, &manager.flash.base,
+		&manager.hash.base, 0x10000, manager.signature1, sizeof (manager.signature1) - 1,
+		manager.platform_id1, sizeof (manager.platform_id1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_flash_init (&manager.pcd2, &manager.pcd2_state, &manager.flash.base,
+		&manager.hash.base, 0x20000, manager.signature2, sizeof (manager.signature2) - 1,
+		manager.platform_id2, sizeof (manager.platform_id2));
+	CuAssertIntEquals (test, 0, status);
+
+	/* Region 1 */
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PCD_TESTING.manifest.raw,
+		PCD_TESTING.manifest.length,
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, MANIFEST_V2_HEADER_SIZE));
+
+	/* Region 2 */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PCD_TESTING.manifest.raw,
+		PCD_TESTING.manifest.length,
+		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, MANIFEST_V2_HEADER_SIZE));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_pcd_bad_signature (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	/* Region 1 */
+	status = pcd_manager_flash_testing_verify_a_pcd (&manager, 0x10000, &PCD_TESTING,
+		SIG_VERIFICATION_BAD_SIGNATURE);
+
+	/* Region 2 */
+	status |= pcd_manager_flash_testing_verify_a_pcd (&manager, 0x20000, &PCD_TESTING,
+		SIG_VERIFICATION_BAD_SIGNATURE);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_bad_length (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+	uint8_t pcd_bad_data[PCD_TESTING.manifest.sig_offset];
+
+	TEST_START;
+
+	memcpy (pcd_bad_data, PCD_TESTING.manifest.raw, sizeof (pcd_bad_data));
+	pcd_bad_data[9] = 0xff;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	/* Region 1 */
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pcd_bad_data,
+		sizeof (pcd_bad_data), FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, MANIFEST_V2_HEADER_SIZE));
+
+	/* Region 2 */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pcd_bad_data,
+		sizeof (pcd_bad_data), FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, MANIFEST_V2_HEADER_SIZE));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_bad_magic_number (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+	uint8_t pcd_bad_data[PCD_TESTING.manifest.sig_offset];
+
+	TEST_START;
+
+	memcpy (pcd_bad_data, PCD_TESTING.manifest.raw, sizeof (pcd_bad_data));
+	pcd_bad_data[2] ^= 0x55;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	/* Region 1 */
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pcd_bad_data,
+		sizeof (pcd_bad_data), FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, MANIFEST_V2_HEADER_SIZE));
+
+	/* Region 2 */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pcd_bad_data,
+		sizeof (pcd_bad_data), FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, MANIFEST_V2_HEADER_SIZE));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_region2_pending_lower_id (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = pcd_manager_flash_testing_verify_pcd2 (&manager, 0x10000);
+	status |= pcd_manager_flash_testing_verify_pcd (&manager, 0x20000);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, &manager.pcd1, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_region2_pending_same_id (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = pcd_manager_flash_testing_verify_pcd (&manager, 0x10000);
+	status |= pcd_manager_flash_testing_verify_pcd (&manager, 0x20000);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, &manager.pcd1, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_region2_pending_different_platform_id (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = pcd_manager_flash_testing_verify_pcd (&manager, 0x10000);
+	status |= pcd_manager_flash_testing_verify_a_pcd (&manager, 0x20000, &PCD_NO_COMPONENTS_TESTING,
+		0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, &manager.pcd1, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_region1_pending_lower_id (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = manager.state_mgr.save_active_manifest (&manager.state_mgr, SYSTEM_STATE_MANIFEST_PCD,
+		MANIFEST_REGION_2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_testing_verify_pcd (&manager, 0x10000);
+	status |= pcd_manager_flash_testing_verify_pcd2 (&manager, 0x20000);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, &manager.pcd2, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_region1_pending_same_id (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = manager.state_mgr.save_active_manifest (&manager.state_mgr, SYSTEM_STATE_MANIFEST_PCD,
+		MANIFEST_REGION_2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_testing_verify_pcd (&manager, 0x10000);
+	status |= pcd_manager_flash_testing_verify_pcd (&manager, 0x20000);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, &manager.pcd2, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_empty_manifest_pending_erase_error (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_MANIFEST,
+		.msg_index = MANIFEST_LOGGING_EMPTY_PCD,
+		.arg1 = 0,
+		.arg2 = FLASH_MASTER_XFER_FAILED
+	};
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = pcd_manager_flash_testing_initial_pcd_validation (&manager, NULL,
+		pcd_manager_flash_testing_verify_pcd_empty);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Erase manifest regions. */
+	status = flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+
+	status |= mock_expect (&manager.log.mock, manager.log.base.create_entry, &manager.log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &manager.log.base;
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_static_init_empty_manifest_active_erase_error (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_MANIFEST,
+		.msg_index = MANIFEST_LOGGING_EMPTY_PCD,
+		.arg1 = 0,
+		.arg2 = FLASH_MASTER_XFER_FAILED
+	};
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = pcd_manager_flash_testing_initial_pcd_validation (&manager, NULL,
+		pcd_manager_flash_testing_verify_pcd_empty);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Erase manifest regions. */
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+
+	status |= mock_expect (&manager.log.mock, manager.log.base.create_entry, &manager.log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &manager.log.base;
+
+	status = pcd_manager_flash_init_state (&manager.test);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_release_null (CuTest *test)
+{
+	TEST_START;
+
+	pcd_manager_flash_release (NULL);
 }
 
 static void pcd_manager_flash_test_get_active_pcd_null (CuTest *test)
@@ -1345,6 +2111,52 @@ static void pcd_manager_flash_test_activate_pending_pcd_no_pending_notify_observ
 	pcd_manager_flash_testing_validate_and_release (test, &manager);
 }
 
+static void pcd_manager_flash_test_activate_pending_pcd_static_init (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	enum manifest_region active;
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_static (test, &manager, 0x10000, 0x20000,
+		pcd_manager_flash_testing_verify_pcd, NULL, true);
+
+	CuAssertPtrEquals (test, &manager.pcd1, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_write_new_pcd (test, &manager, 0x20000);
+
+	status = pcd_manager_flash_testing_verify_pcd2 (&manager, 0x20000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, &manager.pcd1, manager.test.base.get_active_pcd (&manager.test.base));
+
+	status = pcd_manager_add_observer (&manager.test.base, &manager.observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.observer.mock, manager.observer.base.on_pcd_activated,
+		&manager.observer, 0, MOCK_ARG_PTR (&manager.pcd2));
+	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_pcd_activation_request,
+		&manager.observer, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.activate_pending_manifest (&manager.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, &manager.pcd2, manager.test.base.get_active_pcd (&manager.test.base));
+
+	active = manager.state_mgr.get_active_manifest (&manager.state_mgr, SYSTEM_STATE_MANIFEST_PCD);
+	CuAssertIntEquals (test, MANIFEST_REGION_2, active);
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
 static void pcd_manager_flash_test_activate_pending_pcd_null (CuTest *test)
 {
 	struct pcd_manager_flash_testing manager;
@@ -1439,6 +2251,29 @@ static void pcd_manager_flash_test_clear_pending_region_invalidate_pending_regio
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrEquals (test, &manager.pcd1, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_clear_pending_region_static_init (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_static (test, &manager, 0x10000, 0x20000, NULL, NULL, true);
+
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
 
 	pcd_manager_flash_testing_validate_and_release (test, &manager);
 }
@@ -1673,6 +2508,36 @@ static void pcd_manager_flash_test_write_pending_data_block_end (CuTest *test)
 	/* Fill with data to write at the end of the flash block. */
 	status = manager.test.base.base.write_pending_data (&manager.test.base.base, fill,
 		sizeof (fill));
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data,
+		sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_write_pending_data_static_init (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_static (test, &manager, 0x10000, 0x20000, NULL, NULL, true);
+
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
+	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data,
@@ -2183,6 +3048,36 @@ static void pcd_manager_flash_test_verify_pending_pcd_different_platform_id (CuT
 	pcd_manager_flash_testing_validate_and_release (test, &manager);
 }
 
+static void pcd_manager_flash_test_verify_pending_pcd_different_platform_id_static_init (
+	CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_static (test, &manager, 0x10000, 0x20000,
+		pcd_manager_flash_testing_verify_pcd, NULL, true);
+
+	CuAssertPtrEquals (test, &manager.pcd1, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_write_new_pcd (test, &manager, 0x20000);
+
+	status = pcd_manager_flash_testing_verify_a_pcd (&manager, 0x20000, &PCD_NO_COMPONENTS_TESTING,
+		0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ID, status);
+
+	CuAssertPtrEquals (test, &manager.pcd1, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
 static void pcd_manager_flash_test_verify_pending_pcd_upgrade_platform_id (CuTest *test)
 {
 	struct pcd_manager_flash_testing manager;
@@ -2209,6 +3104,35 @@ static void pcd_manager_flash_test_verify_pending_pcd_upgrade_platform_id (CuTes
 	pcd_manager_flash_testing_validate_and_release (test, &manager);
 }
 
+static void pcd_manager_flash_test_verify_pending_pcd_upgrade_platform_id_static_init (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_static (test, &manager, 0x10000, 0x20000,
+		pcd_manager_flash_testing_verify_pcd, NULL, true);
+
+	CuAssertPtrEquals (test, &manager.pcd1, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_write_new_pcd (test, &manager, 0x20000);
+
+	status = pcd_manager_flash_testing_verify_a_pcd (&manager, 0x20000, &PCD_SKU_SPECIFIC_TESTING,
+		0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, &manager.pcd1, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
 static void pcd_manager_flash_test_verify_pending_pcd_downgrade_platform_id (CuTest *test)
 {
 	struct pcd_manager_flash_testing manager;
@@ -2217,6 +3141,35 @@ static void pcd_manager_flash_test_verify_pending_pcd_downgrade_platform_id (CuT
 	TEST_START;
 
 	pcd_manager_flash_testing_init (test, &manager, 0x10000, 0x20000,
+		pcd_manager_flash_testing_verify_sku_specific_pcd, NULL, true);
+
+	CuAssertPtrEquals (test, &manager.pcd1, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_write_new_pcd (test, &manager, 0x20000);
+
+	status = pcd_manager_flash_testing_verify_a_pcd (&manager, 0x20000, &PCD_TESTING, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ID, status);
+
+	CuAssertPtrEquals (test, &manager.pcd1, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_verify_pending_pcd_downgrade_platform_id_static_init (
+	CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_static (test, &manager, 0x10000, 0x20000,
 		pcd_manager_flash_testing_verify_sku_specific_pcd, NULL, true);
 
 	CuAssertPtrEquals (test, &manager.pcd1, manager.test.base.get_active_pcd (&manager.test.base));
@@ -2295,6 +3248,39 @@ static void pcd_manager_flash_test_verify_pending_pcd_extra_data_written (CuTest
 
 	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data,
 		sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_verify_pending_pcd_static_init (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_static (test, &manager, 0x10000, 0x20000, NULL, NULL, true);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_write_new_pcd (test, &manager, 0x20000);
+
+	status = pcd_manager_add_observer (&manager.test.base, &manager.observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_testing_verify_pcd (&manager, 0x20000);
+	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_pcd_verified,
+		&manager.observer, 0, MOCK_ARG_PTR (&manager.pcd2));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
@@ -2797,7 +3783,7 @@ static void pcd_manager_flash_test_clear_all_manifests_active_in_use (CuTest *te
 {
 	struct pcd_manager_flash_testing manager;
 	int status;
-	struct pcd *active;
+	const struct pcd *active;
 
 	TEST_START;
 
@@ -2838,7 +3824,7 @@ static void pcd_manager_flash_test_clear_all_manifests_active_in_use_notify_obse
 {
 	struct pcd_manager_flash_testing manager;
 	int status;
-	struct pcd *active;
+	const struct pcd *active;
 
 	TEST_START;
 
@@ -2914,6 +3900,38 @@ static void pcd_manager_flash_test_clear_all_manifests_during_update (CuTest *te
 	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data,
 		sizeof (data));
 	CuAssertIntEquals (test, MANIFEST_MANAGER_NOT_CLEARED, status);
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_clear_all_manifests_static_init (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager = {
+		.test = pcd_manager_flash_static_init (&manager.test, &manager.state, &manager.pcd1,
+			&manager.pcd2, &manager.state_mgr, &manager.hash.base, &manager.verification.base)
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_static (test, &manager, 0x10000, 0x20000,
+		pcd_manager_flash_testing_verify_pcd, pcd_manager_flash_testing_verify_pcd, false);
+
+	status = pcd_manager_add_observer (&manager.test.base, &manager.observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+
+	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_clear_active,
+		&manager.observer, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
 
 	pcd_manager_flash_testing_validate_and_release (test, &manager);
 }
@@ -3036,6 +4054,28 @@ TEST (pcd_manager_flash_test_init_region2_pending_different_platform_id);
 TEST (pcd_manager_flash_test_init_region2_pending_lower_id);
 TEST (pcd_manager_flash_test_init_empty_manifest_pending_erase_error);
 TEST (pcd_manager_flash_test_init_empty_manifest_active_erase_error);
+TEST (pcd_manager_flash_test_static_init);
+TEST (pcd_manager_flash_test_static_init_region1);
+TEST (pcd_manager_flash_test_static_init_region2);
+TEST (pcd_manager_flash_test_static_init_activate_pending);
+TEST (pcd_manager_flash_test_static_init_only_pending_region2_empty_manifest);
+TEST (pcd_manager_flash_test_static_init_only_pending_region1_empty_manifest);
+TEST (pcd_manager_flash_test_static_init_active_and_pending_empty_manifest);
+TEST (pcd_manager_flash_test_static_init_null);
+TEST (pcd_manager_flash_test_static_init_region1_flash_error);
+TEST (pcd_manager_flash_test_static_init_region2_flash_error);
+TEST (pcd_manager_flash_test_static_init_small_signature_buffer);
+TEST (pcd_manager_flash_test_static_init_pcd_bad_signature);
+TEST (pcd_manager_flash_test_static_init_bad_length);
+TEST (pcd_manager_flash_test_static_init_bad_magic_number);
+TEST (pcd_manager_flash_test_static_init_region1_pending_same_id);
+TEST (pcd_manager_flash_test_static_init_region1_pending_lower_id);
+TEST (pcd_manager_flash_test_static_init_region2_pending_same_id);
+TEST (pcd_manager_flash_test_static_init_region2_pending_different_platform_id);
+TEST (pcd_manager_flash_test_static_init_region2_pending_lower_id);
+TEST (pcd_manager_flash_test_static_init_empty_manifest_pending_erase_error);
+TEST (pcd_manager_flash_test_static_init_empty_manifest_active_erase_error);
+TEST (pcd_manager_flash_test_release_null);
 TEST (pcd_manager_flash_test_get_active_pcd_null);
 TEST (pcd_manager_flash_test_activate_pending_pcd_region2_after_write);
 TEST (pcd_manager_flash_test_activate_pending_pcd_region1_after_write);
@@ -3044,11 +4084,13 @@ TEST (pcd_manager_flash_test_activate_pending_pcd_region1_after_write_notify_obs
 TEST (pcd_manager_flash_test_activate_pending_pcd_no_pending_region2);
 TEST (pcd_manager_flash_test_activate_pending_pcd_no_pending_region1);
 TEST (pcd_manager_flash_test_activate_pending_pcd_no_pending_notify_observers);
+TEST (pcd_manager_flash_test_activate_pending_pcd_static_init);
 TEST (pcd_manager_flash_test_activate_pending_pcd_null);
 TEST (pcd_manager_flash_test_clear_pending_region_region2);
 TEST (pcd_manager_flash_test_clear_pending_region_region1);
 TEST (pcd_manager_flash_test_clear_pending_region_invalidate_pending_region2);
 TEST (pcd_manager_flash_test_clear_pending_region_invalidate_pending_region1);
+TEST (pcd_manager_flash_test_clear_pending_region_static_init);
 TEST (pcd_manager_flash_test_clear_pending_region_null);
 TEST (pcd_manager_flash_test_clear_pending_region_manifest_too_large);
 TEST (pcd_manager_flash_test_clear_pending_region_erase_error_region2);
@@ -3059,6 +4101,7 @@ TEST (pcd_manager_flash_test_write_pending_data_region2);
 TEST (pcd_manager_flash_test_write_pending_data_region1);
 TEST (pcd_manager_flash_test_write_pending_data_multiple);
 TEST (pcd_manager_flash_test_write_pending_data_block_end);
+TEST (pcd_manager_flash_test_write_pending_data_static_init);
 TEST (pcd_manager_flash_test_write_pending_data_null);
 TEST (pcd_manager_flash_test_write_pending_data_write_error);
 TEST (pcd_manager_flash_test_write_pending_data_write_after_error);
@@ -3075,11 +4118,15 @@ TEST (pcd_manager_flash_test_verify_pending_pcd_with_active);
 TEST (pcd_manager_flash_test_verify_pending_pcd_lower_id);
 TEST (pcd_manager_flash_test_verify_pending_pcd_same_id);
 TEST (pcd_manager_flash_test_verify_pending_pcd_different_platform_id);
+TEST (pcd_manager_flash_test_verify_pending_pcd_different_platform_id_static_init);
 TEST (pcd_manager_flash_test_verify_pending_pcd_upgrade_platform_id);
+TEST (pcd_manager_flash_test_verify_pending_pcd_upgrade_platform_id_static_init);
 TEST (pcd_manager_flash_test_verify_pending_pcd_downgrade_platform_id);
+TEST (pcd_manager_flash_test_verify_pending_pcd_downgrade_platform_id_static_init);
 TEST (pcd_manager_flash_test_verify_pending_pcd_no_clear_region2);
 TEST (pcd_manager_flash_test_verify_pending_pcd_no_clear_region1);
 TEST (pcd_manager_flash_test_verify_pending_pcd_extra_data_written);
+TEST (pcd_manager_flash_test_verify_pending_pcd_static_init);
 TEST (pcd_manager_flash_test_verify_pending_pcd_null);
 TEST (pcd_manager_flash_test_verify_pending_pcd_verify_error_region2);
 TEST (pcd_manager_flash_test_verify_pending_pcd_verify_error_region1);
@@ -3102,6 +4149,7 @@ TEST (pcd_manager_flash_test_clear_all_manifests_no_pcds);
 TEST (pcd_manager_flash_test_clear_all_manifests_active_in_use);
 TEST (pcd_manager_flash_test_clear_all_manifests_active_in_use_notify_observers);
 TEST (pcd_manager_flash_test_clear_all_manifests_during_update);
+TEST (pcd_manager_flash_test_clear_all_manifests_static_init);
 TEST (pcd_manager_flash_test_clear_all_manifests_null);
 TEST (pcd_manager_flash_test_clear_all_manifests_erase_pending_error);
 TEST (pcd_manager_flash_test_clear_all_manifests_erase_active_error);

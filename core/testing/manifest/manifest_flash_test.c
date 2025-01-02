@@ -25,9 +25,10 @@ struct manifest_flash_testing {
 	HASH_TESTING_ENGINE (hash);							/**< Hashing engine for validation. */
 	struct signature_verification_mock verification;	/**< PFM signature verification. */
 	struct flash_master_mock flash_mock;				/**< Flash master for the PFM flash. */
-	struct spi_flash_state state;						/**< PFM flash context. */
+	struct spi_flash_state flash_state;					/**< PFM flash context. */
 	struct spi_flash flash;								/**< Flash where the PFM is stored. */
 	uint32_t addr;										/**< Base address of the PFM. */
+	struct manifest_flash_state state;					/**< Common manifest state for testing. */
 	struct manifest_flash test;							/**< Manifest instance for common testing. */
 };
 
@@ -53,7 +54,7 @@ static void manifest_flash_testing_init_dependencies (CuTest *test,
 	status = flash_master_mock_init (&manifest->flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&manifest->flash, &manifest->state, &manifest->flash_mock.base);
+	status = spi_flash_init (&manifest->flash, &manifest->flash_state, &manifest->flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&manifest->flash, 0x1000000);
@@ -74,9 +75,7 @@ void manifest_flash_testing_validate_and_release_dependencies (CuTest *test,
 	int status;
 
 	status = flash_master_mock_validate_and_release (&manifest->flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&manifest->verification);
+	status |= signature_verification_mock_validate_and_release (&manifest->verification);
 	CuAssertIntEquals (test, 0, status);
 
 	spi_flash_release (&manifest->flash);
@@ -112,13 +111,12 @@ static void manifest_flash_testing_init (CuTest *test, struct manifest_flash_tes
 	manifest_flash_testing_init_dependencies (test, manifest, address);
 	manifest_flash_testing_init_common (test, manifest, 0x1000);
 
-	status = manifest_flash_init (&manifest->test, &manifest->flash.base, address, magic_v1);
+	status = manifest_flash_init (&manifest->test, &manifest->state, &manifest->flash.base, address,
+		magic_v1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&manifest->flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&manifest->verification.mock);
+	status |= mock_validate (&manifest->verification.mock);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -203,16 +201,14 @@ static void manifest_flash_testing_init_and_verify (CuTest *test,
 
 	manifest_flash_testing_init (test, manifest, address, magic_v1);
 	manifest_flash_testing_verify_manifest (test, manifest, manifest_data, manifest_data_len,
-		manifest_sig, manifest_sig_offset, manifest_sig_len, manifest_hash,	sig_result);
+		manifest_sig, manifest_sig_offset, manifest_sig_len, manifest_hash, sig_result);
 
 	status = manifest_flash_verify (&manifest->test, &manifest->hash.base,
 		&manifest->verification.base, NULL, 0);
 	CuAssertIntEquals (test, sig_result, status);
 
 	status = mock_validate (&manifest->flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&manifest->verification.mock);
+	status |= mock_validate (&manifest->verification.mock);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -229,7 +225,8 @@ static void manifest_flash_test_init (CuTest *test)
 
 	manifest_flash_testing_init_dependencies (test, &manifest, 0x10000);
 
-	status = manifest_flash_init (&manifest.test, &manifest.flash.base, 0x10000, PFM_MAGIC_NUM);
+	status = manifest_flash_init (&manifest.test, &manifest.state, &manifest.flash.base, 0x10000,
+		PFM_MAGIC_NUM);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 0x10000, manifest_flash_get_addr (&manifest.test));

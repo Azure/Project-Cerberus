@@ -16,49 +16,26 @@
  *
  * @param pcr The PCR management to initialize.
  * @param hash The hash engine to use for generating PCR measurements.
- * @param store The PCR store to update as the CFM changes.
+ * @param store The PCR store to update as the manifest changes.
  * @param manifest_measurement The identifier for the manifest measurement in the PCR.
  * @param manifest_id_measurement The identifier for the manifest ID measurement in the PCR.
  * @param manifest_platform_id_measurement The identifier for the manifest platform ID measurement
  * in the PCR.
- * @param error The error code to return if measurements are not unique
+ * @param error The error code to return if measurements are not unique.
  *
  * @return 0 if the PCR manager was successfully initialized or an error code.
  */
 int manifest_pcr_init (struct manifest_pcr *pcr, const struct hash_engine *hash,
 	struct pcr_store *store, uint16_t manifest_measurement, uint16_t manifest_id_measurement,
-	uint16_t manifest_platform_id_measurement, int error)
+	uint16_t manifest_platform_id_measurement, int not_unique)
 {
-	int status;
-
-	if ((manifest_measurement == manifest_id_measurement) ||
-		(manifest_measurement == manifest_platform_id_measurement) ||
-		(manifest_id_measurement == manifest_platform_id_measurement)) {
-		return error;
-	}
-
-	status = pcr_store_check_measurement_type (store, manifest_measurement);
-	if (status != 0) {
-		return status;
-	}
-
-	status = pcr_store_check_measurement_type (store, manifest_id_measurement);
-	if (status != 0) {
-		return status;
-	}
-
-	status = pcr_store_check_measurement_type (store, manifest_platform_id_measurement);
-	if (status != 0) {
-		return status;
-	}
-
 	pcr->hash = hash;
 	pcr->store = store;
 	pcr->manifest_measurement = manifest_measurement;
 	pcr->manifest_id_measurement = manifest_id_measurement;
 	pcr->manifest_platform_id_measurement = manifest_platform_id_measurement;
 
-	return 0;
+	return manifest_pcr_check_measurements (pcr, -1, not_unique);
 }
 
 /**
@@ -66,9 +43,52 @@ int manifest_pcr_init (struct manifest_pcr *pcr, const struct hash_engine *hash,
  *
  * @param pcr The PCR manager to release.
  */
-void manifest_pcr_release (struct manifest_pcr *pcr)
+void manifest_pcr_release (const struct manifest_pcr *pcr)
 {
 	UNUSED (pcr);
+}
+
+/**
+ * Check that the configured measurements for the manifest are valid.  This will also check that the
+ * PCR manager was properly initialized.
+ *
+ * @param pcr The PCR manager to check.
+ * @param invalid_arg The error code to return for a null pointer.
+ * @param not_unique The error code to return if measurements are not unique.
+ *
+ * @return 0 if the measurements are all valid or an error code.
+ */
+int manifest_pcr_check_measurements (const struct manifest_pcr *pcr, int invalid_arg,
+	int not_unique)
+{
+	int status;
+
+	if ((pcr == NULL) || (pcr->hash == NULL) || (pcr->store == NULL)) {
+		return invalid_arg;
+	}
+
+	if ((pcr->manifest_measurement == pcr->manifest_id_measurement) ||
+		(pcr->manifest_measurement == pcr->manifest_platform_id_measurement) ||
+		(pcr->manifest_id_measurement == pcr->manifest_platform_id_measurement)) {
+		return not_unique;
+	}
+
+	status = pcr_store_check_measurement_type (pcr->store, pcr->manifest_measurement);
+	if (status != 0) {
+		return status;
+	}
+
+	status = pcr_store_check_measurement_type (pcr->store, pcr->manifest_id_measurement);
+	if (status != 0) {
+		return status;
+	}
+
+	status = pcr_store_check_measurement_type (pcr->store, pcr->manifest_platform_id_measurement);
+	if (status != 0) {
+		return status;
+	}
+
+	return 0;
 }
 
 /**
@@ -78,7 +98,7 @@ void manifest_pcr_release (struct manifest_pcr *pcr)
  * @param active The manifest to measure.
  */
 void manifest_pcr_record_manifest_measurement (const struct manifest_pcr *pcr,
-	struct manifest *active)
+	const struct manifest *active)
 {
 	uint8_t manifest_measurement[SHA512_HASH_LENGTH] = {0};
 	int measurement_length = SHA256_HASH_LENGTH;

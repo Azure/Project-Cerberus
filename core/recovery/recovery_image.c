@@ -20,10 +20,10 @@
  *
  * @return 0 if the the platform IDs match or an error code.
  */
-static int recovery_image_check_platform_id (struct pfm_manager *pfm,
+static int recovery_image_check_platform_id (const struct pfm_manager *pfm,
 	struct recovery_image_header *header)
 {
-	struct pfm *manifest;
+	const struct pfm *manifest;
 	char *pfm_id = NULL;
 	char *img_id;
 	int status;
@@ -57,7 +57,7 @@ err_free_pfm:
 
 static int recovery_image_verify (struct recovery_image *image, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length,
-	struct pfm_manager *pfm)
+	const struct pfm_manager *pfm)
 {
 	uint8_t *signature;
 	size_t img_len;

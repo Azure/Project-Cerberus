@@ -7,7 +7,7 @@
 #include "cfm_manager_mock.h"
 
 
-static struct cfm* cfm_manager_mock_get_active_cfm (const struct cfm_manager *manager)
+static const struct cfm* cfm_manager_mock_get_active_cfm (const struct cfm_manager *manager)
 {
 	struct cfm_manager_mock *mock = (struct cfm_manager_mock*) manager;
 
@@ -15,11 +15,11 @@ static struct cfm* cfm_manager_mock_get_active_cfm (const struct cfm_manager *ma
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct cfm*, cfm_manager_mock_get_active_cfm,
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, const struct cfm*, cfm_manager_mock_get_active_cfm,
 		manager);
 }
 
-static struct cfm* cfm_manager_mock_get_pending_cfm (const struct cfm_manager *manager)
+static const struct cfm* cfm_manager_mock_get_pending_cfm (const struct cfm_manager *manager)
 {
 	struct cfm_manager_mock *mock = (struct cfm_manager_mock*) manager;
 
@@ -27,11 +27,11 @@ static struct cfm* cfm_manager_mock_get_pending_cfm (const struct cfm_manager *m
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct cfm*, cfm_manager_mock_get_pending_cfm,
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, const struct cfm*, cfm_manager_mock_get_pending_cfm,
 		manager);
 }
 
-static void cfm_manager_mock_free_cfm (const struct cfm_manager *manager, struct cfm *cfm)
+static void cfm_manager_mock_free_cfm (const struct cfm_manager *manager, const struct cfm *cfm)
 {
 	struct cfm_manager_mock *mock = (struct cfm_manager_mock*) manager;
 
@@ -193,7 +193,7 @@ int cfm_manager_mock_init (struct cfm_manager_mock *mock)
 		return status;
 	}
 
-	status = cfm_manager_init (&mock->base, &mock->hash.base);
+	status = cfm_manager_init (&mock->base, &mock->state, &mock->hash.base);
 	if (status != 0) {
 		return status;
 	}

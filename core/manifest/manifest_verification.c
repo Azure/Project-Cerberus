@@ -78,7 +78,7 @@ int manifest_verification_is_key_valid (const struct signature_verification *ver
 }
 
 void manifest_verification_on_manifest_activated (const struct pfm_observer *observer,
-	struct manifest *active)
+	const struct manifest *active)
 {
 	const struct manifest_verification *manifest =
 		TO_DERIVED_TYPE (observer, const struct manifest_verification, base_observer);
@@ -246,8 +246,8 @@ int manifest_verification_init (struct manifest_verification *verification,
 	/* PFM, CFM, and PCD observers have the same structure and this module only depends on common
 	 * manifest APIs, so save memory by using the same observer instance and handler function. */
 	verification->base_observer.on_pfm_activated =
-		(void (*) (const struct pfm_observer*,
-		struct pfm*)) manifest_verification_on_manifest_activated;
+		(void (*) (const struct pfm_observer*, const struct pfm*))
+		manifest_verification_on_manifest_activated;
 
 	verification->base_update.on_update_start = manifest_verification_on_update_start;
 
@@ -410,7 +410,7 @@ const struct cfm_observer* manifest_verification_get_cfm_observer (
 	const struct manifest_verification *verification)
 {
 	if (verification) {
-		return (struct cfm_observer*) &verification->base_observer;
+		return (const struct cfm_observer*) &verification->base_observer;
 	}
 	else {
 		return NULL;
@@ -428,7 +428,7 @@ const struct pcd_observer* manifest_verification_get_pcd_observer (
 	const struct manifest_verification *verification)
 {
 	if (verification) {
-		return (struct pcd_observer*) &verification->base_observer;
+		return (const struct pcd_observer*) &verification->base_observer;
 	}
 	else {
 		return NULL;

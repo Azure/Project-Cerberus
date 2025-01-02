@@ -21,7 +21,7 @@
  * Container for the list of read/write regions for the current firmware on flash.
  */
 struct host_flash_manager_rw_regions {
-	struct pfm *pfm;							/**< PFM instance providing the read/write regions. */
+	const struct pfm *pfm;						/**< PFM instance providing the read/write regions. */
 	struct pfm_read_write_regions *writable;	/**< List of read/write regions from PFM entries. */
 	size_t count;								/**< The number of PFM entries in the list. */
 };
@@ -30,7 +30,7 @@ struct host_flash_manager_rw_regions {
  * Container for the list of images to authenticate for the current firmware on flash.
  */
 struct host_flash_manager_images {
-	struct pfm *pfm;					/**< PFM instance providing the image list. */
+	const struct pfm *pfm;				/**< PFM instance providing the image list. */
 	struct pfm_image_list *fw_images;	/**< List of firmware images from PFM entries. */
 	size_t count;						/**< The number of PFM entries in the list. */
 };
@@ -78,8 +78,8 @@ struct host_flash_manager {
 	 * @return 0 if the read-only flash was successfully validated or an error code.  Blank check
 	 * failures will be reported with FLASH_UTIL_UNEXPECTED_VALUE.
 	 */
-	int (*validate_read_only_flash) (struct host_flash_manager *manager, struct pfm *pfm,
-		struct pfm *good_pfm, const struct hash_engine *hash, const struct rsa_engine *rsa,
+	int (*validate_read_only_flash) (struct host_flash_manager *manager, const struct pfm *pfm,
+		const struct pfm *good_pfm, const struct hash_engine *hash, const struct rsa_engine *rsa,
 		bool full_validation, struct host_flash_manager_rw_regions *host_rw);
 
 	/**
@@ -96,7 +96,7 @@ struct host_flash_manager {
 	 * @return 0 if the read/write flash was successfully validated or an error code.  Blank check
 	 * failures will be reported with FLASH_UTIL_UNEXPECTED_VALUE.
 	 */
-	int (*validate_read_write_flash) (struct host_flash_manager *manager, struct pfm *pfm,
+	int (*validate_read_write_flash) (struct host_flash_manager *manager, const struct pfm *pfm,
 		const struct hash_engine *hash, const struct rsa_engine *rsa,
 		struct host_flash_manager_rw_regions *host_rw);
 
@@ -115,7 +115,7 @@ struct host_flash_manager {
 	 *
 	 * @return 0 if the read/write regions were successfully retrieved or an error code.
 	 */
-	int (*get_flash_read_write_regions) (struct host_flash_manager *manager, struct pfm *pfm,
+	int (*get_flash_read_write_regions) (struct host_flash_manager *manager, const struct pfm *pfm,
 		bool rw_flash, struct host_flash_manager_rw_regions *host_rw);
 
 	/**
@@ -161,7 +161,7 @@ struct host_flash_manager {
 	 * @return 0 if the flashes were switched or an error code.
 	 */
 	int (*swap_flash_devices) (struct host_flash_manager *manager,
-		struct host_flash_manager_rw_regions *host_rw, struct pfm_manager *used_pending);
+		struct host_flash_manager_rw_regions *host_rw, const struct pfm_manager *used_pending);
 
 	/**
 	 * Configure the system for first-time flash protection.  This should only be called once for
@@ -234,25 +234,25 @@ struct host_flash_manager {
 
 
 /* Internal functions for use by derived types. */
-int host_flash_manager_get_image_entry (struct pfm *pfm, const struct spi_flash *flash,
+int host_flash_manager_get_image_entry (const struct pfm *pfm, const struct spi_flash *flash,
 	uint32_t offset, const char *fw_id, struct pfm_firmware_versions *versions,
 	const struct pfm_firmware_version **version, struct pfm_image_list *fw_images,
 	struct pfm_read_write_regions *writable);
-int host_flash_manager_get_firmware_types (struct pfm *pfm, struct pfm_firmware *host_fw,
+int host_flash_manager_get_firmware_types (const struct pfm *pfm, struct pfm_firmware *host_fw,
 	struct host_flash_manager_images *host_img, struct host_flash_manager_rw_regions *host_rw);
 
-int host_flash_manager_validate_flash (struct pfm *pfm, const struct hash_engine *hash,
+int host_flash_manager_validate_flash (const struct pfm *pfm, const struct hash_engine *hash,
 	const struct rsa_engine *rsa, bool full_validation, const struct spi_flash *flash,
 	struct host_flash_manager_rw_regions *host_rw);
-int host_flash_manager_validate_offset_flash (struct pfm *pfm, const struct hash_engine *hash,
+int host_flash_manager_validate_offset_flash (const struct pfm *pfm, const struct hash_engine *hash,
 	const struct rsa_engine *rsa, bool full_validation, const struct spi_flash *flash,
 	uint32_t offset, struct host_flash_manager_rw_regions *host_rw);
-int host_flash_manager_validate_pfm (struct pfm *pfm, struct pfm *good_pfm,
+int host_flash_manager_validate_pfm (const struct pfm *pfm, const struct pfm *good_pfm,
 	const struct hash_engine *hash, const struct rsa_engine *rsa, const struct spi_flash *flash,
 	struct host_flash_manager_rw_regions *host_rw);
 
-int host_flash_manager_get_flash_read_write_regions (const struct spi_flash *flash, struct pfm *pfm,
-	struct host_flash_manager_rw_regions *host_rw);
+int host_flash_manager_get_flash_read_write_regions (const struct spi_flash *flash,
+	const struct pfm *pfm, struct host_flash_manager_rw_regions *host_rw);
 
 void host_flash_manager_free_read_write_regions (struct host_flash_manager *manager,
 	struct host_flash_manager_rw_regions *host_rw);

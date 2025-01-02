@@ -9,6 +9,7 @@
 #include "common/array_size.h"
 #include "flash/flash.h"
 #include "manifest/pcd/pcd_flash.h"
+#include "manifest/pcd/pcd_flash_static.h"
 #include "manifest/pcd/pcd_format.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/manifest/manifest_flash_v2_testing.h"
@@ -1656,6 +1657,7 @@ const struct pcd_testing_data PCD_EMPTY_TESTING = {
  */
 struct pcd_flash_testing {
 	struct manifest_flash_v2_testing manifest;	/**< Common dependencies for manifest testing. */
+	struct pcd_flash_state state;				/**< Context for the PCD test instance. */
 	struct pcd_flash test;						/**< PCD instance under test. */
 };
 
@@ -1686,7 +1688,7 @@ static void pcd_flash_testing_validate_and_release_dependencies (CuTest *test,
 }
 
 /**
- * Initialize PCD for testing.
+ * Initialize a PCD for testing.
  *
  * @param test The testing framework.
  * @param pcd The testing components to initialize.
@@ -1699,20 +1701,44 @@ static void pcd_flash_testing_init (CuTest *test, struct pcd_flash_testing *pcd,
 	pcd_flash_testing_init_dependencies (test, pcd, address);
 	manifest_flash_v2_testing_init_common (test, &pcd->manifest, 0x1000);
 
-	status = pcd_flash_init (&pcd->test, &pcd->manifest.flash.base, &pcd->manifest.hash.base,
-		address, pcd->manifest.signature, sizeof (pcd->manifest.signature),
-		pcd->manifest.platform_id, sizeof (pcd->manifest.platform_id));
+	status = pcd_flash_init (&pcd->test, &pcd->state, &pcd->manifest.flash.base,
+		&pcd->manifest.hash.base, address, pcd->manifest.signature,
+		sizeof (pcd->manifest.signature), pcd->manifest.platform_id,
+		sizeof (pcd->manifest.platform_id));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&pcd->manifest.flash.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&pcd->manifest.verification.mock);
+	status |= mock_validate (&pcd->manifest.verification.mock);
+	status |= mock_validate (&pcd->manifest.hash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 }
 
 /**
- * Initialize PCD for testing with mocked hash engine.
+ * Initialize a static PCD for testing.
+ *
+ * @param test The testing framework.
+ * @param pcd The testing components to initialize.
+ * @param address The base address for the PCD data.
+ */
+static void pcd_flash_testing_init_static (CuTest *test, struct pcd_flash_testing *pcd,
+	uint32_t address)
+{
+	int status;
+
+	pcd_flash_testing_init_dependencies (test, pcd, address);
+	manifest_flash_v2_testing_init_common (test, &pcd->manifest, 0x1000);
+
+	status = pcd_flash_init_state (&pcd->test);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&pcd->manifest.flash.mock);
+	status |= mock_validate (&pcd->manifest.verification.mock);
+	status |= mock_validate (&pcd->manifest.hash_mock.mock);
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Initialize a PCD for testing with mocked hash engine.
  *
  * @param test The testing framework.
  * @param pcd The testing components to initialize.
@@ -1726,15 +1752,15 @@ static void pcd_flash_testing_init_mocked_hash (CuTest *test, struct pcd_flash_t
 	pcd_flash_testing_init_dependencies (test, pcd, address);
 	manifest_flash_v2_testing_init_common (test, &pcd->manifest, 0x1000);
 
-	status = pcd_flash_init (&pcd->test, &pcd->manifest.flash.base, &pcd->manifest.hash_mock.base,
-		address, pcd->manifest.signature, sizeof (pcd->manifest.signature),
-		pcd->manifest.platform_id, sizeof (pcd->manifest.platform_id));
+	status = pcd_flash_init (&pcd->test, &pcd->state, &pcd->manifest.flash.base,
+		&pcd->manifest.hash_mock.base, address, pcd->manifest.signature,
+		sizeof (pcd->manifest.signature), pcd->manifest.platform_id,
+		sizeof (pcd->manifest.platform_id));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&pcd->manifest.flash.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&pcd->manifest.verification.mock);
+	status |= mock_validate (&pcd->manifest.verification.mock);
+	status |= mock_validate (&pcd->manifest.hash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -1816,12 +1842,46 @@ static void pcd_flash_testing_init_and_verify (CuTest *test, struct pcd_flash_te
 	CuAssertIntEquals (test, sig_result, status);
 
 	status = mock_validate (&pcd->manifest.flash.mock);
+	status |= mock_validate (&pcd->manifest.verification.mock);
+	status |= mock_validate (&pcd->manifest.hash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
+}
 
-	status = mock_validate (&pcd->manifest.verification.mock);
-	CuAssertIntEquals (test, 0, status);
+/**
+ * Initialize a static PCD for testing.  Run verification to load the PCD information.
+ *
+ * @param test The testing framework.
+ * @param pcd The testing components to initialize.
+ * @param address The base address for the PCD data.
+ * @param testing_data Container with testing data.
+ * @param sig_result Result of the signature verification call.
+ * @param use_mock true to use the mock hash engine.
+ * @param hash_result Result of the final hash call when using the mock hash engine.
+ */
+static void pcd_flash_testing_init_static_and_verify (CuTest *test, struct pcd_flash_testing *pcd,
+	uint32_t address, const struct pcd_testing_data *testing_data, int sig_result, bool use_mock,
+	int hash_result)
+{
+	struct hash_engine *hash =
+		(!use_mock) ? &pcd->manifest.hash.base : &pcd->manifest.hash_mock.base;
+	int status;
 
-	status = mock_validate (&pcd->manifest.hash_mock.mock);
+	pcd_flash_testing_init_static (test, pcd, address);
+
+	if (!use_mock) {
+		pcd_flash_testing_verify_pcd (test, pcd, testing_data, sig_result);
+	}
+	else {
+		pcd_flash_testing_verify_pcd_mocked_hash (test, pcd, testing_data, sig_result, hash_result);
+	}
+
+	status = pcd->test.base.base.verify (&pcd->test.base.base, hash,
+		&pcd->manifest.verification.base, NULL, 0);
+	CuAssertIntEquals (test, sig_result, status);
+
+	status = mock_validate (&pcd->manifest.flash.mock);
+	status |= mock_validate (&pcd->manifest.verification.mock);
+	status |= mock_validate (&pcd->manifest.hash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -1839,9 +1899,9 @@ static void pcd_flash_test_init (CuTest *test)
 	pcd_flash_testing_init_dependencies (test, &pcd, 0x10000);
 	manifest_flash_v2_testing_init_common (test, &pcd.manifest, 0x1000);
 
-	status = pcd_flash_init (&pcd.test, &pcd.manifest.flash.base, &pcd.manifest.hash.base, 0x10000,
-		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
-		sizeof (pcd.manifest.platform_id));
+	status = pcd_flash_init (&pcd.test, &pcd.state, &pcd.manifest.flash.base,
+		&pcd.manifest.hash.base, 0x10000, pcd.manifest.signature, sizeof (pcd.manifest.signature),
+		pcd.manifest.platform_id, sizeof (pcd.manifest.platform_id));
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, pcd.test.base.base.verify);
@@ -1874,30 +1934,35 @@ static void pcd_flash_test_init_null (CuTest *test)
 
 	pcd_flash_testing_init_dependencies (test, &pcd, 0x10000);
 
-	status = pcd_flash_init (NULL, &pcd.manifest.flash.base, &pcd.manifest.hash.base, 0x10000,
-		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+	status = pcd_flash_init (NULL, &pcd.state, &pcd.manifest.flash.base, &pcd.manifest.hash.base,
+		0x10000, pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
 		sizeof (pcd.manifest.platform_id));
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
 
-	status = pcd_flash_init (&pcd.test, NULL, &pcd.manifest.hash.base, 0x10000,
+	status = pcd_flash_init (&pcd.test, NULL, &pcd.manifest.flash.base, &pcd.manifest.hash.base,
+		0x10000, pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+		sizeof (pcd.manifest.platform_id));
+	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
+
+	status = pcd_flash_init (&pcd.test, &pcd.state, NULL, &pcd.manifest.hash.base, 0x10000,
 		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
 		sizeof (pcd.manifest.platform_id));
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = pcd_flash_init (&pcd.test, &pcd.manifest.flash.base, NULL, 0x10000,
+	status = pcd_flash_init (&pcd.test, &pcd.state, &pcd.manifest.flash.base, NULL, 0x10000,
 		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
 		sizeof (pcd.manifest.platform_id));
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = pcd_flash_init (&pcd.test, &pcd.manifest.flash.base, &pcd.manifest.hash.base, 0x10000,
-		NULL, sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
-		sizeof (pcd.manifest.platform_id));
-	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
+	status = pcd_flash_init (&pcd.test, &pcd.state, &pcd.manifest.flash.base,
+		&pcd.manifest.hash.base, 0x10000, NULL, sizeof (pcd.manifest.signature),
+		pcd.manifest.platform_id, sizeof (pcd.manifest.platform_id));
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = pcd_flash_init (&pcd.test, NULL, &pcd.manifest.hash.base, 0x10000,
+	status = pcd_flash_init (&pcd.test, &pcd.state, NULL, &pcd.manifest.hash.base, 0x10000,
 		pcd.manifest.signature, sizeof (pcd.manifest.signature), NULL,
 		sizeof (pcd.manifest.platform_id));
-	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
 	pcd_flash_testing_validate_and_release_dependencies (test, &pcd);
 }
@@ -1912,9 +1977,125 @@ static void pcd_flash_test_init_manifest_flash_init_fail (CuTest *test)
 	pcd_flash_testing_init_dependencies (test, &pcd, 0x10001);
 	manifest_flash_v2_testing_init_common (test, &pcd.manifest, 0x1000);
 
-	status = pcd_flash_init (&pcd.test, &pcd.manifest.flash.base, &pcd.manifest.hash.base, 0x10001,
-		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+	status = pcd_flash_init (&pcd.test, &pcd.state, &pcd.manifest.flash.base,
+		&pcd.manifest.hash.base, 0x10001, pcd.manifest.signature, sizeof (pcd.manifest.signature),
+		pcd.manifest.platform_id, sizeof (pcd.manifest.platform_id));
+	CuAssertIntEquals (test, MANIFEST_STORAGE_NOT_ALIGNED, status);
+
+	pcd_flash_testing_validate_and_release_dependencies (test, &pcd);
+}
+
+static void pcd_flash_test_static_init (CuTest *test)
+{
+	struct pcd_flash_testing pcd = {
+		.test = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base,
+			&pcd.manifest.hash.base, 0x10000, pcd.manifest.signature,
+			sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+			sizeof (pcd.manifest.platform_id))
+	};
+	int status;
+
+	TEST_START;
+
+	CuAssertPtrNotNull (test, pcd.test.base.base.verify);
+	CuAssertPtrNotNull (test, pcd.test.base.base.get_id);
+	CuAssertPtrNotNull (test, pcd.test.base.base.get_platform_id);
+	CuAssertPtrNotNull (test, pcd.test.base.base.free_platform_id);
+	CuAssertPtrNotNull (test, pcd.test.base.base.get_hash);
+	CuAssertPtrNotNull (test, pcd.test.base.base.get_signature);
+	CuAssertPtrNotNull (test, pcd.test.base.base.is_empty);
+
+	CuAssertPtrNotNull (test, pcd.test.base.buffer_supported_components);
+	CuAssertPtrNotNull (test, pcd.test.base.get_next_mctp_bridge_component);
+	CuAssertPtrNotNull (test, pcd.test.base.get_rot_info);
+	CuAssertPtrNotNull (test, pcd.test.base.get_port_info);
+	CuAssertPtrNotNull (test, pcd.test.base.get_power_controller_info);
+
+	pcd_flash_testing_init_dependencies (test, &pcd, 0x10000);
+	manifest_flash_v2_testing_init_common (test, &pcd.manifest, 0x1000);
+
+	status = pcd_flash_init_state (&pcd.test);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 0x10000, manifest_flash_get_addr (&pcd.test.base_flash));
+	CuAssertPtrEquals (test, &pcd.manifest.flash,
+		(void*) manifest_flash_get_flash (&pcd.test.base_flash));
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_static_init_null (CuTest *test)
+{
+	struct pcd_flash_testing pcd = {
+		.test = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base,
+			&pcd.manifest.hash.base, 0x10000, pcd.manifest.signature,
+			sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+			sizeof (pcd.manifest.platform_id))
+	};
+
+	struct pcd_flash null_state = pcd_flash_static_init ((struct pcd_flash_state*) NULL,
+		&pcd.manifest.flash.base, &pcd.manifest.hash.base, 0x10000, pcd.manifest.signature,
+		sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
 		sizeof (pcd.manifest.platform_id));
+
+	struct pcd_flash null_flash = pcd_flash_static_init (&pcd.state, NULL, &pcd.manifest.hash.base,
+		0x10000, pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+		sizeof (pcd.manifest.platform_id));
+
+	struct pcd_flash null_hash = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base, NULL,
+		0x10000, pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+		sizeof (pcd.manifest.platform_id));
+
+	struct pcd_flash null_sig = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base,
+		&pcd.manifest.hash.base, 0x10000, NULL, sizeof (pcd.manifest.signature),
+		pcd.manifest.platform_id, sizeof (pcd.manifest.platform_id));
+
+	struct pcd_flash null_plat_id = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base,
+		&pcd.manifest.hash.base, 0x10000, pcd.manifest.signature, sizeof (pcd.manifest.signature),
+		NULL, sizeof (pcd.manifest.platform_id));
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_dependencies (test, &pcd, 0x10000);
+
+	status = pcd_flash_init_state (NULL);
+	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
+
+	status = pcd_flash_init_state (&null_state);
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
+
+	status = pcd_flash_init_state (&null_flash);
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
+
+	status = pcd_flash_init_state (&null_hash);
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
+
+	status = pcd_flash_init_state (&null_sig);
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
+
+	status = pcd_flash_init_state (&null_plat_id);
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
+
+	pcd_flash_testing_validate_and_release_dependencies (test, &pcd);
+}
+
+static void pcd_flash_test_static_init_manifest_flash_init_fail (CuTest *test)
+{
+	struct pcd_flash_testing pcd = {
+		.test = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base,
+			&pcd.manifest.hash.base, 0x10001, pcd.manifest.signature,
+			sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+			sizeof (pcd.manifest.platform_id))
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_dependencies (test, &pcd, 0x10001);
+	manifest_flash_v2_testing_init_common (test, &pcd.manifest, 0x1000);
+
+	status = pcd_flash_init_state (&pcd.test);
 	CuAssertIntEquals (test, MANIFEST_STORAGE_NOT_ALIGNED, status);
 
 	pcd_flash_testing_validate_and_release_dependencies (test, &pcd);
@@ -2125,6 +2306,29 @@ static void pcd_flash_test_verify_empty_manifest (CuTest *test)
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
 
+static void pcd_flash_test_verify_static_init (CuTest *test)
+{
+	struct pcd_flash_testing pcd = {
+		.test = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base,
+			&pcd.manifest.hash.base, 0x10000, pcd.manifest.signature,
+			sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+			sizeof (pcd.manifest.platform_id))
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_static (test, &pcd, 0x10000);
+
+	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_TESTING, 0);
+
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base,
+		&pcd.manifest.verification.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
 static void pcd_flash_test_verify_null (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
@@ -2214,6 +2418,28 @@ static void pcd_flash_test_get_id (CuTest *test)
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
 
+static void pcd_flash_test_get_id_static_init (CuTest *test)
+{
+	struct pcd_flash_testing pcd = {
+		.test = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base,
+			&pcd.manifest.hash.base, 0x10000, pcd.manifest.signature,
+			sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+			sizeof (pcd.manifest.platform_id))
+	};
+	int status;
+	uint32_t id;
+
+	TEST_START;
+
+	pcd_flash_testing_init_static_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
+
+	status = pcd.test.base.base.get_id (&pcd.test.base.base, &id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0x1A, id);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
 static void pcd_flash_test_get_id_null (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
@@ -2291,6 +2517,44 @@ static void pcd_flash_test_get_hash_after_verify (CuTest *test)
 	TEST_START;
 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
+
+	status = pcd.test.base.base.get_hash (&pcd.test.base.base, &pcd.manifest.hash.base, hash_out,
+		sizeof (hash_out));
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (PCD_TESTING.manifest.hash, hash_out,
+		PCD_TESTING.manifest.hash_len);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_hash_static_init (CuTest *test)
+{
+	struct pcd_flash_testing pcd = {
+		.test = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base,
+			&pcd.manifest.hash.base, 0x10000, pcd.manifest.signature,
+			sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+			sizeof (pcd.manifest.platform_id))
+	};
+	uint8_t hash_out[SHA256_HASH_LENGTH];
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_static (test, &pcd, 0x10000);
+
+	/* Read manifest header. */
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
+		&pcd.manifest.flash, 0, MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_HEADER_SIZE));
+	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, PCD_TESTING.manifest.raw,
+		MANIFEST_V2_HEADER_SIZE, 2);
+
+	status |= flash_mock_expect_verify_flash (&pcd.manifest.flash, 0x10000,
+		PCD_TESTING.manifest.raw, PCD_DATA_LEN - PCD_TESTING.manifest.sig_len);
+
+	CuAssertIntEquals (test, 0, status);
 
 	status = pcd.test.base.base.get_hash (&pcd.test.base.base, &pcd.manifest.hash.base, hash_out,
 		sizeof (hash_out));
@@ -2409,6 +2673,45 @@ static void pcd_flash_test_get_signature_after_verify (CuTest *test)
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
 
+static void pcd_flash_test_get_signature_static_init (CuTest *test)
+{
+	struct pcd_flash_testing pcd = {
+		.test = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base,
+			&pcd.manifest.hash.base, 0x10000, pcd.manifest.signature,
+			sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+			sizeof (pcd.manifest.platform_id))
+	};
+	uint8_t sig_out[PCD_TESTING.manifest.sig_len];
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_static (test, &pcd, 0x10000);
+
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
+		&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_HEADER_SIZE));
+	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, PCD_TESTING.manifest.raw,
+		MANIFEST_V2_HEADER_SIZE, 2);
+
+	status |= mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
+		&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr + PCD_TESTING.manifest.sig_offset),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (PCD_TESTING.manifest.sig_len));
+	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, PCD_TESTING.manifest.signature,
+		PCD_TESTING.manifest.sig_len, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd.test.base.base.get_signature (&pcd.test.base.base, sig_out, sizeof (sig_out));
+	CuAssertIntEquals (test, PCD_TESTING.manifest.sig_len, status);
+
+	status = testing_validate_array (PCD_TESTING.manifest.signature, sig_out,
+		PCD_TESTING.manifest.sig_len);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
 static void pcd_flash_test_get_signature_null (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
@@ -2495,6 +2798,30 @@ static void pcd_flash_test_get_platform_id_manifest_allocation (CuTest *test)
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
 
+static void pcd_flash_test_get_platform_id_static_init (CuTest *test)
+{
+	struct pcd_flash_testing pcd = {
+		.test = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base,
+			&pcd.manifest.hash.base, 0x10000, pcd.manifest.signature,
+			sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+			sizeof (pcd.manifest.platform_id))
+	};
+	int status;
+	char buffer[32];
+	char *id = buffer;
+
+	TEST_START;
+
+	pcd_flash_testing_init_static_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
+
+	status = pcd.test.base.base.get_platform_id (&pcd.test.base.base, &id, sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, buffer, id);
+	CuAssertStrEquals (test, PCD_TESTING.manifest.plat_id_str, id);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
 static void pcd_flash_test_get_platform_id_null (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
@@ -2543,6 +2870,70 @@ static void pcd_flash_test_get_next_mctp_bridge_component (CuTest *test)
 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0,
 		false, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
+
+	status = pcd.test.base.get_next_mctp_bridge_component (&pcd.test.base, &info, true);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0x0B, info.pci_vid);
+	CuAssertIntEquals (test, 0x0A, info.pci_device_id);
+	CuAssertIntEquals (test, 0x0D, info.pci_subsystem_vid);
+	CuAssertIntEquals (test, 0x0C, info.pci_subsystem_id);
+	CuAssertIntEquals (test, 0x02, info.components_count);
+	CuAssertIntEquals (test, component_id1, info.component_id);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset +
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
+
+	status = pcd.test.base.get_next_mctp_bridge_component (&pcd.test.base, &info, false);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0x0E, info.pci_vid);
+	CuAssertIntEquals (test, 0x0D, info.pci_device_id);
+	CuAssertIntEquals (test, 0x0A, info.pci_subsystem_vid);
+	CuAssertIntEquals (test, 0x0F, info.pci_subsystem_id);
+	CuAssertIntEquals (test, 0x01, info.components_count);
+	CuAssertIntEquals (test, component_id2, info.component_id);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, 0,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 2, 0, 0, 0, 0, 0);
+
+	status = pcd.test.base.get_next_mctp_bridge_component (&pcd.test.base, &info, false);
+	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_next_mctp_bridge_component_static_init (CuTest *test)
+{
+	struct pcd_flash_testing pcd = {
+		.test = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base,
+			&pcd.manifest.hash.base, 0x10000, pcd.manifest.signature,
+			sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+			sizeof (pcd.manifest.platform_id))
+	};
+	struct pcd_mctp_bridge_components_info info;
+	uint32_t component_id1 = 1;
+	uint32_t component_id2 = 2;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_static_and_verify (test, &pcd, 0x10000,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0, false, 0);
 
 	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
 		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
@@ -2659,7 +3050,7 @@ static void pcd_flash_test_get_next_mctp_bridge_component_no_components (CuTest 
 
 	for (int i = 0; i < PCD_NO_COMPONENTS_TESTING.manifest.toc_entries; ++i) {
 		status |= mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
-			&pcd.manifest.flash, 0,	MOCK_ARG (pcd.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET +
+			&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET +
 			i * MANIFEST_V2_TOC_ENTRY_SIZE), MOCK_ARG_NOT_NULL,
 			MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
 		status |= mock_expect_output (&pcd.manifest.flash.mock, 1,
@@ -2698,7 +3089,7 @@ static void pcd_flash_test_get_next_mctp_bridge_component_malformed_component (C
 
 	manifest_flash_v2_testing_read_element_mocked_hash_bad_entry (test, &pcd.manifest,
 		&PCD_TESTING.manifest, PCD_TESTING.bridge_component_entry, 0,
-		PCD_TESTING.bridge_component_hash, PCD_TESTING.bridge_component_offset,	bad_entry.length,
+		PCD_TESTING.bridge_component_hash, PCD_TESTING.bridge_component_offset, bad_entry.length,
 		bad_entry.length, 0, &bad_entry, NULL);
 
 	status = pcd.test.base.get_next_mctp_bridge_component (&pcd.test.base, &info, true);
@@ -2778,6 +3169,46 @@ static void pcd_flash_test_get_rot_info_v1 (CuTest *test)
 		info.attestation_rsp_not_ready_max_duration);
 	CuAssertIntEquals (test, PCD_FLASH_ATTESTATION_RSP_NOT_READY_MAX_RETRY_DEFAULT,
 		info.attestation_rsp_not_ready_max_retry);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_rot_info_static_init (CuTest *test)
+{
+	struct pcd_flash_testing pcd = {
+		.test = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base,
+			&pcd.manifest.hash.base, 0x10000, pcd.manifest.signature,
+			sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+			sizeof (pcd.manifest.platform_id))
+	};
+	struct pcd_rot_info info;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_static_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len,
+		PCD_TESTING.rot_len, 0);
+
+	status = pcd.test.base.get_rot_info (&pcd.test.base, &info);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, info.is_pa_rot);
+	CuAssertIntEquals (test, 2, info.port_count);
+	CuAssertIntEquals (test, 2, info.components_count);
+	CuAssertIntEquals (test, 0x41, info.i2c_slave_addr);
+	CuAssertIntEquals (test, 0x0B, info.eid);
+	CuAssertIntEquals (test, 0x10, info.bridge_i2c_addr);
+	CuAssertIntEquals (test, 0x0A, info.bridge_eid);
+	CuAssertIntEquals (test, 86400000, info.attestation_success_retry);
+	CuAssertIntEquals (test, 10000, info.attestation_fail_retry);
+	CuAssertIntEquals (test, 10000, info.discovery_fail_retry);
+	CuAssertIntEquals (test, 2000, info.mctp_ctrl_timeout);
+	CuAssertIntEquals (test, 3000, info.mctp_bridge_get_table_wait);
+	CuAssertIntEquals (test, 0, info.mctp_bridge_additional_timeout);
+	CuAssertIntEquals (test, 1000, info.attestation_rsp_not_ready_max_duration);
+	CuAssertIntEquals (test, 3, info.attestation_rsp_not_ready_max_retry);
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
@@ -3037,6 +3468,67 @@ static void pcd_flash_test_get_port_info_filtered_bypass_flash_modes_and_pulse_r
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
 
+static void pcd_flash_test_get_port_info_static_init (CuTest *test)
+{
+	struct pcd_flash_testing pcd = {
+		.test = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base,
+			&pcd.manifest.hash.base, 0x10000, pcd.manifest.signature,
+			sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+			sizeof (pcd.manifest.platform_id))
+	};
+	struct pcd_port_info info;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_static_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len,
+		PCD_TESTING.rot_len, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.port_entry, PCD_TESTING.port_entry, PCD_TESTING.port_hash,
+		PCD_TESTING.port_offset, PCD_TESTING.port_len, PCD_TESTING.port_len, 0);
+
+	status = pcd.test.base.get_port_info (&pcd.test.base, 0, &info);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 32000000, info.spi_freq);
+	CuAssertIntEquals (test, 0, info.flash_mode);
+	CuAssertIntEquals (test, 1, info.reset_ctrl);
+	CuAssertIntEquals (test, 0, info.policy);
+	CuAssertIntEquals (test, 1, info.runtime_verification);
+	CuAssertIntEquals (test, 1, info.watchdog_monitoring);
+	CuAssertIntEquals (test, 1, info.host_reset_action);
+	CuAssertIntEquals (test, 0, info.pulse_interval);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len,
+		PCD_TESTING.rot_len, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.port_entry, PCD_TESTING.port_entry, PCD_TESTING.port_hash,
+		PCD_TESTING.port_offset, PCD_TESTING.port_len, PCD_TESTING.port_len, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.port_entry + 1, PCD_TESTING.port_entry + 1, PCD_TESTING.port_hash + 1,
+		PCD_TESTING.port_offset + PCD_TESTING.port_len, PCD_TESTING.port_len, PCD_TESTING.port_len,
+		0);
+
+	status = pcd.test.base.get_port_info (&pcd.test.base, 1, &info);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 64000000, info.spi_freq);
+	CuAssertIntEquals (test, 1, info.flash_mode);
+	CuAssertIntEquals (test, 0, info.reset_ctrl);
+	CuAssertIntEquals (test, 1, info.policy);
+	CuAssertIntEquals (test, 0, info.runtime_verification);
+	CuAssertIntEquals (test, 0, info.watchdog_monitoring);
+	CuAssertIntEquals (test, 0, info.host_reset_action);
+	CuAssertIntEquals (test, 10, info.pulse_interval);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
 static void pcd_flash_test_get_port_info_null (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
@@ -3255,6 +3747,36 @@ static void pcd_flash_test_get_power_controller_info (CuTest *test)
 	TEST_START;
 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.power_ctrl_entry, 0, PCD_TESTING.power_ctrl_hash, PCD_TESTING.power_ctrl_offset,
+		PCD_TESTING.power_ctrl_len, sizeof (struct pcd_power_controller_element), 0);
+
+	status = pcd.test.base.get_power_controller_info (&pcd.test.base, &info);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 2, info.mux_count);
+	CuAssertIntEquals (test, PCD_I2C_MODE_MULTIMASTER, info.i2c_mode);
+	CuAssertIntEquals (test, 2, info.bus);
+	CuAssertIntEquals (test, 0x22, info.address);
+	CuAssertIntEquals (test, 0x14, info.eid);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_power_controller_info_static_init (CuTest *test)
+{
+	struct pcd_flash_testing pcd = {
+		.test = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base,
+			&pcd.manifest.hash.base, 0x10000, pcd.manifest.signature,
+			sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+			sizeof (pcd.manifest.platform_id))
+	};
+	struct pcd_power_controller_info info;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_static_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
 
 	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
 		PCD_TESTING.power_ctrl_entry, 0, PCD_TESTING.power_ctrl_hash, PCD_TESTING.power_ctrl_offset,
@@ -3584,6 +4106,60 @@ static void pcd_flash_test_buffer_supported_components_smaller_length (CuTest *t
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
 
+static void pcd_flash_test_buffer_supported_components_static_init (CuTest *test)
+{
+	struct pcd_flash_testing pcd = {
+		.test = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base,
+			&pcd.manifest.hash.base, 0x10000, pcd.manifest.signature,
+			sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+			sizeof (pcd.manifest.platform_id))
+	};
+	uint8_t components[4096];
+	size_t components_len = sizeof (components);
+	struct pcd_supported_component supported_component[2] = {{1, 2}, {2, 1}};
+	size_t component_len = sizeof (supported_component[0]);
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_static_and_verify (test, &pcd, 0x10000,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0, false, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry,
+		0, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset +
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
+
+	status = pcd.test.base.buffer_supported_components (&pcd.test.base, 0, components_len,
+		(uint8_t*) components);
+
+	CuAssertIntEquals (test, sizeof (supported_component), status);
+	CuAssertIntEquals (test, supported_component[0].component_id, *(uint32_t*) components);
+	CuAssertIntEquals (test, supported_component[1].component_id,
+		*(uint32_t*) (components + component_len));
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
 static void pcd_flash_test_buffer_supported_components_null (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
@@ -3723,6 +4299,26 @@ static void pcd_flash_test_is_empty_empty_manifest (CuTest *test)
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
 
+static void pcd_flash_test_is_empty_static_init (CuTest *test)
+{
+	struct pcd_flash_testing pcd = {
+		.test = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base,
+			&pcd.manifest.hash.base, 0x10000, pcd.manifest.signature,
+			sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+			sizeof (pcd.manifest.platform_id))
+	};
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_static_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
+
+	status = pcd.test.base.base.is_empty (&pcd.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
 static void pcd_flash_test_is_empty_null (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
@@ -3760,6 +4356,9 @@ TEST_SUITE_START (pcd_flash);
 TEST (pcd_flash_test_init);
 TEST (pcd_flash_test_init_null);
 TEST (pcd_flash_test_init_manifest_flash_init_fail);
+TEST (pcd_flash_test_static_init);
+TEST (pcd_flash_test_static_init_null);
+TEST (pcd_flash_test_static_init_manifest_flash_init_fail);
 TEST (pcd_flash_test_release_null);
 TEST (pcd_flash_test_verify);
 TEST (pcd_flash_test_verify_no_power_controller);
@@ -3772,25 +4371,31 @@ TEST (pcd_flash_test_verify_only_bridge_components);
 TEST (pcd_flash_test_verify_multiple_bridge_components);
 TEST (pcd_flash_test_verify_filtered_bypass_pulse_reset);
 TEST (pcd_flash_test_verify_empty_manifest);
+TEST (pcd_flash_test_verify_static_init);
 TEST (pcd_flash_test_verify_null);
 TEST (pcd_flash_test_verify_read_header_fail);
 TEST (pcd_flash_test_verify_bad_magic_number);
 TEST (pcd_flash_test_get_id);
+TEST (pcd_flash_test_get_id_static_init);
 TEST (pcd_flash_test_get_id_null);
 TEST (pcd_flash_test_get_id_verify_never_run);
 TEST (pcd_flash_test_get_hash);
 TEST (pcd_flash_test_get_hash_after_verify);
+TEST (pcd_flash_test_get_hash_static_init);
 TEST (pcd_flash_test_get_hash_null);
 TEST (pcd_flash_test_get_hash_bad_magic_num);
 TEST (pcd_flash_test_get_signature);
 TEST (pcd_flash_test_get_signature_after_verify);
+TEST (pcd_flash_test_get_signature_static_init);
 TEST (pcd_flash_test_get_signature_null);
 TEST (pcd_flash_test_get_signature_bad_magic_number);
 TEST (pcd_flash_test_get_platform_id);
 TEST (pcd_flash_test_get_platform_id_manifest_allocation);
+TEST (pcd_flash_test_get_platform_id_static_init);
 TEST (pcd_flash_test_get_platform_id_null);
 TEST (pcd_flash_test_get_platform_id_verify_never_run);
 TEST (pcd_flash_test_get_next_mctp_bridge_component);
+TEST (pcd_flash_test_get_next_mctp_bridge_component_static_init);
 TEST (pcd_flash_test_get_next_mctp_bridge_component_null);
 TEST (pcd_flash_test_get_next_mctp_bridge_component_verify_never_run);
 TEST (pcd_flash_test_get_next_mctp_bridge_component_component_read_error);
@@ -3798,6 +4403,7 @@ TEST (pcd_flash_test_get_next_mctp_bridge_component_no_components);
 TEST (pcd_flash_test_get_next_mctp_bridge_component_malformed_component);
 TEST (pcd_flash_test_get_rot_info);
 TEST (pcd_flash_test_get_rot_info_v1);
+TEST (pcd_flash_test_get_rot_info_static_init);
 TEST (pcd_flash_test_get_rot_info_null);
 TEST (pcd_flash_test_get_rot_info_verify_never_run);
 TEST (pcd_flash_test_get_rot_info_rot_read_error);
@@ -3805,6 +4411,7 @@ TEST (pcd_flash_test_get_rot_info_malformed_rot);
 TEST (pcd_flash_test_get_rot_info_malformed_rot_v1);
 TEST (pcd_flash_test_get_port_info);
 TEST (pcd_flash_test_get_port_info_filtered_bypass_flash_modes_and_pulse_reset_control);
+TEST (pcd_flash_test_get_port_info_static_init);
 TEST (pcd_flash_test_get_port_info_null);
 TEST (pcd_flash_test_get_port_info_verify_never_run);
 TEST (pcd_flash_test_get_port_info_no_ports);
@@ -3814,6 +4421,7 @@ TEST (pcd_flash_test_get_port_info_no_parent);
 TEST (pcd_flash_test_get_port_info_hash_error);
 TEST (pcd_flash_test_get_port_info_malformed_port);
 TEST (pcd_flash_test_get_power_controller_info);
+TEST (pcd_flash_test_get_power_controller_info_static_init);
 TEST (pcd_flash_test_get_power_controller_info_null);
 TEST (pcd_flash_test_get_power_controller_info_verify_never_run);
 TEST (pcd_flash_test_get_power_controller_info_no_power_controller);
@@ -3823,12 +4431,14 @@ TEST (pcd_flash_test_buffer_supported_components_offset_nonzero);
 TEST (pcd_flash_test_buffer_supported_components_offset_too_large);
 TEST (pcd_flash_test_buffer_supported_components_offset_not_word_aligned);
 TEST (pcd_flash_test_buffer_supported_components_smaller_length);
+TEST (pcd_flash_test_buffer_supported_components_static_init);
 TEST (pcd_flash_test_buffer_supported_components_null);
 TEST (pcd_flash_test_buffer_supported_components_verify_never_run);
 TEST (pcd_flash_test_buffer_supported_components_rot_element_read_fail);
 TEST (pcd_flash_test_buffer_supported_components_malformed_component_device);
 TEST (pcd_flash_test_is_empty);
 TEST (pcd_flash_test_is_empty_empty_manifest);
+TEST (pcd_flash_test_is_empty_static_init);
 TEST (pcd_flash_test_is_empty_null);
 TEST (pcd_flash_test_is_empty_verify_never_run);
 

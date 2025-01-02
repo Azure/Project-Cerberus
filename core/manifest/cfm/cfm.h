@@ -184,7 +184,7 @@ struct cfm {
 	 *
 	 * @return 0 if the component device was found or an error code.
 	 */
-	int (*get_component_device) (struct cfm *cfm, uint32_t component_id,
+	int (*get_component_device) (const struct cfm *cfm, uint32_t component_id,
 		struct cfm_component_device *component);
 
 	/**
@@ -193,7 +193,7 @@ struct cfm {
 	 * @param cfm The CFM instance that provided the component device.
 	 * @param component The component device container with content to free.
 	 */
-	void (*free_component_device) (struct cfm *cfm, struct cfm_component_device *component);
+	void (*free_component_device) (const struct cfm *cfm, struct cfm_component_device *component);
 
 	/**
 	 * Get list of supported component IDs from CFM.
@@ -208,7 +208,7 @@ struct cfm {
 	 * @return The number of bytes written to the output buffer or an error code.  Use ROT_IS_ERROR
 	 * to check the return value.
 	 */
-	int (*buffer_supported_components) (struct cfm *cfm, size_t offset, size_t length,
+	int (*buffer_supported_components) (const struct cfm *cfm, size_t offset, size_t length,
 		uint8_t *component_ids);
 
 	/**
@@ -221,7 +221,7 @@ struct cfm {
 	 *
 	 * @return 0 if the component PMR was retrieved successfully or an error code.
 	 */
-	int (*get_component_pmr) (struct cfm *cfm, uint32_t component_id, uint8_t pmr_id,
+	int (*get_component_pmr) (const struct cfm *cfm, uint32_t component_id, uint8_t pmr_id,
 		struct cfm_pmr *pmr);
 
 	/**
@@ -234,7 +234,7 @@ struct cfm {
 	 *
 	 * @return 0 if the component PMR digest was retrieved successfully or an error code.
 	 */
-	int (*get_component_pmr_digest) (struct cfm *cfm, uint32_t component_id, uint8_t pmr_id,
+	int (*get_component_pmr_digest) (const struct cfm *cfm, uint32_t component_id, uint8_t pmr_id,
 		struct cfm_pmr_digest *pmr_digest);
 
 	/**
@@ -243,7 +243,7 @@ struct cfm {
 	 * @param cfm The CFM instance that provided the PMR digest.
 	 * @param pmr_digest The PMR digest container with content to free.
 	 */
-	void (*free_component_pmr_digest) (struct cfm *cfm, struct cfm_pmr_digest *pmr_digest);
+	void (*free_component_pmr_digest) (const struct cfm *cfm, struct cfm_pmr_digest *pmr_digest);
 
 	/**
 	 * Find the next Measurement Digest or Measurement Data for the specified component ID.  When
@@ -266,7 +266,7 @@ struct cfm {
 	 *
 	 * @return 0 if the Measurement or Measurement Data was found or an error code.
 	 */
-	int (*get_next_measurement_or_measurement_data) (struct cfm *cfm, uint32_t component_id,
+	int (*get_next_measurement_or_measurement_data) (const struct cfm *cfm, uint32_t component_id,
 		struct cfm_measurement_container *container, bool first);
 
 	/**
@@ -276,7 +276,7 @@ struct cfm {
 	 * @param cfm The CFM instance that provided the measurement.
 	 * @param container The measurement container with content to free.
 	 */
-	void (*free_measurement_container) (struct cfm *cfm,
+	void (*free_measurement_container) (const struct cfm *cfm,
 		struct cfm_measurement_container *container);
 
 	/**
@@ -289,7 +289,7 @@ struct cfm {
 	 *
 	 * @return 0 if the root CA digest was found or an error code.
 	 */
-	int (*get_root_ca_digest) (struct cfm *cfm, uint32_t component_id,
+	int (*get_root_ca_digest) (const struct cfm *cfm, uint32_t component_id,
 		struct cfm_root_ca_digests *root_ca_digest);
 
 	/**
@@ -298,7 +298,7 @@ struct cfm {
 	 * @param cfm The CFM instance that provided the root CA digests.
 	 * @param root_ca_digest The root CA digests container with content to free.
 	 */
-	void (*free_root_ca_digest) (struct cfm *cfm, struct cfm_root_ca_digests *root_ca_digest);
+	void (*free_root_ca_digest) (const struct cfm *cfm, struct cfm_root_ca_digests *root_ca_digest);
 
 	/**
 	 * Find next allowable PFM for the specified component ID.
@@ -318,8 +318,8 @@ struct cfm {
 	 *
 	 * @return 0 if the allowable PFM was found or an error code.
 	 */
-	int (*get_next_pfm) (struct cfm *cfm, uint32_t component_id, struct cfm_manifest *allowable_pfm,
-		bool first);
+	int (*get_next_pfm) (const struct cfm *cfm, uint32_t component_id,
+		struct cfm_manifest *allowable_pfm, bool first);
 
 	/**
 	 * Find next allowable CFM for the specified component ID.
@@ -339,8 +339,8 @@ struct cfm {
 	 *
 	 * @return 0 if the allowable CFM was found or an error code.
 	 */
-	int (*get_next_cfm) (struct cfm *cfm, uint32_t component_id, struct cfm_manifest *allowable_cfm,
-		bool first);
+	int (*get_next_cfm) (const struct cfm *cfm, uint32_t component_id,
+		struct cfm_manifest *allowable_cfm, bool first);
 
 	/**
 	 * Find allowable PCD for the specified component ID.
@@ -351,7 +351,8 @@ struct cfm {
 	 *
 	 * @return 0 if the allowable PCD was found or an error code.
 	 */
-	int (*get_pcd) (struct cfm *cfm, uint32_t component_id, struct cfm_manifest *allowable_pcd);
+	int (*get_pcd) (const struct cfm *cfm, uint32_t component_id,
+		struct cfm_manifest *allowable_pcd);
 
 	/**
 	 * Free content within a manifest container.  Calls to this function when a container has
@@ -360,7 +361,7 @@ struct cfm {
 	 * @param cfm The CFM instance that provided the manifest.
 	 * @param manifest The manifest container with content to free.
 	 */
-	void (*free_manifest) (struct cfm *cfm, struct cfm_manifest *manifest);
+	void (*free_manifest) (const struct cfm *cfm, struct cfm_manifest *manifest);
 };
 
 

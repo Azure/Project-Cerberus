@@ -8,15 +8,15 @@
 #include "manifest/manifest_logging.h"
 
 
-static void cfm_observer_pcr_on_cfm_activated (const struct cfm_observer *observer,
-	struct cfm *active)
+void cfm_observer_pcr_on_cfm_activated (const struct cfm_observer *observer,
+	const struct cfm *active)
 {
 	const struct cfm_observer_pcr *pcr = (const struct cfm_observer_pcr*) observer;
 
 	manifest_pcr_record_manifest_measurement (&pcr->pcr, &active->base);
 }
 
-static void cfm_observer_pcr_on_clear_active (const struct cfm_observer *observer)
+void cfm_observer_pcr_on_clear_active (const struct cfm_observer *observer)
 {
 	const struct cfm_observer_pcr *pcr = (const struct cfm_observer_pcr*) observer;
 
@@ -64,7 +64,7 @@ int cfm_observer_pcr_init (struct cfm_observer_pcr *observer, const struct hash_
  *
  * @param observer The observer to release.
  */
-void cfm_observer_pcr_release (struct cfm_observer_pcr *observer)
+void cfm_observer_pcr_release (const struct cfm_observer_pcr *observer)
 {
 	if (observer) {
 		manifest_pcr_release (&observer->pcr);
@@ -78,10 +78,10 @@ void cfm_observer_pcr_release (struct cfm_observer_pcr *observer)
  * @param manager The manager for the CFM measurement to update.
  */
 void cfm_observer_pcr_record_measurement (const struct cfm_observer_pcr *observer,
-	struct cfm_manager *manager)
+	const struct cfm_manager *manager)
 {
-	struct cfm *active;
-	struct cfm_observer_pcr *pcr = (struct cfm_observer_pcr*) observer;
+	const struct cfm *active;
+	const struct cfm_observer_pcr *pcr = (const struct cfm_observer_pcr*) observer;
 
 	if ((observer == NULL) || (manager == NULL)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,

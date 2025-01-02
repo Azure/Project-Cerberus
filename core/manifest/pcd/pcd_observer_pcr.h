@@ -21,10 +21,10 @@ struct pcd_observer_pcr {
 int pcd_observer_pcr_init (struct pcd_observer_pcr *observer, const struct hash_engine *hash,
 	struct pcr_store *store, uint16_t manifest_measurement, uint16_t manifest_id_measurement,
 	uint16_t platform_id_measurement);
-void pcd_observer_pcr_release (struct pcd_observer_pcr *observer);
+void pcd_observer_pcr_release (const struct pcd_observer_pcr *observer);
 
 void pcd_observer_pcr_record_measurement (const struct pcd_observer_pcr *observer,
-	struct pcd_manager *manager);
+	const struct pcd_manager *manager);
 
 
 #endif	/* PCD_OBSERVER_PCR_H_ */

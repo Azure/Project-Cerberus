@@ -150,7 +150,6 @@ struct pcd_supported_component {
 struct pcd {
 	struct manifest base;	/**< Manifest interface */
 
-
 	/**
 	 * Get list of supported component IDs from PCD.
 	 *
@@ -167,7 +166,7 @@ struct pcd {
 	 * @return The number of bytes written to the output buffer or an error code.  Use ROT_IS_ERROR
 	 * to check the return value.
 	 */
-	int (*buffer_supported_components) (struct pcd *pcd, size_t offset, size_t length,
+	int (*buffer_supported_components) (const struct pcd *pcd, size_t offset, size_t length,
 		uint8_t *pcd_component_ids);
 
 	/**
@@ -182,7 +181,7 @@ struct pcd {
 	 *
 	 * @return 0 if a component was found or an error code.
 	 */
-	int (*get_next_mctp_bridge_component) (struct pcd *pcd,
+	int (*get_next_mctp_bridge_component) (const struct pcd *pcd,
 		struct pcd_mctp_bridge_components_info *component, bool first);
 
 	/* TODO Implement a similar function to get_next_mctp_bridge_component for direct connection
@@ -196,7 +195,7 @@ struct pcd {
 	 *
 	 * @return 0 if the RoT info was retrieved successfully or an error code.
 	 */
-	int (*get_rot_info) (struct pcd *pcd, struct pcd_rot_info *info);
+	int (*get_rot_info) (const struct pcd *pcd, struct pcd_rot_info *info);
 
 	/**
 	 * Get RoT port info.
@@ -207,7 +206,7 @@ struct pcd {
 	 *
 	 * @return 0 if the port info was retrieved successfully or an error code.
 	 */
-	int (*get_port_info) (struct pcd *pcd, uint8_t port_id, struct pcd_port_info *info);
+	int (*get_port_info) (const struct pcd *pcd, uint8_t port_id, struct pcd_port_info *info);
 
 	/**
 	 * Get power controller info.
@@ -217,7 +216,8 @@ struct pcd {
 	 *
 	 * @return 0 if the power controller info was retrieved successfully or an error code.
 	 */
-	int (*get_power_controller_info) (struct pcd *pcd, struct pcd_power_controller_info *info);
+	int (*get_power_controller_info) (const struct pcd *pcd,
+		struct pcd_power_controller_info *info);
 };
 
 

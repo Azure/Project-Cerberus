@@ -28,12 +28,15 @@ struct manifest_manager_flash_testing {
 	struct flash_mock flash;							/**< Mock for flash storage. */
 	struct state_manager_mock state_mgr;				/**< Mock for state management. */
 	struct manifest_mock manifest1;						/**< Mock for the first manifest. */
+	struct manifest_flash_state manifest1_state;		/**< Context for the first manifest. */
 	struct manifest_flash manifest1_flash;				/**< Common flash handler for the first manifest. */
 	uint32_t manifest1_addr;							/**< Base address of the first manifest. */
 	struct manifest_mock manifest2;						/**< Mock for the second manifest. */
+	struct manifest_flash_state manifest2_state;		/**< Context for the second manifest. */
 	struct manifest_flash manifest2_flash;				/**< Common flash handler for the second manifest. */
 	uint32_t manifest2_addr;							/**< Base address of the second manifest. */
 	struct manifest_manager mgr_base;					/**< Common manifest manager handling. */
+	struct manifest_manager_flash_state state;			/**< Context for the manager being tested. */
 	struct manifest_manager_flash test;					/**< Manager instance under test. */
 };
 
@@ -79,7 +82,7 @@ static void manifest_manager_flash_testing_init_dependencies (CuTest *test,
 	status = manifest_manager_init (&manager->mgr_base, &manager->hash.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager->flash.mock, manager->flash.base.get_block_size,	&manager->flash,
+	status = mock_expect (&manager->flash.mock, manager->flash.base.get_block_size, &manager->flash,
 		0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&manager->flash.mock, 0, &block_size, sizeof (block_size),
 		-1);
@@ -91,10 +94,12 @@ static void manifest_manager_flash_testing_init_dependencies (CuTest *test,
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_flash_init (&manager->manifest1_flash, &manager->flash.base, addr1, 0x1234);
+	status = manifest_flash_init (&manager->manifest1_flash, &manager->manifest1_state,
+		&manager->flash.base, addr1, 0x1234);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_flash_init (&manager->manifest2_flash, &manager->flash.base, addr2, 0x1234);
+	status = manifest_flash_init (&manager->manifest2_flash, &manager->manifest2_state,
+		&manager->flash.base, addr2, 0x1234);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -169,9 +174,10 @@ static void manifest_manager_flash_test_init_cfm_verify_error (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_flash_init (&manager.test, &manager.mgr_base,	&manager.manifest1.base,
-		&manager.manifest2.base, &manager.manifest1_flash, &manager.manifest2_flash,
-		&manager.state_mgr.base, &manager.hash.base, &manager.verification.base, 0, 0, false);
+	status = manifest_manager_flash_init (&manager.test, &manager.state, &manager.mgr_base,
+		&manager.manifest1.base, &manager.manifest2.base, &manager.manifest1_flash,
+		&manager.manifest2_flash, &manager.state_mgr.base, &manager.hash.base,
+		&manager.verification.base, 0, 0, false);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrEquals (test, NULL,
@@ -211,9 +217,10 @@ static void manifest_manager_flash_test_init_pcd_verify_error (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_flash_init (&manager.test, &manager.mgr_base,	&manager.manifest1.base,
-		&manager.manifest2.base, &manager.manifest1_flash, &manager.manifest2_flash,
-		&manager.state_mgr.base, &manager.hash.base, &manager.verification.base, 0, 0, false);
+	status = manifest_manager_flash_init (&manager.test, &manager.state, &manager.mgr_base,
+		&manager.manifest1.base, &manager.manifest2.base, &manager.manifest1_flash,
+		&manager.manifest2_flash, &manager.state_mgr.base, &manager.hash.base,
+		&manager.verification.base, 0, 0, false);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrEquals (test, NULL,

@@ -7,7 +7,7 @@
 #include "pcd_manager_mock.h"
 
 
-static struct pcd* pcd_manager_mock_get_active_pcd (const struct pcd_manager *manager)
+static const struct pcd* pcd_manager_mock_get_active_pcd (const struct pcd_manager *manager)
 {
 	struct pcd_manager_mock *mock = (struct pcd_manager_mock*) manager;
 
@@ -15,11 +15,11 @@ static struct pcd* pcd_manager_mock_get_active_pcd (const struct pcd_manager *ma
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct pcd*, pcd_manager_mock_get_active_pcd,
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, const struct pcd*, pcd_manager_mock_get_active_pcd,
 		manager);
 }
 
-static void pcd_manager_mock_free_pcd (const struct pcd_manager *manager, struct pcd *pcd)
+static void pcd_manager_mock_free_pcd (const struct pcd_manager *manager, const struct pcd *pcd)
 {
 	struct pcd_manager_mock *mock = (struct pcd_manager_mock*) manager;
 
@@ -178,7 +178,7 @@ int pcd_manager_mock_init (struct pcd_manager_mock *mock)
 		return status;
 	}
 
-	status = pcd_manager_init (&mock->base, &mock->hash.base);
+	status = pcd_manager_init (&mock->base, &mock->state, &mock->hash.base);
 	if (status != 0) {
 		return status;
 	}

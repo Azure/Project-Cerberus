@@ -18,10 +18,11 @@
  *
  * @return The requested PFM instance or null if there was an error.
  */
-static struct pfm* pfm_manager_flash_get_pfm (struct pfm_manager_flash *manager, bool active)
+static const struct pfm* pfm_manager_flash_get_pfm (const struct pfm_manager_flash *manager,
+	bool active)
 {
-	struct pfm_flash *flash;
-	struct manifest_manager_flash_region *region;
+	const struct pfm_flash *flash;
+	const struct manifest_manager_flash_region *region;
 
 	if (manager == NULL) {
 		return NULL;
@@ -32,39 +33,39 @@ static struct pfm* pfm_manager_flash_get_pfm (struct pfm_manager_flash *manager,
 		return NULL;
 	}
 
-	flash = (struct pfm_flash*) region->manifest;
+	flash = (const struct pfm_flash*) region->manifest;
 
 	return &flash->base;
 }
 
-static struct pfm* pfm_manager_flash_get_active_pfm (const struct pfm_manager *manager)
+const struct pfm* pfm_manager_flash_get_active_pfm (const struct pfm_manager *manager)
 {
-	struct pfm_manager_flash *pfm_mgr = (struct pfm_manager_flash*) manager;
+	const struct pfm_manager_flash *pfm_mgr = (const struct pfm_manager_flash*) manager;
 
 	return pfm_manager_flash_get_pfm (pfm_mgr, true);
 }
 
-static struct pfm* pfm_manager_flash_get_pending_pfm (const struct pfm_manager *manager)
+const struct pfm* pfm_manager_flash_get_pending_pfm (const struct pfm_manager *manager)
 {
-	struct pfm_manager_flash *pfm_mgr = (struct pfm_manager_flash*) manager;
+	const struct pfm_manager_flash *pfm_mgr = (const struct pfm_manager_flash*) manager;
 
 	return pfm_manager_flash_get_pfm (pfm_mgr, false);
 }
 
-static void pfm_manager_flash_free_pfm (const struct pfm_manager *manager, struct pfm *pfm)
+void pfm_manager_flash_free_pfm (const struct pfm_manager *manager, const struct pfm *pfm)
 {
-	struct pfm_manager_flash *pfm_mgr = (struct pfm_manager_flash*) manager;
+	const struct pfm_manager_flash *pfm_mgr = (const struct pfm_manager_flash*) manager;
 
 	if (pfm_mgr == NULL) {
 		return;
 	}
 
-	manifest_manager_flash_free_manifest (&pfm_mgr->manifest_manager, (struct manifest*) pfm);
+	manifest_manager_flash_free_manifest (&pfm_mgr->manifest_manager, (const struct manifest*) pfm);
 }
 
-static int pfm_manager_flash_activate_pending_manifest (const struct manifest_manager *manager)
+int pfm_manager_flash_activate_pending_manifest (const struct manifest_manager *manager)
 {
-	struct pfm_manager_flash *pfm_mgr = (struct pfm_manager_flash*) manager;
+	const struct pfm_manager_flash *pfm_mgr = (const struct pfm_manager_flash*) manager;
 	int status;
 
 	if (pfm_mgr == NULL) {
@@ -82,10 +83,9 @@ static int pfm_manager_flash_activate_pending_manifest (const struct manifest_ma
 	return status;
 }
 
-static int pfm_manager_flash_clear_pending_region (const struct manifest_manager *manager,
-	size_t size)
+int pfm_manager_flash_clear_pending_region (const struct manifest_manager *manager, size_t size)
 {
-	struct pfm_manager_flash *pfm_mgr = (struct pfm_manager_flash*) manager;
+	const struct pfm_manager_flash *pfm_mgr = (const struct pfm_manager_flash*) manager;
 
 	if (pfm_mgr == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
@@ -94,10 +94,10 @@ static int pfm_manager_flash_clear_pending_region (const struct manifest_manager
 	return manifest_manager_flash_clear_pending_region (&pfm_mgr->manifest_manager, size);
 }
 
-static int pfm_manager_flash_write_pending_data (const struct manifest_manager *manager,
+int pfm_manager_flash_write_pending_data (const struct manifest_manager *manager,
 	const uint8_t *data, size_t length)
 {
-	struct pfm_manager_flash *pfm_mgr = (struct pfm_manager_flash*) manager;
+	const struct pfm_manager_flash *pfm_mgr = (const struct pfm_manager_flash*) manager;
 
 	if (pfm_mgr == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
@@ -108,7 +108,7 @@ static int pfm_manager_flash_write_pending_data (const struct manifest_manager *
 
 int pfm_manager_flash_verify_pending_manifest (const struct manifest_manager *manager)
 {
-	struct pfm_manager_flash *pfm_mgr = (struct pfm_manager_flash*) manager;
+	const struct pfm_manager_flash *pfm_mgr = (const struct pfm_manager_flash*) manager;
 	int status;
 
 	if (pfm_mgr == NULL) {
@@ -124,9 +124,9 @@ int pfm_manager_flash_verify_pending_manifest (const struct manifest_manager *ma
 	return status;
 }
 
-static int pfm_manager_flash_clear_all_manifests (const struct manifest_manager *manager)
+int pfm_manager_flash_clear_all_manifests (const struct manifest_manager *manager)
 {
-	struct pfm_manager_flash *pfm_mgr = (struct pfm_manager_flash*) manager;
+	const struct pfm_manager_flash *pfm_mgr = (const struct pfm_manager_flash*) manager;
 	int status;
 
 	if (pfm_mgr == NULL) {
@@ -145,23 +145,25 @@ static int pfm_manager_flash_clear_all_manifests (const struct manifest_manager 
  * Initialize the manager for handling PFMs.
  *
  * @param manager The PFM manager to initialize.
+ * @param state Variable context for the PFM manager.  This must be uninitialized.
  * @param pfm_region1 The PFM instance for the first flash region that can hold a PFM.
  * This region does not need to have a valid PFM. The region is expected to a single flash
  * erase block as defined by FLASH_BLOCK_SIZE, aligned to the beginning of the block.
  * @param pfm_region2 The PFM instance for the second flash region that can hold a PFM.
  * This region does not need to have a valid PFM. The region is expected to a single flash erase
  * block as defined by FLASH_BLOCK_SIZE, aligned to the beginning of the block.
- * @param state The state information for PFM management.
+ * @param state_mgr The state information for PFM management.
  * @param hash The hash engine to be used for PFM validation.
  * @param verification The module to be used for PFM verification.
  *
  * @return 0 if the PFM manager was successfully initialized or an error code.
  */
-int pfm_manager_flash_init (struct pfm_manager_flash *manager, struct pfm_flash *pfm_region1,
-	struct pfm_flash *pfm_region2, struct host_state_manager *state, const struct hash_engine *hash,
-	const struct signature_verification *verification)
+int pfm_manager_flash_init (struct pfm_manager_flash *manager,
+	struct pfm_manager_flash_state *state, const struct pfm_flash *pfm_region1,
+	const struct pfm_flash *pfm_region2, struct host_state_manager *state_mgr,
+	const struct hash_engine *hash, const struct signature_verification *verification)
 {
-	return pfm_manager_flash_init_port (manager, pfm_region1, pfm_region2, state, hash,
+	return pfm_manager_flash_init_port (manager, state, pfm_region1, pfm_region2, state_mgr, hash,
 		verification, -1);
 }
 
@@ -170,40 +172,43 @@ int pfm_manager_flash_init (struct pfm_manager_flash *manager, struct pfm_flash 
  * initialization.
  *
  * @param manager The PFM manager to initialize.
+ * @param state Variable context for the PFM manager.  This must be uninitialized.
  * @param pfm_region1 The PFM instance for the first flash region that can hold a PFM.
  * This region does not need to have a valid PFM. The region is expected to a single flash
  * erase block as defined by FLASH_BLOCK_SIZE, aligned to the beginning of the block.
  * @param pfm_region2 The PFM instance for the second flash region that can hold a PFM.
  * This region does not need to have a valid PFM. The region is expected to a single flash erase
  * block as defined by FLASH_BLOCK_SIZE, aligned to the beginning of the block.
- * @param state The state information for PFM management.
+ * @param state_mgr The state information for PFM management.
  * @param hash The hash engine to be used for PFM validation.
  * @param verification The module to be used for PFM verification.
  * @param port The port identifier to set.  A negative port ID will use the default value.
  *
  * @return 0 if the PFM manager was successfully initialized or an error code.
  */
-int pfm_manager_flash_init_port (struct pfm_manager_flash *manager, struct pfm_flash *pfm_region1,
-	struct pfm_flash *pfm_region2, struct host_state_manager *state, const struct hash_engine *hash,
-	const struct signature_verification *verification, int port)
+int pfm_manager_flash_init_port (struct pfm_manager_flash *manager,
+	struct pfm_manager_flash_state *state, const struct pfm_flash *pfm_region1,
+	const struct pfm_flash *pfm_region2, struct host_state_manager *state_mgr,
+	const struct hash_engine *hash, const struct signature_verification *verification, int port)
 {
 	int status;
 
-	if ((manager == NULL) || (pfm_region1 == NULL) || (pfm_region2 == NULL)) {
+	if ((manager == NULL) || (state == NULL) || (pfm_region1 == NULL) || (pfm_region2 == NULL) ||
+		(state_mgr == NULL)) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
 	memset (manager, 0, sizeof (struct pfm_manager_flash));
 
-	status = pfm_manager_init (&manager->base, hash, port);
+	status = pfm_manager_init (&manager->base, &state->base, hash, port);
 	if (status != 0) {
 		return status;
 	}
 
-	status = manifest_manager_flash_init (&manager->manifest_manager, &manager->base.base,
-		&pfm_region1->base.base, &pfm_region2->base.base, &pfm_region1->base_flash,
-		&pfm_region2->base_flash, &state->base, hash, verification, 0, MANIFEST_LOGGING_EMPTY_PFM,
-		false);
+	status = manifest_manager_flash_init (&manager->manifest_manager, &state->flash_state,
+		&manager->base.base, &pfm_region1->base.base, &pfm_region2->base.base,
+		&pfm_region1->base_flash, &pfm_region2->base_flash, &state_mgr->base, hash, verification, 0,
+		MANIFEST_LOGGING_EMPTY_PFM, false);
 	if (status != 0) {
 		goto manifest_base_error;
 	}
@@ -218,7 +223,7 @@ int pfm_manager_flash_init_port (struct pfm_manager_flash *manager, struct pfm_f
 	manager->base.base.verify_pending_manifest = pfm_manager_flash_verify_pending_manifest;
 	manager->base.base.clear_all_manifests = pfm_manager_flash_clear_all_manifests;
 
-	manager->host_state = state;
+	manager->host_state = state_mgr;
 
 	return 0;
 
@@ -229,11 +234,43 @@ manifest_base_error:
 }
 
 /**
+ * Initialize only the variable state for a manager of PFMs on flash.  The rest of the manager is
+ * assumed to have already been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param manager The manager that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int pfm_manager_flash_init_state (const struct pfm_manager_flash *manager)
+{
+	int status;
+
+	if ((manager == NULL) || (manager->host_state == NULL)) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	status = pfm_manager_init_state (&manager->base);
+	if (status != 0) {
+		return status;
+	}
+
+	status = manifest_manager_flash_init_state (&manager->manifest_manager,
+		MANIFEST_LOGGING_EMPTY_PFM);
+	if (status != 0) {
+		pfm_manager_release (&manager->base);
+	}
+
+	return status;
+}
+
+/**
  * Release the resources used by a manager of PFMs in flash.
  *
  * @param manager The PFM manager to release.
  */
-void pfm_manager_flash_release (struct pfm_manager_flash *manager)
+void pfm_manager_flash_release (const struct pfm_manager_flash *manager)
 {
 	if (manager != NULL) {
 		pfm_manager_release (&manager->base);

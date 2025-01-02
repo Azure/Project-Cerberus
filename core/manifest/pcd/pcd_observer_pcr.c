@@ -8,15 +8,15 @@
 #include "manifest/manifest_logging.h"
 
 
-static void pcd_observer_pcr_on_pcd_activated (const struct pcd_observer *observer,
-	struct pcd *active)
+void pcd_observer_pcr_on_pcd_activated (const struct pcd_observer *observer,
+	const struct pcd *active)
 {
 	const struct pcd_observer_pcr *pcr = (const struct pcd_observer_pcr*) observer;
 
 	manifest_pcr_record_manifest_measurement (&pcr->pcr, &active->base);
 }
 
-static void pcd_observer_pcr_on_clear_active (const struct pcd_observer *observer)
+void pcd_observer_pcr_on_clear_active (const struct pcd_observer *observer)
 {
 	const struct pcd_observer_pcr *pcr = (const struct pcd_observer_pcr*) observer;
 
@@ -64,7 +64,7 @@ int pcd_observer_pcr_init (struct pcd_observer_pcr *observer, const struct hash_
  *
  * @param observer The observer to release.
  */
-void pcd_observer_pcr_release (struct pcd_observer_pcr *observer)
+void pcd_observer_pcr_release (const struct pcd_observer_pcr *observer)
 {
 	if (observer) {
 		manifest_pcr_release (&observer->pcr);
@@ -78,10 +78,10 @@ void pcd_observer_pcr_release (struct pcd_observer_pcr *observer)
  * @param manager The manager for the PCD measurement to update.
  */
 void pcd_observer_pcr_record_measurement (const struct pcd_observer_pcr *observer,
-	struct pcd_manager *manager)
+	const struct pcd_manager *manager)
 {
-	struct pcd *active;
-	struct pcd_observer_pcr *pcr = (struct pcd_observer_pcr*) observer;
+	const struct pcd *active;
+	const struct pcd_observer_pcr *pcr = (const struct pcd_observer_pcr*) observer;
 
 	if ((observer == NULL) || (manager == NULL)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,

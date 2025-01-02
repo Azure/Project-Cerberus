@@ -13,9 +13,10 @@
  * A mock for the PFM management API.
  */
 struct pfm_manager_mock {
-	struct pfm_manager base;	/**< The base manager instance. */
-	struct mock mock;			/**< The base mock interface. */
-	HASH_TESTING_ENGINE (hash);	/**< Manager hash instance. */
+	struct pfm_manager base;		/**< The base manager instance. */
+	struct mock mock;				/**< The base mock interface. */
+	struct pfm_manager_state state;	/**< Manager state instance. */
+	HASH_TESTING_ENGINE (hash);		/**< Manager hash instance. */
 };
 
 

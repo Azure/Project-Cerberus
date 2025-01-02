@@ -135,7 +135,7 @@ static int host_processor_single_full_read_write_flash (struct host_processor_fi
 int host_processor_single_init_internal (struct host_processor_filtered *host,
 	const struct host_control *control, struct host_flash_manager_single *flash,
 	struct host_state_manager *state, const struct spi_filter_interface *filter,
-	struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse,
+	const struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse,
 	bool reset_flash)
 {
 	int status;
@@ -183,7 +183,7 @@ int host_processor_single_init_internal (struct host_processor_filtered *host,
 int host_processor_single_init (struct host_processor_filtered *host,
 	const struct host_control *control, struct host_flash_manager_single *flash,
 	struct host_state_manager *state, const struct spi_filter_interface *filter,
-	struct pfm_manager *pfm, struct recovery_image_manager *recovery)
+	const struct pfm_manager *pfm, struct recovery_image_manager *recovery)
 {
 	return host_processor_single_init_internal (host, control, flash, state, filter, pfm, recovery,
 		0, false);
@@ -209,7 +209,7 @@ int host_processor_single_init (struct host_processor_filtered *host,
 int host_processor_single_init_pulse_reset (struct host_processor_filtered *host,
 	const struct host_control *control, struct host_flash_manager_single *flash,
 	struct host_state_manager *state, const struct spi_filter_interface *filter,
-	struct pfm_manager *pfm, struct recovery_image_manager *recovery, int pulse_width)
+	const struct pfm_manager *pfm, struct recovery_image_manager *recovery, int pulse_width)
 {
 	if (pulse_width <= 0) {
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
@@ -237,7 +237,7 @@ int host_processor_single_init_pulse_reset (struct host_processor_filtered *host
 int host_processor_single_init_reset_flash (struct host_processor_filtered *host,
 	const struct host_control *control, struct host_flash_manager_single *flash,
 	struct host_state_manager *state, const struct spi_filter_interface *filter,
-	struct pfm_manager *pfm, struct recovery_image_manager *recovery)
+	const struct pfm_manager *pfm, struct recovery_image_manager *recovery)
 {
 	return host_processor_single_init_internal (host, control, flash, state, filter, pfm, recovery,
 		0, true);
@@ -265,7 +265,7 @@ int host_processor_single_init_reset_flash (struct host_processor_filtered *host
 int host_processor_single_init_reset_flash_pulse_reset (struct host_processor_filtered *host,
 	const struct host_control *control, struct host_flash_manager_single *flash,
 	struct host_state_manager *state, const struct spi_filter_interface *filter,
-	struct pfm_manager *pfm, struct recovery_image_manager *recovery, int pulse_width)
+	const struct pfm_manager *pfm, struct recovery_image_manager *recovery, int pulse_width)
 {
 	if (pulse_width <= 0) {
 		return HOST_PROCESSOR_INVALID_ARGUMENT;

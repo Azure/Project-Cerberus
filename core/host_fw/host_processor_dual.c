@@ -77,7 +77,7 @@ static int host_processor_dual_flash_rollback (struct host_processor *host,
 	bool no_reset)
 {
 	struct host_processor_filtered *dual = (struct host_processor_filtered*) host;
-	struct pfm *active_pfm;
+	const struct pfm *active_pfm;
 	struct host_flash_manager_rw_regions rw_list;
 	const struct spi_flash *ro_flash;
 	const struct spi_flash *rw_flash;
@@ -192,7 +192,7 @@ exit:
 static int host_processor_dual_recover_active_read_write_data (struct host_processor *host)
 {
 	struct host_processor_filtered *dual = (struct host_processor_filtered*) host;
-	struct pfm *active_pfm;
+	const struct pfm *active_pfm;
 	int status = HOST_PROCESSOR_NO_ACTIVE_RW_DATA;
 
 	if (dual == NULL) {
@@ -291,7 +291,7 @@ static int host_processor_dual_full_read_write_flash (struct host_processor_filt
 int host_processor_dual_init_internal (struct host_processor_filtered *host,
 	const struct host_control *control, struct host_flash_manager_dual *flash,
 	struct host_state_manager *state, const struct spi_filter_interface *filter,
-	struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse,
+	const struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse,
 	bool reset_flash)
 {
 	int status;
@@ -338,7 +338,7 @@ int host_processor_dual_init_internal (struct host_processor_filtered *host,
 int host_processor_dual_init (struct host_processor_filtered *host,
 	const struct host_control *control, struct host_flash_manager_dual *flash,
 	struct host_state_manager *state, const struct spi_filter_interface *filter,
-	struct pfm_manager *pfm, struct recovery_image_manager *recovery)
+	const struct pfm_manager *pfm, struct recovery_image_manager *recovery)
 {
 	return host_processor_dual_init_internal (host, control, flash, state, filter, pfm, recovery, 0,
 		false);
@@ -364,7 +364,7 @@ int host_processor_dual_init (struct host_processor_filtered *host,
 int host_processor_dual_init_pulse_reset (struct host_processor_filtered *host,
 	const struct host_control *control, struct host_flash_manager_dual *flash,
 	struct host_state_manager *state, const struct spi_filter_interface *filter,
-	struct pfm_manager *pfm, struct recovery_image_manager *recovery, int pulse_width)
+	const struct pfm_manager *pfm, struct recovery_image_manager *recovery, int pulse_width)
 {
 	if (pulse_width <= 0) {
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
@@ -391,7 +391,7 @@ int host_processor_dual_init_pulse_reset (struct host_processor_filtered *host,
 int host_processor_dual_init_reset_flash (struct host_processor_filtered *host,
 	const struct host_control *control, struct host_flash_manager_dual *flash,
 	struct host_state_manager *state, const struct spi_filter_interface *filter,
-	struct pfm_manager *pfm, struct recovery_image_manager *recovery)
+	const struct pfm_manager *pfm, struct recovery_image_manager *recovery)
 {
 	return host_processor_dual_init_internal (host, control, flash, state, filter, pfm, recovery, 0,
 		true);
@@ -419,7 +419,7 @@ int host_processor_dual_init_reset_flash (struct host_processor_filtered *host,
 int host_processor_dual_init_reset_flash_pulse_reset (struct host_processor_filtered *host,
 	const struct host_control *control, struct host_flash_manager_dual *flash,
 	struct host_state_manager *state, const struct spi_filter_interface *filter,
-	struct pfm_manager *pfm, struct recovery_image_manager *recovery, int pulse_width)
+	const struct pfm_manager *pfm, struct recovery_image_manager *recovery, int pulse_width)
 {
 	if (pulse_width <= 0) {
 		return HOST_PROCESSOR_INVALID_ARGUMENT;

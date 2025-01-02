@@ -19,7 +19,7 @@ struct pfm_observer_pending_reset {
 
 int pfm_observer_pending_reset_init (struct pfm_observer_pending_reset *observer,
 	const struct host_control *control);
-void pfm_observer_pending_reset_release (struct pfm_observer_pending_reset *observer);
+void pfm_observer_pending_reset_release (const struct pfm_observer_pending_reset *observer);
 
 
 #endif	/* PFM_OBSERVER_PENDING_RESET_H_ */
