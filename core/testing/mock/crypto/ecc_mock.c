@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "ecc_mock.h"
-#include "platform_io.h"
+#include "platform_io_api.h"
 #include "testing.h"
 
 

@@ -4,7 +4,6 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include "platform_io.h"
 #include "state_logging.h"
 #include "state_manager.h"
 #include "flash/flash_common.h"

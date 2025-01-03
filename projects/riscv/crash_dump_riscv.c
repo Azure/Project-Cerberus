@@ -3,7 +3,7 @@
 
 #include <string.h>
 #include "crash_dump_riscv.h"
-#include "platform_io.h"
+#include "platform_io_api.h"
 #include "logging/crash_dump_logging.h"
 
 

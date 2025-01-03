@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
-#include "platform_io.h"
 #include "tdisp_driver_mock.h"
 #include "pcisig/tdisp/tdisp_driver.h"
 #include "status/rot_status.h"

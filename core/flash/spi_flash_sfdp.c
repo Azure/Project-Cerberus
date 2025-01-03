@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "flash_common.h"
-#include "platform_io.h"
+#include "platform_io_api.h"
 #include "spi_flash_sfdp.h"
 #include "common/common_math.h"
 #include "common/unused.h"

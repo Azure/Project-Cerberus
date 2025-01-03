@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "cmd_interface_mock.h"
-#include "platform_io.h"
+#include "platform_io_api.h"
 #include "testing.h"
 
 

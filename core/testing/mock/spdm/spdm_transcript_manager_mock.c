@@ -2,7 +2,6 @@
 // Licensed under the MIT license.
 
 #include <string.h>
-#include "platform_io.h"
 #include "spdm_transcript_manager_mock.h"
 
 
