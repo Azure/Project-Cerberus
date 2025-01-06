@@ -2143,7 +2143,7 @@ static void ecdsa_test_verify_message_p384_sha384 (CuTest *test)
 #elif (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_HASH, status);
 #else
-	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status)
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 #endif
 
 	ecdsa_testing_release_dependencies (test, &ecdsa);
@@ -2168,7 +2168,7 @@ static void ecdsa_test_verify_message_p384_sha384_private_key (CuTest *test)
 #elif (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_HASH, status);
 #else
-	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status)
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 #endif
 
 	ecdsa_testing_release_dependencies (test, &ecdsa);
@@ -2193,7 +2193,7 @@ static void ecdsa_test_verify_message_p384_sha384_bad_signature (CuTest *test)
 #elif (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_HASH, status);
 #else
-	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status)
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 #endif
 
 	ecdsa_testing_release_dependencies (test, &ecdsa);
@@ -2218,7 +2218,7 @@ static void ecdsa_test_verify_message_p521_sha512 (CuTest *test)
 #elif (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_HASH, status);
 #else
-	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status)
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 #endif
 
 	ecdsa_testing_release_dependencies (test, &ecdsa);
@@ -2243,7 +2243,7 @@ static void ecdsa_test_verify_message_p521_sha512_private_key (CuTest *test)
 #elif (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_HASH, status);
 #else
-	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status)
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 #endif
 
 	ecdsa_testing_release_dependencies (test, &ecdsa);
@@ -2268,7 +2268,7 @@ static void ecdsa_test_verify_message_p521_sha512_bad_signature (CuTest *test)
 #elif (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_HASH, status);
 #else
-	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status)
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 #endif
 
 	ecdsa_testing_release_dependencies (test, &ecdsa);
@@ -2454,7 +2454,7 @@ static void ecdsa_test_verify_hash_p384_sha384 (CuTest *test)
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 	CuAssertIntEquals (test, 0, status);
 #else
-	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status)
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 #endif
 
 	/* The hash context should still be active. */
@@ -2491,7 +2491,7 @@ static void ecdsa_test_verify_hash_p384_sha384_private_key (CuTest *test)
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 	CuAssertIntEquals (test, 0, status);
 #else
-	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status)
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 #endif
 
 	ecdsa_testing_release_dependencies (test, &ecdsa);
@@ -2518,7 +2518,7 @@ static void ecdsa_test_verify_hash_p384_sha384_bad_signature (CuTest *test)
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 #else
-	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status)
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 #endif
 
 	ecdsa_testing_release_dependencies (test, &ecdsa);
@@ -2548,7 +2548,7 @@ static void ecdsa_test_verify_hash_p521_sha512 (CuTest *test)
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 	CuAssertIntEquals (test, 0, status);
 #else
-	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status)
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 #endif
 
 	/* The hash context should still be active. */
@@ -2585,7 +2585,7 @@ static void ecdsa_test_verify_hash_p521_sha512_private_key (CuTest *test)
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 	CuAssertIntEquals (test, 0, status);
 #else
-	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status)
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 #endif
 
 	ecdsa_testing_release_dependencies (test, &ecdsa);
@@ -2612,7 +2612,7 @@ static void ecdsa_test_verify_hash_p521_sha512_bad_signature (CuTest *test)
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 #else
-	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status)
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 #endif
 
 	ecdsa_testing_release_dependencies (test, &ecdsa);
@@ -2815,7 +2815,7 @@ static void ecdsa_test_verify_hash_and_finish_p384_sha384 (CuTest *test)
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 	CuAssertIntEquals (test, 0, status);
 #else
-	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status)
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 #endif
 
 	/* The hash context should be closed. */
@@ -2846,7 +2846,7 @@ static void ecdsa_test_verify_hash_and_finish_p384_sha384_private_key (CuTest *t
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 	CuAssertIntEquals (test, 0, status);
 #else
-	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status)
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 #endif
 
 	ecdsa_testing_release_dependencies (test, &ecdsa);
@@ -2873,7 +2873,7 @@ static void ecdsa_test_verify_hash_and_finish_p384_sha384_bad_signature (CuTest 
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 #else
-	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status)
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 #endif
 
 	ecdsa_testing_release_dependencies (test, &ecdsa);
@@ -2902,7 +2902,7 @@ static void ecdsa_test_verify_hash_and_finish_p521_sha512 (CuTest *test)
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 	CuAssertIntEquals (test, 0, status);
 #else
-	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status)
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 #endif
 
 	/* The hash context should be closed. */
@@ -2933,7 +2933,7 @@ static void ecdsa_test_verify_hash_and_finish_p521_sha512_private_key (CuTest *t
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 	CuAssertIntEquals (test, 0, status);
 #else
-	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status)
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 #endif
 
 	ecdsa_testing_release_dependencies (test, &ecdsa);
@@ -2960,7 +2960,7 @@ static void ecdsa_test_verify_hash_and_finish_p521_sha512_bad_signature (CuTest 
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 #else
-	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status)
+	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_KEY_LENGTH, status);
 #endif
 
 	ecdsa_testing_release_dependencies (test, &ecdsa);

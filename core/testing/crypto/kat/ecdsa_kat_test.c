@@ -1591,17 +1591,20 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p256_sha256_error (CuTest *
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
-#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384 (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
+
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 	struct ecdsa_kat_testing_k k = {
 		.test = test,
 		.expected = ECC_KAT_VECTORS_P384_SHA384_ECDSA_K,
 		.length = ECC_KEY_LENGTH_384
 	};
+
+#endif
 
 	TEST_START;
 
@@ -1637,6 +1640,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384 (CuTest *test)
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384_mismatch_length (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
@@ -1821,17 +1825,20 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p384_sha384_error (CuTest *
 }
 #endif
 
-#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512 (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
 	struct ecc_hw_mock ecc_hw;
 	int status;
+
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 	struct ecdsa_kat_testing_k k = {
 		.test = test,
 		.expected = ECC_KAT_VECTORS_P521_SHA512_ECDSA_K,
 		.length = ECC_KEY_LENGTH_521
 	};
+
+#endif
 
 	TEST_START;
 
@@ -1867,6 +1874,7 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512 (CuTest *test)
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 static void ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512_mismatch_length (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
