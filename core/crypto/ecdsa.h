@@ -25,11 +25,11 @@ struct ecdsa_deterministic_k_drbg {
 };
 
 
-int ecdsa_deterministic_k_drbg_instantiate (const struct hash_engine *hash,
-	enum hmac_hash hmac_algo, const uint8_t *message_digest, size_t digest_length,
-	const uint8_t *priv_key, size_t key_length,	struct ecdsa_deterministic_k_drbg *drbg);
-int ecdsa_deterministic_k_drbg_generate (const struct hash_engine *hash,
-	struct ecdsa_deterministic_k_drbg *drbg, uint8_t *k, size_t k_length);
+int ecdsa_deterministic_k_drbg_instantiate (struct ecdsa_deterministic_k_drbg *drbg,
+	const struct hash_engine *hash, enum hmac_hash hmac_algo, const uint8_t *message_digest,
+	size_t digest_length, const uint8_t *priv_key, size_t key_length);
+int ecdsa_deterministic_k_drbg_generate (struct ecdsa_deterministic_k_drbg *drbg,
+	const struct hash_engine *hash, uint8_t *k, size_t k_length);
 void ecdsa_deterministic_k_drbg_clear (struct ecdsa_deterministic_k_drbg *drbg);
 
 /* These verification functions are just wrappers around the common digital signature verification
@@ -64,8 +64,8 @@ int ecdsa_ecc_hw_verify_hash (const struct ecc_hw *ecc_hw, const struct hash_eng
 	enum hash_type hash_algo, const struct ecc_point_public_key *pub_key,
 	const struct ecc_ecdsa_signature *signature);
 int ecdsa_ecc_hw_verify_hash_and_finish (const struct ecc_hw *ecc_hw,
-	const struct hash_engine *hash,	enum hash_type hash_algo,
-	const struct ecc_point_public_key *pub_key,	const struct ecc_ecdsa_signature *signature);
+	const struct hash_engine *hash, enum hash_type hash_algo,
+	const struct ecc_point_public_key *pub_key, const struct ecc_ecdsa_signature *signature);
 
 
 #define	ECDSA_ERROR(code)		ROT_ERROR (ROT_MODULE_ECDSA, code)

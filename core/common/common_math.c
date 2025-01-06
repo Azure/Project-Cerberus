@@ -378,8 +378,6 @@ int common_math_set_next_bit_in_array_odd_count (uint8_t *bytes, size_t length)
  * @param bytes The byte array to shift.
  * @param length Length of the byte array.
  * @param shift_bits The number of bits to shift the array.
- *
- * @return 0 if the array was shifted successfully or an error code.
  */
 void common_math_right_shift_array (uint8_t *bytes, size_t length, size_t shift_bits)
 {
@@ -421,8 +419,6 @@ void common_math_right_shift_array (uint8_t *bytes, size_t length, size_t shift_
  * @param bytes The byte array to shift.
  * @param length Length of the byte array.
  * @param shift_bits The number of bits to shift the array.
- *
- * @return 0 if the array was shifted successfully or an error code.
  */
 void common_math_left_shift_array (uint8_t *bytes, size_t length, size_t shift_bits)
 {
