@@ -153,6 +153,17 @@ int hash_thread_safe_start_sha512 (const struct hash_engine *engine)
 }
 #endif
 
+enum hash_type hash_thread_safe_get_active_algorithm (const struct hash_engine *engine)
+{
+	const struct hash_engine_thread_safe *sha = (const struct hash_engine_thread_safe*) engine;
+
+	if (sha == NULL) {
+		return HASH_TYPE_INVALID;
+	}
+
+	return sha->engine->get_active_algorithm (sha->engine);
+}
+
 int hash_thread_safe_update (const struct hash_engine *engine, const uint8_t *data, size_t length)
 {
 	const struct hash_engine_thread_safe *sha = (const struct hash_engine_thread_safe*) engine;
@@ -162,6 +173,20 @@ int hash_thread_safe_update (const struct hash_engine *engine, const uint8_t *da
 	}
 
 	return sha->engine->update (sha->engine, data, length);
+}
+
+int hash_thread_safe_get_hash (const struct hash_engine *engine, uint8_t *hash, size_t hash_length)
+{
+	const struct hash_engine_thread_safe *sha = (const struct hash_engine_thread_safe*) engine;
+	int status;
+
+	if (sha == NULL) {
+		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	status = sha->engine->get_hash (sha->engine, hash, hash_length);
+
+	return status;
 }
 
 int hash_thread_safe_finish (const struct hash_engine *engine, uint8_t *hash, size_t hash_length)
@@ -195,20 +220,6 @@ void hash_thread_safe_cancel (const struct hash_engine *engine)
 	platform_mutex_unlock (&sha->state->lock);
 }
 
-int hash_thread_safe_get_hash (const struct hash_engine *engine, uint8_t *hash, size_t hash_length)
-{
-	const struct hash_engine_thread_safe *sha = (const struct hash_engine_thread_safe*) engine;
-	int status;
-
-	if (sha == NULL) {
-		return HASH_ENGINE_INVALID_ARGUMENT;
-	}
-
-	status = sha->engine->get_hash (sha->engine, hash, hash_length);
-
-	return status;
-}
-
 /**
  * Initialize a thread-safe wrapper for a hash engine.
  *
@@ -240,6 +251,7 @@ int hash_thread_safe_init (struct hash_engine_thread_safe *engine,
 	engine->base.calculate_sha512 = hash_thread_safe_calculate_sha512;
 	engine->base.start_sha512 = hash_thread_safe_start_sha512;
 #endif
+	engine->base.get_active_algorithm = hash_thread_safe_get_active_algorithm;
 	engine->base.update = hash_thread_safe_update;
 	engine->base.get_hash = hash_thread_safe_get_hash;
 	engine->base.finish = hash_thread_safe_finish;

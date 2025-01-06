@@ -43,6 +43,7 @@ static void hash_openssl_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, engine.base.calculate_sha512);
 	CuAssertPtrNotNull (test, engine.base.start_sha512);
 #endif
+	CuAssertPtrNotNull (test, engine.base.get_active_algorithm);
 	CuAssertPtrNotNull (test, engine.base.update);
 	CuAssertPtrNotNull (test, engine.base.get_hash);
 	CuAssertPtrNotNull (test, engine.base.finish);
@@ -88,6 +89,7 @@ static void hash_openssl_test_init_static_init (CuTest *test)
 	CuAssertPtrNotNull (test, engine.base.calculate_sha512);
 	CuAssertPtrNotNull (test, engine.base.start_sha512);
 #endif
+	CuAssertPtrNotNull (test, engine.base.get_active_algorithm);
 	CuAssertPtrNotNull (test, engine.base.update);
 	CuAssertPtrNotNull (test, engine.base.get_hash);
 	CuAssertPtrNotNull (test, engine.base.finish);
@@ -128,20 +130,33 @@ static void hash_openssl_test_sha1_incremental (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA1_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha1 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA1_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -156,23 +171,39 @@ static void hash_openssl_test_sha1_incremental_multi (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA1_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha1 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
-	CuAssertIntEquals (test, 0, status);
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
 
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA1_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -513,20 +544,33 @@ static void hash_openssl_test_sha1_incremental_static_init (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA1_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha1 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA1_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -541,20 +585,33 @@ static void hash_openssl_test_sha1_incremental_get_hash (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA1_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha1 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
 	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
 
 	status = testing_validate_array (SHA1_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -562,8 +619,14 @@ static void hash_openssl_test_sha1_incremental_get_hash (CuTest *test)
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA1_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -994,20 +1057,33 @@ static void hash_openssl_test_sha1_incremental_get_hash_static_init (CuTest *tes
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA1_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha1 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
 	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
 
 	status = testing_validate_array (SHA1_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -1015,8 +1091,14 @@ static void hash_openssl_test_sha1_incremental_get_hash_static_init (CuTest *tes
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA1_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -1071,16 +1153,26 @@ static void hash_openssl_test_sha1_incremental_cancel (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA1_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha1 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
 	engine.base.cancel (&engine.base);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
@@ -1127,6 +1219,43 @@ static void hash_openssl_test_sha1_incremental_after_cancel (CuTest *test)
 
 	status = testing_validate_array (SHA1_MULTI_BLOCK_NOT_ALIGNED_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	hash_openssl_release (&engine);
+}
+
+static void hash_openssl_test_sha1_incremental_cancel_static_init (CuTest *test)
+{
+	struct hash_engine_openssl_state state;
+	struct hash_engine_openssl engine = hash_openssl_static_init (&state);
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA1_HASH_LENGTH];
+	enum hash_type type;
+
+	TEST_START;
+
+	status = hash_openssl_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.start_sha1 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
+	engine.base.cancel (&engine.base);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
 
 	hash_openssl_release (&engine);
 }
@@ -1348,20 +1477,33 @@ static void hash_openssl_test_sha256_incremental (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA256_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha256 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA256_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -1376,23 +1518,39 @@ static void hash_openssl_test_sha256_incremental_multi (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA256_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha256 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
-	CuAssertIntEquals (test, 0, status);
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
 
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA256_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -1733,20 +1891,33 @@ static void hash_openssl_test_sha256_incremental_static_init (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA256_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha256 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA256_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -1761,20 +1932,33 @@ static void hash_openssl_test_sha256_incremental_get_hash (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA256_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha256 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
 	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
 
 	status = testing_validate_array (SHA256_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -1782,8 +1966,14 @@ static void hash_openssl_test_sha256_incremental_get_hash (CuTest *test)
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA256_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -2214,20 +2404,33 @@ static void hash_openssl_test_sha256_incremental_get_hash_static_init (CuTest *t
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA256_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha256 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
 	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
 
 	status = testing_validate_array (SHA256_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -2235,8 +2438,14 @@ static void hash_openssl_test_sha256_incremental_get_hash_static_init (CuTest *t
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA256_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -2291,16 +2500,26 @@ static void hash_openssl_test_sha256_incremental_cancel (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA256_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha256 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
 	engine.base.cancel (&engine.base);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
@@ -2347,6 +2566,43 @@ static void hash_openssl_test_sha256_incremental_after_cancel (CuTest *test)
 
 	status = testing_validate_array (SHA256_MULTI_BLOCK_NOT_ALIGNED_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	hash_openssl_release (&engine);
+}
+
+static void hash_openssl_test_sha256_incremental_cancel_static_init (CuTest *test)
+{
+	struct hash_engine_openssl_state state;
+	struct hash_engine_openssl engine = hash_openssl_static_init (&state);
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA256_HASH_LENGTH];
+	enum hash_type type;
+
+	TEST_START;
+
+	status = hash_openssl_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.start_sha256 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
+	engine.base.cancel (&engine.base);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
 
 	hash_openssl_release (&engine);
 }
@@ -2568,20 +2824,33 @@ static void hash_openssl_test_sha384_incremental (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA384_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha384 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA384_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -2596,23 +2865,39 @@ static void hash_openssl_test_sha384_incremental_multi (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA384_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha384 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
-	CuAssertIntEquals (test, 0, status);
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
 
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA384_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -2953,20 +3238,33 @@ static void hash_openssl_test_sha384_incremental_static_init (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA384_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha384 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA384_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -2981,20 +3279,33 @@ static void hash_openssl_test_sha384_incremental_get_hash (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA384_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha384 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
 	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
 
 	status = testing_validate_array (SHA384_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -3002,8 +3313,14 @@ static void hash_openssl_test_sha384_incremental_get_hash (CuTest *test)
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA384_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -3434,20 +3751,33 @@ static void hash_openssl_test_sha384_incremental_get_hash_static_init (CuTest *t
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA384_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha384 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
 	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
 
 	status = testing_validate_array (SHA384_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -3455,8 +3785,14 @@ static void hash_openssl_test_sha384_incremental_get_hash_static_init (CuTest *t
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA384_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -3511,16 +3847,26 @@ static void hash_openssl_test_sha384_incremental_cancel (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA384_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha384 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
 	engine.base.cancel (&engine.base);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
@@ -3567,6 +3913,43 @@ static void hash_openssl_test_sha384_incremental_after_cancel (CuTest *test)
 
 	status = testing_validate_array (SHA384_MULTI_BLOCK_NOT_ALIGNED_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	hash_openssl_release (&engine);
+}
+
+static void hash_openssl_test_sha384_incremental_cancel_static_init (CuTest *test)
+{
+	struct hash_engine_openssl_state state;
+	struct hash_engine_openssl engine = hash_openssl_static_init (&state);
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA384_HASH_LENGTH];
+	enum hash_type type;
+
+	TEST_START;
+
+	status = hash_openssl_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.start_sha384 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
+	engine.base.cancel (&engine.base);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
 
 	hash_openssl_release (&engine);
 }
@@ -3789,20 +4172,33 @@ static void hash_openssl_test_sha512_incremental (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA512_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha512 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA512_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -3817,23 +4213,39 @@ static void hash_openssl_test_sha512_incremental_multi (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA512_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha512 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
-	CuAssertIntEquals (test, 0, status);
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
 
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA512_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -4174,20 +4586,33 @@ static void hash_openssl_test_sha512_incremental_static_init (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA512_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha512 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA512_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -4202,20 +4627,33 @@ static void hash_openssl_test_sha512_incremental_get_hash (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA512_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha512 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
 	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
 
 	status = testing_validate_array (SHA512_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -4223,8 +4661,14 @@ static void hash_openssl_test_sha512_incremental_get_hash (CuTest *test)
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA512_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -4655,20 +5099,33 @@ static void hash_openssl_test_sha512_incremental_get_hash_static_init (CuTest *t
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA512_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha512 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
 	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
 
 	status = testing_validate_array (SHA512_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -4676,8 +5133,14 @@ static void hash_openssl_test_sha512_incremental_get_hash_static_init (CuTest *t
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA512_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -4732,16 +5195,26 @@ static void hash_openssl_test_sha512_incremental_cancel (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA512_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
 	status = hash_openssl_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
 	status = engine.base.start_sha512 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
 	engine.base.cancel (&engine.base);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
@@ -4788,6 +5261,43 @@ static void hash_openssl_test_sha512_incremental_after_cancel (CuTest *test)
 
 	status = testing_validate_array (SHA512_MULTI_BLOCK_NOT_ALIGNED_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	hash_openssl_release (&engine);
+}
+
+static void hash_openssl_test_sha512_incremental_cancel_static_init (CuTest *test)
+{
+	struct hash_engine_openssl_state state;
+	struct hash_engine_openssl engine = hash_openssl_static_init (&state);
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA512_HASH_LENGTH];
+	enum hash_type type;
+
+	TEST_START;
+
+	status = hash_openssl_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.start_sha512 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
+	engine.base.cancel (&engine.base);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
 
 	hash_openssl_release (&engine);
 }
@@ -5167,6 +5677,24 @@ static void hash_openssl_test_incremental_get_hash_no_start (CuTest *test)
 	hash_openssl_release (&engine);
 }
 
+static void hash_openssl_test_get_active_algorithm_null (CuTest *test)
+{
+	struct hash_engine_openssl_state state;
+	struct hash_engine_openssl engine;
+	int status;
+	enum hash_type type;
+
+	TEST_START;
+
+	status = hash_openssl_init (&engine, &state);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (NULL);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	hash_openssl_release (&engine);
+}
+
 #ifdef HASH_ENABLE_SHA1
 static void hash_openssl_test_calculate_sha1 (CuTest *test)
 {
@@ -5175,6 +5703,7 @@ static void hash_openssl_test_calculate_sha1 (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA1_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
@@ -5184,6 +5713,9 @@ static void hash_openssl_test_calculate_sha1 (CuTest *test)
 	status = engine.base.calculate_sha1 (&engine.base, (uint8_t*) message, strlen (message), hash,
 		sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA1_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -5369,6 +5901,7 @@ static void hash_openssl_test_calculate_sha256 (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA256_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
@@ -5378,6 +5911,9 @@ static void hash_openssl_test_calculate_sha256 (CuTest *test)
 	status = engine.base.calculate_sha256 (&engine.base, (uint8_t*) message, strlen (message), hash,
 		sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA256_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -5563,6 +6099,7 @@ static void hash_openssl_test_calculate_sha384 (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA384_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
@@ -5572,6 +6109,9 @@ static void hash_openssl_test_calculate_sha384 (CuTest *test)
 	status = engine.base.calculate_sha384 (&engine.base, (uint8_t*) message, strlen (message), hash,
 		sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA384_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -5758,6 +6298,7 @@ static void hash_openssl_test_calculate_sha512 (CuTest *test)
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA512_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
@@ -5767,6 +6308,9 @@ static void hash_openssl_test_calculate_sha512 (CuTest *test)
 	status = engine.base.calculate_sha512 (&engine.base, (uint8_t*) message, strlen (message), hash,
 		sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA512_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -5984,6 +6528,7 @@ TEST (hash_openssl_test_sha1_incremental_get_hash_static_init);
 TEST (hash_openssl_test_sha1_incremental_after_finish);
 TEST (hash_openssl_test_sha1_incremental_cancel);
 TEST (hash_openssl_test_sha1_incremental_after_cancel);
+TEST (hash_openssl_test_sha1_incremental_cancel_static_init);
 TEST (hash_openssl_test_sha1_start_incremental_null);
 TEST (hash_openssl_test_sha1_start_without_finish);
 TEST (hash_openssl_test_sha1_update_after_finish);
@@ -6022,6 +6567,7 @@ TEST (hash_openssl_test_sha256_incremental_get_hash_static_init);
 TEST (hash_openssl_test_sha256_incremental_after_finish);
 TEST (hash_openssl_test_sha256_incremental_cancel);
 TEST (hash_openssl_test_sha256_incremental_after_cancel);
+TEST (hash_openssl_test_sha256_incremental_cancel_static_init);
 TEST (hash_openssl_test_sha256_start_incremental_null);
 TEST (hash_openssl_test_sha256_start_without_finish);
 TEST (hash_openssl_test_sha256_update_after_finish);
@@ -6060,6 +6606,7 @@ TEST (hash_openssl_test_sha384_incremental_get_hash_static_init);
 TEST (hash_openssl_test_sha384_incremental_after_finish);
 TEST (hash_openssl_test_sha384_incremental_cancel);
 TEST (hash_openssl_test_sha384_incremental_after_cancel);
+TEST (hash_openssl_test_sha384_incremental_cancel_static_init);
 TEST (hash_openssl_test_sha384_start_incremental_null);
 TEST (hash_openssl_test_sha384_start_without_finish);
 TEST (hash_openssl_test_sha384_update_after_finish);
@@ -6099,6 +6646,7 @@ TEST (hash_openssl_test_sha512_incremental_get_hash_static_init);
 TEST (hash_openssl_test_sha512_incremental_after_finish);
 TEST (hash_openssl_test_sha512_incremental_cancel);
 TEST (hash_openssl_test_sha512_incremental_after_cancel);
+TEST (hash_openssl_test_sha512_incremental_cancel_static_init);
 TEST (hash_openssl_test_sha512_start_incremental_null);
 TEST (hash_openssl_test_sha512_start_without_finish);
 TEST (hash_openssl_test_sha512_update_after_finish);
@@ -6115,6 +6663,7 @@ TEST (hash_openssl_test_incremental_cancel_null);
 TEST (hash_openssl_test_incremental_cancel_no_start);
 TEST (hash_openssl_test_incremental_get_hash_null);
 TEST (hash_openssl_test_incremental_get_hash_no_start);
+TEST (hash_openssl_test_get_active_algorithm_null);
 #ifdef HASH_ENABLE_SHA1
 TEST (hash_openssl_test_calculate_sha1);
 TEST (hash_openssl_test_calculate_sha1_full_hash_block);

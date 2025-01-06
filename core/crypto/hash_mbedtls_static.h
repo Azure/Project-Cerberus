@@ -24,6 +24,7 @@ int hash_mbedtls_update (const struct hash_engine *engine, const uint8_t *data, 
 int hash_mbedtls_get_hash (const struct hash_engine *engine, uint8_t *hash, size_t hash_length);
 int hash_mbedtls_finish (const struct hash_engine *engine, uint8_t *hash, size_t hash_length);
 void hash_mbedtls_cancel (const struct hash_engine *engine);
+enum hash_type hash_mbedtls_get_active_algorithm (const struct hash_engine *engine);
 
 
 /**
@@ -74,6 +75,7 @@ void hash_mbedtls_cancel (const struct hash_engine *engine);
 		HASH_MBEDTLS_SHA256 \
 		HASH_MBEDTLS_SHA384 \
 		HASH_MBEDTLS_SHA512 \
+		.get_active_algorithm = hash_mbedtls_get_active_algorithm, \
 		.update = hash_mbedtls_update, \
 		.get_hash = hash_mbedtls_get_hash, \
 		.finish = hash_mbedtls_finish, \

@@ -157,6 +157,21 @@ enum hash_type hash_get_type_from_length (size_t hash_length)
 }
 
 /**
+ * Get the hash algorithm type for the active hash identifier.
+ *
+ * This is not something that is expected to be called generally.  It's primarily a helper function
+ * for hash engine implementations that use the active hash enumeration.
+ *
+ * @param active The HASH_ACTIVE_* identifier for the hash algorithm.
+ *
+ * @return The HASH_TYPE_* enumeration for the identifier.
+ */
+enum hash_type hash_get_type_from_active (uint8_t active)
+{
+	return (active == HASH_ACTIVE_NONE) ? HASH_TYPE_INVALID : (enum hash_type) active;
+}
+
+/**
  * Get the length of the output digest for the indicated hash algorithm.
  *
  * @param hash_type The hashing algorithm to check.
@@ -181,6 +196,27 @@ int hash_get_hash_length (enum hash_type hash_type)
 		default:
 			return HASH_ENGINE_UNKNOWN_HASH;
 	}
+}
+
+/**
+ * Get the length of the output digest for the active hash calculation on a specified hash engine.
+ *
+ * @param hash The hash engine to query.
+ *
+ * @return Length of the output digest or 0 if no hash calculation is ongoing.
+ */
+size_t hash_get_active_hash_length (const struct hash_engine *hash)
+{
+	size_t length = 0;
+
+	if (hash != NULL) {
+		length = hash_get_hash_length (hash->get_active_algorithm (hash));
+		if (length == HASH_ENGINE_UNKNOWN_HASH) {
+			length = 0;
+		}
+	}
+
+	return length;
 }
 
 /**

@@ -3452,6 +3452,109 @@ static void hash_test_get_type_from_length_unsupported (CuTest *test)
 	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 }
 
+static void hash_test_get_active_hash_length (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	int status;
+	size_t length;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	/* SHA-1 */
+	status = mock_expect (&hash.mock, hash.base.get_active_algorithm, &hash, HASH_TYPE_SHA1);
+	CuAssertIntEquals (test, 0, status);
+
+	length = hash_get_active_hash_length (&hash.base);
+	CuAssertIntEquals (test, SHA1_HASH_LENGTH, length);
+
+	/* SHA2-256 */
+	status = mock_expect (&hash.mock, hash.base.get_active_algorithm, &hash, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, 0, status);
+
+	length = hash_get_active_hash_length (&hash.base);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, length);
+
+	/* SHA2-384 */
+	status = mock_expect (&hash.mock, hash.base.get_active_algorithm, &hash, HASH_TYPE_SHA384);
+	CuAssertIntEquals (test, 0, status);
+
+	length = hash_get_active_hash_length (&hash.base);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, length);
+
+	/* SHA2-512 */
+	status = mock_expect (&hash.mock, hash.base.get_active_algorithm, &hash, HASH_TYPE_SHA512);
+	CuAssertIntEquals (test, 0, status);
+
+	length = hash_get_active_hash_length (&hash.base);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, length);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_test_get_active_hash_length_no_active_hash (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	int status;
+	size_t length;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hash.mock, hash.base.get_active_algorithm, &hash, HASH_TYPE_INVALID);
+	CuAssertIntEquals (test, 0, status);
+
+	length = hash_get_active_hash_length (&hash.base);
+	CuAssertIntEquals (test, 0, length);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void hash_test_get_active_hash_length_null (CuTest *test)
+{
+	size_t length;
+
+	TEST_START;
+
+	length = hash_get_active_hash_length (NULL);
+	CuAssertIntEquals (test, 0, length);
+}
+
+static void hash_test_get_type_from_active (CuTest *test)
+{
+	enum hash_type type;
+
+	TEST_START;
+
+	type = hash_get_type_from_active (HASH_ACTIVE_SHA1);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
+	type = hash_get_type_from_active (HASH_ACTIVE_SHA256);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
+	type = hash_get_type_from_active (HASH_ACTIVE_SHA384);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
+	type = hash_get_type_from_active (HASH_ACTIVE_SHA512);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+}
+
+static void hash_test_get_type_from_active_none (CuTest *test)
+{
+	enum hash_type type;
+
+	TEST_START;
+
+	type = hash_get_type_from_active (HASH_ACTIVE_NONE);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (hash);
@@ -3581,6 +3684,11 @@ TEST (hash_test_get_block_size_unsupported);
 TEST (hash_test_is_alg_supported);
 TEST (hash_test_get_type_from_length);
 TEST (hash_test_get_type_from_length_unsupported);
+TEST (hash_test_get_active_hash_length);
+TEST (hash_test_get_active_hash_length_no_active_hash);
+TEST (hash_test_get_active_hash_length_null);
+TEST (hash_test_get_type_from_active);
+TEST (hash_test_get_type_from_active_none);
 
 TEST_SUITE_END;
 // *INDENT-ON*

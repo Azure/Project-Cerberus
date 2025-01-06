@@ -103,6 +103,17 @@ static int hash_mock_start_sha512 (const struct hash_engine *engine)
 	MOCK_RETURN_NO_ARGS (&mock->mock, hash_mock_start_sha512, engine);
 }
 
+static enum hash_type hash_mock_get_active_algorithm (const struct hash_engine *engine)
+{
+	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
+
+	if (mock == NULL) {
+		return HASH_TYPE_INVALID;
+	}
+
+	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, enum hash_type, hash_mock_get_active_algorithm, engine);
+}
+
 static int hash_mock_update (const struct hash_engine *engine, const uint8_t *data, size_t length)
 {
 	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
@@ -190,6 +201,9 @@ static const char* hash_mock_func_name_map (void *func)
 	}
 	else if (func == hash_mock_start_sha512) {
 		return "start_sha512";
+	}
+	else if (func == hash_mock_get_active_algorithm) {
+		return "get_active_algorithm";
 	}
 	else if (func == hash_mock_update) {
 		return "update";
@@ -330,6 +344,7 @@ int hash_mock_init (struct hash_engine_mock *mock)
 	mock->base.calculate_sha512 = hash_mock_calculate_sha512;
 	mock->base.start_sha512 = hash_mock_start_sha512;
 #endif
+	mock->base.get_active_algorithm = hash_mock_get_active_algorithm;
 	mock->base.update = hash_mock_update;
 	mock->base.finish = hash_mock_finish;
 	mock->base.cancel = hash_mock_cancel;

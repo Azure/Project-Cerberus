@@ -174,6 +174,15 @@ struct hash_engine {
 #endif
 
 	/**
+	 * Determine the algorithm currently being used for hash calculation.
+	 *
+	 * @param engine The hash engine to query.
+	 *
+	 * @return The active hash algorithm or HASH_TYPE_INVALID if there no hash currently active.
+	 */
+	enum hash_type (*get_active_algorithm) (const struct hash_engine *engine);
+
+	/**
 	 * Update the current hash operation with a block of data.
 	 *
 	 * @param engine The hash engine to update.
@@ -228,9 +237,11 @@ int hash_calculate (const struct hash_engine *engine, enum hash_type type, const
 	size_t length, uint8_t *hash, size_t hash_length);
 
 enum hash_type hash_get_type_from_length (size_t hash_length);
+enum hash_type hash_get_type_from_active (uint8_t active);
 
 
 int hash_get_hash_length (enum hash_type hash_type);
+size_t hash_get_active_hash_length (const struct hash_engine *hash);
 int hash_get_block_size (enum hash_type hash_type);
 
 bool hash_is_alg_supported (enum hash_type type);

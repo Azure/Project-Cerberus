@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <openssl/sha.h>
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/sha.h>
 #include "hash_openssl.h"
 
 
@@ -44,6 +44,7 @@ int hash_openssl_start_sha1 (const struct hash_engine *engine)
 
 	if (EVP_DigestInit (openssl->state->sha, EVP_sha1 ()) == 1) {
 		openssl->state->active = HASH_ACTIVE_SHA1;
+
 		return 0;
 	}
 	else {
@@ -57,7 +58,7 @@ int hash_openssl_calculate_sha256 (const struct hash_engine *engine, const uint8
 {
 	const struct hash_engine_openssl *openssl = (const struct hash_engine_openssl*) engine;
 
-	if ((openssl == NULL) || ((data == NULL)  && (length != 0)) || (hash == NULL)) {
+	if ((openssl == NULL) || ((data == NULL) && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
@@ -88,6 +89,7 @@ int hash_openssl_start_sha256 (const struct hash_engine *engine)
 
 	if (EVP_DigestInit (openssl->state->sha, EVP_sha256 ()) == 1) {
 		openssl->state->active = HASH_ACTIVE_SHA256;
+
 		return 0;
 	}
 	else {
@@ -101,7 +103,7 @@ int hash_openssl_calculate_sha384 (const struct hash_engine *engine, const uint8
 {
 	const struct hash_engine_openssl *openssl = (const struct hash_engine_openssl*) engine;
 
-	if ((openssl == NULL) || ((data == NULL)  && (length != 0)) || (hash == NULL)) {
+	if ((openssl == NULL) || ((data == NULL) && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
@@ -132,6 +134,7 @@ int hash_openssl_start_sha384 (const struct hash_engine *engine)
 
 	if (EVP_DigestInit (openssl->state->sha, EVP_sha384 ()) == 1) {
 		openssl->state->active = HASH_ACTIVE_SHA384;
+
 		return 0;
 	}
 	else {
@@ -146,7 +149,7 @@ int hash_openssl_calculate_sha512 (const struct hash_engine *engine, const uint8
 {
 	const struct hash_engine_openssl *openssl = (const struct hash_engine_openssl*) engine;
 
-	if ((openssl == NULL) || ((data == NULL)  && (length != 0)) || (hash == NULL)) {
+	if ((openssl == NULL) || ((data == NULL) && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
@@ -177,6 +180,7 @@ int hash_openssl_start_sha512 (const struct hash_engine *engine)
 
 	if (EVP_DigestInit (openssl->state->sha, EVP_sha512 ()) == 1) {
 		openssl->state->active = HASH_ACTIVE_SHA512;
+
 		return 0;
 	}
 	else {
@@ -184,6 +188,17 @@ int hash_openssl_start_sha512 (const struct hash_engine *engine)
 	}
 }
 #endif
+
+enum hash_type hash_openssl_get_active_algorithm (const struct hash_engine *engine)
+{
+	const struct hash_engine_openssl *openssl = (const struct hash_engine_openssl*) engine;
+
+	if (openssl == NULL) {
+		return HASH_TYPE_INVALID;
+	}
+
+	return hash_get_type_from_active (openssl->state->active);
+}
 
 int hash_openssl_update (const struct hash_engine *engine, const uint8_t *data, size_t length)
 {
@@ -296,6 +311,7 @@ int hash_openssl_get_hash (const struct hash_engine *engine, uint8_t *hash, size
 
 exit:
 	EVP_MD_CTX_free (clone);
+
 	return status;
 }
 
@@ -364,6 +380,7 @@ int hash_openssl_init (struct hash_engine_openssl *engine, struct hash_engine_op
 	engine->base.calculate_sha512 = hash_openssl_calculate_sha512;
 	engine->base.start_sha512 = hash_openssl_start_sha512;
 #endif
+	engine->base.get_active_algorithm = hash_openssl_get_active_algorithm;
 	engine->base.update = hash_openssl_update;
 	engine->base.get_hash = hash_openssl_get_hash;
 	engine->base.finish = hash_openssl_finish;

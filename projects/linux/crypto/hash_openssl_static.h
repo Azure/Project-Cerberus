@@ -24,6 +24,7 @@ int hash_openssl_update (const struct hash_engine *engine, const uint8_t *data, 
 int hash_openssl_get_hash (const struct hash_engine *engine, uint8_t *hash, size_t hash_length);
 int hash_openssl_finish (const struct hash_engine *engine, uint8_t *hash, size_t hash_length);
 void hash_openssl_cancel (const struct hash_engine *engine);
+enum hash_type hash_openssl_get_active_algorithm (const struct hash_engine *engine);
 
 
 /**
@@ -74,6 +75,7 @@ void hash_openssl_cancel (const struct hash_engine *engine);
 		HASH_OPENSSL_SHA256 \
 		HASH_OPENSSL_SHA384 \
 		HASH_OPENSSL_SHA512 \
+		.get_active_algorithm = hash_openssl_get_active_algorithm, \
 		.update = hash_openssl_update, \
 		.get_hash = hash_openssl_get_hash, \
 		.finish = hash_openssl_finish, \

@@ -217,6 +217,17 @@ int hash_mbedtls_start_sha512 (const struct hash_engine *engine)
 }
 #endif
 
+enum hash_type hash_mbedtls_get_active_algorithm (const struct hash_engine *engine)
+{
+	const struct hash_engine_mbedtls *mbedtls = (const struct hash_engine_mbedtls*) engine;
+
+	if (mbedtls == NULL) {
+		return HASH_TYPE_INVALID;
+	}
+
+	return hash_get_type_from_active (mbedtls->state->active);
+}
+
 int hash_mbedtls_update (const struct hash_engine *engine, const uint8_t *data, size_t length)
 {
 	const struct hash_engine_mbedtls *mbedtls = (const struct hash_engine_mbedtls*) engine;
@@ -409,6 +420,7 @@ int hash_mbedtls_init (struct hash_engine_mbedtls *engine, struct hash_engine_mb
 	engine->base.calculate_sha512 = hash_mbedtls_calculate_sha512;
 	engine->base.start_sha512 = hash_mbedtls_start_sha512;
 #endif
+	engine->base.get_active_algorithm = hash_mbedtls_get_active_algorithm;
 	engine->base.update = hash_mbedtls_update;
 	engine->base.get_hash = hash_mbedtls_get_hash;
 	engine->base.finish = hash_mbedtls_finish;
