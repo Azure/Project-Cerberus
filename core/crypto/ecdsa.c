@@ -205,7 +205,190 @@ void ecdsa_deterministic_k_drbg_clear (struct ecdsa_deterministic_k_drbg *drbg)
 }
 
 /**
- * Verify a specified message with an ECDSA signature
+ * Generate an ECDSA signature for a specified message.
+ *
+ * @param ecc The ECC engine to use for signature generation.
+ * @param hash The hash engine that will be used to calculate the message digest.
+ * @param hash_algo Algorithm to use for message hashing.
+ * @param rng The random number generator that will be used to generate the random 'r' value in the
+ * signature.  If this is null, the ECC engine will use a default RNG.
+ * @param priv_key DER encoded ECC private key to use for signing.
+ * @param key_length Length of the ECC private key data.
+ * @param message The raw message data that should be signed.
+ * @param msg_length Length of the message.
+ * @param signature Output buffer for the ECDSA signature.  The signature will be DER encoded.
+ * @param sig_length The length of the signature output buffer.
+ *
+ * @return The length of the signature or an error code.  Use ROT_IS_ERROR to check the return
+ * value.
+ */
+int ecdsa_sign_message (const struct ecc_engine *ecc, const struct hash_engine *hash,
+	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,
+	size_t key_length, const uint8_t *message, size_t msg_length, uint8_t *signature,
+	size_t sig_length)
+{
+	int status;
+
+	if ((ecc == NULL) || (hash == NULL) || (priv_key == NULL) || (signature == NULL)) {
+		return ECDSA_INVALID_ARGUMENT;
+	}
+
+	status = hash_start_new_hash (hash, hash_algo);
+	if (status != 0) {
+		return status;
+	}
+
+	status = hash->update (hash, message, msg_length);
+	if (status != 0) {
+		hash->cancel (hash);
+
+		return status;
+	}
+
+	return ecdsa_sign_hash_and_finish (ecc, hash, hash_algo, rng, priv_key, key_length, signature,
+		sig_length);
+}
+
+/**
+ * Generate an ECDSA signature for the calculated digest.
+ *
+ * @param ecc The ECC engine to use for signature generation.
+ * @param digest The digest to sign.  This will be zeroized upon return.
+ * @param hash_algo Hash algorithm used to calculate the digest.
+ * @param rng The random number generator that will be used to generate the random 'r' value in the
+ * signature.  If this is null, the ECC engine will use a default RNG.
+ * @param priv_key DER encoded ECC private key to use for signing.
+ * @param key_length Length of the ECC private key data.
+ * @param signature Output buffer for the ECDSA signature.  The signature will be DER encoded.
+ * @param sig_length The length of the signature output buffer.
+ *
+ * @return The length of the signature or an error code.  Use ROT_IS_ERROR to check the return
+ * value.
+ */
+static int ecdsa_sign_digest (const struct ecc_engine *ecc, uint8_t digest[HASH_MAX_HASH_LEN],
+	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,
+	size_t key_length, uint8_t *signature, size_t sig_length)
+{
+	struct ecc_private_key sign_key;
+	size_t digest_length;
+	int status;
+
+	digest_length = hash_get_hash_length (hash_algo);
+	if (digest_length == HASH_ENGINE_UNKNOWN_HASH) {
+		status = digest_length;
+		goto exit;
+	}
+
+	status = ecc->init_key_pair (ecc, priv_key, key_length, &sign_key, NULL);
+	if (status != 0) {
+		goto exit;
+	}
+
+	status = ecc->sign (ecc, &sign_key, digest, digest_length, rng, signature, sig_length);
+
+	ecc->release_key_pair (ecc, &sign_key, NULL);
+
+exit:
+	buffer_zeroize (digest, HASH_MAX_HASH_LEN);
+
+	return status;
+}
+
+/**
+ * Generate an ECDSA signature for an active hash context.
+ *
+ * The hash context will remain active after signature generation, allowing additional updates to be
+ * made.  Not all hash implementations support this type of behavior, so it should only be used in
+ * scenarios which require it.  Most scenarios should use ecdsa_sign_hash_and_finish instead.
+ *
+ * @param ecc The ECC engine to use for signature generation.
+ * @param hash The hash engine that contains the active context to sign.
+ * @param hash_algo Hash algorithm being used by the active context.
+ * @param rng The random number generator that will be used to generate the random 'r' value in the
+ * signature.  If this is null, the ECC engine will use a default RNG.
+ * @param priv_key DER encoded ECC private key to use for signing.
+ * @param key_length Length of the ECC private key.
+ * @param signature Output buffer for the ECDSA signature.  The signature will be DER encoded.
+ * @param sig_length The length of the signature output buffer.
+ *
+ * @return The length of the signature or an error code.  Use ROT_IS_ERROR to check the return
+ * value.
+ */
+int ecdsa_sign_hash (const struct ecc_engine *ecc, const struct hash_engine *hash,
+	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,
+	size_t key_length, uint8_t *signature, size_t sig_length)
+{
+	uint8_t digest[HASH_MAX_HASH_LEN] = {0};
+	int status;
+
+	if ((ecc == NULL) || (hash == NULL) || (priv_key == NULL) || (signature == NULL)) {
+		return ECDSA_INVALID_ARGUMENT;
+	}
+
+	status = hash->get_hash (hash, digest, sizeof (digest));
+	if (status != 0) {
+		buffer_zeroize (digest, HASH_MAX_HASH_LEN);
+
+		return status;
+	}
+
+	return ecdsa_sign_digest (ecc, digest, hash_algo, rng, priv_key, key_length, signature,
+		sig_length);
+}
+
+/**
+ * Generate an ECDSA signature for an active hash context.
+ *
+ * The hash context will be finished as part of signature generation.  No additional updates can be
+ * made to the hash context, regardless of whether the signature generation was successful or not.
+ *
+ * @param ecc The ECC engine to use for signature generation.
+ * @param hash The hash engine that contains the active context to sign.  The active context will
+ * always be terminated upon returning from this call.
+ * @param hash_algo Hash algorithm being used by the active context.
+ * @param rng The random number generator that will be used to generate the random 'r' value in the
+ * signature.  If this is null, the ECC engine will use a default RNG.
+ * @param priv_key DER encoded ECC private key to use for signing.
+ * @param key_length Length of the ECC private key.
+ * @param signature Output buffer for the ECDSA signature.  The signature will be DER encoded.
+ * @param sig_length The length of the signature output buffer.
+ *
+ * @return The length of the signature or an error code.  Use ROT_IS_ERROR to check the return
+ * value.
+ */
+int ecdsa_sign_hash_and_finish (const struct ecc_engine *ecc, const struct hash_engine *hash,
+	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,
+	size_t key_length, uint8_t *signature, size_t sig_length)
+{
+	uint8_t digest[HASH_MAX_HASH_LEN] = {0};
+	int status;
+
+	if (hash == NULL) {
+		return ECDSA_INVALID_ARGUMENT;
+	}
+
+	if ((ecc == NULL) || (priv_key == NULL) || (signature == NULL)) {
+		status = ECDSA_INVALID_ARGUMENT;
+		goto hash_cancel;
+	}
+
+	status = hash->finish (hash, digest, sizeof (digest));
+	if (status != 0) {
+		buffer_zeroize (digest, HASH_MAX_HASH_LEN);
+		goto hash_cancel;
+	}
+
+	return ecdsa_sign_digest (ecc, digest, hash_algo, rng, priv_key, key_length, signature,
+		sig_length);
+
+hash_cancel:
+	hash->cancel (hash);
+
+	return status;
+}
+
+/**
+ * Verify a specified message with an ECDSA signature.
  *
  * @param ecc The ECC engine to use for ECDSA signature verification.
  * @param hash The hash engine that will be used to calculate the message digest.
@@ -346,8 +529,7 @@ int ecdsa_ecc_hw_sign_message (const struct ecc_hw *ecc_hw, const struct hash_en
 {
 	int status;
 
-	if ((ecc_hw == NULL) || (hash == NULL) || (priv_key == NULL) || (message == NULL) ||
-		(signature == NULL)) {
+	if ((ecc_hw == NULL) || (hash == NULL) || (priv_key == NULL) || (signature == NULL)) {
 		return ECDSA_INVALID_ARGUMENT;
 	}
 
@@ -368,7 +550,7 @@ int ecdsa_ecc_hw_sign_message (const struct ecc_hw *ecc_hw, const struct hash_en
 }
 
 /**
- * Generate an ECDSA signature for e calculated digest using an ECC hardware implementation.
+ * Generate an ECDSA signature for the calculated digest using an ECC hardware implementation.
  *
  * @param ecc_hw The ECC hardware instance to use for signature generation.
  * @param digest The digest to sign.  This will be zeroized upon return.
@@ -515,8 +697,7 @@ int ecdsa_ecc_hw_verify_message (const struct ecc_hw *ecc_hw, const struct hash_
 {
 	int status;
 
-	if ((ecc_hw == NULL) || (hash == NULL) || (message == NULL) || (pub_key == NULL) ||
-		(signature == NULL)) {
+	if ((ecc_hw == NULL) || (hash == NULL) || (pub_key == NULL) || (signature == NULL)) {
 		return ECDSA_INVALID_ARGUMENT;
 	}
 

@@ -32,6 +32,17 @@ int ecdsa_deterministic_k_drbg_generate (struct ecdsa_deterministic_k_drbg *drbg
 	const struct hash_engine *hash, uint8_t *k, size_t k_length);
 void ecdsa_deterministic_k_drbg_clear (struct ecdsa_deterministic_k_drbg *drbg);
 
+int ecdsa_sign_message (const struct ecc_engine *ecc, const struct hash_engine *hash,
+	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,
+	size_t key_length, const uint8_t *message, size_t msg_length, uint8_t *signature,
+	size_t sig_length);
+int ecdsa_sign_hash (const struct ecc_engine *ecc, const struct hash_engine *hash,
+	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,
+	size_t key_length, uint8_t *signature, size_t sig_length);
+int ecdsa_sign_hash_and_finish (const struct ecc_engine *ecc, const struct hash_engine *hash,
+	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,
+	size_t key_length, uint8_t *signature, size_t sig_length);
+
 /* These verification functions are just wrappers around the common digital signature verification
  * routines, leveraging an ephemeral signature_verification_ecc instance.  In most situations,
  * directly interacting with the underlying signature verification calls with a statically allocated

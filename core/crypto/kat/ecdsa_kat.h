@@ -7,6 +7,20 @@
 #include "crypto/ecdsa.h"
 
 
+int ecdsa_kat_run_self_test_sign_p256_sha256 (const struct ecc_engine *ecc,
+	const struct hash_engine *hash);
+int ecdsa_kat_run_self_test_sign_p384_sha384 (const struct ecc_engine *ecc,
+	const struct hash_engine *hash);
+int ecdsa_kat_run_self_test_sign_p521_sha512 (const struct ecc_engine *ecc,
+	const struct hash_engine *hash);
+
+int ecdsa_kat_run_self_test_sign_hash_p256_sha256 (const struct ecc_engine *ecc,
+	const struct hash_engine *hash);
+int ecdsa_kat_run_self_test_sign_hash_p384_sha384 (const struct ecc_engine *ecc,
+	const struct hash_engine *hash);
+int ecdsa_kat_run_self_test_sign_hash_p521_sha512 (const struct ecc_engine *ecc,
+	const struct hash_engine *hash);
+
 int ecdsa_kat_run_self_test_verify_p256_sha256 (const struct ecc_engine *ecc,
 	const struct hash_engine *hash);
 int ecdsa_kat_run_self_test_verify_p384_sha384 (const struct ecc_engine *ecc,

@@ -361,11 +361,6 @@ static void signature_verification_test_verify_message_null (CuTest *test)
 	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
 
 	status = signature_verification_verify_message (&sig_verify.ecdsa.base, &sig_verify.hash.base,
-		HASH_TYPE_SHA256, NULL, strlen (message), ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
-		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
-	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
-
-	status = signature_verification_verify_message (&sig_verify.ecdsa.base, &sig_verify.hash.base,
 		HASH_TYPE_SHA256, (uint8_t*) message, strlen (message), ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
 		NULL, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
@@ -1019,6 +1014,7 @@ static void signature_verification_test_verify_hash_set_key_error (CuTest *test)
 	struct signature_verification_testing sig_verify;
 	const char *message = "Test";
 	int status;
+	uint8_t digest[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
@@ -1042,6 +1038,17 @@ static void signature_verification_test_verify_hash_set_key_error (CuTest *test)
 		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_SET_KEY_FAILED, status);
 
+	/* The hash context should still be active. */
+	status = sig_verify.hash.base.update (&sig_verify.hash.base, (uint8_t*) message,
+		strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = sig_verify.hash.base.finish (&sig_verify.hash.base, digest, sizeof (digest));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA256_TEST_TEST_HASH, digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
 	signature_verification_testing_release_dependencies (test, &sig_verify);
 }
 
@@ -1050,6 +1057,7 @@ static void signature_verification_test_verify_hash_verify_error (CuTest *test)
 	struct signature_verification_testing sig_verify;
 	const char *message = "Test";
 	int status;
+	uint8_t digest[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
@@ -1072,6 +1080,17 @@ static void signature_verification_test_verify_hash_verify_error (CuTest *test)
 	status = signature_verification_verify_hash (&sig_verify.verify_mock.base,
 		&sig_verify.hash.base, HASH_TYPE_SHA256, NULL, 0, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_VERIFY_SIG_FAILED, status);
+
+	/* The hash context should still be active. */
+	status = sig_verify.hash.base.update (&sig_verify.hash.base, (uint8_t*) message,
+		strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	status = sig_verify.hash.base.finish (&sig_verify.hash.base, digest, sizeof (digest));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA256_TEST_TEST_HASH, digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
 
 	signature_verification_testing_release_dependencies (test, &sig_verify);
 }

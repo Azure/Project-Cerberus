@@ -31,8 +31,7 @@ int signature_verification_verify_message (const struct signature_verification *
 {
 	int status;
 
-	if ((sig_verify == NULL) || (hash == NULL) || (message == NULL) || (signature == NULL) ||
-		(sig_length == 0)) {
+	if ((sig_verify == NULL) || (hash == NULL) || (signature == NULL) || (sig_length == 0)) {
 		return SIG_VERIFICATION_INVALID_ARGUMENT;
 	}
 
