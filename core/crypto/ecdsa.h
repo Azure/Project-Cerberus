@@ -37,11 +37,11 @@ int ecdsa_sign_message (const struct ecc_engine *ecc, const struct hash_engine *
 	size_t key_length, const uint8_t *message, size_t msg_length, uint8_t *signature,
 	size_t sig_length);
 int ecdsa_sign_hash (const struct ecc_engine *ecc, const struct hash_engine *hash,
-	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,
-	size_t key_length, uint8_t *signature, size_t sig_length);
+	const struct rng_engine *rng, const uint8_t *priv_key, size_t key_length, uint8_t *signature,
+	size_t sig_length);
 int ecdsa_sign_hash_and_finish (const struct ecc_engine *ecc, const struct hash_engine *hash,
-	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,
-	size_t key_length, uint8_t *signature, size_t sig_length);
+	const struct rng_engine *rng, const uint8_t *priv_key, size_t key_length, uint8_t *signature,
+	size_t sig_length);
 
 /* These verification functions are just wrappers around the common digital signature verification
  * routines, leveraging an ephemeral signature_verification_ecc instance.  In most situations,
@@ -51,32 +51,29 @@ int ecdsa_verify_message (const struct ecc_engine *ecc, const struct hash_engine
 	enum hash_type hash_algo, const uint8_t *message, size_t msg_length, const uint8_t *pub_key,
 	size_t key_length, const uint8_t *signature, size_t sig_length);
 int ecdsa_verify_hash (const struct ecc_engine *ecc, const struct hash_engine *hash,
-	enum hash_type hash_algo, const uint8_t *pub_key, size_t key_length, const uint8_t *signature,
-	size_t sig_length);
+	const uint8_t *pub_key, size_t key_length, const uint8_t *signature, size_t sig_length);
 int ecdsa_verify_hash_and_finish (const struct ecc_engine *ecc, const struct hash_engine *hash,
-	enum hash_type hash_algo, const uint8_t *pub_key, size_t key_length, const uint8_t *signature,
-	size_t sig_length);
+	const uint8_t *pub_key, size_t key_length, const uint8_t *signature, size_t sig_length);
 
 int ecdsa_ecc_hw_sign_message (const struct ecc_hw *ecc_hw, const struct hash_engine *hash,
 	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,
 	size_t key_length, const uint8_t *message, size_t msg_length,
 	struct ecc_ecdsa_signature *signature);
 int ecdsa_ecc_hw_sign_hash (const struct ecc_hw *ecc_hw, const struct hash_engine *hash,
-	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,
-	size_t key_length, struct ecc_ecdsa_signature *signature);
+	const struct rng_engine *rng, const uint8_t *priv_key, size_t key_length,
+	struct ecc_ecdsa_signature *signature);
 int ecdsa_ecc_hw_sign_hash_and_finish (const struct ecc_hw *ecc_hw, const struct hash_engine *hash,
-	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,
-	size_t key_length, struct ecc_ecdsa_signature *signature);
+	const struct rng_engine *rng, const uint8_t *priv_key, size_t key_length,
+	struct ecc_ecdsa_signature *signature);
 
 int ecdsa_ecc_hw_verify_message (const struct ecc_hw *ecc_hw, const struct hash_engine *hash,
 	enum hash_type hash_algo, const uint8_t *message, size_t msg_length,
 	const struct ecc_point_public_key *pub_key, const struct ecc_ecdsa_signature *signature);
 int ecdsa_ecc_hw_verify_hash (const struct ecc_hw *ecc_hw, const struct hash_engine *hash,
-	enum hash_type hash_algo, const struct ecc_point_public_key *pub_key,
-	const struct ecc_ecdsa_signature *signature);
-int ecdsa_ecc_hw_verify_hash_and_finish (const struct ecc_hw *ecc_hw,
-	const struct hash_engine *hash, enum hash_type hash_algo,
 	const struct ecc_point_public_key *pub_key, const struct ecc_ecdsa_signature *signature);
+int ecdsa_ecc_hw_verify_hash_and_finish (const struct ecc_hw *ecc_hw,
+	const struct hash_engine *hash, const struct ecc_point_public_key *pub_key,
+	const struct ecc_ecdsa_signature *signature);
 
 
 #define	ECDSA_ERROR(code)		ROT_ERROR (ROT_MODULE_ECDSA, code)
@@ -94,6 +91,7 @@ enum {
 	ECDSA_P384_VERIFY_SELF_TEST_FAILED = ECDSA_ERROR (0x06),	/**< Failed a self-test for ECDSA verify for the P-384 curve. */
 	ECDSA_P521_VERIFY_SELF_TEST_FAILED = ECDSA_ERROR (0x07),	/**< Failed a self-test for ECDSA verify for the P-521 curve. */
 	ECDSA_UNSUPPORTED_SELF_TEST = ECDSA_ERROR (0x08),			/**< The curve or hash algorithm is not supported. */
+	ECDSA_NO_ACTVE_HASH = ECDSA_ERROR (0x09),					/**< There is no active hash context available to sign. */
 };
 
 

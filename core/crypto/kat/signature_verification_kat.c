@@ -138,9 +138,8 @@ int signature_verification_kat_run_self_test_verify_hash_ecdsa_p256_sha256 (
 		goto exit;
 	}
 
-	status = signature_verification_verify_hash (ecdsa, hash, HASH_TYPE_SHA256,
-		ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER, ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER_LEN,
-		ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER,
+	status = signature_verification_verify_hash (ecdsa, hash, ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER_LEN, ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER,
 		ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER_LEN);
 	if (status == SIG_VERIFICATION_BAD_SIGNATURE) {
 		status = ECDSA_P256_VERIFY_SELF_TEST_FAILED;
@@ -184,9 +183,8 @@ int signature_verification_kat_run_self_test_verify_hash_ecdsa_p384_sha384 (
 		goto exit;
 	}
 
-	status = signature_verification_verify_hash (ecdsa, hash, HASH_TYPE_SHA384,
-		ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER, ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER_LEN,
-		ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER,
+	status = signature_verification_verify_hash (ecdsa, hash, ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER_LEN, ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER,
 		ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER_LEN);
 	if (status == SIG_VERIFICATION_BAD_SIGNATURE) {
 		status = ECDSA_P384_VERIFY_SELF_TEST_FAILED;
@@ -236,9 +234,8 @@ int signature_verification_kat_run_self_test_verify_hash_ecdsa_p521_sha512 (
 		goto exit;
 	}
 
-	status = signature_verification_verify_hash (ecdsa, hash, HASH_TYPE_SHA512,
-		ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER, ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER_LEN,
-		ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER,
+	status = signature_verification_verify_hash (ecdsa, hash, ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER_LEN, ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER,
 		ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER_LEN);
 	if (status == SIG_VERIFICATION_BAD_SIGNATURE) {
 		status = ECDSA_P521_VERIFY_SELF_TEST_FAILED;
@@ -460,7 +457,7 @@ int signature_verification_kat_run_self_test_verify_hash_rsassa_2048_sha256 (
 		goto exit;
 	}
 
-	status = signature_verification_verify_hash (rsassa, hash, HASH_TYPE_SHA256,
+	status = signature_verification_verify_hash (rsassa, hash,
 		(uint8_t*) &RSA_KAT_VECTORS_2048_PUBLIC, sizeof (RSA_KAT_VECTORS_2048_PUBLIC),
 		RSA_KAT_VECTORS_2048_SHA256_RSASSA_V15_SIGNATURE,
 		RSA_KAT_VECTORS_2048_SHA256_RSASSA_V15_SIGNATURE_LEN);
@@ -506,7 +503,7 @@ int signature_verification_kat_run_self_test_verify_hash_rsassa_2048_sha384 (
 		goto exit;
 	}
 
-	status = signature_verification_verify_hash (rsassa, hash, HASH_TYPE_SHA384,
+	status = signature_verification_verify_hash (rsassa, hash,
 		(uint8_t*) &RSA_KAT_VECTORS_2048_PUBLIC, sizeof (RSA_KAT_VECTORS_2048_PUBLIC),
 		RSA_KAT_VECTORS_2048_SHA384_RSASSA_V15_SIGNATURE,
 		RSA_KAT_VECTORS_2048_SHA384_RSASSA_V15_SIGNATURE_LEN);
@@ -558,7 +555,7 @@ int signature_verification_kat_run_self_test_verify_hash_rsassa_2048_sha512 (
 		goto exit;
 	}
 
-	status = signature_verification_verify_hash (rsassa, hash, HASH_TYPE_SHA512,
+	status = signature_verification_verify_hash (rsassa, hash,
 		(uint8_t*) &RSA_KAT_VECTORS_2048_PUBLIC, sizeof (RSA_KAT_VECTORS_2048_PUBLIC),
 		RSA_KAT_VECTORS_2048_SHA512_RSASSA_V15_SIGNATURE,
 		RSA_KAT_VECTORS_2048_SHA512_RSASSA_V15_SIGNATURE_LEN);
@@ -610,7 +607,7 @@ int signature_verification_kat_run_self_test_verify_hash_rsassa_3072_sha384 (
 		goto exit;
 	}
 
-	status = signature_verification_verify_hash (rsassa, hash, HASH_TYPE_SHA384,
+	status = signature_verification_verify_hash (rsassa, hash,
 		(uint8_t*) &RSA_KAT_VECTORS_3072_PUBLIC, sizeof (RSA_KAT_VECTORS_3072_PUBLIC),
 		RSA_KAT_VECTORS_3072_SHA384_RSASSA_V15_SIGNATURE,
 		RSA_KAT_VECTORS_3072_SHA384_RSASSA_V15_SIGNATURE_LEN);
@@ -662,7 +659,7 @@ int signature_verification_kat_run_self_test_verify_hash_rsassa_4096_sha384 (
 		goto exit;
 	}
 
-	status = signature_verification_verify_hash (rsassa, hash, HASH_TYPE_SHA384,
+	status = signature_verification_verify_hash (rsassa, hash,
 		(uint8_t*) &RSA_KAT_VECTORS_4096_PUBLIC, sizeof (RSA_KAT_VECTORS_4096_PUBLIC),
 		RSA_KAT_VECTORS_4096_SHA384_RSASSA_V15_SIGNATURE,
 		RSA_KAT_VECTORS_4096_SHA384_RSASSA_V15_SIGNATURE_LEN);

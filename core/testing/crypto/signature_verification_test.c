@@ -483,6 +483,9 @@ static void signature_verification_test_verify_message_hash_finish_error (CuTest
 		&sig_verify.hash_mock, 0, MOCK_ARG_PTR_CONTAINS (message, strlen (message)),
 		MOCK_ARG (strlen (message)));
 
+	status |= mock_expect (&sig_verify.hash_mock.mock,
+		sig_verify.hash_mock.base.get_active_algorithm, &sig_verify.hash_mock, HASH_TYPE_SHA256);
+
 	status |= mock_expect (&sig_verify.hash_mock.mock, sig_verify.hash_mock.base.finish,
 		&sig_verify.hash_mock, HASH_ENGINE_FINISH_FAILED, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
@@ -573,7 +576,7 @@ static void signature_verification_test_verify_hash_ecdsa_p256_sha256 (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash (&sig_verify.ecdsa.base, &sig_verify.hash.base,
-		HASH_TYPE_SHA256, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	/* The hash context should still be active. */
@@ -614,7 +617,7 @@ static void signature_verification_test_verify_hash_ecdsa_p256_sha256_bad_signat
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash (&sig_verify.ecdsa.base, &sig_verify.hash.base,
-		HASH_TYPE_SHA256, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_BAD, ECC_SIG_BAD_LEN);
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_BAD, ECC_SIG_BAD_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	/* The hash context should still be active. */
@@ -660,8 +663,7 @@ static void signature_verification_test_verify_hash_rsassa_2k_sha256 (CuTest *te
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash (&sig_verify.rsassa.base, &sig_verify.hash.base,
-		HASH_TYPE_SHA256, (uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY), RSA_SIGNATURE_TEST,
-		RSA_KEY_LENGTH_2K);
+		(uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY), RSA_SIGNATURE_TEST, RSA_KEY_LENGTH_2K);
 	CuAssertIntEquals (test, 0, status);
 
 	/* The hash context should still be active. */
@@ -702,8 +704,7 @@ static void signature_verification_test_verify_hash_rsassa_2k_sha256_bad_signatu
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash (&sig_verify.rsassa.base, &sig_verify.hash.base,
-		HASH_TYPE_SHA256, (uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY), RSA_SIGNATURE_BAD,
-		RSA_KEY_LENGTH_2K);
+		(uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY), RSA_SIGNATURE_BAD, RSA_KEY_LENGTH_2K);
 	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	/* The hash context should still be active. */
@@ -744,8 +745,8 @@ static void signature_verification_test_verify_hash_rsassa_2k_sha384 (CuTest *te
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash (&sig_verify.rsassa.base, &sig_verify.hash.base,
-		HASH_TYPE_SHA384, (uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY),
-		RSA_SHA384_SIGNATURE_TEST2, RSA_KEY_LENGTH_2K);
+		(uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY), RSA_SHA384_SIGNATURE_TEST2,
+		RSA_KEY_LENGTH_2K);
 	CuAssertIntEquals (test, 0, status);
 
 	/* There should be no active key left in the verification context. */
@@ -774,8 +775,8 @@ static void signature_verification_test_verify_hash_rsassa_2k_sha384_bad_signatu
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash (&sig_verify.rsassa.base, &sig_verify.hash.base,
-		HASH_TYPE_SHA384, (uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY),
-		RSA_SHA384_SIGNATURE_BAD, RSA_KEY_LENGTH_2K);
+		(uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY), RSA_SHA384_SIGNATURE_BAD,
+		RSA_KEY_LENGTH_2K);
 	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	/* There should be no active key left in the verification context. */
@@ -806,8 +807,8 @@ static void signature_verification_test_verify_hash_rsassa_2k_sha512 (CuTest *te
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash (&sig_verify.rsassa.base, &sig_verify.hash.base,
-		HASH_TYPE_SHA512, (uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY),
-		RSA_SHA512_SIGNATURE_TEST, RSA_KEY_LENGTH_2K);
+		(uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY), RSA_SHA512_SIGNATURE_TEST,
+		RSA_KEY_LENGTH_2K);
 	CuAssertIntEquals (test, 0, status);
 
 	/* There should be no active key left in the verification context. */
@@ -836,8 +837,8 @@ static void signature_verification_test_verify_hash_rsassa_2k_sha512_bad_signatu
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash (&sig_verify.rsassa.base, &sig_verify.hash.base,
-		HASH_TYPE_SHA512, (uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY),
-		RSA_SHA512_SIGNATURE_BAD, RSA_KEY_LENGTH_2K);
+		(uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY), RSA_SHA512_SIGNATURE_BAD,
+		RSA_KEY_LENGTH_2K);
 	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	/* There should be no active key left in the verification context. */
@@ -872,7 +873,7 @@ static void signature_verification_test_verify_hash_no_public_key (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash (&sig_verify.ecdsa.base, &sig_verify.hash.base,
-		HASH_TYPE_SHA256, NULL, 0, ECC_SIGNATURE_NOPE, ECC_SIG_NOPE_LEN);
+		NULL, 0, ECC_SIGNATURE_NOPE, ECC_SIG_NOPE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	/* The verification context should be unmodified. */
@@ -892,20 +893,20 @@ static void signature_verification_test_verify_hash_null (CuTest *test)
 
 	signature_verification_testing_init_dependencies (test, &sig_verify);
 
-	status = signature_verification_verify_hash (NULL, &sig_verify.hash.base, HASH_TYPE_SHA256,
-		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+	status = signature_verification_verify_hash (NULL, &sig_verify.hash.base, ECC_PUBKEY_DER,
+		ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
 
-	status = signature_verification_verify_hash (&sig_verify.ecdsa.base, NULL, HASH_TYPE_SHA256,
-		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
-	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
-
-	status = signature_verification_verify_hash (&sig_verify.ecdsa.base, &sig_verify.hash.base,
-		HASH_TYPE_SHA256, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, NULL, ECC_SIG_TEST_LEN);
+	status = signature_verification_verify_hash (&sig_verify.ecdsa.base, NULL, ECC_PUBKEY_DER,
+		ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
 
 	status = signature_verification_verify_hash (&sig_verify.ecdsa.base, &sig_verify.hash.base,
-		HASH_TYPE_SHA256, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, 0);
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, NULL, ECC_SIG_TEST_LEN);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
+
+	status = signature_verification_verify_hash (&sig_verify.ecdsa.base, &sig_verify.hash.base,
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, 0);
 	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
 
 	signature_verification_testing_release_dependencies (test, &sig_verify);
@@ -930,11 +931,11 @@ static void signature_verification_test_verify_hash_inconsistent_key (CuTest *te
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash (&sig_verify.ecdsa.base, &sig_verify.hash.base,
-		HASH_TYPE_SHA256, NULL, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+		NULL, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_INCONSISTENT_KEY, status);
 
 	status = signature_verification_verify_hash (&sig_verify.ecdsa.base, &sig_verify.hash.base,
-		HASH_TYPE_SHA256, ECC_PUBKEY_DER, 0, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+		ECC_PUBKEY_DER, 0, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_INCONSISTENT_KEY, status);
 
 	/* The hash context should still be active. */
@@ -951,39 +952,18 @@ static void signature_verification_test_verify_hash_inconsistent_key (CuTest *te
 	signature_verification_testing_release_dependencies (test, &sig_verify);
 }
 
-static void signature_verification_test_verify_hash_unknown_hash_algorithm (CuTest *test)
+static void signature_verification_test_verify_hash_no_active_hash (CuTest *test)
 {
 	struct signature_verification_testing sig_verify;
-	const char *message = "Test";
 	int status;
-	uint8_t digest[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
 	signature_verification_testing_init_dependencies (test, &sig_verify);
 
-	status = sig_verify.hash.base.start_sha256 (&sig_verify.hash.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = sig_verify.hash.base.update (&sig_verify.hash.base, (uint8_t*) message,
-		strlen (message));
-	CuAssertIntEquals (test, 0, status);
-
 	status = signature_verification_verify_hash (&sig_verify.ecdsa.base, &sig_verify.hash.base,
-		HASH_TYPE_INVALID, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST,
-		ECC_SIG_TEST_LEN);
-	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
-
-	/* The hash context should still be active. */
-	status = sig_verify.hash.base.update (&sig_verify.hash.base, (uint8_t*) message,
-		strlen (message));
-	CuAssertIntEquals (test, 0, status);
-
-	status = sig_verify.hash.base.finish (&sig_verify.hash.base, digest, sizeof (digest));
-	CuAssertIntEquals (test, 0, status);
-
-	status = testing_validate_array (SHA256_TEST_TEST_HASH, digest, SHA256_HASH_LENGTH);
-	CuAssertIntEquals (test, 0, status);
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+	CuAssertIntEquals (test, SIG_VERIFICATION_NO_ACTVE_HASH, status);
 
 	signature_verification_testing_release_dependencies (test, &sig_verify);
 }
@@ -997,13 +977,17 @@ static void signature_verification_test_verify_hash_get_hash_error (CuTest *test
 
 	signature_verification_testing_init_dependencies (test, &sig_verify);
 
-	status = mock_expect (&sig_verify.hash_mock.mock, sig_verify.hash_mock.base.get_hash,
+	status = mock_expect (&sig_verify.hash_mock.mock,
+		sig_verify.hash_mock.base.get_active_algorithm, &sig_verify.hash_mock, HASH_TYPE_SHA256);
+
+	status |= mock_expect (&sig_verify.hash_mock.mock, sig_verify.hash_mock.base.get_hash,
 		&sig_verify.hash_mock, HASH_ENGINE_GET_HASH_FAILED, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash (&sig_verify.ecdsa.base, &sig_verify.hash_mock.base,
-		HASH_TYPE_SHA256, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, HASH_ENGINE_GET_HASH_FAILED, status);
 
 	signature_verification_testing_release_dependencies (test, &sig_verify);
@@ -1034,8 +1018,8 @@ static void signature_verification_test_verify_hash_set_key_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash (&sig_verify.verify_mock.base,
-		&sig_verify.hash.base, HASH_TYPE_SHA256, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
-		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+		&sig_verify.hash.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_SET_KEY_FAILED, status);
 
 	/* The hash context should still be active. */
@@ -1078,7 +1062,7 @@ static void signature_verification_test_verify_hash_verify_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash (&sig_verify.verify_mock.base,
-		&sig_verify.hash.base, HASH_TYPE_SHA256, NULL, 0, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+		&sig_verify.hash.base, NULL, 0, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_VERIFY_SIG_FAILED, status);
 
 	/* The hash context should still be active. */
@@ -1118,8 +1102,8 @@ static void signature_verification_test_verify_hash_and_finish_ecdsa_p256_sha256
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash_and_finish (&sig_verify.ecdsa.base,
-		&sig_verify.hash.base, HASH_TYPE_SHA256, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
-		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+		&sig_verify.hash.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	/* The hash context should be closed. */
@@ -1154,8 +1138,8 @@ static void signature_verification_test_verify_hash_and_finish_ecdsa_p256_sha256
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash_and_finish (&sig_verify.ecdsa.base,
-		&sig_verify.hash.base, HASH_TYPE_SHA256, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
-		ECC_SIGNATURE_BAD, ECC_SIG_BAD_LEN);
+		&sig_verify.hash.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_BAD,
+		ECC_SIG_BAD_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	/* The hash context should be closed. */
@@ -1194,8 +1178,8 @@ static void signature_verification_test_verify_hash_and_finish_rsassa_2k_sha256 
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash_and_finish (&sig_verify.rsassa.base,
-		&sig_verify.hash.base, HASH_TYPE_SHA256, (uint8_t*) &RSA_PUBLIC_KEY,
-		sizeof (RSA_PUBLIC_KEY), RSA_SIGNATURE_TEST2, RSA_KEY_LENGTH_2K);
+		&sig_verify.hash.base, (uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY),
+		RSA_SIGNATURE_TEST2, RSA_KEY_LENGTH_2K);
 	CuAssertIntEquals (test, 0, status);
 
 	/* The hash context should be closed. */
@@ -1235,8 +1219,8 @@ static void signature_verification_test_verify_hash_and_finish_rsassa_2k_sha256_
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash_and_finish (&sig_verify.rsassa.base,
-		&sig_verify.hash.base, HASH_TYPE_SHA256, (uint8_t*) &RSA_PUBLIC_KEY,
-		sizeof (RSA_PUBLIC_KEY), RSA_SIGNATURE_BAD, RSA_KEY_LENGTH_2K);
+		&sig_verify.hash.base, (uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY),
+		RSA_SIGNATURE_BAD, RSA_KEY_LENGTH_2K);
 	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	/* The hash context should be closed. */
@@ -1271,8 +1255,8 @@ static void signature_verification_test_verify_hash_and_finish_rsassa_2k_sha384 
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash_and_finish (&sig_verify.rsassa.base,
-		&sig_verify.hash.base, HASH_TYPE_SHA384, (uint8_t*) &RSA_PUBLIC_KEY,
-		sizeof (RSA_PUBLIC_KEY), RSA_SHA384_SIGNATURE_TEST2, RSA_KEY_LENGTH_2K);
+		&sig_verify.hash.base, (uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY),
+		RSA_SHA384_SIGNATURE_TEST2, RSA_KEY_LENGTH_2K);
 	CuAssertIntEquals (test, 0, status);
 
 	/* The hash context should be closed. */
@@ -1307,8 +1291,8 @@ static void signature_verification_test_verify_hash_and_finish_rsassa_2k_sha384_
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash_and_finish (&sig_verify.rsassa.base,
-		&sig_verify.hash.base, HASH_TYPE_SHA384, (uint8_t*) &RSA_PUBLIC_KEY,
-		sizeof (RSA_PUBLIC_KEY), RSA_SHA384_SIGNATURE_BAD, RSA_KEY_LENGTH_2K);
+		&sig_verify.hash.base, (uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY),
+		RSA_SHA384_SIGNATURE_BAD, RSA_KEY_LENGTH_2K);
 	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	/* The hash context should be closed. */
@@ -1344,8 +1328,8 @@ static void signature_verification_test_verify_hash_and_finish_rsassa_2k_sha512 
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash_and_finish (&sig_verify.rsassa.base,
-		&sig_verify.hash.base, HASH_TYPE_SHA512, (uint8_t*) &RSA_PUBLIC_KEY,
-		sizeof (RSA_PUBLIC_KEY), RSA_SHA512_SIGNATURE_TEST, RSA_KEY_LENGTH_2K);
+		&sig_verify.hash.base, (uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY),
+		RSA_SHA512_SIGNATURE_TEST, RSA_KEY_LENGTH_2K);
 	CuAssertIntEquals (test, 0, status);
 
 	/* The hash context should be closed. */
@@ -1380,8 +1364,8 @@ static void signature_verification_test_verify_hash_and_finish_rsassa_2k_sha512_
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash_and_finish (&sig_verify.rsassa.base,
-		&sig_verify.hash.base, HASH_TYPE_SHA512, (uint8_t*) &RSA_PUBLIC_KEY,
-		sizeof (RSA_PUBLIC_KEY), RSA_SHA512_SIGNATURE_BAD, RSA_KEY_LENGTH_2K);
+		&sig_verify.hash.base, (uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY),
+		RSA_SHA512_SIGNATURE_BAD, RSA_KEY_LENGTH_2K);
 	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	/* The hash context should be closed. */
@@ -1421,7 +1405,7 @@ static void signature_verification_test_verify_hash_and_finish_no_public_key (Cu
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash_and_finish (&sig_verify.ecdsa.base,
-		&sig_verify.hash.base, HASH_TYPE_SHA256, NULL, 0, ECC_SIGNATURE_NOPE, ECC_SIG_NOPE_LEN);
+		&sig_verify.hash.base, NULL, 0, ECC_SIGNATURE_NOPE, ECC_SIG_NOPE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	/* The hash context should be closed. */
@@ -1447,38 +1431,45 @@ static void signature_verification_test_verify_hash_and_finish_null (CuTest *tes
 	signature_verification_testing_init_dependencies (test, &sig_verify);
 
 	/* NULL Verification */
-	status = mock_expect (&sig_verify.hash_mock.mock, sig_verify.hash_mock.base.cancel,
+	status = mock_expect (&sig_verify.hash_mock.mock,
+		sig_verify.hash_mock.base.get_active_algorithm, &sig_verify.hash_mock, HASH_TYPE_SHA256);
+	status |= mock_expect (&sig_verify.hash_mock.mock, sig_verify.hash_mock.base.cancel,
 		&sig_verify.hash_mock, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash_and_finish (NULL, &sig_verify.hash_mock.base,
-		HASH_TYPE_SHA256, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&sig_verify.hash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 
 	/* NULL Signature */
-	status = mock_expect (&sig_verify.hash_mock.mock, sig_verify.hash_mock.base.cancel,
+	status = mock_expect (&sig_verify.hash_mock.mock,
+		sig_verify.hash_mock.base.get_active_algorithm, &sig_verify.hash_mock, HASH_TYPE_SHA256);
+	status |= mock_expect (&sig_verify.hash_mock.mock, sig_verify.hash_mock.base.cancel,
 		&sig_verify.hash_mock, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash_and_finish (&sig_verify.ecdsa.base,
-		&sig_verify.hash_mock.base, HASH_TYPE_SHA256, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, NULL,
-		ECC_SIG_TEST_LEN);
+		&sig_verify.hash_mock.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, NULL, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&sig_verify.hash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 
 	/* 0 Signature Length */
-	status = mock_expect (&sig_verify.hash_mock.mock, sig_verify.hash_mock.base.cancel,
+	status = mock_expect (&sig_verify.hash_mock.mock,
+		sig_verify.hash_mock.base.get_active_algorithm, &sig_verify.hash_mock, HASH_TYPE_SHA256);
+	status |= mock_expect (&sig_verify.hash_mock.mock, sig_verify.hash_mock.base.cancel,
 		&sig_verify.hash_mock, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash_and_finish (&sig_verify.ecdsa.base,
-		&sig_verify.hash_mock.base, HASH_TYPE_SHA256, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
-		ECC_SIGNATURE_TEST, 0);
+		&sig_verify.hash_mock.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, 0);
 	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
 
 	signature_verification_testing_release_dependencies (test, &sig_verify);
@@ -1494,7 +1485,7 @@ static void signature_verification_test_verify_hash_and_finish_null_hash (CuTest
 	signature_verification_testing_init_dependencies (test, &sig_verify);
 
 	status = signature_verification_verify_hash_and_finish (&sig_verify.ecdsa.base, NULL,
-		HASH_TYPE_SHA256, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
 
 	signature_verification_testing_release_dependencies (test, &sig_verify);
@@ -1519,8 +1510,7 @@ static void signature_verification_test_verify_hash_and_finish_inconsistent_key 
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash_and_finish (&sig_verify.ecdsa.base,
-		&sig_verify.hash.base, HASH_TYPE_SHA256, NULL, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST,
-		ECC_SIG_TEST_LEN);
+		&sig_verify.hash.base, NULL, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_INCONSISTENT_KEY, status);
 
 	/* The hash context should be closed. */
@@ -1537,8 +1527,7 @@ static void signature_verification_test_verify_hash_and_finish_inconsistent_key 
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash_and_finish (&sig_verify.ecdsa.base,
-		&sig_verify.hash.base, HASH_TYPE_SHA256, ECC_PUBKEY_DER, 0, ECC_SIGNATURE_TEST,
-		ECC_SIG_TEST_LEN);
+		&sig_verify.hash.base, ECC_PUBKEY_DER, 0, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_INCONSISTENT_KEY, status);
 
 	/* The hash context should be closed. */
@@ -1549,31 +1538,19 @@ static void signature_verification_test_verify_hash_and_finish_inconsistent_key 
 	signature_verification_testing_release_dependencies (test, &sig_verify);
 }
 
-static void signature_verification_test_verify_hash_and_finish_unknown_hash_algorithm (CuTest *test)
+static void signature_verification_test_verify_hash_and_finish_no_active_hash (CuTest *test)
 {
 	struct signature_verification_testing sig_verify;
-	const char *message = "Test";
 	int status;
 
 	TEST_START;
 
 	signature_verification_testing_init_dependencies (test, &sig_verify);
-	status = sig_verify.hash.base.start_sha256 (&sig_verify.hash.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = sig_verify.hash.base.update (&sig_verify.hash.base, (uint8_t*) message,
-		strlen (message));
-	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash_and_finish (&sig_verify.ecdsa.base,
-		&sig_verify.hash.base, HASH_TYPE_INVALID, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
-		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
-	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
-
-	/* The hash context should be closed. */
-	status = sig_verify.hash.base.update (&sig_verify.hash.base, (uint8_t*) message,
-		strlen (message));
-	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+		&sig_verify.hash.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN);
+	CuAssertIntEquals (test, SIG_VERIFICATION_NO_ACTVE_HASH, status);
 
 	signature_verification_testing_release_dependencies (test, &sig_verify);
 }
@@ -1587,7 +1564,10 @@ static void signature_verification_test_verify_hash_and_finish_hash_finish_error
 
 	signature_verification_testing_init_dependencies (test, &sig_verify);
 
-	status = mock_expect (&sig_verify.hash_mock.mock, sig_verify.hash_mock.base.finish,
+	status = mock_expect (&sig_verify.hash_mock.mock,
+		sig_verify.hash_mock.base.get_active_algorithm, &sig_verify.hash_mock, HASH_TYPE_SHA256);
+
+	status |= mock_expect (&sig_verify.hash_mock.mock, sig_verify.hash_mock.base.finish,
 		&sig_verify.hash_mock, HASH_ENGINE_FINISH_FAILED, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 
@@ -1597,8 +1577,8 @@ static void signature_verification_test_verify_hash_and_finish_hash_finish_error
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash_and_finish (&sig_verify.ecdsa.base,
-		&sig_verify.hash_mock.base, HASH_TYPE_SHA256, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
-		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+		&sig_verify.hash_mock.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
 
 	signature_verification_testing_release_dependencies (test, &sig_verify);
@@ -1628,8 +1608,8 @@ static void signature_verification_test_verify_hash_and_finish_set_key_error (Cu
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash_and_finish (&sig_verify.verify_mock.base,
-		&sig_verify.hash.base, HASH_TYPE_SHA256, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
-		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+		&sig_verify.hash.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_SET_KEY_FAILED, status);
 
 	/* The hash context should be closed. */
@@ -1665,7 +1645,7 @@ static void signature_verification_test_verify_hash_and_finish_verify_error (CuT
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_verify_hash_and_finish (&sig_verify.verify_mock.base,
-		&sig_verify.hash.base, HASH_TYPE_SHA256, NULL, 0, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+		&sig_verify.hash.base, NULL, 0, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_VERIFY_SIG_FAILED, status);
 
 	/* The hash context should be closed. */
@@ -1712,7 +1692,7 @@ TEST (signature_verification_test_verify_hash_rsassa_2k_sha512_bad_signature);
 TEST (signature_verification_test_verify_hash_no_public_key);
 TEST (signature_verification_test_verify_hash_null);
 TEST (signature_verification_test_verify_hash_inconsistent_key);
-TEST (signature_verification_test_verify_hash_unknown_hash_algorithm);
+TEST (signature_verification_test_verify_hash_no_active_hash);
 TEST (signature_verification_test_verify_hash_get_hash_error);
 TEST (signature_verification_test_verify_hash_set_key_error);
 TEST (signature_verification_test_verify_hash_verify_error);
@@ -1732,7 +1712,7 @@ TEST (signature_verification_test_verify_hash_and_finish_no_public_key);
 TEST (signature_verification_test_verify_hash_and_finish_null);
 TEST (signature_verification_test_verify_hash_and_finish_null_hash);
 TEST (signature_verification_test_verify_hash_and_finish_inconsistent_key);
-TEST (signature_verification_test_verify_hash_and_finish_unknown_hash_algorithm);
+TEST (signature_verification_test_verify_hash_and_finish_no_active_hash);
 TEST (signature_verification_test_verify_hash_and_finish_hash_finish_error);
 TEST (signature_verification_test_verify_hash_and_finish_set_key_error);
 TEST (signature_verification_test_verify_hash_and_finish_verify_error);

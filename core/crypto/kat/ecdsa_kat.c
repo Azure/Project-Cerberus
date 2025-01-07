@@ -222,9 +222,8 @@ int ecdsa_kat_run_self_test_sign_hash_p256_sha256 (const struct ecc_engine *ecc,
 		goto exit;
 	}
 
-	status = ecdsa_sign_hash (ecc, hash, HASH_TYPE_SHA256, &rng.base,
-		ECC_KAT_VECTORS_P256_ECC_PRIVATE_DER, ECC_KAT_VECTORS_P256_ECC_PRIVATE_DER_LEN, signature,
-		sizeof (signature));
+	status = ecdsa_sign_hash (ecc, hash, &rng.base, ECC_KAT_VECTORS_P256_ECC_PRIVATE_DER,
+		ECC_KAT_VECTORS_P256_ECC_PRIVATE_DER_LEN, signature, sizeof (signature));
 	if (ROT_IS_ERROR (status)) {
 		goto exit;
 	}
@@ -281,9 +280,8 @@ int ecdsa_kat_run_self_test_sign_hash_p384_sha384 (const struct ecc_engine *ecc,
 		goto exit;
 	}
 
-	status = ecdsa_sign_hash (ecc, hash, HASH_TYPE_SHA384, &rng.base,
-		ECC_KAT_VECTORS_P384_ECC_PRIVATE_DER, ECC_KAT_VECTORS_P384_ECC_PRIVATE_DER_LEN, signature,
-		sizeof (signature));
+	status = ecdsa_sign_hash (ecc, hash, &rng.base, ECC_KAT_VECTORS_P384_ECC_PRIVATE_DER,
+		ECC_KAT_VECTORS_P384_ECC_PRIVATE_DER_LEN, signature, sizeof (signature));
 	if (ROT_IS_ERROR (status)) {
 		goto exit;
 	}
@@ -346,9 +344,8 @@ int ecdsa_kat_run_self_test_sign_hash_p521_sha512 (const struct ecc_engine *ecc,
 		goto exit;
 	}
 
-	status = ecdsa_sign_hash (ecc, hash, HASH_TYPE_SHA512, &rng.base,
-		ECC_KAT_VECTORS_P521_ECC_PRIVATE_DER, ECC_KAT_VECTORS_P521_ECC_PRIVATE_DER_LEN, signature,
-		sizeof (signature));
+	status = ecdsa_sign_hash (ecc, hash, &rng.base, ECC_KAT_VECTORS_P521_ECC_PRIVATE_DER,
+		ECC_KAT_VECTORS_P521_ECC_PRIVATE_DER_LEN, signature, sizeof (signature));
 	if (ROT_IS_ERROR (status)) {
 		goto exit;
 	}
@@ -502,7 +499,7 @@ int ecdsa_kat_run_self_test_verify_hash_p256_sha256 (const struct ecc_engine *ec
 		goto exit;
 	}
 
-	status = ecdsa_verify_hash (ecc, hash, HASH_TYPE_SHA256, ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER,
+	status = ecdsa_verify_hash (ecc, hash, ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER,
 		ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER_LEN, ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER,
 		ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER_LEN);
 	if (status == SIG_VERIFICATION_BAD_SIGNATURE) {
@@ -547,7 +544,7 @@ int ecdsa_kat_run_self_test_verify_hash_p384_sha384 (const struct ecc_engine *ec
 		goto exit;
 	}
 
-	status = ecdsa_verify_hash (ecc, hash, HASH_TYPE_SHA384, ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER,
+	status = ecdsa_verify_hash (ecc, hash, ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER,
 		ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER_LEN, ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER,
 		ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER_LEN);
 	if (status == SIG_VERIFICATION_BAD_SIGNATURE) {
@@ -598,7 +595,7 @@ int ecdsa_kat_run_self_test_verify_hash_p521_sha512 (const struct ecc_engine *ec
 		goto exit;
 	}
 
-	status = ecdsa_verify_hash (ecc, hash, HASH_TYPE_SHA512, ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER,
+	status = ecdsa_verify_hash (ecc, hash, ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER,
 		ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER_LEN, ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER,
 		ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER_LEN);
 	if (status == SIG_VERIFICATION_BAD_SIGNATURE) {

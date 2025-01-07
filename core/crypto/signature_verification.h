@@ -75,11 +75,11 @@ int signature_verification_verify_message (const struct signature_verification *
 	size_t msg_length, const uint8_t *key, size_t key_length, const uint8_t *signature,
 	size_t sig_length);
 int signature_verification_verify_hash (const struct signature_verification *sig_verify,
-	const struct hash_engine *hash, enum hash_type hash_algo, const uint8_t *key, size_t key_length,
-	const uint8_t *signature, size_t sig_length);
+	const struct hash_engine *hash, const uint8_t *key, size_t key_length, const uint8_t *signature,
+	size_t sig_length);
 int signature_verification_verify_hash_and_finish (const struct signature_verification *sig_verify,
-	const struct hash_engine *hash, enum hash_type hash_algo, const uint8_t *key, size_t key_length,
-	const uint8_t *signature, size_t sig_length);
+	const struct hash_engine *hash, const uint8_t *key, size_t key_length, const uint8_t *signature,
+	size_t sig_length);
 
 
 #define	SIG_VERIFICATION_ERROR(code)		ROT_ERROR (ROT_MODULE_SIG_VERIFICATION, code)
@@ -99,6 +99,7 @@ enum {
 	SIG_VERIFICATION_INVALID_KEY = SIG_VERIFICATION_ERROR (0x08),		/**< The key cannot be used for verification. */
 	SIG_VERIFICATION_UNKNOWN_HASH = SIG_VERIFICATION_ERROR (0x09),		/**< The hash to verify is an unknown type. */
 	SIG_VERIFICATION_INCONSISTENT_KEY = SIG_VERIFICATION_ERROR (0x0a),	/**< A null key of non-zero length or a non-null key of zero length. */
+	SIG_VERIFICATION_NO_ACTVE_HASH = SIG_VERIFICATION_ERROR (0x0b),		/**< There is no active hash context available to sign. */
 };
 
 
