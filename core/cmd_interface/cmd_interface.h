@@ -58,7 +58,7 @@ struct cmd_interface_msg {
 	 * Length of the message payload.
 	 *
 	 * This does not indicate the maximum length of the payload buffer for building responses.  This
-	 * value can be determined with {@link cmd_interface_msg_get_max_payload}.
+	 * value can be determined with {@link cmd_interface_msg_get_max_response}.
 	 */
 	size_t payload_length;
 
