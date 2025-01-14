@@ -6,6 +6,7 @@
 #include "attestation_responder.h"
 #include "platform_api.h"
 #include "common/unused.h"
+#include "crypto/ecdsa.h"
 
 
 static int attestation_responder_get_digests (struct attestation_responder *attestation,
@@ -261,8 +262,8 @@ static int attestation_responder_challenge_response (struct attestation_responde
 {
 	struct attestation_challenge *challenge = (struct attestation_challenge*) buf;
 	struct attestation_response *response = (struct attestation_response*) buf;
-	uint8_t measurement[PCR_MAX_DIGEST_LENGTH];
-	uint8_t buf_hash[SHA256_HASH_LENGTH];
+	const struct riot_keys *keys;
+	uint8_t measurement[PCR_MAX_DIGEST_LENGTH] = {0};
 	uint16_t response_len;
 	uint8_t slot_num;
 	int num_measurements;
@@ -338,13 +339,11 @@ static int attestation_responder_challenge_response (struct attestation_responde
 		goto cleanup;
 	}
 
-	status = attestation->hash->finish (attestation->hash, buf_hash, sizeof (buf_hash));
-	if (status != 0) {
-		goto cleanup;
-	}
+	keys = riot_key_manager_get_riot_keys (attestation->riot);
+	status = ecdsa_sign_hash_and_finish (attestation->ecc, attestation->hash, NULL, keys->alias_key,
+		keys->alias_key_length, buf + response_len, buf_len - response_len);
+	riot_key_manager_release_riot_keys (attestation->riot, keys);
 
-	status = attestation->ecc->sign (attestation->ecc, &attestation->ecc_priv_key, buf_hash,
-		SHA256_HASH_LENGTH, NULL, buf + response_len, buf_len - response_len);
 	if (ROT_IS_ERROR (status)) {
 		goto unlock;
 	}
@@ -475,7 +474,6 @@ static int attestation_responder_init_common (struct attestation_responder *atte
 	const struct ecc_engine *ecc, const struct rng_engine *rng, struct pcr_store *store,
 	uint8_t min_protocol_version, uint8_t max_protocol_version)
 {
-	const struct riot_keys *keys;
 	int status;
 
 	if ((attestation == NULL) || (riot == NULL) || (hash == NULL) || (ecc == NULL) ||
@@ -485,18 +483,8 @@ static int attestation_responder_init_common (struct attestation_responder *atte
 
 	memset (attestation, 0, sizeof (struct attestation_responder));
 
-	keys = riot_key_manager_get_riot_keys (riot);
-	status = ecc->init_key_pair (ecc, keys->alias_key, keys->alias_key_length,
-		&attestation->ecc_priv_key, NULL);
-	riot_key_manager_release_riot_keys (riot, keys);
-	if (status != 0) {
-		return status;
-	}
-
 	status = platform_mutex_init (&attestation->lock);
 	if (status != 0) {
-		ecc->release_key_pair (ecc, &attestation->ecc_priv_key, NULL);
-
 		return status;
 	}
 
@@ -599,7 +587,6 @@ int attestation_responder_init_no_aux (struct attestation_responder *attestation
 void attestation_responder_release (struct attestation_responder *attestation)
 {
 	if (attestation) {
-		attestation->ecc->release_key_pair (attestation->ecc, &attestation->ecc_priv_key, NULL);
 		platform_mutex_free (&attestation->lock);
 	}
 }

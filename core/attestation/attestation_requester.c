@@ -659,6 +659,12 @@ static int attestation_requester_verify_signature (const struct attestation_requ
 		hash_get_hash_length (attestation->state->txn.transcript_hash_type);
 	int status;
 
+	/* TODO:  This signature verification flow does not use the ECDSA APIs so is not compatible with
+	 * FIPS.  Updating this flow to use the ECDSA implementation is more complicated, so this is
+	 * deferred until necessary or this piece gets refactored to make the migration easier.
+	 *
+	 * The same is true for RSASSA, if that's supported. */
+
 	status = hash->finish (hash, digest, sizeof (digest));
 	if (status != 0) {
 		return status;

@@ -140,6 +140,10 @@ static void manifest_verification_testing_init_manifest_key (CuTest *test,
 		MOCK_ARG (sizeof (manifest_rsa->signature)));
 
 	status |= mock_expect (&verification->verify_mock.mock,
+		verification->verify_mock.base.set_verification_key, &verification->verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	status |= mock_expect (&verification->verify_mock.mock,
 		verification->verify_mock.base.is_key_valid, &verification->verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (&RSA_PUBLIC_KEY2, sizeof (struct rsa_public_key)),
 		MOCK_ARG (sizeof (struct rsa_public_key)));
@@ -192,6 +196,10 @@ static void manifest_verification_testing_init_ecc_manifest_key (CuTest *test,
 		MOCK_ARG (hash_get_hash_length (key_hash)),
 		MOCK_ARG_PTR_CONTAINS (manifest_ecc->signature, sizeof (manifest_ecc->signature)),
 		MOCK_ARG (sizeof (manifest_ecc->signature)));
+
+	status |= mock_expect (&verification->verify_mock.mock,
+		verification->verify_mock.base.set_verification_key, &verification->verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification->verify_mock.mock,
 		verification->verify_mock.base.is_key_valid, &verification->verify_mock, 0,
@@ -345,10 +353,19 @@ static void manifest_verification_testing_init_dependencies_stored_key (CuTest *
 		sizeof (stored_length), -1);
 
 	status |= mock_expect (&verification->verify_mock.mock,
+		verification->verify_mock.base.set_verification_key, &verification->verify_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (&RSA_PUBLIC_KEY, sizeof (struct rsa_public_key)),
+		MOCK_ARG (sizeof (struct rsa_public_key)));
+
+	status |= mock_expect (&verification->verify_mock.mock,
 		verification->verify_mock.base.verify_signature, &verification->verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (verification->stored_key_hash, hash_length), MOCK_ARG (hash_length),
 		MOCK_ARG_PTR_CONTAINS_TMP (stored_key->signature, sizeof (stored_key->signature)),
 		MOCK_ARG (sizeof (stored_key->signature)));
+
+	status |= mock_expect (&verification->verify_mock.mock,
+		verification->verify_mock.base.set_verification_key, &verification->verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification->verify_mock.mock,
 		verification->verify_mock.base.is_key_valid, &verification->verify_mock, 0,
@@ -408,10 +425,18 @@ static void manifest_verification_testing_init_dependencies_ecc_stored_key (CuTe
 		sizeof (stored_length), -1);
 
 	status |= mock_expect (&verification->verify_mock.mock,
+		verification->verify_mock.base.set_verification_key, &verification->verify_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN));
+
+	status |= mock_expect (&verification->verify_mock.mock,
 		verification->verify_mock.base.verify_signature, &verification->verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (verification->stored_key_hash, hash_length), MOCK_ARG (hash_length),
 		MOCK_ARG_PTR_CONTAINS_TMP (stored_key->signature, sizeof (stored_key->signature)),
 		MOCK_ARG (sizeof (stored_key->signature)));
+
+	status |= mock_expect (&verification->verify_mock.mock,
+		verification->verify_mock.base.set_verification_key, &verification->verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification->verify_mock.mock,
 		verification->verify_mock.base.is_key_valid, &verification->verify_mock, 0,
@@ -822,7 +847,7 @@ static void manifest_verification_test_init_stored_key_wrong_length (CuTest *tes
 		stored_key->signature, sizeof (stored_key->signature));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256,	(uint8_t*) stored_key,
+	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256, (uint8_t*) stored_key,
 		sizeof (*stored_key) - sizeof (stored_key->signature), verification.stored_key_hash,
 		sizeof (verification.stored_key_hash));
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
@@ -887,7 +912,7 @@ static void manifest_verification_test_init_stored_key_bad_signature (CuTest *te
 		stored_key->signature, sizeof (stored_key->signature));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256,	(uint8_t*) stored_key,
+	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256, (uint8_t*) stored_key,
 		sizeof (*stored_key) - sizeof (stored_key->signature), verification.stored_key_hash,
 		sizeof (verification.stored_key_hash));
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
@@ -900,12 +925,21 @@ static void manifest_verification_test_init_stored_key_bad_signature (CuTest *te
 		sizeof (stored_length), -1);
 
 	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (&RSA_PUBLIC_KEY, sizeof (struct rsa_public_key)),
+		MOCK_ARG (sizeof (struct rsa_public_key)));
+
+	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
 		SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG_PTR_CONTAINS (verification.stored_key_hash, SHA256_HASH_LENGTH),
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS_TMP (stored_key->signature, sizeof (stored_key->signature)),
 		MOCK_ARG (sizeof (stored_key->signature)));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification.log.mock, verification.log.base.create_entry,
 		&verification.log, 0,
@@ -958,7 +992,7 @@ static void manifest_verification_test_init_stored_key_invalid_key (CuTest *test
 		stored_key->signature, sizeof (stored_key->signature));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256,	(uint8_t*) stored_key,
+	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256, (uint8_t*) stored_key,
 		sizeof (*stored_key) - sizeof (stored_key->signature), verification.stored_key_hash,
 		sizeof (verification.stored_key_hash));
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
@@ -971,11 +1005,20 @@ static void manifest_verification_test_init_stored_key_invalid_key (CuTest *test
 		sizeof (stored_length), -1);
 
 	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (&RSA_PUBLIC_KEY, sizeof (struct rsa_public_key)),
+		MOCK_ARG (sizeof (struct rsa_public_key)));
+
+	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (verification.stored_key_hash, SHA256_HASH_LENGTH),
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS_TMP (stored_key->signature, sizeof (stored_key->signature)),
 		MOCK_ARG (sizeof (stored_key->signature)));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.is_key_valid, &verification.verify_mock,
@@ -1012,7 +1055,7 @@ static void manifest_verification_test_init_null (CuTest *test)
 
 	manifest_verification_testing_init_dependencies (test, &verification, 1, HASH_TYPE_SHA256);
 
-	status = manifest_verification_init (NULL, &verification.state,	&verification.hash.base,
+	status = manifest_verification_init (NULL, &verification.state, &verification.hash.base,
 		&verification.verify_mock.base, (const uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY),
 		&verification.manifest_key, &verification.keystore.base, 1);
 	CuAssertIntEquals (test, MANIFEST_VERIFICATION_INVALID_ARGUMENT, status);
@@ -1109,22 +1152,13 @@ static void manifest_verification_test_init_manifest_key_hash_error (CuTest *tes
 {
 	struct manifest_verification_testing verification;
 	int status;
-	size_t hash_length =
-		sizeof (verification.manifest_rsa) - sizeof (verification.manifest_rsa.signature);
 
 	TEST_START;
 
 	manifest_verification_testing_init_dependencies (test, &verification, 1, HASH_TYPE_SHA256);
 
-	status = mock_expect (&verification.verify_mock.mock,
-		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
-		MOCK_ARG_PTR_CONTAINS (&RSA_PUBLIC_KEY, sizeof (struct rsa_public_key)),
-		MOCK_ARG (sizeof (struct rsa_public_key)));
-
-	status |= mock_expect (&verification.hash_mock.mock,
-		verification.hash_mock.base.calculate_sha256, &verification.hash_mock,
-		HASH_ENGINE_SHA256_FAILED, MOCK_ARG_PTR_CONTAINS (&verification.manifest_rsa, hash_length),
-		MOCK_ARG (hash_length),	MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status = mock_expect (&verification.hash_mock.mock, verification.hash_mock.base.start_sha256,
+		&verification.hash_mock, HASH_ENGINE_START_SHA256_FAILED);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1132,7 +1166,7 @@ static void manifest_verification_test_init_manifest_key_hash_error (CuTest *tes
 		&verification.hash_mock.base, &verification.verify_mock.base,
 		(const uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY), &verification.manifest_key,
 		&verification.keystore.base, 1);
-	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	manifest_verification_testing_release_dependencies (test, &verification);
 }
@@ -1159,6 +1193,10 @@ static void manifest_verification_test_init_manifest_key_bad_signature (CuTest *
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS (manifest_key->signature, manifest_key->sig_length),
 		MOCK_ARG (manifest_key->sig_length));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1193,6 +1231,10 @@ static void manifest_verification_test_init_manifest_key_verify_error (CuTest *t
 		MOCK_ARG_PTR_CONTAINS (manifest_key->signature, manifest_key->sig_length),
 		MOCK_ARG (manifest_key->sig_length));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = manifest_verification_init (&verification.test, &verification.state,
@@ -1224,6 +1266,10 @@ static void manifest_verification_test_init_manifest_key_invalid_key (CuTest *te
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS (manifest_key->signature, manifest_key->sig_length),
 		MOCK_ARG (manifest_key->sig_length));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.is_key_valid, &verification.verify_mock,
@@ -1262,6 +1308,10 @@ static void manifest_verification_test_init_manifest_key_check_key_error (CuTest
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS (manifest_key->signature, manifest_key->sig_length),
 		MOCK_ARG (manifest_key->sig_length));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.is_key_valid, &verification.verify_mock,
@@ -1331,7 +1381,7 @@ static void manifest_verification_test_init_stored_key_hash_error (CuTest *test)
 		stored_key->signature, sizeof (stored_key->signature));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256,	(uint8_t*) stored_key,
+	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256, (uint8_t*) stored_key,
 		sizeof (*stored_key) - sizeof (stored_key->signature), verification.stored_key_hash,
 		sizeof (verification.stored_key_hash));
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
@@ -1343,17 +1393,24 @@ static void manifest_verification_test_init_stored_key_hash_error (CuTest *test)
 	status |= mock_expect_output (&verification.keystore.mock, 2, &stored_length,
 		sizeof (stored_length), -1);
 
-	status |= mock_expect (&verification.hash_mock.mock,
-		verification.hash_mock.base.calculate_sha256, &verification.hash_mock, 0,
-		MOCK_ARG_PTR_CONTAINS (&verification.manifest_rsa, hash_length), MOCK_ARG (hash_length),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&verification.hash_mock.mock, 2, verification.manifest_key_hash,
-		SHA256_HASH_LENGTH, 3);
+	status |= mock_expect (&verification.hash_mock.mock, verification.hash_mock.base.start_sha256,
+		&verification.hash_mock, 0);
+
+	status |= mock_expect (&verification.hash_mock.mock, verification.hash_mock.base.update,
+		&verification.hash_mock, 0, MOCK_ARG_PTR_CONTAINS (&verification.manifest_rsa, hash_length),
+		MOCK_ARG (hash_length));
 
 	status |= mock_expect (&verification.hash_mock.mock,
-		verification.hash_mock.base.calculate_sha256, &verification.hash_mock,
-		HASH_ENGINE_SHA256_FAILED, MOCK_ARG_PTR_CONTAINS_TMP (stored_key, hash_length),
-		MOCK_ARG (hash_length), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		verification.hash_mock.base.get_active_algorithm, &verification.hash_mock,
+		HASH_TYPE_SHA256);
+
+	status |= mock_expect (&verification.hash_mock.mock, verification.hash_mock.base.finish,
+		&verification.hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&verification.hash_mock.mock, 0, verification.manifest_key_hash,
+		SHA256_HASH_LENGTH, 1);
+
+	status |= mock_expect (&verification.hash_mock.mock, verification.hash_mock.base.start_sha256,
+		&verification.hash_mock, HASH_ENGINE_START_SHA256_FAILED);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1361,7 +1418,7 @@ static void manifest_verification_test_init_stored_key_hash_error (CuTest *test)
 		&verification.hash_mock.base, &verification.verify_mock.base,
 		(const uint8_t*) &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY), &verification.manifest_key,
 		&verification.keystore.base, 1);
-	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	manifest_verification_testing_release_dependencies (test, &verification);
 }
@@ -1389,7 +1446,7 @@ static void manifest_verification_test_init_stored_key_verify_error (CuTest *tes
 		stored_key->signature, sizeof (stored_key->signature));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256,	(uint8_t*) stored_key,
+	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256, (uint8_t*) stored_key,
 		sizeof (*stored_key) - sizeof (stored_key->signature), verification.stored_key_hash,
 		sizeof (verification.stored_key_hash));
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
@@ -1402,12 +1459,21 @@ static void manifest_verification_test_init_stored_key_verify_error (CuTest *tes
 		sizeof (stored_length), -1);
 
 	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (&RSA_PUBLIC_KEY, sizeof (struct rsa_public_key)),
+		MOCK_ARG (sizeof (struct rsa_public_key)));
+
+	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
 		SIG_VERIFICATION_VERIFY_SIG_FAILED,
 		MOCK_ARG_PTR_CONTAINS (verification.stored_key_hash, SHA256_HASH_LENGTH),
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS_TMP (stored_key->signature, sizeof (stored_key->signature)),
 		MOCK_ARG (sizeof (stored_key->signature)));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1442,7 +1508,7 @@ static void manifest_verification_test_init_stored_key_check_key_error (CuTest *
 		stored_key->signature, sizeof (stored_key->signature));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256,	(uint8_t*) stored_key,
+	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256, (uint8_t*) stored_key,
 		sizeof (*stored_key) - sizeof (stored_key->signature), verification.stored_key_hash,
 		sizeof (verification.stored_key_hash));
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
@@ -1455,11 +1521,20 @@ static void manifest_verification_test_init_stored_key_check_key_error (CuTest *
 		sizeof (stored_length), -1);
 
 	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (&RSA_PUBLIC_KEY, sizeof (struct rsa_public_key)),
+		MOCK_ARG (sizeof (struct rsa_public_key)));
+
+	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (verification.stored_key_hash, SHA256_HASH_LENGTH),
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS_TMP (stored_key->signature, sizeof (stored_key->signature)),
 		MOCK_ARG (sizeof (stored_key->signature)));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.is_key_valid, &verification.verify_mock,
@@ -1527,7 +1602,7 @@ static void manifest_verification_test_static_init_no_key_stored (CuTest *test)
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	int status;
 
 	TEST_START;
@@ -1561,7 +1636,7 @@ static void manifest_verification_test_static_init_no_key_stored_signature_sha38
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	int status;
 
 	TEST_START;
@@ -1582,7 +1657,7 @@ static void manifest_verification_test_static_init_no_key_stored_signature_sha51
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	int status;
 
 	TEST_START;
@@ -1603,7 +1678,7 @@ static void manifest_verification_test_static_init_no_key_stored_ecc (CuTest *te
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	int status;
 
 	TEST_START;
@@ -1623,7 +1698,7 @@ static void manifest_verification_test_static_init_key_stored (CuTest *test)
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 2);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 2);
 	int status;
 
 	TEST_START;
@@ -1657,7 +1732,7 @@ static void manifest_verification_test_static_init_key_stored_signature_sha384 (
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 2);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 2);
 	int status;
 
 	TEST_START;
@@ -1678,7 +1753,7 @@ static void manifest_verification_test_static_init_key_stored_signature_sha512 (
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 2);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 2);
 	int status;
 
 	TEST_START;
@@ -1699,7 +1774,7 @@ static void manifest_verification_test_static_init_key_stored_ecc (CuTest *test)
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 2);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 2);
 	int status;
 
 	TEST_START;
@@ -1719,7 +1794,7 @@ static void manifest_verification_test_static_init_load_bad_key (CuTest *test)
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	struct manifest_verification_key_rsa *stored_key = NULL;
 	int status;
 	struct debug_log_entry_info entry = {
@@ -1767,7 +1842,7 @@ static void manifest_verification_test_static_init_stored_key_wrong_length (CuTe
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 4);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 4);
 	struct manifest_verification_key_rsa *stored_key = NULL;
 	size_t stored_length = sizeof (struct manifest_verification_key_rsa);
 	int status;
@@ -1796,7 +1871,7 @@ static void manifest_verification_test_static_init_stored_key_wrong_length (CuTe
 		stored_key->signature, sizeof (stored_key->signature));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256,	(uint8_t*) stored_key,
+	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256, (uint8_t*) stored_key,
 		sizeof (*stored_key) - sizeof (stored_key->signature), verification.stored_key_hash,
 		sizeof (verification.stored_key_hash));
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
@@ -1835,7 +1910,7 @@ static void manifest_verification_test_static_init_stored_key_bad_signature (CuT
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	struct manifest_verification_key_rsa *stored_key = NULL;
 	size_t stored_length = sizeof (struct manifest_verification_key_rsa);
 	int status;
@@ -1864,7 +1939,7 @@ static void manifest_verification_test_static_init_stored_key_bad_signature (CuT
 		stored_key->signature, sizeof (stored_key->signature));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256,	(uint8_t*) stored_key,
+	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256, (uint8_t*) stored_key,
 		sizeof (*stored_key) - sizeof (stored_key->signature), verification.stored_key_hash,
 		sizeof (verification.stored_key_hash));
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
@@ -1877,12 +1952,21 @@ static void manifest_verification_test_static_init_stored_key_bad_signature (CuT
 		sizeof (stored_length), -1);
 
 	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (&RSA_PUBLIC_KEY, sizeof (struct rsa_public_key)),
+		MOCK_ARG (sizeof (struct rsa_public_key)));
+
+	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
 		SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG_PTR_CONTAINS (verification.stored_key_hash, SHA256_HASH_LENGTH),
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS_TMP (stored_key->signature, sizeof (stored_key->signature)),
 		MOCK_ARG (sizeof (stored_key->signature)));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification.log.mock, verification.log.base.create_entry,
 		&verification.log, 0,
@@ -1909,7 +1993,7 @@ static void manifest_verification_test_static_init_stored_key_invalid_key (CuTes
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	struct manifest_verification_key_rsa *stored_key = NULL;
 	size_t stored_length = sizeof (struct manifest_verification_key_rsa);
 	int status;
@@ -1938,7 +2022,7 @@ static void manifest_verification_test_static_init_stored_key_invalid_key (CuTes
 		stored_key->signature, sizeof (stored_key->signature));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256,	(uint8_t*) stored_key,
+	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256, (uint8_t*) stored_key,
 		sizeof (*stored_key) - sizeof (stored_key->signature), verification.stored_key_hash,
 		sizeof (verification.stored_key_hash));
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
@@ -1951,11 +2035,20 @@ static void manifest_verification_test_static_init_stored_key_invalid_key (CuTes
 		sizeof (stored_length), -1);
 
 	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (&RSA_PUBLIC_KEY, sizeof (struct rsa_public_key)),
+		MOCK_ARG (sizeof (struct rsa_public_key)));
+
+	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (verification.stored_key_hash, SHA256_HASH_LENGTH),
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS_TMP (stored_key->signature, sizeof (stored_key->signature)),
 		MOCK_ARG (sizeof (stored_key->signature)));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.is_key_valid, &verification.verify_mock,
@@ -1988,7 +2081,7 @@ static void manifest_verification_test_static_init_null (CuTest *test)
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	int status;
 
 	TEST_START;
@@ -2042,7 +2135,7 @@ static void manifest_verification_test_static_init_root_key_invalid_key (CuTest 
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	int status;
 
 	TEST_START;
@@ -2069,7 +2162,7 @@ static void manifest_verification_test_static_init_root_key_error (CuTest *test)
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	int status;
 
 	TEST_START;
@@ -2096,30 +2189,21 @@ static void manifest_verification_test_static_init_manifest_key_hash_error (CuTe
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash_mock.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
-	size_t hash_length =
-		sizeof (verification.manifest_rsa) - sizeof (verification.manifest_rsa.signature);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	int status;
 
 	TEST_START;
 
 	manifest_verification_testing_init_dependencies (test, &verification, 1, HASH_TYPE_SHA256);
 
-	status = mock_expect (&verification.verify_mock.mock,
-		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
-		MOCK_ARG_PTR_CONTAINS (&RSA_PUBLIC_KEY, sizeof (struct rsa_public_key)),
-		MOCK_ARG (sizeof (struct rsa_public_key)));
-
-	status |= mock_expect (&verification.hash_mock.mock,
-		verification.hash_mock.base.calculate_sha256, &verification.hash_mock,
-		HASH_ENGINE_SHA256_FAILED, MOCK_ARG_PTR_CONTAINS (&verification.manifest_rsa, hash_length),
-		MOCK_ARG (hash_length),	MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status = mock_expect (&verification.hash_mock.mock, verification.hash_mock.base.start_sha256,
+		&verification.hash_mock, HASH_ENGINE_START_SHA256_FAILED);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = manifest_verification_init_state (&test_static, (const uint8_t*) &RSA_PUBLIC_KEY,
 		sizeof (RSA_PUBLIC_KEY));
-	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	manifest_verification_testing_release_dependencies (test, &verification);
 }
@@ -2129,7 +2213,7 @@ static void manifest_verification_test_static_init_manifest_key_bad_signature (C
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	struct manifest_verification_key *manifest_key = &verification.manifest_key;
 	int status;
 
@@ -2150,6 +2234,10 @@ static void manifest_verification_test_static_init_manifest_key_bad_signature (C
 		MOCK_ARG_PTR_CONTAINS (manifest_key->signature, manifest_key->sig_length),
 		MOCK_ARG (manifest_key->sig_length));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = manifest_verification_init_state (&test_static, (const uint8_t*) &RSA_PUBLIC_KEY,
@@ -2164,7 +2252,7 @@ static void manifest_verification_test_static_init_manifest_key_verify_error (Cu
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	struct manifest_verification_key *manifest_key = &verification.manifest_key;
 	int status;
 
@@ -2185,6 +2273,10 @@ static void manifest_verification_test_static_init_manifest_key_verify_error (Cu
 		MOCK_ARG_PTR_CONTAINS (manifest_key->signature, manifest_key->sig_length),
 		MOCK_ARG (manifest_key->sig_length));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = manifest_verification_init_state (&test_static, (const uint8_t*) &RSA_PUBLIC_KEY,
@@ -2199,7 +2291,7 @@ static void manifest_verification_test_static_init_manifest_key_invalid_key (CuT
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	struct manifest_verification_key *manifest_key = &verification.manifest_key;
 	int status;
 
@@ -2218,6 +2310,10 @@ static void manifest_verification_test_static_init_manifest_key_invalid_key (CuT
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS (manifest_key->signature, manifest_key->sig_length),
 		MOCK_ARG (manifest_key->sig_length));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.is_key_valid, &verification.verify_mock,
@@ -2239,7 +2335,7 @@ static void manifest_verification_test_static_init_manifest_key_check_key_error 
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	struct manifest_verification_key *manifest_key = &verification.manifest_key;
 	int status;
 
@@ -2258,6 +2354,10 @@ static void manifest_verification_test_static_init_manifest_key_check_key_error 
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS (manifest_key->signature, manifest_key->sig_length),
 		MOCK_ARG (manifest_key->sig_length));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.is_key_valid, &verification.verify_mock,
@@ -2279,7 +2379,7 @@ static void manifest_verification_test_static_init_load_error (CuTest *test)
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	struct manifest_verification_key_rsa *stored_key = NULL;
 	int status;
 
@@ -2308,7 +2408,7 @@ static void manifest_verification_test_static_init_stored_key_hash_error (CuTest
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash_mock.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	struct manifest_verification_key_rsa *stored_key = NULL;
 	size_t stored_length = sizeof (struct manifest_verification_key_rsa);
 	size_t hash_length =
@@ -2331,7 +2431,7 @@ static void manifest_verification_test_static_init_stored_key_hash_error (CuTest
 		stored_key->signature, sizeof (stored_key->signature));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256,	(uint8_t*) stored_key,
+	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256, (uint8_t*) stored_key,
 		sizeof (*stored_key) - sizeof (stored_key->signature), verification.stored_key_hash,
 		sizeof (verification.stored_key_hash));
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
@@ -2343,23 +2443,30 @@ static void manifest_verification_test_static_init_stored_key_hash_error (CuTest
 	status |= mock_expect_output (&verification.keystore.mock, 2, &stored_length,
 		sizeof (stored_length), -1);
 
-	status |= mock_expect (&verification.hash_mock.mock,
-		verification.hash_mock.base.calculate_sha256, &verification.hash_mock, 0,
-		MOCK_ARG_PTR_CONTAINS (&verification.manifest_rsa, hash_length), MOCK_ARG (hash_length),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&verification.hash_mock.mock, 2, verification.manifest_key_hash,
-		SHA256_HASH_LENGTH, 3);
+	status |= mock_expect (&verification.hash_mock.mock, verification.hash_mock.base.start_sha256,
+		&verification.hash_mock, 0);
+
+	status |= mock_expect (&verification.hash_mock.mock, verification.hash_mock.base.update,
+		&verification.hash_mock, 0, MOCK_ARG_PTR_CONTAINS (&verification.manifest_rsa, hash_length),
+		MOCK_ARG (hash_length));
 
 	status |= mock_expect (&verification.hash_mock.mock,
-		verification.hash_mock.base.calculate_sha256, &verification.hash_mock,
-		HASH_ENGINE_SHA256_FAILED, MOCK_ARG_PTR_CONTAINS_TMP (stored_key, hash_length),
-		MOCK_ARG (hash_length), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		verification.hash_mock.base.get_active_algorithm, &verification.hash_mock,
+		HASH_TYPE_SHA256);
+
+	status |= mock_expect (&verification.hash_mock.mock, verification.hash_mock.base.finish,
+		&verification.hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&verification.hash_mock.mock, 0, verification.manifest_key_hash,
+		SHA256_HASH_LENGTH, 1);
+
+	status |= mock_expect (&verification.hash_mock.mock, verification.hash_mock.base.start_sha256,
+		&verification.hash_mock, HASH_ENGINE_START_SHA256_FAILED);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = manifest_verification_init_state (&test_static, (const uint8_t*) &RSA_PUBLIC_KEY,
 		sizeof (RSA_PUBLIC_KEY));
-	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	manifest_verification_testing_release_dependencies (test, &verification);
 }
@@ -2369,7 +2476,7 @@ static void manifest_verification_test_static_init_stored_key_verify_error (CuTe
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	struct manifest_verification_key_rsa *stored_key = NULL;
 	size_t stored_length = sizeof (struct manifest_verification_key_rsa);
 	int status;
@@ -2390,7 +2497,7 @@ static void manifest_verification_test_static_init_stored_key_verify_error (CuTe
 		stored_key->signature, sizeof (stored_key->signature));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256,	(uint8_t*) stored_key,
+	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256, (uint8_t*) stored_key,
 		sizeof (*stored_key) - sizeof (stored_key->signature), verification.stored_key_hash,
 		sizeof (verification.stored_key_hash));
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
@@ -2403,12 +2510,21 @@ static void manifest_verification_test_static_init_stored_key_verify_error (CuTe
 		sizeof (stored_length), -1);
 
 	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (&RSA_PUBLIC_KEY, sizeof (struct rsa_public_key)),
+		MOCK_ARG (sizeof (struct rsa_public_key)));
+
+	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
 		SIG_VERIFICATION_VERIFY_SIG_FAILED,
 		MOCK_ARG_PTR_CONTAINS (verification.stored_key_hash, SHA256_HASH_LENGTH),
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS_TMP (stored_key->signature, sizeof (stored_key->signature)),
 		MOCK_ARG (sizeof (stored_key->signature)));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2424,7 +2540,7 @@ static void manifest_verification_test_static_init_stored_key_check_key_error (C
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	struct manifest_verification_key_rsa *stored_key = NULL;
 	size_t stored_length = sizeof (struct manifest_verification_key_rsa);
 	int status;
@@ -2445,7 +2561,7 @@ static void manifest_verification_test_static_init_stored_key_check_key_error (C
 		stored_key->signature, sizeof (stored_key->signature));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256,	(uint8_t*) stored_key,
+	status = hash_calculate (&verification.hash.base, HASH_TYPE_SHA256, (uint8_t*) stored_key,
 		sizeof (*stored_key) - sizeof (stored_key->signature), verification.stored_key_hash,
 		sizeof (verification.stored_key_hash));
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
@@ -2458,11 +2574,20 @@ static void manifest_verification_test_static_init_stored_key_check_key_error (C
 		sizeof (stored_length), -1);
 
 	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (&RSA_PUBLIC_KEY, sizeof (struct rsa_public_key)),
+		MOCK_ARG (sizeof (struct rsa_public_key)));
+
+	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (verification.stored_key_hash, SHA256_HASH_LENGTH),
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS_TMP (stored_key->signature, sizeof (stored_key->signature)),
 		MOCK_ARG (sizeof (stored_key->signature)));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.is_key_valid, &verification.verify_mock,
@@ -2484,7 +2609,7 @@ static void manifest_verification_test_static_init_save_error (CuTest *test)
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	struct manifest_verification_key_rsa *stored_key = NULL;
 	int status;
 	struct debug_log_entry_info entry = {
@@ -2633,6 +2758,10 @@ static void manifest_verification_test_verify_signature_no_key_stored (CuTest *t
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = verification.test.base_verify.verify_signature (&verification.test.base_verify,
@@ -2662,6 +2791,10 @@ static void manifest_verification_test_verify_signature_no_key_stored_ecc (CuTes
 		MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
 		MOCK_ARG (ECC384_SIG_TEST_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = verification.test.base_verify.verify_signature (&verification.test.base_verify,
@@ -2687,9 +2820,13 @@ static void manifest_verification_test_verify_signature_no_key_stored_bad_signat
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2719,6 +2856,10 @@ static void manifest_verification_test_verify_signature_key_stored (CuTest *test
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2750,6 +2891,10 @@ static void manifest_verification_test_verify_signature_key_stored_ecc (CuTest *
 		MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
 		MOCK_ARG (ECC384_SIG_TEST_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = verification.test.base_verify.verify_signature (&verification.test.base_verify,
@@ -2776,7 +2921,7 @@ static void manifest_verification_test_verify_signature_key_stored_match_default
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
 
@@ -2789,6 +2934,10 @@ static void manifest_verification_test_verify_signature_key_stored_match_default
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2819,6 +2968,10 @@ static void manifest_verification_test_verify_signature_key_stored_higher_id (Cu
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = verification.test.base_verify.verify_signature (&verification.test.base_verify,
@@ -2848,6 +3001,10 @@ static void manifest_verification_test_verify_signature_key_stored_same_id (CuTe
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = verification.test.base_verify.verify_signature (&verification.test.base_verify,
@@ -2874,7 +3031,7 @@ static void manifest_verification_test_verify_signature_key_stored_bad_signature
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
 
@@ -2885,9 +3042,13 @@ static void manifest_verification_test_verify_signature_key_stored_bad_signature
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2916,9 +3077,13 @@ static void manifest_verification_test_verify_signature_key_stored_higher_id_bad
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2947,9 +3112,13 @@ static void manifest_verification_test_verify_signature_key_stored_same_id_bad_s
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2965,7 +3134,7 @@ static void manifest_verification_test_verify_signature_static_init_no_key_store
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	int status;
 
 	TEST_START;
@@ -2987,6 +3156,10 @@ static void manifest_verification_test_verify_signature_static_init_no_key_store
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = test_static.base_verify.verify_signature (&test_static.base_verify, SIG_HASH_TEST,
@@ -3002,7 +3175,7 @@ static void manifest_verification_test_verify_signature_static_init_key_stored (
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	int status;
 
 	TEST_START;
@@ -3024,6 +3197,10 @@ static void manifest_verification_test_verify_signature_static_init_key_stored (
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = test_static.base_verify.verify_signature (&test_static.base_verify, SIG_HASH_TEST,
@@ -3040,7 +3217,7 @@ static void manifest_verification_test_verify_signature_static_init_key_stored_h
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	int status;
 
 	TEST_START;
@@ -3062,6 +3239,10 @@ static void manifest_verification_test_verify_signature_static_init_key_stored_h
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = test_static.base_verify.verify_signature (&test_static.base_verify, SIG_HASH_TEST,
@@ -3078,7 +3259,7 @@ static void manifest_verification_test_verify_signature_static_init_key_stored_s
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	int status;
 
 	TEST_START;
@@ -3099,6 +3280,10 @@ static void manifest_verification_test_verify_signature_static_init_key_stored_s
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3117,7 +3302,7 @@ manifest_verification_test_verify_signature_static_init_key_stored_higher_id_bad
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	int status;
 
 	TEST_START;
@@ -3136,9 +3321,13 @@ manifest_verification_test_verify_signature_static_init_key_stored_higher_id_bad
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3157,7 +3346,7 @@ static void manifest_verification_test_verify_signature_static_init_key_stored_s
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	int status;
 
 	TEST_START;
@@ -3176,9 +3365,13 @@ static void manifest_verification_test_verify_signature_static_init_key_stored_s
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3237,6 +3430,10 @@ static void manifest_verification_test_verify_signature_no_key_stored_set_key_er
 		MOCK_ARG_PTR_CONTAINS (&RSA_PUBLIC_KEY2, sizeof (struct rsa_public_key)),
 		MOCK_ARG (sizeof (struct rsa_public_key)));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = verification.test.base_verify.verify_signature (&verification.test.base_verify,
@@ -3262,9 +3459,13 @@ static void manifest_verification_test_verify_signature_no_key_stored_verify_err
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_VERIFY_SIG_FAILED,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_VERIFY_SIG_FAILED, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3290,6 +3491,10 @@ static void manifest_verification_test_verify_signature_key_stored_set_key_error
 		SIG_VERIFICATION_SET_KEY_FAILED,
 		MOCK_ARG_PTR_CONTAINS (&RSA_PUBLIC_KEY3, sizeof (struct rsa_public_key)),
 		MOCK_ARG (sizeof (struct rsa_public_key)));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3317,9 +3522,13 @@ static void manifest_verification_test_verify_signature_key_stored_verify_error 
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_VERIFY_SIG_FAILED,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_VERIFY_SIG_FAILED, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3405,9 +3614,13 @@ static void manifest_verification_test_on_pfm_activated_key_stored (CuTest *test
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3445,9 +3658,13 @@ static void manifest_verification_test_on_pfm_activated_key_stored_ecc (CuTest *
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
 		MOCK_ARG (ECC384_SIG_TEST_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3488,9 +3705,13 @@ static void manifest_verification_test_on_pfm_activated_key_stored_sha384 (CuTes
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (pfm_hash, sizeof (pfm_hash)),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (pfm_hash, sizeof (pfm_hash)),
 		MOCK_ARG (sizeof (pfm_hash)), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3531,9 +3752,13 @@ static void manifest_verification_test_on_pfm_activated_key_stored_sha512 (CuTes
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (pfm_hash, sizeof (pfm_hash)),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (pfm_hash, sizeof (pfm_hash)),
 		MOCK_ARG (sizeof (pfm_hash)), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3573,6 +3798,10 @@ static void manifest_verification_test_on_pfm_activated_key_stored_match_default
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification.keystore.mock, verification.keystore.base.save_key,
 		&verification.keystore, 0, MOCK_ARG (1),
@@ -3618,6 +3847,10 @@ static void manifest_verification_test_on_pfm_activated_key_stored_match_default
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
 		MOCK_ARG (ECC384_SIG_TEST_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification.keystore.mock, verification.keystore.base.save_key,
 		&verification.keystore, 0, MOCK_ARG (1),
@@ -3669,7 +3902,7 @@ static void manifest_verification_test_on_pfm_activated_static_init_no_key_store
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	const struct pfm_observer *observer;
 	int status;
 
@@ -3694,7 +3927,7 @@ static void manifest_verification_test_on_pfm_activated_static_init_key_stored (
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	const struct pfm_observer *observer;
 	int status;
 
@@ -3724,9 +3957,13 @@ static void manifest_verification_test_on_pfm_activated_static_init_key_stored (
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3743,7 +3980,7 @@ static void manifest_verification_test_on_pfm_activated_static_init_key_stored_h
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	const struct pfm_observer *observer;
 	int status;
 
@@ -3769,7 +4006,7 @@ static void manifest_verification_test_on_pfm_activated_static_init_key_stored_s
 	struct manifest_verification_testing verification;
 	struct manifest_verification test_static =
 		manifest_verification_static_init (&verification.state, &verification.hash.base,
-		&verification.verify_mock.base,	&verification.manifest_key, &verification.keystore.base, 1);
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
 	const struct pfm_observer *observer;
 	int status;
 
@@ -3950,9 +4187,13 @@ static void manifest_verification_test_on_pfm_activated_key_stored_verify_error 
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_VERIFY_SIG_FAILED,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_VERIFY_SIG_FAILED, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification.log.mock, verification.log.base.create_entry,
 		&verification.log, 0,
@@ -4005,6 +4246,10 @@ static void manifest_verification_test_on_pfm_activated_key_stored_save_error (C
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification.keystore.mock, verification.keystore.base.save_key,
 		&verification.keystore, KEYSTORE_SAVE_FAILED, MOCK_ARG (1),
@@ -4067,9 +4312,13 @@ static void manifest_verification_test_on_cfm_activated_key_stored (CuTest *test
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4109,6 +4358,10 @@ static void manifest_verification_test_on_cfm_activated_key_stored_match_default
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification.keystore.mock, verification.keystore.base.save_key,
 		&verification.keystore, 0, MOCK_ARG (1),
@@ -4166,9 +4419,13 @@ static void manifest_verification_test_on_pcd_activated_key_stored (CuTest *test
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4190,7 +4447,7 @@ static void manifest_verification_test_on_pcd_activated_key_stored_match_default
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pcd.mock, verification.pcd.base.base.get_hash,
-		&verification.pcd, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash),	MOCK_ARG_NOT_NULL,
+		&verification.pcd, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pcd.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -4208,6 +4465,10 @@ static void manifest_verification_test_on_pcd_activated_key_stored_match_default
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification.keystore.mock, verification.keystore.base.save_key,
 		&verification.keystore, 0, MOCK_ARG (1),
@@ -4286,6 +4547,10 @@ static void manifest_verification_test_after_default_activated_verify_signature 
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	status |= mock_expect (&verification.keystore.mock, verification.keystore.base.save_key,
 		&verification.keystore, 0, MOCK_ARG (1),
 		MOCK_ARG_PTR_CONTAINS (&verification.manifest_rsa, sizeof (verification.manifest_rsa)),
@@ -4309,9 +4574,13 @@ static void manifest_verification_test_after_default_activated_verify_signature 
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4331,6 +4600,10 @@ static void manifest_verification_test_after_default_activated_verify_signature 
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4371,6 +4644,10 @@ static void manifest_verification_test_after_default_activated_on_pfm_activated 
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification.keystore.mock, verification.keystore.base.save_key,
 		&verification.keystore, 0, MOCK_ARG (1),
@@ -4424,6 +4701,10 @@ static void manifest_verification_test_after_default_activated_on_update_start (
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification.keystore.mock, verification.keystore.base.save_key,
 		&verification.keystore, 0, MOCK_ARG (1),
@@ -4487,6 +4768,10 @@ static void manifest_verification_test_after_default_activated_hash_error_verify
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = verification.test.base_verify.verify_signature (&verification.test.base_verify,
@@ -4503,7 +4788,7 @@ static void manifest_verification_test_after_default_activated_hash_error_verify
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
 
@@ -4516,6 +4801,10 @@ static void manifest_verification_test_after_default_activated_hash_error_verify
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4607,6 +4896,10 @@ static void manifest_verification_test_after_default_activated_signature_error_v
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = verification.test.base_verify.verify_signature (&verification.test.base_verify,
@@ -4623,7 +4916,7 @@ static void manifest_verification_test_after_default_activated_signature_error_v
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
 
@@ -4636,6 +4929,10 @@ static void manifest_verification_test_after_default_activated_signature_error_v
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4739,6 +5036,10 @@ static void manifest_verification_test_after_default_activated_set_key_error_ver
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = verification.test.base_verify.verify_signature (&verification.test.base_verify,
@@ -4755,7 +5056,7 @@ static void manifest_verification_test_after_default_activated_set_key_error_ver
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
 
@@ -4768,6 +5069,10 @@ static void manifest_verification_test_after_default_activated_set_key_error_ver
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4858,9 +5163,13 @@ static void manifest_verification_test_after_default_activated_verify_error_veri
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_VERIFY_SIG_FAILED,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_VERIFY_SIG_FAILED, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4883,6 +5192,10 @@ static void manifest_verification_test_after_default_activated_verify_error_veri
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = verification.test.base_verify.verify_signature (&verification.test.base_verify,
@@ -4899,7 +5212,7 @@ static void manifest_verification_test_after_default_activated_verify_error_veri
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
 
@@ -4912,6 +5225,10 @@ static void manifest_verification_test_after_default_activated_verify_error_veri
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4954,9 +5271,13 @@ static void manifest_verification_test_after_default_activated_verify_error_on_u
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_VERIFY_SIG_FAILED,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_VERIFY_SIG_FAILED, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5010,6 +5331,10 @@ static void manifest_verification_test_after_default_activated_save_error_verify
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	status |= mock_expect (&verification.keystore.mock, verification.keystore.base.save_key,
 		&verification.keystore, KEYSTORE_SAVE_FAILED, MOCK_ARG (1),
 		MOCK_ARG_PTR_CONTAINS (&verification.manifest_rsa, sizeof (verification.manifest_rsa)),
@@ -5033,9 +5358,13 @@ static void manifest_verification_test_after_default_activated_save_error_verify
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5055,6 +5384,10 @@ static void manifest_verification_test_after_default_activated_save_error_verify
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5099,6 +5432,10 @@ static void manifest_verification_test_after_default_activated_save_error_on_pfm
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	status |= mock_expect (&verification.keystore.mock, verification.keystore.base.save_key,
 		&verification.keystore, KEYSTORE_SAVE_FAILED, MOCK_ARG (1),
 		MOCK_ARG_PTR_CONTAINS (&verification.manifest_rsa, sizeof (verification.manifest_rsa)),
@@ -5136,9 +5473,13 @@ static void manifest_verification_test_after_default_activated_save_error_on_pfm
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5158,6 +5499,10 @@ static void manifest_verification_test_after_default_activated_save_error_on_pfm
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5205,6 +5550,10 @@ static void manifest_verification_test_after_default_activated_save_error_on_pfm
 		MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
 		MOCK_ARG (ECC384_SIG_TEST_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	status |= mock_expect (&verification.keystore.mock, verification.keystore.base.save_key,
 		&verification.keystore, KEYSTORE_SAVE_FAILED, MOCK_ARG (1),
 		MOCK_ARG_PTR_CONTAINS (&verification.manifest_ecc, sizeof (verification.manifest_ecc)),
@@ -5242,9 +5591,13 @@ static void manifest_verification_test_after_default_activated_save_error_on_pfm
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
 		MOCK_ARG (ECC384_SIG_TEST_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5265,6 +5618,10 @@ static void manifest_verification_test_after_default_activated_save_error_on_pfm
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
 		MOCK_ARG (ECC384_SIG_TEST_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5317,6 +5674,10 @@ static void manifest_verification_test_after_default_activated_save_error_twice_
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	status |= mock_expect (&verification.keystore.mock, verification.keystore.base.save_key,
 		&verification.keystore, KEYSTORE_SAVE_FAILED, MOCK_ARG (1),
 		MOCK_ARG_PTR_CONTAINS (&verification.manifest_rsa, sizeof (verification.manifest_rsa)),
@@ -5379,9 +5740,13 @@ static void manifest_verification_test_after_default_activated_save_error_twice_
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5401,6 +5766,10 @@ static void manifest_verification_test_after_default_activated_save_error_twice_
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5448,6 +5817,10 @@ static void manifest_verification_test_after_default_activated_save_error_on_upd
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	status |= mock_expect (&verification.keystore.mock, verification.keystore.base.save_key,
 		&verification.keystore, KEYSTORE_SAVE_FAILED, MOCK_ARG (1),
 		MOCK_ARG_PTR_CONTAINS (&verification.manifest_rsa, sizeof (verification.manifest_rsa)),
@@ -5487,9 +5860,13 @@ static void manifest_verification_test_after_default_activated_save_error_on_upd
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5509,6 +5886,10 @@ static void manifest_verification_test_after_default_activated_save_error_on_upd
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5557,6 +5938,10 @@ static void manifest_verification_test_after_default_activated_save_error_on_upd
 		MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
 		MOCK_ARG (ECC384_SIG_TEST_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	status |= mock_expect (&verification.keystore.mock, verification.keystore.base.save_key,
 		&verification.keystore, KEYSTORE_SAVE_FAILED, MOCK_ARG (1),
 		MOCK_ARG_PTR_CONTAINS (&verification.manifest_ecc, sizeof (verification.manifest_ecc)),
@@ -5596,9 +5981,13 @@ static void manifest_verification_test_after_default_activated_save_error_on_upd
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
 		MOCK_ARG (ECC384_SIG_TEST_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5619,6 +6008,10 @@ static void manifest_verification_test_after_default_activated_save_error_on_upd
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
 		MOCK_ARG (ECC384_SIG_TEST_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5672,6 +6065,10 @@ static void manifest_verification_test_after_default_activated_save_error_on_upd
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	status |= mock_expect (&verification.keystore.mock, verification.keystore.base.save_key,
 		&verification.keystore, KEYSTORE_SAVE_FAILED, MOCK_ARG (1),
@@ -5757,6 +6154,10 @@ manifest_verification_test_after_default_activated_save_error_on_update_start_al
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	status |= mock_expect (&verification.keystore.mock, verification.keystore.base.save_key,
 		&verification.keystore, KEYSTORE_SAVE_FAILED, MOCK_ARG (1),
 		MOCK_ARG_PTR_CONTAINS (&verification.manifest_rsa, sizeof (verification.manifest_rsa)),
@@ -5828,9 +6229,13 @@ static void manifest_verification_test_after_default_activated_match_stored (CuT
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5853,6 +6258,10 @@ static void manifest_verification_test_after_default_activated_match_stored (CuT
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
 
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = verification.test.base_verify.verify_signature (&verification.test.base_verify,
@@ -5869,7 +6278,7 @@ static void manifest_verification_test_after_default_activated_match_stored (CuT
 
 	status |= mock_expect (&verification.verify_mock.mock,
 		verification.verify_mock.base.verify_signature, &verification.verify_mock,
-		SIG_VERIFICATION_BAD_SIGNATURE,	MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN),
 		MOCK_ARG (SIG_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
 
@@ -5882,6 +6291,10 @@ static void manifest_verification_test_after_default_activated_match_stored (CuT
 		verification.verify_mock.base.verify_signature, &verification.verify_mock, 0,
 		MOCK_ARG_PTR_CONTAINS (SIG_HASH_TEST, SIG_HASH_LEN), MOCK_ARG (SIG_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE2_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 

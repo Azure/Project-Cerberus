@@ -373,6 +373,9 @@ void manifest_flash_v2_testing_verify_manifest_mocked_hash (CuTest *test,
 		manifest->addr + validate_resume, data->raw + validate_resume,
 		data->sig_offset - validate_resume);
 
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.get_active_algorithm,
+		&manifest->hash_mock, data->sig_hash_type);
+
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.finish,
 		&manifest->hash_mock, hash_result, MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
 
@@ -1780,6 +1783,9 @@ static void manifest_flash_v2_test_verify_max_entries_and_hashes (CuTest *test)
 	status |= flash_mock_expect_verify_flash_and_hash (&manifest.flash, &manifest.hash_mock,
 		manifest.addr + validate_resume, data + validate_resume - plat_id_offset,
 		sig_offset - validate_resume);
+
+	status |= mock_expect (&manifest.hash_mock.mock, manifest.hash_mock.base.get_active_algorithm,
+		&manifest.hash_mock, HASH_TYPE_SHA256);
 
 	status |= mock_expect (&manifest.hash_mock.mock, manifest.hash_mock.base.finish,
 		&manifest.hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
@@ -4042,6 +4048,9 @@ static void manifest_flash_v2_test_v2_verify_max_entries_and_hashes (CuTest *tes
 	status |= flash_mock_expect_verify_flash_and_hash (&manifest.flash, &manifest.hash_mock,
 		manifest.addr + validate_resume, data + validate_resume - plat_id_offset,
 		sig_offset - validate_resume);
+
+	status |= mock_expect (&manifest.hash_mock.mock, manifest.hash_mock.base.get_active_algorithm,
+		&manifest.hash_mock, HASH_TYPE_SHA256);
 
 	status |= mock_expect (&manifest.hash_mock.mock, manifest.hash_mock.base.finish,
 		&manifest.hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
@@ -8174,6 +8183,9 @@ static void manifest_flash_v2_test_read_element_data_max_entry_and_hash (CuTest 
 	status |= flash_mock_expect_verify_flash_and_hash (&manifest.flash, &manifest.hash_mock,
 		manifest.addr + validate_resume, data + validate_resume - plat_id_offset,
 		sig_offset - validate_resume);
+
+	status |= mock_expect (&manifest.hash_mock.mock, manifest.hash_mock.base.get_active_algorithm,
+		&manifest.hash_mock, HASH_TYPE_SHA256);
 
 	status |= mock_expect (&manifest.hash_mock.mock, manifest.hash_mock.base.finish,
 		&manifest.hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);

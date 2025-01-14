@@ -5,11 +5,16 @@
 #include "flash_common.h"
 #include "flash_util.h"
 #include "platform_api.h"
+#include "common/buffer_util.h"
 
 
 /**
  * Validate the contents of a contiguous block of data stored in a flash device against an RSA
  * encrypted signature.
+ *
+ * @deprecated This function is not FIPS compliant and left only for compatibility with the few
+ * legacy workflows that require it.  All new usage should call flash_contents_verification()
+ * instead.
  *
  * @param flash The flash device that contains the data to verify.
  * @param start_addr The first address of the data that should be verified.
@@ -48,6 +53,10 @@ int flash_verify_contents (const struct flash *flash, uint32_t start_addr, size_
  * Validate the contents of a group of noncontiguous blocks of data stored in a flash device
  * against an RSA encrypted signature.
  *
+ * @deprecated This function is not FIPS compliant and left only for compatibility with the few
+ * legacy workflows that require it.  All new usage should call
+ * flash_noncontiguous_contents_verification() instead.
+ *
  * @param flash The flash device that contains the data to verify.
  * @param regions The group of flash regions that should be verified as a single region.
  * @param count The number of regions defined in the group.
@@ -78,6 +87,10 @@ int flash_verify_noncontiguous_contents (const struct flash *flash,
  *
  * All regions will be verified starting at a fixed offset in flash.
  *
+ * @deprecated This function is not FIPS compliant and left only for compatibility with the few
+ * legacy workflows that require it.  All new usage should call
+ * flash_noncontiguous_contents_verification_at_offset() instead.
+ *
  * @param flash The flash device that contains the data to verify.
  * @param offset An offset to apply to each region address.
  * @param regions The group of flash regions that should be verified as a single region.
@@ -99,7 +112,7 @@ int flash_verify_noncontiguous_contents_at_offset (const struct flash *flash, ui
 	enum hash_type type, const struct rsa_engine *rsa, const uint8_t *signature, size_t sig_length,
 	const struct rsa_public_key *pub_key, uint8_t *hash_out, size_t hash_length)
 {
-	uint8_t data_hash[SHA256_HASH_LENGTH];
+	uint8_t data_hash[SHA256_HASH_LENGTH] = {0};
 	int status;
 
 	if ((flash == NULL) || (regions == NULL) || (hash == NULL) || (rsa == NULL) ||
@@ -134,8 +147,12 @@ int flash_verify_noncontiguous_contents_at_offset (const struct flash *flash, ui
 		return status;
 	}
 
-	return rsa->sig_verify (rsa, pub_key, signature, sig_length, HASH_TYPE_SHA256, hash_out,
+	status = rsa->sig_verify (rsa, pub_key, signature, sig_length, HASH_TYPE_SHA256, hash_out,
 		SHA256_HASH_LENGTH);
+
+	buffer_zeroize (data_hash, sizeof (data_hash));
+
+	return status;
 }
 
 /**
@@ -227,7 +244,7 @@ int flash_noncontiguous_contents_verification_at_offset (const struct flash *fla
 	enum hash_type type, const struct signature_verification *verification,
 	const uint8_t *signature, size_t sig_length, uint8_t *hash_out, size_t hash_length)
 {
-	uint8_t data_hash[SHA512_HASH_LENGTH];
+	uint8_t data_hash[HASH_MAX_HASH_LEN] = {0};
 	size_t length;
 	int status;
 
@@ -250,13 +267,25 @@ int flash_noncontiguous_contents_verification_at_offset (const struct flash *fla
 		hash_length = sizeof (data_hash);
 	}
 
-	status = flash_hash_noncontiguous_contents_at_offset (flash, offset, regions, count, hash, type,
-		hash_out, hash_length);
+	status = hash_start_new_hash (hash, type);
 	if (status != 0) {
 		return status;
 	}
 
-	return verification->verify_signature (verification, hash_out, length, signature, sig_length);
+	status = flash_hash_update_noncontiguous_contents_at_offset (flash, offset, regions, count,
+		hash);
+	if (status != 0) {
+		hash->cancel (hash);
+
+		return status;
+	}
+
+	status = signature_verification_verify_hash_and_finish_save_digest (verification, hash, NULL, 0,
+		signature, sig_length, hash_out, hash_length, NULL);
+
+	buffer_zeroize (data_hash, sizeof (data_hash));
+
+	return status;
 }
 
 /**

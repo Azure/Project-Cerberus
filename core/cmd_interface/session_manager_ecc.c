@@ -9,6 +9,7 @@
 #include "session_manager.h"
 #include "session_manager_ecc.h"
 #include "crypto/ecc.h"
+#include "crypto/ecdsa.h"
 #include "crypto/hash.h"
 #include "crypto/kdf.h"
 #include "riot/riot_key_manager.h"
@@ -23,10 +24,8 @@ static int session_manager_ecc_establish_session (struct session_manager *sessio
 	struct session_manager_entry *curr_session;
 	struct ecc_private_key session_priv_key;
 	struct ecc_public_key session_pub_key;
-	struct ecc_private_key alias_priv_key;
 	struct ecc_public_key device_pub_key;
 	const struct riot_keys *keys;
-	uint8_t hash[SHA256_HASH_LENGTH];
 	uint8_t *session_pub_key_der;
 	uint8_t *shared_secret;
 	uint16_t hash_len;
@@ -91,7 +90,7 @@ static int session_manager_ecc_establish_session (struct session_manager *sessio
 	status = session_manager_generate_keys_digest (&session_mgr->base,
 		cerberus_protocol_key_exchange_type_0_key_data (rq),
 		cerberus_protocol_key_exchange_type_0_key_len (request), session_pub_key_der,
-		session_pub_key_der_len, hash, sizeof (hash));
+		session_pub_key_der_len);
 	if (status != 0) {
 		goto free_session_pub_der;
 	}
@@ -115,36 +114,28 @@ static int session_manager_ecc_establish_session (struct session_manager *sessio
 		goto free_session_pub_der;
 	}
 
-	status = session_mgr->ecc->init_key_pair (session_mgr->ecc, keys->alias_key,
-		keys->alias_key_length, &alias_priv_key, NULL);
-	if (status != 0) {
-		goto release_riot_keys;
-	}
-
-	status = session_mgr->ecc->get_signature_max_length (session_mgr->ecc, &alias_priv_key);
-	if (ROT_IS_ERROR (status)) {
-		goto free_alias_key;
-	}
-
-	sig_len = session_mgr->ecc->sign (session_mgr->ecc, &alias_priv_key, hash, sizeof (hash), NULL,
+	sig_len = ecdsa_sign_hash_and_finish (session_mgr->ecc, session_mgr->base.hash, NULL,
+		keys->alias_key, keys->alias_key_length,
 		cerberus_protocol_key_exchange_type_0_response_sig_data (rsp),
 		CERBERUS_PROTOCOL_KEY_EXCHANGE_TYPE_0_RESPONSE_MAX_SIG_DATA (request));
+
+	riot_key_manager_release_riot_keys (session_mgr->base.riot, keys);
 	if (ROT_IS_ERROR (sig_len)) {
 		status = sig_len;
-		goto free_alias_key;
+		goto free_session_pub_der;
 	}
 
 	cerberus_protocol_key_exchange_type_0_response_sig_len (rsp) = (uint16_t) sig_len;
 
 	status = session_mgr->ecc->get_shared_secret_max_length (session_mgr->ecc, &session_priv_key);
 	if (ROT_IS_ERROR (status)) {
-		goto free_alias_key;
+		goto free_session_pub_der;
 	}
 
 	shared_secret = platform_malloc (status);
 	if (shared_secret == NULL) {
 		status = SESSION_MANAGER_NO_MEMORY;
-		goto free_alias_key;
+		goto free_session_pub_der;
 	}
 
 	shared_secret_len = session_mgr->ecc->compute_shared_secret (session_mgr->ecc,
@@ -190,12 +181,6 @@ static int session_manager_ecc_establish_session (struct session_manager *sessio
 
 free_shared_secret:
 	platform_free (shared_secret);
-
-free_alias_key:
-	session_mgr->ecc->release_key_pair (session_mgr->ecc, &alias_priv_key, NULL);
-
-release_riot_keys:
-	riot_key_manager_release_riot_keys (session_mgr->base.riot, keys);
 
 free_session_pub_der:
 	platform_free (session_pub_key_der);

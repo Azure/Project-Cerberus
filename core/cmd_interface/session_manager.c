@@ -410,26 +410,24 @@ int session_manager_reset_session (struct session_manager *session, uint8_t eid,
 }
 
 /**
- * Generate digest of the device and Cerberus session keys
+ * Generate digest of the device and Cerberus session keys.  This will leave the hash context open
+ * for the caller to finish to retrieve the digest value.
  *
  * @param session Session manager instance to utilize.
  * @param device_key Device session public key.
  * @param device_key_len Device session public key length.
  * @param session_pub_key Cerberus session public key.
  * @param session_pub_key_len Cerberus session public key length.
- * @param digest Buffer to store generated digest.
- * @param digest_len Digest buffer length.
  *
  * @return Completion status, 0 if success or an error code.
  */
 int session_manager_generate_keys_digest (struct session_manager *session,
 	const uint8_t *device_key, size_t device_key_len, const uint8_t *session_pub_key,
-	size_t session_pub_key_len, uint8_t *digest, size_t digest_len)
+	size_t session_pub_key_len)
 {
 	int status;
 
-	if ((session == NULL) || (device_key == NULL) || (session_pub_key == NULL) ||
-		(digest == NULL)) {
+	if ((session == NULL) || (device_key == NULL) || (session_pub_key == NULL)) {
 		return SESSION_MANAGER_INVALID_ARGUMENT;
 	}
 
@@ -446,13 +444,6 @@ int session_manager_generate_keys_digest (struct session_manager *session,
 	}
 
 	status = session->hash->update (session->hash, session_pub_key, session_pub_key_len);
-	if (status != 0) {
-		session->hash->cancel (session->hash);
-
-		return status;
-	}
-
-	status = session->hash->finish (session->hash, digest, digest_len);
 	if (status != 0) {
 		session->hash->cancel (session->hash);
 

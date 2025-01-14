@@ -304,6 +304,9 @@ static void rma_unlock_token_test_authenticate (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
 		MOCK_ARG (ECC384_SIG_TEST_LEN));
 
+	status |= mock_expect (&token.authority.mock, token.authority.base.set_verification_key,
+		&token.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = token.test.authenticate (&token.test, token_data, token_length);
@@ -351,6 +354,9 @@ static void rma_unlock_token_test_authenticate_sha384 (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
 		MOCK_ARG (ECC384_SIG_TEST_LEN));
 
+	status |= mock_expect (&token.authority.mock, token.authority.base.set_verification_key,
+		&token.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = token.test.authenticate (&token.test, token_data, token_length);
@@ -397,6 +403,9 @@ static void rma_unlock_token_test_authenticate_sha512 (CuTest *test)
 		MOCK_ARG (SHA512_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS (ECC521_SIGNATURE_TEST, ECC521_SIG_TEST_LEN),
 		MOCK_ARG (ECC521_SIG_TEST_LEN));
+
+	status |= mock_expect (&token.authority.mock, token.authority.base.set_verification_key,
+		&token.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -452,6 +461,9 @@ static void rma_unlock_token_test_authenticate_longer_oid (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
 		MOCK_ARG (ECC384_SIG_TEST_LEN));
 
+	status |= mock_expect (&token.authority.mock, token.authority.base.set_verification_key,
+		&token.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = token.test.authenticate (&token.test, token_data, token_length);
@@ -498,6 +510,9 @@ static void rma_unlock_token_test_authenticate_short_uuid (CuTest *test)
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
 		MOCK_ARG (ECC384_SIG_TEST_LEN));
+
+	status |= mock_expect (&token.authority.mock, token.authority.base.set_verification_key,
+		&token.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -549,6 +564,9 @@ static void rma_unlock_token_test_authenticate_static_init (CuTest *test)
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
 		MOCK_ARG (ECC384_SIG_TEST_LEN));
+
+	status |= mock_expect (&token.authority.mock, token.authority.base.set_verification_key,
+		&token.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1214,6 +1232,9 @@ static void rma_unlock_token_test_authenticate_bad_signature (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
 		MOCK_ARG (ECC384_SIG_TEST_LEN));
 
+	status |= mock_expect (&token.authority.mock, token.authority.base.set_verification_key,
+		&token.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = token.test.authenticate (&token.test, token_data, token_length);
@@ -1260,6 +1281,9 @@ static void rma_unlock_token_test_authenticate_signature_verify_error (CuTest *t
 		MOCK_ARG_PTR_CONTAINS (digest, SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
 		MOCK_ARG (ECC384_SIG_TEST_LEN));
+
+	status |= mock_expect (&token.authority.mock, token.authority.base.set_verification_key,
+		&token.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 

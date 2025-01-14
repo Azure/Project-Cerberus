@@ -19,6 +19,7 @@
 #include "common/common_math.h"
 #include "common/unused.h"
 #include "crypto/ecc.h"
+#include "crypto/ecdsa.h"
 #include "crypto/hash.h"
 #include "crypto/kdf.h"
 #include "mctp/mctp_base_protocol.h"
@@ -1230,14 +1231,13 @@ static int spdm_responder_data_sign (struct spdm_state *state,
 	int status;
 	uint8_t *message;
 	size_t message_size;
-	uint8_t full_message_hash[HASH_MAX_HASH_LEN];
 	uint8_t spdm12_signing_context_with_hash[SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE +
 		HASH_MAX_HASH_LEN];
 	struct ecc_private_key alias_priv_key;
 	bool release_alias_key = false;
 	uint8_t spdm_version;
 	int sig_size_der;
-	uint8_t sig_der[ECC_DER_ECDSA_MAX_LENGTH];
+	uint8_t sig_der[ECC_DER_ECDSA_MAX_LENGTH] = {0};
 	uint32_t sig_r_component_size = sig_size >> 1;
 	enum hash_type hash_type;
 	const struct riot_keys *keys = NULL;
@@ -1246,20 +1246,6 @@ static int spdm_responder_data_sign (struct spdm_state *state,
 		state->connection_info.version.minor_version);
 	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
 	keys = riot_key_manager_get_riot_keys (key_manager);
-
-	/* Get the private key reference for the alias certificate. */
-	status = ecc_engine->init_key_pair (ecc_engine, keys->alias_key, keys->alias_key_length,
-		&alias_priv_key, NULL);
-	if (status != 0) {
-		goto exit;
-	}
-	release_alias_key = true;
-
-	sig_size_der = ecc_engine->get_signature_max_length (ecc_engine, &alias_priv_key);
-	if (ROT_IS_ERROR (sig_size_der)) {
-		status = CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR;
-		goto exit;
-	}
 
 	/* v1.2 (and greater) requires a signing context prepended to the hash. */
 	if (spdm_version > SPDM_VERSION_1_1) {
@@ -1276,20 +1262,26 @@ static int spdm_responder_data_sign (struct spdm_state *state,
 		message_size = SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + hash_size;
 
 		/* Calculate the message hash as required by ECDSA. It may not be needed for other algos. */
-		status = hash_calculate (hash_engine, hash_type, message, message_size, full_message_hash,
-			hash_size);
-		if (ROT_IS_ERROR (status)) {
-			goto exit;
-		}
-		status = 0;
-
-		/* Sign the full message hash. */
-		sig_size_der = ecc_engine->sign (ecc_engine, &alias_priv_key, full_message_hash, hash_size,
-			NULL, sig_der, sig_size_der);
+		sig_size_der = ecdsa_sign_message (ecc_engine, hash_engine, hash_type, NULL,
+			keys->alias_key, keys->alias_key_length, message, message_size, sig_der,
+			sizeof (sig_der));
 	}
 	else {
+		/* SPDM 1.1 and earlier cannot be made FIPS compliant with the current architecture, since
+		 * the ECDSA hash and sign happen in different steps.  This is not much of a concern since
+		 * everything is expected to use at least SPDM 1.2.
+		 *
+		 * TODO:  Perhaps FIPS compliant implementations need to explicitly fail requests using
+		 * SPDM 1.1 or earlier? */
+		status = ecc_engine->init_key_pair (ecc_engine, keys->alias_key, keys->alias_key_length,
+			&alias_priv_key, NULL);
+		if (status != 0) {
+			goto exit;
+		}
+		release_alias_key = true;
+
 		sig_size_der = ecc_engine->sign (ecc_engine, &alias_priv_key, message_hash, hash_size, NULL,
-			sig_der, sig_size_der);
+			sig_der, sizeof (sig_der));
 	}
 	if (ROT_IS_ERROR (sig_size_der)) {
 		status = sig_size_der;
@@ -1304,6 +1296,8 @@ static int spdm_responder_data_sign (struct spdm_state *state,
 	}
 
 exit:
+	buffer_zeroize (sig_der, sizeof (sig_der));
+
 	if (release_alias_key == true) {
 		ecc_engine->release_key_pair (ecc_engine, &alias_priv_key, NULL);
 	}

@@ -32,8 +32,6 @@ int rma_unlock_token_authenticate (const struct rma_unlock_token *handler, const
 	uint8_t uuid[RMA_UNLOCK_TOKEN_UUID_LENGTH] = {0};
 	const uint8_t *oid;
 	size_t oid_length;
-	uint8_t token_digest[HASH_MAX_HASH_LEN];
-	int digest_length;
 	size_t offset;
 	int status;
 
@@ -118,19 +116,8 @@ int rma_unlock_token_authenticate (const struct rma_unlock_token *handler, const
 	offset += handler->dice_length;
 
 	/* token signature */
-	digest_length = hash_calculate (handler->hash, handler->auth_hash, data, offset, token_digest,
-		sizeof (token_digest));
-	if (ROT_IS_ERROR (digest_length)) {
-		return digest_length;
-	}
-
-	status = handler->authority->set_verification_key (handler->authority, handler->authority_key,
-		handler->auth_key_length);
-	if (status != 0) {
-		return status;
-	}
-
-	return handler->authority->verify_signature (handler->authority, token_digest, digest_length,
+	return signature_verification_verify_message (handler->authority, handler->hash,
+		handler->auth_hash, data, offset, handler->authority_key, handler->auth_key_length,
 		&data[offset], length - offset);
 }
 

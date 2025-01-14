@@ -6,16 +6,14 @@
 #include <string.h>
 #include "auth_token.h"
 #include "buffer_util.h"
+#include "crypto/ecdsa.h"
 
 
 int auth_token_new_token (const struct auth_token *auth, const uint8_t *data, size_t data_length,
 	const uint8_t **token, size_t *length)
 {
 	const struct riot_keys *keys;
-	struct ecc_private_key token_key;
 	size_t signed_length;
-	uint8_t digest[HASH_MAX_HASH_LEN];
-	int digest_length;
 	int sig_length;
 	int status;
 
@@ -48,32 +46,22 @@ int auth_token_new_token (const struct auth_token *auth, const uint8_t *data, si
 
 	signed_length = auth->data_length + auth->nonce_length;
 
-	/* Sign the token. */
-	digest_length = hash_calculate (auth->hash, auth->token_hash, auth->buffer, signed_length,
-		digest, sizeof (digest));
-	if (ROT_IS_ERROR (digest_length)) {
-		return digest_length;
-	}
-
 	keys = riot_key_manager_get_riot_keys (auth->device_key);
 
-	status = auth->ecc->init_key_pair (auth->ecc, keys->alias_key, keys->alias_key_length,
-		&token_key, NULL);
-	if (status != 0) {
-		goto release_riot;
-	}
+	sig_length = ecdsa_sign_message (auth->ecc, auth->hash, auth->token_hash, NULL, keys->alias_key,
+		keys->alias_key_length, auth->buffer, signed_length, &auth->buffer[signed_length],
+		auth->sig_length);
 
-	sig_length = auth->ecc->sign (auth->ecc, &token_key, digest, digest_length, NULL,
-		&auth->buffer[signed_length], auth->sig_length);
+	riot_key_manager_release_riot_keys (auth->device_key, keys);
+
 	if (ROT_IS_ERROR (sig_length)) {
-		status = sig_length;
-		goto release_key;
+		return sig_length;
 	}
 
 	if (auth->validity_time != 0) {
 		status = platform_init_timeout (auth->validity_time, &auth->state->expiration);
 		if (status != 0) {
-			goto release_key;
+			return status;
 		}
 	}
 
@@ -82,20 +70,13 @@ int auth_token_new_token (const struct auth_token *auth, const uint8_t *data, si
 	*token = auth->buffer;
 	*length = auth->state->token_length;
 
-release_key:
-	auth->ecc->release_key_pair (auth->ecc, &token_key, NULL);
-release_riot:
-	riot_key_manager_release_riot_keys (auth->device_key, keys);
-
-	return status;
+	return 0;
 }
 
 int auth_token_verify_data (const struct auth_token *auth, const uint8_t *authorized, size_t length,
 	size_t token_offset, size_t aad_length, enum hash_type sig_hash)
 {
 	size_t auth_length;
-	uint8_t digest[HASH_MAX_HASH_LEN];
-	int digest_length;
 	int status;
 
 	if ((auth == NULL) || (authorized == NULL)) {
@@ -132,20 +113,8 @@ int auth_token_verify_data (const struct auth_token *auth, const uint8_t *author
 			return AUTH_TOKEN_NOT_VALID;
 		}
 
-		digest_length = hash_calculate (auth->hash, sig_hash, authorized, auth_length, digest,
-			sizeof (digest));
-		if (ROT_IS_ERROR (digest_length)) {
-			return digest_length;
-		}
-
-		/* Load the authorization key fresh each time to ensure a clean verification state. */
-		status = auth->authority->set_verification_key (auth->authority, auth->authority_key,
-			auth->auth_key_length);
-		if (status != 0) {
-			return status;
-		}
-
-		status = auth->authority->verify_signature (auth->authority, digest, digest_length,
+		status = signature_verification_verify_message (auth->authority, auth->hash, sig_hash,
+			authorized, auth_length, auth->authority_key, auth->auth_key_length,
 			&authorized[auth_length], length - auth_length);
 		if (status == SIG_VERIFICATION_BAD_SIGNATURE) {
 			/* If the signature is not correct, report the data as invalid.  If there is some other

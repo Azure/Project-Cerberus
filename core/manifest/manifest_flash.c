@@ -358,15 +358,19 @@ static int manifest_flash_verify_v2 (const struct manifest_flash *manifest,
 			manifest->state->toc_hash_length = SHA256_HASH_LENGTH;
 			break;
 
+#ifdef HASH_ENABLE_SHA384
 		case MANIFEST_HASH_SHA384:
 			manifest->state->toc_hash_type = HASH_TYPE_SHA384;
 			manifest->state->toc_hash_length = SHA384_HASH_LENGTH;
 			break;
+#endif
 
+#ifdef HASH_ENABLE_SHA512
 		case MANIFEST_HASH_SHA512:
 			manifest->state->toc_hash_type = HASH_TYPE_SHA512;
 			manifest->state->toc_hash_length = SHA512_HASH_LENGTH;
 			break;
+#endif
 
 		default:
 			status = MANIFEST_TOC_UNKNOWN_HASH_TYPE;
@@ -472,18 +476,15 @@ static int manifest_flash_verify_v2 (const struct manifest_flash *manifest,
 	}
 
 	/* Verify the signature of the overall manifest data. */
-	status = hash->finish (hash, manifest->state->hash_cache, sizeof (manifest->state->hash_cache));
-	if (status != 0) {
-		goto error;
-	}
+	status = signature_verification_verify_hash_and_finish_save_digest (verification, hash, NULL, 0,
+		manifest->signature, manifest->state->header.sig_length, manifest->state->hash_cache,
+		sizeof (manifest->state->hash_cache), &manifest->state->cache_valid);
 
-	manifest->state->cache_valid = true;
-	if (hash_out) {
+	if (manifest->state->cache_valid && hash_out) {
 		memcpy (hash_out, manifest->state->hash_cache, manifest->state->hash_length);
 	}
 
-	return verification->verify_signature (verification, manifest->state->hash_cache,
-		manifest->state->hash_length, manifest->signature, manifest->state->header.sig_length);
+	return status;
 
 error:
 	hash->cancel (hash);

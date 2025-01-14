@@ -126,7 +126,6 @@ struct attestation_responder {
 	int (*generate_ecdh_seed) (struct attestation_responder *attestation, const uint8_t *pub_key,
 		size_t key_length, bool hash_seed, uint8_t *seed, size_t seed_length);
 
-	struct ecc_private_key ecc_priv_key;	/**< RIoT ECC private key. */
 	const struct hash_engine *hash;			/**< The hashing engine for attestation authentication operations. */
 	const struct ecc_engine *ecc;			/**< The ECC engine for attestation authentication operations. */
 	const struct rng_engine *rng;			/**< The RNG engine for attestation authentication operations. */

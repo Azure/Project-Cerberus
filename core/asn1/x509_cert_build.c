@@ -8,8 +8,10 @@
 #include "platform_api.h"
 #include "x509_cert_build.h"
 #include "asn1/ecc_der_util.h"
+#include "common/buffer_util.h"
 #include "common/unused.h"
 #include "crypto/ecc.h"
+#include "crypto/ecdsa.h"
 #include "riot/reference/include/RiotDerDec.h"
 #include "riot/reference/include/RiotDerEnc.h"
 #include "riot/reference/include/RiotX509Bldr.h"
@@ -352,7 +354,7 @@ static int x509_cert_build_build_csr_tbs_data (DERBuilderContext *der, const cha
 	DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
 	DER_CHK_ENCODE (x509_cert_build_add_key_usage_extension (der, type));
 	if ((type == X509_CERT_END_ENTITY) || (eku != NULL)) {
-		DER_CHK_ENCODE (x509_cert_build_add_extended_key_usage_extension (der, eku,	eku_length,
+		DER_CHK_ENCODE (x509_cert_build_add_extended_key_usage_extension (der, eku, eku_length,
 			(type == X509_CERT_END_ENTITY)));
 	}
 	DER_CHK_ENCODE (x509_cert_build_add_basic_constraints_extension (der, type));
@@ -378,6 +380,7 @@ error:
  *
  * @param der The DER encoder that contains the TBS certificate region to sign.
  * @param priv_key The signing key.
+ * @param key_length Length of the signing key.
  * @param ecc The ECC engine to use for signature generation.
  * @param hash The hash engine to use for signature generation.
  * @param sig_hash The type of hash to use when generating the signature.
@@ -385,32 +388,16 @@ error:
  *
  * @return 0 if the certificate was signed successfully or an error code.
  */
-static int x509_cert_build_sign_certificate (DERBuilderContext *der,
-	const struct ecc_private_key *priv_key, const struct ecc_engine *ecc,
-	const struct hash_engine *hash, enum hash_type sig_hash, const int *sig_oid)
+static int x509_cert_build_sign_certificate (DERBuilderContext *der, const uint8_t *priv_key,
+	size_t key_length, const struct ecc_engine *ecc, const struct hash_engine *hash,
+	enum hash_type sig_hash, const int *sig_oid)
 {
-	uint8_t digest[HASH_MAX_HASH_LEN];
-	uint8_t tbs_sig[ECC_DER_ECDSA_MAX_LENGTH];
+	uint8_t tbs_sig[ECC_DER_ECDSA_MAX_LENGTH] = {0};
 	int sig_len;
 	int status;
 
-	/* Sanity check that the ECC engine is not going to generate too much data. */
-	sig_len = ecc->get_signature_max_length (ecc, priv_key);
-	if (ROT_IS_ERROR (sig_len)) {
-		return sig_len;
-	}
-
-	if ((size_t) sig_len > sizeof (tbs_sig)) {
-		return X509_ENGINE_CERT_SIGN_FAILED;
-	}
-
-	status = hash_calculate (hash, sig_hash, der->Buffer, DERGetEncodedLength (der), digest,
-		sizeof (digest));
-	if (ROT_IS_ERROR (status)) {
-		return status;
-	}
-
-	sig_len = ecc->sign (ecc, priv_key, digest, status, NULL, tbs_sig, sizeof (tbs_sig));
+	sig_len = ecdsa_sign_message (ecc, hash, sig_hash, NULL, priv_key, key_length, der->Buffer,
+		DERGetEncodedLength (der), tbs_sig, sizeof (tbs_sig));
 	if (ROT_IS_ERROR (sig_len)) {
 		return sig_len;
 	}
@@ -423,9 +410,12 @@ static int x509_cert_build_sign_certificate (DERBuilderContext *der,
 	DER_CHK_ENCODE (DERAddBitString (der, tbs_sig, sig_len));
 	DER_CHK_ENCODE (DERPopNesting (der));
 
+	buffer_zeroize (tbs_sig, sizeof (tbs_sig));
+
 	return 0;
 
 error:
+	buffer_zeroize (tbs_sig, sizeof (tbs_sig));
 
 	return status;
 }
@@ -437,7 +427,6 @@ int x509_cert_build_create_csr (const struct x509_engine *engine, const uint8_t 
 {
 	const struct x509_engine_cert_build *x509 = (const struct x509_engine_cert_build*) engine;
 	DERBuilderContext *der;
-	struct ecc_private_key ecc_priv_key;
 	struct ecc_public_key ecc_pub_key;
 	uint8_t *pub_key_der = NULL;
 	size_t pub_key_der_len;
@@ -484,8 +473,7 @@ int x509_cert_build_create_csr (const struct x509_engine *engine, const uint8_t 
 			return X509_ENGINE_UNSUPPORTED_SIG_HASH;
 	}
 
-	status = x509->ecc->init_key_pair (x509->ecc, priv_key, key_length, &ecc_priv_key,
-		&ecc_pub_key);
+	status = x509->ecc->init_key_pair (x509->ecc, priv_key, key_length, NULL, &ecc_pub_key);
 	if (status != 0) {
 		return status;
 	}
@@ -502,15 +490,15 @@ int x509_cert_build_create_csr (const struct x509_engine *engine, const uint8_t 
 		goto err_free_key_der;
 	}
 
-	status = x509_cert_build_build_csr_tbs_data (der, name, pub_key_der, pub_key_der_len, type,	eku,
+	status = x509_cert_build_build_csr_tbs_data (der, name, pub_key_der, pub_key_der_len, type, eku,
 		eku_length, extra_extensions, ext_count);
 	if (status != 0) {
 		status = (status == -1) ? X509_ENGINE_CSR_FAILED : status;
 		goto err_free_cert;
 	}
 
-	status = x509_cert_build_sign_certificate (der, &ecc_priv_key, x509->ecc, x509->hash, sig_hash,
-		sig_oid);
+	status = x509_cert_build_sign_certificate (der, priv_key, key_length, x509->ecc, x509->hash,
+		sig_hash, sig_oid);
 	if (status != 0) {
 		status = (status == -1) ? X509_ENGINE_CSR_FAILED : status;
 		goto err_free_cert;
@@ -527,7 +515,7 @@ err_free_cert:
 err_free_key_der:
 	platform_free (pub_key_der);
 err_free_key:
-	x509->ecc->release_key_pair (x509->ecc, &ecc_priv_key, &ecc_pub_key);
+	x509->ecc->release_key_pair (x509->ecc, NULL, &ecc_pub_key);
 
 	return status;
 }
@@ -604,7 +592,7 @@ static int x509_cert_build_build_certificate_tbs_data (DERBuilderContext *der,
 		SHA1_HASH_LENGTH));
 	DER_CHK_ENCODE (x509_cert_build_add_key_usage_extension (der, type));
 	if (type == X509_CERT_END_ENTITY) {
-		DER_CHK_ENCODE (x509_cert_build_add_extended_key_usage_extension (der, NULL, 0,	true));
+		DER_CHK_ENCODE (x509_cert_build_add_extended_key_usage_extension (der, NULL, 0, true));
 	}
 	DER_CHK_ENCODE (x509_cert_build_add_basic_constraints_extension (der, type));
 	for (i = 0; i < ext_count; i++) {
@@ -628,7 +616,6 @@ int x509_cert_build_create_self_signed_certificate (const struct x509_engine *en
 {
 	const struct x509_engine_cert_build *x509 = (const struct x509_engine_cert_build*) engine;
 	DERBuilderContext *der;
-	struct ecc_private_key ecc_priv_key;
 	struct ecc_public_key ecc_pub_key;
 	uint8_t *pub_key_der = NULL;
 	size_t pub_key_der_len;
@@ -670,8 +657,7 @@ int x509_cert_build_create_self_signed_certificate (const struct x509_engine *en
 
 	cert->context = NULL;
 
-	status = x509->ecc->init_key_pair (x509->ecc, priv_key, key_length, &ecc_priv_key,
-		&ecc_pub_key);
+	status = x509->ecc->init_key_pair (x509->ecc, priv_key, key_length, NULL, &ecc_pub_key);
 	if (status != 0) {
 		return status;
 	}
@@ -708,8 +694,8 @@ int x509_cert_build_create_self_signed_certificate (const struct x509_engine *en
 		goto err_free_cert;
 	}
 
-	status = x509_cert_build_sign_certificate (der, &ecc_priv_key, x509->ecc, x509->hash, sig_hash,
-		sig_oid);
+	status = x509_cert_build_sign_certificate (der, priv_key, key_length, x509->ecc, x509->hash,
+		sig_hash, sig_oid);
 	if (status == -1) {
 		status = X509_ENGINE_SELF_SIGNED_FAILED;
 	}
@@ -724,7 +710,7 @@ err_free_cert:
 err_free_key_der:
 	platform_free (pub_key_der);
 err_free_key:
-	x509->ecc->release_key_pair (x509->ecc, &ecc_priv_key, &ecc_pub_key);
+	x509->ecc->release_key_pair (x509->ecc, NULL, &ecc_pub_key);
 
 	return status;
 }
@@ -738,7 +724,6 @@ int x509_cert_build_create_ca_signed_certificate (const struct x509_engine *engi
 	const struct x509_engine_cert_build *x509 = (const struct x509_engine_cert_build*) engine;
 	DERBuilderContext *der;
 	DERBuilderContext *ca_ctx;
-	struct ecc_private_key auth_priv_key;
 	struct ecc_public_key auth_pub_key;
 	uint8_t *auth_key_der;
 	size_t auth_key_der_len;
@@ -789,8 +774,7 @@ int x509_cert_build_create_ca_signed_certificate (const struct x509_engine *engi
 	cert->context = NULL;
 	ca_ctx = (DERBuilderContext*) ca_cert->context;
 
-	status = x509->ecc->init_key_pair (x509->ecc, ca_priv_key, ca_key_length, &auth_priv_key,
-		&auth_pub_key);
+	status = x509->ecc->init_key_pair (x509->ecc, ca_priv_key, ca_key_length, NULL, &auth_pub_key);
 	if (status != 0) {
 		return status;
 	}
@@ -864,8 +848,8 @@ int x509_cert_build_create_ca_signed_certificate (const struct x509_engine *engi
 		goto err_free_cert;
 	}
 
-	status = x509_cert_build_sign_certificate (der, &auth_priv_key, x509->ecc, x509->hash, sig_hash,
-		sig_oid);
+	status = x509_cert_build_sign_certificate (der, ca_priv_key, ca_key_length, x509->ecc,
+		x509->hash, sig_hash, sig_oid);
 	if (status == -1) {
 		status = X509_ENGINE_CA_SIGNED_FAILED;
 	}
@@ -885,7 +869,7 @@ err_free_key_der:
 		platform_free ((void*) subject_key_der);
 	}
 err_free_key:
-	x509->ecc->release_key_pair (x509->ecc, &auth_priv_key, &auth_pub_key);
+	x509->ecc->release_key_pair (x509->ecc, NULL, &auth_pub_key);
 
 	return status;
 }

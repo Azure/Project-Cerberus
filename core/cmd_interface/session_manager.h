@@ -202,7 +202,7 @@ int session_manager_setup_paired_session (struct session_manager *session, uint8
 	size_t pairing_key_len, uint8_t *pairing_key_hmac, size_t pairing_key_hmac_len);
 int session_manager_generate_keys_digest (struct session_manager *session,
 	const uint8_t *device_key, size_t device_key_len, const uint8_t *session_pub_key,
-	size_t session_pub_key_len, uint8_t *digest, size_t digest_len);
+	size_t session_pub_key_len);
 int session_manager_session_sync (struct session_manager *session, uint8_t eid, uint32_t rn_req,
 	uint8_t *hmac, size_t hmac_len);
 

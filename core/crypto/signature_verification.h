@@ -4,6 +4,7 @@
 #ifndef SIGNATURE_VERIFICATION_H_
 #define SIGNATURE_VERIFICATION_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include "crypto/hash.h"
@@ -80,6 +81,10 @@ int signature_verification_verify_hash (const struct signature_verification *sig
 int signature_verification_verify_hash_and_finish (const struct signature_verification *sig_verify,
 	const struct hash_engine *hash, const uint8_t *key, size_t key_length, const uint8_t *signature,
 	size_t sig_length);
+int signature_verification_verify_hash_and_finish_save_digest (
+	const struct signature_verification *sig_verify, const struct hash_engine *hash,
+	const uint8_t *key, size_t key_length, const uint8_t *signature, size_t sig_length,
+	uint8_t *digest, size_t digest_length, bool *digest_valid);
 
 
 #define	SIG_VERIFICATION_ERROR(code)		ROT_ERROR (ROT_MODULE_SIG_VERIFICATION, code)

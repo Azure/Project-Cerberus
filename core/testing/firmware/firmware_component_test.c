@@ -7214,6 +7214,9 @@ static void firmware_component_test_load_and_verify_hash_finish_error (CuTest *t
 
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (FW_COMPONENT, FW_COMPONENT_LENGTH), MOCK_ARG (FW_COMPONENT_LENGTH));
+
+	status |= mock_expect (&hash.mock, hash.base.get_active_algorithm, &hash, HASH_TYPE_SHA256);
+
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, HASH_ENGINE_FINISH_FAILED,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
 
@@ -9905,6 +9908,9 @@ static void firmware_component_test_load_and_verify_with_header_hash_finish_erro
 
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (FW_COMPONENT, FW_COMPONENT_LENGTH), MOCK_ARG (FW_COMPONENT_LENGTH));
+
+	status |= mock_expect (&hash.mock, hash.base.get_active_algorithm, &hash, HASH_TYPE_SHA256);
+
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, HASH_ENGINE_FINISH_FAILED,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
 
@@ -14429,6 +14435,8 @@ static void firmware_component_test_load_to_memory_and_verify_hash_finish_error 
 	status |= mock_expect (&loader.mock, loader.base.unmap_address, &loader, 0,
 		MOCK_ARG_PTR (FW_COMPONENT_V1_LOAD_ADDRESS_PTR));
 
+	status |= mock_expect (&hash.mock, hash.base.get_active_algorithm, &hash, HASH_TYPE_SHA256);
+
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, HASH_ENGINE_FINISH_FAILED,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
 
@@ -17385,6 +17393,8 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_hash_f
 
 	status |= mock_expect (&loader.mock, loader.base.unmap_address, &loader, 0,
 		MOCK_ARG_PTR (FW_COMPONENT_V1_LOAD_ADDRESS_PTR));
+
+	status |= mock_expect (&hash.mock, hash.base.get_active_algorithm, &hash, HASH_TYPE_SHA256);
 
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, HASH_ENGINE_FINISH_FAILED,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);

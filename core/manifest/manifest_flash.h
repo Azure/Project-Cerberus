@@ -19,10 +19,10 @@
 struct manifest_flash_state {
 	struct manifest_header header;			/**< The manifest header data. */
 	struct manifest_toc_header toc_header;	/**< The table of contents header data. */
-	uint8_t toc_hash[SHA512_HASH_LENGTH];	/**< Hash of the manifest table of contents. */
+	uint8_t toc_hash[HASH_MAX_HASH_LEN];	/**< Hash of the manifest table of contents. */
 	enum hash_type toc_hash_type;			/**< The type of hash used in the table of contents. */
 	size_t toc_hash_length;					/**< Length of the table of contents hash. */
-	uint8_t hash_cache[SHA512_HASH_LENGTH];	/**< Cache for the manifest hash. */
+	uint8_t hash_cache[HASH_MAX_HASH_LEN];	/**< Cache for the manifest hash. */
 	size_t hash_length;						/**< Length of the manifest hash. */
 	bool cache_valid;						/**< Flag indicating if the cached hash is valid. */
 	bool manifest_valid;					/**< Flag indicating there is a validated manifest. */
