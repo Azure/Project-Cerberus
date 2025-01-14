@@ -36,7 +36,7 @@ int host_flash_manager_get_image_entry (const struct pfm *pfm, const struct spi_
 		return status;
 	}
 
-	status = host_fw_determine_offset_version (flash, offset, versions, version);
+	status = host_fw_determine_offset_version (&flash->base, offset, versions, version);
 	if (status != 0) {
 		goto free_versions;
 	}
@@ -221,11 +221,11 @@ int host_flash_manager_validate_offset_flash (const struct pfm *pfm, const struc
 	}
 
 	if (full_validation) {
-		status = host_fw_full_flash_verification_multiple_fw (flash, host_img.fw_images,
+		status = host_fw_full_flash_verification_multiple_fw (&flash->base, host_img.fw_images,
 			host_rw->writable, host_fw.count, version->blank_byte, hash, rsa);
 	}
 	else {
-		status = host_fw_verify_offset_images_multiple_fw (flash, host_img.fw_images,
+		status = host_fw_verify_offset_images_multiple_fw (&flash->base, host_img.fw_images,
 			host_img.count, offset, hash, rsa);
 	}
 
@@ -299,8 +299,8 @@ int host_flash_manager_validate_pfm (const struct pfm *pfm, const struct pfm *go
 	}
 
 	if (match_status != 0) {
-		status = host_fw_verify_images_multiple_fw (flash, host_img.fw_images, host_img.count, hash,
-			rsa);
+		status = host_fw_verify_images_multiple_fw (&flash->base, host_img.fw_images,
+			host_img.count, hash, rsa);
 	}
 
 free_host:
@@ -336,7 +336,7 @@ static int host_flash_manager_find_flash_version (const struct spi_flash *flash,
 		return status;
 	}
 
-	status = host_fw_determine_version (flash, versions, version);
+	status = host_fw_determine_version (&flash->base, versions, version);
 	if (status != 0) {
 		pfm->free_fw_versions (pfm, versions);
 	}

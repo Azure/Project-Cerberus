@@ -46,7 +46,7 @@ static int host_fw_find_longest_version_id (const struct pfm_firmware_versions *
  *
  * @return 0 if the firmware version was found or an error code.
  */
-int host_fw_determine_version (const struct spi_flash *flash,
+int host_fw_determine_version (const struct flash *flash,
 	const struct pfm_firmware_versions *allowed, const struct pfm_firmware_version **version)
 {
 	return host_fw_determine_offset_version (flash, 0, allowed, version);
@@ -66,7 +66,7 @@ int host_fw_determine_version (const struct spi_flash *flash,
  *
  * @return 0 if the firmware version was found or an error code.
  */
-int host_fw_determine_offset_version (const struct spi_flash *flash, uint32_t offset,
+int host_fw_determine_offset_version (const struct flash *flash, uint32_t offset,
 	const struct pfm_firmware_versions *allowed, const struct pfm_firmware_version **version)
 {
 	char *fw_version;
@@ -98,7 +98,7 @@ int host_fw_determine_offset_version (const struct spi_flash *flash, uint32_t of
 			((allowed->versions[i].version_addr) != (allowed->versions[prev].version_addr))) {
 			/* We need to read a fresh version ID from the flash. */
 			version_len = current_len;
-			status = spi_flash_read (flash, allowed->versions[i].version_addr + offset,
+			status = flash->read (flash, allowed->versions[i].version_addr + offset,
 				(uint8_t*) fw_version, version_len);
 			if (status != 0) {
 				goto exit;
@@ -128,7 +128,7 @@ int host_fw_determine_offset_version (const struct spi_flash *flash, uint32_t of
 					if (extra != 0) {
 						/* Get more data to finish the version check, but don't read the data we
 						 * already have. */
-						status = spi_flash_read (flash,
+						status = flash->read (flash,
 							allowed->versions[i].version_addr + offset + version_len,
 							(uint8_t*) (fw_version + version_len), extra);
 						if (status != 0) {
@@ -284,7 +284,7 @@ bool host_fw_are_images_different (const struct pfm_image_list *img_list1,
 			}
 
 			if (buffer_compare (img_list1->images_sig[i].signature,
-				img_list2->images_sig[i].signature,	img_list1->images_sig->sig_length) != 0) {
+				img_list2->images_sig[i].signature, img_list1->images_sig->sig_length) != 0) {
 				return true;
 			}
 
@@ -327,11 +327,12 @@ bool host_fw_are_images_different (const struct pfm_image_list *img_list1,
  * @param validate_all Override the image validation flag and validate all images in the list.
  * @param offset The offset to apply to image addresses.
  * @param hash The hashing engine to use for validation.
- * @param rsa The RSA engine to use for signature checking.
+ * @param rsa The RSA engine to use for signature checking.  This is only necessary if signature
+ * verification of images is supported.  If only hash verification is needed, this can be null.
  *
  * @return 0 if all images that should be validated are good or an error code.
  */
-static int host_fw_verify_images_on_flash (const struct spi_flash *flash,
+static int host_fw_verify_images_on_flash (const struct flash *flash,
 	const struct pfm_image_list *img_list, bool validate_all, uint32_t offset,
 	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
@@ -341,7 +342,7 @@ static int host_fw_verify_images_on_flash (const struct spi_flash *flash,
 	for (i = 0; i < img_list->count; i++) {
 		if (img_list->images_sig) {
 			if (validate_all || img_list->images_sig[i].always_validate) {
-				status = flash_verify_noncontiguous_contents_at_offset (&flash->base, offset,
+				status = flash_verify_noncontiguous_contents_at_offset (flash, offset,
 					img_list->images_sig[i].regions, img_list->images_sig[i].count, hash,
 					HASH_TYPE_SHA256, rsa, img_list->images_sig[i].signature,
 					img_list->images_sig[i].sig_length, &img_list->images_sig[i].key, NULL, 0);
@@ -353,7 +354,7 @@ static int host_fw_verify_images_on_flash (const struct spi_flash *flash,
 		else if (validate_all || img_list->images_hash[i].always_validate) {
 			uint8_t img_hash[SHA512_HASH_LENGTH];
 
-			status = flash_hash_noncontiguous_contents_at_offset (&flash->base, offset,
+			status = flash_hash_noncontiguous_contents_at_offset (flash, offset,
 				img_list->images_hash[i].regions, img_list->images_hash[i].count, hash,
 				img_list->images_hash[i].hash_type, img_hash, sizeof (img_hash));
 			if (status != 0) {
@@ -376,11 +377,12 @@ static int host_fw_verify_images_on_flash (const struct spi_flash *flash,
  * @param flash The flash that contains the images to validate.
  * @param img_list The list of images to validate.
  * @param hash The hashing engine to use for validation.
- * @param rsa The RSA engine to use for signature checking.
+ * @param rsa The RSA engine to use for signature checking.  This is only necessary if signature
+ * verification of images is supported.  If only hash verification is needed, this can be null.
  *
  * @return 0 if all images that should be validated are good or an error code.
  */
-int host_fw_verify_images (const struct spi_flash *flash, const struct pfm_image_list *img_list,
+int host_fw_verify_images (const struct flash *flash, const struct pfm_image_list *img_list,
 	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	return host_fw_verify_offset_images_multiple_fw (flash, img_list, 1, 0, hash, rsa);
@@ -395,13 +397,13 @@ int host_fw_verify_images (const struct spi_flash *flash, const struct pfm_image
  * @param img_list The list of images to validate.
  * @param offset The offset to apply to image addresses.
  * @param hash The hashing engine to use for validation.
- * @param rsa The RSA engine to use for signature checking.
+ * @param rsa The RSA engine to use for signature checking.  This is only necessary if signature
+ * verification of images is supported.  If only hash verification is needed, this can be null.
  *
  * @return 0 if all images that should be validated are good or an error code.
  */
-int host_fw_verify_offset_images (const struct spi_flash *flash,
-	const struct pfm_image_list *img_list, uint32_t offset, const struct hash_engine *hash,
-	const struct rsa_engine *rsa)
+int host_fw_verify_offset_images (const struct flash *flash, const struct pfm_image_list *img_list,
+	uint32_t offset, const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	return host_fw_verify_offset_images_multiple_fw (flash, img_list, 1, offset, hash, rsa);
 }
@@ -414,11 +416,12 @@ int host_fw_verify_offset_images (const struct spi_flash *flash,
  * @param img_list An array of firmware images that should be validated.
  * @param fw_count The number of firmware components in the list.
  * @param hash The hashing engine to use for validation.
- * @param rsa The RSA engine to use for signature checking.
+ * @param rsa The RSA engine to use for signature checking.  This is only necessary if signature
+ * verification of images is supported.  If only hash verification is needed, this can be null.
  *
  * @return 0 if all images that should be validated are good or an error code.
  */
-int host_fw_verify_images_multiple_fw (const struct spi_flash *flash,
+int host_fw_verify_images_multiple_fw (const struct flash *flash,
 	const struct pfm_image_list *img_list, size_t fw_count, const struct hash_engine *hash,
 	const struct rsa_engine *rsa)
 {
@@ -436,18 +439,19 @@ int host_fw_verify_images_multiple_fw (const struct spi_flash *flash,
  * @param fw_count The number of firmware components in the list.
  * @param offset The offset to apply to image addresses.
  * @param hash The hashing engine to use for validation.
- * @param rsa The RSA engine to use for signature checking.
+ * @param rsa The RSA engine to use for signature checking.  This is only necessary if signature
+ * verification of images is supported.  If only hash verification is needed, this can be null.
  *
  * @return 0 if all images that should be validated are good or an error code.
  */
-int host_fw_verify_offset_images_multiple_fw (const struct spi_flash *flash,
+int host_fw_verify_offset_images_multiple_fw (const struct flash *flash,
 	const struct pfm_image_list *img_list, size_t fw_count, uint32_t offset,
 	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	size_t i;
 	int status;
 
-	if ((flash == NULL) || (img_list == NULL) || (hash == NULL) || (rsa == NULL)) {
+	if ((flash == NULL) || (img_list == NULL) || (hash == NULL)) {
 		return HOST_FW_UTIL_INVALID_ARGUMENT;
 	}
 
@@ -582,11 +586,12 @@ static const struct flash_region* host_fw_find_next_flash_region (uint32_t last_
  * @param writable The list of writable regions of flash.
  * @param unused_byte The byte value to check for in unused flash regions.
  * @param hash The hashing engine to use for validation.
- * @param rsa The RSA engine to use for signature checking.
+ * @param rsa The RSA engine to use for signature checking.  This is only necessary if signature
+ * verification of images is supported.  If only hash verification is needed, this can be null.
  *
  * @return 0 if the flash contents are good or an error code.
  */
-int host_fw_full_flash_verification (const struct spi_flash *flash,
+int host_fw_full_flash_verification (const struct flash *flash,
 	const struct pfm_image_list *img_list, const struct pfm_read_write_regions *writable,
 	uint8_t unused_byte, const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
@@ -609,11 +614,12 @@ int host_fw_full_flash_verification (const struct spi_flash *flash,
  * information must be the same length.
  * @param unused_byte The byte value to check for in unused flash regions.
  * @param hash The hashing engine to use for validation.
- * @param rsa The RSA engine to use for signature checking.
+ * @param rsa The RSA engine to use for signature checking.  This is only necessary if signature
+ * verification of images is supported.  If only hash verification is needed, this can be null.
  *
  * @return 0 if the flash contents are good or an error code.
  */
-int host_fw_full_flash_verification_multiple_fw (const struct spi_flash *flash,
+int host_fw_full_flash_verification_multiple_fw (const struct flash *flash,
 	const struct pfm_image_list *img_list, const struct pfm_read_write_regions *writable,
 	size_t fw_count, uint8_t unused_byte, const struct hash_engine *hash,
 	const struct rsa_engine *rsa)
@@ -624,12 +630,11 @@ int host_fw_full_flash_verification_multiple_fw (const struct spi_flash *flash,
 	int status;
 	size_t i;
 
-	if ((flash == NULL) || (img_list == NULL) || (writable == NULL) || (hash == NULL) ||
-		(rsa == NULL)) {
+	if ((flash == NULL) || (img_list == NULL) || (writable == NULL) || (hash == NULL)) {
 		return HOST_FW_UTIL_INVALID_ARGUMENT;
 	}
 
-	status = spi_flash_get_device_size (flash, &flash_size);
+	status = flash->get_device_size (flash, &flash_size);
 	if (status != 0) {
 		return status;
 	}
@@ -644,8 +649,7 @@ int host_fw_full_flash_verification_multiple_fw (const struct spi_flash *flash,
 	last_addr = 0;
 	pos = host_fw_find_next_flash_region (last_addr, img_list, writable, fw_count);
 	while (pos) {
-		status = flash_value_check (&flash->base, last_addr, pos->start_addr - last_addr,
-			unused_byte);
+		status = flash_value_check (flash, last_addr, pos->start_addr - last_addr, unused_byte);
 		if (status != 0) {
 			return status;
 		}
@@ -654,7 +658,7 @@ int host_fw_full_flash_verification_multiple_fw (const struct spi_flash *flash,
 		pos = host_fw_find_next_flash_region (last_addr, img_list, writable, fw_count);
 	}
 
-	return flash_value_check (&flash->base, last_addr, flash_size - last_addr, unused_byte);
+	return flash_value_check (flash, last_addr, flash_size - last_addr, unused_byte);
 }
 
 /**
@@ -701,8 +705,8 @@ bool host_fw_are_read_write_regions_different (const struct pfm_read_write_regio
  * 		- HOST_FW_UTIL_DIFF_REGION_ADDR
  * 		- HOST_FW_UTIL_DIFF_REGION_SIZE
  */
-int host_fw_migrate_read_write_data (const struct spi_flash *dest,
-	const struct pfm_read_write_regions *dest_writable, const struct spi_flash *src,
+int host_fw_migrate_read_write_data (const struct flash *dest,
+	const struct pfm_read_write_regions *dest_writable, const struct flash *src,
 	const struct pfm_read_write_regions *src_writable)
 {
 	uint32_t last_addr;
@@ -722,8 +726,7 @@ int host_fw_migrate_read_write_data (const struct spi_flash *dest,
 	last_addr = 0;
 	dest_pos = host_fw_find_next_rw_region (last_addr, dest_writable, 1);
 	while (dest_pos) {
-		status = flash_erase_region_and_verify (&dest->base, dest_pos->start_addr,
-			dest_pos->length);
+		status = flash_erase_region_and_verify (dest, dest_pos->start_addr, dest_pos->length);
 		if (status != 0) {
 			return status;
 		}
@@ -751,7 +754,7 @@ int host_fw_migrate_read_write_data (const struct spi_flash *dest,
 	last_addr = 0;
 	dest_pos = host_fw_find_next_rw_region (last_addr, dest_writable, 1);
 	while (dest_pos) {
-		status = flash_copy_ext_to_blank_and_verify (&dest->base, dest_pos->start_addr, &src->base,
+		status = flash_copy_ext_to_blank_and_verify (dest, dest_pos->start_addr, src,
 			dest_pos->start_addr, dest_pos->length);
 		if (status != 0) {
 			return status;
@@ -792,10 +795,9 @@ int host_fw_migrate_read_write_data (const struct spi_flash *dest,
  * 		- HOST_FW_UTIL_DIFF_REGION_SIZE
  * 		- HOST_FW_UTIL_DIFF_FW_COUNT
  */
-int host_fw_migrate_read_write_data_multiple_fw (const struct spi_flash *dest,
-	const struct pfm_read_write_regions *dest_writable, size_t dest_count,
-	const struct spi_flash *src, const struct pfm_read_write_regions *src_writable,
-	size_t src_count)
+int host_fw_migrate_read_write_data_multiple_fw (const struct flash *dest,
+	const struct pfm_read_write_regions *dest_writable, size_t dest_count, const struct flash *src,
+	const struct pfm_read_write_regions *src_writable, size_t src_count)
 {
 	size_t i;
 	int status;
@@ -838,7 +840,7 @@ int host_fw_migrate_read_write_data_multiple_fw (const struct spi_flash *dest,
  *
  * @return 0 if the bad flash was restored to a good state or an error code.
  */
-int host_fw_restore_flash_device (const struct spi_flash *restore, const struct spi_flash *from,
+int host_fw_restore_flash_device (const struct flash *restore, const struct flash *from,
 	const struct pfm_image_list *img_list, const struct pfm_read_write_regions *writable)
 {
 	uint32_t flash_size;
@@ -854,7 +856,7 @@ int host_fw_restore_flash_device (const struct spi_flash *restore, const struct 
 		return HOST_FW_UTIL_INVALID_ARGUMENT;
 	}
 
-	status = spi_flash_get_device_size (restore, &flash_size);
+	status = restore->get_device_size (restore, &flash_size);
 	if (status != 0) {
 		return status;
 	}
@@ -865,7 +867,7 @@ int host_fw_restore_flash_device (const struct spi_flash *restore, const struct 
 	last_addr = 0;
 	pos = host_fw_find_next_rw_region (last_addr, writable, 1);
 	while (pos) {
-		status = flash_erase_region (&restore->base, last_addr, pos->start_addr - last_addr);
+		status = flash_erase_region (restore, last_addr, pos->start_addr - last_addr);
 		if (status != 0) {
 			return status;
 		}
@@ -874,7 +876,7 @@ int host_fw_restore_flash_device (const struct spi_flash *restore, const struct 
 		pos = host_fw_find_next_rw_region (last_addr, writable, 1);
 	}
 
-	status = flash_erase_region (&restore->base, last_addr, flash_size - last_addr);
+	status = flash_erase_region (restore, last_addr, flash_size - last_addr);
 	if (status != 0) {
 		return status;
 	}
@@ -891,7 +893,7 @@ int host_fw_restore_flash_device (const struct spi_flash *restore, const struct 
 		}
 
 		for (j = 0; j < img_count; j++) {
-			status = flash_copy_ext_to_blank (&restore->base, img_data[j].start_addr, &from->base,
+			status = flash_copy_ext_to_blank (restore, img_data[j].start_addr, from,
 				img_data[j].start_addr, img_data[j].length);
 			if (status != 0) {
 				return status;
@@ -914,7 +916,7 @@ int host_fw_restore_flash_device (const struct spi_flash *restore, const struct 
  *
  * @return 0 if all regions were restored successfully or an error code.
  */
-int host_fw_restore_read_write_data (const struct spi_flash *restore, const struct spi_flash *from,
+int host_fw_restore_read_write_data (const struct flash *restore, const struct flash *from,
 	const struct pfm_read_write_regions *writable)
 {
 	size_t i;
@@ -927,8 +929,8 @@ int host_fw_restore_read_write_data (const struct spi_flash *restore, const stru
 	for (i = 0; i < writable->count; i++) {
 		switch (writable->properties[i].on_failure) {
 			case PFM_RW_ERASE:
-				status = flash_erase_region_and_verify (&restore->base,
-					writable->regions[i].start_addr, writable->regions[i].length);
+				status = flash_erase_region_and_verify (restore, writable->regions[i].start_addr,
+					writable->regions[i].length);
 				if (status != 0) {
 					return status;
 				}
@@ -936,9 +938,8 @@ int host_fw_restore_read_write_data (const struct spi_flash *restore, const stru
 
 			case PFM_RW_RESTORE:
 				if (from != NULL) {
-					status = flash_copy_ext_and_verify (&restore->base,
-						writable->regions[i].start_addr, &from->base,
-						writable->regions[i].start_addr, writable->regions[i].length);
+					status = flash_copy_ext_and_verify (restore, writable->regions[i].start_addr,
+						from, writable->regions[i].start_addr, writable->regions[i].length);
 					if (status != 0) {
 						return status;
 					}
@@ -968,8 +969,8 @@ int host_fw_restore_read_write_data (const struct spi_flash *restore, const stru
  *
  * @return 0 if all regions were restored successfully or an error code.
  */
-int host_fw_restore_read_write_data_multiple_fw (const struct spi_flash *restore,
-	const struct spi_flash *from, const struct pfm_read_write_regions *writable, size_t fw_count)
+int host_fw_restore_read_write_data_multiple_fw (const struct flash *restore,
+	const struct flash *from, const struct pfm_read_write_regions *writable, size_t fw_count)
 {
 	size_t i;
 	int status;

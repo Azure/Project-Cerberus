@@ -51,6 +51,12 @@ static void add_all_firmware_tests (CuSuite *suite)
 	!defined TESTING_SKIP_FIRMWARE_HEADER_SUITE
 	TESTING_RUN_SUITE (firmware_header);
 #endif
+#if (defined TESTING_RUN_FIRMWARE_PFM_VERIFY_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_FIRMWARE_PFM_VERIFY_SUITE
+	TESTING_RUN_SUITE (firmware_pfm_verify);
+#endif
 #if (defined TESTING_RUN_FIRMWARE_UPDATE_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

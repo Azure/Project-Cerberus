@@ -31,8 +31,12 @@ void manifest_pcr_release (const struct manifest_pcr *pcr);
 int manifest_pcr_check_measurements (const struct manifest_pcr *pcr, int invalid_arg,
 	int not_unique);
 
-void manifest_pcr_record_manifest_measurement (const struct manifest_pcr *pcr,
+int manifest_pcr_record_manifest_measurement (const struct manifest_pcr *pcr,
 	const struct manifest *active);
+
+int manifest_pcr_measure_manifest (const struct manifest *active, const struct hash_engine *hash,
+	struct pcr_store *store, uint16_t manifest_measurement, uint16_t manifest_id_measurement,
+	uint16_t manifest_platform_id_measurement);
 
 
 #endif	/* MANIFEST_PCR_H_ */

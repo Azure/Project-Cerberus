@@ -29,7 +29,7 @@ TEST_SUITE_LABEL ("host_flash_manager_single");
  */
 struct host_flash_manager_single_testing {
 	HASH_TESTING_ENGINE (hash);						/**< Hash engine for testing. */
-	RSA_TESTING_ENGINE (rsa);							/**< RSA engine for testing. */
+	RSA_TESTING_ENGINE (rsa);						/**< RSA engine for testing. */
 	struct flash_master_mock flash_mock0;			/**< Mock for CS0 flash. */
 	struct flash_master_mock flash_mock_state;		/**< Mock for host state flash. */
 	struct spi_flash_state state0;					/**< CS0 flash device context. */

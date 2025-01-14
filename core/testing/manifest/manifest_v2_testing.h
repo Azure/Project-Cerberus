@@ -17,7 +17,7 @@ struct manifest_v2_testing_data {
 	size_t length;					/**< Length of the complete data. */
 	const uint8_t *hash;			/**< Hash of the manifest. */
 	size_t hash_len;				/**< Length of the hash. */
-	int id;							/**< Manifest ID. */
+	uint32_t id;					/**< Manifest ID. */
 	const uint8_t *signature;		/**< Manifest signature. */
 	size_t sig_len;					/**< Length of the signature. */
 	uint32_t sig_offset;			/**< Offset of the signature. */

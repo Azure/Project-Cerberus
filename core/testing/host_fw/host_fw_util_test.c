@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
+#include "flash/spi_flash.h"
 #include "host_fw/host_fw_util.h"
 #include "testing/mock/flash/flash_master_mock.h"
 #include "testing/mock/spi_filter/spi_filter_interface_mock.h"
@@ -56,7 +57,7 @@ static void host_fw_determine_version_test (CuTest *test)
 	version_list.versions = &version;
 	version_list.count = 1;
 
-	status = host_fw_determine_version (&flash, &version_list, &version_out);
+	status = host_fw_determine_version (&flash.base, &version_list, &version_out);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, &version, (void*) version_out);
 
@@ -101,7 +102,7 @@ static void host_fw_determine_version_test_no_match (CuTest *test)
 	version_list.versions = &version;
 	version_list.count = 1;
 
-	status = host_fw_determine_version (&flash, &version_list, &version_out);
+	status = host_fw_determine_version (&flash.base, &version_list, &version_out);
 	CuAssertIntEquals (test, HOST_FW_UTIL_UNSUPPORTED_VERSION, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -161,7 +162,7 @@ static void host_fw_determine_version_test_check_multiple (CuTest *test)
 	version_list.versions = version;
 	version_list.count = 4;
 
-	status = host_fw_determine_version (&flash, &version_list, &version_out);
+	status = host_fw_determine_version (&flash.base, &version_list, &version_out);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, &version[1], (void*) version_out);
 
@@ -227,7 +228,7 @@ static void host_fw_determine_version_test_check_multiple_no_match (CuTest *test
 	version_list.versions = version;
 	version_list.count = 4;
 
-	status = host_fw_determine_version (&flash, &version_list, &version_out);
+	status = host_fw_determine_version (&flash.base, &version_list, &version_out);
 	CuAssertIntEquals (test, HOST_FW_UTIL_UNSUPPORTED_VERSION, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -287,7 +288,7 @@ static void host_fw_determine_version_test_different_lengths (CuTest *test)
 	version_list.versions = version;
 	version_list.count = 4;
 
-	status = host_fw_determine_version (&flash, &version_list, &version_out);
+	status = host_fw_determine_version (&flash.base, &version_list, &version_out);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, &version[1], (void*) version_out);
 
@@ -338,7 +339,7 @@ static void host_fw_determine_version_test_same_address (CuTest *test)
 	version_list.versions = version;
 	version_list.count = 4;
 
-	status = host_fw_determine_version (&flash, &version_list, &version_out);
+	status = host_fw_determine_version (&flash.base, &version_list, &version_out);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, &version[1], (void*) version_out);
 
@@ -394,7 +395,7 @@ static void host_fw_determine_version_test_same_address_different_lengths (CuTes
 	version_list.versions = version;
 	version_list.count = 4;
 
-	status = host_fw_determine_version (&flash, &version_list, &version_out);
+	status = host_fw_determine_version (&flash.base, &version_list, &version_out);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, &version[1], (void*) version_out);
 
@@ -445,7 +446,7 @@ static void host_fw_determine_version_test_same_address_different_lengths_shorte
 	version_list.versions = version;
 	version_list.count = 4;
 
-	status = host_fw_determine_version (&flash, &version_list, &version_out);
+	status = host_fw_determine_version (&flash.base, &version_list, &version_out);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, &version[1], (void*) version_out);
 
@@ -486,10 +487,10 @@ static void host_fw_determine_version_test_null (CuTest *test)
 	status = host_fw_determine_version (NULL, &version_list, &version_out);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_determine_version (&flash, NULL, &version_out);
+	status = host_fw_determine_version (&flash.base, NULL, &version_out);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_determine_version (&flash, &version_list, NULL);
+	status = host_fw_determine_version (&flash.base, &version_list, NULL);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -521,7 +522,7 @@ static void host_fw_determine_version_test_empty_list (CuTest *test)
 	version_list.versions = NULL;
 	version_list.count = 0;
 
-	status = host_fw_determine_version (&flash, &version_list, &version_out);
+	status = host_fw_determine_version (&flash.base, &version_list, &version_out);
 	CuAssertIntEquals (test, HOST_FW_UTIL_UNSUPPORTED_VERSION, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -574,7 +575,7 @@ static void host_fw_determine_version_test_read_fail (CuTest *test)
 	version_list.versions = version;
 	version_list.count = 4;
 
-	status = host_fw_determine_version (&flash, &version_list, &version_out);
+	status = host_fw_determine_version (&flash.base, &version_list, &version_out);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -627,7 +628,7 @@ static void host_fw_determine_version_test_read_fail_cache_update (CuTest *test)
 	version_list.versions = version;
 	version_list.count = 4;
 
-	status = host_fw_determine_version (&flash, &version_list, &version_out);
+	status = host_fw_determine_version (&flash.base, &version_list, &version_out);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -671,7 +672,7 @@ static void host_fw_determine_offset_version_test (CuTest *test)
 	version_list.versions = &version;
 	version_list.count = 1;
 
-	status = host_fw_determine_offset_version (&flash, 0x50000, &version_list, &version_out);
+	status = host_fw_determine_offset_version (&flash.base, 0x50000, &version_list, &version_out);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, &version, (void*) version_out);
 
@@ -716,7 +717,7 @@ static void host_fw_determine_offset_version_test_no_match (CuTest *test)
 	version_list.versions = &version;
 	version_list.count = 1;
 
-	status = host_fw_determine_offset_version (&flash, 0x50000, &version_list, &version_out);
+	status = host_fw_determine_offset_version (&flash.base, 0x50000, &version_list, &version_out);
 	CuAssertIntEquals (test, HOST_FW_UTIL_UNSUPPORTED_VERSION, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -776,7 +777,7 @@ static void host_fw_determine_offset_version_test_check_multiple (CuTest *test)
 	version_list.versions = version;
 	version_list.count = 4;
 
-	status = host_fw_determine_offset_version (&flash, 0x50000, &version_list, &version_out);
+	status = host_fw_determine_offset_version (&flash.base, 0x50000, &version_list, &version_out);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, &version[1], (void*) version_out);
 
@@ -842,7 +843,7 @@ static void host_fw_determine_offset_version_test_check_multiple_no_match (CuTes
 	version_list.versions = version;
 	version_list.count = 4;
 
-	status = host_fw_determine_offset_version (&flash, 0x50000, &version_list, &version_out);
+	status = host_fw_determine_offset_version (&flash.base, 0x50000, &version_list, &version_out);
 	CuAssertIntEquals (test, HOST_FW_UTIL_UNSUPPORTED_VERSION, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -902,7 +903,7 @@ static void host_fw_determine_offset_version_test_different_lengths (CuTest *tes
 	version_list.versions = version;
 	version_list.count = 4;
 
-	status = host_fw_determine_offset_version (&flash, 0x50000, &version_list, &version_out);
+	status = host_fw_determine_offset_version (&flash.base, 0x50000, &version_list, &version_out);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, &version[1], (void*) version_out);
 
@@ -953,7 +954,7 @@ static void host_fw_determine_offset_version_test_same_address (CuTest *test)
 	version_list.versions = version;
 	version_list.count = 4;
 
-	status = host_fw_determine_offset_version (&flash, 0x50000, &version_list, &version_out);
+	status = host_fw_determine_offset_version (&flash.base, 0x50000, &version_list, &version_out);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, &version[1], (void*) version_out);
 
@@ -1009,7 +1010,7 @@ static void host_fw_determine_offset_version_test_same_address_different_lengths
 	version_list.versions = version;
 	version_list.count = 4;
 
-	status = host_fw_determine_offset_version (&flash, 0x50000, &version_list, &version_out);
+	status = host_fw_determine_offset_version (&flash.base, 0x50000, &version_list, &version_out);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, &version[1], (void*) version_out);
 
@@ -1061,7 +1062,7 @@ static void host_fw_determine_offset_version_test_same_address_different_lengths
 	version_list.versions = version;
 	version_list.count = 4;
 
-	status = host_fw_determine_offset_version (&flash, 0x50000, &version_list, &version_out);
+	status = host_fw_determine_offset_version (&flash.base, 0x50000, &version_list, &version_out);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, &version[1], (void*) version_out);
 
@@ -1102,10 +1103,10 @@ static void host_fw_determine_offset_version_test_null (CuTest *test)
 	status = host_fw_determine_offset_version (NULL, 0x50000, &version_list, &version_out);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_determine_offset_version (&flash, 0x50000, NULL, &version_out);
+	status = host_fw_determine_offset_version (&flash.base, 0x50000, NULL, &version_out);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_determine_offset_version (&flash, 0x50000, &version_list, NULL);
+	status = host_fw_determine_offset_version (&flash.base, 0x50000, &version_list, NULL);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -1137,7 +1138,7 @@ static void host_fw_determine_offset_version_test_empty_list (CuTest *test)
 	version_list.versions = NULL;
 	version_list.count = 0;
 
-	status = host_fw_determine_offset_version (&flash, 0x50000, &version_list, &version_out);
+	status = host_fw_determine_offset_version (&flash.base, 0x50000, &version_list, &version_out);
 	CuAssertIntEquals (test, HOST_FW_UTIL_UNSUPPORTED_VERSION, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -1190,7 +1191,7 @@ static void host_fw_determine_offset_version_test_read_fail (CuTest *test)
 	version_list.versions = version;
 	version_list.count = 4;
 
-	status = host_fw_determine_offset_version (&flash, 0x50000, &version_list, &version_out);
+	status = host_fw_determine_offset_version (&flash.base, 0x50000, &version_list, &version_out);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -1243,7 +1244,7 @@ static void host_fw_determine_offset_version_test_read_fail_cache_update (CuTest
 	version_list.versions = version;
 	version_list.count = 4;
 
-	status = host_fw_determine_offset_version (&flash, 0x50000, &version_list, &version_out);
+	status = host_fw_determine_offset_version (&flash.base, 0x50000, &version_list, &version_out);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -1303,7 +1304,7 @@ static void host_fw_verify_images_test (CuTest *test)
 	list.images_hash = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_images (&flash, &list, &hash.base, &rsa.base);
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -1365,7 +1366,7 @@ static void host_fw_verify_images_test_invalid (CuTest *test)
 	list.images_hash = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_images (&flash, &list, &hash.base, &rsa.base);
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -1448,7 +1449,7 @@ static void host_fw_verify_images_test_not_contiguous (CuTest *test)
 	list.images_hash = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_images (&flash, &list, &hash.base, &rsa.base);
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -1540,7 +1541,7 @@ static void host_fw_verify_images_test_multiple (CuTest *test)
 	list.images_hash = NULL;
 	list.count = 3;
 
-	status = host_fw_verify_images (&flash, &list, &hash.base, &rsa.base);
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -1627,7 +1628,7 @@ static void host_fw_verify_images_test_multiple_one_invalid (CuTest *test)
 	list.images_hash = NULL;
 	list.count = 3;
 
-	status = host_fw_verify_images (&flash, &list, &hash.base, &rsa.base);
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -1714,7 +1715,7 @@ static void host_fw_verify_images_test_partial_validation (CuTest *test)
 	list.images_hash = NULL;
 	list.count = 3;
 
-	status = host_fw_verify_images (&flash, &list, &hash.base, &rsa.base);
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -1756,7 +1757,7 @@ static void host_fw_verify_images_test_no_images (CuTest *test)
 	list.images_hash = NULL;
 	list.count = 0;
 
-	status = host_fw_verify_images (&flash, &list, &hash.base, &rsa.base);
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -1818,7 +1819,7 @@ static void host_fw_verify_images_test_hashes_sha256 (CuTest *test)
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_images (&flash, &list, &hash.base, &rsa.base);
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -1880,7 +1881,7 @@ static void host_fw_verify_images_test_hashes_sha384 (CuTest *test)
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_images (&flash, &list, &hash.base, &rsa.base);
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -1942,7 +1943,7 @@ static void host_fw_verify_images_test_hashes_sha512 (CuTest *test)
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_images (&flash, &list, &hash.base, &rsa.base);
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -1951,6 +1952,63 @@ static void host_fw_verify_images_test_hashes_sha512 (CuTest *test)
 	spi_flash_release (&flash);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_images_test_hashes_no_rsa (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_region region;
+	struct pfm_image_hash img_hash;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data, strlen (data),
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, strlen (data)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	img_hash.regions = &region;
+	img_hash.count = 1;
+	memcpy (img_hash.hash, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	img_hash.hash_length = SHA256_HASH_LENGTH;
+	img_hash.hash_type = HASH_TYPE_SHA256;
+	img_hash.always_validate = 1;
+
+	list.images_hash = &img_hash;
+	list.images_sig = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
 static void host_fw_verify_images_test_hashes_sha256_invalid (CuTest *test)
@@ -2004,7 +2062,7 @@ static void host_fw_verify_images_test_hashes_sha256_invalid (CuTest *test)
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_images (&flash, &list, &hash.base, &rsa.base);
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_BAD_IMAGE_HASH, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -2066,7 +2124,7 @@ static void host_fw_verify_images_test_hashes_sha384_invalid (CuTest *test)
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_images (&flash, &list, &hash.base, &rsa.base);
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_BAD_IMAGE_HASH, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -2128,7 +2186,7 @@ static void host_fw_verify_images_test_hashes_sha512_invalid (CuTest *test)
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_images (&flash, &list, &hash.base, &rsa.base);
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_BAD_IMAGE_HASH, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -2211,7 +2269,7 @@ static void host_fw_verify_images_test_hashes_not_contiguous (CuTest *test)
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_images (&flash, &list, &hash.base, &rsa.base);
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -2303,7 +2361,7 @@ static void host_fw_verify_images_test_hashes_multiple (CuTest *test)
 	list.images_sig = NULL;
 	list.count = 3;
 
-	status = host_fw_verify_images (&flash, &list, &hash.base, &rsa.base);
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -2390,7 +2448,7 @@ static void host_fw_verify_images_test_hashes_multiple_one_invalid (CuTest *test
 	list.images_sig = NULL;
 	list.count = 3;
 
-	status = host_fw_verify_images (&flash, &list, &hash.base, &rsa.base);
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_BAD_IMAGE_HASH, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -2477,7 +2535,7 @@ static void host_fw_verify_images_test_hashes_partial_validation (CuTest *test)
 	list.images_sig = NULL;
 	list.count = 3;
 
-	status = host_fw_verify_images (&flash, &list, &hash.base, &rsa.base);
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -2532,7 +2590,7 @@ static void host_fw_verify_images_test_hashes_hash_error (CuTest *test)
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_images (&flash, &list, &hash.base, &rsa.base);
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -2590,13 +2648,10 @@ static void host_fw_verify_images_test_null (CuTest *test)
 	status = host_fw_verify_images (NULL, &list, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_verify_images (&flash, NULL, &hash.base, &rsa.base);
+	status = host_fw_verify_images (&flash.base, NULL, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_verify_images (&flash, &list, NULL, &rsa.base);
-	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
-
-	status = host_fw_verify_images (&flash, &list, &hash.base, NULL);
+	status = host_fw_verify_images (&flash.base, &list, NULL, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -2605,6 +2660,56 @@ static void host_fw_verify_images_test_null (CuTest *test)
 	spi_flash_release (&flash);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_images_test_with_signature_no_rsa (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_region region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	sig.regions = &region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	list.images_sig = &sig;
+	list.images_hash = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_images (&flash.base, &list, &hash.base, NULL);
+	CuAssertIntEquals (test, FLASH_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
 static void host_fw_verify_offset_images_test (CuTest *test)
@@ -2658,7 +2763,7 @@ static void host_fw_verify_offset_images_test (CuTest *test)
 	list.images_hash = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0x400000, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -2720,7 +2825,7 @@ static void host_fw_verify_offset_images_test_no_offset (CuTest *test)
 	list.images_hash = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -2782,7 +2887,7 @@ static void host_fw_verify_offset_images_test_invalid (CuTest *test)
 	list.images_hash = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0x300000, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x300000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -2865,7 +2970,7 @@ static void host_fw_verify_offset_images_test_not_contiguous (CuTest *test)
 	list.images_hash = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0x400000, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -2957,7 +3062,7 @@ static void host_fw_verify_offset_images_test_multiple (CuTest *test)
 	list.images_hash = NULL;
 	list.count = 3;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0x400000, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -3044,7 +3149,7 @@ static void host_fw_verify_offset_images_test_multiple_one_invalid (CuTest *test
 	list.images_hash = NULL;
 	list.count = 3;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0x400000, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -3131,7 +3236,7 @@ static void host_fw_verify_offset_images_test_partial_validation (CuTest *test)
 	list.images_hash = NULL;
 	list.count = 3;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0x400000, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -3173,7 +3278,7 @@ static void host_fw_verify_offset_images_test_no_images (CuTest *test)
 	list.images_hash = NULL;
 	list.count = 0;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0x400000, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -3235,7 +3340,7 @@ static void host_fw_verify_offset_images_test_hashes_sha256 (CuTest *test)
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0x400000, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -3297,7 +3402,7 @@ static void host_fw_verify_offset_images_test_hashes_sha384 (CuTest *test)
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0x400000, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -3359,7 +3464,7 @@ static void host_fw_verify_offset_images_test_hashes_sha512 (CuTest *test)
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0x400000, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -3421,7 +3526,7 @@ static void host_fw_verify_offset_images_test_hashes_no_offset (CuTest *test)
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -3430,6 +3535,63 @@ static void host_fw_verify_offset_images_test_hashes_no_offset (CuTest *test)
 	spi_flash_release (&flash);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_offset_images_test_hashes_no_rsa (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_region region;
+	struct pfm_image_hash img_hash;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data, strlen (data),
+		FLASH_EXP_READ_CMD (0x03, 0x410000, 0, -1, strlen (data)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	img_hash.regions = &region;
+	img_hash.count = 1;
+	memcpy (img_hash.hash, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	img_hash.hash_length = SHA256_HASH_LENGTH;
+	img_hash.hash_type = HASH_TYPE_SHA256;
+	img_hash.always_validate = 1;
+
+	list.images_hash = &img_hash;
+	list.images_sig = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, &hash.base, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
 static void host_fw_verify_offset_images_test_hashes_sha256_invalid (CuTest *test)
@@ -3483,7 +3645,7 @@ static void host_fw_verify_offset_images_test_hashes_sha256_invalid (CuTest *tes
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0x400000, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_BAD_IMAGE_HASH, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -3545,7 +3707,7 @@ static void host_fw_verify_offset_images_test_hashes_sha384_invalid (CuTest *tes
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0x400000, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_BAD_IMAGE_HASH, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -3607,7 +3769,7 @@ static void host_fw_verify_offset_images_test_hashes_sha512_invalid (CuTest *tes
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0x400000, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_BAD_IMAGE_HASH, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -3690,7 +3852,7 @@ static void host_fw_verify_offset_images_test_hashes_not_contiguous (CuTest *tes
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0x400000, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -3782,7 +3944,7 @@ static void host_fw_verify_offset_images_test_hashes_multiple (CuTest *test)
 	list.images_sig = NULL;
 	list.count = 3;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0x400000, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -3869,7 +4031,7 @@ static void host_fw_verify_offset_images_test_hashes_multiple_one_invalid (CuTes
 	list.images_sig = NULL;
 	list.count = 3;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0x400000, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_BAD_IMAGE_HASH, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -3956,7 +4118,7 @@ static void host_fw_verify_offset_images_test_hashes_partial_validation (CuTest 
 	list.images_sig = NULL;
 	list.count = 3;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0x400000, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -4011,7 +4173,7 @@ static void host_fw_verify_offset_images_test_hashes_hash_error (CuTest *test)
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_offset_images (&flash, &list, 0x400000, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -4070,13 +4232,10 @@ static void host_fw_verify_offset_images_test_null (CuTest *test)
 	status = host_fw_verify_offset_images (NULL, &list, 0x400000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_verify_offset_images (&flash, NULL, 0x400000, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images (&flash.base, NULL, 0x400000, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_verify_offset_images (&flash, &list, 0x400000, NULL, &rsa.base);
-	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
-
-	status = host_fw_verify_offset_images (&flash, &list, 0x400000, &hash.base, NULL);
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, NULL, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -4085,6 +4244,56 @@ static void host_fw_verify_offset_images_test_null (CuTest *test)
 	spi_flash_release (&flash);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_offset_images_test_with_signature_no_rsa (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_region region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	sig.regions = &region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	list.images_sig = &sig;
+	list.images_hash = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_offset_images (&flash.base, &list, 0x400000, &hash.base, NULL);
+	CuAssertIntEquals (test, FLASH_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
 static void host_fw_full_flash_verification_test (CuTest *test)
@@ -4154,7 +4363,7 @@ static void host_fw_full_flash_verification_test (CuTest *test)
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -4233,7 +4442,7 @@ static void host_fw_full_flash_verification_test_not_blank_byte (CuTest *test)
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0x55, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0x55, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -4316,7 +4525,7 @@ static void host_fw_full_flash_verification_test_multiple_rw_regions (CuTest *te
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -4399,7 +4608,7 @@ static void host_fw_full_flash_verification_test_image_between_rw_regions (CuTes
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -4498,7 +4707,7 @@ static void host_fw_full_flash_verification_test_multiple_images (CuTest *test)
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -4598,7 +4807,7 @@ static void host_fw_full_flash_verification_test_offset_image (CuTest *test)
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -4698,7 +4907,7 @@ static void host_fw_full_flash_verification_test_first_region_rw (CuTest *test)
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -4797,7 +5006,7 @@ static void host_fw_full_flash_verification_test_last_region_rw (CuTest *test)
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -4911,7 +5120,7 @@ static void host_fw_full_flash_verification_test_multipart_image (CuTest *test)
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5010,7 +5219,7 @@ static void host_fw_full_flash_verification_test_partial_validation (CuTest *tes
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5098,7 +5307,7 @@ static void host_fw_full_flash_verification_test_invalid_image (CuTest *test)
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
@@ -5178,7 +5387,7 @@ static void host_fw_full_flash_verification_test_not_blank (CuTest *test)
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, FLASH_UTIL_UNEXPECTED_VALUE, status);
 
@@ -5260,7 +5469,7 @@ static void host_fw_full_flash_verification_test_last_not_blank (CuTest *test)
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, FLASH_UTIL_UNEXPECTED_VALUE, status);
 
@@ -5339,7 +5548,7 @@ static void host_fw_full_flash_verification_test_hashes_sha256 (CuTest *test)
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5418,7 +5627,7 @@ static void host_fw_full_flash_verification_test_hashes_sha384 (CuTest *test)
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5497,7 +5706,7 @@ static void host_fw_full_flash_verification_test_hashes_sha512 (CuTest *test)
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5507,6 +5716,80 @@ static void host_fw_full_flash_verification_test_hashes_sha512 (CuTest *test)
 	spi_flash_release (&flash);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_full_flash_verification_test_hashes_no_rsa (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_region img_region;
+	struct pfm_image_hash img_hash;
+	struct pfm_image_list img_list;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data, strlen (data),
+		FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (data)));
+
+	status |= flash_master_mock_expect_blank_check (&flash_mock, 0 + strlen (data),
+		0x200 - strlen (data));
+	status |= flash_master_mock_expect_blank_check (&flash_mock, 0x300, 0x1000 - 0x300);
+
+	CuAssertIntEquals (test, 0, status);
+
+	img_region.start_addr = 0;
+	img_region.length = strlen (data);
+
+	img_hash.regions = &img_region;
+	img_hash.count = 1;
+	memcpy (img_hash.hash, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	img_hash.hash_length = SHA256_HASH_LENGTH;
+	img_hash.hash_type = HASH_TYPE_SHA256;
+	img_hash.always_validate = 1;
+
+	img_list.images_hash = &img_hash;
+	img_list.images_sig = NULL;
+	img_list.count = 1;
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = spi_flash_set_device_size (&flash, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
+		NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
 static void host_fw_full_flash_verification_test_hashes_multipart_image (CuTest *test)
@@ -5611,7 +5894,7 @@ static void host_fw_full_flash_verification_test_hashes_multipart_image (CuTest 
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5710,7 +5993,7 @@ static void host_fw_full_flash_verification_test_hashes_partial_validation (CuTe
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5798,7 +6081,7 @@ static void host_fw_full_flash_verification_test_hashes_invalid_image (CuTest *t
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_BAD_IMAGE_HASH, status);
 
@@ -5870,20 +6153,16 @@ static void host_fw_full_flash_verification_test_null (CuTest *test)
 		&rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_full_flash_verification (&flash, NULL, &rw_list, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, NULL, &rw_list, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, NULL, 0xff, &hash.base,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, NULL, 0xff, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, NULL,
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, NULL,
 		&rsa.base);
-	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
-
-	status = host_fw_full_flash_verification (&flash, &img_list, &rw_list, 0xff, &hash.base,
-		NULL);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -5892,6 +6171,69 @@ static void host_fw_full_flash_verification_test_null (CuTest *test)
 	spi_flash_release (&flash);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_full_flash_verification_test_with_signature_no_rsa (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_region img_region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list img_list;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	img_region.start_addr = 0;
+	img_region.length = strlen (data);
+
+	sig.regions = &img_region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	img_list.images_sig = &sig;
+	img_list.images_hash = NULL;
+	img_list.count = 1;
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = spi_flash_set_device_size (&flash, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_full_flash_verification (&flash.base, &img_list, &rw_list, 0xff, &hash.base,
+		NULL);
+	CuAssertIntEquals (test, FLASH_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
 static void host_fw_migrate_read_write_data_test (CuTest *test)
@@ -5942,7 +6284,7 @@ static void host_fw_migrate_read_write_data_test (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_migrate_read_write_data (&flash2, &rw_list, &flash1, &rw_list);
+	status = host_fw_migrate_read_write_data (&flash2.base, &rw_list, &flash1.base, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -6016,7 +6358,7 @@ static void host_fw_migrate_read_write_data_test_multiple_regions (CuTest *test)
 	rw_list.properties = rw_prop;
 	rw_list.count = 3;
 
-	status = host_fw_migrate_read_write_data (&flash2, &rw_list, &flash1, &rw_list);
+	status = host_fw_migrate_read_write_data (&flash2.base, &rw_list, &flash1.base, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -6087,7 +6429,7 @@ static void host_fw_migrate_read_write_data_test_different_addresses (CuTest *te
 	rw_list2.properties = &rw_prop2;
 	rw_list2.count = 1;
 
-	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
+	status = host_fw_migrate_read_write_data (&flash2.base, &rw_list2, &flash1.base, &rw_list1);
 	CuAssertIntEquals (test, HOST_FW_UTIL_DIFF_REGION_ADDR, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -6172,7 +6514,7 @@ static void host_fw_migrate_read_write_data_test_multiple_diff_addresses (CuTest
 	rw_list2.properties = rw_prop2;
 	rw_list2.count = 3;
 
-	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
+	status = host_fw_migrate_read_write_data (&flash2.base, &rw_list2, &flash1.base, &rw_list1);
 	CuAssertIntEquals (test, HOST_FW_UTIL_DIFF_REGION_ADDR, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -6244,7 +6586,7 @@ static void host_fw_migrate_read_write_data_test_dest_larger (CuTest *test)
 	rw_list2.properties = &rw_prop2;
 	rw_list2.count = 1;
 
-	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
+	status = host_fw_migrate_read_write_data (&flash2.base, &rw_list2, &flash1.base, &rw_list1);
 	CuAssertIntEquals (test, HOST_FW_UTIL_DIFF_REGION_SIZE, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -6316,7 +6658,7 @@ static void host_fw_migrate_read_write_data_test_dest_smaller (CuTest *test)
 	rw_list2.properties = &rw_prop2;
 	rw_list2.count = 1;
 
-	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
+	status = host_fw_migrate_read_write_data (&flash2.base, &rw_list2, &flash1.base, &rw_list1);
 	CuAssertIntEquals (test, HOST_FW_UTIL_DIFF_REGION_SIZE, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -6401,7 +6743,7 @@ static void host_fw_migrate_read_write_data_test_multiple_one_smaller (CuTest *t
 	rw_list2.properties = rw_prop2;
 	rw_list2.count = 3;
 
-	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
+	status = host_fw_migrate_read_write_data (&flash2.base, &rw_list2, &flash1.base, &rw_list1);
 	CuAssertIntEquals (test, HOST_FW_UTIL_DIFF_REGION_SIZE, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -6483,7 +6825,7 @@ static void host_fw_migrate_read_write_data_test_dest_more_regions (CuTest *test
 	rw_list2.properties = rw_prop2;
 	rw_list2.count = 3;
 
-	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
+	status = host_fw_migrate_read_write_data (&flash2.base, &rw_list2, &flash1.base, &rw_list1);
 	CuAssertIntEquals (test, HOST_FW_UTIL_DIFF_REGION_COUNT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -6564,7 +6906,7 @@ static void host_fw_migrate_read_write_data_test_src_more_regions (CuTest *test)
 	rw_list2.properties = rw_prop2;
 	rw_list2.count = 2;
 
-	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
+	status = host_fw_migrate_read_write_data (&flash2.base, &rw_list2, &flash1.base, &rw_list1);
 	CuAssertIntEquals (test, HOST_FW_UTIL_DIFF_REGION_COUNT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -6649,7 +6991,7 @@ static void host_fw_migrate_read_write_data_test_diff_address_and_size (CuTest *
 	rw_list2.properties = rw_prop2;
 	rw_list2.count = 3;
 
-	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
+	status = host_fw_migrate_read_write_data (&flash2.base, &rw_list2, &flash1.base, &rw_list1);
 	CuAssertIntEquals (test, HOST_FW_UTIL_DIFF_REGION_ADDR, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -6734,7 +7076,7 @@ static void host_fw_migrate_read_write_data_test_diff_size_and_address (CuTest *
 	rw_list2.properties = rw_prop2;
 	rw_list2.count = 3;
 
-	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
+	status = host_fw_migrate_read_write_data (&flash2.base, &rw_list2, &flash1.base, &rw_list1);
 	CuAssertIntEquals (test, HOST_FW_UTIL_DIFF_REGION_SIZE, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -6815,7 +7157,7 @@ static void host_fw_migrate_read_write_data_test_all_different (CuTest *test)
 	rw_list2.properties = rw_prop2;
 	rw_list2.count = 2;
 
-	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
+	status = host_fw_migrate_read_write_data (&flash2.base, &rw_list2, &flash1.base, &rw_list1);
 	CuAssertIntEquals (test, HOST_FW_UTIL_DIFF_REGION_COUNT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -6907,7 +7249,7 @@ static void host_fw_migrate_read_write_data_test_multiple_diff_ordering (CuTest 
 	rw_list2.properties = rw_prop2;
 	rw_list2.count = 3;
 
-	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
+	status = host_fw_migrate_read_write_data (&flash2.base, &rw_list2, &flash1.base, &rw_list1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -6968,7 +7310,7 @@ static void host_fw_migrate_read_write_data_test_no_source_regions (CuTest *test
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_migrate_read_write_data (&flash2, &rw_list, &flash1, NULL);
+	status = host_fw_migrate_read_write_data (&flash2.base, &rw_list, &flash1.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -7023,13 +7365,13 @@ static void host_fw_migrate_read_write_data_test_null (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_migrate_read_write_data (NULL, &rw_list, &flash1, &rw_list);
+	status = host_fw_migrate_read_write_data (NULL, &rw_list, &flash1.base, &rw_list);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_migrate_read_write_data (&flash2, NULL, &flash1, &rw_list);
+	status = host_fw_migrate_read_write_data (&flash2.base, NULL, &flash1.base, &rw_list);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_migrate_read_write_data (&flash2, &rw_list, NULL, &rw_list);
+	status = host_fw_migrate_read_write_data (&flash2.base, &rw_list, NULL, &rw_list);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -7095,7 +7437,7 @@ static void host_fw_migrate_read_write_data_test_erase_error (CuTest *test)
 	rw_list.properties = rw_prop;
 	rw_list.count = 3;
 
-	status = host_fw_migrate_read_write_data (&flash2, &rw_list, &flash1, &rw_list);
+	status = host_fw_migrate_read_write_data (&flash2.base, &rw_list, &flash1.base, &rw_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -7165,7 +7507,7 @@ static void host_fw_migrate_read_write_data_test_copy_error (CuTest *test)
 	rw_list.properties = rw_prop;
 	rw_list.count = 3;
 
-	status = host_fw_migrate_read_write_data (&flash2, &rw_list, &flash1, &rw_list);
+	status = host_fw_migrate_read_write_data (&flash2.base, &rw_list, &flash1.base, &rw_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -7658,7 +8000,7 @@ static void host_fw_restore_flash_device_test (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
+	status = host_fw_restore_flash_device (&flash2.base, &flash1.base, &img_list, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -7743,7 +8085,7 @@ static void host_fw_restore_flash_device_test_multipart_image (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
+	status = host_fw_restore_flash_device (&flash2.base, &flash1.base, &img_list, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -7837,7 +8179,7 @@ static void host_fw_restore_flash_device_test_multiple_images (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
+	status = host_fw_restore_flash_device (&flash2.base, &flash1.base, &img_list, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -7926,7 +8268,7 @@ static void host_fw_restore_flash_device_test_multiple_rw_regions (CuTest *test)
 	rw_list.properties = rw_prop;
 	rw_list.count = 3;
 
-	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
+	status = host_fw_restore_flash_device (&flash2.base, &flash1.base, &img_list, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -8015,7 +8357,7 @@ static void host_fw_restore_flash_device_test_rw_regions_not_ordered (CuTest *te
 	rw_list.properties = rw_prop;
 	rw_list.count = 3;
 
-	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
+	status = host_fw_restore_flash_device (&flash2.base, &flash1.base, &img_list, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -8104,7 +8446,7 @@ static void host_fw_restore_flash_device_test_start_and_end_rw (CuTest *test)
 	rw_list.properties = rw_prop;
 	rw_list.count = 3;
 
-	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
+	status = host_fw_restore_flash_device (&flash2.base, &flash1.base, &img_list, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -8185,7 +8527,7 @@ static void host_fw_restore_flash_device_test_hashes (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
+	status = host_fw_restore_flash_device (&flash2.base, &flash1.base, &img_list, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -8270,7 +8612,7 @@ static void host_fw_restore_flash_device_test_hashes_multipart_image (CuTest *te
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
+	status = host_fw_restore_flash_device (&flash2.base, &flash1.base, &img_list, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -8364,7 +8706,7 @@ static void host_fw_restore_flash_device_test_hashes_multiple_images (CuTest *te
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
+	status = host_fw_restore_flash_device (&flash2.base, &flash1.base, &img_list, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -8437,16 +8779,16 @@ static void host_fw_restore_flash_device_test_null (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_flash_device (NULL, &flash1, &img_list, &rw_list);
+	status = host_fw_restore_flash_device (NULL, &flash1.base, &img_list, &rw_list);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_restore_flash_device (&flash2, NULL, &img_list, &rw_list);
+	status = host_fw_restore_flash_device (&flash2.base, NULL, &img_list, &rw_list);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_restore_flash_device (&flash2, &flash1, NULL, &rw_list);
+	status = host_fw_restore_flash_device (&flash2.base, &flash1.base, NULL, &rw_list);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, NULL);
+	status = host_fw_restore_flash_device (&flash2.base, &flash1.base, &img_list, NULL);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -8524,7 +8866,7 @@ static void host_fw_restore_flash_device_test_erase_error (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
+	status = host_fw_restore_flash_device (&flash2.base, &flash1.base, &img_list, &rw_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -8603,7 +8945,7 @@ static void host_fw_restore_flash_device_test_last_erase_error (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
+	status = host_fw_restore_flash_device (&flash2.base, &flash1.base, &img_list, &rw_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -8684,7 +9026,7 @@ static void host_fw_restore_flash_device_test_copy_error (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
+	status = host_fw_restore_flash_device (&flash2.base, &flash1.base, &img_list, &rw_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -8765,7 +9107,7 @@ static void host_fw_restore_flash_device_test_hashes_copy_error (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
+	status = host_fw_restore_flash_device (&flash2.base, &flash1.base, &img_list, &rw_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -11645,7 +11987,7 @@ static void host_fw_restore_read_write_data_test_do_nothing (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_read_write_data (&flash2, &flash1, &rw_list);
+	status = host_fw_restore_read_write_data (&flash2.base, &flash1.base, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -11703,7 +12045,7 @@ static void host_fw_restore_read_write_data_test_erase_flash (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_read_write_data (&flash2, &flash1, &rw_list);
+	status = host_fw_restore_read_write_data (&flash2.base, &flash1.base, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -11770,7 +12112,7 @@ static void host_fw_restore_read_write_data_test_restore_flash (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_read_write_data (&flash2, &flash1, &rw_list);
+	status = host_fw_restore_read_write_data (&flash2.base, &flash1.base, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -11825,7 +12167,7 @@ static void host_fw_restore_read_write_data_test_restore_flash_no_source_device 
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_read_write_data (&flash2, NULL, &rw_list);
+	status = host_fw_restore_read_write_data (&flash2.base, NULL, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -11880,7 +12222,7 @@ static void host_fw_restore_read_write_data_test_reserved (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_read_write_data (&flash2, &flash1, &rw_list);
+	status = host_fw_restore_read_write_data (&flash2.base, &flash1.base, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -11961,7 +12303,7 @@ static void host_fw_restore_read_write_data_test_multiple_regions (CuTest *test)
 	rw_list.properties = rw_prop;
 	rw_list.count = 4;
 
-	status = host_fw_restore_read_write_data (&flash2, &flash1, &rw_list);
+	status = host_fw_restore_read_write_data (&flash2.base, &flash1.base, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -12016,10 +12358,10 @@ static void host_fw_restore_read_write_data_test_null (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_read_write_data (NULL, &flash1, &rw_list);
+	status = host_fw_restore_read_write_data (NULL, &flash1.base, &rw_list);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_restore_read_write_data (&flash2, &flash1, NULL);
+	status = host_fw_restore_read_write_data (&flash2.base, &flash1.base, NULL);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -12078,7 +12420,7 @@ static void host_fw_restore_read_write_data_test_erase_flash_error (CuTest *test
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_read_write_data (&flash2, &flash1, &rw_list);
+	status = host_fw_restore_read_write_data (&flash2.base, &flash1.base, &rw_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -12137,7 +12479,7 @@ static void host_fw_restore_read_write_data_test_restore_flash_error (CuTest *te
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_read_write_data (&flash2, &flash1, &rw_list);
+	status = host_fw_restore_read_write_data (&flash2.base, &flash1.base, &rw_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -12205,7 +12547,7 @@ static void host_fw_restore_read_write_data_test_multiple_regions_error (CuTest 
 	rw_list.properties = rw_prop;
 	rw_list.count = 4;
 
-	status = host_fw_restore_read_write_data (&flash2, &flash1, &rw_list);
+	status = host_fw_restore_read_write_data (&flash2.base, &flash1.base, &rw_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -12269,7 +12611,7 @@ static void host_fw_verify_images_multiple_fw_test (CuTest *test)
 	list.images_hash = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_images_multiple_fw (&flash, &list, 1, &hash.base, &rsa.base);
+	status = host_fw_verify_images_multiple_fw (&flash.base, &list, 1, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -12331,7 +12673,7 @@ static void host_fw_verify_images_multiple_fw_test_invalid (CuTest *test)
 	list.images_hash = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_images_multiple_fw (&flash, &list, 1, &hash.base, &rsa.base);
+	status = host_fw_verify_images_multiple_fw (&flash.base, &list, 1, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -12431,7 +12773,7 @@ static void host_fw_verify_images_multiple_fw_test_multiple (CuTest *test)
 	list[2].images_hash = NULL;
 	list[2].count = 1;
 
-	status = host_fw_verify_images_multiple_fw (&flash, list, 3, &hash.base, &rsa.base);
+	status = host_fw_verify_images_multiple_fw (&flash.base, list, 3, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -12493,7 +12835,7 @@ static void host_fw_verify_images_multiple_fw_test_hashes (CuTest *test)
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_images_multiple_fw (&flash, &list, 1, &hash.base, &rsa.base);
+	status = host_fw_verify_images_multiple_fw (&flash.base, &list, 1, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -12502,6 +12844,63 @@ static void host_fw_verify_images_multiple_fw_test_hashes (CuTest *test)
 	spi_flash_release (&flash);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_images_multiple_fw_test_hashes_no_rsa (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_region region;
+	struct pfm_image_hash img_hash;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data, strlen (data),
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, strlen (data)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	img_hash.regions = &region;
+	img_hash.count = 1;
+	memcpy (img_hash.hash, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	img_hash.hash_length = SHA256_HASH_LENGTH;
+	img_hash.hash_type = HASH_TYPE_SHA256;
+	img_hash.always_validate = 1;
+
+	list.images_hash = &img_hash;
+	list.images_sig = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_images_multiple_fw (&flash.base, &list, 1, &hash.base, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
 static void host_fw_verify_images_multiple_fw_test_hashes_invalid (CuTest *test)
@@ -12555,7 +12954,7 @@ static void host_fw_verify_images_multiple_fw_test_hashes_invalid (CuTest *test)
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_images_multiple_fw (&flash, &list, 1, &hash.base, &rsa.base);
+	status = host_fw_verify_images_multiple_fw (&flash.base, &list, 1, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_BAD_IMAGE_HASH, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -12655,7 +13054,7 @@ static void host_fw_verify_images_multiple_fw_test_hashes_multiple (CuTest *test
 	list[2].images_sig = NULL;
 	list[2].count = 1;
 
-	status = host_fw_verify_images_multiple_fw (&flash, list, 3, &hash.base, &rsa.base);
+	status = host_fw_verify_images_multiple_fw (&flash.base, list, 3, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -12713,13 +13112,10 @@ static void host_fw_verify_images_multiple_fw_test_null (CuTest *test)
 	status = host_fw_verify_images_multiple_fw (NULL, &list, 1, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_verify_images_multiple_fw (&flash, NULL, 1, &hash.base, &rsa.base);
+	status = host_fw_verify_images_multiple_fw (&flash.base, NULL, 1, &hash.base, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_verify_images_multiple_fw (&flash, &list, 1, NULL, &rsa.base);
-	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
-
-	status = host_fw_verify_images_multiple_fw (&flash, &list, 1, &hash.base, NULL);
+	status = host_fw_verify_images_multiple_fw (&flash.base, &list, 1, NULL, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -12728,6 +13124,56 @@ static void host_fw_verify_images_multiple_fw_test_null (CuTest *test)
 	spi_flash_release (&flash);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_images_multiple_fw_test_with_signature_no_rsa (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_region region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	sig.regions = &region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	list.images_sig = &sig;
+	list.images_hash = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_images_multiple_fw (&flash.base, &list, 1, &hash.base, NULL);
+	CuAssertIntEquals (test, FLASH_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
 static void host_fw_verify_offset_images_multiple_fw_test (CuTest *test)
@@ -12781,7 +13227,7 @@ static void host_fw_verify_offset_images_multiple_fw_test (CuTest *test)
 	list.images_hash = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_offset_images_multiple_fw (&flash, &list, 1, 0x400000, &hash.base,
+	status = host_fw_verify_offset_images_multiple_fw (&flash.base, &list, 1, 0x400000, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -12844,7 +13290,8 @@ static void host_fw_verify_offset_images_multiple_fw_test_no_offset (CuTest *tes
 	list.images_hash = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_offset_images_multiple_fw (&flash, &list, 1, 0, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images_multiple_fw (&flash.base, &list, 1, 0, &hash.base,
+		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -12906,7 +13353,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_invalid (CuTest *test)
 	list.images_hash = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_offset_images_multiple_fw (&flash, &list, 1, 0x400000, &hash.base,
+	status = host_fw_verify_offset_images_multiple_fw (&flash.base, &list, 1, 0x400000, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
@@ -13007,7 +13454,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_multiple (CuTest *test
 	list[2].images_hash = NULL;
 	list[2].count = 1;
 
-	status = host_fw_verify_offset_images_multiple_fw (&flash, list, 3, 0x400000, &hash.base,
+	status = host_fw_verify_offset_images_multiple_fw (&flash.base, list, 3, 0x400000, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -13070,7 +13517,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_hashes (CuTest *test)
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_offset_images_multiple_fw (&flash, &list, 1, 0x400000, &hash.base,
+	status = host_fw_verify_offset_images_multiple_fw (&flash.base, &list, 1, 0x400000, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -13133,7 +13580,8 @@ static void host_fw_verify_offset_images_multiple_fw_test_hashes_no_offset (CuTe
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_offset_images_multiple_fw (&flash, &list, 1, 0, &hash.base, &rsa.base);
+	status = host_fw_verify_offset_images_multiple_fw (&flash.base, &list, 1, 0, &hash.base,
+		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -13142,6 +13590,64 @@ static void host_fw_verify_offset_images_multiple_fw_test_hashes_no_offset (CuTe
 	spi_flash_release (&flash);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_offset_images_multiple_fw_test_hashes_no_rsa (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_region region;
+	struct pfm_image_hash img_hash;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data, strlen (data),
+		FLASH_EXP_READ_CMD (0x03, 0x410000, 0, -1, strlen (data)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	img_hash.regions = &region;
+	img_hash.count = 1;
+	memcpy (img_hash.hash, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	img_hash.hash_length = SHA256_HASH_LENGTH;
+	img_hash.hash_type = HASH_TYPE_SHA256;
+	img_hash.always_validate = 1;
+
+	list.images_hash = &img_hash;
+	list.images_sig = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_offset_images_multiple_fw (&flash.base, &list, 1, 0x400000, &hash.base,
+		NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
 static void host_fw_verify_offset_images_multiple_fw_test_hashes_invalid (CuTest *test)
@@ -13195,7 +13701,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_hashes_invalid (CuTest
 	list.images_sig = NULL;
 	list.count = 1;
 
-	status = host_fw_verify_offset_images_multiple_fw (&flash, &list, 1, 0x400000, &hash.base,
+	status = host_fw_verify_offset_images_multiple_fw (&flash.base, &list, 1, 0x400000, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_BAD_IMAGE_HASH, status);
 
@@ -13296,7 +13802,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_hashes_multiple (CuTes
 	list[2].images_sig = NULL;
 	list[2].count = 1;
 
-	status = host_fw_verify_offset_images_multiple_fw (&flash, list, 3, 0x400000, &hash.base,
+	status = host_fw_verify_offset_images_multiple_fw (&flash.base, list, 3, 0x400000, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -13356,16 +13862,12 @@ static void host_fw_verify_offset_images_multiple_fw_test_null (CuTest *test)
 		&rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_verify_offset_images_multiple_fw (&flash, NULL, 1, 0x400000, &hash.base,
+	status = host_fw_verify_offset_images_multiple_fw (&flash.base, NULL, 1, 0x400000, &hash.base,
 		&rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_verify_offset_images_multiple_fw (&flash, &list, 1, 0x400000, NULL,
+	status = host_fw_verify_offset_images_multiple_fw (&flash.base, &list, 1, 0x400000, NULL,
 		&rsa.base);
-	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
-
-	status = host_fw_verify_offset_images_multiple_fw (&flash, &list, 1, 0x400000, &hash.base,
-		NULL);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -13374,6 +13876,57 @@ static void host_fw_verify_offset_images_multiple_fw_test_null (CuTest *test)
 	spi_flash_release (&flash);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_offset_images_multiple_fw_test_with_signature_no_rsa (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_region region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	sig.regions = &region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	list.images_sig = &sig;
+	list.images_hash = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_offset_images_multiple_fw (&flash.base, &list, 1, 0x400000, &hash.base,
+		NULL);
+	CuAssertIntEquals (test, FLASH_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
 static void host_fw_full_flash_verification_multiple_fw_test (CuTest *test)
@@ -13443,7 +13996,7 @@ static void host_fw_full_flash_verification_multiple_fw_test (CuTest *test)
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification_multiple_fw (&flash, &img_list, &rw_list, 1, 0xff,
+	status = host_fw_full_flash_verification_multiple_fw (&flash.base, &img_list, &rw_list, 1, 0xff,
 		&hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -13582,7 +14135,7 @@ static void host_fw_full_flash_verification_multiple_fw_test_multiple (CuTest *t
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification_multiple_fw (&flash, img_list, rw_list, 3, 0xff,
+	status = host_fw_full_flash_verification_multiple_fw (&flash.base, img_list, rw_list, 3, 0xff,
 		&hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -13661,7 +14214,7 @@ static void host_fw_full_flash_verification_multiple_fw_test_hashes (CuTest *tes
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification_multiple_fw (&flash, &img_list, &rw_list, 1, 0xff,
+	status = host_fw_full_flash_verification_multiple_fw (&flash.base, &img_list, &rw_list, 1, 0xff,
 		&hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -13671,6 +14224,80 @@ static void host_fw_full_flash_verification_multiple_fw_test_hashes (CuTest *tes
 	spi_flash_release (&flash);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_full_flash_verification_multiple_fw_test_hashes_no_rsa (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_region img_region;
+	struct pfm_image_hash img_hash;
+	struct pfm_image_list img_list;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data, strlen (data),
+		FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (data)));
+
+	status |= flash_master_mock_expect_blank_check (&flash_mock, 0 + strlen (data),
+		0x200 - strlen (data));
+	status |= flash_master_mock_expect_blank_check (&flash_mock, 0x300, 0x1000 - 0x300);
+
+	CuAssertIntEquals (test, 0, status);
+
+	img_region.start_addr = 0;
+	img_region.length = strlen (data);
+
+	img_hash.regions = &img_region;
+	img_hash.count = 1;
+	memcpy (img_hash.hash, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	img_hash.hash_length = SHA256_HASH_LENGTH;
+	img_hash.hash_type = HASH_TYPE_SHA256;
+	img_hash.always_validate = 1;
+
+	img_list.images_hash = &img_hash;
+	img_list.images_sig = NULL;
+	img_list.count = 1;
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = spi_flash_set_device_size (&flash, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_full_flash_verification_multiple_fw (&flash.base, &img_list, &rw_list, 1, 0xff,
+		&hash.base, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
 static void host_fw_full_flash_verification_multiple_fw_test_hashes_multiple (CuTest *test)
@@ -13797,7 +14424,7 @@ static void host_fw_full_flash_verification_multiple_fw_test_hashes_multiple (Cu
 	status = spi_flash_set_device_size (&flash, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_fw_full_flash_verification_multiple_fw (&flash, img_list, rw_list, 3, 0xff,
+	status = host_fw_full_flash_verification_multiple_fw (&flash.base, img_list, rw_list, 3, 0xff,
 		&hash.base, &rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -13869,20 +14496,16 @@ static void host_fw_full_flash_verification_multiple_fw_test_null (CuTest *test)
 		&hash.base, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_full_flash_verification_multiple_fw (&flash, NULL, &rw_list, 1, 0xff,
+	status = host_fw_full_flash_verification_multiple_fw (&flash.base, NULL, &rw_list, 1, 0xff,
 		&hash.base, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_full_flash_verification_multiple_fw (&flash, &img_list, NULL, 1, 0xff,
+	status = host_fw_full_flash_verification_multiple_fw (&flash.base, &img_list, NULL, 1, 0xff,
 		&hash.base, &rsa.base);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_full_flash_verification_multiple_fw (&flash, &img_list, &rw_list, 1, 0xff,
+	status = host_fw_full_flash_verification_multiple_fw (&flash.base, &img_list, &rw_list, 1, 0xff,
 		NULL, &rsa.base);
-	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
-
-	status = host_fw_full_flash_verification_multiple_fw (&flash, &img_list, &rw_list, 1, 0xff,
-		&hash.base, NULL);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -13891,6 +14514,69 @@ static void host_fw_full_flash_verification_multiple_fw_test_null (CuTest *test)
 	spi_flash_release (&flash);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_full_flash_verification_multiple_fw_test_with_signature_no_rsa (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_region img_region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list img_list;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	img_region.start_addr = 0;
+	img_region.length = strlen (data);
+
+	sig.regions = &img_region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	img_list.images_sig = &sig;
+	img_list.images_hash = NULL;
+	img_list.count = 1;
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = spi_flash_set_device_size (&flash, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_full_flash_verification_multiple_fw (&flash.base, &img_list, &rw_list, 1, 0xff,
+		&hash.base, NULL);
+	CuAssertIntEquals (test, FLASH_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
 static void host_fw_restore_read_write_data_multiple_fw_test (CuTest *test)
@@ -13938,7 +14624,7 @@ static void host_fw_restore_read_write_data_multiple_fw_test (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_read_write_data_multiple_fw (&flash2, &flash1, &rw_list, 1);
+	status = host_fw_restore_read_write_data_multiple_fw (&flash2.base, &flash1.base, &rw_list, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -13993,7 +14679,7 @@ static void host_fw_restore_read_write_data_multiple_fw_test_no_source_device (C
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_read_write_data_multiple_fw (&flash2, NULL, &rw_list, 1);
+	status = host_fw_restore_read_write_data_multiple_fw (&flash2.base, NULL, &rw_list, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -14082,7 +14768,7 @@ static void host_fw_restore_read_write_data_multiple_fw_test_multiple (CuTest *t
 	rw_list[2].properties = &rw_prop[2];
 	rw_list[2].count = 2;
 
-	status = host_fw_restore_read_write_data_multiple_fw (&flash2, &flash1, rw_list, 3);
+	status = host_fw_restore_read_write_data_multiple_fw (&flash2.base, &flash1.base, rw_list, 3);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -14137,10 +14823,10 @@ static void host_fw_restore_read_write_data_multiple_fw_test_null (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_read_write_data_multiple_fw (NULL, &flash1, &rw_list, 1);
+	status = host_fw_restore_read_write_data_multiple_fw (NULL, &flash1.base, &rw_list, 1);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_restore_read_write_data_multiple_fw (&flash2, &flash1, NULL, 1);
+	status = host_fw_restore_read_write_data_multiple_fw (&flash2.base, &flash1.base, NULL, 1);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -14199,7 +14885,7 @@ static void host_fw_restore_read_write_data_multiple_fw_test_error (CuTest *test
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_restore_read_write_data_multiple_fw (&flash2, &flash1, &rw_list, 1);
+	status = host_fw_restore_read_write_data_multiple_fw (&flash2.base, &flash1.base, &rw_list, 1);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -14842,8 +15528,8 @@ static void host_fw_migrate_read_write_data_multiple_fw_test (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_migrate_read_write_data_multiple_fw (&flash2, &rw_list, 1, &flash1, &rw_list,
-		1);
+	status = host_fw_migrate_read_write_data_multiple_fw (&flash2.base, &rw_list, 1, &flash1.base,
+		&rw_list, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -14926,7 +15612,8 @@ static void host_fw_migrate_read_write_data_multiple_fw_test_multiple (CuTest *t
 	rw_list[2].properties = &rw_prop[2];
 	rw_list[2].count = 1;
 
-	status = host_fw_migrate_read_write_data_multiple_fw (&flash2, rw_list, 3, &flash1, rw_list, 3);
+	status = host_fw_migrate_read_write_data_multiple_fw (&flash2.base, rw_list, 3, &flash1.base,
+		rw_list, 3);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -14995,7 +15682,8 @@ static void host_fw_migrate_read_write_data_multiple_fw_test_diff_fw_count (CuTe
 	rw_list[2].properties = &rw_prop[2];
 	rw_list[2].count = 1;
 
-	status = host_fw_migrate_read_write_data_multiple_fw (&flash2, rw_list, 3, &flash1, rw_list, 2);
+	status = host_fw_migrate_read_write_data_multiple_fw (&flash2.base, rw_list, 3, &flash1.base,
+		rw_list, 2);
 	CuAssertIntEquals (test, HOST_FW_UTIL_DIFF_FW_COUNT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -15120,8 +15808,8 @@ static void host_fw_migrate_read_write_data_multiple_fw_test_diff_regions (CuTes
 	rw_list2[3].properties = &rw_prop2[3];
 	rw_list2[3].count = 1;
 
-	status = host_fw_migrate_read_write_data_multiple_fw (&flash2, rw_list1, 4, &flash1, rw_list2,
-		4);
+	status = host_fw_migrate_read_write_data_multiple_fw (&flash2.base, rw_list1, 4, &flash1.base,
+		rw_list2, 4);
 	CuAssertIntEquals (test, HOST_FW_UTIL_DIFF_REGION_SIZE, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -15204,7 +15892,8 @@ static void host_fw_migrate_read_write_data_multiple_fw_test_no_source_regions (
 	rw_list[2].properties = &rw_prop[2];
 	rw_list[2].count = 1;
 
-	status = host_fw_migrate_read_write_data_multiple_fw (&flash2, rw_list, 3, &flash1, NULL, 0);
+	status = host_fw_migrate_read_write_data_multiple_fw (&flash2.base, rw_list, 3, &flash1.base,
+		NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -15259,15 +15948,15 @@ static void host_fw_migrate_read_write_data_multiple_fw_test_null (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = host_fw_migrate_read_write_data_multiple_fw (NULL, &rw_list, 1, &flash1, &rw_list,
+	status = host_fw_migrate_read_write_data_multiple_fw (NULL, &rw_list, 1, &flash1.base, &rw_list,
 		1);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_migrate_read_write_data_multiple_fw (&flash2, NULL, 1, &flash1, &rw_list,
-		1);
+	status = host_fw_migrate_read_write_data_multiple_fw (&flash2.base, NULL, 1, &flash1.base,
+		&rw_list, 1);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
-	status = host_fw_migrate_read_write_data_multiple_fw (&flash2, &rw_list, 1, NULL, &rw_list,
+	status = host_fw_migrate_read_write_data_multiple_fw (&flash2.base, &rw_list, 1, NULL, &rw_list,
 		1);
 	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
 
@@ -15346,7 +16035,8 @@ static void host_fw_migrate_read_write_data_multiple_fw_test_erase_error (CuTest
 	rw_list[2].properties = &rw_prop[2];
 	rw_list[2].count = 1;
 
-	status = host_fw_migrate_read_write_data_multiple_fw (&flash2, rw_list, 3, &flash1, rw_list, 3);
+	status = host_fw_migrate_read_write_data_multiple_fw (&flash2.base, rw_list, 3, &flash1.base,
+		rw_list, 3);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock1);
@@ -15397,6 +16087,7 @@ TEST (host_fw_verify_images_test_no_images);
 TEST (host_fw_verify_images_test_hashes_sha256);
 TEST (host_fw_verify_images_test_hashes_sha384);
 TEST (host_fw_verify_images_test_hashes_sha512);
+TEST (host_fw_verify_images_test_hashes_no_rsa);
 TEST (host_fw_verify_images_test_hashes_sha256_invalid);
 TEST (host_fw_verify_images_test_hashes_sha384_invalid);
 TEST (host_fw_verify_images_test_hashes_sha512_invalid);
@@ -15406,6 +16097,7 @@ TEST (host_fw_verify_images_test_hashes_multiple_one_invalid);
 TEST (host_fw_verify_images_test_hashes_partial_validation);
 TEST (host_fw_verify_images_test_hashes_hash_error);
 TEST (host_fw_verify_images_test_null);
+TEST (host_fw_verify_images_test_with_signature_no_rsa);
 TEST (host_fw_verify_offset_images_test);
 TEST (host_fw_verify_offset_images_test_no_offset);
 TEST (host_fw_verify_offset_images_test_invalid);
@@ -15418,6 +16110,7 @@ TEST (host_fw_verify_offset_images_test_hashes_sha256);
 TEST (host_fw_verify_offset_images_test_hashes_sha384);
 TEST (host_fw_verify_offset_images_test_hashes_sha512);
 TEST (host_fw_verify_offset_images_test_hashes_no_offset);
+TEST (host_fw_verify_offset_images_test_hashes_no_rsa);
 TEST (host_fw_verify_offset_images_test_hashes_sha256_invalid);
 TEST (host_fw_verify_offset_images_test_hashes_sha384_invalid);
 TEST (host_fw_verify_offset_images_test_hashes_sha512_invalid);
@@ -15427,6 +16120,7 @@ TEST (host_fw_verify_offset_images_test_hashes_multiple_one_invalid);
 TEST (host_fw_verify_offset_images_test_hashes_partial_validation);
 TEST (host_fw_verify_offset_images_test_hashes_hash_error);
 TEST (host_fw_verify_offset_images_test_null);
+TEST (host_fw_verify_offset_images_test_with_signature_no_rsa);
 TEST (host_fw_full_flash_verification_test);
 TEST (host_fw_full_flash_verification_test_not_blank_byte);
 TEST (host_fw_full_flash_verification_test_multiple_rw_regions);
@@ -15443,10 +16137,12 @@ TEST (host_fw_full_flash_verification_test_last_not_blank);
 TEST (host_fw_full_flash_verification_test_hashes_sha256);
 TEST (host_fw_full_flash_verification_test_hashes_sha384);
 TEST (host_fw_full_flash_verification_test_hashes_sha512);
+TEST (host_fw_full_flash_verification_test_hashes_no_rsa);
 TEST (host_fw_full_flash_verification_test_hashes_multipart_image);
 TEST (host_fw_full_flash_verification_test_hashes_partial_validation);
 TEST (host_fw_full_flash_verification_test_hashes_invalid_image);
 TEST (host_fw_full_flash_verification_test_null);
+TEST (host_fw_full_flash_verification_test_with_signature_no_rsa);
 TEST (host_fw_migrate_read_write_data_test);
 TEST (host_fw_migrate_read_write_data_test_multiple_regions);
 TEST (host_fw_migrate_read_write_data_test_different_addresses);
@@ -15548,23 +16244,29 @@ TEST (host_fw_verify_images_multiple_fw_test);
 TEST (host_fw_verify_images_multiple_fw_test_invalid);
 TEST (host_fw_verify_images_multiple_fw_test_multiple);
 TEST (host_fw_verify_images_multiple_fw_test_hashes);
+TEST (host_fw_verify_images_multiple_fw_test_hashes_no_rsa);
 TEST (host_fw_verify_images_multiple_fw_test_hashes_invalid);
 TEST (host_fw_verify_images_multiple_fw_test_hashes_multiple);
 TEST (host_fw_verify_images_multiple_fw_test_null);
+TEST (host_fw_verify_images_multiple_fw_test_with_signature_no_rsa);
 TEST (host_fw_verify_offset_images_multiple_fw_test);
 TEST (host_fw_verify_offset_images_multiple_fw_test_no_offset);
 TEST (host_fw_verify_offset_images_multiple_fw_test_invalid);
 TEST (host_fw_verify_offset_images_multiple_fw_test_multiple);
 TEST (host_fw_verify_offset_images_multiple_fw_test_hashes);
 TEST (host_fw_verify_offset_images_multiple_fw_test_hashes_no_offset);
+TEST (host_fw_verify_offset_images_multiple_fw_test_hashes_no_rsa);
 TEST (host_fw_verify_offset_images_multiple_fw_test_hashes_invalid);
 TEST (host_fw_verify_offset_images_multiple_fw_test_hashes_multiple);
 TEST (host_fw_verify_offset_images_multiple_fw_test_null);
+TEST (host_fw_verify_offset_images_multiple_fw_test_with_signature_no_rsa);
 TEST (host_fw_full_flash_verification_multiple_fw_test);
 TEST (host_fw_full_flash_verification_multiple_fw_test_multiple);
 TEST (host_fw_full_flash_verification_multiple_fw_test_hashes);
+TEST (host_fw_full_flash_verification_multiple_fw_test_hashes_no_rsa);
 TEST (host_fw_full_flash_verification_multiple_fw_test_hashes_multiple);
 TEST (host_fw_full_flash_verification_multiple_fw_test_null);
+TEST (host_fw_full_flash_verification_multiple_fw_test_with_signature_no_rsa);
 TEST (host_fw_restore_read_write_data_multiple_fw_test);
 TEST (host_fw_restore_read_write_data_multiple_fw_test_no_source_device);
 TEST (host_fw_restore_read_write_data_multiple_fw_test_multiple);

@@ -8,36 +8,35 @@
 #include <stdint.h>
 #include "crypto/hash.h"
 #include "crypto/rsa.h"
-#include "flash/spi_flash.h"
+#include "flash/flash.h"
 #include "manifest/pfm/pfm.h"
 #include "spi_filter/spi_filter_interface.h"
 #include "status/rot_status.h"
 
 
-int host_fw_determine_version (const struct spi_flash *flash,
+int host_fw_determine_version (const struct flash *flash,
 	const struct pfm_firmware_versions *allowed, const struct pfm_firmware_version **version);
-int host_fw_determine_offset_version (const struct spi_flash *flash, uint32_t offset,
+int host_fw_determine_offset_version (const struct flash *flash, uint32_t offset,
 	const struct pfm_firmware_versions *allowed, const struct pfm_firmware_version **version);
 
 bool host_fw_are_images_different (const struct pfm_image_list *img_list1,
 	const struct pfm_image_list *img_list2);
 
-int host_fw_verify_images (const struct spi_flash *flash, const struct pfm_image_list *img_list,
+int host_fw_verify_images (const struct flash *flash, const struct pfm_image_list *img_list,
 	const struct hash_engine *hash, const struct rsa_engine *rsa);
-int host_fw_verify_offset_images (const struct spi_flash *flash,
-	const struct pfm_image_list *img_list, uint32_t offset, const struct hash_engine *hash,
-	const struct rsa_engine *rsa);
-int host_fw_verify_images_multiple_fw (const struct spi_flash *flash,
+int host_fw_verify_offset_images (const struct flash *flash, const struct pfm_image_list *img_list,
+	uint32_t offset, const struct hash_engine *hash, const struct rsa_engine *rsa);
+int host_fw_verify_images_multiple_fw (const struct flash *flash,
 	const struct pfm_image_list *img_list, size_t fw_count, const struct hash_engine *hash,
 	const struct rsa_engine *rsa);
-int host_fw_verify_offset_images_multiple_fw (const struct spi_flash *flash,
+int host_fw_verify_offset_images_multiple_fw (const struct flash *flash,
 	const struct pfm_image_list *img_list, size_t fw_count, uint32_t offset,
 	const struct hash_engine *hash, const struct rsa_engine *rsa);
 
-int host_fw_full_flash_verification (const struct spi_flash *flash,
+int host_fw_full_flash_verification (const struct flash *flash,
 	const struct pfm_image_list *img_list, const struct pfm_read_write_regions *writable,
 	uint8_t unused_byte, const struct hash_engine *hash, const struct rsa_engine *rsa);
-int host_fw_full_flash_verification_multiple_fw (const struct spi_flash *flash,
+int host_fw_full_flash_verification_multiple_fw (const struct flash *flash,
 	const struct pfm_image_list *img_list, const struct pfm_read_write_regions *writable,
 	size_t fw_count, uint8_t unused_byte, const struct hash_engine *hash,
 	const struct rsa_engine *rsa);
@@ -45,21 +44,20 @@ int host_fw_full_flash_verification_multiple_fw (const struct spi_flash *flash,
 bool host_fw_are_read_write_regions_different (const struct pfm_read_write_regions *rw1,
 	const struct pfm_read_write_regions *rw2);
 
-int host_fw_migrate_read_write_data (const struct spi_flash *dest,
-	const struct pfm_read_write_regions *dest_writable, const struct spi_flash *src,
+int host_fw_migrate_read_write_data (const struct flash *dest,
+	const struct pfm_read_write_regions *dest_writable, const struct flash *src,
 	const struct pfm_read_write_regions *src_writable);
-int host_fw_migrate_read_write_data_multiple_fw (const struct spi_flash *dest,
-	const struct pfm_read_write_regions *dest_writable, size_t dest_count,
-	const struct spi_flash *src, const struct pfm_read_write_regions *src_writable,
-	size_t src_count);
+int host_fw_migrate_read_write_data_multiple_fw (const struct flash *dest,
+	const struct pfm_read_write_regions *dest_writable, size_t dest_count, const struct flash *src,
+	const struct pfm_read_write_regions *src_writable, size_t src_count);
 
-int host_fw_restore_flash_device (const struct spi_flash *restore, const struct spi_flash *from,
+int host_fw_restore_flash_device (const struct flash *restore, const struct flash *from,
 	const struct pfm_image_list *img_list, const struct pfm_read_write_regions *writable);
 
-int host_fw_restore_read_write_data (const struct spi_flash *restore, const struct spi_flash *from,
+int host_fw_restore_read_write_data (const struct flash *restore, const struct flash *from,
 	const struct pfm_read_write_regions *writable);
-int host_fw_restore_read_write_data_multiple_fw (const struct spi_flash *restore,
-	const struct spi_flash *from, const struct pfm_read_write_regions *writable, size_t fw_count);
+int host_fw_restore_read_write_data_multiple_fw (const struct flash *restore,
+	const struct flash *from, const struct pfm_read_write_regions *writable, size_t fw_count);
 
 int host_fw_config_spi_filter_read_write_regions (const struct spi_filter_interface *filter,
 	const struct pfm_read_write_regions *writable);

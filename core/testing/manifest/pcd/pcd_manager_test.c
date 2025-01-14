@@ -703,8 +703,8 @@ static void pcd_manager_test_get_id_measured_data_0_bytes_read (CuTest *test)
 	struct pcd_mock pcd;
 	struct pcd_manager_mock manager;
 	uint8_t buffer[5];
-	uint8_t id[5];
 	size_t length = sizeof (buffer);
+	uint8_t id[] = {1, 2, 3, 4, 5};
 	uint32_t total_len;
 	int status;
 
@@ -720,6 +720,9 @@ static void pcd_manager_test_get_id_measured_data_0_bytes_read (CuTest *test)
 		MOCK_RETURN_PTR (&pcd.base));
 	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0,
 		MOCK_ARG_PTR (&pcd.base));
+
+	status |= mock_expect (&pcd.mock, pcd.base.base.get_id, &pcd, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&pcd.mock, 0, &id[1], sizeof (id) - 1, -1);
 
 	CuAssertIntEquals (test, 0, status);
 

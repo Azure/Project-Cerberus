@@ -4,6 +4,7 @@
 #include <string.h>
 #include "manifest_manager.h"
 #include "platform_api.h"
+#include "common/buffer_util.h"
 #include "common/common_math.h"
 
 
@@ -63,6 +64,77 @@ int manifest_manager_get_port (const struct manifest_manager *manager)
 }
 
 /**
+ * Get the data used for the manifest digest measurement.
+ *
+ * @param active The manifest to query
+ * @param hash Hash engine to use for manifest digest calculation.
+ * @param offset The offset to read data from.
+ * @param buffer The output buffer to be filled with measured data.
+ * @param length Maximum length of the buffer.
+ * @param total_len Output buffer with total length of measured data.  This will contain the total
+ * length of the measurement even if only partially returned.
+ *
+ * @return Length of the measured data if successfully retrieved or an error code.
+ */
+int manifest_manager_get_manifest_digest_measured_data (const struct manifest *active,
+	const struct hash_engine *hash, size_t offset, uint8_t *buffer, size_t length,
+	uint32_t *total_len)
+{
+	uint8_t hash_out[SHA512_HASH_LENGTH] = {0};
+	int hash_length = SHA256_HASH_LENGTH;
+
+	if ((hash == NULL) || (buffer == NULL) || (total_len == NULL)) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	if (active) {
+		hash_length = active->get_hash (active, hash, hash_out, sizeof (hash_out));
+		if (ROT_IS_ERROR (hash_length)) {
+			return hash_length;
+		}
+	}
+
+	*total_len = hash_length;
+
+	return buffer_copy (hash_out, hash_length, &offset, &length, buffer);
+}
+
+/**
+ * Update a hash context with the data used for the manifest digest measurement.
+ *
+ * The two hash engines must be different instances.
+ *
+ * @param active The manifest to query.
+ * @param manifest_hash Hash engine to use for manifest digest calculation.
+ * @param measure_hash Hash engine to update with the measured data.
+ *
+ * @return 0 if the hash was updated successfully or an error code.
+ */
+int manifest_manager_hash_manifest_digest_measured_data (const struct manifest *active,
+	const struct hash_engine *manifest_hash, const struct hash_engine *measure_hash)
+{
+	uint8_t hash_out[SHA512_HASH_LENGTH] = {0};
+	int hash_length = SHA256_HASH_LENGTH;
+
+	if ((manifest_hash == NULL) || (measure_hash == NULL)) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	if (manifest_hash == measure_hash) {
+		return MANIFEST_MANAGER_SAME_HASH_ENGINE;
+	}
+
+	if (active) {
+		hash_length = active->get_hash (active, manifest_hash, hash_out, sizeof (hash_out));
+		if (ROT_IS_ERROR (hash_length)) {
+			return hash_length;
+		}
+	}
+
+	return measure_hash->update (measure_hash, hash_out, hash_length);
+}
+
+/**
  * Generate the data for the manifest ID measurement.
  *
  * @param active The manifest to query.
@@ -106,7 +178,6 @@ int manifest_manager_get_id_measured_data (const struct manifest *active, size_t
 {
 	uint8_t id[5];
 	size_t id_length = sizeof (id);
-	size_t bytes_read;
 	int status;
 
 	if ((buffer == NULL) || (total_len == NULL)) {
@@ -115,19 +186,12 @@ int manifest_manager_get_id_measured_data (const struct manifest *active, size_t
 
 	*total_len = id_length;
 
-	if (offset > (id_length - 1)) {
-		return 0;
-	}
-
 	status = manifest_manager_construct_id_measurement_data (active, id);
 	if (status != 0) {
 		return status;
 	}
 
-	bytes_read = min (id_length - offset, length);
-	memcpy (buffer, id + offset, bytes_read);
-
-	return bytes_read;
+	return buffer_copy (id, id_length, &offset, &length, buffer);
 }
 
 /**
@@ -196,15 +260,8 @@ int manifest_manager_get_platform_id_measured_data (const struct manifest *activ
 
 	*total_len = id_length;
 
-	if (offset >= id_length) {
-		bytes_read = 0;
-		goto exit;
-	}
+	bytes_read = buffer_copy ((uint8_t*) id, id_length, &offset, &length, buffer);
 
-	bytes_read = min (id_length - offset, length);
-	memcpy (buffer, id + offset, bytes_read);
-
-exit:
 	if (active) {
 		active->free_platform_id (active, id);
 	}
@@ -253,6 +310,9 @@ int manifest_manager_hash_platform_id_measured_data (const struct manifest *acti
 /**
  * Get the data used for the manifest measurement.
  *
+ * This is functionally the same as manifest_manager_get_manifest_digest_measured_data but uses a
+ * manifest_manager instance for the necessary hash engine.
+ *
  * @param manager The manifest manager instance to query.
  * @param active The manifest to query
  * @param offset The offset to read data from
@@ -267,34 +327,19 @@ int manifest_manager_get_manifest_measured_data (const struct manifest_manager *
 	const struct manifest *active, size_t offset, uint8_t *buffer, size_t length,
 	uint32_t *total_len)
 {
-	uint8_t hash_out[SHA512_HASH_LENGTH] = {0};
-	size_t bytes_read;
-	int hash_length = SHA256_HASH_LENGTH;
-
-	if ((buffer == NULL) || (manager == NULL) || (total_len == NULL)) {
+	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
-	if (active) {
-		hash_length = active->get_hash (active, manager->hash, hash_out, sizeof (hash_out));
-		if (ROT_IS_ERROR (hash_length)) {
-			return hash_length;
-		}
-	}
-
-	*total_len = hash_length;
-	if (offset > (size_t) (hash_length - 1)) {
-		return 0;
-	}
-
-	bytes_read = min (hash_length - offset, length);
-	memcpy (buffer, hash_out + offset, bytes_read);
-
-	return bytes_read;
+	return manifest_manager_get_manifest_digest_measured_data (active, manager->hash, offset,
+		buffer, length, total_len);
 }
 
 /**
  * Update a hash context with the data used for the manifest measurement.
+ *
+ * This is functionally the same as manifest_manager_hash_manifest_digest_measured_data but uses a
+ * manifest_manager instance for the necessary hash engine.
  *
  * NOTE:  The hash context contained in the manifest manager must be different from the one passed
  * into this function as an argument.
@@ -309,19 +354,9 @@ int manifest_manager_get_manifest_measured_data (const struct manifest_manager *
 int manifest_manager_hash_manifest_measured_data (const struct manifest_manager *manager,
 	const struct manifest *active, const struct hash_engine *hash)
 {
-	uint8_t hash_out[SHA512_HASH_LENGTH] = {0};
-	int hash_length = SHA256_HASH_LENGTH;
-
-	if ((manager == NULL) || (hash == NULL)) {
+	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
-	if (active) {
-		hash_length = active->get_hash (active, manager->hash, hash_out, sizeof (hash_out));
-		if (ROT_IS_ERROR (hash_length)) {
-			return hash_length;
-		}
-	}
-
-	return hash->update (hash, hash_out, hash_length);
+	return manifest_manager_hash_manifest_digest_measured_data (active, manager->hash, hash);
 }

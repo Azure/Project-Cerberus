@@ -134,12 +134,12 @@ static int host_flash_manager_dual_migrate_rw_data (struct host_flash_manager_du
 	int status;
 
 	if (from == SPI_FILTER_CS_0) {
-		status = host_fw_migrate_read_write_data_multiple_fw (manager->flash_cs1, host_rw->writable,
-			host_rw->count, manager->flash_cs0, NULL, 0);
+		status = host_fw_migrate_read_write_data_multiple_fw (&manager->flash_cs1->base,
+			host_rw->writable, host_rw->count, &manager->flash_cs0->base, NULL, 0);
 	}
 	else {
-		status = host_fw_migrate_read_write_data_multiple_fw (manager->flash_cs0, host_rw->writable,
-			host_rw->count, manager->flash_cs1, NULL, 0);
+		status = host_fw_migrate_read_write_data_multiple_fw (&manager->flash_cs0->base,
+			host_rw->writable, host_rw->count, &manager->flash_cs1->base, NULL, 0);
 	}
 
 	return status;
@@ -262,13 +262,18 @@ static int host_flash_manager_dual_initialize_flash_protection (struct host_flas
 static int host_flash_manager_dual_restore_flash_read_write_regions (
 	struct host_flash_manager *manager, struct host_flash_manager_rw_regions *host_rw)
 {
+	const struct spi_flash *rw_flash;
+	const struct spi_flash *ro_flash;
+
 	if ((manager == NULL) || (host_rw == NULL)) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
 	}
 
-	return host_fw_restore_read_write_data_multiple_fw (
-		host_flash_manager_dual_get_read_write_flash (manager),
-		host_flash_manager_dual_get_read_only_flash (manager), host_rw->writable, host_rw->count);
+	rw_flash = host_flash_manager_dual_get_read_write_flash (manager);
+	ro_flash = host_flash_manager_dual_get_read_only_flash (manager);
+
+	return host_fw_restore_read_write_data_multiple_fw (&rw_flash->base, &ro_flash->base,
+		host_rw->writable, host_rw->count);
 }
 
 static int host_flash_manager_dual_set_flash_for_rot_access (struct host_flash_manager *manager,

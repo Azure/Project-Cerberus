@@ -715,8 +715,8 @@ static void pfm_manager_test_get_id_measured_data_0_bytes_read (CuTest *test)
 	struct pfm_mock pfm;
 	struct pfm_manager_mock manager;
 	uint8_t buffer[4224];
-	uint8_t id[5];
 	size_t length = sizeof (buffer);
+	uint8_t id[] = {1, 2, 3, 4, 5};
 	uint32_t total_len;
 	int status;
 
@@ -732,6 +732,9 @@ static void pfm_manager_test_get_id_measured_data_0_bytes_read (CuTest *test)
 		MOCK_RETURN_PTR (&pfm.base));
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0,
 		MOCK_ARG_PTR (&pfm.base));
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_id, &pfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&pfm.mock, 0, &id[1], sizeof (id) - 1, -1);
 
 	CuAssertIntEquals (test, 0, status);
 

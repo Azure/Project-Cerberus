@@ -160,6 +160,7 @@ enum {
 	ROT_MODULE_TDISP_TDI_CONTEXT_MANAGER = 0x0094,		/**< TDISP TDI context manager interface */
 	ROT_MODULE_RSASSA = 0x0095,							/**< RSASSA signature handling. */
 	ROT_MODULE_ACVP_PROTO = 0x0096,						/**< ACVP Proto handler */
+	ROT_MODULE_FIRMWARE_PFM_VERIFY = 0x0097,			/**< Handler for verifying device FW with a PFM. */
 };
 
 
