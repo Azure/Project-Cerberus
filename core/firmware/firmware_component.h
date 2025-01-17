@@ -108,6 +108,9 @@ enum {
 	FIRMWARE_COMPONENT_TOO_LARGE = FIRMWARE_COMPONENT_ERROR (0x05),				/**< There is not enough space available to load the image. */
 	FIRMWARE_COMPONENT_WRONG_VERSION = FIRMWARE_COMPONENT_ERROR (0x06),			/**< The component does not report the expected build version. */
 	FIRMWARE_COMPONENT_NO_LOAD_ADDRESS = FIRMWARE_COMPONENT_ERROR (0x07),		/**< The component does not specify a destination load address. */
+	FIRMWARE_COMPONENT_VERIFY_FAILED = FIRMWARE_COMPONENT_ERROR (0x10),			/**< The component failed verification. */
+	FIRMWARE_COMPONENT_BAD_SIGNATURE = FIRMWARE_COMPONENT_ERROR (0x11),			/**< The component signature failed verification.*/
+	FIRMWARE_COMPONENT_INVALID_SIGNATURE = FIRMWARE_COMPONENT_ERROR (0x12),		/**< The component signature is either corrupted or missing. */
 };
 
 
