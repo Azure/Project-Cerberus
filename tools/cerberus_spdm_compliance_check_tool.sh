@@ -17,7 +17,7 @@
 #
 # Usage:
 # To execute this script, run the following command in your terminal:
-# ./cerberus_spdm_compliance_check_tool.sh -e <component_eid> -v [spdm_version] -x [cfm_xml_filename] -d [debug_level] -s -l
+# ./cerberus_spdm_compliance_check_tool.sh -e <component_eid> -v [spdm_version] -x [cfm_xml_filename] -d [debug_level] -t [sleep_duration] -s -l
 # Example:
 # ./cerberus_spdm_compliance_check_tool.sh -e 0x5
 # ./cerberus_spdm_compliance_check_tool.sh -e 0x5 -v 0x10 // To specify SPDM version (1.0 - 0x10, 1.1 - 0x11, 1.2 - 0x12)
@@ -45,6 +45,7 @@ success_count=0 # Number of successful iterations
 failure_count=0 # Number of failed iterations
 summary_report_count=100 # Number of iterations to print summary report
 log_enabled=0 # Log enabled
+sleep_duration=1 # Sleep duration in seconds, delay between get_measurement requests
 
 # Associative arrays to store command arguments for different SPDM versions and commands
 declare -A spdm_cmd_common=()
@@ -80,7 +81,7 @@ declare pcd_subsystem_vendor_id=""
 
 # Function to display usage information
 usage() {
-    echo "Usage: $0 -e <component_eid> -v [spdm_version] -x [cfm_xml_filename] -c [component_name] -p [pcd_xml_filename] -d [debug_level] -s -l"
+    echo "Usage: $0 -e <component_eid> -v [spdm_version] -x [cfm_xml_filename] -c [component_name] -p [pcd_xml_filename] -d [debug_level] -t [sleep_duration] -s -l"
     echo "Options:"
     echo " -s : Enable stress test"
     echo " -l : Enable logging"
@@ -88,7 +89,7 @@ usage() {
 }
 
 # Parse arguments using getopts
-while getopts ":e:v:x:c:p:d:sl" opt; do
+while getopts ":e:v:x:c:p:d:slt:" opt; do
     case ${opt} in
         e )
             component_eid=$OPTARG
@@ -114,6 +115,9 @@ while getopts ":e:v:x:c:p:d:sl" opt; do
         l )
             log_enabled=1
             ;;
+		t )
+			sleep_duration=$OPTARG
+			;;
         \? )
             echo "Invalid option: -$OPTARG" 1>&2
             usage
@@ -131,7 +135,7 @@ if [ -z "$component_eid" ] || [ -z "$spdm_version" ]; then
 fi
 
 # Display input parameters
-echo "Input Params: component_eid $component_eid, spdm_version $spdm_version, cfm_xml_filename "$cfm_xml_filename", pcd_xml_filename "$pcd_xml_filename", debug_level $debug_level, stress_enabled $stress_enabled"
+echo "Input Params: component_eid $component_eid, spdm_version $spdm_version, cfm_xml_filename "$cfm_xml_filename", pcd_xml_filename "$pcd_xml_filename", debug_level $debug_level, stress_enabled $stress_enabled, sleep_duration $sleep_duration"
 echo ""
 
 # Helper functions
@@ -342,7 +346,7 @@ send_get_capabilities_request() {
     fi
     if [ $? -ne 0 ]; then
         log_error "$command_name.. Failed"
-        return 0 # Failure
+        return 1 # Failure
     fi
 
     log_debug 1 "$command_name.. OK"
@@ -727,7 +731,7 @@ compare_data_with_mask() {
         local masked_measurement_data=$(compare_and_mask "$measurement_data" "$measurement_mask")
         local masked_expected_data=$(compare_and_mask "$measurement_data_expected" "$measurement_mask")
 
-        if [ $debug_level -eq 1 ]; then
+        if [ $debug_level -gt 0 ]; then
             log_debug 1 "measurement_data_expected=$measurement_data_expected"
             log_debug 1 "measurement_mask=$measurement_mask"
             log_debug 1  ""
@@ -776,7 +780,7 @@ compare_digest() {
 	        return 1 # Failure
         fi
 
-        if [ $debug_level -eq 1 ]; then
+        if [ $debug_level -gt 0 ]; then
             log_debug 1  "measurement_digest_expected=$expected_digest"
             log_debug 1  "measurement_digest_recieved=$measurement_data"
             log_debug 1  ""
@@ -819,6 +823,8 @@ validate_cfm_xml_measurements() {
                 response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DIGEST"]} $measurement_id ${spdm_cmd_common[$command_name"_NONCE"]} ${spdm_cmd_1_2[$command_name"_SLOTID"]})
             fi
         fi
+
+		sleep "$sleep_duration"
 
         if [ $? -ne 0 ]; then
             log_error "$command_name.. Failed"
