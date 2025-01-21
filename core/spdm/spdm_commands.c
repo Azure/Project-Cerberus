@@ -379,10 +379,15 @@ enum hash_type spdm_get_hash_type (uint32_t hash_algo)
  */
 static uint32_t spdm_get_asym_signature_size (uint32_t asym_algo)
 {
-	/* [TODO] Add support for other algorithms. */
 	switch (asym_algo) {
+		case SPDM_TPM_ALG_ECDSA_ECC_NIST_P256:
+			return (ECC_KEY_LENGTH_256 * 2);
+
 		case SPDM_TPM_ALG_ECDSA_ECC_NIST_P384:
-			return (ECC_KEY_LENGTH_384 << 1);
+			return (ECC_KEY_LENGTH_384 * 2);
+
+		case SPDM_TPM_ALG_ECDSA_ECC_NIST_P521:
+			return (ECC_KEY_LENGTH_521 * 2);
 
 		default:
 			return 0;

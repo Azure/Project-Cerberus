@@ -110,73 +110,167 @@ struct spdm_command_testing {
 
 
 static void spdm_command_testing_init_key_manager (CuTest *test,
-	struct spdm_command_testing *testing, bool root_ca, bool intermediate_ca)
+	struct spdm_command_testing *testing, bool root_ca, bool intermediate_ca,
+	uint32_t base_hash_algo, uint32_t base_asym_algo, uint32_t measurement_hash_algo)
 {
 	int status;
 	uint8_t *dev_id_der;
 	uint8_t *ca_der;
 	uint8_t *int_der;
+	size_t dev_id_len;
+	size_t ca_len;
+	size_t int_len;
+
+	switch (base_asym_algo) {
+		case SPDM_TPM_ALG_ECDSA_ECC_NIST_P256:
+			if (intermediate_ca) {
+				dev_id_len = RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN;
+			}
+			else if (root_ca) {
+				dev_id_len = RIOT_CORE_DEVID_SIGNED_CERT_LEN;
+			}
+
+			ca_len = X509_CERTSS_RSA_CA_NOPL_DER_LEN;
+			int_len = X509_CERTCA_ECC_CA_NOPL_DER_LEN;
+			break;
+
+		case SPDM_TPM_ALG_ECDSA_ECC_NIST_P384:
+			if (intermediate_ca) {
+				dev_id_len = RIOT_CORE_DEVID_INTR_SIGNED_CERT_384_LEN;
+			}
+			else if (root_ca) {
+				dev_id_len = RIOT_CORE_DEVID_SIGNED_CERT_384_LEN;
+			}
+
+			ca_len = X509_CERTSS_ECC384_CA_NOPL_DER_LEN;
+			int_len = X509_CERTCA_ECC384_CA2_NOPL_DER_LEN;
+			break;
+
+		case SPDM_TPM_ALG_ECDSA_ECC_NIST_P521:
+			if (intermediate_ca) {
+				dev_id_len = RIOT_CORE_DEVID_INTR_SIGNED_CERT_521_LEN;
+			}
+			else if (root_ca) {
+				dev_id_len = RIOT_CORE_DEVID_SIGNED_CERT_521_LEN;
+			}
+
+			ca_len = X509_CERTSS_ECC521_CA_NOPL_DER_LEN;
+			int_len = X509_CERTCA_ECC521_CA2_NOPL_DER_LEN;
+			break;
+
+		default:
+			if (intermediate_ca) {
+				dev_id_len = RIOT_CORE_DEVID_INTR_SIGNED_CERT_384_LEN;
+			}
+			else if (root_ca) {
+				dev_id_len = RIOT_CORE_DEVID_SIGNED_CERT_384_LEN;
+			}
+
+			ca_len = X509_CERTSS_ECC384_CA_NOPL_DER_LEN;
+			int_len = X509_CERTCA_ECC384_CA2_NOPL_DER_LEN;
+			break;
+	}
 
 	if (intermediate_ca) {
-		dev_id_der = platform_malloc (RIOT_CORE_DEVID_INTR_SIGNED_CERT_384_LEN);
+		dev_id_der = platform_malloc (dev_id_len);
 		CuAssertPtrNotNull (test, dev_id_der);
 
-		ca_der = platform_malloc (X509_CERTSS_ECC384_CA_NOPL_DER_LEN);
+		ca_der = platform_malloc (ca_len);
 		CuAssertPtrNotNull (test, ca_der);
 
-		int_der = platform_malloc (X509_CERTCA_ECC384_CA2_NOPL_DER_LEN);
+		int_der = platform_malloc (int_len);
 		CuAssertPtrNotNull (test, int_der);
 
-		memcpy (dev_id_der, RIOT_CORE_DEVID_INTR_SIGNED_CERT_384,
-			RIOT_CORE_DEVID_INTR_SIGNED_CERT_384_LEN);
-		memcpy (ca_der, X509_CERTSS_ECC384_CA_NOPL_DER, X509_CERTSS_ECC384_CA_NOPL_DER_LEN);
-		memcpy (int_der, X509_CERTCA_ECC384_CA2_NOPL_DER, X509_CERTCA_ECC384_CA2_NOPL_DER_LEN);
+		switch (base_asym_algo) {
+			case SPDM_TPM_ALG_ECDSA_ECC_NIST_P256:
+				memcpy (dev_id_der, RIOT_CORE_DEVID_INTR_SIGNED_CERT, dev_id_len);
+				memcpy (ca_der, X509_CERTSS_RSA_CA_NOPL_DER , ca_len);
+				memcpy (int_der, X509_CERTCA_ECC_CA_NOPL_DER, int_len);
+				break;
+
+			case SPDM_TPM_ALG_ECDSA_ECC_NIST_P384:
+				memcpy (dev_id_der, RIOT_CORE_DEVID_INTR_SIGNED_CERT_384, dev_id_len);
+				memcpy (ca_der, X509_CERTSS_ECC384_CA_NOPL_DER, ca_len);
+				memcpy (int_der, X509_CERTCA_ECC384_CA2_NOPL_DER, int_len);
+				break;
+
+			case SPDM_TPM_ALG_ECDSA_ECC_NIST_P521:
+				memcpy (dev_id_der, RIOT_CORE_DEVID_INTR_SIGNED_CERT_521, dev_id_len);
+				memcpy (ca_der, X509_CERTSS_ECC521_CA_NOPL_DER, ca_len);
+				memcpy (int_der, X509_CERTCA_ECC521_CA2_NOPL_DER, int_len);
+				break;
+
+			default:
+				memcpy (dev_id_der, RIOT_CORE_DEVID_INTR_SIGNED_CERT_384, dev_id_len);
+				memcpy (ca_der, X509_CERTSS_ECC384_CA_NOPL_DER, ca_len);
+				memcpy (int_der, X509_CERTCA_ECC384_CA2_NOPL_DER, int_len);
+				break;
+		}
+
 
 		status = mock_expect (&testing->keystore.mock, testing->keystore.base.load_key,
 			&testing->keystore, 0, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 		status |= mock_expect_output_tmp (&testing->keystore.mock, 1, &dev_id_der,
 			sizeof (dev_id_der), -1);
 		status |= mock_expect_output_tmp (&testing->keystore.mock, 2,
-			&RIOT_CORE_DEVID_INTR_SIGNED_CERT_384_LEN,
-			sizeof (RIOT_CORE_DEVID_INTR_SIGNED_CERT_384_LEN), -1);
+			&dev_id_len, sizeof (dev_id_len), -1);
 
 		status |= mock_expect (&testing->keystore.mock, testing->keystore.base.load_key,
 			&testing->keystore, 0, MOCK_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 		status |= mock_expect_output_tmp (&testing->keystore.mock, 1, &ca_der, sizeof (ca_der), -1);
 		status |= mock_expect_output_tmp (&testing->keystore.mock, 2,
-			&X509_CERTSS_ECC384_CA_NOPL_DER_LEN, sizeof (X509_CERTSS_ECC384_CA_NOPL_DER_LEN), -1);
+			&ca_len, sizeof (ca_len), -1);
 
 		status |= mock_expect (&testing->keystore.mock, testing->keystore.base.load_key,
 			&testing->keystore, 0, MOCK_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 		status |= mock_expect_output_tmp (&testing->keystore.mock, 1, &int_der, sizeof (int_der),
 			-1);
 		status |= mock_expect_output_tmp (&testing->keystore.mock, 2,
-			&X509_CERTCA_ECC384_CA2_NOPL_DER_LEN, sizeof (X509_CERTCA_ECC384_CA2_NOPL_DER_LEN), -1);
+			&int_len, sizeof (int_len), -1);
 
 		CuAssertIntEquals (test, 0, status);
 	}
 	else if (root_ca) {
-		dev_id_der = platform_malloc (RIOT_CORE_DEVID_SIGNED_CERT_384_LEN);
+		dev_id_der = platform_malloc (dev_id_len);
 		CuAssertPtrNotNull (test, dev_id_der);
 
-		ca_der = platform_malloc (X509_CERTSS_ECC384_CA_NOPL_DER_LEN);
+		ca_der = platform_malloc (ca_len);
 		CuAssertPtrNotNull (test, ca_der);
 
-		memcpy (dev_id_der, RIOT_CORE_DEVID_SIGNED_CERT_384, RIOT_CORE_DEVID_SIGNED_CERT_384_LEN);
-		memcpy (ca_der, X509_CERTSS_ECC384_CA_NOPL_DER, X509_CERTSS_ECC384_CA_NOPL_DER_LEN);
+		switch (base_asym_algo) {
+			case SPDM_TPM_ALG_ECDSA_ECC_NIST_P256:
+				memcpy (dev_id_der, RIOT_CORE_DEVID_SIGNED_CERT, dev_id_len);
+				memcpy (ca_der, X509_CERTSS_RSA_CA_NOPL_DER, ca_len);
+				break;
+
+			case SPDM_TPM_ALG_ECDSA_ECC_NIST_P384:
+				memcpy (dev_id_der, RIOT_CORE_DEVID_SIGNED_CERT_384, dev_id_len);
+				memcpy (ca_der, X509_CERTSS_ECC384_CA_NOPL_DER, ca_len);
+				break;
+
+			case SPDM_TPM_ALG_ECDSA_ECC_NIST_P521:
+				memcpy (dev_id_der, RIOT_CORE_DEVID_SIGNED_CERT_521, dev_id_len);
+				memcpy (ca_der, X509_CERTSS_ECC521_CA_NOPL_DER, ca_len);
+				break;
+
+			default:
+				memcpy (dev_id_der, RIOT_CORE_DEVID_SIGNED_CERT_384, dev_id_len);
+				memcpy (ca_der, X509_CERTSS_ECC384_CA_NOPL_DER, ca_len);
+				break;
+		}
 
 		status = mock_expect (&testing->keystore.mock, testing->keystore.base.load_key,
 			&testing->keystore, 0, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 		status |= mock_expect_output_tmp (&testing->keystore.mock, 1, &dev_id_der,
 			sizeof (dev_id_der), -1);
 		status |= mock_expect_output_tmp (&testing->keystore.mock, 2,
-			&RIOT_CORE_DEVID_SIGNED_CERT_384_LEN, sizeof (RIOT_CORE_DEVID_SIGNED_CERT_384_LEN), -1);
+			&dev_id_len, sizeof (dev_id_len), -1);
 
 		status |= mock_expect (&testing->keystore.mock, testing->keystore.base.load_key,
 			&testing->keystore, 0, MOCK_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 		status |= mock_expect_output_tmp (&testing->keystore.mock, 1, &ca_der, sizeof (ca_der), -1);
 		status |= mock_expect_output_tmp (&testing->keystore.mock, 2,
-			&X509_CERTSS_ECC384_CA_NOPL_DER_LEN, sizeof (X509_CERTSS_ECC384_CA_NOPL_DER_LEN), -1);
+			&ca_len, sizeof (ca_len), -1);
 
 		status |= mock_expect (&testing->keystore.mock, testing->keystore.base.load_key,
 			&testing->keystore, KEYSTORE_NO_KEY, MOCK_ARG (2), MOCK_ARG_NOT_NULL,
@@ -204,7 +298,8 @@ static void spdm_command_testing_init_key_manager (CuTest *test,
  * @param testing Testing dependencies to initialize.
  */
 static void spdm_command_testing_init_dependencies (CuTest *test,
-	struct spdm_command_testing *testing)
+	struct spdm_command_testing *testing, uint32_t base_hash_algo, uint32_t base_asym_algo,
+	uint32_t measurement_hash_algo)
 {
 	int status;
 	struct spdm_version_num_entry version_num[SPDM_MAX_MINOR_VERSION - SPDM_MIN_MINOR_VERSION + 1] =
@@ -253,10 +348,10 @@ static void spdm_command_testing_init_dependencies (CuTest *test,
 
 	/* Set the default algorithms. */
 	memset (&testing->local_algorithms, 0, sizeof (testing->local_algorithms));
-	testing->local_algorithms.device_algorithms.base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P384;
-	testing->local_algorithms.device_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	testing->local_algorithms.device_algorithms.base_asym_algo = base_asym_algo;
+	testing->local_algorithms.device_algorithms.base_hash_algo = base_hash_algo;
 	testing->local_algorithms.device_algorithms.measurement_hash_algo =
-		SPDM_MEAS_RSP_TPM_ALG_SHA_384;
+		measurement_hash_algo;
 	testing->local_algorithms.device_algorithms.measurement_spec = SPDM_MEASUREMENT_SPEC_DMTF;
 	testing->local_algorithms.device_algorithms.aead_cipher_suite =
 		SPDM_ALG_AEAD_CIPHER_SUITE_AES_256_GCM;
@@ -315,16 +410,58 @@ static void spdm_command_testing_init_dependencies (CuTest *test,
 	status = keystore_mock_init (&testing->keystore);
 	CuAssertIntEquals (test, 0, status);
 
-	testing->keys.devid_csr = RIOT_CORE_DEVID_CSR_384;
-	testing->keys.devid_csr_length = RIOT_CORE_DEVID_CSR_384_LEN;
-	testing->keys.devid_cert = RIOT_CORE_DEVID_CERT_384;
-	testing->keys.devid_cert_length = RIOT_CORE_DEVID_CERT_384_LEN;
-	testing->keys.alias_key = RIOT_CORE_ALIAS_KEY_384;
-	testing->keys.alias_key_length = RIOT_CORE_ALIAS_KEY_384_LEN;
-	testing->keys.alias_cert = RIOT_CORE_ALIAS_CERT_384;
-	testing->keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_384_LEN;
+	switch (base_asym_algo) {
+		case SPDM_TPM_ALG_ECDSA_ECC_NIST_P256:
+			testing->keys.devid_csr = RIOT_CORE_DEVID_CSR;
+			testing->keys.devid_csr_length = RIOT_CORE_DEVID_CSR_LEN;
+			testing->keys.devid_cert = RIOT_CORE_DEVID_CERT;
+			testing->keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
+			testing->keys.alias_key = RIOT_CORE_ALIAS_KEY;
+			testing->keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
+			testing->keys.alias_cert = RIOT_CORE_ALIAS_CERT;
+			testing->keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_LEN;
 
-	spdm_command_testing_init_key_manager (test, testing, true, true);
+			break;
+
+		case SPDM_TPM_ALG_ECDSA_ECC_NIST_P384:
+			testing->keys.devid_csr = RIOT_CORE_DEVID_CSR_384;
+			testing->keys.devid_csr_length = RIOT_CORE_DEVID_CSR_384_LEN;
+			testing->keys.devid_cert = RIOT_CORE_DEVID_CERT_384;
+			testing->keys.devid_cert_length = RIOT_CORE_DEVID_CERT_384_LEN;
+			testing->keys.alias_key = RIOT_CORE_ALIAS_KEY_384;
+			testing->keys.alias_key_length = RIOT_CORE_ALIAS_KEY_384_LEN;
+			testing->keys.alias_cert = RIOT_CORE_ALIAS_CERT_384;
+			testing->keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_384_LEN;
+
+			break;
+
+		case SPDM_TPM_ALG_ECDSA_ECC_NIST_P521:
+			testing->keys.devid_csr = RIOT_CORE_DEVID_CSR_521;
+			testing->keys.devid_csr_length = RIOT_CORE_DEVID_CSR_521_LEN;
+			testing->keys.devid_cert = RIOT_CORE_DEVID_CERT_521;
+			testing->keys.devid_cert_length = RIOT_CORE_DEVID_CERT_521_LEN;
+			testing->keys.alias_key = RIOT_CORE_ALIAS_KEY_521;
+			testing->keys.alias_key_length = RIOT_CORE_ALIAS_KEY_521_LEN;
+			testing->keys.alias_cert = RIOT_CORE_ALIAS_CERT_521;
+			testing->keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_521_LEN;
+
+			break;
+		default:
+			testing->keys.devid_csr_length = RIOT_CORE_DEVID_CSR_384_LEN;
+			testing->keys.devid_cert_length = RIOT_CORE_DEVID_CERT_384_LEN;
+			testing->keys.alias_key_length = RIOT_CORE_ALIAS_KEY_384_LEN;
+			testing->keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_384_LEN;
+			testing->keys.devid_csr = RIOT_CORE_DEVID_CSR_384;
+			testing->keys.devid_cert = RIOT_CORE_DEVID_CERT_384;
+			testing->keys.alias_key = RIOT_CORE_ALIAS_KEY_384;
+			testing->keys.alias_cert = RIOT_CORE_ALIAS_CERT_384;
+			testing->keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_384_LEN;
+
+			break;
+	}
+
+	spdm_command_testing_init_key_manager (test, testing, true, true,
+		base_hash_algo, base_asym_algo, measurement_hash_algo);
 
 	status = spdm_measurements_mock_init (&testing->measurements_mock);
 	CuAssertIntEquals (test, 0, status);
@@ -1175,7 +1312,8 @@ static void spdm_test_get_version (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	version_count = ARRAY_SIZE (testing.version_num);
@@ -1269,7 +1407,8 @@ static void spdm_test_get_version_no_session_manager (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_responder->session_manager = NULL;
@@ -1362,7 +1501,8 @@ static void spdm_test_get_version_response_state_need_resync (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -1457,7 +1597,8 @@ static void spdm_test_get_version_response_state_processing_encap (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -1555,7 +1696,8 @@ static void spdm_test_get_version_bad_length (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -1592,7 +1734,8 @@ static void spdm_test_get_version_incorrect_version (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	/* Invalid major version. */
 	memset (&msg, 0, sizeof (msg));
@@ -1652,7 +1795,8 @@ static void spdm_test_get_version_response_state_not_normal (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_state = testing.spdm_responder.state;
 
@@ -1738,7 +1882,8 @@ static void spdm_test_get_version_transcript_manager_add_request_fail (CuTest *t
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	status = mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset, &testing.transcript_manager_mock.base, 0);
@@ -1787,7 +1932,8 @@ static void spdm_test_get_version_transcript_manager_add_response_fail (CuTest *
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	status = mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset, &testing.transcript_manager_mock.base, 0);
@@ -1986,7 +2132,8 @@ static void spdm_test_get_capabilities_1_2 (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -2076,7 +2223,8 @@ static void spdm_test_get_capabilities_1_1 (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -2174,7 +2322,8 @@ static void spdm_test_get_capabilities_response_state_busy (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -2213,7 +2362,8 @@ static void spdm_test_get_capabilities_response_state_need_resync (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -2252,7 +2402,8 @@ static void spdm_test_get_capabilities_response_state_processing_encap (CuTest *
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -2290,7 +2441,8 @@ static void spdm_test_get_capabilities_incorrect_connection_state (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -2331,7 +2483,8 @@ static void spdm_test_get_capabilities_version_lt_min (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -2379,7 +2532,8 @@ static void spdm_test_get_capabilities_version_gt_max (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -2427,7 +2581,8 @@ static void spdm_test_get_capabilities_incorrect_request_size_v_1_2 (CuTest *tes
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -2475,7 +2630,8 @@ static void spdm_test_get_capabilities_incorrect_request_size_v_1_1 (CuTest *tes
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	local_capabilities = &testing.local_capabilities;
@@ -2521,7 +2677,8 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTe
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -2919,7 +3076,8 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_1_fail (CuTe
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -3313,7 +3471,8 @@ static void spdm_test_get_capabilities_request_data_transfer_size_lt_min_size (C
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -3362,7 +3521,8 @@ static void spdm_test_get_capabilities_request_data_transfer_size_gt_max_size (C
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -3411,7 +3571,8 @@ static void spdm_test_get_capabilities_request_data_transfer_size_ne_max_size (C
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -3461,7 +3622,8 @@ static void spdm_test_get_capabilities_request_large_ct_exponent (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -3510,7 +3672,8 @@ static void spdm_test_get_capabilities_append_request_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -3579,7 +3742,8 @@ static void spdm_test_get_capabilities_append_response_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	local_capabilities = &testing.local_capabilities;
@@ -4078,7 +4242,8 @@ static void spdm_test_negotiate_algorithms (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	local_algorithms = &testing.local_algorithms;
@@ -4261,7 +4426,8 @@ static void spdm_test_negotiate_algorithms_highest_pri_hash_algo (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	local_algorithms = &testing.local_algorithms;
@@ -4445,7 +4611,8 @@ static void spdm_test_negotiate_algorithms_lowest_pri_hash_algo (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	local_algorithms = &testing.local_algorithms;
@@ -4629,7 +4796,8 @@ static void spdm_test_negotiate_algorithms_opaque_data_format (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	local_algorithms = &testing.local_algorithms;
@@ -4812,7 +4980,8 @@ static void spdm_test_negotiate_algorithms_no_priority_table (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	/* Remove the algorithm prioty info. */
 	memset ((void*) &spdm_responder->local_algorithms->algorithms_priority_table, 0,
@@ -4999,7 +5168,8 @@ static void spdm_test_negotiate_algorithms_no_priority_table_first_common_leftmo
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	/* Remove the algorithm prioty info. */
 	memset ((void*) &spdm_responder->local_algorithms->algorithms_priority_table, 0,
@@ -5187,7 +5357,8 @@ static void spdm_test_negotiate_algorithms_no_priority_table_first_common_rightm
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	/* Remove the algorithm prioty info. */
 	memset ((void*) &spdm_responder->local_algorithms->algorithms_priority_table, 0,
@@ -5374,7 +5545,8 @@ static void spdm_test_negotiate_algorithms_measurement_with_sig_caps (CuTest *te
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEASUREMENT_RSP_CAP_MEASUREMENTS_WITH_SIG;
 	/* Remove the algorithm prioty info. */
@@ -5566,7 +5738,8 @@ static void spdm_test_negotiate_algorithms_incorrect_negotiated_version (CuTest 
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -5634,7 +5807,8 @@ static void spdm_test_negotiate_algorithms_incorrect_response_state (CuTest *tes
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -5722,7 +5896,8 @@ static void spdm_test_negotiate_algorithms_incorrect_connection_state (CuTest *t
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -5770,7 +5945,8 @@ static void spdm_test_negotiate_algorithms_request_length_lt_min (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -5825,7 +6001,8 @@ static void spdm_test_negotiate_algorithms_invalid_request_length (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -5879,7 +6056,8 @@ static void spdm_test_negotiate_algorithms_request_length_gt_max (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -5936,7 +6114,8 @@ static void spdm_test_negotiate_algorithms_invalid_req_alg_type (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -5999,7 +6178,8 @@ static void spdm_test_negotiate_algorithms_req_alg_not_monotonic (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -6067,7 +6247,8 @@ static void spdm_test_negotiate_algorithms_unsupported_fixed_algo_count (CuTest 
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -6131,7 +6312,8 @@ static void spdm_test_negotiate_algorithms_ext_algo_count_gt_max_supported (CuTe
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -6231,7 +6413,8 @@ static void spdm_test_negotiate_algorithms_invalid_ext_algo_count (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -6314,7 +6497,8 @@ static void spdm_test_negotiate_algorithms_invalid_opaque_data_format (CuTest *t
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -6396,7 +6580,8 @@ static void spdm_test_negotiate_algorithms_payload_length_ne_request_length (CuT
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -6476,7 +6661,8 @@ static void spdm_test_negotiate_algorithms_illegal_dhe_algo (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -6560,7 +6746,8 @@ static void spdm_test_negotiate_algorithms_no_common_dhe_algo (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -6683,7 +6870,8 @@ static void spdm_test_negotiate_algorithms_no_local_dhe_algo (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -6802,7 +6990,8 @@ static void spdm_test_negotiate_algorithms_illegal_aead_algo (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -6886,7 +7075,8 @@ static void spdm_test_negotiate_algorithms_no_common_aead_algo (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -7005,7 +7195,8 @@ static void spdm_test_negotiate_algorithms_illegal_req_asym_algo (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -7089,7 +7280,8 @@ static void spdm_test_negotiate_algorithms_no_common_req_asym_algo (CuTest *test
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -7208,7 +7400,8 @@ static void spdm_test_negotiate_algorithms_illegal_key_schedule_algo (CuTest *te
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -7292,7 +7485,8 @@ static void spdm_test_negotiate_algorithms_no_common_key_schedule_algo (CuTest *
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -7412,7 +7606,8 @@ static void spdm_test_negotiate_algorithms_unsupported_measurement_spec (CuTest 
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -7529,7 +7724,8 @@ static void spdm_test_negotiate_algorithms_unsupported_measurement_spec_hash_alg
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -7647,7 +7843,8 @@ static void spdm_test_negotiate_algorithms_no_local_measurement_capability (CuTe
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -7766,7 +7963,8 @@ static void spdm_test_negotiate_algorithms_unsupported_base_hash_algo (CuTest *t
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -7878,7 +8076,8 @@ static void spdm_test_negotiate_algorithms_unsupported_base_asym_algo (CuTest *t
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -7993,7 +8192,8 @@ static void spdm_test_negotiate_algorithms_append_request_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -8089,7 +8289,8 @@ static void spdm_test_negotiate_algorithms_append_response_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -8190,7 +8391,8 @@ static void spdm_test_negotiate_algorithms_set_hash_algo_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -8512,7 +8714,8 @@ static void spdm_test_get_digests_sha256 (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -8626,7 +8829,8 @@ static void spdm_test_get_digests_sha384 (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -8740,7 +8944,8 @@ static void spdm_test_get_digests_sha512 (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -8860,13 +9065,15 @@ static void spdm_test_get_digests_no_root_and_intermediate_certs (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
 	/* Get rid of provisioned certs. */
 	riot_key_manager_release (&testing.key_manager);
-	spdm_command_testing_init_key_manager (test, &testing, false, false);
+	spdm_command_testing_init_key_manager (test, &testing, false, false,
+		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -8983,13 +9190,15 @@ static void spdm_test_get_digests_no_intermediate_cert (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
 	/* Get rid of intermediate CA cert. */
 	riot_key_manager_release (&testing.key_manager);
-	spdm_command_testing_init_key_manager (test, &testing, true, false);
+	spdm_command_testing_init_key_manager (test, &testing, true, false,
+		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -9113,7 +9322,8 @@ static void spdm_test_get_digests_request_size_invalid (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 
 	memset (&msg, 0, sizeof (msg));
@@ -9149,7 +9359,8 @@ static void spdm_test_get_digests_incorrect_negotiated_version (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -9207,7 +9418,8 @@ static void spdm_test_get_digests_incorrect_response_state (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -9298,7 +9510,8 @@ static void spdm_test_get_digests_incorrect_connection_state (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -9343,7 +9556,8 @@ static void spdm_test_get_digests_no_cert_capability (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	local_capabilities = &testing.local_capabilities;
@@ -9389,14 +9603,16 @@ static void spdm_test_get_digests_device_cert_null (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
 	/* Corrupt the devid cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.devid_cert = NULL;
-	spdm_command_testing_init_key_manager (test, &testing, false, false);
+	spdm_command_testing_init_key_manager (test, &testing, false, false,
+		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -9459,14 +9675,16 @@ static void spdm_test_get_digests_device_cert_zero_length (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
 	/* Corrupt the devid cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.devid_cert_length = 0;
-	spdm_command_testing_init_key_manager (test, &testing, false, false);
+	spdm_command_testing_init_key_manager (test, &testing, false, false,
+		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -9529,14 +9747,16 @@ static void spdm_test_get_digests_alias_cert_null (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
 	/* Corrupt the alias cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.alias_cert = NULL;
-	spdm_command_testing_init_key_manager (test, &testing, false, false);
+	spdm_command_testing_init_key_manager (test, &testing, false, false,
+		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -9599,14 +9819,16 @@ static void spdm_test_get_digests_alias_cert_zero_length (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
 	/* Corrupt the alias cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.alias_cert_length = 0;
-	spdm_command_testing_init_key_manager (test, &testing, false, false);
+	spdm_command_testing_init_key_manager (test, &testing, false, false,
+		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -9669,7 +9891,8 @@ static void spdm_test_get_digests_unsuported_hash_algo (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -9736,7 +9959,8 @@ static void spdm_test_get_digests_add_request_to_transcript_hash_fail (CuTest *t
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -9802,7 +10026,8 @@ static void spdm_test_get_digests_response_gt_max_response_size (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -9869,7 +10094,8 @@ static void spdm_test_get_digests_generate_root_cert_hash_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -9942,7 +10168,8 @@ static void spdm_test_get_digests_cert_chain_start_hash_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -10017,7 +10244,8 @@ static void spdm_test_get_digests_cert_chain_update_header_hash_fail (CuTest *te
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -10098,7 +10326,8 @@ static void spdm_test_get_digests_cert_chain_update_cert_hash_fail (CuTest *test
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -10183,7 +10412,8 @@ static void spdm_test_get_digests_cert_chain_finish_hash_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -10275,7 +10505,8 @@ static void spdm_test_get_digests_add_response_to_transcript_hash_fail (CuTest *
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -10481,7 +10712,8 @@ static void spdm_test_get_certificate_sha256 (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -10607,7 +10839,8 @@ static void spdm_test_get_certificate_sha384 (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -10733,7 +10966,8 @@ static void spdm_test_get_certificate_sha512 (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -10863,7 +11097,8 @@ static void spdm_test_get_certificate_max_response_lt_cert_chain_length (CuTest 
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -11064,7 +11299,8 @@ static void spdm_test_get_certificate_request_split_at_root_cert_hash (CuTest *t
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -11273,7 +11509,8 @@ static void spdm_test_get_certificate_request_split_at_root_cert (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -11476,7 +11713,8 @@ static void spdm_test_get_certificate_request_split_at_intermediate_cert (CuTest
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -11679,7 +11917,8 @@ static void spdm_test_get_certificate_request_split_at_device_cert (CuTest *test
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -11884,7 +12123,8 @@ static void spdm_test_get_certificate_request_split_at_alias_cert (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -12083,13 +12323,15 @@ static void spdm_test_get_certificate_no_root_and_intermediate_certs (CuTest *te
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
 	/* Get rid of provisioned certs. */
 	riot_key_manager_release (&testing.key_manager);
-	spdm_command_testing_init_key_manager (test, &testing, false, false);
+	spdm_command_testing_init_key_manager (test, &testing, false, false,
+		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -12200,13 +12442,15 @@ static void spdm_test_get_certificate_no_intermediate_cert (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
 	/* Get rid of intermediate CA cert. */
 	riot_key_manager_release (&testing.key_manager);
-	spdm_command_testing_init_key_manager (test, &testing, true, false);
+	spdm_command_testing_init_key_manager (test, &testing, true, false,
+		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -12317,7 +12561,8 @@ static void spdm_test_get_certificate_null (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	status = spdm_get_certificate (NULL, &msg);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
@@ -12340,7 +12585,8 @@ static void spdm_test_get_certificate_request_size_invalid (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 
 	TEST_START;
@@ -12376,7 +12622,8 @@ static void spdm_test_get_certificate_incorrect_negotiated_version (CuTest *test
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -12438,7 +12685,8 @@ static void spdm_test_get_certificate_incorrect_response_state (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -12524,7 +12772,8 @@ static void spdm_test_get_certificate_incorrect_connection_state (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -12568,7 +12817,8 @@ static void spdm_test_get_certificate_no_cert_capability (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	testing.local_capabilities.flags.cert_cap = 0;
@@ -12612,7 +12862,8 @@ static void spdm_test_get_certificate_unsupported_slot_num (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -12662,14 +12913,16 @@ static void spdm_test_get_certificate_device_cert_null (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
 	/* Corrupt the devid cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.devid_cert = NULL;
-	spdm_command_testing_init_key_manager (test, &testing, false, false);
+	spdm_command_testing_init_key_manager (test, &testing, false, false,
+		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -12716,14 +12969,16 @@ static void spdm_test_get_certificate_device_cert_zero_length (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
 	/* Corrupt the devid cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.devid_cert_length = 0;
-	spdm_command_testing_init_key_manager (test, &testing, false, false);
+	spdm_command_testing_init_key_manager (test, &testing, false, false,
+		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -12770,14 +13025,16 @@ static void spdm_test_get_certificate_alias_cert_null (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
 	/* Corrupt the alias cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.alias_cert = NULL;
-	spdm_command_testing_init_key_manager (test, &testing, false, false);
+	spdm_command_testing_init_key_manager (test, &testing, false, false,
+		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -12824,14 +13081,16 @@ static void spdm_test_get_certificate_alias_cert_zero_length (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
 	/* Corrupt the alias cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.alias_cert_length = 0;
-	spdm_command_testing_init_key_manager (test, &testing, false, false);
+	spdm_command_testing_init_key_manager (test, &testing, false, false,
+		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -12878,7 +13137,8 @@ static void spdm_test_get_certificate_unsuported_hash_algo (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -12929,7 +13189,8 @@ static void spdm_test_get_certificate_invalid_offset (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -12983,7 +13244,8 @@ static void spdm_test_get_certificate_add_request_to_transcript_hash_fail (CuTes
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -13048,7 +13310,8 @@ static void spdm_test_get_certificate_root_cert_hash_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -13120,7 +13383,8 @@ static void spdm_test_get_certificate_add_response_to_transcript_hash_fail (CuTe
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -13323,7 +13587,206 @@ static void spdm_test_process_get_certificate_response_bad_length (CuTest *test)
 	CuAssertPtrEquals (test, &buf[8], msg.payload);
 }
 
-static void spdm_test_challenge (CuTest *test)
+static void spdm_test_challenge_ecc_nist_p256 (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg request;
+	int status;
+	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
+	struct spdm_challenge_response *rsp = (struct spdm_challenge_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	uint8_t expected_nonce[SPDM_NONCE_LEN];
+	uint32_t i;
+	uint8_t expected_digest[SHA256_HASH_LENGTH] = {
+		0xe0, 0xd3, 0x9f, 0x09, 0xd2, 0xea, 0x3c, 0x9b,
+		0x0a, 0xeb, 0xb0, 0x50, 0xd9, 0x4f, 0x31, 0x44,
+		0xa7, 0x5e, 0x17, 0xd2, 0x15, 0x23, 0x5f, 0xd3,
+		0x25, 0x0f, 0x0e, 0x56, 0x2a, 0xaf, 0x29, 0xde,
+	};
+	uint32_t hash_size = SHA256_HASH_LENGTH;
+	uint32_t signature_size = (ECC_KEY_LENGTH_256 << 1);
+	uint32_t response_size = sizeof (struct spdm_challenge_response) + 2 * hash_size +
+		SPDM_NONCE_LEN + sizeof (uint16_t) + signature_size;
+	uint16_t expected_opaque_size = 0;
+	uint8_t *response_ptr;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_256,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P256, SPDM_MEAS_RSP_TPM_ALG_SHA_256);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.payload = buf;
+	request.max_response = sizeof (buf);
+	request.payload_length = sizeof (struct spdm_challenge_request);
+	request.length = request.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+	spdm_state->connection_info.peer_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_256;
+	spdm_state->connection_info.peer_algorithms.base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P256;
+	spdm_state->connection_info.peer_algorithms.measurement_spec = SPDM_MEASUREMENT_SPEC_DMTF;
+	spdm_state->connection_info.peer_algorithms.measurement_hash_algo =
+		SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+
+	rq->header.req_rsp_code = SPDM_REQUEST_CHALLENGE;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+	rq->req_measurement_summary_hash_type = SPDM_MEASUREMENT_SUMMARY_HASH_ALL;
+	rq->slot_num = 0;
+
+	for (i = 0; i < SPDM_NONCE_LEN; i++) {
+		rq->nonce[i] = rand ();
+		expected_nonce[i] = rand ();
+	}
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2), MOCK_ARG_PTR (request.payload),
+		MOCK_ARG (request.payload_length), MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.calculate_sha256, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_RSA_CA_NOPL_DER, X509_CERTSS_RSA_CA_NOPL_DER_LEN),
+		MOCK_ARG (X509_CERTSS_RSA_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.start_sha256, &testing.hash_engine_mock[0].base, 0);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	for (uint8_t i = 0; i < SPDM_MAX_CERT_COUNT_IN_CHAIN; i++) {
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	}
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.hash_engine_mock[0].mock, 0, expected_digest,
+		sizeof (expected_digest), -1);
+
+	status |= mock_expect (&testing.rng_mock.mock, testing.rng_mock.base.generate_random_buffer,
+		&testing.rng_mock, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.rng_mock.mock, 1, expected_nonce, SPDM_NONCE_LEN, -1);
+
+	status |= mock_expect (&testing.measurements_mock.mock,
+		testing.measurements_mock.base.get_measurement_summary_hash,
+		&testing.measurements_mock.base, 0, MOCK_ARG_PTR (testing.hash_engine[0]),
+		MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_PTR (testing.hash_engine[1]),
+		MOCK_ARG (HASH_TYPE_SHA256),
+		MOCK_ARG (rq->req_measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&testing.measurements_mock.mock, 5, expected_digest, hash_size,
+		-1);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
+		MOCK_ARG_PTR_CONTAINS (rsp, response_size - signature_size),
+		MOCK_ARG (response_size - signature_size), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2), MOCK_ARG (true), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&testing.transcript_manager_mock.mock, 4, SHA256_TEST_HASH,
+		SHA256_HASH_LENGTH, -1);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.start_sha256, &testing.hash_engine_mock[0].base, 0);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + SHA256_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.get_active_algorithm, &testing.hash_engine_mock[0].base,
+		HASH_TYPE_SHA256);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&testing.hash_engine_mock[0].mock, 0, SHA256_TEST_HASH,
+		SHA256_HASH_LENGTH, -1);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
+		&testing.ecc_mock.base, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 0);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
+		&testing.ecc_mock.base, ECC_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN, 5);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
+		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_challenge (spdm_responder, &request);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, response_size, request.length);
+	CuAssertIntEquals (test, request.length, request.payload_length);
+	CuAssertPtrEquals (test, buf, request.data);
+	CuAssertPtrEquals (test, rsp, request.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_CHALLENGE, rsp->header.req_rsp_code);
+
+	response_ptr = (uint8_t*) (rsp + 1);
+	status = testing_validate_array (expected_digest, response_ptr, hash_size);
+	CuAssertIntEquals (test, 0, status);
+	response_ptr += hash_size;
+
+	status = testing_validate_array (expected_nonce, response_ptr, SPDM_NONCE_LEN);
+	CuAssertIntEquals (test, 0, status);
+	response_ptr += SPDM_NONCE_LEN;
+
+	status = testing_validate_array (expected_digest, response_ptr, hash_size);
+	CuAssertIntEquals (test, 0, status);
+	response_ptr += hash_size;
+
+	status = testing_validate_array (&expected_opaque_size, response_ptr, sizeof (uint16_t));
+	CuAssertIntEquals (test, 0, status);
+	response_ptr += sizeof (uint16_t);
+
+	status = testing_validate_array (ECC_SIGNATURE_TEST_STRUCT.r, response_ptr,
+		ECC_KEY_LENGTH_256);
+	CuAssertIntEquals (test, 0, status);
+	response_ptr += ECC_KEY_LENGTH_256;
+
+	status = testing_validate_array (ECC_SIGNATURE_TEST_STRUCT.s, response_ptr,
+		ECC_KEY_LENGTH_256);
+	CuAssertIntEquals (test, 0, status);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_challenge_ecc_nist_p384 (CuTest *test)
 {
 	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg request;
@@ -13352,7 +13815,8 @@ static void spdm_test_challenge (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -13523,6 +13987,209 @@ static void spdm_test_challenge (CuTest *test)
 	spdm_command_testing_release_dependencies (test, &testing);
 }
 
+static void spdm_test_challenge_ecc_nist_p521 (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg request;
+	int status;
+	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
+	struct spdm_challenge_response *rsp = (struct spdm_challenge_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	uint8_t expected_nonce[SPDM_NONCE_LEN];
+	uint32_t i;
+	uint8_t expected_digest[SHA512_HASH_LENGTH] = {
+		0xe0, 0xd3, 0x9f, 0x09, 0xd2, 0xea, 0x3c, 0x9b,
+		0x0a, 0xeb, 0xb0, 0x50, 0xd9, 0x4f, 0x31, 0x44,
+		0xa7, 0x5e, 0x17, 0xd2, 0x15, 0x23, 0x5f, 0xd3,
+		0x25, 0x0f, 0x0e, 0x56, 0x2a, 0xaf, 0x29, 0xde,
+		0x0e, 0xe9, 0x51, 0xe1, 0xdc, 0x01, 0x81, 0x88,
+		0x50, 0xd2, 0x2a, 0x4a, 0x0d, 0xce, 0xca, 0x01,
+		0x0e, 0xe9, 0x51, 0xe1, 0xdc, 0x01, 0x81, 0x88,
+		0x50, 0xd2, 0x2a, 0x4a, 0x0d, 0xce, 0xca, 0x01
+	};
+	uint32_t hash_size = SHA512_HASH_LENGTH;
+	uint32_t signature_size = (ECC_KEY_LENGTH_521 << 1);
+	uint32_t response_size = sizeof (struct spdm_challenge_response) + 2 * hash_size +
+		SPDM_NONCE_LEN + sizeof (uint16_t) + signature_size;
+	uint16_t expected_opaque_size = 0;
+	uint8_t *response_ptr;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_512,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P521, SPDM_MEAS_RSP_TPM_ALG_SHA_512);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.payload = buf;
+	request.max_response = sizeof (buf);
+	request.payload_length = sizeof (struct spdm_challenge_request);
+	request.length = request.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+	spdm_state->connection_info.peer_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_512;
+	spdm_state->connection_info.peer_algorithms.base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P521;
+	spdm_state->connection_info.peer_algorithms.measurement_spec = SPDM_MEASUREMENT_SPEC_DMTF;
+	spdm_state->connection_info.peer_algorithms.measurement_hash_algo =
+		SPDM_MEAS_RSP_TPM_ALG_SHA_512;
+
+	rq->header.req_rsp_code = SPDM_REQUEST_CHALLENGE;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+	rq->req_measurement_summary_hash_type = SPDM_MEASUREMENT_SUMMARY_HASH_ALL;
+	rq->slot_num = 0;
+
+	for (i = 0; i < SPDM_NONCE_LEN; i++) {
+		rq->nonce[i] = rand ();
+		expected_nonce[i] = rand ();
+	}
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2), MOCK_ARG_PTR (request.payload),
+		MOCK_ARG (request.payload_length), MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.calculate_sha512, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC521_CA_NOPL_DER, X509_CERTSS_ECC521_CA_NOPL_DER_LEN),
+		MOCK_ARG (X509_CERTSS_ECC521_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA512_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.start_sha512, &testing.hash_engine_mock[0].base, 0);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	for (uint8_t i = 0; i < SPDM_MAX_CERT_COUNT_IN_CHAIN; i++) {
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	}
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.hash_engine_mock[0].mock, 0, expected_digest,
+		sizeof (expected_digest), -1);
+
+	status |= mock_expect (&testing.rng_mock.mock, testing.rng_mock.base.generate_random_buffer,
+		&testing.rng_mock, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.rng_mock.mock, 1, expected_nonce, SPDM_NONCE_LEN, -1);
+
+	status |= mock_expect (&testing.measurements_mock.mock,
+		testing.measurements_mock.base.get_measurement_summary_hash,
+		&testing.measurements_mock.base, 0, MOCK_ARG_PTR (testing.hash_engine[0]),
+		MOCK_ARG (HASH_TYPE_SHA512), MOCK_ARG_PTR (testing.hash_engine[1]),
+		MOCK_ARG (HASH_TYPE_SHA512),
+		MOCK_ARG (rq->req_measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&testing.measurements_mock.mock, 5, expected_digest, hash_size,
+		-1);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
+		MOCK_ARG_PTR_CONTAINS (rsp, response_size - signature_size),
+		MOCK_ARG (response_size - signature_size), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2), MOCK_ARG (true), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&testing.transcript_manager_mock.mock, 4, SHA512_TEST_HASH,
+		SHA512_HASH_LENGTH, -1);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.start_sha512, &testing.hash_engine_mock[0].base, 0);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + SHA512_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.get_active_algorithm, &testing.hash_engine_mock[0].base,
+		HASH_TYPE_SHA512);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&testing.hash_engine_mock[0].mock, 0, SHA512_TEST_HASH,
+		SHA512_HASH_LENGTH, -1);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
+		&testing.ecc_mock.base, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY_521, RIOT_CORE_ALIAS_KEY_521_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_521_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 0);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
+		&testing.ecc_mock.base, ECC521_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (ECC_DER_P521_ECDSA_MAX_LENGTH));
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC521_SIGNATURE_TEST,
+		ECC521_SIG_TEST_LEN, 5);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
+		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_challenge (spdm_responder, &request);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, response_size, request.length);
+	CuAssertIntEquals (test, request.length, request.payload_length);
+	CuAssertPtrEquals (test, buf, request.data);
+	CuAssertPtrEquals (test, rsp, request.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_CHALLENGE, rsp->header.req_rsp_code);
+
+	response_ptr = (uint8_t*) (rsp + 1);
+	status = testing_validate_array (expected_digest, response_ptr, hash_size);
+	CuAssertIntEquals (test, 0, status);
+	response_ptr += hash_size;
+
+	status = testing_validate_array (expected_nonce, response_ptr, SPDM_NONCE_LEN);
+	CuAssertIntEquals (test, 0, status);
+	response_ptr += SPDM_NONCE_LEN;
+
+	status = testing_validate_array (expected_digest, response_ptr, hash_size);
+	CuAssertIntEquals (test, 0, status);
+	response_ptr += hash_size;
+
+	status = testing_validate_array (&expected_opaque_size, response_ptr, sizeof (uint16_t));
+	CuAssertIntEquals (test, 0, status);
+	response_ptr += sizeof (uint16_t);
+
+	status = testing_validate_array (ECC521_SIGNATURE_TEST_STRUCT.r, response_ptr,
+		ECC_KEY_LENGTH_521);
+	CuAssertIntEquals (test, 0, status);
+	response_ptr += ECC_KEY_LENGTH_521;
+
+	status = testing_validate_array (ECC521_SIGNATURE_TEST_STRUCT.s, response_ptr,
+		ECC_KEY_LENGTH_521);
+	CuAssertIntEquals (test, 0, status);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
 static void spdm_test_challenge_null (CuTest *test)
 {
 	int status;
@@ -13531,7 +14198,8 @@ static void spdm_test_challenge_null (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	status = spdm_challenge (NULL, &msg);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
@@ -13553,7 +14221,8 @@ static void spdm_test_challenge_invalid_payload_size (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 
@@ -13588,7 +14257,8 @@ static void spdm_test_challenge_version_mismatch (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -13630,7 +14300,8 @@ static void spdm_test_challenge_invalid_measurement_summary (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -13673,7 +14344,8 @@ static void spdm_test_challenge_unsupported_capability (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -13717,7 +14389,8 @@ static void spdm_test_challenge_unsupported_algo (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -13773,7 +14446,8 @@ static void spdm_test_challenge_invalid_slot (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -13825,7 +14499,8 @@ static void spdm_test_challenge_invalid_response_state (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -13879,7 +14554,8 @@ static void spdm_test_challenge_invalid_connection_state (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -13933,7 +14609,8 @@ static void spdm_test_challenge_unsupported_capability_2 (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -13987,7 +14664,8 @@ static void spdm_test_challenge_unsupported_signature_size (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -14042,7 +14720,8 @@ static void spdm_test_challenge_unsupported_hash_size (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -14096,7 +14775,8 @@ static void spdm_test_challenge_response_too_large (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -14149,7 +14829,8 @@ static void spdm_test_challenge_transcript_update_fail_1 (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -14212,7 +14893,8 @@ static void spdm_test_challenge_cert_chain_digest_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -14301,7 +14983,8 @@ static void spdm_test_challenge_nonce_generation_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -14390,7 +15073,8 @@ static void spdm_test_challenge_measurement_summary_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -14492,7 +15176,8 @@ static void spdm_test_challenge_transcript_update_fail_2 (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -14600,7 +15285,8 @@ static void spdm_test_challenge_transcript_get_hash_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -14713,7 +15399,8 @@ static void spdm_test_challenge_sign_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
@@ -14855,7 +15542,8 @@ static void spdm_test_get_measurements_all_measurements_no_sig (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -14955,7 +15643,191 @@ static void spdm_test_get_measurements_all_measurements_no_sig (CuTest *test)
 	spdm_command_testing_release_dependencies (test, &testing);
 }
 
-static void spdm_test_get_measurements_all_measurements_with_sig (CuTest *test)
+static void spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p256 (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t buf2[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf2;
+	struct spdm_get_measurements_response *rsp = (struct spdm_get_measurements_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	const uint32_t measurement_count = 10;
+	const uint32_t measurement_length = 128;
+	uint8_t expected_nonce[SPDM_NONCE_LEN];
+	uint8_t expected_measurement_record[measurement_length];
+	uint32_t i;
+	size_t request_size = sizeof (struct spdm_get_measurements_request) + SPDM_NONCE_LEN +
+		sizeof (uint8_t);
+	size_t signature_size = ECC_KEY_LENGTH_256 * 2;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_256,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P256, SPDM_MEAS_RSP_TPM_ALG_SHA_256);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = request_size;
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+	spdm_state->connection_info.peer_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_256;
+	spdm_state->connection_info.peer_algorithms.base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P256;
+	spdm_state->connection_info.peer_algorithms.measurement_spec = SPDM_MEASUREMENT_SPEC_DMTF;
+	spdm_state->connection_info.peer_algorithms.measurement_hash_algo =
+		SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_MEASUREMENTS;
+	rq->sig_required = true;
+	rq->raw_bit_stream_requested = true;
+	rq->measurement_operation =
+		SPDM_GET_MEASUREMENTS_REQUEST_MEASUREMENT_OPERATION_ALL_MEASUREMENTS;
+	for (i = 0; i < SPDM_NONCE_LEN; i++) {
+		expected_nonce[i] = rand ();
+	}
+	memcpy (spdm_get_measurements_rq_nonce (rq), expected_nonce, SPDM_NONCE_LEN);
+	*(spdm_get_measurements_rq_slot_id_ptr ((rq))) = 0;
+
+	memcpy (msg.payload, rq, request_size);
+
+	for (i = 0; i < SPDM_NONCE_LEN; i++) {
+		expected_nonce[i] = rand ();
+	}
+	for (i = 0; i < measurement_length; i++) {
+		expected_measurement_record[i] = rand ();
+	}
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.is_last_session_id_valid,
+		&testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2), MOCK_ARG_PTR_CONTAINS (rq, request_size),
+		MOCK_ARG (request_size), MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.measurements_mock.mock,
+		testing.measurements_mock.base.get_measurement_count, &testing.measurements_mock.base,
+		measurement_count);
+
+	status |= mock_expect (&testing.measurements_mock.mock,
+		testing.measurements_mock.base.get_all_measurement_blocks, &testing.measurements_mock.base,
+		measurement_length, MOCK_ARG (rq->raw_bit_stream_requested),
+		MOCK_ARG_PTR (&testing.hash_engine_mock[0].base), MOCK_ARG (HASH_TYPE_SHA256),
+		MOCK_ARG_NOT_NULL,
+		MOCK_ARG (msg.max_response - (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + signature_size)));
+	status |= mock_expect_output (&testing.measurements_mock.mock, 3, expected_measurement_record,
+		measurement_length, -1);
+
+	status |= mock_expect (&testing.rng_mock.mock, testing.rng_mock.base.generate_random_buffer,
+		&testing.rng_mock, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.rng_mock.mock, 1, expected_nonce, SPDM_NONCE_LEN, -1);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG_PTR_CONTAINS (rsp, (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + measurement_length)),
+		MOCK_ARG (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + measurement_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2), MOCK_ARG (true), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&testing.transcript_manager_mock.mock, 4, SHA256_TEST_HASH,
+		SHA256_HASH_LENGTH, -1);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.start_sha256, &testing.hash_engine_mock[0].base, 0);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + SHA256_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.get_active_algorithm, &testing.hash_engine_mock[0].base,
+		HASH_TYPE_SHA256);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&testing.hash_engine_mock[0].mock, 0, SHA256_TEST_HASH,
+		SHA256_HASH_LENGTH, -1);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
+		&testing.ecc_mock.base, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 0);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
+		&testing.ecc_mock.base, ECC_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN, 5);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
+		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_get_measurements (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + measurement_length +
+		(ECC_KEY_LENGTH_256 * 2), msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_GET_MEASUREMENTS, rsp->header.req_rsp_code);
+	CuAssertIntEquals (test, measurement_count, rsp->number_of_blocks);
+	CuAssertIntEquals (test, 0,
+		memcmp (&measurement_length, rsp->measurement_record_len,
+		sizeof (rsp->measurement_record_len)));
+	CuAssertIntEquals (test, 0,
+		memcmp (&expected_measurement_record, spdm_get_measurements_resp_measurement_record (rsp),
+		measurement_length));
+	CuAssertIntEquals (test, 0,
+		memcmp (&expected_nonce, spdm_get_measurements_resp_nonce (rsp), SPDM_NONCE_LEN));
+
+	CuAssertIntEquals (test, 0,
+		memcmp (ECC_SIGNATURE_TEST_STRUCT.r, spdm_get_measurements_resp_signature (rsp),
+		ECC_KEY_LENGTH_256));
+
+	CuAssertIntEquals (test, 0,
+		memcmp (ECC_SIGNATURE_TEST_STRUCT.s,
+		spdm_get_measurements_resp_signature (rsp) + ECC_KEY_LENGTH_256, ECC_KEY_LENGTH_256));
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p384 (CuTest *test)
 {
 	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	uint8_t buf2[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
@@ -14977,7 +15849,8 @@ static void spdm_test_get_measurements_all_measurements_with_sig (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
@@ -15138,6 +16011,190 @@ static void spdm_test_get_measurements_all_measurements_with_sig (CuTest *test)
 	spdm_command_testing_release_dependencies (test, &testing);
 }
 
+static void spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p521 (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t buf2[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf2;
+	struct spdm_get_measurements_response *rsp = (struct spdm_get_measurements_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	const uint32_t measurement_count = 10;
+	const uint32_t measurement_length = 128;
+	uint8_t expected_nonce[SPDM_NONCE_LEN];
+	uint8_t expected_measurement_record[measurement_length];
+	uint32_t i;
+	size_t request_size = sizeof (struct spdm_get_measurements_request) + SPDM_NONCE_LEN +
+		sizeof (uint8_t);
+	size_t signature_size = ECC_KEY_LENGTH_521 * 2;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_512,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P521, SPDM_MEAS_RSP_TPM_ALG_SHA_512);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = request_size;
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+	spdm_state->connection_info.peer_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_512;
+	spdm_state->connection_info.peer_algorithms.base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P521;
+	spdm_state->connection_info.peer_algorithms.measurement_spec = SPDM_MEASUREMENT_SPEC_DMTF;
+	spdm_state->connection_info.peer_algorithms.measurement_hash_algo =
+		SPDM_MEAS_RSP_TPM_ALG_SHA_512;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_MEASUREMENTS;
+	rq->sig_required = true;
+	rq->raw_bit_stream_requested = true;
+	rq->measurement_operation =
+		SPDM_GET_MEASUREMENTS_REQUEST_MEASUREMENT_OPERATION_ALL_MEASUREMENTS;
+	for (i = 0; i < SPDM_NONCE_LEN; i++) {
+		expected_nonce[i] = rand ();
+	}
+	memcpy (spdm_get_measurements_rq_nonce (rq), expected_nonce, SPDM_NONCE_LEN);
+	*(spdm_get_measurements_rq_slot_id_ptr ((rq))) = 0;
+
+	memcpy (msg.payload, rq, request_size);
+
+	for (i = 0; i < SPDM_NONCE_LEN; i++) {
+		expected_nonce[i] = rand ();
+	}
+	for (i = 0; i < measurement_length; i++) {
+		expected_measurement_record[i] = rand ();
+	}
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.is_last_session_id_valid,
+		&testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2), MOCK_ARG_PTR_CONTAINS (rq, request_size),
+		MOCK_ARG (request_size), MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.measurements_mock.mock,
+		testing.measurements_mock.base.get_measurement_count, &testing.measurements_mock.base,
+		measurement_count);
+
+	status |= mock_expect (&testing.measurements_mock.mock,
+		testing.measurements_mock.base.get_all_measurement_blocks, &testing.measurements_mock.base,
+		measurement_length, MOCK_ARG (rq->raw_bit_stream_requested),
+		MOCK_ARG_PTR (&testing.hash_engine_mock[0].base), MOCK_ARG (HASH_TYPE_SHA512),
+		MOCK_ARG_NOT_NULL,
+		MOCK_ARG (msg.max_response - (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + signature_size)));
+	status |= mock_expect_output (&testing.measurements_mock.mock, 3, expected_measurement_record,
+		measurement_length, -1);
+
+	status |= mock_expect (&testing.rng_mock.mock, testing.rng_mock.base.generate_random_buffer,
+		&testing.rng_mock, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.rng_mock.mock, 1, expected_nonce, SPDM_NONCE_LEN, -1);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG_PTR_CONTAINS (rsp, (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + measurement_length)),
+		MOCK_ARG (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + measurement_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2), MOCK_ARG (true), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&testing.transcript_manager_mock.mock, 4, SHA512_TEST_HASH,
+		SHA512_HASH_LENGTH, -1);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.start_sha512, &testing.hash_engine_mock[0].base, 0);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + SHA512_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.get_active_algorithm, &testing.hash_engine_mock[0].base,
+		HASH_TYPE_SHA512);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&testing.hash_engine_mock[0].mock, 0, SHA512_TEST_HASH,
+		SHA512_HASH_LENGTH, -1);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
+		&testing.ecc_mock.base, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY_521, RIOT_CORE_ALIAS_KEY_521_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_521_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 0);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
+		&testing.ecc_mock.base, ECC521_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (ECC_DER_P521_ECDSA_MAX_LENGTH));
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC521_SIGNATURE_TEST,
+		ECC521_SIG_TEST_LEN, 5);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
+		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_get_measurements (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + measurement_length +
+		(ECC_KEY_LENGTH_521 * 2), msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_GET_MEASUREMENTS, rsp->header.req_rsp_code);
+	CuAssertIntEquals (test, measurement_count, rsp->number_of_blocks);
+	CuAssertIntEquals (test, 0,
+		memcmp (&measurement_length, rsp->measurement_record_len,
+		sizeof (rsp->measurement_record_len)));
+	CuAssertIntEquals (test, 0,
+		memcmp (&expected_measurement_record, spdm_get_measurements_resp_measurement_record (rsp),
+		measurement_length));
+	CuAssertIntEquals (test, 0,
+		memcmp (&expected_nonce, spdm_get_measurements_resp_nonce (rsp), SPDM_NONCE_LEN));
+
+	CuAssertIntEquals (test, 0,
+		memcmp (ECC521_SIGNATURE_TEST_STRUCT.r, spdm_get_measurements_resp_signature (rsp),
+		ECC_KEY_LENGTH_521));
+
+	CuAssertIntEquals (test, 0,
+		memcmp (ECC521_SIGNATURE_TEST_STRUCT.s,
+		spdm_get_measurements_resp_signature (rsp) + ECC_KEY_LENGTH_521, ECC_KEY_LENGTH_521));
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
 static void spdm_test_get_measurements_single_measurement_no_sig (CuTest *test)
 {
 	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
@@ -15158,7 +16215,8 @@ static void spdm_test_get_measurements_single_measurement_no_sig (CuTest *test)
 	TEST_START;
 
 	for (measurement_block_idx = 1; measurement_block_idx < 0xFF; measurement_block_idx++) {
-		spdm_command_testing_init_dependencies (test, &testing);
+		spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 		spdm_responder = &testing.spdm_responder;
 		spdm_state = spdm_responder->state;
 
@@ -15279,7 +16337,8 @@ static void spdm_test_get_measurements_count (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -15373,7 +16432,8 @@ static void spdm_test_get_measurements_null (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	status = spdm_get_measurements (NULL, &msg);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
@@ -15396,7 +16456,8 @@ static void spdm_test_get_measurements_request_size_invalid (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 
 	TEST_START;
@@ -15442,7 +16503,8 @@ static void spdm_test_get_measurements_incorrect_negotiated_version (CuTest *tes
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -15493,7 +16555,8 @@ static void spdm_test_get_measurements_incorrect_negotiated_version_2 (CuTest *t
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -15544,7 +16607,8 @@ static void spdm_test_get_measurements_incorrect_response_state_busy (CuTest *te
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -15595,7 +16659,8 @@ static void spdm_test_get_measurements_incorrect_response_state_need_resync (CuT
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -15646,7 +16711,8 @@ static void spdm_test_get_measurements_incorrect_response_state_processing_encap
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -15697,7 +16763,8 @@ static void spdm_test_get_measurements_incorrect_connection_state (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -15751,7 +16818,8 @@ static void spdm_test_get_measurements_no_meas_capability (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	testing.local_capabilities.flags.meas_cap = 0;
@@ -15805,7 +16873,8 @@ static void spdm_test_get_measurements_meas_spec_zero (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -15863,7 +16932,8 @@ static void spdm_test_get_measurements_measurement_hash_algo_zero (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -15920,7 +16990,8 @@ static void spdm_test_get_measurements_incompatible_measurement_cap (CuTest *tes
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_NO_SIG;
@@ -15979,7 +17050,8 @@ static void spdm_test_get_measurements_request_size_invalid_2 (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
@@ -16040,7 +17112,8 @@ static void spdm_test_get_measurements_invalid_slot_id (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
@@ -16103,7 +17176,8 @@ static void spdm_test_get_measurements_insufficient_reponse_buffer (CuTest *test
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
@@ -16164,7 +17238,8 @@ static void spdm_test_get_measurements_add_request_to_transcript_hash_fail (CuTe
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -16233,7 +17308,8 @@ static void spdm_test_get_measurements_get_measurement_count_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -16307,7 +17383,8 @@ static void spdm_test_get_measurements_get_all_measurement_blocks_fail (CuTest *
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -16393,7 +17470,8 @@ static void spdm_test_get_measurements_get_measurement_block_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -16481,7 +17559,8 @@ static void spdm_test_get_measurements_generate_random_buffer_fail (CuTest *test
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -16571,7 +17650,8 @@ static void spdm_test_get_measurements_add_response_to_transcript_hash_fail (CuT
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -16675,7 +17755,8 @@ static void spdm_test_get_measurements_sig_req_get_hash_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
@@ -16807,7 +17888,8 @@ static void spdm_test_get_measurements_v_1_2_sig_req_init_key_pair_fail (CuTest 
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
@@ -16962,7 +18044,8 @@ static void spdm_test_get_measurements_v_1_2_sig_req_hash_calculate_fail (CuTest
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
@@ -17099,7 +18182,8 @@ static void spdm_test_get_measurements_v_1_2_sig_req_sign_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
@@ -17263,7 +18347,8 @@ static void spdm_test_get_measurements_v_1_1_sig_req_init_key_pair_fail (CuTest 
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
@@ -17402,7 +18487,8 @@ static void spdm_test_get_measurements_v_1_1_sig_req_sign_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
@@ -17549,7 +18635,8 @@ static void spdm_test_get_measurements_ecc_der_decode_ecdsa_signature_fail (CuTe
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
@@ -17692,7 +18779,285 @@ static void spdm_test_get_measurements_ecc_der_decode_ecdsa_signature_fail (CuTe
 	spdm_command_testing_release_dependencies (test, &testing);
 }
 
-static void spdm_test_key_exchange (CuTest *test)
+static void spdm_test_key_exchange_ecc_nist_p256 (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
+	struct spdm_key_exchange_response *rsp = (struct spdm_key_exchange_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
+	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
+	size_t sig_size = (ECC_KEY_LENGTH_256 << 1);
+	uint8_t *ptr;
+	uint16_t opaque_rq_data_length = sizeof (struct spdm_general_opaque_data_table_header) +
+		sizeof (struct spdm_secured_message_opaque_element_table_header) +
+		sizeof (struct spdm_secured_message_opaque_element_supported_version) +
+		sizeof (struct spdm_version_number) * 1	/* Secure Version Count */;
+
+	opaque_rq_data_length = (opaque_rq_data_length + 3) & ~3;	/* Add Padding. */
+
+	uint16_t opaque_resp_data_length = sizeof (struct spdm_general_opaque_data_table_header) +
+		sizeof (struct spdm_secured_message_opaque_element_table_header) +
+		sizeof (struct spdm_secured_message_opaque_element_version_selection);
+
+	opaque_resp_data_length = (opaque_resp_data_length + 3) & ~3;	/* Add Padding. */
+
+	size_t response_size = sizeof (struct spdm_key_exchange_response) + dhe_key_size +
+		SHA256_HASH_LENGTH /* measurement summary hash*/ + sizeof (uint16_t) +
+		opaque_resp_data_length + sig_size + SHA256_HASH_LENGTH	/* HMAC */;
+
+	struct spdm_general_opaque_data_table_header *general_opaque_data_table_header;
+	struct spdm_secured_message_opaque_element_table_header *opaque_element_table_header;
+	struct spdm_secured_message_opaque_element_supported_version *opaque_element_support_version;
+	struct spdm_version_number *versions_list;
+	struct spdm_secure_session secure_session = {0};
+	uint8_t idx;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_256,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P256, SPDM_MEAS_RSP_TPM_ALG_SHA_256);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length =
+		sizeof (struct spdm_key_exchange_request) + dhe_key_size + sizeof (uint16_t) +
+		opaque_rq_data_length;
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+	spdm_state->connection_info.peer_capabilities.flags.key_ex_cap = 1;
+	spdm_state->connection_info.peer_algorithms.measurement_spec = SPDM_MEASUREMENT_SPEC_DMTF;
+	spdm_state->connection_info.peer_algorithms.measurement_hash_algo =
+		SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	spdm_state->connection_info.peer_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_256;
+	spdm_state->connection_info.peer_algorithms.base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P256;
+	spdm_state->connection_info.peer_algorithms.dhe_named_group =
+		SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
+	spdm_state->connection_info.peer_algorithms.other_params_support.opaque_data_format =
+		SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+	rq->measurement_summary_hash_type = SPDM_MEASUREMENT_SUMMARY_HASH_TCB;
+	rq->slot_id = 0;
+
+	/* Copy the DHE public key. */
+	ptr = (uint8_t*) rq + sizeof (struct spdm_key_exchange_request);
+	memcpy (ptr, &ECC384_PUBKEY_POINT.x, pub_key_component_size);
+	memcpy (&ptr[pub_key_component_size], &ECC384_PUBKEY_POINT.y, pub_key_component_size);
+	ptr += dhe_key_size;
+
+	/* Set opaque data length. */
+	ptr[0] = (uint8_t) (opaque_rq_data_length & 0xFF);
+	ptr[1] = (uint8_t) ((opaque_rq_data_length >> 8) & 0xFF);
+	ptr += sizeof (uint16_t);
+
+	general_opaque_data_table_header = (struct spdm_general_opaque_data_table_header*) ptr;
+	general_opaque_data_table_header->total_elements = 1;
+	opaque_element_table_header =
+		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
+			+
+			1);
+	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
+	opaque_element_table_header->vendor_len = 0;
+	opaque_element_table_header->opaque_element_data_len =
+		sizeof (struct spdm_secured_message_opaque_element_supported_version) +
+		sizeof (struct spdm_version_number) *
+		1 /* Secure Version Count */;
+
+	opaque_element_support_version = (void*) (opaque_element_table_header + 1);
+	opaque_element_support_version->sm_data_version =
+		SPDM_SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_DATA_VERSION;
+	opaque_element_support_version->sm_data_id =
+		SPDM_SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_ID_SUPPORTED_VERSION;
+	opaque_element_support_version->version_count = 1;	/*Secure Version Count */
+
+	versions_list = (void*) (opaque_element_support_version + 1);
+	versions_list->major_version = 1;
+	versions_list->minor_version = 0;
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.is_last_session_id_valid,
+		&testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.calculate_sha256, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_RSA_CA_NOPL_DER, X509_CERTSS_RSA_CA_NOPL_DER_LEN),
+		MOCK_ARG (X509_CERTSS_RSA_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.start_sha256, &testing.hash_engine_mock[0].base, 0);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	for (uint8_t i = 0; i < SPDM_MAX_CERT_COUNT_IN_CHAIN; i++) {
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	}
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_PTR (rq), MOCK_ARG (msg.payload_length),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.rng_mock.mock, testing.rng_mock.base.generate_random_buffer,
+		&testing.rng_mock, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.generate_shared_secret,
+		&testing.session_manager_mock.base, 0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.measurements_mock.mock,
+		testing.measurements_mock.base.get_measurement_summary_hash,
+		&testing.measurements_mock.base, 0, MOCK_ARG_PTR (testing.hash_engine[0]),
+		MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_PTR (testing.hash_engine[1]),
+		MOCK_ARG (HASH_TYPE_SHA256),
+		MOCK_ARG (rq->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (response_size - sig_size - SHA256_HASH_LENGTH	/* HMAC */), MOCK_ARG (true),
+		MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.start_sha256, &testing.hash_engine_mock[0].base, 0);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + SHA256_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.get_active_algorithm, &testing.hash_engine_mock[0].base,
+		HASH_TYPE_SHA256);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&testing.hash_engine_mock[0].mock, 0, SHA256_TEST_HASH,
+		SHA256_HASH_LENGTH, -1);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
+		&testing.ecc_mock.base, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 0);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
+		&testing.ecc_mock.base, ECC_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC_SIGNATURE_TEST,
+		ECC_SIG_TEST_LEN, 5);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
+		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL, MOCK_ARG (sig_size),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.generate_session_handshake_keys,
+		&testing.session_manager_mock.base, 0, MOCK_ARG_PTR (&secure_session));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+
+	/* HMAC Rounds. */
+	for (idx = 0; idx < 2; idx++) {
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.start_sha256, &testing.hash_engine_mock[0].base, 0);
+
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	}
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.set_session_state, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_SESSION_STATE_HANDSHAKING));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_key_exchange (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, response_size, msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_KEY_EXCHANGE, rsp->header.req_rsp_code);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_key_exchange_ecc_nist_p384 (CuTest *test)
 {
 	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
@@ -17732,7 +19097,8 @@ static void spdm_test_key_exchange (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -17969,6 +19335,284 @@ static void spdm_test_key_exchange (CuTest *test)
 	spdm_command_testing_release_dependencies (test, &testing);
 }
 
+static void spdm_test_key_exchange_ecc_nist_p521 (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
+	struct spdm_key_exchange_response *rsp = (struct spdm_key_exchange_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
+	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
+	size_t sig_size = (ECC_KEY_LENGTH_521 << 1);
+	uint8_t *ptr;
+	uint16_t opaque_rq_data_length = sizeof (struct spdm_general_opaque_data_table_header) +
+		sizeof (struct spdm_secured_message_opaque_element_table_header) +
+		sizeof (struct spdm_secured_message_opaque_element_supported_version) +
+		sizeof (struct spdm_version_number) * 1	/* Secure Version Count */;
+
+	opaque_rq_data_length = (opaque_rq_data_length + 3) & ~3;	/* Add Padding. */
+
+	uint16_t opaque_resp_data_length = sizeof (struct spdm_general_opaque_data_table_header) +
+		sizeof (struct spdm_secured_message_opaque_element_table_header) +
+		sizeof (struct spdm_secured_message_opaque_element_version_selection);
+
+	opaque_resp_data_length = (opaque_resp_data_length + 3) & ~3;	/* Add Padding. */
+
+	size_t response_size = sizeof (struct spdm_key_exchange_response) + dhe_key_size +
+		SHA512_HASH_LENGTH /* measurement summary hash*/ + sizeof (uint16_t) +
+		opaque_resp_data_length + sig_size + SHA512_HASH_LENGTH	/* HMAC */;
+
+	struct spdm_general_opaque_data_table_header *general_opaque_data_table_header;
+	struct spdm_secured_message_opaque_element_table_header *opaque_element_table_header;
+	struct spdm_secured_message_opaque_element_supported_version *opaque_element_support_version;
+	struct spdm_version_number *versions_list;
+	struct spdm_secure_session secure_session = {0};
+	uint8_t idx;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_512,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P521, SPDM_MEAS_RSP_TPM_ALG_SHA_512);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length =
+		sizeof (struct spdm_key_exchange_request) + dhe_key_size + sizeof (uint16_t) +
+		opaque_rq_data_length;
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+	spdm_state->connection_info.peer_capabilities.flags.key_ex_cap = 1;
+	spdm_state->connection_info.peer_algorithms.measurement_spec = SPDM_MEASUREMENT_SPEC_DMTF;
+	spdm_state->connection_info.peer_algorithms.measurement_hash_algo =
+		SPDM_MEAS_RSP_TPM_ALG_SHA_512;
+	spdm_state->connection_info.peer_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_512;
+	spdm_state->connection_info.peer_algorithms.base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P521;
+	spdm_state->connection_info.peer_algorithms.dhe_named_group =
+		SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
+	spdm_state->connection_info.peer_algorithms.other_params_support.opaque_data_format =
+		SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+	rq->measurement_summary_hash_type = SPDM_MEASUREMENT_SUMMARY_HASH_TCB;
+	rq->slot_id = 0;
+
+	/* Copy the DHE public key. */
+	ptr = (uint8_t*) rq + sizeof (struct spdm_key_exchange_request);
+	memcpy (ptr, &ECC384_PUBKEY_POINT.x, pub_key_component_size);
+	memcpy (&ptr[pub_key_component_size], &ECC384_PUBKEY_POINT.y, pub_key_component_size);
+	ptr += dhe_key_size;
+
+	/* Set opaque data length. */
+	ptr[0] = (uint8_t) (opaque_rq_data_length & 0xFF);
+	ptr[1] = (uint8_t) ((opaque_rq_data_length >> 8) & 0xFF);
+	ptr += sizeof (uint16_t);
+
+	general_opaque_data_table_header = (struct spdm_general_opaque_data_table_header*) ptr;
+	general_opaque_data_table_header->total_elements = 1;
+	opaque_element_table_header =
+		(struct spdm_secured_message_opaque_element_table_header*) (general_opaque_data_table_header
+			+
+			1);
+	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
+	opaque_element_table_header->vendor_len = 0;
+	opaque_element_table_header->opaque_element_data_len =
+		sizeof (struct spdm_secured_message_opaque_element_supported_version) +
+		sizeof (struct spdm_version_number) *
+		1 /* Secure Version Count */;
+
+	opaque_element_support_version = (void*) (opaque_element_table_header + 1);
+	opaque_element_support_version->sm_data_version =
+		SPDM_SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_DATA_VERSION;
+	opaque_element_support_version->sm_data_id =
+		SPDM_SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_ID_SUPPORTED_VERSION;
+	opaque_element_support_version->version_count = 1;	/*Secure Version Count */
+
+	versions_list = (void*) (opaque_element_support_version + 1);
+	versions_list->major_version = 1;
+	versions_list->minor_version = 0;
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.is_last_session_id_valid,
+		&testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.calculate_sha512, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC521_CA_NOPL_DER, X509_CERTSS_ECC521_CA_NOPL_DER_LEN),
+		MOCK_ARG (X509_CERTSS_ECC521_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA512_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.start_sha512, &testing.hash_engine_mock[0].base, 0);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	for (uint8_t i = 0; i < SPDM_MAX_CERT_COUNT_IN_CHAIN; i++) {
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	}
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_PTR (rq), MOCK_ARG (msg.payload_length),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.rng_mock.mock, testing.rng_mock.base.generate_random_buffer,
+		&testing.rng_mock, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.generate_shared_secret,
+		&testing.session_manager_mock.base, 0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.measurements_mock.mock,
+		testing.measurements_mock.base.get_measurement_summary_hash,
+		&testing.measurements_mock.base, 0, MOCK_ARG_PTR (testing.hash_engine[0]),
+		MOCK_ARG (HASH_TYPE_SHA512), MOCK_ARG_PTR (testing.hash_engine[1]),
+		MOCK_ARG (HASH_TYPE_SHA512),
+		MOCK_ARG (rq->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (response_size - sig_size - SHA512_HASH_LENGTH	/* HMAC */), MOCK_ARG (true),
+		MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.start_sha512, &testing.hash_engine_mock[0].base, 0);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + SHA512_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.get_active_algorithm, &testing.hash_engine_mock[0].base,
+		HASH_TYPE_SHA512);
+
+	status |= mock_expect (&testing.hash_engine_mock[0].mock,
+		testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&testing.hash_engine_mock[0].mock, 0, SHA512_TEST_HASH,
+		SHA512_HASH_LENGTH, -1);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
+		&testing.ecc_mock.base, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY_521, RIOT_CORE_ALIAS_KEY_521_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_521_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 0);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
+		&testing.ecc_mock.base, ECC521_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (ECC_DER_P521_ECDSA_MAX_LENGTH));
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC521_SIGNATURE_TEST,
+		ECC521_SIG_TEST_LEN, 5);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
+		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL, MOCK_ARG (sig_size),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.generate_session_handshake_keys,
+		&testing.session_manager_mock.base, 0, MOCK_ARG_PTR (&secure_session));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+
+	/* HMAC Rounds. */
+	for (idx = 0; idx < 2; idx++) {
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.start_sha512, &testing.hash_engine_mock[0].base, 0);
+
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	}
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.set_session_state, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_SESSION_STATE_HANDSHAKING));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_key_exchange (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, response_size, msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_KEY_EXCHANGE, rsp->header.req_rsp_code);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
 static void spdm_test_key_exchange_requester_hs_in_clear (CuTest *test)
 {
 	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
@@ -18009,7 +19653,8 @@ static void spdm_test_key_exchange_requester_hs_in_clear (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -18288,7 +19933,8 @@ static void spdm_test_key_exchange_requester_and_responder_hs_in_clear (CuTest *
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -18508,7 +20154,8 @@ static void spdm_test_key_exchange_null (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	status = spdm_key_exchange (NULL, &msg);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
@@ -18531,7 +20178,8 @@ static void spdm_test_key_exchange_no_session_manager (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 
 	memset (&msg, 0, sizeof (msg));
@@ -18565,7 +20213,8 @@ static void spdm_test_key_exchange_no_secure_versions (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 
 	memset (&msg, 0, sizeof (msg));
@@ -18599,7 +20248,8 @@ static void spdm_test_key_exchange_request_size_invalid (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 
 	TEST_START;
@@ -18635,7 +20285,8 @@ static void spdm_test_key_exchange_incorrect_negotiated_version (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -18697,7 +20348,8 @@ static void spdm_test_key_exchange_incorrect_response_state (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -18783,7 +20435,8 @@ static void spdm_test_key_exchange_incorrect_connection_state (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -18827,7 +20480,8 @@ static void spdm_test_key_exchange_no_key_exchange_capability (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -18901,7 +20555,8 @@ static void spdm_test_key_exchange_previous_session_active (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -18950,7 +20605,8 @@ static void spdm_test_key_exchange_no_meas_cap (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -19002,7 +20658,8 @@ static void spdm_test_key_exchange_no_measurement_spec (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -19054,7 +20711,8 @@ static void spdm_test_key_exchange_no_measurement_hash_algo (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -19107,7 +20765,8 @@ static void spdm_test_key_exchange_unsupported_slot_num (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -19162,7 +20821,8 @@ static void spdm_test_key_exchange_invalid_measurement_summary (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -19218,7 +20878,8 @@ static void spdm_test_key_exchange_request_size_invalid_2 (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -19281,7 +20942,8 @@ static void spdm_test_key_exchange_request_size_invalid_3 (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -19355,7 +21017,8 @@ static void spdm_test_key_exchange_opaque_data_length_byte_alignment_fail (CuTes
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -19432,7 +21095,8 @@ static void spdm_test_key_exchange_opaque_data_total_elements_lt_one (CuTest *te
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -19514,7 +21178,8 @@ static void spdm_test_key_exchange_opaque_data_invalid_length (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -19597,7 +21262,8 @@ static void spdm_test_key_exchange_opaque_data_invalid_element_id (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -19690,7 +21356,8 @@ static void spdm_test_key_exchange_create_session_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -19817,14 +21484,16 @@ static void spdm_test_key_exchange_device_cert_null (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
 	/* Corrupt the devid cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.devid_cert = NULL;
-	spdm_command_testing_init_key_manager (test, &testing, false, false);
+	spdm_command_testing_init_key_manager (test, &testing, false, false,
+		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -19954,14 +21623,16 @@ static void spdm_test_key_exchange_device_zero_length (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
 	/* Corrupt the devid cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.devid_cert_length = 0;
-	spdm_command_testing_init_key_manager (test, &testing, false, false);
+	spdm_command_testing_init_key_manager (test, &testing, false, false,
+		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -20091,14 +21762,16 @@ static void spdm_test_key_exchange_alias_cert_null (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
 	/* Corrupt the alias cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.alias_cert = NULL;
-	spdm_command_testing_init_key_manager (test, &testing, false, false);
+	spdm_command_testing_init_key_manager (test, &testing, false, false,
+		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -20228,14 +21901,16 @@ static void spdm_test_key_exchange_alias_cert_zero_length (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
 	/* Corrupt the alias cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.alias_cert_length = 0;
-	spdm_command_testing_init_key_manager (test, &testing, false, false);
+	spdm_command_testing_init_key_manager (test, &testing, false, false,
+		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -20365,7 +22040,8 @@ static void spdm_test_key_exchange_unsuported_hash_algo (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -20499,7 +22175,8 @@ static void spdm_test_key_exchange_cert_chain_update_header_hash_fail (CuTest *t
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -20647,7 +22324,8 @@ static void spdm_test_key_exchange_cert_chain_update_cert_hash_fail (CuTest *tes
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -20799,7 +22477,8 @@ static void spdm_test_key_exchange_cert_chain_finish_hash_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -20958,7 +22637,8 @@ static void spdm_test_key_exchange_add_cert_chain_hash_to_th_session_hash_contex
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -21118,7 +22798,8 @@ static void spdm_test_key_exchange_add_request_to_transcript_hash_fail (CuTest *
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -21294,7 +22975,8 @@ static void spdm_test_key_exchange_insufficient_response_buffer (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -21461,7 +23143,8 @@ static void spdm_test_key_exchange_generate_random_buffer_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -21629,7 +23312,8 @@ static void spdm_test_key_exchange_generate_shared_secret_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -21803,7 +23487,8 @@ static void spdm_test_key_exchange_get_measurement_summary_hash_fail (CuTest *te
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -21995,7 +23680,8 @@ static void spdm_test_key_exchange_add_response_to_transcript_hash_fail (CuTest 
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -22193,7 +23879,8 @@ static void spdm_test_key_exchange_signature_generation_get_hash_fail (CuTest *t
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -22397,7 +24084,8 @@ static void spdm_test_key_exchange_signature_generation_init_key_pair_fail (CuTe
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -22622,7 +24310,8 @@ static void spdm_test_key_exchange_signature_generation_hmac_calculation_fail (C
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -22829,7 +24518,8 @@ static void spdm_test_key_exchange_signature_generation_v_1_2_sig_req_sign_fail 
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -23064,7 +24754,8 @@ static void spdm_test_key_exchange_signature_generation_ecc_der_decode_ecdsa_sig
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -23299,7 +24990,8 @@ static void spdm_test_key_exchange_add_signature_to_th_session_hash_context_fail
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -23540,7 +25232,8 @@ static void spdm_test_key_exchange_generate_session_handshake_keys_fail (CuTest 
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -23786,7 +25479,8 @@ static void spdm_test_key_exchange_hmac_generation_get_hash_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -24038,7 +25732,8 @@ static void spdm_test_key_exchange_add_hmac_to_th_session_transcript_fail (CuTes
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -24289,7 +25984,8 @@ static void spdm_test_finish (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -24411,7 +26107,8 @@ static void spdm_test_finish_null (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	status = spdm_finish (NULL, &msg);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
@@ -24434,7 +26131,8 @@ static void spdm_test_finish_request_size_invalid (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 
 	TEST_START;
@@ -24470,7 +26168,8 @@ static void spdm_test_finish_incorrect_negotiated_version (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -24532,7 +26231,8 @@ static void spdm_test_finish_incorrect_response_state (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -24618,7 +26318,8 @@ static void spdm_test_finish_incorrect_connection_state (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -24662,7 +26363,8 @@ static void spdm_test_finish_requester_and_responder_hs_in_clear (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -24708,7 +26410,8 @@ static void spdm_test_finish_last_request_session_inactive (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -24757,7 +26460,8 @@ static void spdm_test_finish_last_request_session_id_invalid (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -24815,7 +26519,8 @@ static void spdm_test_finish_last_request_session_state_invalid (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -24875,7 +26580,8 @@ static void spdm_test_finish_signature_included (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -24936,7 +26642,8 @@ static void spdm_test_finish_request_size_invalid_2 (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -24999,7 +26706,8 @@ static void spdm_test_finish_add_request_to_transcript_hash_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -25080,7 +26788,8 @@ static void spdm_test_finish_verify_finish_req_hmac_get_hash_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -25170,7 +26879,8 @@ static void spdm_test_finish_verify_finish_req_hmac_hash_generate_hmac_fail (CuT
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -25261,7 +26971,8 @@ static void spdm_test_finish_verify_finish_req_hmac_match_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -25376,7 +27087,8 @@ static void spdm_test_finish_add_hmac_to_transcript_hash_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -25494,7 +27206,8 @@ static void spdm_test_finish_add_response_to_transcript_hash_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -25618,7 +27331,8 @@ static void spdm_test_finish_generate_session_data_keys_fail (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -25744,7 +27458,8 @@ static void spdm_test_end_session (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -25811,7 +27526,8 @@ static void spdm_test_end_session_null (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	status = spdm_end_session (NULL, &msg);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
@@ -25834,7 +27550,8 @@ static void spdm_test_end_session_request_size_invalid (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 
 	TEST_START;
@@ -25870,7 +27587,8 @@ static void spdm_test_end_session_incorrect_negotiated_version (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -25932,7 +27650,8 @@ static void spdm_test_end_session_incorrect_response_state (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -26018,7 +27737,8 @@ static void spdm_test_end_session_incorrect_connection_state (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -26062,7 +27782,8 @@ static void spdm_test_end_session_last_request_session_inactive (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -26111,7 +27832,8 @@ static void spdm_test_end_session_last_request_session_id_invalid (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -26169,7 +27891,8 @@ static void spdm_test_end_session_last_request_session_state_invalid (CuTest *te
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -26231,7 +27954,8 @@ static void spdm_test_vdm (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -26292,7 +28016,8 @@ static void spdm_test_vdm_null (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	status = spdm_vendor_defined_request (NULL, &msg);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
@@ -26317,7 +28042,8 @@ static void spdm_test_vdm_no_vdm_handler (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -26360,7 +28086,8 @@ static void spdm_test_vdm_request_size_invalid (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 
 	memset (&msg, 0, sizeof (msg));
@@ -26395,7 +28122,8 @@ static void spdm_test_vdm_incorrect_negotiated_version (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -26458,7 +28186,8 @@ static void spdm_test_vdm_incorrect_response_state (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -26548,7 +28277,8 @@ static void spdm_test_vdm_incorrect_connection_state (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -26592,7 +28322,8 @@ static void spdm_test_vdm_last_request_session_inactive (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -26642,7 +28373,8 @@ static void spdm_test_vdm_last_request_session_id_invalid (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -26701,7 +28433,8 @@ static void spdm_test_vdm_last_request_session_state_invalid (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -26761,7 +28494,8 @@ static void spdm_test_vdm_unsupported_message_type (CuTest *test)
 
 	TEST_START;
 
-	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 
@@ -27782,7 +29516,9 @@ TEST (spdm_test_generate_get_certificate_request_buf_too_small);
 TEST (spdm_test_process_get_certificate_response);
 TEST (spdm_test_process_get_certificate_response_null);
 TEST (spdm_test_process_get_certificate_response_bad_length);
-TEST (spdm_test_challenge);
+TEST (spdm_test_challenge_ecc_nist_p256);
+TEST (spdm_test_challenge_ecc_nist_p384);
+TEST (spdm_test_challenge_ecc_nist_p521);
 TEST (spdm_test_challenge_null);
 TEST (spdm_test_challenge_invalid_payload_size);
 TEST (spdm_test_challenge_version_mismatch);
@@ -27805,7 +29541,9 @@ TEST (spdm_test_challenge_transcript_update_fail_2);
 TEST (spdm_test_challenge_transcript_get_hash_fail);
 TEST (spdm_test_challenge_sign_fail);
 TEST (spdm_test_get_measurements_all_measurements_no_sig);
-TEST (spdm_test_get_measurements_all_measurements_with_sig);
+TEST (spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p256);
+TEST (spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p384);
+TEST (spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p521);
 TEST (spdm_test_get_measurements_single_measurement_no_sig);
 TEST (spdm_test_get_measurements_count);
 TEST (spdm_test_get_measurements_null);
@@ -27836,7 +29574,9 @@ TEST (spdm_test_get_measurements_v_1_2_sig_req_sign_fail);
 TEST (spdm_test_get_measurements_v_1_1_sig_req_init_key_pair_fail);
 TEST (spdm_test_get_measurements_v_1_1_sig_req_sign_fail);
 TEST (spdm_test_get_measurements_ecc_der_decode_ecdsa_signature_fail);
-TEST (spdm_test_key_exchange);
+TEST (spdm_test_key_exchange_ecc_nist_p256);
+TEST (spdm_test_key_exchange_ecc_nist_p384);
+TEST (spdm_test_key_exchange_ecc_nist_p521);
 TEST (spdm_test_key_exchange_requester_hs_in_clear);
 TEST (spdm_test_key_exchange_requester_and_responder_hs_in_clear);
 TEST (spdm_test_key_exchange_null);
