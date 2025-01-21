@@ -122,6 +122,23 @@ static const size_t DME_STRUCTURE_TYPE7_OID_LENGTH = sizeof (DME_STRUCTURE_TYPE7
  */
 #define	DME_STRUCTURE_TYPE7_LENGTH			((SHA512_HASH_LENGTH * 3) + (ECC_KEY_LENGTH_384 * 2))
 
+/**
+ * OID to identify a DME structure that endorses the DICE identity key through an intermediate key
+ * that is endorsed by the DME key.  Keys and hashes are 384 bits.
+ *
+ * 1.3.6.1.4.1.311.102.3.2.8
+ */
+static const uint8_t DME_STRUCTURE_TYPE8_OID[] = {
+	0x2b, 0x06, 0x01, 0x04, 0x01, 0x82, 0x37, 0x66, 0x03, 0x02, 0x08
+};
+
+static const size_t DME_STRUCTURE_TYPE8_OID_LENGTH = sizeof (DME_STRUCTURE_TYPE8_OID);
+
+/**
+ * Length of the chained DME structure.
+ */
+#define	DME_STRUCTURE_TYPE8_LENGTH			((SHA384_HASH_LENGTH * 3) + (ECC_KEY_LENGTH_384 * 4))
+
 
 /**
  * Initialize DME information for a device that uses a DME structure that contains:
@@ -386,5 +403,35 @@ int dme_structure_init_le_ecc384_with_sha512_nonce_and_challenge (struct dme_str
 {
 	return dme_structure_init (dme, DME_STRUCTURE_TYPE7_OID, DME_STRUCTURE_TYPE7_OID_LENGTH,
 		dme_struct_data, dme_struct_length, DME_STRUCTURE_TYPE7_LENGTH, dme_key_der, key_length,
+		signature_der, sig_length, sig_hash);
+}
+
+/**
+ * Initialize DME information for a device that uses a chained DME structure that contains:
+ * - SHA-384 digest of an intermediate signing key directly endorsed by DME.
+ * - SHA-384 measurement of DICE layer 0.
+ * - ECDSA P-384 signature over the previous fields using SHA-384 and the DME private key.
+ * - ECC P-384 public key of the intermediate signing key.
+ * - SHA-384 digest of the DICE Device ID public key.
+ *
+ * This is DME structure type 8.
+ *
+ * @param dme The DME information to initialize.
+ * @param dme_struct_data The DME structure data signed by the DME key.
+ * @param dme_struct_length Length of the DME structure.
+ * @param dme_key_der DER encoded DME public key.  This can be any key length.
+ * @param key_length  Length of the DER encoded key.
+ * @param signature_der DER encoded signature of the DME structure.
+ * @param sig_length Length of the DER signature.
+ * @param sig_hash The hash algorithm that was used to generate the signature.
+ *
+ * @return 0 if the DME information was successfully initialized or an error code.
+ */
+int dme_structure_init_chained_ecc384_sha384 (struct dme_structure *dme,
+	const uint8_t *dme_struct_data, size_t dme_struct_length, const uint8_t *dme_key_der,
+	size_t key_length, const uint8_t *signature_der, size_t sig_length, enum hash_type sig_hash)
+{
+	return dme_structure_init (dme, DME_STRUCTURE_TYPE8_OID, DME_STRUCTURE_TYPE8_OID_LENGTH,
+		dme_struct_data, dme_struct_length, DME_STRUCTURE_TYPE8_LENGTH, dme_key_der, key_length,
 		signature_der, sig_length, sig_hash);
 }

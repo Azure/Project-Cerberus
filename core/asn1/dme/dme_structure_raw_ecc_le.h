@@ -51,5 +51,10 @@ int dme_structure_raw_ecc_le_init_le_ecc384_with_sha512_nonce_and_challenge (
 	const uint8_t *dme_key_x, const uint8_t *dme_key_y, size_t key_length,
 	const uint8_t *signature_r, const uint8_t *signature_s, enum hash_type sig_hash);
 
+int dme_structure_raw_ecc_le_init_chained_ecc384_sha384 (struct dme_structure_raw_ecc_le *dme,
+	const uint8_t *dme_struct_data, size_t dme_struct_length, const uint8_t *dme_key_x,
+	const uint8_t *dme_key_y, size_t key_length, const uint8_t *signature_r,
+	const uint8_t *signature_s, enum hash_type sig_hash);
+
 
 #endif	/* DME_STRUCTURE_RAW_ECC_LE_H_ */

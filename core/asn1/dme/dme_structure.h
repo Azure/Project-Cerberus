@@ -93,6 +93,10 @@ int dme_structure_init_le_ecc384_with_sha512_nonce_and_challenge (struct dme_str
 	const uint8_t *dme_struct_data, size_t dme_struct_length, const uint8_t *dme_key_der,
 	size_t key_length, const uint8_t *signature_der, size_t sig_length, enum hash_type sig_hash);
 
+int dme_structure_init_chained_ecc384_sha384 (struct dme_structure *dme,
+	const uint8_t *dme_struct_data, size_t dme_struct_length, const uint8_t *dme_key_der,
+	size_t key_length, const uint8_t *signature_der, size_t sig_length, enum hash_type sig_hash);
+
 
 #define	DME_STRUCTURE_ERROR(code)		ROT_ERROR (ROT_MODULE_DME_STRUCTURE, code)
 
