@@ -16799,6 +16799,76 @@ static void spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_no_clear (Cu
 	spi_flash_release (&flash);
 }
 
+static void spi_flash_test_clear_block_protect_winbond_cmp_bit_set (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint8_t wip_status = 0;
+	uint8_t reg_set1 = 0x83;
+	uint8_t reg_set2 = 0xff;
+	uint8_t clear_expected[] = {0x83, 0x03};
+	uint32_t header[] = {
+		0x50444653,
+		0xff010106,
+		0x10010600,
+		0xff000030
+	};
+	uint32_t params[] = {
+		0xfff920e5,
+		0x00ffffff,
+		0x6b08eb44,
+		0xbb423b08,
+		0xfffffffe,
+		0x0000ffff,
+		0xeb40ffff,
+		0x520f200c,
+		0x0000d810,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff4df719,
+		0x80f830e9
+	};
+	uint8_t winbond[] = {0xef, 0x40, 0x21};
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &state, &mock, winbond, header, params,
+		sizeof (params), 0x000030, FULL_CAPABILITIES);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, winbond, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &reg_set2, 1,
+		FLASH_EXP_READ_REG (0x35, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &reg_set1, 1, FLASH_EXP_READ_STATUS_REG);
+
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &wip_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&mock, 0,
+		FLASH_EXP_WRITE_REG (0x01, clear_expected, sizeof (clear_expected)));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &wip_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_clear_block_protect (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
 static void spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_read_35 (CuTest *test)
 {
 	struct spi_flash_state state;
@@ -20461,7 +20531,9 @@ static void spi_flash_test_initialize_device_drive_strength (CuTest *test)
 	uint8_t winbond[] = {0xef, 0x40, 0x19};
 	uint8_t initial = 0x00;
 	uint8_t configured = 0x20;
-	uint8_t read_status = 0x7c;
+	uint8_t read_status  = 0x7c;
+	uint8_t read_status2 = 0x42;
+	uint8_t clear_expected [] = {0x00, 0x02};
 	uint8_t write_status = 0x00;
 	uint32_t out;
 
@@ -20504,6 +20576,8 @@ static void spi_flash_test_initialize_device_drive_strength (CuTest *test)
 		FLASH_EXP_READ_REG (0x15, sizeof (configured)));
 
 	/* Clear block protect bits. */
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status2, 1,
+		FLASH_EXP_READ_REG (0x35, 1));
 	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
@@ -20511,7 +20585,7 @@ static void spi_flash_test_initialize_device_drive_strength (CuTest *test)
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_WRITE_ENABLE);
 	status |= flash_master_mock_expect_tx_xfer (&mock, 0,
-		FLASH_EXP_WRITE_REG (0x01, &write_status, 1));
+		FLASH_EXP_WRITE_REG (0x01, clear_expected, sizeof (clear_expected)));
 	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &write_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
@@ -20585,6 +20659,8 @@ static void spi_flash_test_initialize_device_wake_reset_and_drive_strength (CuTe
 	uint8_t initial = 0x00;
 	uint8_t configured = 0x20;
 	uint8_t read_status = 0x7c;
+	uint8_t read_status2 = 0x42;
+	uint8_t clear_expected [] = {0x00, 0x02};
 	uint8_t write_status = 0x00;
 	uint32_t out;
 
@@ -20636,6 +20712,8 @@ static void spi_flash_test_initialize_device_wake_reset_and_drive_strength (CuTe
 		FLASH_EXP_READ_REG (0x15, sizeof (configured)));
 
 	/* Clear block protect bits. */
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status2, 1,
+		FLASH_EXP_READ_REG (0x35, 1));
 	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
@@ -20643,7 +20721,7 @@ static void spi_flash_test_initialize_device_wake_reset_and_drive_strength (CuTe
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_WRITE_ENABLE);
 	status |= flash_master_mock_expect_tx_xfer (&mock, 0,
-		FLASH_EXP_WRITE_REG (0x01, &write_status, 1));
+		FLASH_EXP_WRITE_REG (0x01, clear_expected, sizeof (clear_expected)));
 	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &write_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
@@ -20717,7 +20795,8 @@ static void spi_flash_test_initialize_device_wake_reset_if_supported_and_drive_s
 	uint8_t winbond[] = {0xef, 0x40, 0x19};
 	uint8_t initial = 0x00;
 	uint8_t configured = 0x20;
-	uint8_t read_status = 0x7c;
+	uint8_t read_status [] = {0x7c, 0x42};
+	uint8_t clear_expected [] = {0x00, 0x02};
 	uint8_t write_status = 0x00;
 	uint32_t out;
 
@@ -20757,26 +20836,28 @@ static void spi_flash_test_initialize_device_wake_reset_if_supported_and_drive_s
 	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &initial, sizeof (initial),
 		FLASH_EXP_READ_REG (0x15, sizeof (initial)));
 
-	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_WRITE_ENABLE);
 	status |= flash_master_mock_expect_tx_xfer (&mock, 0,
 		FLASH_EXP_WRITE_REG (0x11, &configured, sizeof (configured)));
-	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &configured, sizeof (configured),
 		FLASH_EXP_READ_REG (0x15, sizeof (configured)));
 
 	/* Clear block protect bits. */
-	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status[1], 1,
+		FLASH_EXP_READ_REG (0x35, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_WRITE_ENABLE);
 	status |= flash_master_mock_expect_tx_xfer (&mock, 0,
-		FLASH_EXP_WRITE_REG (0x01, &write_status, 1));
+		FLASH_EXP_WRITE_REG (0x01, clear_expected, sizeof (clear_expected)));
 	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &write_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
@@ -22935,7 +23016,8 @@ static void spi_flash_test_initialize_device_state_drive_strength (CuTest *test)
 	uint8_t winbond[] = {0xef, 0x40, 0x19};
 	uint8_t initial = 0x00;
 	uint8_t configured = 0x20;
-	uint8_t read_status = 0x7c;
+	uint8_t read_status [] = {0x7c, 0x42};
+	uint8_t clear_expected []= {0x00, 0x02};
 	uint8_t write_status = 0x00;
 	uint32_t out;
 
@@ -22966,26 +23048,28 @@ static void spi_flash_test_initialize_device_state_drive_strength (CuTest *test)
 	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &initial, sizeof (initial),
 		FLASH_EXP_READ_REG (0x15, sizeof (initial)));
 
-	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_WRITE_ENABLE);
 	status |= flash_master_mock_expect_tx_xfer (&mock, 0,
 		FLASH_EXP_WRITE_REG (0x11, &configured, sizeof (configured)));
-	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &configured, sizeof (configured),
 		FLASH_EXP_READ_REG (0x15, sizeof (configured)));
 
 	/* Clear block protect bits. */
-	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status[1], 1,
+		FLASH_EXP_READ_REG (0x35, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_WRITE_ENABLE);
 	status |= flash_master_mock_expect_tx_xfer (&mock, 0,
-		FLASH_EXP_WRITE_REG (0x01, &write_status, 1));
+		FLASH_EXP_WRITE_REG (0x01, clear_expected, sizeof (clear_expected)));
 	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &write_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
@@ -23057,7 +23141,8 @@ static void spi_flash_test_initialize_device_state_wake_reset_and_drive_strength
 	uint8_t winbond[] = {0xef, 0x40, 0x19};
 	uint8_t initial = 0x00;
 	uint8_t configured = 0x20;
-	uint8_t read_status = 0x7c;
+	uint8_t read_status[] = {0x7c, 0x42};
+	uint8_t clear_expected[] = {0x00, 0x02};
 	uint8_t write_status = 0x00;
 	uint32_t out;
 
@@ -23097,26 +23182,28 @@ static void spi_flash_test_initialize_device_state_wake_reset_and_drive_strength
 	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &initial, sizeof (initial),
 		FLASH_EXP_READ_REG (0x15, sizeof (initial)));
 
-	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_WRITE_ENABLE);
 	status |= flash_master_mock_expect_tx_xfer (&mock, 0,
 		FLASH_EXP_WRITE_REG (0x11, &configured, sizeof (configured)));
-	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &configured, sizeof (configured),
 		FLASH_EXP_READ_REG (0x15, sizeof (configured)));
 
 	/* Clear block protect bits. */
-	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status[1], 1,
+		FLASH_EXP_READ_REG (0x35, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_WRITE_ENABLE);
 	status |= flash_master_mock_expect_tx_xfer (&mock, 0,
-		FLASH_EXP_WRITE_REG (0x01, &write_status, 1));
+		FLASH_EXP_WRITE_REG (0x01, &clear_expected, sizeof (clear_expected)));
 	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &write_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
@@ -23190,7 +23277,8 @@ static void spi_flash_test_initialize_device_state_wake_reset_if_supported_and_d
 	uint8_t winbond[] = {0xef, 0x40, 0x19};
 	uint8_t initial = 0x00;
 	uint8_t configured = 0x20;
-	uint8_t read_status = 0x7c;
+	uint8_t read_status[] = {0x7c, 0x42};
+	uint8_t clear_expected[] = {0x00, 0x02};
 	uint8_t write_status = 0x00;
 	uint32_t out;
 
@@ -23230,26 +23318,28 @@ static void spi_flash_test_initialize_device_state_wake_reset_if_supported_and_d
 	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &initial, sizeof (initial),
 		FLASH_EXP_READ_REG (0x15, sizeof (initial)));
 
-	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_WRITE_ENABLE);
 	status |= flash_master_mock_expect_tx_xfer (&mock, 0,
 		FLASH_EXP_WRITE_REG (0x11, &configured, sizeof (configured)));
-	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &configured, sizeof (configured),
 		FLASH_EXP_READ_REG (0x15, sizeof (configured)));
 
 	/* Clear block protect bits. */
-	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status[1], 1,
+		FLASH_EXP_READ_REG (0x35, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_WRITE_ENABLE);
 	status |= flash_master_mock_expect_tx_xfer (&mock, 0,
-		FLASH_EXP_WRITE_REG (0x01, &write_status, 1));
+		FLASH_EXP_WRITE_REG (0x01, clear_expected, sizeof (clear_expected)));
 	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &write_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
@@ -29407,6 +29497,7 @@ TEST (spi_flash_test_clear_block_protect_no_quad_enable);
 TEST (spi_flash_test_clear_block_protect_no_quad_enable_hold_disable);
 TEST (spi_flash_test_clear_block_protect_quad_enable_bit1_sr2);
 TEST (spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_no_clear);
+TEST (spi_flash_test_clear_block_protect_winbond_cmp_bit_set);
 TEST (spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_read_35);
 TEST (spi_flash_test_clear_block_protect_quad_enable_bit6_sr1);
 TEST (spi_flash_test_clear_block_protect_quad_enable_bit7_sr2);

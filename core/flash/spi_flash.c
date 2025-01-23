@@ -1341,9 +1341,11 @@ int spi_flash_force_reset_device (const struct spi_flash *flash, uint32_t wait_m
 int spi_flash_clear_block_protect (const struct spi_flash *flash)
 {
 	struct flash_xfer xfer;
-	uint8_t reg[2];
+	uint8_t reg[2] = {0};
 	uint8_t cmd_len = 1;
 	uint8_t mask = 0x83;
+	uint8_t cmpl_bp = 0;
+	uint8_t cmpl_mask = 0xff;
 	uint8_t vendor;
 	uint16_t device_id;
 	int status;
@@ -1394,12 +1396,20 @@ int spi_flash_clear_block_protect (const struct spi_flash *flash)
 			goto exit;
 		}
 
-		if (reg[0] & ~mask) {
+		/* On Winbond devices with QE bit in SR2, ensure bit 6 in SR2
+		 * (complement block protect in SR1) is cleared to ensure block protection is cleared. */
+		if (vendor == FLASH_ID_WINBOND) {
+			cmpl_bp = 0x40;
+			cmpl_mask = 0x03;
+		}
+
+		if ((reg[0] & ~mask) || (reg[1] & cmpl_bp)) {
 			if (flash->state->quad_enable == SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35) {
 				cmd_len = 2;
 			}
 
 			reg[0] &= mask;
+			reg[1] &= cmpl_mask;
 			status = spi_flash_write_register (flash, FLASH_CMD_WRSR, reg, cmd_len,
 				flash->state->sr1_volatile);
 		}

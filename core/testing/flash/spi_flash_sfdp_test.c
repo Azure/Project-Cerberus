@@ -7129,7 +7129,7 @@ static void spi_flash_sfdp_test_get_quad_enable_w25q16jv (CuTest *test)
 
 	status = spi_flash_sfdp_get_quad_enable (&table, &quad);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_NO_CLR, quad);
+	CuAssertIntEquals (test, SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35, quad);
 
 	status = flash_master_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -7174,7 +7174,7 @@ static void spi_flash_sfdp_test_get_quad_enable_w25q256jv (CuTest *test)
 
 	status = spi_flash_sfdp_get_quad_enable (&table, &quad);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_NO_CLR, quad);
+	CuAssertIntEquals (test, SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35, quad);
 
 	status = flash_master_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -7219,7 +7219,7 @@ static void spi_flash_sfdp_test_get_quad_enable_w25q512jv (CuTest *test)
 
 	status = spi_flash_sfdp_get_quad_enable (&table, &quad);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_NO_CLR, quad);
+	CuAssertIntEquals (test, SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35, quad);
 
 	status = flash_master_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
