@@ -5,8 +5,17 @@
 #define SPDM_PROTOCOL_H_
 
 #include <stdint.h>
+#include "platform_config.h"
 #include "mctp/mctp_base_protocol.h"
 
+/* Configurable SPDM protocol parameters. Defaults can be overridden in platform_config.h */
+
+/**
+ * Maximum supported transfer size for SPDM 1.0 and 1.1 messages.
+ */
+#ifndef SPDM_1_0_AND_1_1_MAX_RESPONSE_LEN
+#define SPDM_1_0_AND_1_1_MAX_RESPONSE_LEN			MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY
+#endif
 
 /**
  * Minimum length for any SPDM message.

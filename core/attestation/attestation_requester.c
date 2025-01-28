@@ -876,6 +876,9 @@ static int attestation_requester_get_capabilities_rsp_post_processing (
 	if (rsp->base_capabilities.header.spdm_minor_version > 1) {
 		capabilities.request.max_message_size = rsp->data_transfer_size;
 	}
+	else {
+		capabilities.request.max_message_size = SPDM_1_0_AND_1_1_MAX_RESPONSE_LEN;
+	}
 
 	return device_manager_update_device_capabilities (attestation->device_mgr, device_num,
 		&capabilities);
@@ -2898,6 +2901,8 @@ static int attestation_requester_retrieve_spdm_certificate_chain_portion (
 		(struct spdm_get_certificate_response*) attestation->state->txn.msg_buffer;
 	uint8_t *cert_buffer = NULL;
 	size_t rx_data = 0;
+	uint16_t read_len;
+	size_t max_len;
 	int rq_len;
 	int status;
 
@@ -2910,10 +2915,15 @@ static int attestation_requester_retrieve_spdm_certificate_chain_portion (
 		return ATTESTATION_BUFFER_OVERRUN;
 	}
 
+	max_len = device_manager_get_max_message_len_by_eid (attestation->device_mgr, eid) -
+		sizeof (struct spdm_get_certificate_response);
+
+	read_len = (length > max_len) ? max_len : length;
+
 	while (length > 0) {
 		rq_len = spdm_generate_get_certificate_request (attestation->state->spdm_msg_buffer,
 			ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.slot_num,
-			offset + rx_data, length, attestation->state->txn.spdm_minor_version);
+			offset + rx_data, read_len, attestation->state->txn.spdm_minor_version);
 		if (ROT_IS_ERROR (rq_len)) {
 			status = rq_len;
 			goto exit;
@@ -2950,6 +2960,9 @@ static int attestation_requester_retrieve_spdm_certificate_chain_portion (
 		if (cert_buffer != NULL) {
 			rx_data += buffer_copy (spdm_get_certificate_resp_cert_chain (rsp), rsp->portion_len,
 				NULL, &length, &cert_buffer[rx_data]);
+			if (length < read_len) {
+				read_len = length;
+			}
 		}
 		else {
 			/* All the requested data is in the message buffer. */

@@ -187,6 +187,7 @@ struct attestation_requester_testing {
 	uint8_t cert_eid[2];										/**< List of EIDs to use for looped cert messages. */
 	size_t next_cert_req;										/**< Index of the next GET_CERTIFICATE request to generate. */
 	size_t next_cert_resp;										/**< Index of the next GET_CERTIFICATE response to generate. */
+	uint32_t rsp_data_transfer_size;							/**< Max message size of SPDM response size. */
 };
 
 /**
@@ -455,6 +456,182 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 }
 
 /**
+ * Helper function to setup mock certificate for spdm attestation testing
+ *
+ * @param test The test framework
+ * @param init_cert_expect Boolean flag indicating whether to initialize Cert expectation or Modify initialized Cert expectation
+ * @param riot_no_root_ca Boolean flag indicating whether to initialize RIoT keystore with a root CA
+ * @param testing The testing instances to initialize
+ */
+static void setup_attestation_requester_mock_certificate_test (CuTest *test,
+	bool init_cert_expect, bool riot_no_root_ca, struct attestation_requester_testing *testing)
+{
+	size_t i;
+	size_t alias_offset;
+	size_t cert_msg_idx = 0;
+	size_t max_read_len;
+
+	if (init_cert_expect) {
+		alias_offset = testing->cert_buffer_len;
+		max_read_len = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+		testing->cert_msg[cert_msg_idx].req_offset = 0;
+		testing->cert_msg[cert_msg_idx].req_length = alias_offset;
+		testing->cert_msg[cert_msg_idx++].resp_length = alias_offset;
+
+		/* GET_CERTIFICATE request for the root CA length. */
+		testing->cert_msg[cert_msg_idx].req_offset = alias_offset;
+		testing->cert_msg[cert_msg_idx].req_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+		testing->cert_msg[cert_msg_idx++].resp_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+
+		alias_offset += ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+
+		if (!riot_no_root_ca) {
+			memcpy (&cert_buffer[testing->cert_buffer_len], X509_CERTSS_RSA_CA_NOPL_DER,
+				X509_CERTSS_RSA_CA_NOPL_DER_LEN);
+			testing->cert_buffer_len += X509_CERTSS_RSA_CA_NOPL_DER_LEN;
+		}
+		else {
+			memcpy (&cert_buffer[testing->cert_buffer_len], X509_CERTSS_ECC_CA_NOPL_DER,
+				X509_CERTSS_ECC_CA_NOPL_DER_LEN);
+			testing->cert_buffer_len += X509_CERTSS_ECC_CA_NOPL_DER_LEN;
+		}
+
+		memcpy (&cert_buffer[testing->cert_buffer_len], RIOT_CORE_DEVID_SIGNED_CERT,
+			RIOT_CORE_DEVID_SIGNED_CERT_LEN);
+		testing->cert_buffer_len += RIOT_CORE_DEVID_SIGNED_CERT_LEN;
+
+		memcpy (&cert_buffer[testing->cert_buffer_len], RIOT_CORE_ALIAS_CERT,
+			RIOT_CORE_ALIAS_CERT_LEN);
+		testing->cert_buffer_len += RIOT_CORE_ALIAS_CERT_LEN;
+	}
+	else {
+		max_read_len = ((testing->spdm_version == 2) ? testing->rsp_data_transfer_size :
+			SPDM_1_0_AND_1_1_MAX_RESPONSE_LEN) - sizeof (struct spdm_get_certificate_response);
+		/* Update the list get cert messages if cert size is more than SPDM_1_0_AND_1_1_MAX_RESPONSE_LEN. */
+		cert_msg_idx = 2;
+		alias_offset = testing->cert_msg[cert_msg_idx].req_offset;
+
+		memset (testing->cert_msg + 2, 0, sizeof (struct attestation_requester_testing_get_cert) * 8);
+	}
+
+	if (!riot_no_root_ca) {
+		for (i = 0; i < (X509_CERTSS_RSA_CA_NOPL_DER_LEN - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN);
+			i += max_read_len) {
+			if (((X509_CERTSS_RSA_CA_NOPL_DER_LEN - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN) -
+				i) < max_read_len) {
+				/* GET_CERTIFICATE X509_CERTSS_RSA_CA_NOPL_DER request for the last part. */
+				testing->cert_msg[cert_msg_idx].root_ca = true;
+				testing->cert_msg[cert_msg_idx].cert_offset = alias_offset -
+					ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+				testing->cert_msg[cert_msg_idx].cert_length = X509_CERTSS_RSA_CA_NOPL_DER_LEN;
+				testing->cert_msg[cert_msg_idx].req_offset = alias_offset + i;
+				testing->cert_msg[cert_msg_idx].req_length = X509_CERTSS_RSA_CA_NOPL_DER_LEN -
+					i - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+				testing->cert_msg[cert_msg_idx++].resp_length = X509_CERTSS_RSA_CA_NOPL_DER_LEN -
+					i - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+			}
+			else {
+				/* GET_CERTIFICATE X509_CERTSS_RSA_CA_NOPL_DER request for the next part. */
+				testing->cert_msg[cert_msg_idx].req_offset = alias_offset + i;
+				testing->cert_msg[cert_msg_idx].req_length = max_read_len;
+				testing->cert_msg[cert_msg_idx++].resp_length = max_read_len;
+			}
+		}
+
+		alias_offset += (X509_CERTSS_RSA_CA_NOPL_DER_LEN - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN);
+	}
+	else {
+		for (i = 0; i < (X509_CERTSS_ECC_CA_NOPL_DER_LEN - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN);
+			i += max_read_len) {
+			if (((X509_CERTSS_ECC_CA_NOPL_DER_LEN - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN) -
+				i) < max_read_len) {
+				/* GET_CERTIFICATE X509_CERTSS_ECC_CA_NOPL_DER request for the last part. */
+				testing->cert_msg[cert_msg_idx].root_ca = true;
+				testing->cert_msg[cert_msg_idx].cert_offset = alias_offset -
+					ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+				testing->cert_msg[cert_msg_idx].cert_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN;
+				testing->cert_msg[cert_msg_idx].req_offset = alias_offset + i;
+				testing->cert_msg[cert_msg_idx].req_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN -
+					i - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+				testing->cert_msg[cert_msg_idx++].resp_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN -
+					i - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+			}
+			else {
+				/* GET_CERTIFICATE X509_CERTSS_ECC_CA_NOPL_DER request for the next part. */
+				testing->cert_msg[cert_msg_idx].req_offset = alias_offset + i;
+				testing->cert_msg[cert_msg_idx].req_length = max_read_len;
+				testing->cert_msg[cert_msg_idx++].resp_length = max_read_len;
+			}
+		}
+
+		alias_offset += (X509_CERTSS_ECC_CA_NOPL_DER_LEN - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN);
+	}
+
+	/* GET_CERTIFICATE RIOT_CORE_DEVID_SIGNED_CERT request for the first part. */
+	testing->cert_msg[cert_msg_idx].req_offset = alias_offset;
+	testing->cert_msg[cert_msg_idx].req_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+	testing->cert_msg[cert_msg_idx++].resp_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+
+	for (i = 0; i < RIOT_CORE_DEVID_SIGNED_CERT_LEN; i += max_read_len) {
+		if (((RIOT_CORE_DEVID_SIGNED_CERT_LEN - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN) -
+			i) < max_read_len) {
+			/* GET_CERTIFICATE RIOT_CORE_DEVID_SIGNED_CERT request for the last part.*/
+			testing->cert_msg[cert_msg_idx].auth_cert = true;
+			testing->cert_msg[cert_msg_idx].trusted_ca = true;
+			testing->cert_msg[cert_msg_idx].cert_offset = alias_offset;
+			testing->cert_msg[cert_msg_idx].cert_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN;
+			testing->cert_msg[cert_msg_idx].req_offset = alias_offset +
+				ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN + i;
+			testing->cert_msg[cert_msg_idx].req_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN -
+				i - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+			testing->cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN -
+				i - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+		}
+		else {
+			/* GET_CERTIFICATE RIOT_CORE_DEVID_SIGNED_CERT request for the next part.*/
+			testing->cert_msg[cert_msg_idx].req_offset = alias_offset +
+				ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN + i;
+			testing->cert_msg[cert_msg_idx].req_length = max_read_len;
+			testing->cert_msg[cert_msg_idx++].resp_length = max_read_len;
+		}
+	}
+
+	alias_offset += RIOT_CORE_DEVID_SIGNED_CERT_LEN;
+
+	/* GET_CERTIFICATE RIOT_CORE_DEVID_SIGNED_CERT request for the first part. */
+	testing->cert_msg[cert_msg_idx].req_offset = alias_offset;
+	testing->cert_msg[cert_msg_idx].req_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+	testing->cert_msg[cert_msg_idx++].resp_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+
+	for (i = 0; i < RIOT_CORE_ALIAS_CERT_LEN; i += max_read_len) {
+		if (((RIOT_CORE_ALIAS_CERT_LEN - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN) -
+			i) < max_read_len) {
+			/* GET_CERTIFICATE RIOT_CORE_DEVID_SIGNED_CERT request for the last part. */
+			testing->cert_msg[cert_msg_idx].auth_cert = true;
+			testing->cert_msg[cert_msg_idx].alias = true;
+			testing->cert_msg[cert_msg_idx].cert_offset = alias_offset;
+			testing->cert_msg[cert_msg_idx].cert_length = RIOT_CORE_ALIAS_CERT_LEN;
+			testing->cert_msg[cert_msg_idx].req_offset = alias_offset +
+				ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN + i;
+			testing->cert_msg[cert_msg_idx].req_length = RIOT_CORE_ALIAS_CERT_LEN -
+				i - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+			testing->cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_ALIAS_CERT_LEN -
+				i - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
+		}
+		else {
+			/* GET_CERTIFICATE RIOT_CORE_DEVID_SIGNED_CERT request for the next part. */
+			testing->cert_msg[cert_msg_idx].req_offset = alias_offset +
+				ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN + i;
+			testing->cert_msg[cert_msg_idx].req_length = max_read_len;
+			testing->cert_msg[cert_msg_idx++].resp_length = max_read_len;
+		}
+	}
+
+	testing->cert_msg_count = cert_msg_idx;
+	CuAssertTrue (test, (cert_msg_idx <= ARRAY_SIZE (testing->cert_msg)));
+}
+
+/**
  * Helper function to setup the attestation manager for attestation testing
  *
  * @param test The test framework
@@ -474,7 +651,6 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 	struct cfm_component_device component_device;
 	struct x509_engine *x509;
 	struct spdm_certificate_chain *cert_chain = (struct spdm_certificate_chain*) cert_buffer;
-	size_t cert_msg_idx = 0;
 	int status;
 
 	component_device.attestation_protocol = attestation_protocol;
@@ -515,11 +691,6 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 		testing->cert_buffer_len += SHA512_HASH_LENGTH;
 	}
 
-	/* GET_CERTIFICATE request for the cert chain header. */
-	testing->cert_msg[cert_msg_idx].req_offset = 0;
-	testing->cert_msg[cert_msg_idx].req_length = testing->cert_buffer_len;
-	testing->cert_msg[cert_msg_idx++].resp_length = testing->cert_buffer_len;
-
 	if (meas_hash_algo == HASH_TYPE_SHA256) {
 		testing->meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
 		testing->meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
@@ -531,90 +702,7 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 		testing->meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_512;
 	}
 
-	/* GET_CERTIFICATE request for the root CA length. */
-	testing->cert_msg[cert_msg_idx].req_offset = testing->cert_buffer_len;
-	testing->cert_msg[cert_msg_idx].req_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing->cert_msg[cert_msg_idx++].resp_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-
-	if (!riot_no_root_ca) {
-		memcpy (&cert_buffer[testing->cert_buffer_len], X509_CERTSS_RSA_CA_NOPL_DER,
-			X509_CERTSS_RSA_CA_NOPL_DER_LEN);
-
-		/* GET_CERTIFICATE request for the root CA. */
-		testing->cert_msg[cert_msg_idx].root_ca = true;
-		testing->cert_msg[cert_msg_idx].req_offset = testing->cert_buffer_len +
-			ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-		testing->cert_msg[cert_msg_idx].req_length = X509_CERTSS_RSA_CA_NOPL_DER_LEN -
-			ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-		testing->cert_msg[cert_msg_idx].cert_offset = testing->cert_buffer_len;
-		testing->cert_msg[cert_msg_idx].cert_length = X509_CERTSS_RSA_CA_NOPL_DER_LEN;
-		testing->cert_msg[cert_msg_idx++].resp_length = X509_CERTSS_RSA_CA_NOPL_DER_LEN -
-			ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-
-		testing->cert_buffer_len += X509_CERTSS_RSA_CA_NOPL_DER_LEN;
-	}
-	else {
-		memcpy (&cert_buffer[testing->cert_buffer_len], X509_CERTSS_ECC_CA_NOPL_DER,
-			X509_CERTSS_ECC_CA_NOPL_DER_LEN);
-
-		/* GET_CERTIFICATE request for the root CA. */
-		testing->cert_msg[cert_msg_idx].root_ca = true;
-		testing->cert_msg[cert_msg_idx].req_offset = testing->cert_buffer_len +
-			ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-		testing->cert_msg[cert_msg_idx].req_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN -
-			ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-		testing->cert_msg[cert_msg_idx].cert_offset = testing->cert_buffer_len;
-		testing->cert_msg[cert_msg_idx].cert_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN;
-		testing->cert_msg[cert_msg_idx++].resp_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN -
-			ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-
-		testing->cert_buffer_len += X509_CERTSS_ECC_CA_NOPL_DER_LEN;
-	}
-
-	memcpy (&cert_buffer[testing->cert_buffer_len], RIOT_CORE_DEVID_SIGNED_CERT,
-		RIOT_CORE_DEVID_SIGNED_CERT_LEN);
-
-	/* GET_CERTIFICATE request for the Device ID length. */
-	testing->cert_msg[cert_msg_idx].req_offset = testing->cert_buffer_len;
-	testing->cert_msg[cert_msg_idx].req_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing->cert_msg[cert_msg_idx++].resp_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-
-	/* GET_CERTIFICATE request for the Device ID. */
-	testing->cert_msg[cert_msg_idx].auth_cert = true;
-	testing->cert_msg[cert_msg_idx].trusted_ca = true;
-	testing->cert_msg[cert_msg_idx].req_offset = testing->cert_buffer_len +
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing->cert_msg[cert_msg_idx].req_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN -
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing->cert_msg[cert_msg_idx].cert_offset = testing->cert_buffer_len;
-	testing->cert_msg[cert_msg_idx].cert_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN;
-	testing->cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN -
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-
-	testing->cert_buffer_len += RIOT_CORE_DEVID_SIGNED_CERT_LEN;
-
-	memcpy (&cert_buffer[testing->cert_buffer_len], RIOT_CORE_ALIAS_CERT, RIOT_CORE_ALIAS_CERT_LEN);
-
-	/* GET_CERTIFICATE request for the Alias cert length. */
-	testing->cert_msg[cert_msg_idx].req_offset = testing->cert_buffer_len;
-	testing->cert_msg[cert_msg_idx].req_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing->cert_msg[cert_msg_idx++].resp_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-
-	/* GET_CERTIFICATE request for the Alias cert. */
-	testing->cert_msg[cert_msg_idx].auth_cert = true;
-	testing->cert_msg[cert_msg_idx].alias = true;
-	testing->cert_msg[cert_msg_idx].req_offset = testing->cert_buffer_len +
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing->cert_msg[cert_msg_idx].req_length = RIOT_CORE_ALIAS_CERT_LEN -
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing->cert_msg[cert_msg_idx].cert_offset = testing->cert_buffer_len;
-	testing->cert_msg[cert_msg_idx].cert_length = RIOT_CORE_ALIAS_CERT_LEN;
-	testing->cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_ALIAS_CERT_LEN -
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-
-	testing->cert_buffer_len += RIOT_CORE_ALIAS_CERT_LEN;
-	testing->cert_msg_count = cert_msg_idx;
-	CuAssertTrue (test, (cert_msg_idx <= ARRAY_SIZE (testing->cert_msg)));
+	setup_attestation_requester_mock_certificate_test (test, true, riot_no_root_ca, testing);
 
 	testing->cert_eid[0] = 0x0A;
 	testing->cert_eid[1] = 0x0C;
@@ -2149,7 +2237,12 @@ static int64_t attestation_requester_testing_spdm_get_capabilities_rsp_callback 
 	capabilities_response->base_capabilities.flags.pub_key_id_cap = 0;
 
 	if (testing->spdm_version >= 2) {
-		capabilities_response->data_transfer_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+		if (testing->rsp_data_transfer_size == 0) {
+			capabilities_response->data_transfer_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+		}
+		else {
+			capabilities_response->data_transfer_size = testing->rsp_data_transfer_size;
+		}
 		capabilities_response->max_spdm_msg_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 		offset += sizeof (struct spdm_get_capabilities);
 	}
@@ -3427,7 +3520,12 @@ static void attestation_requester_testing_send_and_receive_spdm_get_capabilities
 	rsp.base_capabilities.flags.pub_key_id_cap = 0;
 
 	if (testing->spdm_version >= 2) {
-		rsp.data_transfer_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+		if (testing->rsp_data_transfer_size == 0) {
+			rsp.data_transfer_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+		}
+		else {
+			rsp.data_transfer_size = testing->rsp_data_transfer_size;
+		}
 		rsp.max_spdm_msg_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	}
 
@@ -9365,6 +9463,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_challe
 	testing.spdm_max_version = 1;
 	testing.spdm_version = 1;
 
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -9580,6 +9680,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_challe
 	testing.spdm_max_version = 1;
 	testing.spdm_version = 1;
 
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -9794,6 +9896,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_challe
 
 	testing.spdm_max_version = 1;
 	testing.spdm_version = 1;
+
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha512,
 		&testing.secondary_hash, 0);
@@ -10384,6 +10488,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0 (
 	testing.spdm_version = 1;
 	testing.spdm_max_version = 1;
 
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -10968,6 +11074,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_pmr0 (
 	testing.spdm_max_version = 1;
 	testing.spdm_version = 1;
 
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -11223,6 +11331,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_pmr0 (
 	testing.spdm_version = 1;
 	testing.spdm_max_version = 1;
 
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha512,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -11364,6 +11474,8 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 	testing.spdm_max_version = 1;
 	testing.spdm_min_version = 1;
 	testing.spdm_version = 1;
+
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
@@ -11519,6 +11631,8 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 	testing.spdm_max_version = 0;
 	testing.spdm_min_version = 0;
 	testing.spdm_version = 0;
+
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
@@ -12034,6 +12148,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_measur
 	testing.spdm_max_version = 1;
 	testing.spdm_version = 1;
 
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -12297,6 +12413,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_measur
 	testing.spdm_max_version = 1;
 	testing.spdm_version = 1;
 
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -12559,6 +12677,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_measur
 	testing.get_all_blocks = false;
 	testing.spdm_max_version = 1;
 	testing.spdm_version = 1;
+
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha512,
 		&testing.secondary_hash, 0);
@@ -20652,6 +20772,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	testing.spdm_max_version = 1;
 	testing.spdm_version = 1;
 
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -25991,6 +26113,110 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_rsp_h
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
+static void attestation_requester_test_attest_device_spdm_get_capabilities_verify_spdm_1_0_max_msg_size (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct device_manager_full_capabilities capabilities;
+	struct device_manager_attestation_summary_event_counters event_counters;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true,
+		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		0);
+
+	testing.spdm_max_version = 0;
+	testing.spdm_min_version = 0;
+	testing.spdm_version = 0;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_get_capabilities_with_mocks (test, true,
+		&testing);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
+
+	status = device_manager_get_device_num (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, 1, status);
+
+	status = device_manager_get_device_capabilities (&testing.device_mgr, status, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_1_0_AND_1_1_MAX_RESPONSE_LEN,
+		capabilities.request.max_message_size);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_spdm_get_capabilities_verify_spdm_1_1_max_msg_size (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct device_manager_full_capabilities capabilities;
+	struct device_manager_attestation_summary_event_counters event_counters;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true,
+		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		0);
+
+	testing.spdm_max_version = 1;
+	testing.spdm_min_version = 1;
+	testing.spdm_version = 1;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_get_capabilities_with_mocks (test, true,
+		&testing);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
+
+	status = device_manager_get_device_num (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, 1, status);
+
+	status = device_manager_get_device_capabilities (&testing.device_mgr, status, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_1_0_AND_1_1_MAX_RESPONSE_LEN,
+		capabilities.request.max_message_size);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
 static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_req_hash_update_fail (
 	CuTest *test)
 {
@@ -27495,7 +27721,6 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	size_t rsp_len;
 	size_t offset;
 	size_t i;
-	size_t cert_msg_idx = 0;
 	int status;
 	const struct pcr_config pcr_config[2] = {
 		{
@@ -27677,75 +27902,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_384;
 	testing.cert_buffer_len += SHA384_HASH_LENGTH;
 
-	/* GET_CERTIFICATE request for the cert chain header. */
-	testing.cert_msg[cert_msg_idx].req_offset = 0;
-	testing.cert_msg[cert_msg_idx].req_length = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx++].resp_length = testing.cert_buffer_len;
-
-	memcpy (&cert_buffer[testing.cert_buffer_len], X509_CERTSS_ECC_CA_NOPL_DER,
-		X509_CERTSS_ECC_CA_NOPL_DER_LEN);
-
-	/* GET_CERTIFICATE request for the root CA length. */
-	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx].req_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing.cert_msg[cert_msg_idx++].resp_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-
-	/* GET_CERTIFICATE request for the root CA. */
-	testing.cert_msg[cert_msg_idx].root_ca = true;
-	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len +
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing.cert_msg[cert_msg_idx].req_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN -
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing.cert_msg[cert_msg_idx].cert_offset = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx].cert_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN;
-	testing.cert_msg[cert_msg_idx++].resp_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN -
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-
-	testing.cert_buffer_len += X509_CERTSS_ECC_CA_NOPL_DER_LEN;
-
-	memcpy (&cert_buffer[testing.cert_buffer_len], RIOT_CORE_DEVID_SIGNED_CERT,
-		RIOT_CORE_DEVID_SIGNED_CERT_LEN);
-
-	/* GET_CERTIFICATE request for the Device ID length. */
-	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx].req_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing.cert_msg[cert_msg_idx++].resp_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-
-	/* GET_CERTIFICATE request for the Device ID. */
-	testing.cert_msg[cert_msg_idx].auth_cert = true;
-	testing.cert_msg[cert_msg_idx].trusted_ca = true;
-	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len +
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing.cert_msg[cert_msg_idx].req_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN -
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing.cert_msg[cert_msg_idx].cert_offset = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx].cert_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN;
-	testing.cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN -
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-
-	testing.cert_buffer_len += RIOT_CORE_DEVID_SIGNED_CERT_LEN;
-
-	memcpy (&cert_buffer[testing.cert_buffer_len], RIOT_CORE_ALIAS_CERT, RIOT_CORE_ALIAS_CERT_LEN);
-
-	/* GET_CERTIFICATE request for the Alias cert length. */
-	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx].req_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing.cert_msg[cert_msg_idx++].resp_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-
-	/* GET_CERTIFICATE request for the Alias cert. */
-	testing.cert_msg[cert_msg_idx].auth_cert = true;
-	testing.cert_msg[cert_msg_idx].alias = true;
-	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len +
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing.cert_msg[cert_msg_idx].req_length = RIOT_CORE_ALIAS_CERT_LEN -
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing.cert_msg[cert_msg_idx].cert_offset = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx].cert_length = RIOT_CORE_ALIAS_CERT_LEN;
-	testing.cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_ALIAS_CERT_LEN -
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-
-	testing.cert_buffer_len += RIOT_CORE_ALIAS_CERT_LEN;
-	testing.cert_msg_count = cert_msg_idx;
+	setup_attestation_requester_mock_certificate_test (test, true, false, &testing);
 
 	testing.cert_eid[0] = 0x0A;
 	testing.cert_eid[1] = 0x0C;
@@ -31127,6 +31284,60 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_get_al
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
+static void attestation_requester_test_attest_device_spdm_get_certificate_1_2_min_transfer_size (CuTest *test)
+{
+	uint32_t component_id = 50;
+	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
+		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		component_id);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	testing.rsp_data_transfer_size = 512;
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
+		&testing, HASH_TYPE_SHA384, true, false, false, NULL, false, component_id);
+
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
+		&testing.rng, RNG_ENGINE_NO_MEMORY, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, RNG_ENGINE_NO_MEMORY, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
 static void attestation_requester_test_attest_device_spdm_generate_random_buffer_fail (CuTest *test)
 {
 	uint32_t component_id = 50;
@@ -33041,6 +33252,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_get_pmr_dige
 	testing.spdm_version = 1;
 	testing.spdm_max_version = 1;
 
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -33109,6 +33322,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_start_hash_f
 	testing.get_all_blocks = true;
 	testing.spdm_version = 1;
 	testing.spdm_max_version = 1;
+
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
@@ -33275,6 +33490,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_generate_ran
 	testing.spdm_version = 1;
 	testing.spdm_max_version = 1;
 
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -33360,6 +33577,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_req_hash_upd
 	testing.get_all_blocks = true;
 	testing.spdm_version = 1;
 	testing.spdm_max_version = 1;
+
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
@@ -33476,6 +33695,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_fail (Cu
 	testing.get_all_blocks = true;
 	testing.spdm_version = 1;
 	testing.spdm_max_version = 1;
+
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
@@ -33649,6 +33870,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp (CuTe
 	testing.spdm_version = 1;
 	testing.spdm_max_version = 1;
 
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -33821,6 +34044,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp_alrea
 	testing.get_all_blocks = true;
 	testing.spdm_version = 1;
 	testing.spdm_max_version = 1;
+
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
@@ -34002,6 +34227,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp_alrea
 	testing.spdm_version = 1;
 	testing.spdm_max_version = 1;
 
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -34181,6 +34408,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_unexpected_r
 	testing.spdm_version = 1;
 	testing.spdm_max_version = 1;
 
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -34355,6 +34584,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_unexpect
 	testing.spdm_version = 1;
 	testing.spdm_max_version = 1;
 
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -34517,6 +34748,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_hash_upd
 	testing.spdm_version = 1;
 	testing.spdm_max_version = 1;
 
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -34595,6 +34828,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_hash_finish_
 	testing.get_all_blocks = true;
 	testing.spdm_version = 1;
 	testing.spdm_max_version = 1;
+
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
@@ -35260,6 +35495,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_ecc_ini
 	testing.spdm_version = 1;
 	testing.spdm_max_version = 1;
 
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -35361,6 +35598,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_ecc_ver
 	testing.get_all_blocks = true;
 	testing.spdm_version = 1;
 	testing.spdm_max_version = 1;
+
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
@@ -35473,6 +35712,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_hash_co
 	testing.get_all_blocks = true;
 	testing.spdm_version = 1;
 	testing.spdm_max_version = 1;
+
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
@@ -35591,6 +35832,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_pmr0_dige
 	testing.get_all_blocks = true;
 	testing.spdm_version = 1;
 	testing.spdm_max_version = 1;
+
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
@@ -38668,7 +38911,6 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	uint8_t event = 0;
 	int status;
 	size_t i;
-	size_t cert_msg_idx = 0;
 	const struct pcr_config pcr_config[1] = {
 		{
 			.num_measurements = 0,
@@ -38851,79 +39093,10 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		SPDM_TPM_ALG_SHA_512;
 	testing.cert_buffer_len += SHA256_HASH_LENGTH;
 
-	/* GET_CERTIFICATE request for the cert chain header. */
-	testing.cert_msg[cert_msg_idx].req_offset = 0;
-	testing.cert_msg[cert_msg_idx].req_length = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx++].resp_length = testing.cert_buffer_len;
-
-	memcpy (&cert_buffer[testing.cert_buffer_len], X509_CERTSS_ECC_CA_NOPL_DER,
-		X509_CERTSS_ECC_CA_NOPL_DER_LEN);
-
-	/* GET_CERTIFICATE request for the root CA length. */
-	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx].req_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing.cert_msg[cert_msg_idx++].resp_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-
-	/* GET_CERTIFICATE request for the root CA. */
-	testing.cert_msg[cert_msg_idx].root_ca = true;
-	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len +
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing.cert_msg[cert_msg_idx].req_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN -
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing.cert_msg[cert_msg_idx].cert_offset = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx].cert_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN;
-	testing.cert_msg[cert_msg_idx++].resp_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN -
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-
-	testing.cert_buffer_len += X509_CERTSS_ECC_CA_NOPL_DER_LEN;
-
-	memcpy (&cert_buffer[testing.cert_buffer_len], RIOT_CORE_DEVID_SIGNED_CERT,
-		RIOT_CORE_DEVID_SIGNED_CERT_LEN);
-
-	/* GET_CERTIFICATE request for the Device ID length. */
-	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx].req_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing.cert_msg[cert_msg_idx++].resp_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-
-	/* GET_CERTIFICATE request for the Device ID. */
-	testing.cert_msg[cert_msg_idx].auth_cert = true;
-	testing.cert_msg[cert_msg_idx].trusted_ca = true;
-	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len +
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing.cert_msg[cert_msg_idx].req_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN -
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing.cert_msg[cert_msg_idx].cert_offset = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx].cert_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN;
-	testing.cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_DEVID_SIGNED_CERT_LEN -
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-
-	testing.cert_buffer_len += RIOT_CORE_DEVID_SIGNED_CERT_LEN;
-
-	memcpy (&cert_buffer[testing.cert_buffer_len], RIOT_CORE_ALIAS_CERT, RIOT_CORE_ALIAS_CERT_LEN);
-
-	/* GET_CERTIFICATE request for the Alias cert length. */
-	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx].req_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing.cert_msg[cert_msg_idx++].resp_length = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-
-	/* GET_CERTIFICATE request for the Alias cert. */
-	testing.cert_msg[cert_msg_idx].auth_cert = true;
-	testing.cert_msg[cert_msg_idx].alias = true;
-	testing.cert_msg[cert_msg_idx].req_offset = testing.cert_buffer_len +
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing.cert_msg[cert_msg_idx].req_length = RIOT_CORE_ALIAS_CERT_LEN -
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-	testing.cert_msg[cert_msg_idx].cert_offset = testing.cert_buffer_len;
-	testing.cert_msg[cert_msg_idx].cert_length = RIOT_CORE_ALIAS_CERT_LEN;
-	testing.cert_msg[cert_msg_idx++].resp_length = RIOT_CORE_ALIAS_CERT_LEN -
-		ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
-
-	testing.cert_buffer_len += RIOT_CORE_ALIAS_CERT_LEN;
+	setup_attestation_requester_mock_certificate_test (test, true, false, &testing);
 
 	/* Loop the GET_CERTIFICATE requests 1 time. */
-	testing.cert_msg[cert_msg_idx].loop_cnt = 1;
-
-	testing.cert_msg_count = cert_msg_idx;
+	testing.cert_msg[testing.cert_msg_count].loop_cnt = 1;
 
 	testing.cert_eid[0] = 0x0A;
 	testing.cert_eid[1] = 0x0C;
@@ -39702,6 +39875,8 @@ TEST (attestation_requester_test_attest_device_spdm_get_capabilities_measurement
 TEST (attestation_requester_test_attest_device_spdm_get_capabilities_measurement_cap_supported_with_sig_get_cert_unsupported);
 TEST (attestation_requester_test_attest_device_spdm_get_capabilities_challenge_supported_get_cert_unsupported);
 TEST (attestation_requester_test_attest_device_spdm_get_capabilities_rsp_hash_update_fail);
+TEST (attestation_requester_test_attest_device_spdm_get_capabilities_verify_spdm_1_0_max_msg_size);
+TEST (attestation_requester_test_attest_device_spdm_get_capabilities_verify_spdm_1_1_max_msg_size);
 TEST (attestation_requester_test_attest_device_spdm_negotiate_algorithms_req_hash_update_fail);
 TEST (attestation_requester_test_attest_device_spdm_negotiate_algorithms_fail);
 TEST (attestation_requester_test_attest_device_spdm_negotiate_algorithms_response_not_ready);
@@ -39769,6 +39944,7 @@ TEST (attestation_requester_test_attest_device_spdm_get_certificate_finish_cert_
 TEST (attestation_requester_test_attest_device_spdm_get_certificate_compare_cert_chain_digest_fail);
 TEST (attestation_requester_test_attest_device_spdm_get_certificate_get_alias_public_key_type_fail);
 TEST (attestation_requester_test_attest_device_spdm_get_certificate_get_alias_public_key_fail);
+TEST (attestation_requester_test_attest_device_spdm_get_certificate_1_2_min_transfer_size);
 TEST (attestation_requester_test_attest_device_spdm_generate_random_buffer_fail);
 TEST (attestation_requester_test_attest_device_spdm_challenge_req_hash_update_fail);
 TEST (attestation_requester_test_attest_device_spdm_challenge_rsp_fail);
