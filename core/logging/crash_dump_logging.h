@@ -49,4 +49,7 @@ enum {
 };
 
 
+void crash_dump_logging_save_opaque_data (uint32_t *buffer, size_t length);
+
+
 #endif	/* CRASH_DUMP_LOGGING_H_ */

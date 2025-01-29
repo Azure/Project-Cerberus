@@ -27,6 +27,9 @@ void crash_dump_arm_save (struct crash_dump_arm_stack_frame *frame, uint32_t xps
 	crash->cfsr = CONFIGURABLE_FAULT_STATUS_REGISTER;
 	crash->mmfar = MEM_MANAGE_FAULT_ADDRESS_REGISTER;
 	crash->bfar = BUS_FAULT_ADDRESS_REGISTER;
+#ifdef CRASH_DUMP_ARM_HAS_AFSR
+	crash->afsr = AUXILIARY_FAULT_STATUS_REGISTER;
+#endif
 }
 
 /**
@@ -58,6 +61,9 @@ void crash_dump_arm_print_full (const struct crash_dump_arm *crash_ptr)
 	platform_printf (" bfsr: 0x%x" NEWLINE, crash_ptr->bfsr);
 	platform_printf (" bfar: 0x%x" NEWLINE, crash_ptr->bfar);
 	platform_printf (" ufsr: 0x%x" NEWLINE, crash_ptr->ufsr);
+#ifdef CRASH_DUMP_ARM_HAS_AFSR
+	platform_printf ("\afsr: 0x%x" NEWLINE, crash_ptr->afsr);
+#endif
 	platform_printf ("frame: 0x%x" NEWLINE, crash_ptr->stack_ptr);
 	platform_printf ("\t  r0: 0x%x" NEWLINE, crash_ptr->frame.r0);
 	platform_printf ("\t  r1: 0x%x" NEWLINE, crash_ptr->frame.r1);
@@ -67,6 +73,7 @@ void crash_dump_arm_print_full (const struct crash_dump_arm *crash_ptr)
 	platform_printf ("\t  lr: 0x%x" NEWLINE, crash_ptr->frame.lr);
 	platform_printf ("\t  pc: 0x%x" NEWLINE, crash_ptr->frame.return_address);
 	platform_printf ("\txpsr: 0x%x" NEWLINE, crash_ptr->frame.xpsr);
+
 	platform_printf (NEWLINE);
 }
 
@@ -119,6 +126,10 @@ void crash_dump_arm_log (const struct crash_dump_arm *crash_ptr, bool log_data_r
 		CRASH_DUMP_LOGGING_EXCEPTION_DETAIL, CRASH_DUMP_LOGGING_ARM_BFAR, crash_ptr->bfar);
 	debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CRASH_DUMP,
 		CRASH_DUMP_LOGGING_EXCEPTION_DETAIL, CRASH_DUMP_LOGGING_ARM_UFSR, crash_ptr->ufsr);
+#ifdef CRASH_DUMP_ARM_HAS_AFSR
+	debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CRASH_DUMP,
+		CRASH_DUMP_LOGGING_EXCEPTION_DETAIL, CRASH_DUMP_LOGGING_ARM_AFSR, crash_ptr->afsr);
+#endif
 
 	/* Commit the crash dump to persistent memory. */
 	debug_log_flush ();

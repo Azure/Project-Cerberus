@@ -51,6 +51,11 @@
  */
 #define	BUS_FAULT_ADDRESS_REGISTER				*((uint32_t*) 0xe000ed38)
 
+/**
+ * Access the Auxiliary Fault Status Address Register.
+ */
+#define	AUXILIARY_FAULT_STATUS_REGISTER			*((uint32_t*) 0xe000ed3c)
+
 
 /**
  * Context pushed to the stack when an exception occurs on Cortex-M architectures.
@@ -85,6 +90,9 @@ struct crash_dump_arm {
 
 	uint32_t mmfar;	/**< Value of the MemManage Fault Address Register (MMFAR). */
 	uint32_t bfar;	/**< Value of the BusFault Address Register (BFAR). */
+#ifdef CRASH_DUMP_ARM_HAS_AFSR
+	uint32_t afsr;	/**< Value of the Auxiliary Fault Status Register */
+#endif
 };
 
 
