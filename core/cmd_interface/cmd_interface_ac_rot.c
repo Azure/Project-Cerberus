@@ -100,6 +100,9 @@ int cmd_interface_ac_rot_process_request (const struct cmd_interface *intf,
 int cmd_interface_ac_rot_process_response (const struct cmd_interface *intf,
 	struct cmd_interface_msg *response)
 {
+	UNUSED (intf);
+	UNUSED (response);
+
 	return CMD_HANDLER_UNSUPPORTED_OPERATION;
 }
 #endif
@@ -155,6 +158,8 @@ int cmd_interface_ac_rot_init (struct cmd_interface_ac_rot *intf,
 
 #ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 	intf->base.session = session;
+#else
+	UNUSED (session);
 #endif
 
 	return 0;

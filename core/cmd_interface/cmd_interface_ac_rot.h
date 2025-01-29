@@ -39,5 +39,9 @@ int cmd_interface_ac_rot_init (struct cmd_interface_ac_rot *intf,
 	struct session_manager *session);
 void cmd_interface_ac_rot_deinit (const struct cmd_interface_ac_rot *intf);
 
+/* Internal functions for use by derived types. */
+int cmd_interface_ac_rot_process_request (const struct cmd_interface *intf,
+	struct cmd_interface_msg *request);
+
 
 #endif	/* CMD_INTERFACE_AC_ROT_H_ */

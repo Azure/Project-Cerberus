@@ -8,8 +8,6 @@
 
 
 /* Internal functions declared to allow for static initialization. */
-int cmd_interface_ac_rot_process_request (const struct cmd_interface *intf,
-	struct cmd_interface_msg *request);
 int cmd_interface_ac_rot_process_response (const struct cmd_interface *intf,
 	struct cmd_interface_msg *response);
 
