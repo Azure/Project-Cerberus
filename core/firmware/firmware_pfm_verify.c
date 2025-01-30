@@ -150,15 +150,18 @@ void firmware_pfm_verify_release (const struct firmware_pfm_verify *fw_verify)
  * be updated whether verification is successful or not.
  *
  * @param fw_verify The handler to use for image verification.
+ * @param expected_id Address of an expected PFM ID value. If NULL check will be bypassed.
  *
  * @return 0 if verification was completed successfully or an error code.  Failure to update PCRs
  * will generate log messages but will not report a verification failure.
  */
-int firmware_pfm_verify_run_verification (const struct firmware_pfm_verify *fw_verify)
+int firmware_pfm_verify_run_verification (const struct firmware_pfm_verify *fw_verify,
+	uint32_t *expected_id)
 {
 	struct pfm_firmware fw_list;
 	struct pfm_firmware_versions version_list;
 	struct pfm_image_list img_list;
+	uint32_t pfm_id;
 	int status;
 
 	if (fw_verify == NULL) {
@@ -171,6 +174,19 @@ int firmware_pfm_verify_run_verification (const struct firmware_pfm_verify *fw_v
 		fw_verify->sig_verify, NULL, 0);
 	if (status != 0) {
 		goto measure;
+	}
+
+	/* Optionally enforce PFM ID against an expected ID. */
+	if (expected_id != NULL) {
+		status = fw_verify->pfm->base.get_id (&fw_verify->pfm->base, &pfm_id);
+		if (status != 0) {
+			goto measure;
+		}
+
+		if (pfm_id != *expected_id) {
+			status = FIRMWARE_PFM_VERIFY_UNSUPPORTED_ID;
+			goto measure;
+		}
 	}
 
 	status = fw_verify->pfm->base.is_empty (&fw_verify->pfm->base);

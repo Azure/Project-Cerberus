@@ -135,6 +135,22 @@ const uint8_t FIRMWARE_PFM_VERIFY_TESTING_RESULT_FLASH_FAILED_MEASUREMENT[] = {
 };
 
 /**
+ * Measurement digest for a verification failure (FIRMWARE_PFM_VERIFY_UNSUPPORTED_ID).
+ */
+const uint8_t FIRMWARE_PFM_VERIFY_TESTING_RESULT_PFM_UNSUPPORTED_ID_MEASUREMENT[] = {
+	0xe8, 0x15, 0x45, 0x84, 0x73, 0x01, 0xb7, 0x2f, 0x89, 0x8c, 0x67, 0x0a, 0x95, 0x47, 0xf2, 0x47,
+	0xcc, 0x60, 0xe3, 0x62, 0xb1, 0x25, 0x27, 0x58, 0xac, 0x45, 0xa0, 0x66, 0x80, 0xed, 0xdb, 0xcb
+};
+
+/**
+ * Measurement digest for a verification failure (MANIFEST_NO_MANIFEST).
+ */
+const uint8_t FIRMWARE_PFM_VERIFY_TESTING_RESULT_PFM_GET_ID_FAILED_MEASUREMENT[] = {
+	0x70, 0xeb, 0xea, 0x90, 0xf0, 0x21, 0x85, 0x1a, 0x17, 0x99, 0xe8, 0x8e, 0x44, 0x52, 0xa5, 0x67,
+	0xf8, 0x5a, 0xcd, 0x6a, 0xfa, 0x16, 0x47, 0xcd, 0xa1, 0xd6, 0xac, 0x4b, 0x7e, 0x7d, 0x78, 0xb9
+};
+
+/**
  * Measurement event ID to use for the firmware version string.
  */
 #define	FIRMWARE_PFM_VERIFY_TESTING_EVENT_ID_VERSION		0x33334444
@@ -576,7 +592,7 @@ static void firmware_pfm_verify_testing_run_successful_verification (CuTest *tes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify->test);
+	status = firmware_pfm_verify_run_verification (&fw_verify->test, NULL);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -1436,7 +1452,7 @@ static void firmware_pfm_verify_test_run_verification (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Check verification result measurement. */
@@ -1446,6 +1462,171 @@ static void firmware_pfm_verify_test_run_verification (CuTest *test)
 	status = testing_validate_array (FIRMWARE_PFM_VERIFY_TESTING_RESULT_SUCCESS_MEASUREMENT,
 		measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
+
+	/* Check firmware version measurement. */
+	status = pcr_store_get_measurement (&fw_verify.pcr, measurement_version, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (FIRMWARE_PFM_VERIFY_TESTING_VERSION_MEASUREMENT,
+		measurement.digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check PFM digest measurement. */
+	status = pcr_store_get_measurement (&fw_verify.pcr, measurement_pfm, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (FIRMWARE_PFM_VERIFY_TESTING_PFM_PFM_V2_MEASUREMENT,
+		measurement.digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check PFM ID measurement. */
+	status = pcr_store_get_measurement (&fw_verify.pcr, measurement_pfm_id, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (FIRMWARE_PFM_VERIFY_TESTING_PFM_ID_PFM_V2_MEASUREMENT,
+		measurement.digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check PFM platform ID measurement. */
+	status = pcr_store_get_measurement (&fw_verify.pcr, measurement_plat_id, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (FIRMWARE_PFM_VERIFY_TESTING_PLATFORM_ID_PFM_V2_MEASUREMENT,
+		measurement.digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_pfm_verify_testing_release (test, &fw_verify);
+}
+
+static void firmware_pfm_verify_test_run_verification_supported_pfm_id (CuTest *test)
+{
+	uint16_t measurement_result = PCR_MEASUREMENT (0, 0);
+	uint16_t measurement_version = PCR_MEASUREMENT (0, 1);
+	uint16_t measurement_pfm = PCR_MEASUREMENT (0, 2);
+	uint16_t measurement_pfm_id = PCR_MEASUREMENT (0, 3);
+	uint16_t measurement_plat_id = PCR_MEASUREMENT (0, 4);
+	struct firmware_pfm_verify_testing fw_verify;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = {"fw1"};
+	struct pfm_firmware_version version;
+	struct pfm_firmware_versions version_list;
+	const char *version_exp = FIRMWARE_PFM_VERIFY_TESTING_VERSION_STR;
+	struct flash_region img_region;
+	struct pfm_image_hash img_hash;
+	struct pfm_image_list img_list;
+	int status;
+	struct pcr_measurement measurement;
+	uint32_t pfm_expected_id;
+
+	TEST_START;
+
+	/* Set up PFM data for a single firmware version for a single firmware component.  The image is
+	 * contained in a single region of flash.  More comprehensive testing of this verification flow
+	 * is part of the host_fw_util test suite. */
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
+
+	version.fw_version_id = version_exp;
+	version.version_addr = 0x123;
+
+	version_list.versions = &version;
+	version_list.count = 1;
+
+	img_region.start_addr = 0x10000;
+	img_region.length = HASH_TESTING_FULL_BLOCK_4096_LEN;
+
+	img_hash.regions = &img_region;
+	img_hash.count = 1;
+	memcpy (img_hash.hash, SHA256_FULL_BLOCK_4096_HASH, SHA256_HASH_LENGTH);
+	img_hash.hash_length = SHA256_HASH_LENGTH;
+	img_hash.hash_type = HASH_TYPE_SHA256;
+	img_hash.always_validate = 1;
+
+	img_list.images_hash = &img_hash;
+	img_list.images_sig = NULL;
+	img_list.count = 1;
+
+	pfm_expected_id = PFM_V2.manifest.id;
+
+	firmware_pfm_verify_testing_init (test, &fw_verify, 0, measurement_result, measurement_version,
+		measurement_pfm, measurement_pfm_id, measurement_plat_id);
+
+	/* Verify the PFM. */
+	status = mock_expect (&fw_verify.pfm.mock, fw_verify.pfm.base.base.verify, &fw_verify.pfm, 0,
+		MOCK_ARG_PTR (&fw_verify.hash), MOCK_ARG_PTR (&fw_verify.sig_verify), MOCK_ARG_PTR (NULL),
+		MOCK_ARG (0));
+
+	/* Get the PFM ID from the PFM. */
+	status |= mock_expect (&fw_verify.pfm.mock, fw_verify.pfm.base.base.get_id, &fw_verify.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&fw_verify.pfm.mock, 0, &PFM_V2.manifest.id,
+		sizeof (PFM_V2.manifest.id), -1);
+
+	status |= mock_expect (&fw_verify.pfm.mock, fw_verify.pfm.base.base.is_empty, &fw_verify.pfm,
+		0);
+
+	/* Check that there is only one firmware component in the PFM. */
+	status |= mock_expect (&fw_verify.pfm.mock, fw_verify.pfm.base.get_firmware, &fw_verify.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&fw_verify.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&fw_verify.pfm.mock, 0, 0);
+
+	status |= mock_expect (&fw_verify.pfm.mock, fw_verify.pfm.base.free_firmware, &fw_verify.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	/* Get the firmware version from the PFM. */
+	status |= mock_expect (&fw_verify.pfm.mock, fw_verify.pfm.base.get_supported_versions,
+		&fw_verify.pfm, 0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&fw_verify.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&fw_verify.pfm.mock, 1, 1);
+
+	/* Get the image verification details. */
+	status |= mock_expect (&fw_verify.pfm.mock, fw_verify.pfm.base.get_firmware_images,
+		&fw_verify.pfm, 0, MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&fw_verify.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&fw_verify.pfm.mock, 2, 2);
+
+	/* Run flash verification. */
+	status |= flash_mock_expect_verify_flash (&fw_verify.flash, 0x10000,
+		HASH_TESTING_FULL_BLOCK_4096, HASH_TESTING_FULL_BLOCK_4096_LEN);
+
+	status |= mock_expect (&fw_verify.pfm.mock, fw_verify.pfm.base.free_firmware_images,
+		&fw_verify.pfm, 0, MOCK_ARG_SAVED_ARG (2));
+	status |= mock_expect (&fw_verify.pfm.mock, fw_verify.pfm.base.free_fw_versions, &fw_verify.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+
+	/* Measure PFM details. */
+	status |= mock_expect (&fw_verify.pfm.mock, fw_verify.pfm.base.base.get_hash, &fw_verify.pfm,
+		PFM_V2.manifest.hash_len, MOCK_ARG_PTR (&fw_verify.hash), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (PFM_V2.manifest.hash_len));
+	status |= mock_expect_output (&fw_verify.pfm.mock, 1, PFM_V2.manifest.hash,
+		PFM_V2.manifest.hash_len, 2);
+
+	status |= mock_expect (&fw_verify.pfm.mock, fw_verify.pfm.base.base.get_id, &fw_verify.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&fw_verify.pfm.mock, 0, &PFM_V2.manifest.id,
+		sizeof (PFM_V2.manifest.id), -1);
+
+	status |= mock_expect (&fw_verify.pfm.mock, fw_verify.pfm.base.base.get_platform_id,
+		&fw_verify.pfm, 0, MOCK_ARG_PTR_PTR (NULL), MOCK_ARG (0));
+	status |= mock_expect_output (&fw_verify.pfm.mock, 0, &PFM_V2.manifest.plat_id_str,
+		sizeof (void*), -1);
+
+	status |= mock_expect (&fw_verify.pfm.mock, fw_verify.pfm.base.base.free_platform_id,
+		&fw_verify.pfm, 0, MOCK_ARG_PTR (PFM_V2.manifest.plat_id_str));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, &pfm_expected_id);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check verification result measurement. */
+	status = pcr_store_get_measurement (&fw_verify.pcr, measurement_result, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (FIRMWARE_PFM_VERIFY_TESTING_RESULT_SUCCESS_MEASUREMENT,
+		measurement.digest, SHA256_HASH_LENGTH);
 
 	/* Check firmware version measurement. */
 	status = pcr_store_get_measurement (&fw_verify.pcr, measurement_version, &measurement);
@@ -1593,7 +1774,7 @@ static void firmware_pfm_verify_test_run_verification_small_version_buffer (CuTe
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Check verification result measurement. */
@@ -1753,7 +1934,7 @@ static void firmware_pfm_verify_test_run_verification_measurement_result_error (
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	firmware_pfm_verify_testing_release (test, &fw_verify);
@@ -1875,7 +2056,7 @@ static void firmware_pfm_verify_test_run_verification_measurement_version_error 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	firmware_pfm_verify_testing_release (test, &fw_verify);
@@ -2003,7 +2184,7 @@ static void firmware_pfm_verify_test_run_verification_measurement_pfm_error (CuT
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	firmware_pfm_verify_testing_release (test, &fw_verify);
@@ -2136,7 +2317,7 @@ static void firmware_pfm_verify_test_run_verification_measurement_pfm_id_error (
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	firmware_pfm_verify_testing_release (test, &fw_verify);
@@ -2277,7 +2458,7 @@ static void firmware_pfm_verify_test_run_verification_measurement_platform_id_er
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	firmware_pfm_verify_testing_release (test, &fw_verify);
@@ -2399,7 +2580,7 @@ static void firmware_pfm_verify_test_run_verification_static_init (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Check verification result measurement. */
@@ -2562,7 +2743,7 @@ static void firmware_pfm_verify_test_run_verification_static_init_small_version_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Check verification result measurement. */
@@ -2623,7 +2804,7 @@ static void firmware_pfm_verify_test_run_verification_null (CuTest *test)
 	firmware_pfm_verify_testing_init (test, &fw_verify, 0, measurement_result, measurement_version,
 		measurement_pfm, measurement_pfm_id, measurement_plat_id);
 
-	status = firmware_pfm_verify_run_verification (NULL);
+	status = firmware_pfm_verify_run_verification (NULL, NULL);
 	CuAssertIntEquals (test, FIRMWARE_PFM_VERIFY_INVALID_ARGUMENT, status);
 
 	firmware_pfm_verify_testing_release (test, &fw_verify);
@@ -2658,7 +2839,7 @@ static void firmware_pfm_verify_test_run_verification_empty_pfm (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, FIRMWARE_PFM_VERIFY_EMPTY_PFM, status);
 
 	/* Check verification result measurement. */
@@ -2747,7 +2928,7 @@ static void firmware_pfm_verify_test_run_verification_multiple_fw_components (Cu
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, FIRMWARE_PFM_VERIFY_PFM_MULTI_FW, status);
 
 	/* Check verification result measurement. */
@@ -2849,7 +3030,7 @@ static void firmware_pfm_verify_test_run_verification_no_fw_versions (CuTest *te
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, FIRMWARE_PFM_VERIFY_PFM_NO_VERSION, status);
 
 	/* Check verification result measurement. */
@@ -2959,7 +3140,7 @@ static void firmware_pfm_verify_test_run_verification_multiple_fw_versions (CuTe
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, FIRMWARE_PFM_VERIFY_PFM_MULTI_VERSION, status);
 
 	/* Check verification result measurement. */
@@ -3080,7 +3261,7 @@ static void firmware_pfm_verify_test_run_verification_no_image (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, FIRMWARE_PFM_VERIFY_PFM_NO_IMAGE, status);
 
 	/* Check verification result measurement. */
@@ -3152,7 +3333,7 @@ static void firmware_pfm_verify_test_run_verification_pfm_verify_error (CuTest *
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, MANIFEST_VERIFY_FAILED, status);
 
 	/* Check verification result measurement. */
@@ -3228,7 +3409,7 @@ static void firmware_pfm_verify_test_run_verification_pfm_empty_error (CuTest *t
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, MANIFEST_CHECK_EMPTY_FAILED, status);
 
 	/* Check verification result measurement. */
@@ -3308,7 +3489,7 @@ static void firmware_pfm_verify_test_run_verification_get_firmware_error (CuTest
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, PFM_GET_FW_FAILED, status);
 
 	/* Check verification result measurement. */
@@ -3402,7 +3583,7 @@ static void firmware_pfm_verify_test_run_verification_get_versions_error (CuTest
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
 	/* Check verification result measurement. */
@@ -3516,7 +3697,7 @@ static void firmware_pfm_verify_test_run_verification_get_images_error (CuTest *
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, PFM_GET_FW_IMAGES_FAILED, status);
 
 	/* Check verification result measurement. */
@@ -3655,7 +3836,7 @@ static void firmware_pfm_verify_test_run_verification_flash_verify_error (CuTest
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_pfm_verify_run_verification (&fw_verify.test);
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, NULL);
 	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
 
 	/* Check verification result measurement. */
@@ -3674,6 +3855,168 @@ static void firmware_pfm_verify_test_run_verification_flash_verify_error (CuTest
 	status = testing_validate_array (FIRMWARE_PFM_VERIFY_TESTING_VERSION_EMPTY_MEASUREMENT,
 		measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
+
+	/* Check PFM digest measurement. */
+	status = pcr_store_get_measurement (&fw_verify.pcr, measurement_pfm, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (FIRMWARE_PFM_VERIFY_TESTING_PFM_NONE_MEASUREMENT,
+		measurement.digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check PFM ID measurement. */
+	status = pcr_store_get_measurement (&fw_verify.pcr, measurement_pfm_id, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (FIRMWARE_PFM_VERIFY_TESTING_PFM_ID_NONE_MEASUREMENT,
+		measurement.digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check PFM platform ID measurement. */
+	status = pcr_store_get_measurement (&fw_verify.pcr, measurement_plat_id, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (FIRMWARE_PFM_VERIFY_TESTING_PLATFORM_ID_NONE_MEASUREMENT,
+		measurement.digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_pfm_verify_testing_release (test, &fw_verify);
+}
+
+static void firmware_pfm_verify_test_run_verification_get_id_failed (CuTest *test)
+{
+	uint16_t measurement_result = PCR_MEASUREMENT (0, 0);
+	uint16_t measurement_version = PCR_MEASUREMENT (0, 1);
+	uint16_t measurement_pfm = PCR_MEASUREMENT (0, 2);
+	uint16_t measurement_pfm_id = PCR_MEASUREMENT (0, 3);
+	uint16_t measurement_plat_id = PCR_MEASUREMENT (0, 4);
+	struct firmware_pfm_verify_testing fw_verify;
+	int status;
+	struct pcr_measurement measurement;
+	uint32_t pfm_expected_id;
+
+	TEST_START;
+
+	pfm_expected_id = PFM_V2.manifest.id;
+
+	firmware_pfm_verify_testing_init (test, &fw_verify, 0, measurement_result, measurement_version,
+		measurement_pfm, measurement_pfm_id, measurement_plat_id);
+
+	/* Seed the measurements and state with valid information. */
+	firmware_pfm_verify_testing_run_successful_verification (test, &fw_verify);
+
+	/* Verify the PFM. */
+	status = mock_expect (&fw_verify.pfm.mock, fw_verify.pfm.base.base.verify, &fw_verify.pfm, 0,
+		MOCK_ARG_PTR (&fw_verify.hash), MOCK_ARG_PTR (&fw_verify.sig_verify), MOCK_ARG_PTR (NULL),
+		MOCK_ARG (0));
+
+	/* Get the PFM ID from the PFM. */
+	status |= mock_expect (&fw_verify.pfm.mock, fw_verify.pfm.base.base.get_id, &fw_verify.pfm,
+		MANIFEST_NO_MANIFEST, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, &pfm_expected_id);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
+
+	/* Check verification result measurement. */
+	status = pcr_store_get_measurement (&fw_verify.pcr, measurement_result, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status =
+		testing_validate_array (FIRMWARE_PFM_VERIFY_TESTING_RESULT_PFM_GET_ID_FAILED_MEASUREMENT,
+		measurement.digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check firmware version measurement. */
+	status = pcr_store_get_measurement (&fw_verify.pcr, measurement_version, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (FIRMWARE_PFM_VERIFY_TESTING_VERSION_EMPTY_MEASUREMENT,
+		measurement.digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0x0, status);
+
+	/* Check PFM digest measurement. */
+	status = pcr_store_get_measurement (&fw_verify.pcr, measurement_pfm, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (FIRMWARE_PFM_VERIFY_TESTING_PFM_NONE_MEASUREMENT,
+		measurement.digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check PFM ID measurement. */
+	status = pcr_store_get_measurement (&fw_verify.pcr, measurement_pfm_id, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (FIRMWARE_PFM_VERIFY_TESTING_PFM_ID_NONE_MEASUREMENT,
+		measurement.digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check PFM platform ID measurement. */
+	status = pcr_store_get_measurement (&fw_verify.pcr, measurement_plat_id, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (FIRMWARE_PFM_VERIFY_TESTING_PLATFORM_ID_NONE_MEASUREMENT,
+		measurement.digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_pfm_verify_testing_release (test, &fw_verify);
+}
+
+static void firmware_pfm_verify_test_run_verification_unsupported_pfm_id (CuTest *test)
+{
+	uint16_t measurement_result = PCR_MEASUREMENT (0, 0);
+	uint16_t measurement_version = PCR_MEASUREMENT (0, 1);
+	uint16_t measurement_pfm = PCR_MEASUREMENT (0, 2);
+	uint16_t measurement_pfm_id = PCR_MEASUREMENT (0, 3);
+	uint16_t measurement_plat_id = PCR_MEASUREMENT (0, 4);
+	struct firmware_pfm_verify_testing fw_verify;
+	int status;
+	struct pcr_measurement measurement;
+	uint32_t pfm_expected_id;
+
+	TEST_START;
+
+	pfm_expected_id = 0;
+
+	firmware_pfm_verify_testing_init (test, &fw_verify, 0, measurement_result, measurement_version,
+		measurement_pfm, measurement_pfm_id, measurement_plat_id);
+
+	/* Seed the measurements and state with valid information. */
+	firmware_pfm_verify_testing_run_successful_verification (test, &fw_verify);
+
+	/* Verify the PFM. */
+	status = mock_expect (&fw_verify.pfm.mock, fw_verify.pfm.base.base.verify, &fw_verify.pfm, 0,
+		MOCK_ARG_PTR (&fw_verify.hash), MOCK_ARG_PTR (&fw_verify.sig_verify), MOCK_ARG_PTR (NULL),
+		MOCK_ARG (0));
+
+	/* Get the PFM ID from the PFM. */
+	status |= mock_expect (&fw_verify.pfm.mock, fw_verify.pfm.base.base.get_id, &fw_verify.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&fw_verify.pfm.mock, 0, &PFM_V2.manifest.id,
+		sizeof (PFM_V2.manifest.id), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_pfm_verify_run_verification (&fw_verify.test, &pfm_expected_id);
+	CuAssertIntEquals (test, FIRMWARE_PFM_VERIFY_UNSUPPORTED_ID, status);
+
+	/* Check verification result measurement. */
+	status = pcr_store_get_measurement (&fw_verify.pcr, measurement_result, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status =
+		testing_validate_array (FIRMWARE_PFM_VERIFY_TESTING_RESULT_PFM_UNSUPPORTED_ID_MEASUREMENT,
+		measurement.digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check firmware version measurement. */
+	status = pcr_store_get_measurement (&fw_verify.pcr, measurement_version, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (FIRMWARE_PFM_VERIFY_TESTING_VERSION_EMPTY_MEASUREMENT,
+		measurement.digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0x0, status);
 
 	/* Check PFM digest measurement. */
 	status = pcr_store_get_measurement (&fw_verify.pcr, measurement_pfm, &measurement);
@@ -5277,6 +5620,7 @@ TEST (firmware_pfm_verify_test_static_init_measurement_pfm_id_error);
 TEST (firmware_pfm_verify_test_static_init_measurement_platform_id_error);
 TEST (firmware_pfm_verify_test_release_null);
 TEST (firmware_pfm_verify_test_run_verification);
+TEST (firmware_pfm_verify_test_run_verification_supported_pfm_id);
 TEST (firmware_pfm_verify_test_run_verification_small_version_buffer);
 TEST (firmware_pfm_verify_test_run_verification_measurement_result_error);
 TEST (firmware_pfm_verify_test_run_verification_measurement_version_error);
@@ -5297,6 +5641,8 @@ TEST (firmware_pfm_verify_test_run_verification_get_firmware_error);
 TEST (firmware_pfm_verify_test_run_verification_get_versions_error);
 TEST (firmware_pfm_verify_test_run_verification_get_images_error);
 TEST (firmware_pfm_verify_test_run_verification_flash_verify_error);
+TEST (firmware_pfm_verify_test_run_verification_get_id_failed);
+TEST (firmware_pfm_verify_test_run_verification_unsupported_pfm_id);
 TEST (firmware_pfm_verify_test_get_fw_version_measured_data_no_verification);
 TEST (firmware_pfm_verify_test_get_fw_version_measured_data_after_verification);
 TEST (firmware_pfm_verify_test_get_fw_version_measured_data_offset);

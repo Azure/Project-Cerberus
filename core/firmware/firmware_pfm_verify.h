@@ -70,7 +70,8 @@ int firmware_pfm_verify_init (struct firmware_pfm_verify *fw_verify,
 int firmware_pfm_verify_init_state (const struct firmware_pfm_verify *fw_verify);
 void firmware_pfm_verify_release (const struct firmware_pfm_verify *fw_verify);
 
-int firmware_pfm_verify_run_verification (const struct firmware_pfm_verify *fw_verify);
+int firmware_pfm_verify_run_verification (const struct firmware_pfm_verify *fw_verify,
+	uint32_t *expected_id);
 
 int firmware_pfm_verify_get_fw_version_measured_data (const struct firmware_pfm_verify *fw_verify,
 	size_t offset, uint8_t *buffer, size_t length, uint32_t *total_len);
@@ -276,6 +277,7 @@ enum {
 	FIRMWARE_PFM_VERIFY_PFM_MULTI_VERSION = FIRMWARE_PFM_VERIFY_ERROR (0x05),	/**< The PFM contains multiple firmware versions. */
 	FIRMWARE_PFM_VERIFY_PFM_NO_VERSION = FIRMWARE_PFM_VERIFY_ERROR (0x06),		/**< The PFM contains no firmware version. */
 	FIRMWARE_PFM_VERIFY_PFM_NO_IMAGE = FIRMWARE_PFM_VERIFY_ERROR (0x07),		/**< The PFM contains no firmware image information. */
+	FIRMWARE_PFM_VERIFY_UNSUPPORTED_ID = FIRMWARE_PFM_VERIFY_ERROR (0x08),		/**< The PFM contains an unsupported ID. */
 };
 
 
