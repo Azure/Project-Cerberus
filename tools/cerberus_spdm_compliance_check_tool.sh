@@ -17,7 +17,7 @@
 #
 # Usage:
 # To execute this script, run the following command in your terminal:
-# ./cerberus_spdm_compliance_check_tool.sh -e <component_eid> -v [spdm_version] -x [cfm_xml_filename] -d [debug_level] -t [sleep_duration] -s -l
+# ./cerberus_spdm_compliance_check_tool.sh -e <component_eid> -v [spdm_version] -x [cfm_xml_filename] -d [debug_level] -t [timeout] -s -l
 # Example:
 # ./cerberus_spdm_compliance_check_tool.sh -e 0x5
 # ./cerberus_spdm_compliance_check_tool.sh -e 0x5 -v 0x10 // To specify SPDM version (1.0 - 0x10, 1.1 - 0x11, 1.2 - 0x12)
@@ -45,7 +45,7 @@ success_count=0 # Number of successful iterations
 failure_count=0 # Number of failed iterations
 summary_report_count=100 # Number of iterations to print summary report
 log_enabled=0 # Log enabled
-sleep_duration=1 # Sleep duration in seconds, delay between get_measurement requests
+timeout=500 # Sleep duration in miliseconds. Default 500
 
 # Associative arrays to store command arguments for different SPDM versions and commands
 declare -A spdm_cmd_common=()
@@ -81,7 +81,7 @@ declare pcd_subsystem_vendor_id=""
 
 # Function to display usage information
 usage() {
-    echo "Usage: $0 -e <component_eid> -v [spdm_version] -x [cfm_xml_filename] -c [component_name] -p [pcd_xml_filename] -d [debug_level] -t [sleep_duration] -s -l"
+    echo "Usage: $0 -e <component_eid> -v [spdm_version] -x [cfm_xml_filename] -c [component_name] -p [pcd_xml_filename] -d [debug_level] -t [timeout] -s -l"
     echo "Options:"
     echo " -s : Enable stress test"
     echo " -l : Enable logging"
@@ -116,7 +116,7 @@ while getopts ":e:v:x:c:p:d:slt:" opt; do
             log_enabled=1
             ;;
 		t )
-			sleep_duration=$OPTARG
+			timeout=$OPTARG
 			;;
         \? )
             echo "Invalid option: -$OPTARG" 1>&2
@@ -135,7 +135,7 @@ if [ -z "$component_eid" ] || [ -z "$spdm_version" ]; then
 fi
 
 # Display input parameters
-echo "Input Params: component_eid $component_eid, spdm_version $spdm_version, cfm_xml_filename "$cfm_xml_filename", pcd_xml_filename "$pcd_xml_filename", debug_level $debug_level, stress_enabled $stress_enabled, sleep_duration $sleep_duration"
+echo "Input Params: component_eid $component_eid, spdm_version $spdm_version, cfm_xml_filename "$cfm_xml_filename", pcd_xml_filename "$pcd_xml_filename", debug_level $debug_level, stress_enabled $stress_enabled, timeout $timeout"
 echo ""
 
 # Helper functions
@@ -279,7 +279,7 @@ mctp_raw_validate_response() {
 send_mctp_raw_request() {
     local command_name="$1"
     shift
-    local response=$(mctptool raw -m $component_eid -d "$@")
+    local response=$(mctptool raw -m $component_eid -t $timeout -d "$@")
     if [ $? -ne 0 ]; then
         log_error "mctptool command failed for $command_name."
         return 1 # Failure
@@ -823,8 +823,6 @@ validate_cfm_xml_measurements() {
                 response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DIGEST"]} $measurement_id ${spdm_cmd_common[$command_name"_NONCE"]} ${spdm_cmd_1_2[$command_name"_SLOTID"]})
             fi
         fi
-
-		sleep "$sleep_duration"
 
         if [ $? -ne 0 ]; then
             log_error "$command_name.. Failed"
