@@ -38,6 +38,7 @@ int log_flush_handler_init (struct log_flush_handler *handler,
 int log_flush_handler_init_state (const struct log_flush_handler *handler);
 void log_flush_handler_release (const struct log_flush_handler *handler);
 
+int log_flush_handler_immediate_flush (const struct log_flush_handler *handler);
 
 /* This module will be treated as an extension of the logging module and use LOGGING_* error
  * codes. */

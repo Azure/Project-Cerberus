@@ -37,17 +37,17 @@ const platform_clock* log_flush_handler_get_next_execution (
 void log_flush_handler_execute (const struct periodic_task_handler *handler)
 {
 	const struct log_flush_handler *flush = (const struct log_flush_handler*) handler;
-	size_t i;
 
-	for (i = 0; i < flush->log_count; i++) {
-		flush->logs[i]->flush (flush->logs[i]);
-	}
-
+	log_flush_handler_immediate_flush (flush);
 	log_flush_handler_prepare (handler);
 }
 
 /**
  * Initialize a handler to flush log data.
+ *
+ * @note This function assumes that the `logs` `flush()` implementation is reentrant and can be
+ * called from either the `periodic_task` or another task calling
+ * `log_flush_handler_immediate_flush()`.
  *
  * @param handler The log handler to initialize.
  * @param state Variable context for the handler.  This must be uninitialized.
@@ -109,4 +109,26 @@ int log_flush_handler_init_state (const struct log_flush_handler *handler)
 void log_flush_handler_release (const struct log_flush_handler *handler)
 {
 	UNUSED (handler);
+}
+
+/**
+ * Flush all logs immediately.
+ *
+ * @param handler The flush handler to execute.
+ *
+ * @return 0 if the logs were successfully flushed or an error code.
+ */
+int log_flush_handler_immediate_flush (const struct log_flush_handler *handler)
+{
+	size_t i;
+
+	if (handler == NULL) {
+		return LOGGING_INVALID_ARGUMENT;
+	}
+
+	for (i = 0; i < handler->log_count; i++) {
+		handler->logs[i]->flush (handler->logs[i]);
+	}
+
+	return 0;
 }
