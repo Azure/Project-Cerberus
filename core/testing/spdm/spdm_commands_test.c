@@ -13987,6 +13987,7 @@ static void spdm_test_challenge_ecc_nist_p384 (CuTest *test)
 	spdm_command_testing_release_dependencies (test, &testing);
 }
 
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 static void spdm_test_challenge_ecc_nist_p521 (CuTest *test)
 {
 	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
@@ -14189,6 +14190,7 @@ static void spdm_test_challenge_ecc_nist_p521 (CuTest *test)
 
 	spdm_command_testing_release_dependencies (test, &testing);
 }
+#endif
 
 static void spdm_test_challenge_null (CuTest *test)
 {
@@ -16011,6 +16013,7 @@ static void spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p384 (
 	spdm_command_testing_release_dependencies (test, &testing);
 }
 
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 static void spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p521 (CuTest *test)
 {
 	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
@@ -16194,6 +16197,7 @@ static void spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p521 (
 
 	spdm_command_testing_release_dependencies (test, &testing);
 }
+#endif
 
 static void spdm_test_get_measurements_single_measurement_no_sig (CuTest *test)
 {
@@ -29518,7 +29522,9 @@ TEST (spdm_test_process_get_certificate_response_null);
 TEST (spdm_test_process_get_certificate_response_bad_length);
 TEST (spdm_test_challenge_ecc_nist_p256);
 TEST (spdm_test_challenge_ecc_nist_p384);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 TEST (spdm_test_challenge_ecc_nist_p521);
+#endif
 TEST (spdm_test_challenge_null);
 TEST (spdm_test_challenge_invalid_payload_size);
 TEST (spdm_test_challenge_version_mismatch);
@@ -29543,7 +29549,9 @@ TEST (spdm_test_challenge_sign_fail);
 TEST (spdm_test_get_measurements_all_measurements_no_sig);
 TEST (spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p256);
 TEST (spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p384);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 TEST (spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p521);
+#endif
 TEST (spdm_test_get_measurements_single_measurement_no_sig);
 TEST (spdm_test_get_measurements_count);
 TEST (spdm_test_get_measurements_null);
