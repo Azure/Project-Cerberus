@@ -17,7 +17,7 @@
  * Header for a measurement portion of measurement block following DMTF format.  Defined in the SPDM
  * DSP0274 spec section 10.11.1.1.
  */
-struct spdm_measurements_dmtf_measurement {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_measurements_dmtf_measurement {
 	uint8_t measurement_value_type:7;	/**< The type of data being reported in the measurement. */
 	uint8_t raw_bit_stream:1;			/**< Flag indicating whether data is in raw or digest form. */
 	uint16_t measurement_value_size;	/**< The size of the measurement data. */
@@ -28,7 +28,7 @@ struct spdm_measurements_dmtf_measurement {
  * measurement specification, so this format is assumed by the structure definition.  Defined  in
  * the SPDM DSP0274 spec section 10.11.1.
  */
-struct spdm_measurements_measurement_block {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_measurements_measurement_block {
 	uint8_t index;									/**< Measurement block index. */
 	uint8_t measurement_specification;				/**< Measurement specification the measurement block format follows. */
 	uint16_t measurement_size;						/**< Total size of the DMTF wrapped measurement data. */

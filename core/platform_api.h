@@ -26,6 +26,17 @@
  */
 typedef void (*timer_callback) (void *context);
 
+/**
+ * In case of Little Endian system this macro is NO-OP
+ * This attribute sets the storage order, aka endianness to little endian
+ * on Big Endian systems
+ */
+#if (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) || \
+    defined(__BIG_ENDIAN__) || defined(_MIPSEB) || defined(__MIPSEB) || defined(__MIPSEB__)
+#define PLATFORM_LITTLE_ENDIAN_STORAGE __attribute__((scalar_storage_order("little-endian")))
+#else
+#define PLATFORM_LITTLE_ENDIAN_STORAGE
+#endif
 
 /* Include specifics for the platform port. */
 #include "platform.h"

@@ -124,7 +124,7 @@
  * message handling (for both request and response messages).  See if it can be removed to avoid
  * duplication.
  */
-struct spdm_protocol_mctp_header {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_protocol_mctp_header {
 	uint8_t msg_type:7;			/**< Identifier for the type of message. */
 	uint8_t integrity_check:1;	/**< Flag indicating if an integrity check has been added. */
 };
@@ -132,7 +132,7 @@ struct spdm_protocol_mctp_header {
 /**
  * SPDM portion of packet header
  */
-struct spdm_protocol_header {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_protocol_header {
 	uint8_t spdm_minor_version:4;	/**< SPDM specification minor version used for the message. */
 	uint8_t spdm_major_version:4;	/**< SPDM specification major version used for the message. */
 	uint8_t req_rsp_code;			/**< Request/Response code for the message. */

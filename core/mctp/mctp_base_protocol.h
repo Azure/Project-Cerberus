@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "platform_api.h"
 #include "platform_config.h"
 #include "status/rot_status.h"
 
@@ -168,7 +169,7 @@ enum {
 /**
  * MCTP transport header added to every packet when using the SMBus binding.
  */
-struct mctp_base_protocol_transport_header {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE mctp_base_protocol_transport_header {
 	uint8_t cmd_code;			/**< SMBUS command code */
 	uint8_t byte_count;			/**< SMBUS packet byte count */
 	uint8_t source_addr;		/**< SMBUS source address */
@@ -189,7 +190,7 @@ struct mctp_base_protocol_transport_header {
  *
  * This will only be present in the first MCTP packet of a multi-packet message.
  */
-struct mctp_base_protocol_message_header {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE mctp_base_protocol_message_header {
 	uint8_t msg_type:7;			/**< Identifier for the type of message. */
 	uint8_t integrity_check:1;	/**< Flag indicating if an integrity check has been added. */
 };
