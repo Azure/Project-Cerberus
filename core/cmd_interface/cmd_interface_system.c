@@ -250,6 +250,11 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 			return cerberus_protocol_heap_stats (interface->cmd_device, request);
 #endif
 
+#ifdef CMD_ENABLE_STACK_STATS
+		case CERBERUS_PROTOCOL_DIAG_STACK_USAGE:
+			return cerberus_protocol_stack_stats (interface->cmd_device, request);
+#endif
+
 #ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 		case CERBERUS_PROTOCOL_EXCHANGE_KEYS:
 			status = cerberus_protocol_key_exchange (interface->base.session, request,

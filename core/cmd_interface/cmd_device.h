@@ -8,7 +8,6 @@
 #include <stdint.h>
 #include "status/rot_status.h"
 
-
 #pragma pack(push, 1)
 /**
  * Heap statistics being reported.
@@ -22,6 +21,24 @@ struct cmd_device_heap_stats {
 	uint32_t free_blocks;	/**< Number of blocks currently free. */
 	uint32_t max_block;		/**< Size of the largest free block. */
 	uint32_t min_block;		/**< Size of the smallest free block. */
+};
+
+
+/**
+ * Task stack statistics being reported.
+ */
+struct cmd_device_task_stack_stats {
+	uint32_t min_free_stack;	/**< The minimum amount of free stack space. */
+	uint32_t task_name_len;		/**< Length of the task name. */
+	char task_name[];			/**< Name of the task. */
+};
+
+/**
+ * Stack statistics being reported.
+ */
+struct cmd_device_stack_stats {
+	uint32_t num_tasks;										/**< Number of tasks that can be reported. */
+	struct cmd_device_task_stack_stats task_stack_stats[];	/**< Stack statistics for each task. */
 };
 
 #pragma pack(pop)
@@ -76,6 +93,21 @@ struct cmd_device {
 	 */
 	int (*get_heap_stats) (const struct cmd_device *device, struct cmd_device_heap_stats *heap);
 #endif
+
+#ifdef CMD_ENABLE_STACK_STATS
+	/**
+	 * Retrieve current stack usage statistics.
+	 *
+	 * @param device The device command handler.
+	 * @param task_offset Offset into the task stack statistics to report.
+	 * @param stack Output for the current stack statistics.
+	 * @param length Maximum length of the task stack statistics to report.
+	 *
+	 * @return length of the task stack statistics or an error code.
+	 */
+	int (*get_stack_stats) (const struct cmd_device *device, size_t task_offset,
+		struct cmd_device_stack_stats *stack_stats, size_t length);
+#endif
 };
 
 
@@ -94,6 +126,7 @@ enum {
 	CMD_DEVICE_HEAP_FAILED = CMD_DEVICE_ERROR (0x05),			/**< Failed to get heap statistics. */
 	CMD_DEVICE_UUID_FAILED = CMD_DEVICE_ERROR (0x06),			/**< Failed to retrieve the device UUID. */
 	CMD_DEVICE_RESET_COUNTER_FAILED = CMD_DEVICE_ERROR (0x07),	/**< Failed to retrieve the reset counter. */
+	CMD_DEVICE_STACK_FAILED = CMD_DEVICE_ERROR (0x08),			/**< Failed to get stack statistics. */
 };
 
 

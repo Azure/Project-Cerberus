@@ -7712,6 +7712,63 @@ static void cmd_interface_system_test_process_heap_stats_fail (CuTest *test)
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
+static void cmd_interface_system_test_process_stack_stats (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	cerberus_protocol_diagnostic_commands_testing_process_stack_stats (test, &cmd.handler.base,
+		&cmd.cmd_device);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_stack_stats_non_zero_offset (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	cerberus_protocol_diagnostic_commands_testing_process_stack_stats_non_zero_offset (test,
+		&cmd.handler.base, &cmd.cmd_device);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_stack_stats_invalid_len (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	cerberus_protocol_diagnostic_commands_testing_process_stack_stats_invalid_len (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_stack_stats_fail (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	cerberus_protocol_diagnostic_commands_testing_process_stack_stats_fail (test, &cmd.handler.base,
+		&cmd.cmd_device);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
 static void cmd_interface_system_test_supports_all_required_commands (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -8918,6 +8975,10 @@ TEST (cmd_interface_system_test_process_session_sync_invalid_len);
 TEST (cmd_interface_system_test_process_heap_stats);
 TEST (cmd_interface_system_test_process_heap_stats_invalid_len);
 TEST (cmd_interface_system_test_process_heap_stats_fail);
+TEST (cmd_interface_system_test_process_stack_stats);
+TEST (cmd_interface_system_test_process_stack_stats_non_zero_offset);
+TEST (cmd_interface_system_test_process_stack_stats_invalid_len);
+TEST (cmd_interface_system_test_process_stack_stats_fail);
 TEST (cmd_interface_system_test_supports_all_required_commands);
 TEST (cmd_interface_system_test_process_response_null);
 TEST (cmd_interface_system_test_process_response_payload_too_short);

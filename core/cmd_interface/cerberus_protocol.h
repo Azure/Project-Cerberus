@@ -93,6 +93,7 @@ enum {
 
 	/* Special diagnostic commands to query for device health or other debug information. */
 	CERBERUS_PROTOCOL_DIAG_HEAP_USAGE = 0xD0,					/**< Diagnostic command to get heap usage */
+	CERBERUS_PROTOCOL_DIAG_STACK_USAGE,							/**< Diagnostic command to get stack usage */
 
 	/* Utilize the reserved command space for debugging.  Must be disabled in production. */
 	CERBERUS_PROTOCOL_DEBUG_START_ATTESTATION = 0xF0,			/**< Debug command to start attestation */
