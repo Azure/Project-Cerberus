@@ -206,6 +206,7 @@ void ecdsa_deterministic_k_drbg_clear (struct ecdsa_deterministic_k_drbg *drbg)
 	buffer_zeroize (drbg, sizeof (*drbg));
 }
 
+#ifdef ECC_ENABLE_GENERATE_KEY_PAIR
 /**
  * Generate a random ECDSA key pair.  A pairwise consistency test (PCT) will be executed for the new
  * key pair.
@@ -283,6 +284,7 @@ pct_error:
 
 	return status;
 }
+#endif	/* ECC_ENABLE_GENERATE_KEY_PAIR */
 
 /**
  * Generate a random ECDSA key pair using an ECC hardware implementation.  A pairwise consistency
@@ -791,6 +793,7 @@ int ecdsa_verify_hash_and_finish (const struct ecc_engine *ecc, const struct has
 	return status;
 }
 
+#ifdef ECC_ENABLE_GENERATE_KEY_PAIR
 /**
  * Verify a specified message with an ECDSA signature using the provided public key context.
  *
@@ -919,6 +922,7 @@ hash_cancel:
 
 	return status;
 }
+#endif	/* ECC_ENABLE_GENERATE_KEY_PAIR */
 
 /**
  * Generate an ECDSA signature for a specified message using an ECC hardware implementation.
