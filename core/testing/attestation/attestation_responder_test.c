@@ -3238,7 +3238,12 @@ static void attestation_responder_test_pa_rot_challenge_response_finish_hash_fai
 		&attestation.rng, 0, MOCK_ARG (32), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&attestation.hash.mock, attestation.hash.base.start_sha256,
+	status = mock_expect (&attestation.ecc.mock, attestation.ecc.base.init_key_pair,
+		&attestation.ecc, 0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
+	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
+
+	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.start_sha256,
 		&attestation.hash, 0);
 
 	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash,
@@ -3255,6 +3260,10 @@ static void attestation_responder_test_pa_rot_challenge_response_finish_hash_fai
 
 	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.cancel, &attestation.hash,
 		0);
+
+	status |= mock_expect (&attestation.ecc.mock, attestation.ecc.base.release_key_pair,
+		&attestation.ecc, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_update_digest (&attestation.store, PCR_MEASUREMENT (0, 0), measurement,
@@ -3303,17 +3312,13 @@ static void attestation_responder_test_pa_rot_challenge_response_init_key_fail (
 	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash,
 		0, MOCK_ARG_NOT_NULL, MOCK_ARG (32 + sizeof (struct attestation_response)));
 
-	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.get_active_algorithm,
-		&attestation.hash, HASH_TYPE_SHA256);
-
-	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.finish, &attestation.hash,
-		0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&attestation.ecc.mock, attestation.ecc.base.init_key_pair,
+	status |= mock_expect (&attestation.ecc.mock, attestation.ecc.base.init_key_pair,
 		&attestation.ecc, ECC_ENGINE_KEY_PAIR_FAILED,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
+
+	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.cancel, &attestation.hash,
+		0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_update_digest (&attestation.store, PCR_MEASUREMENT (0, 0), measurement,

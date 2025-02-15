@@ -1562,7 +1562,12 @@ static void session_manager_ecc_test_establish_session_finish_keys_digest_fail (
 		sizeof (ECC_PUBKEY2_DER_LEN), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 0);
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 3);
+
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 0);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
@@ -1572,6 +1577,9 @@ static void session_manager_ecc_test_establish_session_finish_keys_digest_fail (
 		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.finish, &cmd.hash, HASH_ENGINE_NO_MEMORY,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+
+	status |= mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (3), MOCK_ARG_PTR (NULL));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.hash.mock, cmd.hash.base.cancel, &cmd.hash, 0);
@@ -1698,12 +1706,6 @@ static void session_manager_ecc_test_establish_session_init_alias_priv_key_fail 
 		0xf1, 0x3b, 0x43, 0x16, 0x2c, 0xe4, 0x05, 0x34,
 		0xd6, 0x41, 0x80, 0xfa, 0x1a, 0x0e, 0x0a, 0x04
 	};
-	uint8_t digest[] = {
-		0xf1, 0x3b, 0x43, 0x16, 0x2c, 0x0e, 0x9a, 0x37,
-		0xe4, 0x05, 0x75, 0x73, 0xc5, 0x54, 0x10, 0xad,
-		0xff, 0x3e, 0xa0, 0x02, 0x34, 0xd6, 0x41, 0x80,
-		0xfa, 0x1a, 0x0e, 0x0a, 0x04, 0xd5, 0xc5, 0xc6
-	};
 	uint8_t *ecc_cerberus_key;
 	int status;
 
@@ -1750,22 +1752,17 @@ static void session_manager_ecc_test_establish_session_init_alias_priv_key_fail 
 		sizeof (ECC_PUBKEY2_DER_LEN), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 0);
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, ECC_ENGINE_NO_MEMORY,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
+
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 0);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN),
 		MOCK_ARG (ECC_PUBKEY2_DER_LEN));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.get_active_algorithm, &cmd.hash,
-		HASH_TYPE_SHA256);
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.finish, &cmd.hash, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
-	status |= mock_expect_output (&cmd.hash.mock, 0, digest, sizeof (digest), -1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, ECC_ENGINE_NO_MEMORY,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.cancel, &cmd.hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,

@@ -17986,23 +17986,6 @@ static void spdm_test_get_measurements_v_1_2_sig_req_init_key_pair_fail (CuTest 
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
-	status |= mock_expect (&testing.hash_engine_mock[0].mock,
-		testing.hash_engine_mock[0].base.start_sha384, &testing.hash_engine_mock[0].base, 0);
-
-	status |= mock_expect (&testing.hash_engine_mock[0].mock,
-		testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + SHA384_HASH_LENGTH));
-
-	status |= mock_expect (&testing.hash_engine_mock[0].mock,
-		testing.hash_engine_mock[0].base.get_active_algorithm, &testing.hash_engine_mock[0].base,
-		HASH_TYPE_SHA384);
-
-	status |= mock_expect (&testing.hash_engine_mock[0].mock,
-		testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA384_HASH_LENGTH));
-	status |= mock_expect_output (&testing.hash_engine_mock[0].mock, 0, SHA384_TEST_HASH,
-		SHA384_HASH_LENGTH, -1);
-
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
 		&testing.ecc_mock.base, ECC_ENGINE_KEY_PAIR_FAILED,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY_384, RIOT_CORE_ALIAS_KEY_384_LEN),
@@ -18142,9 +18125,18 @@ static void spdm_test_get_measurements_v_1_2_sig_req_hash_calculate_fail (CuTest
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
+		&testing.ecc_mock.base, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY_384, RIOT_CORE_ALIAS_KEY_384_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_384_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 0);
+
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.start_sha384, &testing.hash_engine_mock[0].base,
 		HASH_ENGINE_START_SHA384_FAILED);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
+		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
@@ -18433,6 +18425,12 @@ static void spdm_test_get_measurements_v_1_1_sig_req_init_key_pair_fail (CuTest 
 		MOCK_ARG (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + measurement_length), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
+		&testing.ecc_mock.base, ECC_ENGINE_KEY_PAIR_FAILED,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY_384, RIOT_CORE_ALIAS_KEY_384_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_384_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 0);
+
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
 		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2), MOCK_ARG (true), MOCK_ARG (false),
@@ -18444,12 +18442,6 @@ static void spdm_test_get_measurements_v_1_1_sig_req_init_key_pair_fail (CuTest 
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
-
-	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
-		&testing.ecc_mock.base, ECC_ENGINE_KEY_PAIR_FAILED,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY_384, RIOT_CORE_ALIAS_KEY_384_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_384_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
-	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 0);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
@@ -24236,23 +24228,6 @@ static void spdm_test_key_exchange_signature_generation_init_key_pair_fail (CuTe
 		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
-	status |= mock_expect (&testing.hash_engine_mock[0].mock,
-		testing.hash_engine_mock[0].base.start_sha384, &testing.hash_engine_mock[0].base, 0);
-
-	status |= mock_expect (&testing.hash_engine_mock[0].mock,
-		testing.hash_engine_mock[0].base.update, &testing.hash_engine_mock[0].base, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + SHA384_HASH_LENGTH));
-
-	status |= mock_expect (&testing.hash_engine_mock[0].mock,
-		testing.hash_engine_mock[0].base.get_active_algorithm, &testing.hash_engine_mock[0].base,
-		HASH_TYPE_SHA384);
-
-	status |= mock_expect (&testing.hash_engine_mock[0].mock,
-		testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA384_HASH_LENGTH));
-	status |= mock_expect_output (&testing.hash_engine_mock[0].mock, 0, SHA384_TEST_HASH,
-		SHA384_HASH_LENGTH, -1);
-
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
 		&testing.ecc_mock.base, ECC_ENGINE_KEY_PAIR_FAILED,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY_384, RIOT_CORE_ALIAS_KEY_384_LEN),
@@ -24462,9 +24437,18 @@ static void spdm_test_key_exchange_signature_generation_hmac_calculation_fail (C
 		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
+		&testing.ecc_mock.base, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY_384, RIOT_CORE_ALIAS_KEY_384_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_384_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 0);
+
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.start_sha384, &testing.hash_engine_mock[0].base,
 		HASH_ENGINE_START_SHA384_FAILED);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
+		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
