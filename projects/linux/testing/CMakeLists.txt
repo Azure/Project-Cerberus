@@ -20,6 +20,7 @@ project(cerberus-linux-unit-tests LANGUAGES C ASM)
 set(TARGET_NAME ${PROJECT_NAME})
 
 include (${CMAKE_CURRENT_LIST_DIR}/../../../Cerberus.cmake)
+include(Acvpparser)
 include(Mbedtls)
 include(AllFeatures)
 
@@ -42,6 +43,7 @@ find_package(OpenSSL REQUIRED)
 add_executable(
 	${TARGET_NAME}
 	${MBEDTLS_SOURCES}
+	${ACVPPARSER_SOURCES}
 	${CORE_SOURCES}
 	${TESTING_SOURCES}
 	${PLATFORM_SOURCES}
@@ -53,6 +55,7 @@ target_include_directories(
 		${MBEDTLS_INCLUDES}
 		${CORE_INCLUDES}
 		${PLATFORM_INCLUDES}
+		${ACVPPARSER_INCLUDES}
 		${TESTING_DIR}
 		${PLATFORM_INCLUDES}/testing/config
 	)
@@ -67,6 +70,7 @@ target_compile_options(
  		-Werror
 		-Wno-unused-parameter
 		-g
+		-include ${CORE_DIR}/acvp/acvp_override.h
 	)
 
 target_compile_definitions(

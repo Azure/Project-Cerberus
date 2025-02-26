@@ -161,6 +161,8 @@ enum {
 	ROT_MODULE_RSASSA = 0x0095,							/**< RSASSA signature handling. */
 	ROT_MODULE_ACVP_PROTO = 0x0096,						/**< ACVP Proto handler */
 	ROT_MODULE_FIRMWARE_PFM_VERIFY = 0x0097,			/**< Handler for verifying device FW with a PFM. */
+	ROT_MODULE_BACKEND_SHA = 0x0098,					/**< ACVP SHA backend */
+	ROT_MODULE_ACVP_PROTO_TESTER = 0x0099,				/**< ACVP Proto tester */
 };
 
 

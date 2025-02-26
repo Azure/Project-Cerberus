@@ -32,7 +32,8 @@ static int acvp_proto_interface_mock_add_test_data (const struct acvp_proto_inte
 		MOCK_ARG_CALL (offset), MOCK_ARG_PTR_CALL (data), MOCK_ARG_CALL (length));
 }
 
-static int acvp_proto_interface_mock_execute_test (const struct acvp_proto_interface *interface)
+static int acvp_proto_interface_mock_execute_test (const struct acvp_proto_interface *interface,
+	size_t *out_length)
 {
 	struct acvp_proto_interface_mock *mock = (struct acvp_proto_interface_mock*) interface;
 
@@ -40,11 +41,12 @@ static int acvp_proto_interface_mock_execute_test (const struct acvp_proto_inter
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN_NO_ARGS (&mock->mock, acvp_proto_interface_mock_execute_test, interface);
+	MOCK_RETURN (&mock->mock, acvp_proto_interface_mock_execute_test, interface,
+		MOCK_ARG_PTR_CALL (out_length));
 }
 
 static int acvp_proto_interface_mock_get_test_results (const struct acvp_proto_interface *interface,
-	size_t offset, uint8_t *results, size_t length)
+	size_t offset, uint8_t *results, size_t length, size_t *out_length)
 {
 	struct acvp_proto_interface_mock *mock = (struct acvp_proto_interface_mock*) interface;
 
@@ -53,82 +55,34 @@ static int acvp_proto_interface_mock_get_test_results (const struct acvp_proto_i
 	}
 
 	MOCK_RETURN (&mock->mock, acvp_proto_interface_mock_get_test_results, interface,
-		MOCK_ARG_CALL (offset), MOCK_ARG_PTR_CALL (results), MOCK_ARG_CALL (length));
+		MOCK_ARG_CALL (offset), MOCK_ARG_PTR_CALL (results), MOCK_ARG_CALL (length),
+		MOCK_ARG_PTR_CALL (out_length));
 }
 
-static int acvp_proto_interface_mock_func_arg_count (void *func)
-{
-	if (func == acvp_proto_interface_mock_init_test) {
-		return 1;
-	}
-	else if (func == acvp_proto_interface_mock_add_test_data) {
-		return 3;
-	}
-	else if (func == acvp_proto_interface_mock_execute_test) {
-		return 0;
-	}
-	else if (func == acvp_proto_interface_mock_get_test_results) {
-		return 3;
-	}
-	else {
-		return 0;
-	}
-}
-
-static const char* acvp_proto_interface_mock_func_name_map (void *func)
-{
-	if (func == acvp_proto_interface_mock_init_test) {
-		return "init_test";
-	}
-	else if (func == acvp_proto_interface_mock_add_test_data) {
-		return "add_test_data";
-	}
-	else if (func == acvp_proto_interface_mock_execute_test) {
-		return "execute_test";
-	}
-	else if (func == acvp_proto_interface_mock_get_test_results) {
-		return "get_test_results";
-	}
-	else {
-		return "unknown";
-	}
-}
-
-static const char* acvp_proto_interface_mock_arg_name_map (void *func, int arg)
-{
-	if (func == acvp_proto_interface_mock_init_test) {
-		switch (arg) {
-			case 0:
-				return "total_size";
-		}
-	}
-	else if (func == acvp_proto_interface_mock_add_test_data) {
-		switch (arg) {
-			case 0:
-				return "offset";
-
-			case 1:
-				return "data";
-
-			case 2:
-				return "length";
-		}
-	}
-	else if (func == acvp_proto_interface_mock_get_test_results) {
-		switch (arg) {
-			case 0:
-				return "offset";
-
-			case 1:
-				return "results";
-
-			case 2:
-				return "length";
-		}
-	}
-
-	return "unknown";
-}
+// *INDENT-OFF*
+MOCK_FUNCTION_TABLE_BEGIN (acvp_proto_interface, 4)
+	MOCK_FUNCTION (
+		acvp_proto_interface,
+		init_test,
+		1,
+		MOCK_FUNCTION_ARGS ("total_size"))
+	MOCK_FUNCTION (
+		acvp_proto_interface,
+		add_test_data,
+		3,
+		MOCK_FUNCTION_ARGS ("offset", "data", "length"))
+	MOCK_FUNCTION (
+		acvp_proto_interface,
+		execute_test,
+		1,
+		MOCK_FUNCTION_ARGS ("out_length"))
+	MOCK_FUNCTION (
+		acvp_proto_interface,
+		get_test_results,
+		4,
+		MOCK_FUNCTION_ARGS ("offset", "results", "length", "out_length"))
+MOCK_FUNCTION_TABLE_END (acvp_proto_interface)
+// *INDENT-ON*
 
 /**
  * Initialize a mock for an ACVP Proto interface.
@@ -152,16 +106,14 @@ int acvp_proto_interface_mock_init (struct acvp_proto_interface_mock *mock)
 		return status;
 	}
 
-	mock_set_name (&mock->mock, "acvp_proto");
+	mock_set_name (&mock->mock, "acvp_proto_interface");
 
 	mock->base.init_test = acvp_proto_interface_mock_init_test;
 	mock->base.add_test_data = acvp_proto_interface_mock_add_test_data;
 	mock->base.execute_test = acvp_proto_interface_mock_execute_test;
 	mock->base.get_test_results = acvp_proto_interface_mock_get_test_results;
 
-	mock->mock.func_arg_count = acvp_proto_interface_mock_func_arg_count;
-	mock->mock.func_name_map = acvp_proto_interface_mock_func_name_map;
-	mock->mock.arg_name_map = acvp_proto_interface_mock_arg_name_map;
+	MOCK_INTERFACE_INIT (mock->mock, acvp_proto_interface);
 
 	return 0;
 }

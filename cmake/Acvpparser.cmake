@@ -1,0 +1,45 @@
+# ++
+#
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT license.
+#
+# Module Name:
+#
+#	Acvpparser.cmake
+#
+# Abstract:
+#
+#	CMake build script for acvpparser.
+#
+# --
+
+set(ACVPPARSER_DIR ${CERBERUS_ROOT}/external/acvpparser)
+set(PROTO_DIR ${ACVPPARSER_DIR}/proto)
+set(PARSER_DIR ${ACVPPARSER_DIR}/parser)
+set(ACVPBACKEND_DIR ${ACVPPARSER_DIR}/backends)
+set(PROTOBUFBACKEND_DIR ${ACVPPARSER_DIR}/backend_interfaces/protobuf)
+set(PROTOBUF_DIR ${PROTOBUFBACKEND_DIR}/pb)
+
+file(GLOB ACVPPARSER_SOURCES
+    ${PROTO_DIR}/proto.c
+    ${PROTO_DIR}/proto_sha.c
+    ${PROTOBUFBACKEND_DIR}/src/protobuf-c.c
+    ${PROTOBUF_DIR}/sha.pb-c.c
+    ${PARSER_DIR}/algorithms.c
+)
+
+set(ACVPPARSER_INCLUDES
+    ${ACVPPARSER_DIR}
+    ${PROTO_DIR}
+    ${PARSER_DIR}
+    ${ACVPBACKEND_DIR}
+    ${PROTOBUFBACKEND_DIR}
+    ${PROTOBUF_DIR}
+)
+
+# Include references for platform memory allocation functions and ignore some warnings
+set_source_files_properties(
+    ${ACVPPARSER_SOURCES}
+    PROPERTIES
+    COMPILE_OPTIONS "-include;${CERBERUS_ROOT}/core/platform_api.h;-Wno-unused-but-set-variable;-Wno-format;-Wno-unused-parameter"
+)
