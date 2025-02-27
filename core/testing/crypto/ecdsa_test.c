@@ -8608,12 +8608,8 @@ static void ecdsa_test_ecc_hw_generate_random_key_null (CuTest *test)
 	struct ecc_raw_private_key priv_key;
 	struct ecc_point_public_key pub_key;
 	int status;
-	struct ecc_raw_private_key expected_priv = {0};
 
 	TEST_START;
-
-	memcpy (expected_priv.d, ECC_PRIVKEY, ECC_PRIVKEY_LEN);
-	expected_priv.key_length = ECC_PRIVKEY_LEN;
 
 	ecdsa_testing_init_dependencies (test, &ecdsa);
 

@@ -1,0 +1,31 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license.
+
+#ifndef ECDH_H_
+#define ECDH_H_
+
+#include <stddef.h>
+#include "crypto/ecc.h"
+#include "crypto/ecc_hw.h"
+#include "status/rot_status.h"
+
+
+int ecdh_generate_random_key (const struct ecc_engine *ecc, size_t key_length,
+	struct ecc_private_key *priv_key, struct ecc_public_key *pub_key);
+int ecdh_ecc_hw_generate_random_key (const struct ecc_hw *ecc_hw, size_t key_length,
+	struct ecc_raw_private_key *priv_key, struct ecc_point_public_key *pub_key);
+
+
+#define	ECDH_ERROR(code)		ROT_ERROR (ROT_MODULE_ECDH, code)
+
+/**
+ * Error codes that can be generated during ECDH processing.
+ */
+enum {
+	ECDH_INVALID_ARGUMENT = ECDH_ERROR (0x00),	/**< Input parameter is null or not valid. */
+	ECDH_NO_MEMORY = ECDH_ERROR (0x01),			/**< Memory allocation failed. */
+	ECDH_PCT_FAILURE = ECDH_ERROR (0x02),		/**< Failed the pairwise consistency test. */
+};
+
+
+#endif	/* ECDH_H_ */

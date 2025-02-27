@@ -163,6 +163,7 @@ enum {
 	ROT_MODULE_FIRMWARE_PFM_VERIFY = 0x0097,			/**< Handler for verifying device FW with a PFM. */
 	ROT_MODULE_BACKEND_SHA = 0x0098,					/**< ACVP SHA backend */
 	ROT_MODULE_ACVP_PROTO_TESTER = 0x0099,				/**< ACVP Proto tester */
+	ROT_MODULE_ECDH = 0x009a,							/**< ECDH handling. */
 };
 
 

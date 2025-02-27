@@ -219,10 +219,9 @@ void ecdsa_deterministic_k_drbg_clear (struct ecdsa_deterministic_k_drbg *drbg)
  * @param ecc The ECC engine to use to generate the key pair.
  * @param hash Hash engine that will be used for the PCT sign/verify operations.
  * @param key_length The length of the key that should be generated.
- * @param priv_key Output for the generated private key.  This can be null to skip private key
- * generation.
- * @param pub_key Output for the generated public key.  This can be null to skip public key
- * generation.
+ * @param priv_key Output for the generated private key.
+ * @param pub_key Output for the generated public key.  This can be null if the public key is not
+ * needed.
  *
  * @return 0 if the key pair was successfully generated or an error code.
  */
@@ -261,25 +260,20 @@ int ecdsa_generate_random_key (const struct ecc_engine *ecc, const struct hash_e
 		ECC_KAT_VECTORS_ECDSA_SIGNED, ECC_KAT_VECTORS_ECDSA_SIGNED_LEN, signature,
 		sizeof (signature));
 	if (ROT_IS_ERROR (status)) {
-		goto pct_error;
+		goto exit;
 	}
 
 	status = ecdsa_verify_message_with_key (ecc, hash, hash_algo, ECC_KAT_VECTORS_ECDSA_SIGNED,
 		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN, pub_key, signature, status);
-	if (status != 0) {
-		goto pct_error;
-	}
 
-	if (pub_key == &temp_pub) {
+exit:
+	if (status != 0) {
+		ecc->release_key_pair (ecc, priv_key, pub_key);
+	}
+	else if (pub_key == &temp_pub) {
 		ecc->release_key_pair (ecc, NULL, &temp_pub);
 	}
 
-	buffer_zeroize (signature, sizeof (signature));
-
-	return 0;
-
-pct_error:
-	ecc->release_key_pair (ecc, priv_key, pub_key);
 	buffer_zeroize (signature, sizeof (signature));
 
 	return status;
@@ -341,23 +335,21 @@ int ecdsa_ecc_hw_generate_random_key (const struct ecc_hw *ecc_hw, const struct 
 		priv_key->key_length, ECC_KAT_VECTORS_ECDSA_SIGNED, ECC_KAT_VECTORS_ECDSA_SIGNED_LEN,
 		&signature);
 	if (status != 0) {
-		goto pct_error;
+		goto exit;
 	}
 
 	status = ecdsa_ecc_hw_verify_message (ecc_hw, hash, hash_algo, ECC_KAT_VECTORS_ECDSA_SIGNED,
 		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN, pub_key, &signature);
+
+exit:
 	if (status != 0) {
-		goto pct_error;
+		buffer_zeroize (priv_key, sizeof (*priv_key));
+		buffer_zeroize (pub_key, sizeof (*pub_key));
+	}
+	else {
+		buffer_zeroize (&temp_pub, sizeof (temp_pub));
 	}
 
-	buffer_zeroize (&temp_pub, sizeof (temp_pub));
-	buffer_zeroize (&signature, sizeof (signature));
-
-	return 0;
-
-pct_error:
-	buffer_zeroize (priv_key, sizeof (*priv_key));
-	buffer_zeroize (pub_key, sizeof (*pub_key));
 	buffer_zeroize (&signature, sizeof (signature));
 
 	return status;
