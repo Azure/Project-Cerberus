@@ -10,6 +10,7 @@
 /* Internal functions declared to allow for static initialization. */
 int aes_cbc_mbedtls_set_key (const struct aes_cbc_engine *engine, const uint8_t *key,
 	size_t length);
+int aes_cbc_mbedtls_clear_key (const struct aes_cbc_engine *engine);
 int aes_cbc_mbedtls_encrypt_data (const struct aes_cbc_engine *engine, const uint8_t *plaintext,
 	size_t length, const uint8_t iv[AES_CBC_BLOCK_SIZE], uint8_t *ciphertext, size_t out_length,
 	uint8_t out_iv[AES_CBC_BLOCK_SIZE]);
@@ -23,6 +24,7 @@ int aes_cbc_mbedtls_decrypt_data (const struct aes_cbc_engine *engine, const uin
  */
 #define	AES_CBC_MBEDTLS_API_INIT { \
 		.set_key = aes_cbc_mbedtls_set_key, \
+		.clear_key = aes_cbc_mbedtls_clear_key, \
 		.encrypt_data = aes_cbc_mbedtls_encrypt_data, \
 		.decrypt_data = aes_cbc_mbedtls_decrypt_data, \
 	}

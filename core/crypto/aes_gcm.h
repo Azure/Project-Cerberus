@@ -29,7 +29,7 @@ struct aes_gcm_engine {
 	 * Set the key to use for AES-GCM operations.  This must be called at least once before any
 	 * encryption operation can be performed, and again if a different key should be used.
 	 *
-	 * @param engine The AES engine to configure.
+	 * @param engine The AES-GCM engine to configure.
 	 * @param key The encryption key to use.  The key does not need to remain in scope for
 	 * encryption and decryption operations.
 	 * @param length The length of the key.
@@ -39,10 +39,20 @@ struct aes_gcm_engine {
 	int (*set_key) (const struct aes_gcm_engine *engine, const uint8_t *key, size_t length);
 
 	/**
+	 * Erase the key being used for AES-GCM operations.  A new key will need to be set before any
+	 * additional encryption operations can be performed.
+	 *
+	 * @param engine the AES-GCM engine to configure.
+	 *
+	 * @return 0 if the AES key was cleared successfully or an error code.
+	 */
+	int (*clear_key) (const struct aes_gcm_engine *engine);
+
+	/**
 	 * Encrypt data using AES-GCM mode.  The engine must be provided with a key prior to calling
 	 * this function.
 	 *
-	 * @param engine The AES engine to use for encryption.
+	 * @param engine The AES-GCM engine to use for encryption.
 	 * @param plaintext The data to encrypt.
 	 * @param length The amount of data to encrypt.
 	 * @param iv The initialization vector to use for encryption.
@@ -65,7 +75,7 @@ struct aes_gcm_engine {
 	 *
 	 * The engine must be provided with a key prior to calling this function.
 	 *
-	 * @param engine The AES engine to use for encryption.
+	 * @param engine The AES-GCM engine to use for encryption.
 	 * @param plaintext The data to encrypt.
 	 * @param length The amount of data to encrypt.
 	 * @param iv The initialization vector to use for encryption.
@@ -89,7 +99,7 @@ struct aes_gcm_engine {
 	 * Decrypt data using AES-GCM mode.  The engine must be provided with a key prior to calling
 	 * this function.
 	 *
-	 * @param engine The AES engine to use for decryption.
+	 * @param engine The AES-GCM engine to use for decryption.
 	 * @param ciphertext The encrypted data to decrypt.
 	 * @param length The length of the encrypted data.
 	 * @param tag The GCM tag for the ciphertext.  This must be 16 bytes.
@@ -111,7 +121,7 @@ struct aes_gcm_engine {
 	 *
 	 * The engine must be provided with a key prior to calling this function.
 	 *
-	 * @param engine The AES engine to use for decryption.
+	 * @param engine The AES-GCM engine to use for decryption.
 	 * @param ciphertext The encrypted data to decrypt.
 	 * @param length The length of the encrypted data.
 	 * @param tag The GCM tag for the ciphertext.  This must be 16 bytes.

@@ -37,6 +37,7 @@ static void aes_cbc_mbedtls_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, engine.test.base.set_key);
+	CuAssertPtrNotNull (test, engine.test.base.clear_key);
 	CuAssertPtrNotNull (test, engine.test.base.encrypt_data);
 	CuAssertPtrNotNull (test, engine.test.base.decrypt_data);
 
@@ -67,6 +68,7 @@ static void aes_cbc_mbedtls_test_static_init (CuTest *test)
 	TEST_START;
 
 	CuAssertPtrNotNull (test, engine.test.base.set_key);
+	CuAssertPtrNotNull (test, engine.test.base.clear_key);
 	CuAssertPtrNotNull (test, engine.test.base.encrypt_data);
 	CuAssertPtrNotNull (test, engine.test.base.decrypt_data);
 
@@ -932,6 +934,102 @@ static void aes_cbc_mbedtls_test_encrypt_with_different_keys (CuTest *test)
 	aes_cbc_mbedtls_release (&engine.test);
 }
 
+static void aes_cbc_mbedtls_test_clear_key_encrypt (CuTest *test)
+{
+	struct aes_cbc_mbedtls_testing engine;
+	int status;
+	uint8_t ciphertext[AES_CBC_TESTING_SINGLE_BLOCK_LEN * 2];
+
+	TEST_START;
+
+	status = aes_cbc_mbedtls_init (&engine.test, &engine.state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.set_key (&engine.test.base, AES_CBC_TESTING_SINGLE_BLOCK_KEY,
+		AES_CBC_TESTING_SINGLE_BLOCK_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.clear_key (&engine.test.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.encrypt_data (&engine.test.base,
+		AES_CBC_TESTING_SINGLE_BLOCK_PLAINTEXT, AES_CBC_TESTING_SINGLE_BLOCK_LEN,
+		AES_CBC_TESTING_SINGLE_BLOCK_IV, ciphertext, sizeof (ciphertext), NULL);
+	CuAssertIntEquals (test, AES_CBC_ENGINE_NO_KEY, status);
+
+	aes_cbc_mbedtls_release (&engine.test);
+}
+
+static void aes_cbc_mbedtls_test_clear_key_decrypt (CuTest *test)
+{
+	struct aes_cbc_mbedtls_testing engine;
+	int status;
+	uint8_t plaintext[AES_CBC_TESTING_SINGLE_BLOCK_LEN * 2];
+
+	TEST_START;
+
+	status = aes_cbc_mbedtls_init (&engine.test, &engine.state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.set_key (&engine.test.base, AES_CBC_TESTING_SINGLE_BLOCK_KEY,
+		AES_CBC_TESTING_SINGLE_BLOCK_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.clear_key (&engine.test.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.decrypt_data (&engine.test.base,
+		AES_CBC_TESTING_SINGLE_BLOCK_CIPHERTEXT, AES_CBC_TESTING_SINGLE_BLOCK_LEN,
+		AES_CBC_TESTING_SINGLE_BLOCK_IV, plaintext, sizeof (plaintext), NULL);
+	CuAssertIntEquals (test, AES_CBC_ENGINE_NO_KEY, status);
+
+	aes_cbc_mbedtls_release (&engine.test);
+}
+
+static void aes_cbc_mbedtls_test_clear_key_static_init (CuTest *test)
+{
+	struct aes_cbc_mbedtls_testing engine = {
+		.test = aes_cbc_mbedtls_static_init (&engine.state)
+	};
+	int status;
+	uint8_t ciphertext[AES_CBC_TESTING_SINGLE_BLOCK_LEN * 2];
+
+	TEST_START;
+
+	status = aes_cbc_mbedtls_init_state (&engine.test);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.set_key (&engine.test.base, AES_CBC_TESTING_SINGLE_BLOCK_KEY,
+		AES_CBC_TESTING_SINGLE_BLOCK_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.clear_key (&engine.test.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.encrypt_data (&engine.test.base,
+		AES_CBC_TESTING_SINGLE_BLOCK_PLAINTEXT, AES_CBC_TESTING_SINGLE_BLOCK_LEN,
+		AES_CBC_TESTING_SINGLE_BLOCK_IV, ciphertext, sizeof (ciphertext), NULL);
+	CuAssertIntEquals (test, AES_CBC_ENGINE_NO_KEY, status);
+
+	aes_cbc_mbedtls_release (&engine.test);
+}
+
+static void aes_cbc_mbedtls_test_clear_key_null (CuTest *test)
+{
+	struct aes_cbc_mbedtls_testing engine;
+	int status;
+
+	TEST_START;
+
+	status = aes_cbc_mbedtls_init (&engine.test, &engine.state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.clear_key (NULL);
+	CuAssertIntEquals (test, AES_CBC_ENGINE_INVALID_ARGUMENT, status);
+
+	aes_cbc_mbedtls_release (&engine.test);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (aes_cbc_mbedtls);
@@ -970,6 +1068,10 @@ TEST (aes_cbc_mbedtls_test_decrypt_data_zero_length);
 TEST (aes_cbc_mbedtls_test_decrypt_data_no_key);
 TEST (aes_cbc_mbedtls_test_encrypt_and_decrypt);
 TEST (aes_cbc_mbedtls_test_encrypt_with_different_keys);
+TEST (aes_cbc_mbedtls_test_clear_key_encrypt);
+TEST (aes_cbc_mbedtls_test_clear_key_decrypt);
+TEST (aes_cbc_mbedtls_test_clear_key_static_init);
+TEST (aes_cbc_mbedtls_test_clear_key_null);
 
 TEST_SUITE_END;
 // *INDENT-ON*

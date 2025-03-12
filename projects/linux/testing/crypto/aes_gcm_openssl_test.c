@@ -37,6 +37,7 @@ static void aes_gcm_openssl_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, engine.test.base.set_key);
+	CuAssertPtrNotNull (test, engine.test.base.clear_key);
 	CuAssertPtrNotNull (test, engine.test.base.encrypt_data);
 	CuAssertPtrNotNull (test, engine.test.base.encrypt_with_add_data);
 	CuAssertPtrNotNull (test, engine.test.base.decrypt_data);
@@ -72,6 +73,7 @@ static void aes_gcm_openssl_test_static_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, engine.test.base.set_key);
+	CuAssertPtrNotNull (test, engine.test.base.clear_key);
 	CuAssertPtrNotNull (test, engine.test.base.encrypt_data);
 	CuAssertPtrNotNull (test, engine.test.base.encrypt_with_add_data);
 	CuAssertPtrNotNull (test, engine.test.base.decrypt_data);
@@ -1572,6 +1574,104 @@ static void aes_gcm_openssl_test_encrypt_with_add_data_with_different_keys (CuTe
 	aes_gcm_openssl_release (&engine.test);
 }
 
+static void aes_gcm_openssl_test_clear_key_encrypt (CuTest *test)
+{
+	struct aes_gcm_openssl_testing engine;
+	int status;
+	uint8_t ciphertext[AES_GCM_TESTING_CIPHERTEXT_LEN * 2];
+	uint8_t tag[AES_GCM_TESTING_TAG_LEN * 2];
+
+	TEST_START;
+
+	status = aes_gcm_openssl_init (&engine.test, &engine.state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.set_key (&engine.test.base, AES_GCM_TESTING_KEY,
+		AES_GCM_TESTING_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.clear_key (&engine.test.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.encrypt_data (&engine.test.base, AES_GCM_TESTING_PLAINTEXT,
+		AES_GCM_TESTING_PLAINTEXT_LEN, AES_GCM_TESTING_IV, AES_GCM_TESTING_IV_LEN, ciphertext,
+		sizeof (ciphertext), tag, sizeof (tag));
+	CuAssertIntEquals (test, AES_GCM_ENGINE_NO_KEY, status);
+
+	aes_gcm_openssl_release (&engine.test);
+}
+
+static void aes_gcm_openssl_test_clear_key_decrypt (CuTest *test)
+{
+	struct aes_gcm_openssl_testing engine;
+	int status;
+	uint8_t plaintext[AES_GCM_TESTING_PLAINTEXT_LEN * 2];
+
+	TEST_START;
+
+	status = aes_gcm_openssl_init (&engine.test, &engine.state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.set_key (&engine.test.base, AES_GCM_TESTING_KEY,
+		AES_GCM_TESTING_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.clear_key (&engine.test.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.decrypt_data (&engine.test.base, AES_GCM_TESTING_CIPHERTEXT,
+		AES_GCM_TESTING_CIPHERTEXT_LEN,	AES_GCM_TESTING_TAG, AES_GCM_TESTING_IV,
+		AES_GCM_TESTING_IV_LEN, plaintext, sizeof (plaintext));
+	CuAssertIntEquals (test, AES_GCM_ENGINE_NO_KEY, status);
+
+	aes_gcm_openssl_release (&engine.test);
+}
+
+static void aes_gcm_openssl_test_clear_key_static_init (CuTest *test)
+{
+	struct aes_gcm_openssl_testing engine = {
+		.test = aes_gcm_openssl_static_init (&engine.state)
+	};
+	int status;
+	uint8_t ciphertext[AES_GCM_TESTING_CIPHERTEXT_LEN * 2];
+	uint8_t tag[AES_GCM_TESTING_TAG_LEN * 2];
+
+	TEST_START;
+
+	status = aes_gcm_openssl_init_state (&engine.test);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.set_key (&engine.test.base, AES_GCM_TESTING_KEY,
+		AES_GCM_TESTING_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.clear_key (&engine.test.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.encrypt_data (&engine.test.base, AES_GCM_TESTING_PLAINTEXT,
+		AES_GCM_TESTING_PLAINTEXT_LEN, AES_GCM_TESTING_IV, AES_GCM_TESTING_IV_LEN, ciphertext,
+		sizeof (ciphertext), tag, sizeof (tag));
+	CuAssertIntEquals (test, AES_GCM_ENGINE_NO_KEY, status);
+
+	aes_gcm_openssl_release (&engine.test);
+}
+
+static void aes_gcm_openssl_test_clear_key_null (CuTest *test)
+{
+	struct aes_gcm_openssl_testing engine;
+	int status;
+
+	TEST_START;
+
+	status = aes_gcm_openssl_init (&engine.test, &engine.state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.clear_key (NULL);
+	CuAssertIntEquals (test, AES_GCM_ENGINE_INVALID_ARGUMENT, status);
+
+	aes_gcm_openssl_release (&engine.test);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (aes_gcm_openssl);
@@ -1628,6 +1728,10 @@ TEST (aes_gcm_openssl_test_encrypt_and_decrypt_with_add_data);
 TEST (aes_gcm_openssl_test_encrypt_with_add_data_with_longer_iv);
 TEST (aes_gcm_openssl_test_encrypt_with_add_data_with_shorter_iv);
 TEST (aes_gcm_openssl_test_encrypt_with_add_data_with_different_keys);
+TEST (aes_gcm_openssl_test_clear_key_encrypt);
+TEST (aes_gcm_openssl_test_clear_key_decrypt);
+TEST (aes_gcm_openssl_test_clear_key_static_init);
+TEST (aes_gcm_openssl_test_clear_key_null);
 
 TEST_SUITE_END;
 // *INDENT-ON*

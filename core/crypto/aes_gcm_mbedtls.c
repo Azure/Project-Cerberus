@@ -43,6 +43,23 @@ int aes_gcm_mbedtls_set_key (const struct aes_gcm_engine *engine, const uint8_t 
 	return 0;
 }
 
+int aes_gcm_mbedtls_clear_key (const struct aes_gcm_engine *engine)
+{
+	const struct aes_gcm_engine_mbedtls *mbedtls = (const struct aes_gcm_engine_mbedtls*) engine;
+
+	if (mbedtls == NULL) {
+		return AES_GCM_ENGINE_INVALID_ARGUMENT;
+	}
+
+	/* Reinitialize the GCM context to reset the key. */
+	mbedtls_gcm_free (&mbedtls->state->context);
+	mbedtls_gcm_init (&mbedtls->state->context);
+
+	mbedtls->state->has_key = false;
+
+	return 0;
+}
+
 int aes_gcm_mbedtls_encrypt_with_add_data (const struct aes_gcm_engine *engine,
 	const uint8_t *plaintext, size_t length, const uint8_t *iv, size_t iv_length,
 	const uint8_t *additional_data,	size_t additional_data_length, uint8_t *ciphertext,
@@ -148,6 +165,7 @@ int aes_gcm_mbedtls_init (struct aes_gcm_engine_mbedtls *engine,
 	engine->state = state;
 
 	engine->base.set_key = aes_gcm_mbedtls_set_key;
+	engine->base.clear_key = aes_gcm_mbedtls_clear_key;
 	engine->base.encrypt_data = aes_gcm_mbedtls_encrypt_data;
 	engine->base.encrypt_with_add_data = aes_gcm_mbedtls_encrypt_with_add_data;
 	engine->base.decrypt_data = aes_gcm_mbedtls_decrypt_data;

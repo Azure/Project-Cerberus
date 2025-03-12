@@ -34,7 +34,7 @@ int aes_ecb_openssl_set_key (const struct aes_ecb_engine *engine, const uint8_t 
 
 	ERR_clear_error ();
 
-	status = EVP_CIPHER_CTX_cleanup (openssl->state->encrypt);
+	status = EVP_CIPHER_CTX_reset (openssl->state->encrypt);
 	if (status != 1) {
 		status = ERR_get_error ();
 		return -status;
@@ -48,7 +48,7 @@ int aes_ecb_openssl_set_key (const struct aes_ecb_engine *engine, const uint8_t 
 		return -status;
 	}
 
-	status = EVP_CIPHER_CTX_cleanup (openssl->state->decrypt);
+	status = EVP_CIPHER_CTX_reset (openssl->state->decrypt);
 	if (status != 1) {
 		status = ERR_get_error ();
 		return -status;
@@ -57,6 +57,32 @@ int aes_ecb_openssl_set_key (const struct aes_ecb_engine *engine, const uint8_t 
 	EVP_CIPHER_CTX_init (openssl->state->decrypt);
 
 	status = EVP_DecryptInit_ex (openssl->state->decrypt, cipher, NULL, key, NULL);
+	if (status != 1) {
+		status = ERR_get_error ();
+		return -status;
+	}
+
+	return 0;
+}
+
+int aes_ecb_openssl_clear_key (const struct aes_ecb_engine *engine)
+{
+	const struct aes_ecb_engine_openssl *openssl = (const struct aes_ecb_engine_openssl*) engine;
+	int status;
+
+	if (openssl == NULL) {
+		return AES_ECB_ENGINE_INVALID_ARGUMENT;
+	}
+
+	ERR_clear_error ();
+
+	status = EVP_CIPHER_CTX_reset (openssl->state->encrypt);
+	if (status != 1) {
+		status = ERR_get_error ();
+		return -status;
+	}
+
+	status = EVP_CIPHER_CTX_reset (openssl->state->decrypt);
 	if (status != 1) {
 		status = ERR_get_error ();
 		return -status;
@@ -153,6 +179,7 @@ int aes_ecb_openssl_init (struct aes_ecb_engine_openssl *engine,
 	memset (engine, 0, sizeof (*engine));
 
 	engine->base.set_key = aes_ecb_openssl_set_key;
+	engine->base.clear_key = aes_ecb_openssl_clear_key;
 	engine->base.encrypt_data = aes_ecb_openssl_encrypt_data;
 	engine->base.decrypt_data = aes_ecb_openssl_decrypt_data;
 

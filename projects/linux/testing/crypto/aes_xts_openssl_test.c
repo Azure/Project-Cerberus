@@ -37,6 +37,7 @@ static void aes_xts_openssl_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, engine.test.base.set_key);
+	CuAssertPtrNotNull (test, engine.test.base.clear_key);
 	CuAssertPtrNotNull (test, engine.test.base.encrypt_data);
 	CuAssertPtrNotNull (test, engine.test.base.decrypt_data);
 
@@ -67,6 +68,7 @@ static void aes_xts_openssl_test_static_init (CuTest *test)
 	TEST_START;
 
 	CuAssertPtrNotNull (test, engine.test.base.set_key);
+	CuAssertPtrNotNull (test, engine.test.base.clear_key);
 	CuAssertPtrNotNull (test, engine.test.base.encrypt_data);
 	CuAssertPtrNotNull (test, engine.test.base.decrypt_data);
 
@@ -1293,6 +1295,111 @@ static void aes_xts_openssl_test_encrypt_with_different_keys (CuTest *test)
 	aes_xts_openssl_release (&engine.test);
 }
 
+static void aes_xts_openssl_test_clear_key_encrypt (CuTest *test)
+{
+	struct aes_xts_openssl_testing engine;
+	int status;
+	uint8_t ciphertext[AES_XTS_TESTING_KEY128_DU16_DATA_LEN * 2];
+	uint8_t data_unit_id[16];
+
+	TEST_START;
+
+	status = aes_xts_openssl_init (&engine.test, &engine.state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.set_key (&engine.test.base, AES_XTS_TESTING_KEY128_DU16_KEY,
+		AES_XTS_TESTING_KEY128_DU16_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.clear_key (&engine.test.base);
+	CuAssertIntEquals (test, 0, status);
+
+	aes_xts_flash_address_to_data_unit_id (AES_XTS_TESTING_KEY128_DU16_ID, data_unit_id);
+
+	status = engine.test.base.encrypt_data (&engine.test.base,
+		AES_XTS_TESTING_KEY128_DU16_PLAINTEXT, AES_XTS_TESTING_KEY128_DU16_DATA_LEN, data_unit_id,
+		ciphertext, sizeof (ciphertext));
+	CuAssertIntEquals (test, AES_XTS_ENGINE_NO_KEY, status);
+
+	aes_xts_openssl_release (&engine.test);
+}
+
+static void aes_xts_openssl_test_clear_key_decrypt (CuTest *test)
+{
+	struct aes_xts_openssl_testing engine;
+	int status;
+	uint8_t plaintext[AES_XTS_TESTING_KEY128_DU16_DATA_LEN * 2];
+	uint8_t data_unit_id[16];
+
+	TEST_START;
+
+	status = aes_xts_openssl_init (&engine.test, &engine.state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.set_key (&engine.test.base, AES_XTS_TESTING_KEY128_DU16_KEY,
+		AES_XTS_TESTING_KEY128_DU16_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.clear_key (&engine.test.base);
+	CuAssertIntEquals (test, 0, status);
+
+	aes_xts_flash_address_to_data_unit_id (AES_XTS_TESTING_KEY128_DU16_ID, data_unit_id);
+
+	status = engine.test.base.decrypt_data (&engine.test.base,
+		AES_XTS_TESTING_KEY128_DU16_CIPHERTEXT, AES_XTS_TESTING_KEY128_DU16_DATA_LEN, data_unit_id,
+		plaintext, sizeof (plaintext));
+	CuAssertIntEquals (test, AES_XTS_ENGINE_NO_KEY, status);
+
+	aes_xts_openssl_release (&engine.test);
+}
+
+static void aes_xts_openssl_test_clear_key_static_init (CuTest *test)
+{
+	struct aes_xts_openssl_testing engine = {
+		.test = aes_xts_openssl_static_init (&engine.state)
+	};
+	int status;
+	uint8_t ciphertext[AES_XTS_TESTING_KEY128_DU16_DATA_LEN * 2];
+	uint8_t data_unit_id[16];
+
+	TEST_START;
+
+	status = aes_xts_openssl_init_state (&engine.test);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.set_key (&engine.test.base, AES_XTS_TESTING_KEY128_DU16_KEY,
+		AES_XTS_TESTING_KEY128_DU16_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.clear_key (&engine.test.base);
+	CuAssertIntEquals (test, 0, status);
+
+	aes_xts_flash_address_to_data_unit_id (AES_XTS_TESTING_KEY128_DU16_ID, data_unit_id);
+
+	status = engine.test.base.encrypt_data (&engine.test.base,
+		AES_XTS_TESTING_KEY128_DU16_PLAINTEXT, AES_XTS_TESTING_KEY128_DU16_DATA_LEN, data_unit_id,
+		ciphertext, sizeof (ciphertext));
+	CuAssertIntEquals (test, AES_XTS_ENGINE_NO_KEY, status);
+
+	aes_xts_openssl_release (&engine.test);
+}
+
+static void aes_xts_openssl_test_clear_key_null (CuTest *test)
+{
+	struct aes_xts_openssl_testing engine;
+	int status;
+
+	TEST_START;
+
+	status = aes_xts_openssl_init (&engine.test, &engine.state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.test.base.clear_key (NULL);
+	CuAssertIntEquals (test, AES_XTS_ENGINE_INVALID_ARGUMENT, status);
+
+	aes_xts_openssl_release (&engine.test);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (aes_xts_openssl);
@@ -1342,6 +1449,10 @@ TEST (aes_xts_openssl_test_decrypt_data_no_key);
 TEST (aes_xts_openssl_test_encrypt_and_decrypt_aes128);
 TEST (aes_xts_openssl_test_encrypt_and_decrypt_aes256);
 TEST (aes_xts_openssl_test_encrypt_with_different_keys);
+TEST (aes_xts_openssl_test_clear_key_encrypt);
+TEST (aes_xts_openssl_test_clear_key_decrypt);
+TEST (aes_xts_openssl_test_clear_key_static_init);
+TEST (aes_xts_openssl_test_clear_key_null);
 
 TEST_SUITE_END;
 // *INDENT-ON*

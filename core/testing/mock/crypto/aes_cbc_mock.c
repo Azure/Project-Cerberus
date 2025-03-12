@@ -20,6 +20,17 @@ static int aes_cbc_mock_set_key (const struct aes_cbc_engine *engine, const uint
 		MOCK_ARG_CALL (length));
 }
 
+static int aes_cbc_mock_clear_key (const struct aes_cbc_engine *engine)
+{
+	struct aes_cbc_engine_mock *mock = (struct aes_cbc_engine_mock*) engine;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, aes_cbc_mock_clear_key, engine);
+}
+
 static int aes_cbc_mock_encrypt_data (const struct aes_cbc_engine *engine, const uint8_t *plaintext,
 	size_t length, const uint8_t iv[AES_CBC_BLOCK_SIZE], uint8_t *ciphertext, size_t out_length,
 	uint8_t out_iv[AES_CBC_BLOCK_SIZE])
@@ -67,6 +78,9 @@ static const char* aes_cbc_mock_func_name_map (void *func)
 {
 	if (func == aes_cbc_mock_set_key) {
 		return "set_key";
+	}
+	else if (func == aes_cbc_mock_clear_key) {
+		return "clear_key";
 	}
 	else if (func == aes_cbc_mock_encrypt_data) {
 		return "encrypt_data";
@@ -161,6 +175,7 @@ int aes_cbc_mock_init (struct aes_cbc_engine_mock *mock)
 	mock_set_name (&mock->mock, "aes_cbc");
 
 	mock->base.set_key = aes_cbc_mock_set_key;
+	mock->base.clear_key = aes_cbc_mock_clear_key;
 	mock->base.encrypt_data = aes_cbc_mock_encrypt_data;
 	mock->base.decrypt_data = aes_cbc_mock_decrypt_data;
 

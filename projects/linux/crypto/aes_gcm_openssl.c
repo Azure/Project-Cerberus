@@ -31,7 +31,7 @@ int aes_gcm_openssl_set_key (const struct aes_gcm_engine *engine, const uint8_t 
 
 	ERR_clear_error ();
 
-	status = EVP_CIPHER_CTX_cleanup (openssl->state->context);
+	status = EVP_CIPHER_CTX_reset (openssl->state->context);
 	if (status != 1) {
 		status = ERR_get_error ();
 
@@ -44,6 +44,26 @@ int aes_gcm_openssl_set_key (const struct aes_gcm_engine *engine, const uint8_t 
 	if (status != 1) {
 		status = ERR_get_error ();
 
+		return -status;
+	}
+
+	return 0;
+}
+
+int aes_gcm_openssl_clear_key (const struct aes_gcm_engine *engine)
+{
+	const struct aes_gcm_engine_openssl *openssl = (const struct aes_gcm_engine_openssl*) engine;
+	int status;
+
+	if (openssl == NULL) {
+		return AES_GCM_ENGINE_INVALID_ARGUMENT;
+	}
+
+	ERR_clear_error ();
+
+	status = EVP_CIPHER_CTX_reset (openssl->state->context);
+	if (status != 1) {
+		status = ERR_get_error ();
 		return -status;
 	}
 
@@ -254,6 +274,7 @@ int aes_gcm_openssl_init (struct aes_gcm_engine_openssl *engine,
 	memset (engine, 0, sizeof (struct aes_gcm_engine_openssl));
 
 	engine->base.set_key = aes_gcm_openssl_set_key;
+	engine->base.clear_key = aes_gcm_openssl_clear_key;
 	engine->base.encrypt_data = aes_gcm_openssl_encrypt_data;
 	engine->base.encrypt_with_add_data = aes_gcm_openssl_encrypt_with_add_data;
 	engine->base.decrypt_data = aes_gcm_openssl_decrypt_data;

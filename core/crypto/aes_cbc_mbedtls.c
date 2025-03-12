@@ -52,6 +52,26 @@ int aes_cbc_mbedtls_set_key (const struct aes_cbc_engine *engine, const uint8_t 
 	return 0;
 }
 
+int aes_cbc_mbedtls_clear_key (const struct aes_cbc_engine *engine)
+{
+	const struct aes_cbc_engine_mbedtls *mbedtls = (const struct aes_cbc_engine_mbedtls*) engine;
+
+	if (mbedtls == NULL) {
+		return AES_CBC_ENGINE_INVALID_ARGUMENT;
+	}
+
+	/* Reinitialize the CBC contexts to reset the key. */
+	mbedtls_aes_free (&mbedtls->state->encrypt);
+	mbedtls_aes_init (&mbedtls->state->encrypt);
+
+	mbedtls_aes_free (&mbedtls->state->decrypt);
+	mbedtls_aes_init (&mbedtls->state->decrypt);
+
+	mbedtls->state->has_key = false;
+
+	return 0;
+}
+
 /**
  * Perform an AES-CBC encrypt or decrypt operation on any length of data.  The data must be aligned
  * to the AES block size.
@@ -154,6 +174,7 @@ int aes_cbc_mbedtls_init (struct aes_cbc_engine_mbedtls *engine,
 	memset (engine, 0, sizeof (*engine));
 
 	engine->base.set_key = aes_cbc_mbedtls_set_key;
+	engine->base.clear_key = aes_cbc_mbedtls_clear_key;
 	engine->base.encrypt_data = aes_cbc_mbedtls_encrypt_data;
 	engine->base.decrypt_data = aes_cbc_mbedtls_decrypt_data;
 

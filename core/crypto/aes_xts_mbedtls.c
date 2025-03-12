@@ -51,6 +51,26 @@ int aes_xts_mbedtls_set_key (const struct aes_xts_engine *engine, const uint8_t 
 	return 0;
 }
 
+int aes_xts_mbedtls_clear_key (const struct aes_xts_engine *engine)
+{
+	const struct aes_xts_engine_mbedtls *mbedtls = (const struct aes_xts_engine_mbedtls*) engine;
+
+	if (mbedtls == NULL) {
+		return AES_XTS_ENGINE_INVALID_ARGUMENT;
+	}
+
+	/* Reinitialize the XTS contexts to reset the key. */
+	mbedtls_aes_xts_free (&mbedtls->state->encrypt);
+	mbedtls_aes_xts_init (&mbedtls->state->encrypt);
+
+	mbedtls_aes_xts_free (&mbedtls->state->decrypt);
+	mbedtls_aes_xts_init (&mbedtls->state->decrypt);
+
+	mbedtls->state->has_key = false;
+
+	return 0;
+}
+
 /**
  * Perform an AES-XTS encrypt or decrypt operation on one full unit of data.
  *
@@ -137,6 +157,7 @@ int aes_xts_mbedtls_init (struct aes_xts_engine_mbedtls *engine,
 	memset (engine, 0, sizeof (*engine));
 
 	engine->base.set_key = aes_xts_mbedtls_set_key;
+	engine->base.clear_key = aes_xts_mbedtls_clear_key;
 	engine->base.encrypt_data = aes_xts_mbedtls_encrypt_data;
 	engine->base.decrypt_data = aes_xts_mbedtls_decrypt_data;
 

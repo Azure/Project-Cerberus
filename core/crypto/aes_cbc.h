@@ -40,6 +40,16 @@ struct aes_cbc_engine {
 	int (*set_key) (const struct aes_cbc_engine *engine, const uint8_t *key, size_t length);
 
 	/**
+	 * Erase the key being used for AES-CBC operations.  A new key will need to be set before any
+	 * additional encryption operations can be performed.
+	 *
+	 * @param engine the AES-CBC engine to configure.
+	 *
+	 * @return 0 if the AES key was cleared successfully or an error code.
+	 */
+	int (*clear_key) (const struct aes_cbc_engine *engine);
+
+	/**
 	 * Encrypt data using AES-CBC mode.  The engine must be provided with a key prior to calling
 	 * this function.
 	 *
