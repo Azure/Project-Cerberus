@@ -151,7 +151,7 @@ int aes_xts_mock_init (struct aes_xts_engine_mock *mock)
 		return status;
 	}
 
-	mock_set_name (&mock->mock, "aes-xts");
+	mock_set_name (&mock->mock, "aes_xts");
 
 	mock->base.set_key = aes_xts_mock_set_key;
 	mock->base.encrypt_data = aes_xts_mock_encrypt_data;

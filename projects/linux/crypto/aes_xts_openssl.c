@@ -7,7 +7,6 @@
 #include <openssl/err.h>
 #include "aes_xts_openssl.h"
 #include "common/buffer_util.h"
-// #include "openssl/aes.h"
 
 
 int aes_xts_openssl_set_key (const struct aes_xts_engine *engine, const uint8_t *key, size_t length)

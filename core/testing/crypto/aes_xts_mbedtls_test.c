@@ -482,11 +482,11 @@ static void aes_xts_mbedtls_test_encrypt_data_null (CuTest *test)
 	aes_xts_flash_address_to_data_unit_id (AES_XTS_TESTING_KEY128_DU16_ID, data_unit_id);
 
 	status = engine.test.base.encrypt_data (NULL, AES_XTS_TESTING_KEY128_DU16_PLAINTEXT,
-		AES_XTS_TESTING_KEY128_DU16_DATA_LEN, data_unit_id,	ciphertext, sizeof (ciphertext));
+		AES_XTS_TESTING_KEY128_DU16_DATA_LEN, data_unit_id, ciphertext, sizeof (ciphertext));
 	CuAssertIntEquals (test, AES_XTS_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.test.base.encrypt_data (&engine.test.base, NULL,
-		AES_XTS_TESTING_KEY128_DU16_DATA_LEN, data_unit_id,	ciphertext, sizeof (ciphertext));
+		AES_XTS_TESTING_KEY128_DU16_DATA_LEN, data_unit_id, ciphertext, sizeof (ciphertext));
 	CuAssertIntEquals (test, AES_XTS_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.test.base.encrypt_data (&engine.test.base,
@@ -1045,11 +1045,11 @@ static void aes_xts_mbedtls_test_decrypt_data_null (CuTest *test)
 	aes_xts_flash_address_to_data_unit_id (AES_XTS_TESTING_KEY128_DU16_ID, data_unit_id);
 
 	status = engine.test.base.decrypt_data (NULL, AES_XTS_TESTING_KEY128_DU16_CIPHERTEXT,
-		AES_XTS_TESTING_KEY128_DU16_DATA_LEN, data_unit_id,	plaintext, sizeof (plaintext));
+		AES_XTS_TESTING_KEY128_DU16_DATA_LEN, data_unit_id, plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, AES_XTS_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.test.base.decrypt_data (&engine.test.base, NULL,
-		AES_XTS_TESTING_KEY128_DU16_DATA_LEN, data_unit_id,	plaintext, sizeof (plaintext));
+		AES_XTS_TESTING_KEY128_DU16_DATA_LEN, data_unit_id, plaintext, sizeof (plaintext));
 	CuAssertIntEquals (test, AES_XTS_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.test.base.decrypt_data (&engine.test.base,

@@ -146,24 +146,26 @@ enum {
 	ROT_MODULE_MCTP_NOTIFIER = 0x0086,					/**< MCTP Notifier module. */
 	ROT_MODULE_SPDM_SECURE_SESSION_MANAGER = 0x0087,	/**< SPDM Secure Session Manager. */
 	ROT_MODULE_ECDSA = 0x0088,							/**< ECDSA signature handling. */
-	ROT_MODULE_KEY_CACHE = 0x0089,						/**< Key cache to handle rsa key management */
-	ROT_MODULE_EPHEMERAL_KEY_MANAGER = 0x008a,			/**< Ephemeral key manager */
-	ROT_MODULE_EPHEMERAL_KEY_GENERATION = 0x008b,		/**< Ephemeral key generation */
+	ROT_MODULE_KEY_CACHE = 0x0089,						/**< Key cache to handle rsa key management. */
+	ROT_MODULE_EPHEMERAL_KEY_MANAGER = 0x008a,			/**< Ephemeral key manager. */
+	ROT_MODULE_EPHEMERAL_KEY_GENERATION = 0x008b,		/**< Ephemeral key generation. */
 	ROT_MODULE_AUTHORIZED_EXECUTION = 0x008c,			/**< Execution context for authorized operations. */
 	ROT_MODULE_SPDM_VDM_PROTOCOL = 0x008d,				/**< SPDM vendor defined messages protocol. */
 	ROT_MODULE_SPDM_PCISIG_PROTOCOL = 0x008e,			/**< SPDM PCISIG messages protocol. */
 	ROT_MODULE_IMPACTFUL_CHECK = 0x008f,				/**< Device check for conditions requiring impactful updates. */
 	ROT_MODULE_IMPACTFUL_UPDATE = 0x0090,				/**< Interface for handling impactful updates. */
 	ROT_MODULE_AES_XTS_ENGINE = 0x0091,					/**< An AES-XTS crypto engine.  All engines use the same ID. */
-	ROT_MODULE_MMIO_REGISTER = 0x0092,					/**< MMIO register operations */
+	ROT_MODULE_MMIO_REGISTER = 0x0092,					/**< MMIO register operations. */
 	ROT_MODULE_MPU = 0x0093,							/**< MPU interface */
 	ROT_MODULE_TDISP_TDI_CONTEXT_MANAGER = 0x0094,		/**< TDISP TDI context manager interface */
 	ROT_MODULE_RSASSA = 0x0095,							/**< RSASSA signature handling. */
-	ROT_MODULE_ACVP_PROTO = 0x0096,						/**< ACVP Proto handler */
+	ROT_MODULE_ACVP_PROTO = 0x0096,						/**< ACVP Proto handler. */
 	ROT_MODULE_FIRMWARE_PFM_VERIFY = 0x0097,			/**< Handler for verifying device FW with a PFM. */
-	ROT_MODULE_BACKEND_SHA = 0x0098,					/**< ACVP SHA backend */
-	ROT_MODULE_ACVP_PROTO_TESTER = 0x0099,				/**< ACVP Proto tester */
+	ROT_MODULE_BACKEND_SHA = 0x0098,					/**< ACVP SHA backend. */
+	ROT_MODULE_ACVP_PROTO_TESTER = 0x0099,				/**< ACVP Proto tester. */
 	ROT_MODULE_ECDH = 0x009a,							/**< ECDH handling. */
+	ROT_MODULE_AES_ECB_ENGINE = 0x009b,					/**< An AES-ECB crypto engine.  All engines use the same ID. */
+	ROT_MODULE_AES_CBC_ENGINE = 0x009c,					/**< An AES-CBC crypto engine.  All engines use the same ID. */
 };
 
 

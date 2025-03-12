@@ -229,4 +229,226 @@
 	AES_XTS_TESTING_ENGINE_RELEASE_FUNC(AES_XTS_TESTING_ENGINE_NAME, var)
 
 
+/* AES-ECB engine */
+#ifndef	AES_ECB_TESTING_ENGINE_NAME
+#include "crypto/aes_ecb_mbedtls.h"
+#define	AES_ECB_TESTING_ENGINE_NAME	mbedtls
+#define	AES_ECB_TESTING_ENGINE_HAS_STATE
+#endif
+
+
+/* The testing engine provides unit tests a way to abstract the specific engine being used
+ * for AES-ECB operations in the test environment.  The following macros are defined for test usage:
+ *
+ * AES_ECB_TESTING_ENGINE(var) - Define a single instance of the testing engine as a variable or
+ * struct field.
+ * 		ex:  AES_ECB_TESTING_ENGINE (aes_ecb);
+ *
+ * AES_ECB_TESTING_ENGINE_ARRAY(var, count) - Define an array of instances of the testing engine.
+ * 		ex:  AES_ECB_TESTING_ENGINE (aes_ecb_array, 5);
+ *
+ * AES_ECB_TESTING_ENGINE_PARAM(var) - Include a test AES-ECB engine as a parameter in a function
+ * definition.
+ * 		ex:  int foo (AES_ECB_TESTING_ENGINE (*aes_ecb));
+ *
+ * AES_ECB_TESTING_ENGINE_ARG(var) - Pass a test AES-ECB engine as an argument to a function call.
+ * 		ex:  foo (AES_ECB_TESTING_ENGINE_ARG (&aes_ecb));
+ *
+ * AES_ECB_TESTING_ENGINE_ARRAY_ARG(var, index) - Pass a test AES-ECB engine from an array as an
+ * argument to a function call.
+ * 		ex:  foo (AES_ECB_TESTING_ENGINE_ARRAY_ARG (&aes_ecb_array, 2));
+ *
+ * AES_ECB_TESTING_ENGINE_INIT(var) - Initialize a test AES-ECB engine instance defined with
+ * AES_ECB_TESTING_ENGINE.
+ * 		ex:  AES_ECB_TESTING_ENGINE_INIT (&aes_ecb);
+ *
+ * AES_ECB_TESTING_ENGINE_INIT_ARRAY(var, index) - Initialize a test AES-ECB engine instance defined
+ * with AES_ECB_TESTING_ENGINE_ARRAY.
+ * 		ex:  AES_ECB_TESTING_ENGINE_INIT_ARRAY (&aes_ecb_array, 3);
+ *
+ * AES_ECB_TESTING_ENGINE_RELEASE(var) - Release a test AES-ECB engine instance.  It doesn't matter
+ * how it was defined.
+ * 		ex:  AES_ECB_TESTING_ENGINE_RELEASE (&aes_ecb);
+ * 		ex:  AES_ECB_TESTING_ENGINE_RELEASE (&aes_ecb_array[1]); */
+
+
+#ifndef AES_ECB_TESTING_ENGINE_HAS_STATE
+
+/* The selected aes_ecb engine does not have any variable state. */
+#define	AES_ECB_TESTING_ENGINE_STRUCT_DEF(name, var)	struct aes_ecb_engine_ ## name var
+#define	AES_ECB_TESTING_ENGINE_STRUCT(name, var)		AES_ECB_TESTING_ENGINE_STRUCT_DEF(name, var)
+#define	AES_ECB_TESTING_ENGINE(var)                     \
+	AES_ECB_TESTING_ENGINE_STRUCT(AES_ECB_TESTING_ENGINE_NAME, var)
+
+#define	AES_ECB_TESTING_ENGINE_ARRAY(var, count)		AES_ECB_TESTING_ENGINE (var)[count]
+
+#define	AES_ECB_TESTING_ENGINE_PARAM(var)				AES_ECB_TESTING_ENGINE (var)
+
+#define	AES_ECB_TESTING_ENGINE_ARG(var)					var
+
+#define	AES_ECB_TESTING_ENGINE_ARRAY_ARG(var, index)	var[index]
+
+#else
+
+/* The selected aes_ecb engine requires a variable state instance. */
+#define	AES_ECB_TESTING_ENGINE_STATE_STRUCT_DEF(name, var)  \
+	struct aes_ecb_engine_ ## name ## _state var
+#define	AES_ECB_TESTING_ENGINE_STATE_STRUCT(name, var)      \
+	AES_ECB_TESTING_ENGINE_STATE_STRUCT_DEF(name, var)
+#define	AES_ECB_TESTING_ENGINE_STATE(var)                   \
+	AES_ECB_TESTING_ENGINE_STATE_STRUCT(AES_ECB_TESTING_ENGINE_NAME, var)
+
+#define	AES_ECB_TESTING_ENGINE_INST_STRUCT_DEF(name, var)	struct aes_ecb_engine_ ## name var
+#define	AES_ECB_TESTING_ENGINE_INST_STRUCT(name, var)       \
+	AES_ECB_TESTING_ENGINE_INST_STRUCT_DEF(name, var)
+#define	AES_ECB_TESTING_ENGINE_INST(var)                    \
+	AES_ECB_TESTING_ENGINE_INST_STRUCT(AES_ECB_TESTING_ENGINE_NAME, var)
+
+#define	AES_ECB_TESTING_ENGINE(var)                     \
+	AES_ECB_TESTING_ENGINE_STATE (var ## _state); AES_ECB_TESTING_ENGINE_INST (var)
+
+#define	AES_ECB_TESTING_ENGINE_ARRAY(var, count)        \
+	AES_ECB_TESTING_ENGINE_STATE (var ## _state)[count]; AES_ECB_TESTING_ENGINE_INST (var)[count]
+
+#define	AES_ECB_TESTING_ENGINE_PARAM(var)               \
+	AES_ECB_TESTING_ENGINE_INST (var), AES_ECB_TESTING_ENGINE_STATE (var ## _state)
+
+#define	AES_ECB_TESTING_ENGINE_ARG(var)					var, var ## _state
+
+#define	AES_ECB_TESTING_ENGINE_ARRAY_ARG(var, index)	var[index], var ## _state[index]
+
+#endif
+
+#define	AES_ECB_TESTING_ENGINE_INIT_FUNC_DEF(name, var)    \
+	aes_ecb_ ## name ## _init (AES_ECB_TESTING_ENGINE_ARG (var))
+#define	AES_ECB_TESTING_ENGINE_INIT_FUNC(name, var)        \
+	AES_ECB_TESTING_ENGINE_INIT_FUNC_DEF(name, var)
+#define	AES_ECB_TESTING_ENGINE_INIT(var)                   \
+	AES_ECB_TESTING_ENGINE_INIT_FUNC(AES_ECB_TESTING_ENGINE_NAME, var)
+
+#define	AES_ECB_TESTING_ENGINE_INIT_ARRAY_FUNC_DEF(name, var, index)   \
+	aes_ecb_ ## name ## _init (AES_ECB_TESTING_ENGINE_ARRAY_ARG (var, index))
+#define	AES_ECB_TESTING_ENGINE_INIT_ARRAY_FUNC(name, var, index)       \
+	AES_ECB_TESTING_ENGINE_INIT_ARRAY_FUNC_DEF(name, var, index)
+#define	AES_ECB_TESTING_ENGINE_INIT_ARRAY(var, index)                  \
+	AES_ECB_TESTING_ENGINE_INIT_ARRAY_FUNC(AES_ECB_TESTING_ENGINE_NAME, var, index)
+
+#define	AES_ECB_TESTING_ENGINE_RELEASE_FUNC_DEF(name, var)	aes_ecb_ ## name ## _release (var)
+#define	AES_ECB_TESTING_ENGINE_RELEASE_FUNC(name, var)      \
+	AES_ECB_TESTING_ENGINE_RELEASE_FUNC_DEF(name, var)
+#define	AES_ECB_TESTING_ENGINE_RELEASE(var)                 \
+	AES_ECB_TESTING_ENGINE_RELEASE_FUNC(AES_ECB_TESTING_ENGINE_NAME, var)
+
+
+/* AES-CBC engine */
+#ifndef	AES_CBC_TESTING_ENGINE_NAME
+#include "crypto/aes_cbc_mbedtls.h"
+#define	AES_CBC_TESTING_ENGINE_NAME	mbedtls
+#define	AES_CBC_TESTING_ENGINE_HAS_STATE
+#endif
+
+
+/* The testing engine provides unit tests a way to abstract the specific engine being used
+ * for AES-CBC operations in the test environment.  The following macros are defined for test usage:
+ *
+ * AES_CBC_TESTING_ENGINE(var) - Define a single instance of the testing engine as a variable or
+ * struct field.
+ * 		ex:  AES_CBC_TESTING_ENGINE (aes_cbc);
+ *
+ * AES_CBC_TESTING_ENGINE_ARRAY(var, count) - Define an array of instances of the testing engine.
+ * 		ex:  AES_CBC_TESTING_ENGINE (aes_cbc_array, 5);
+ *
+ * AES_CBC_TESTING_ENGINE_PARAM(var) - Include a test AES-CBC engine as a parameter in a function
+ * definition.
+ * 		ex:  int foo (AES_CBC_TESTING_ENGINE (*aes_cbc));
+ *
+ * AES_CBC_TESTING_ENGINE_ARG(var) - Pass a test AES-CBC engine as an argument to a function call.
+ * 		ex:  foo (AES_CBC_TESTING_ENGINE_ARG (&aes_cbc));
+ *
+ * AES_CBC_TESTING_ENGINE_ARRAY_ARG(var, index) - Pass a test AES-CBC engine from an array as an
+ * argument to a function call.
+ * 		ex:  foo (AES_CBC_TESTING_ENGINE_ARRAY_ARG (&aes_cbc_array, 2));
+ *
+ * AES_CBC_TESTING_ENGINE_INIT(var) - Initialize a test AES-CBC engine instance defined with
+ * AES_CBC_TESTING_ENGINE.
+ * 		ex:  AES_CBC_TESTING_ENGINE_INIT (&aes_cbc);
+ *
+ * AES_CBC_TESTING_ENGINE_INIT_ARRAY(var, index) - Initialize a test AES-CBC engine instance defined
+ * with AES_CBC_TESTING_ENGINE_ARRAY.
+ * 		ex:  AES_CBC_TESTING_ENGINE_INIT_ARRAY (&aes_cbc_array, 3);
+ *
+ * AES_CBC_TESTING_ENGINE_RELEASE(var) - Release a test AES-CBC engine instance.  It doesn't matter
+ * how it was defined.
+ * 		ex:  AES_CBC_TESTING_ENGINE_RELEASE (&aes_cbc);
+ * 		ex:  AES_CBC_TESTING_ENGINE_RELEASE (&aes_cbc_array[1]); */
+
+
+#ifndef AES_CBC_TESTING_ENGINE_HAS_STATE
+
+/* The selected aes_cbc engine does not have any variable state. */
+#define	AES_CBC_TESTING_ENGINE_STRUCT_DEF(name, var)	struct aes_cbc_engine_ ## name var
+#define	AES_CBC_TESTING_ENGINE_STRUCT(name, var)		AES_CBC_TESTING_ENGINE_STRUCT_DEF(name, var)
+#define	AES_CBC_TESTING_ENGINE(var)                     \
+	AES_CBC_TESTING_ENGINE_STRUCT(AES_CBC_TESTING_ENGINE_NAME, var)
+
+#define	AES_CBC_TESTING_ENGINE_ARRAY(var, count)		AES_CBC_TESTING_ENGINE (var)[count]
+
+#define	AES_CBC_TESTING_ENGINE_PARAM(var)				AES_CBC_TESTING_ENGINE (var)
+
+#define	AES_CBC_TESTING_ENGINE_ARG(var)					var
+
+#define	AES_CBC_TESTING_ENGINE_ARRAY_ARG(var, index)	var[index]
+
+#else
+
+/* The selected aes_cbc engine requires a variable state instance. */
+#define	AES_CBC_TESTING_ENGINE_STATE_STRUCT_DEF(name, var)  \
+	struct aes_cbc_engine_ ## name ## _state var
+#define	AES_CBC_TESTING_ENGINE_STATE_STRUCT(name, var)      \
+	AES_CBC_TESTING_ENGINE_STATE_STRUCT_DEF(name, var)
+#define	AES_CBC_TESTING_ENGINE_STATE(var)                   \
+	AES_CBC_TESTING_ENGINE_STATE_STRUCT(AES_CBC_TESTING_ENGINE_NAME, var)
+
+#define	AES_CBC_TESTING_ENGINE_INST_STRUCT_DEF(name, var)	struct aes_cbc_engine_ ## name var
+#define	AES_CBC_TESTING_ENGINE_INST_STRUCT(name, var)       \
+	AES_CBC_TESTING_ENGINE_INST_STRUCT_DEF(name, var)
+#define	AES_CBC_TESTING_ENGINE_INST(var)                    \
+	AES_CBC_TESTING_ENGINE_INST_STRUCT(AES_CBC_TESTING_ENGINE_NAME, var)
+
+#define	AES_CBC_TESTING_ENGINE(var)                     \
+	AES_CBC_TESTING_ENGINE_STATE (var ## _state); AES_CBC_TESTING_ENGINE_INST (var)
+
+#define	AES_CBC_TESTING_ENGINE_ARRAY(var, count)        \
+	AES_CBC_TESTING_ENGINE_STATE (var ## _state)[count]; AES_CBC_TESTING_ENGINE_INST (var)[count]
+
+#define	AES_CBC_TESTING_ENGINE_PARAM(var)               \
+	AES_CBC_TESTING_ENGINE_INST (var), AES_CBC_TESTING_ENGINE_STATE (var ## _state)
+
+#define	AES_CBC_TESTING_ENGINE_ARG(var)					var, var ## _state
+
+#define	AES_CBC_TESTING_ENGINE_ARRAY_ARG(var, index)	var[index], var ## _state[index]
+
+#endif
+
+#define	AES_CBC_TESTING_ENGINE_INIT_FUNC_DEF(name, var)    \
+	aes_cbc_ ## name ## _init (AES_CBC_TESTING_ENGINE_ARG (var))
+#define	AES_CBC_TESTING_ENGINE_INIT_FUNC(name, var)        \
+	AES_CBC_TESTING_ENGINE_INIT_FUNC_DEF(name, var)
+#define	AES_CBC_TESTING_ENGINE_INIT(var)                   \
+	AES_CBC_TESTING_ENGINE_INIT_FUNC(AES_CBC_TESTING_ENGINE_NAME, var)
+
+#define	AES_CBC_TESTING_ENGINE_INIT_ARRAY_FUNC_DEF(name, var, index)   \
+	aes_cbc_ ## name ## _init (AES_CBC_TESTING_ENGINE_ARRAY_ARG (var, index))
+#define	AES_CBC_TESTING_ENGINE_INIT_ARRAY_FUNC(name, var, index)       \
+	AES_CBC_TESTING_ENGINE_INIT_ARRAY_FUNC_DEF(name, var, index)
+#define	AES_CBC_TESTING_ENGINE_INIT_ARRAY(var, index)                  \
+	AES_CBC_TESTING_ENGINE_INIT_ARRAY_FUNC(AES_CBC_TESTING_ENGINE_NAME, var, index)
+
+#define	AES_CBC_TESTING_ENGINE_RELEASE_FUNC_DEF(name, var)	aes_cbc_ ## name ## _release (var)
+#define	AES_CBC_TESTING_ENGINE_RELEASE_FUNC(name, var)      \
+	AES_CBC_TESTING_ENGINE_RELEASE_FUNC_DEF(name, var)
+#define	AES_CBC_TESTING_ENGINE_RELEASE(var)                 \
+	AES_CBC_TESTING_ENGINE_RELEASE_FUNC(AES_CBC_TESTING_ENGINE_NAME, var)
+
+
 #endif	/* AES_TESTING_ENGINE_H_ */

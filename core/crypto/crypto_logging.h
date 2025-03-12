@@ -58,6 +58,9 @@ enum {
 	CRYPTO_LOG_MSG_MBEDTLS_X509_ADD_UEID_EC,				/**< mbedTLS failure during X509 UEID addition */
 	CRYPTO_LOG_MSG_MBEDTLS_AES_XTS_SET_KEY_EC,				/**< mbedTLS failure during AES XTS set key */
 	CRYPTO_LOG_MSG_MBEDTLS_AES_XTS_CRYPT_EC,				/**< mbedTLS failure during AES XTS encrypt/decrypt */
+	CRYPTO_LOG_MSG_MBEDTLS_AES_SET_KEY_EC,					/**< mbedTLS failure during AES set key */
+	CRYPTO_LOG_MSG_MBEDTLS_AES_ECB_CRYPT_EC,				/**< mbedTLS failure during AES ECB encrypt/decrypt */
+	CRYPTO_LOG_MSG_MBEDTLS_AES_CBC_CRYPT_EC,				/**< mbedTLS failure during AES CBC encrypt/decrypt */
 };
 
 
