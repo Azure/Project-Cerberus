@@ -53,48 +53,6 @@
 
 
 /**
- * Update device manager device table entry state
- *
- * @param mgr Device manager instance to utilize.
- * @param device_num Device table entry to update.
- * @param state Device state.
- *
- * @return Completion status, 0 if success or an error code.
- */
-int device_manager_update_device_state (struct device_manager *mgr, int device_num,
-	enum device_manager_device_state state)
-{
-	enum device_manager_device_state prev_state;
-	uint32_t timeout = 0;
-
-	if ((mgr == NULL) || (state >= MAX_DEVICE_MANAGER_STATES)) {
-		return DEVICE_MGR_INVALID_ARGUMENT;
-	}
-
-	if (device_num >= mgr->num_devices) {
-		return DEVICE_MGR_UNKNOWN_DEVICE;
-	}
-
-	prev_state = mgr->entries[device_num].state;
-	mgr->entries[device_num].state = state;
-
-	if ((state == DEVICE_MANAGER_AUTHENTICATED) ||
-		(state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS)) {
-		timeout = mgr->authenticated_cadence_ms;
-	}
-	else if ((device_manager_is_device_unauthenticated (state)) &&
-		(device_manager_is_device_unauthenticated (prev_state) ||
-		(prev_state == DEVICE_MANAGER_NEVER_ATTESTED))) {
-		timeout = mgr->unauthenticated_cadence_ms;
-	}
-	else if (state == DEVICE_MANAGER_NEVER_ATTESTED) {
-		timeout = 0;
-	}
-
-	return platform_init_timeout (timeout, &mgr->entries[device_num].attestation_timeout);
-}
-
-/**
  * Initialize a device manager.
  *
  * The first device entry will be for the local device, and the device capabilities will be
@@ -220,30 +178,6 @@ int device_manager_init_ac_rot (struct device_manager *mgr, int num_requester_de
 	return device_manager_init (mgr, num_requester_devices, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		bus_role, 0, 0, 0, 0, 0, 0, 0);
 }
-
-#ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
-/**
- * Free unidentified devices circular list
- *
- * @param mgr Device manager instance to utilize
- */
-void device_manager_clear_unidentified_devices (struct device_manager *mgr)
-{
-	struct device_manager_unidentified_entry *entry;
-
-	if (mgr->unidentified != NULL) {
-		while (mgr->unidentified->next != mgr->unidentified) {
-			entry = mgr->unidentified->next;
-			mgr->unidentified->next = entry->next;
-			platform_free (entry);
-		}
-
-		platform_free (mgr->unidentified);
-
-		mgr->unidentified = NULL;
-	}
-}
-#endif
 
 /**
  * Release device manager
@@ -384,6 +318,7 @@ int device_manager_get_device_addr (struct device_manager *mgr, int device_num)
 	return mgr->entries[device_num].smbus_addr;
 }
 
+#ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 /**
  * Find device entry with requested EID in unidentified device list.
  *
@@ -419,6 +354,7 @@ static int device_manager_find_unidentified_device (struct device_manager *mgr, 
 
 	return 0;
 }
+#endif
 
 /**
  * Find device SMBUS address for a device in device manager table.
@@ -431,8 +367,6 @@ static int device_manager_find_unidentified_device (struct device_manager *mgr, 
 int device_manager_get_device_addr_by_eid (struct device_manager *mgr, uint8_t eid)
 {
 	int device_num;
-	int status;
-	struct device_manager_unidentified_entry *entry;
 
 	if (mgr == NULL) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
@@ -440,18 +374,25 @@ int device_manager_get_device_addr_by_eid (struct device_manager *mgr, uint8_t e
 
 	device_num = device_manager_get_device_num (mgr, eid);
 
-	if (device_num == DEVICE_MGR_UNKNOWN_DEVICE) {
-		if (mgr->unidentified == NULL) {
-			return DEVICE_MGR_UNKNOWN_DEVICE;
-		}
+#ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
+	{
+		int status;
+		struct device_manager_unidentified_entry *entry;
 
-		status = device_manager_find_unidentified_device (mgr, eid, &entry, NULL);
-		if (status != 0) {
-			return status;
-		}
+		if (device_num == DEVICE_MGR_UNKNOWN_DEVICE) {
+			if (mgr->unidentified == NULL) {
+				return DEVICE_MGR_UNKNOWN_DEVICE;
+			}
 
-		device_num = DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM;
+			status = device_manager_find_unidentified_device (mgr, eid, &entry, NULL);
+			if (status != 0) {
+				return status;
+			}
+
+			device_num = DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM;
+		}
 	}
+#endif
 
 	return device_manager_get_device_addr (mgr, device_num);
 }
@@ -1156,6 +1097,48 @@ int device_manager_get_device_state_by_eid (struct device_manager *mgr, uint8_t 
 	return device_manager_get_device_state (mgr, device_manager_get_device_num (mgr, eid));
 }
 
+/**
+ * Update device manager device table entry state
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param device_num Device table entry to update.
+ * @param state Device state.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_update_device_state (struct device_manager *mgr, int device_num,
+	enum device_manager_device_state state)
+{
+	enum device_manager_device_state prev_state;
+	uint32_t timeout = 0;
+
+	if ((mgr == NULL) || (state >= MAX_DEVICE_MANAGER_STATES)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if (device_num >= mgr->num_devices) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	prev_state = mgr->entries[device_num].state;
+	mgr->entries[device_num].state = state;
+
+	if ((state == DEVICE_MANAGER_AUTHENTICATED) ||
+		(state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS)) {
+		timeout = mgr->authenticated_cadence_ms;
+	}
+	else if ((device_manager_is_device_unauthenticated (state)) &&
+		(device_manager_is_device_unauthenticated (prev_state) ||
+		(prev_state == DEVICE_MANAGER_NEVER_ATTESTED))) {
+		timeout = mgr->unauthenticated_cadence_ms;
+	}
+	else if (state == DEVICE_MANAGER_NEVER_ATTESTED) {
+		timeout = 0;
+	}
+
+	return platform_init_timeout (timeout, &mgr->entries[device_num].attestation_timeout);
+}
+
 /*
  * Update device manager device table entry state
  *
@@ -1600,6 +1583,28 @@ int device_manager_update_device_ids (struct device_manager *mgr, int device_num
 
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 /**
+ * Free unidentified devices circular list
+ *
+ * @param mgr Device manager instance to utilize
+ */
+void device_manager_clear_unidentified_devices (struct device_manager *mgr)
+{
+	struct device_manager_unidentified_entry *entry;
+
+	if (mgr->unidentified != NULL) {
+		while (mgr->unidentified->next != mgr->unidentified) {
+			entry = mgr->unidentified->next;
+			mgr->unidentified->next = entry->next;
+			platform_free (entry);
+		}
+
+		platform_free (mgr->unidentified);
+
+		mgr->unidentified = NULL;
+	}
+}
+
+/**
  * Add a node to device manager unidentified device linked list.
  *
  * @param mgr Device manager instance to utilize.
@@ -1756,7 +1761,7 @@ found:
 
 	return runner->eid;
 }
-#endif
+#endif	// ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 
 /**
  * Check a timeout to see if it will expire before a specified duration.

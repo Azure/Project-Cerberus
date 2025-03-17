@@ -340,7 +340,6 @@ const struct device_manager_key* device_manager_get_alias_key (struct device_man
 
 int device_manager_clear_alias_key (struct device_manager *mgr, uint8_t eid);
 
-
 int device_manager_get_device_state (struct device_manager *mgr, int device_num);
 int device_manager_get_device_state_by_eid (struct device_manager *mgr, uint8_t eid);
 
