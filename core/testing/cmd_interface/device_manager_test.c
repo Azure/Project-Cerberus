@@ -882,6 +882,41 @@ static void device_manager_test_get_device_addr_by_eid (CuTest *test)
 	device_manager_release (&manager);
 }
 
+static void device_manager_test_get_device_addr_by_eid_unidentified_device (CuTest *test)
+{
+	struct device_manager manager;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_ids (&manager, 1, 0x11, 0x12, 0x13, 0x14);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_UNIDENTIFIED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_num_by_device_ids (&manager, 0x11, 0x12, 0x13, 0x14);
+	CuAssertIntEquals (test, 1, status);
+
+	status = device_manager_update_device_eid (&manager, 1, 0xAA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_add_unidentified_device (&manager, 0xBB);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_add_unidentified_device (&manager, 0xCC);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_addr_by_eid (&manager, 0xBB);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
+}
+
 static void device_manager_test_get_device_addr_by_eid_init_ac_rot (CuTest *test)
 {
 	struct device_manager manager;
@@ -923,6 +958,70 @@ static void device_manager_test_get_device_addr_by_eid_invalid_device (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_addr_by_eid (&manager, 0xAA);
+	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_get_device_addr_by_eid_unidentified_device_null (CuTest *test)
+{
+	struct device_manager manager;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_ids (&manager, 1, 0x11, 0x12, 0x13, 0x14);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_UNIDENTIFIED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_num_by_device_ids (&manager, 0x11, 0x12, 0x13, 0x14);
+	CuAssertIntEquals (test, 1, status);
+
+	status = device_manager_update_device_eid (&manager, 1, 0xAA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_addr_by_eid (&manager, 0xBB);
+	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_get_device_addr_by_eid_unknown_device (CuTest *test)
+{
+	struct device_manager manager;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_ids (&manager, 1, 0x11, 0x12, 0x13, 0x14);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_UNIDENTIFIED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_num_by_device_ids (&manager, 0x11, 0x12, 0x13, 0x14);
+	CuAssertIntEquals (test, 1, status);
+
+	status = device_manager_update_device_eid (&manager, 1, 0xAA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_add_unidentified_device (&manager, 0xBB);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_add_unidentified_device (&manager, 0xCC);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_addr_by_eid (&manager, 0xDD);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
 	device_manager_release (&manager);
@@ -7406,9 +7505,12 @@ TEST (device_manager_test_update_mctp_bridge_device_entry_too_many_components);
 TEST (device_manager_test_get_device_addr_null);
 TEST (device_manager_test_get_device_addr_invalid_device);
 TEST (device_manager_test_get_device_addr_by_eid);
+TEST (device_manager_test_get_device_addr_by_eid_unidentified_device);
 TEST (device_manager_test_get_device_addr_by_eid_init_ac_rot);
 TEST (device_manager_test_get_device_addr_by_eid_null);
 TEST (device_manager_test_get_device_addr_by_eid_invalid_device);
+TEST (device_manager_test_get_device_addr_by_eid_unidentified_device_null);
+TEST (device_manager_test_get_device_addr_by_eid_unknown_device);
 TEST (device_manager_test_get_device_eid_null);
 TEST (device_manager_test_get_device_eid_invalid_device);
 TEST (device_manager_test_update_device_state);

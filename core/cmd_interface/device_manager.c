@@ -385,6 +385,42 @@ int device_manager_get_device_addr (struct device_manager *mgr, int device_num)
 }
 
 /**
+ * Find device entry with requested EID in unidentified device list.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param eid EID of device to find.
+ * @param entry Container to fill with pointer to requested device entry.
+ * @param prev Container to fill with pointer to device right before requested device entry. Can be
+ * 	set to NULL if not needed.
+ *
+ * @return 0 if completed successfully or an error code.
+ */
+static int device_manager_find_unidentified_device (struct device_manager *mgr, uint8_t eid,
+	struct device_manager_unidentified_entry **entry,
+	struct device_manager_unidentified_entry **prev)
+{
+	struct device_manager_unidentified_entry *previous;
+
+	previous = mgr->unidentified;
+
+	while (previous->next->eid != eid) {
+		previous = previous->next;
+
+		if (previous == mgr->unidentified) {
+			return DEVICE_MGR_UNKNOWN_DEVICE;
+		}
+	}
+
+	*entry = previous->next;
+
+	if (prev != NULL) {
+		*prev = previous;
+	}
+
+	return 0;
+}
+
+/**
  * Find device SMBUS address for a device in device manager table.
  *
  * @param mgr The device manager to utilize.
@@ -394,11 +430,30 @@ int device_manager_get_device_addr (struct device_manager *mgr, int device_num)
  */
 int device_manager_get_device_addr_by_eid (struct device_manager *mgr, uint8_t eid)
 {
+	int device_num;
+	int status;
+	struct device_manager_unidentified_entry *entry;
+
 	if (mgr == NULL) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
-	return device_manager_get_device_addr (mgr, device_manager_get_device_num (mgr, eid));
+	device_num = device_manager_get_device_num (mgr, eid);
+
+	if (device_num == DEVICE_MGR_UNKNOWN_DEVICE) {
+		if (mgr->unidentified == NULL) {
+			return DEVICE_MGR_UNKNOWN_DEVICE;
+		}
+
+		status = device_manager_find_unidentified_device (mgr, eid, &entry, NULL);
+		if (status != 0) {
+			return status;
+		}
+
+		device_num = DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM;
+	}
+
+	return device_manager_get_device_addr (mgr, device_num);
 }
 
 /**
@@ -1577,42 +1632,6 @@ int device_manager_add_unidentified_device (struct device_manager *mgr, uint8_t 
 	}
 
 	return platform_init_timeout (0, &new_entry->discovery_timeout);
-}
-
-/**
- * Find device entry with requested EID in unidentified device list.
- *
- * @param mgr Device manager instance to utilize.
- * @param eid EID of device to find.
- * @param entry Container to fill with pointer to requested device entry.
- * @param prev Container to fill with pointer to device right before requested device entry. Can be
- * 	set to NULL if not needed.
- *
- * @return 0 if completed successfully or an error code.
- */
-static int device_manager_find_unidentified_device (struct device_manager *mgr, uint8_t eid,
-	struct device_manager_unidentified_entry **entry,
-	struct device_manager_unidentified_entry **prev)
-{
-	struct device_manager_unidentified_entry *previous;
-
-	previous = mgr->unidentified;
-
-	while (previous->next->eid != eid) {
-		previous = previous->next;
-
-		if (previous == mgr->unidentified) {
-			return DEVICE_MGR_UNKNOWN_DEVICE;
-		}
-	}
-
-	*entry = previous->next;
-
-	if (prev != NULL) {
-		*prev = previous;
-	}
-
-	return 0;
 }
 
 /**
