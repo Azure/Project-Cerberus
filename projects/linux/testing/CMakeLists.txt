@@ -70,7 +70,6 @@ target_compile_options(
  		-Werror
 		-Wno-unused-parameter
 		-g
-		-include ${CORE_DIR}/acvp/acvp_override.h
 	)
 
 target_compile_definitions(

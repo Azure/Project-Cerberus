@@ -29,6 +29,7 @@ file(GLOB ACVPPARSER_SOURCES
 )
 
 set(ACVPPARSER_INCLUDES
+    ${CERBERUS_ROOT}/core/acvp
     ${ACVPPARSER_DIR}
     ${PROTO_DIR}
     ${PARSER_DIR}
@@ -41,5 +42,5 @@ set(ACVPPARSER_INCLUDES
 set_source_files_properties(
     ${ACVPPARSER_SOURCES}
     PROPERTIES
-    COMPILE_OPTIONS "-include;${CERBERUS_ROOT}/core/platform_api.h;-Wno-unused-but-set-variable;-Wno-format;-Wno-unused-parameter"
+    COMPILE_OPTIONS "-Wno-unused-but-set-variable;-Wno-format;-Wno-unused-parameter;-D__EXTERNAL_FRONTEND_HEADER__"
 )
