@@ -132,6 +132,8 @@ static int backend_sha_hash_generate (struct sha_data *data, flags_t parsed_flag
 {
 	uint8_t hash_out[HASH_MAX_HASH_LEN];
 	const struct backend_sha_engine *engine;
+	enum hash_type type;
+	int hash_out_len;
 	int status;
 
 	UNUSED (parsed_flags);
@@ -151,22 +153,55 @@ static int backend_sha_hash_generate (struct sha_data *data, flags_t parsed_flag
 		goto exit;
 	}
 
-	// TODO:  Support multi-update hash.
-	status = hash_calculate (engine->engine, backend_sha_get_hash_type (data->cipher),
-		(uint8_t*) data->msg.buf, data->msg.len, hash_out, sizeof (hash_out));
-	if (ROT_IS_ERROR (status)) {
+	type = backend_sha_get_hash_type (data->cipher);
+
+	if (engine->is_one_shot) {
+		status = hash_calculate (engine->engine, type, (uint8_t*) data->msg.buf, data->msg.len,
+			hash_out, sizeof (hash_out));
+		if (ROT_IS_ERROR (status)) {
+			goto exit;
+		}
+
+		hash_out_len = status;
+	}
+	else {
+		status = hash_start_new_hash (engine->engine, type);
+		if (status != 0) {
+			goto exit;
+		}
+
+		status = engine->engine->update (engine->engine, (uint8_t*) data->msg.buf, data->msg.len);
+		if (status != 0) {
+			goto cancel;
+		}
+
+		status = engine->engine->finish (engine->engine, hash_out, sizeof (hash_out));
+		if (status != 0) {
+			goto cancel;
+		}
+
+		hash_out_len = hash_get_hash_length (type);
+	}
+
+	if (hash_out_len != hash_get_hash_length (type)) {
+		status = BACKEND_SHA_UNEXPECTED_HASH_LENGTH;
 		goto exit;
 	}
 
-	data->mac.buf = platform_malloc (status);
+	data->mac.buf = platform_malloc (hash_out_len);
 	if (data->mac.buf == NULL) {
 		status = BACKEND_SHA_NO_MEMORY;
 		goto exit;
 	}
-	memcpy (data->mac.buf, hash_out, status);
-	data->mac.len = status;
+	memcpy (data->mac.buf, hash_out, hash_out_len);
+	data->mac.len = hash_out_len;
 
-	status = 0;
+	return 0;
+
+cancel:
+	if (engine->engine) {
+		engine->engine->cancel (engine->engine);
+	}
 
 exit:
 	if (ROT_IS_ERROR (status)) {
