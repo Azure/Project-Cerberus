@@ -66,6 +66,7 @@ int ocp_recovery_device_init (struct ocp_recovery_device *device,
 int ocp_recovery_device_init_state (const struct ocp_recovery_device *device)
 {
 	size_t i;
+	uint32_t flash_device_size;
 
 	if ((device == NULL) || (device->state == NULL)) {
 		return OCP_RECOVERY_DEVICE_INVALID_ARGUMENT;
@@ -98,6 +99,18 @@ int ocp_recovery_device_init_state (const struct ocp_recovery_device *device)
 			default:
 				/* Other region types can handle mis-alignment, though it is not ideal. */
 				break;
+		}
+
+		if (device->cms[i].cms_flash == true) {
+			device->cms->flash->flash->get_device_size (device->cms->flash->flash,
+				&flash_device_size);
+
+			if ((device->cms->flash->base_addr + device->cms->length) > flash_device_size) {
+				/* The CMS flash region must not exceed the device size. */
+				return OCP_RECOVERY_DEVICE_CMS_FLASH_ADDR_OVERFLOW;
+			}
+
+			*device->cms[i].flash->flash_erase_offset = device->cms->flash->base_addr;
 		}
 	}
 
@@ -306,6 +319,8 @@ static int ocp_recovery_device_write_indirect_data (const struct ocp_recovery_de
 	const struct ocp_recovery_device_cms *cms;
 	size_t write_len;
 	const uint8_t *pos;
+	uint32_t sector_size;
+	int status = 0;
 
 	if (!device->cms) {
 		return OCP_RECOVERY_DEVICE_UNSUPPORTED;
@@ -324,7 +339,7 @@ static int ocp_recovery_device_write_indirect_data (const struct ocp_recovery_de
 		return OCP_RECOVERY_DEVICE_RO_CMS;
 	}
 
-	/* Copy the data to the memory region. */
+	/* Copy the data to the cms region. */
 	pos = indirect_data->data;
 	do {
 		/* Check the offset to see if the read should wrap to the beginning. */
@@ -334,7 +349,37 @@ static int ocp_recovery_device_write_indirect_data (const struct ocp_recovery_de
 		}
 
 		write_len = min (length, cms->length - device->state->indirect_ctrl.offset);
-		memcpy (&cms->base_addr[device->state->indirect_ctrl.offset], pos, write_len);
+		if (cms->cms_flash) {
+			/* Reset the flash_erase_offset if indirect_ctrl.offset = 0*/
+			if (device->state->indirect_ctrl.offset == 0) {
+				*(cms->flash->flash_erase_offset) = cms->flash->base_addr;
+			}
+
+			if ((cms->flash->base_addr + device->state->indirect_ctrl.offset + write_len) >
+				*(cms->flash->flash_erase_offset)) {
+				status = cms->flash->flash->sector_erase (cms->flash->flash,
+					*(cms->flash->flash_erase_offset));
+				if (status != 0) {
+					return status;
+				}
+
+				status = cms->flash->flash->get_sector_size (cms->flash->flash, &sector_size);
+				if (status != 0) {
+					return status;
+				}
+
+				*(cms->flash->flash_erase_offset) += sector_size;
+			}
+
+			status = cms->flash->flash->write (cms->flash->flash,
+				(cms->flash->base_addr + device->state->indirect_ctrl.offset), pos, write_len);
+			if (ROT_IS_ERROR (status)) {
+				return status;
+			}
+		}
+		else {
+			memcpy (&cms->base_addr[device->state->indirect_ctrl.offset], pos, write_len);
+		}
 
 		/* Make sure we only ever increment the offset in 4-byte chunks. */
 		device->state->indirect_ctrl.offset += (write_len + 3) & ~0x3ull;
@@ -582,6 +627,7 @@ static int ocp_recovery_device_read_indirect_data (const struct ocp_recovery_dev
 {
 	const struct ocp_recovery_device_cms *cms;
 	size_t read_len;
+	int status = 0;
 
 	if (!device->cms) {
 		return OCP_RECOVERY_DEVICE_UNSUPPORTED;
@@ -622,10 +668,23 @@ static int ocp_recovery_device_read_indirect_data (const struct ocp_recovery_dev
 	}
 	else {
 		size_t max_length = OCP_RECOVERY_DEVICE_MAX_INDIRECT_READ;
-		size_t offset = device->state->indirect_ctrl.offset;
 
-		read_len = buffer_copy (cms->base_addr, cms->length, &offset, &max_length,
-			indirect_data->data);
+		if (cms->cms_flash) {
+			read_len = min (cms->length - device->state->indirect_ctrl.offset, max_length);
+
+			status = cms->flash->flash->read (cms->flash->flash,
+				(cms->flash->base_addr + device->state->indirect_ctrl.offset), indirect_data->data,
+				read_len);
+			if (status != 0) {
+				return status;
+			}
+		}
+		else {
+			size_t offset = device->state->indirect_ctrl.offset;
+
+			read_len = buffer_copy (cms->base_addr, cms->length, &offset, &max_length,
+				indirect_data->data);
+		}
 	}
 
 	/* Make sure we only ever increment the offset in 4-byte chunks. */

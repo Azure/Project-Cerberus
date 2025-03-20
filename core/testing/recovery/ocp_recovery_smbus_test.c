@@ -61,6 +61,7 @@ static void ocp_recovery_smbus_testing_init_dependencies (CuTest *test,
 	smbus->cms[0].base_addr = smbus->cms_0;
 	smbus->cms[0].length = sizeof (smbus->cms_0);
 	smbus->cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	smbus->cms[0].cms_flash = false;
 
 	status = ocp_recovery_device_init (&smbus->device, &smbus->dev_state, &smbus->hw.base,
 		smbus->cms, 1);
