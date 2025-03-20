@@ -1389,7 +1389,7 @@ static int cfm_flash_get_next_manifest (const struct cfm *cfm, uint32_t componen
 		if (allowable_id_element_ptr->check.endianness == CFM_MULTIBYTE_BIG_ENDIAN) {
 			for (uint8_t i_id = 0; i_id < allowable_id_ptr->id_count; i_id++) {
 				*((uint32_t*) &allowable_id_ptr->allowable_id[i_id]) =
-					SWAP_BYTES_UINT32 (allowable_id_ptr->allowable_id[i_id]);
+					common_math_swap_bytes_uint32 (allowable_id_ptr->allowable_id[i_id]);
 			}
 		}
 

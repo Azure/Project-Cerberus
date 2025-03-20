@@ -325,7 +325,7 @@ int session_manager_add_session (struct session_manager *session, uint8_t eid,
 	memset (curr_session->aes_init_vector, 0, CERBERUS_PROTOCOL_AES_IV_LEN);
 	curr_session->session_state = SESSION_STATE_SETUP;
 	curr_session->eid = eid;
-	curr_session->aes_init_vector[CERBERUS_PROTOCOL_AES_IV_LEN - 1] = 0x80;
+	curr_session->aes_init_vector[0] = 0x80;
 
 	return 0;
 }

@@ -130,16 +130,128 @@ static void common_math_test_get_num_bits_set_before_index_out_of_range (CuTest 
 	CuAssertIntEquals (test, 4, status);
 }
 
-static void common_math_test_increment_byte_array (CuTest *test)
+static void common_math_test_increment_byte_array_single_byte_zero_value (CuTest *test)
 {
 	int status;
-	uint8_t len = 12;
-	uint8_t input_array[12] = {0xff, 0xff, 0xff, 0xff, 0xfe, 0xab, 0, 0, 0, 0, 0, 0};
-	uint8_t expected_array[12] = {0x0, 0x0, 0x0, 0x0, 0xff, 0xab, 0, 0, 0, 0, 0, 0};
+	uint8_t len = 1;
+	uint8_t input_array[1] = {0x00};
+	uint8_t expected_array[1] = {0x01};
 
 	TEST_START;
 
 	status = common_math_increment_byte_array (input_array, len, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected_array, input_array, len);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void common_math_test_increment_byte_array_single_byte_max_value_rolling_over (CuTest *test)
+{
+	int status;
+	uint8_t len = 1;
+	uint8_t input_array[1] = {0xff};
+	uint8_t expected_array[1] = {0x00};
+
+	TEST_START;
+
+	status = common_math_increment_byte_array (input_array, len, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected_array, input_array, len);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void common_math_test_increment_byte_array_multiple_bytes (CuTest *test)
+{
+	int status;
+	uint8_t len = 12;
+	uint8_t input_array[12] = {
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45
+	};
+	uint8_t expected_array[12] = {
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x46
+	};
+
+	TEST_START;
+
+	status = common_math_increment_byte_array (input_array, len, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected_array, input_array, len);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void common_math_test_increment_byte_array_multiple_bytes_rolling_over_first_byte (
+	CuTest *test)
+{
+	int status;
+	uint8_t len = 12;
+	uint8_t input_array[12] = {
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff
+	};
+	uint8_t expected_array[12] = {
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00
+	};
+
+	TEST_START;
+
+	status = common_math_increment_byte_array (input_array, len, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected_array, input_array, len);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void common_math_test_increment_byte_array_multiple_bytes_rolling_over_later_byte (
+	CuTest *test)
+{
+	int status;
+	uint8_t len = 6;
+	uint8_t input_array[6] = {0x00, 0x00, 0x00, 0xff, 0xff, 0xff};
+	uint8_t expected_array[6] = {0x00, 0x00, 0x01, 0x00, 0x00, 0x00};
+
+	TEST_START;
+
+	status = common_math_increment_byte_array (input_array, len, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected_array, input_array, len);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void common_math_test_increment_byte_array_multiple_bytes_non_zero_after_rollover_byte (
+	CuTest *test)
+{
+	int status;
+	uint8_t len = 12;
+	uint8_t input_array[12] = {
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xab, 0xfe, 0xff, 0xff, 0xff, 0xff
+	};
+	uint8_t expected_array[12] = {
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xab, 0xff, 0x00, 0x00, 0x00, 0x00
+	};
+
+	TEST_START;
+
+	status = common_math_increment_byte_array (input_array, len, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected_array, input_array, len);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void common_math_test_increment_byte_array_multiple_bytes_max_value_rolling_over (
+	CuTest *test)
+{
+	int status;
+	uint8_t len = 6;
+	uint8_t input_array[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+	uint8_t expected_array[6] = {0};
+
+	TEST_START;
+
+	status = common_math_increment_byte_array (input_array, len, true);
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (expected_array, input_array, len);
@@ -161,38 +273,6 @@ static void common_math_test_increment_byte_array_invalid_args (CuTest *test)
 	CuAssertIntEquals (test, COMMON_MATH_INVALID_ARGUMENT, status);
 }
 
-static void common_math_test_increment_byte_array_single_byte_zero_value (CuTest *test)
-{
-	int status;
-	uint8_t len = 1;
-	uint8_t input_array[1] = {0};
-	uint8_t expected_array[1] = {1};
-
-	TEST_START;
-
-	status = common_math_increment_byte_array (input_array, len, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = testing_validate_array (expected_array, input_array, len);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void common_math_test_increment_byte_array_single_byte_max_value_rolling_over (CuTest *test)
-{
-	int status;
-	uint8_t len = 1;
-	uint8_t input_array[1] = {0xff};
-	uint8_t expected_array[1] = {0x0};
-
-	TEST_START;
-
-	status = common_math_increment_byte_array (input_array, len, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = testing_validate_array (expected_array, input_array, len);
-	CuAssertIntEquals (test, 0, status);
-}
-
 static void common_math_test_increment_byte_array_single_byte_max_value_no_rolling_over (
 	CuTest *test)
 {
@@ -210,74 +290,7 @@ static void common_math_test_increment_byte_array_single_byte_max_value_no_rolli
 	CuAssertIntEquals (test, 0, status);
 }
 
-static void common_math_test_increment_byte_array_multiple_byte_array_zero_value (CuTest *test)
-{
-	int status;
-	uint8_t len = 12;
-	uint8_t input_array[12] = {0};
-	uint8_t expected_array[12] = {0x1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-	TEST_START;
-
-	status = common_math_increment_byte_array (input_array, len, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = testing_validate_array (expected_array, input_array, len);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void common_math_test_increment_byte_array_multiple_byte_array_rolling_over_second_byte (
-	CuTest *test)
-{
-	int status;
-	uint8_t len = 12;
-	uint8_t input_array[12] = {0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-	uint8_t expected_array[12] = {0, 0x1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-	TEST_START;
-
-	status = common_math_increment_byte_array (input_array, len, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = testing_validate_array (expected_array, input_array, len);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void common_math_test_increment_byte_array_multiple_byte_array_rolling_over_later_byte (
-	CuTest *test)
-{
-	int status;
-	uint8_t len = 6;
-	uint8_t input_array[6] = {0xff, 0xff, 0xff, 0, 0, 0};
-	uint8_t expected_array[6] = {0, 0, 0, 0x1, 0, 0};
-
-	TEST_START;
-
-	status = common_math_increment_byte_array (input_array, len, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = testing_validate_array (expected_array, input_array, len);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void common_math_test_increment_byte_array_multiple_byte_array_max_value_rolling_over (
-	CuTest *test)
-{
-	int status;
-	uint8_t len = 6;
-	uint8_t input_array[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-	uint8_t expected_array[6] = {0};
-
-	TEST_START;
-
-	status = common_math_increment_byte_array (input_array, len, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = testing_validate_array (expected_array, input_array, len);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void common_math_test_increment_byte_array_multiple_byte_array_max_value_no_rolling_over (
+static void common_math_test_increment_byte_array_multiple_bytes_max_value_no_rolling_over (
 	CuTest *test)
 {
 	int status;
@@ -288,6 +301,159 @@ static void common_math_test_increment_byte_array_multiple_byte_array_max_value_
 	TEST_START;
 
 	status = common_math_increment_byte_array (input_array, len, false);
+	CuAssertIntEquals (test, COMMON_MATH_BOUNDARY_REACHED, status);
+
+	status = testing_validate_array (expected_array, input_array, len);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void common_math_test_decrement_byte_array_single_byte (CuTest *test)
+{
+	int status;
+	uint8_t len = 1;
+	uint8_t input_array[1] = {0x39};
+	uint8_t expected_array[1] = {0x38};
+
+	TEST_START;
+
+	status = common_math_decrement_byte_array (input_array, len, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected_array, input_array, len);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void common_math_test_decrement_byte_array_single_byte_zero_rolling_over (CuTest *test)
+{
+	int status;
+	uint8_t len = 1;
+	uint8_t input_array[1] = {0x00};
+	uint8_t expected_array[1] = {0xff};
+
+	TEST_START;
+
+	status = common_math_decrement_byte_array (input_array, len, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected_array, input_array, len);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void common_math_test_decrement_byte_array_multiple_bytes (CuTest *test)
+{
+	int status;
+	uint8_t len = 12;
+	uint8_t input_array[12] = {
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc
+	};
+	uint8_t expected_array[12] = {
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbb
+	};
+
+	TEST_START;
+
+	status = common_math_decrement_byte_array (input_array, len, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected_array, input_array, len);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void common_math_test_decrement_byte_array_multiple_bytes_rolling_over_first_byte (
+	CuTest *test)
+{
+	int status;
+	uint8_t len = 12;
+	uint8_t input_array[12] = {
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x33, 0x00
+	};
+	uint8_t expected_array[12] = {
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x32, 0xff
+	};
+
+	TEST_START;
+
+	status = common_math_decrement_byte_array (input_array, len, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected_array, input_array, len);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void common_math_test_decrement_byte_array_multiple_bytes_rolling_over_later_byte (
+	CuTest *test)
+{
+	int status;
+	uint8_t len = 6;
+	uint8_t input_array[6] = {0x00, 0x00, 0x68, 0x00, 0x00, 0x00};
+	uint8_t expected_array[6] = {0x00, 0x00, 0x67, 0xff, 0xff, 0xff};
+
+	TEST_START;
+
+	status = common_math_decrement_byte_array (input_array, len, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected_array, input_array, len);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void common_math_test_decrement_byte_array_multiple_bytes_zero_rolling_over (CuTest *test)
+{
+	int status;
+	uint8_t len = 6;
+	uint8_t input_array[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	uint8_t expected_array[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+	TEST_START;
+
+	status = common_math_decrement_byte_array (input_array, len, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (expected_array, input_array, len);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void common_math_test_decrement_byte_array_null (CuTest *test)
+{
+	int status;
+	size_t len = 256;
+	uint8_t input_array[256] = {0};
+
+	TEST_START;
+
+	status = common_math_decrement_byte_array (NULL, len, false);
+	CuAssertIntEquals (test, COMMON_MATH_INVALID_ARGUMENT, status);
+
+	status = common_math_decrement_byte_array (input_array, 0, false);
+	CuAssertIntEquals (test, COMMON_MATH_INVALID_ARGUMENT, status);
+}
+
+static void common_math_test_decrement_byte_array_single_byte_zero_no_rolling_over (CuTest *test)
+{
+	int status;
+	uint8_t len = 1;
+	uint8_t input_array[1] = {0x00};
+	uint8_t expected_array[1] = {0x00};
+
+	TEST_START;
+
+	status = common_math_decrement_byte_array (input_array, len, false);
+	CuAssertIntEquals (test, COMMON_MATH_BOUNDARY_REACHED, status);
+
+	status = testing_validate_array (expected_array, input_array, len);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void common_math_test_decrement_byte_array_multiple_bytes_zero_no_rolling_over (CuTest *test)
+{
+	int status;
+	uint8_t len = 6;
+	uint8_t input_array[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	uint8_t expected_array[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+	TEST_START;
+
+	status = common_math_decrement_byte_array (input_array, len, false);
 	CuAssertIntEquals (test, COMMON_MATH_BOUNDARY_REACHED, status);
 
 	status = testing_validate_array (expected_array, input_array, len);
@@ -1306,6 +1472,36 @@ static void common_math_test_left_shift_array_no_shift (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 }
 
+static void common_math_test_swap_bytes_uint16 (CuTest *test)
+{
+	uint16_t org = 0x1234;
+	uint16_t swap = 0x3412;
+
+	TEST_START;
+
+	CuAssertIntEquals (test, swap, common_math_swap_bytes_uint16 (org));
+}
+
+static void common_math_test_swap_bytes_uint32 (CuTest *test)
+{
+	uint32_t org = 0x12345678;
+	uint32_t swap = 0x78563412;
+
+	TEST_START;
+
+	CuAssertIntEquals (test, swap, common_math_swap_bytes_uint32 (org));
+}
+
+static void common_math_test_swap_bytes_uint64 (CuTest *test)
+{
+	uint64_t org = 0x123456789abcdef0;
+	uint64_t swap = 0xf0debc9a78563412;
+
+	TEST_START;
+
+	CuAssertInt64Equals (test, swap, common_math_swap_bytes_uint64 (org));
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (common_math);
@@ -1316,16 +1512,25 @@ TEST (common_math_test_saturing_increment_u32);
 TEST (common_math_test_get_num_bits_set);
 TEST (common_math_test_get_num_bits_set_before_index);
 TEST (common_math_test_get_num_bits_set_before_index_out_of_range);
-TEST (common_math_test_increment_byte_array);
-TEST (common_math_test_increment_byte_array_invalid_args);
 TEST (common_math_test_increment_byte_array_single_byte_zero_value);
 TEST (common_math_test_increment_byte_array_single_byte_max_value_rolling_over);
+TEST (common_math_test_increment_byte_array_multiple_bytes);
+TEST (common_math_test_increment_byte_array_multiple_bytes_rolling_over_first_byte);
+TEST (common_math_test_increment_byte_array_multiple_bytes_rolling_over_later_byte);
+TEST (common_math_test_increment_byte_array_multiple_bytes_non_zero_after_rollover_byte);
+TEST (common_math_test_increment_byte_array_multiple_bytes_max_value_rolling_over);
+TEST (common_math_test_increment_byte_array_invalid_args);
 TEST (common_math_test_increment_byte_array_single_byte_max_value_no_rolling_over);
-TEST (common_math_test_increment_byte_array_multiple_byte_array_zero_value);
-TEST (common_math_test_increment_byte_array_multiple_byte_array_rolling_over_second_byte);
-TEST (common_math_test_increment_byte_array_multiple_byte_array_rolling_over_later_byte);
-TEST (common_math_test_increment_byte_array_multiple_byte_array_max_value_rolling_over);
-TEST (common_math_test_increment_byte_array_multiple_byte_array_max_value_no_rolling_over);
+TEST (common_math_test_increment_byte_array_multiple_bytes_max_value_no_rolling_over);
+TEST (common_math_test_decrement_byte_array_single_byte);
+TEST (common_math_test_decrement_byte_array_single_byte_zero_rolling_over);
+TEST (common_math_test_decrement_byte_array_multiple_bytes);
+TEST (common_math_test_decrement_byte_array_multiple_bytes_rolling_over_first_byte);
+TEST (common_math_test_decrement_byte_array_multiple_bytes_rolling_over_later_byte);
+TEST (common_math_test_decrement_byte_array_multiple_bytes_zero_rolling_over);
+TEST (common_math_test_decrement_byte_array_null);
+TEST (common_math_test_decrement_byte_array_single_byte_zero_no_rolling_over);
+TEST (common_math_test_decrement_byte_array_multiple_bytes_zero_no_rolling_over);
 TEST (common_math_test_is_bit_set_in_array);
 TEST (common_math_test_is_bit_set_in_array_multiple_bytes);
 TEST (common_math_test_is_bit_set_in_array_multiple_bytes_clear);
@@ -1400,6 +1605,9 @@ TEST (common_math_test_left_shift_leave_one_bit);
 TEST (common_math_test_left_shift_array_null);
 TEST (common_math_test_left_shift_array_empty);
 TEST (common_math_test_left_shift_array_no_shift);
+TEST (common_math_test_swap_bytes_uint16);
+TEST (common_math_test_swap_bytes_uint32);
+TEST (common_math_test_swap_bytes_uint64);
 
 TEST_SUITE_END;
 // *INDENT-ON*

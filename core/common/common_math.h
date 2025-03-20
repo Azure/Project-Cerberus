@@ -16,15 +16,18 @@
 #define	min(a, b)	(((a) < (b)) ? (a) : (b))
 
 /**
- * Reverse the byte order for a 32-bit integer.
+ * @deprecated Reverse the byte order for a 16-bit integer.
  */
-#define	SWAP_BYTES_UINT32(x)    \
-	((((x) >> 24) & 0xff) | (((x) >> 8) & 0xff00) | (((x) & 0xff00) << 8) | (((x) & 0xff) << 24))
+#define	SWAP_BYTES_UINT16(x)	common_math_swap_bytes_uint16 (x)
 
 /**
- * Reverse the byte order for a 16-bit integer.
+ * @deprecated Reverse the byte order for a 32-bit integer.
  */
-#define	SWAP_BYTES_UINT16(x)	((((x) >> 8) & 0xff) | (((x) & 0xff) << 8))
+#define	SWAP_BYTES_UINT32(x)    common_math_swap_bytes_uint32 (x)
+
+uint16_t common_math_swap_bytes_uint16 (uint16_t data);
+uint32_t common_math_swap_bytes_uint32 (uint32_t data);
+uint64_t common_math_swap_bytes_uint64 (uint64_t data);
 
 int common_math_get_num_bits_set (uint8_t byte);
 int common_math_get_num_bits_set_before_index (uint8_t byte, uint8_t index);
@@ -34,6 +37,7 @@ int common_math_get_num_contiguous_bits_set (uint8_t byte);
 int common_math_get_num_contiguous_bits_set_in_array (const uint8_t *bytes, size_t length);
 
 int common_math_increment_byte_array (uint8_t *buf, size_t length, bool allow_rollover);
+int common_math_decrement_byte_array (uint8_t *buf, size_t length, bool allow_rollover);
 bool common_math_is_array_zero (const uint8_t *bytes, size_t length);
 
 int common_math_is_bit_set_in_array (const uint8_t *bytes, size_t length, size_t bit);

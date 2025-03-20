@@ -223,7 +223,7 @@ int session_manager_ecc_init (struct session_manager_ecc *session, const struct 
 		return SESSION_MANAGER_INVALID_ARGUMENT;
 	}
 
-	status = session_manager_init (&session->base, aes, hash, riot, sessions_table,	num_sessions,
+	status = session_manager_init (&session->base, aes, hash, riot, sessions_table, num_sessions,
 		pairing_eids, num_pairing_eids, store);
 	if (status == 0) {
 		session->base.add_session = session_manager_add_session;

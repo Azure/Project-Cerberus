@@ -8,6 +8,44 @@
 
 
 /**
+ * Reverse the byte order for a 16-bit integer.
+ *
+ * @param data The input data.
+ *
+ * @return The 16-bit value in reversed byte order.
+ */
+uint16_t common_math_swap_bytes_uint16 (uint16_t data)
+{
+	return (((data >> 8) & 0xff) | ((data & 0xff) << 8));
+}
+
+/**
+ * Reverse the byte order for a 32-bit integer.
+ *
+ * @param data The input data.
+ *
+ * @return The 32-bit value in reversed byte order.
+ */
+uint32_t common_math_swap_bytes_uint32 (uint32_t data)
+{
+	return common_math_swap_bytes_uint16 ((data >> 16) & 0xffff) |
+		(common_math_swap_bytes_uint16 (data & 0xffff) << 16);
+}
+
+/**
+ * Reverse the byte order for a 64-bit integer.
+ *
+ * @param data The input data.
+ *
+ * @return The 64-bit value in reversed byte order.
+ */
+uint64_t common_math_swap_bytes_uint64 (uint64_t data)
+{
+	return common_math_swap_bytes_uint32 ((data >> 32) & 0xffffffff) |
+		((uint64_t) common_math_swap_bytes_uint32 (data & 0xffffffff) << 32);
+}
+
+/**
  * Count the number of bits that are set (1) in a single byte.
  *
  * @param byte The byte to check.
@@ -128,29 +166,31 @@ int common_math_get_num_contiguous_bits_set_in_array (const uint8_t *bytes, size
 }
 
 /**
- * Increments a byte array of arbitrary length by 1.
+ * Treat an arbitrary length byte array as a big endian integer and increment the value by 1.
  *
- * @param buf Input array to be incremented.  This will be treated as a big endian value.
+ * @param buf Input array to be incremented as if it was a big endian integer.
  * @param len Length of the array.
- * @param allow_rollover Allows the array value to roll over to 0 when upper boundary is reached.
+ * @param allow_rollover Allows the array value to roll over to 0 when the upper boundary is
+ * reached.
  *
  * @return 0 if the input array is incremented successfully or an error code.
  */
 int common_math_increment_byte_array (uint8_t *buf, size_t length, bool allow_rollover)
 {
-	size_t index = 0;
+	size_t index;
 
 	if ((length == 0) || (buf == NULL)) {
 		return COMMON_MATH_INVALID_ARGUMENT;
 	}
 
-	while ((index < (length - 1)) && (buf[index] == 0xff)) {
-		buf[index++] = 0;
+	index = length - 1;
+	while ((index > 0) && (buf[index] == 0xff)) {
+		buf[index--] = 0;
 	}
 
-	if ((index == (length - 1)) && (buf[index] == 0xff)) {
+	if ((index == 0) && (buf[0] == 0xff)) {
 		if (allow_rollover) {
-			buf[index] = 0;
+			buf[0] = 0;
 		}
 		else {
 			memset (buf, 0xff, length);
@@ -160,6 +200,45 @@ int common_math_increment_byte_array (uint8_t *buf, size_t length, bool allow_ro
 	}
 	else {
 		buf[index]++;
+	}
+
+	return 0;
+}
+
+/**
+ * Treat an arbitrary length byte array as a big endian integer and decrement the value by 1.
+ *
+ * @param buf Input array to be decremented as if it was a big endian integer.
+ * @param len Length of the array.
+ * @param allow_rollover Allows the array value to roll over to the maximum value when 0 is reached.
+ *
+ * @return 0 if the input array is decremented successfully or an error code.
+ */
+int common_math_decrement_byte_array (uint8_t *buf, size_t length, bool allow_rollover)
+{
+	size_t index;
+
+	if ((buf == NULL) || (length == 0)) {
+		return COMMON_MATH_INVALID_ARGUMENT;
+	}
+
+	index = length - 1;
+	while ((index > 0) && (buf[index] == 0)) {
+		buf[index--] = 0xff;
+	}
+
+	if ((index == 0) && (buf[0] == 0)) {
+		if (allow_rollover) {
+			buf[0] = 0xff;
+		}
+		else {
+			memset (buf, 0, length);
+
+			return COMMON_MATH_BOUNDARY_REACHED;
+		}
+	}
+	else {
+		buf[index]--;
 	}
 
 	return 0;

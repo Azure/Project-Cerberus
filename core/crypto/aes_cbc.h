@@ -114,6 +114,7 @@ enum {
 	AES_CBC_ENGINE_HW_NOT_INIT = AES_CBC_ENGINE_ERROR (0x09),				/**< The AES hardware has not been initialized. */
 	AES_CBC_ENGINE_SELF_TEST_FAILED = AES_CBC_ENGINE_ERROR (0x0a),			/**< An internal self-test of the AES engine failed. */
 	AES_CBC_ENGINE_UNSUPPORTED_OPERATION = AES_CBC_ENGINE_ERROR (0x0b),		/**< The requested operation is not supported. */
+	AES_CBC_ENGINE_CLEAR_KEY_FAILED = AES_CBC_ENGINE_ERROR (0x0c),			/**< The encryption key could not be zeroized. */
 };
 
 
