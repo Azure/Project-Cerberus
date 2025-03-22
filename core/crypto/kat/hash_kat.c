@@ -22,7 +22,7 @@
 static int hash_kat_run_calculate_self_test (const struct hash_engine *hash,
 	enum hash_type hash_algo, const uint8_t *expected, int kat_error)
 {
-	uint8_t digest[HASH_MAX_HASH_LEN];
+	uint8_t digest[HASH_MAX_HASH_LEN] = {0};
 	size_t digest_length;
 	int status;
 
@@ -30,17 +30,20 @@ static int hash_kat_run_calculate_self_test (const struct hash_engine *hash,
 	status = hash_calculate (hash, hash_algo, SHA_KAT_VECTORS_CALCULATE_DATA,
 		SHA_KAT_VECTORS_CALCULATE_DATA_LEN, digest, sizeof (digest));
 	if (ROT_IS_ERROR (status)) {
-		return status;
+		goto exit;
 	}
 
 	digest_length = status;
 
 	status = buffer_compare (digest, expected, digest_length);
 	if (status != 0) {
-		return kat_error;
+		status = kat_error;
 	}
 
-	return 0;
+exit:
+	buffer_zeroize (digest, sizeof (digest));
+
+	return status;
 }
 
 /**
@@ -150,7 +153,7 @@ int hash_kat_run_all_calculate_self_tests (const struct hash_engine *hash)
 static int hash_kat_run_update_self_test (const struct hash_engine *hash, enum hash_type hash_algo,
 	const uint8_t *expected, int kat_error)
 {
-	uint8_t digest[HASH_MAX_HASH_LEN];
+	uint8_t digest[HASH_MAX_HASH_LEN] = {0};
 	size_t digest_length;
 	int status;
 
@@ -164,28 +167,32 @@ static int hash_kat_run_update_self_test (const struct hash_engine *hash, enum h
 
 	status = hash->update (hash, SHA_KAT_VECTORS_UPDATE_DATA_1, SHA_KAT_VECTORS_UPDATE_DATA_1_LEN);
 	if (status != 0) {
-		goto exit;
+		goto hash_cancel;
 	}
 
 	status = hash->update (hash, SHA_KAT_VECTORS_UPDATE_DATA_2, SHA_KAT_VECTORS_UPDATE_DATA_2_LEN);
 	if (status != 0) {
-		goto exit;
+		goto hash_cancel;
 	}
 
 	status = hash->finish (hash, digest, sizeof (digest));
 	if (status != 0) {
-		goto exit;
+		goto hash_cancel;
 	}
 
 	status = buffer_compare (digest, expected, digest_length);
 	if (status != 0) {
-		return kat_error;
+		status = kat_error;
+		goto exit;
 	}
 
-exit:
+hash_cancel:
 	if (status != 0) {
 		hash->cancel (hash);
 	}
+
+exit:
+	buffer_zeroize (digest, sizeof (digest));
 
 	return status;
 }
@@ -300,7 +307,7 @@ int hash_kat_run_all_update_self_tests (const struct hash_engine *hash)
 static int hash_kat_hmac_run_self_test (const struct hash_engine *hash, enum hmac_hash hash_algo,
 	const uint8_t *expected, int kat_error)
 {
-	uint8_t mac[HASH_MAX_HASH_LEN];
+	uint8_t mac[HASH_MAX_HASH_LEN] = {0};
 	size_t mac_length;
 	int status;
 
@@ -311,15 +318,18 @@ static int hash_kat_hmac_run_self_test (const struct hash_engine *hash, enum hma
 		HMAC_KAT_VECTORS_CALCULATE_KEY_LEN, HMAC_KAT_VECTORS_CALCULATE_DATA,
 		HMAC_KAT_VECTORS_CALCULATE_DATA_LEN, hash_algo, mac, sizeof (mac));
 	if (status != 0) {
-		return status;
+		goto exit;
 	}
 
 	status = buffer_compare (mac, expected, mac_length);
 	if (status != 0) {
-		return kat_error;
+		status = kat_error;
 	}
 
-	return 0;
+exit:
+	buffer_zeroize (mac, sizeof (mac));
+
+	return status;
 }
 
 /**

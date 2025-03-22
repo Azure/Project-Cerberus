@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "hash.h"
+#include "common/buffer_util.h"
 
 
 /**
@@ -361,7 +362,7 @@ int hash_hmac_init (struct hmac_engine *engine, const struct hash_engine *hash,
 		status = hash_calculate (hash, (enum hash_type) hash_type, key, key_length, engine->key,
 			sizeof (engine->key));
 		if (ROT_IS_ERROR (status)) {
-			return status;
+			goto error;
 		}
 
 		key_length = status;
@@ -373,7 +374,7 @@ int hash_hmac_init (struct hmac_engine *engine, const struct hash_engine *hash,
 	/* Start the inner hash. */
 	status = hash_start_new_hash (hash, (enum hash_type) hash_type);
 	if (status != 0) {
-		return status;
+		goto error;
 	}
 
 	/* Transform the key for the inner hash. */
@@ -389,8 +390,7 @@ int hash_hmac_init (struct hmac_engine *engine, const struct hash_engine *hash,
 	status = hash->update (hash, engine->key, engine->block_size);
 	if (status != 0) {
 		hash->cancel (hash);
-
-		return status;
+		goto error;
 	}
 
 	/* We've already hashed the inner key, so transform it for use in the outer hash. */
@@ -399,6 +399,11 @@ int hash_hmac_init (struct hmac_engine *engine, const struct hash_engine *hash,
 	}
 
 	return 0;
+
+error:
+	buffer_zeroize (engine->key, sizeof (engine->key));
+
+	return status;
 }
 
 /**
@@ -472,10 +477,13 @@ int hash_hmac_finish (struct hmac_engine *engine, uint8_t *hmac, size_t hmac_len
 		goto fail;
 	}
 
+	/* Clear the HMAC key after the HMAC has been calculated. */
+	buffer_zeroize (engine->key, sizeof (engine->key));
+
 	return 0;
 
 fail:
-	engine->hash->cancel (engine->hash);
+	hash_hmac_cancel (engine);
 
 	return status;
 }
@@ -489,5 +497,7 @@ void hash_hmac_cancel (struct hmac_engine *engine)
 {
 	if (engine != NULL) {
 		engine->hash->cancel (engine->hash);
+
+		buffer_zeroize (engine->key, sizeof (engine->key));
 	}
 }
