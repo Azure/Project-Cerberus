@@ -48,6 +48,8 @@ int aes_ecb_openssl_set_key (const struct aes_ecb_engine *engine, const uint8_t 
 		return -status;
 	}
 
+	EVP_CIPHER_CTX_set_padding (openssl->state->encrypt, 0);
+
 	status = EVP_CIPHER_CTX_reset (openssl->state->decrypt);
 	if (status != 1) {
 		status = ERR_get_error ();
@@ -61,6 +63,8 @@ int aes_ecb_openssl_set_key (const struct aes_ecb_engine *engine, const uint8_t 
 		status = ERR_get_error ();
 		return -status;
 	}
+
+	EVP_CIPHER_CTX_set_padding (openssl->state->decrypt, 0);
 
 	return 0;
 }
