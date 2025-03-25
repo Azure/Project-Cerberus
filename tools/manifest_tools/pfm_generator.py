@@ -175,6 +175,10 @@ def check_max_rw_sections (all_rw_regions, max_rw_sections):
     :param max_rw_sections: Number of non-contiguous RW sections supported
     """
 
+    # Create empty set to store list of RW Regions
+    rw_regions_set = set()
+    raise_error = False
+    section_count = 0
     all_rw_permutations = generate_permutations (all_rw_regions)
 
     for permutation in all_rw_permutations:
@@ -189,10 +193,38 @@ def check_max_rw_sections (all_rw_regions, max_rw_sections):
                 permutation_copy[i_region - 1][1] = permutation_copy[i_region][1]
                 permutation_copy.remove (permutation_copy[i_region])
 
+                # Add the adjusted region that we're keeping.
+                rw_regions_set.add((permutation_copy[i_region - 1][0], permutation_copy[i_region - 1][1]))
+            else:
+                # Add the two regions being compared
+                rw_regions_set.add((region1[0], region1[1]))
+                rw_regions_set.add((region2[0], region2[1]))
+
         if len (permutation_copy) > max_rw_sections:
-            raise ValueError (
-                "Number of non-contiguous RW regions greater than maximum defined: {0} vs {1}".format (
-                    len (permutation_copy), max_rw_sections))
+            # We no longer want to halt upon first finding a number of regions greater than max_rw_regions.
+            # Instead, we want to keep checking to complete the list of all RW Regions.
+            raise_error = True
+            section_count = len(permutation_copy)
+
+    print ()
+    print ()
+    print ("The following RW Regions were found:")
+    print ()
+
+    for region in rw_regions_set:
+        message = "Region [0x{0}:0x{1}]".format(
+            format (region[0], 'x'), format (region[1], 'x')
+        )
+
+        print(message)
+
+    print ()
+    print ()
+
+    if raise_error:
+        raise ValueError (
+            "Number of non-contiguous RW regions greater than maximum defined: {0} vs {1}".format (
+                section_count, max_rw_sections))
 
 def check_overlapping_regions (all_regions, ignore_overlap = False):
     """
