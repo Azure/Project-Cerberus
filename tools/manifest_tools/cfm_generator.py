@@ -606,7 +606,8 @@ def group_measurements_into_version_sets (xml_parsed_dict, component_key, compon
     added to the component dictionary, the rest of the xml entries are compared with the existing entries.
     When new pmr id does not existis, a new entry is created with version_set as 1. If pmr_id is already
     present, measurement_id is compared, when the allowable_digests are same for the same measurement id,
-    the enry is ignored, if not the new entry is added by incrementing the version_set number by 1
+    the entry is ignored and version set forced to 0, if not, the new entry is added by incrementing the
+    version_set number by 1
 
     :param xml_parsed_dict: the dictionary that is created by load_xmls function by parsing the
                            xml files
@@ -623,24 +624,37 @@ def group_measurements_into_version_sets (xml_parsed_dict, component_key, compon
             for measurement_id, measurement_entries in pmr_entries.items ():
                 components[component_key]["measurements"][pmr_id][measurement_id] = {"version_set":{}}
                 components[component_key]["measurements"][pmr_id][measurement_id]["version_set"][1] = measurement_entries
+
         else:
             for measurement_id, measurement_entries in pmr_entries.items ():
+
                 if measurement_id in components[component_key]["measurements"][pmr_id]:
+
                     existing_version_sets = components[component_key]["measurements"] \
                         [pmr_id][measurement_id]["version_set"].copy ()
 
+                    version_set_not_contain_digest = []
                     for digest in measurement_entries["allowable_digests"]:
-                        version_set_not_contain_digest = []
 
                         for version_set, version_set_dict in existing_version_sets.items ():
                             if not digest in version_set_dict["allowable_digests"]:
                                 version_set_not_contain_digest.append (version_set)
 
-                        if len (version_set_not_contain_digest) != 0:
-                            version_set_not_contain_digest.sort ()
-                            new_version_set = version_set_not_contain_digest[-1] + 1
-                            components[component_key]["measurements"][pmr_id][measurement_id] \
-                                ["version_set"].update ({new_version_set:measurement_entries})
+                    if len (version_set_not_contain_digest) != 0:
+                        if (existing_version_sets):
+                            new_version_set = list (existing_version_sets.keys ())[-1] + 1
+                        else:
+                            new_version_set = 1
+
+                        components[component_key]["measurements"][pmr_id][measurement_id] \
+                        ["version_set"].update ({new_version_set:measurement_entries})
+
+                    else:
+                        if (existing_version_sets):
+                            old_version_set = list (existing_version_sets.keys ())[-1]
+                            components[component_key]["measurements"][pmr_id][measurement_id]["version_set"][0] = \
+                            components[component_key]["measurements"][pmr_id][measurement_id]["version_set"].pop(old_version_set)
+
                 else:
                     components[component_key]["measurements"][pmr_id][measurement_id] = {"version_set":{}}
                     components[component_key]["measurements"][pmr_id][measurement_id]["version_set"][1] = measurement_entries
@@ -722,14 +736,17 @@ def group_measurement_data_into_version_sets (component_dict, component_key, com
                                     duplicate_data.append (duplicate_entry_dict)
                                     break
 
+                        components_data = components[component_key]["measurement_data"][pmr_id][measurement_id]["allowable_data"] \
+                            [index]["data"]["version_set"]
                         if len (duplicate_data) == new_data_list_len:
                             if all (ele["version_set"] == duplicate_data[0]["version_set"] for ele in duplicate_data):
                                 new_data_entries.clear ()
+                                old_version_set = list (available_version_sets.keys ())[-1]
+                                components_data[0] = components_data.pop(old_version_set)
                                 continue
 
                         new_version_set = list (available_version_sets.keys ())[-1] + 1
-                        components[component_key]["measurement_data"][pmr_id][measurement_id]["allowable_data"] \
-                            [index]["data"]["version_set"].update ({new_version_set:new_data_entries})
+                        components_data.update ({new_version_set:new_data_entries})
                 else:
                     components[component_key]["measurement_data"][pmr_id][measurement_id] = {}
                     data_list_to_append = set_data_list_in_version_set_dict (measurement_data_entries["allowable_data"], 1)
