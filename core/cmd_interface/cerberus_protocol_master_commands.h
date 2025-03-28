@@ -231,7 +231,16 @@ struct cerberus_protocol_pcd_update {
  */
 struct cerberus_protocol_complete_pcd_update {
 	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t activation;						/**< Manifest activation control */
 };
+
+
+/**
+ * Minimum required length of the activate platform configuration data request.  This length
+ * excludes optional payload bytes.
+ */
+#define	CERBERUS_PROTOCOL_COMPLETE_PCD_UPDATE_MIN_LENGTH     \
+	(sizeof (struct cerberus_protocol_complete_pcd_update) - sizeof (uint8_t))
 
 /**
  * Cerberus protocol update status request format

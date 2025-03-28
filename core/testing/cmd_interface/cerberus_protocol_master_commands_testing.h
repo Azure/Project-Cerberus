@@ -196,6 +196,10 @@ void cerberus_protocol_master_commands_testing_process_pcd_update_fail (CuTest *
 
 void cerberus_protocol_master_commands_testing_process_pcd_update_complete (CuTest *test,
 	struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pcd);
+void cerberus_protocol_master_commands_testing_process_pcd_update_complete_on_reboot (CuTest *test,
+	struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pcd);
+void cerberus_protocol_master_commands_testing_process_pcd_update_complete_no_optional_data (
+	CuTest *test, struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pcd);
 void cerberus_protocol_master_commands_testing_process_pcd_update_complete_no_pcd_manager (
 	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_master_commands_testing_process_pcd_update_complete_invalid_len (

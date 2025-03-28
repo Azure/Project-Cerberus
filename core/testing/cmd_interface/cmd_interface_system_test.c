@@ -5815,6 +5815,32 @@ static void cmd_interface_system_test_process_pcd_update_complete (CuTest *test)
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
+static void cmd_interface_system_test_process_pcd_update_complete_on_reboot (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_pcd_update_complete_on_reboot (test,
+		&cmd.handler.base, &cmd.pcd);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_pcd_update_complete_no_optional_data (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_pcd_update_complete_no_optional_data (test,
+		&cmd.handler.base, &cmd.pcd);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
 static void cmd_interface_system_test_process_pcd_update_complete_no_pcd_manager (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -8835,6 +8861,8 @@ TEST (cmd_interface_system_test_process_pcd_update_no_data);
 TEST (cmd_interface_system_test_process_pcd_update_no_pcd_manager);
 TEST (cmd_interface_system_test_process_pcd_update_fail);
 TEST (cmd_interface_system_test_process_pcd_update_complete);
+TEST (cmd_interface_system_test_process_pcd_update_complete_on_reboot);
+TEST (cmd_interface_system_test_process_pcd_update_complete_no_optional_data);
 TEST (cmd_interface_system_test_process_pcd_update_complete_no_pcd_manager);
 TEST (cmd_interface_system_test_process_pcd_update_complete_invalid_len);
 TEST (cmd_interface_system_test_process_pcd_update_complete_fail);

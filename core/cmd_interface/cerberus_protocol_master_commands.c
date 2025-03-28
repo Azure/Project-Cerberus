@@ -329,8 +329,8 @@ static int cerberus_protocol_manifest_update_complete (
 	struct cerberus_protocol_complete_cfm_update *rq =
 		(struct cerberus_protocol_complete_cfm_update*) request->data;
 
-	if (request->length !=
-		(sizeof (struct cerberus_protocol_complete_pcd_update) + delayed_activation_allowed)) {
+	if (delayed_activation_allowed &&
+		(request->length != sizeof (struct cerberus_protocol_complete_cfm_update))) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
@@ -646,7 +646,20 @@ int cerberus_protocol_pcd_update (const struct manifest_cmd_interface *pcd_inter
 int cerberus_protocol_pcd_update_complete (const struct manifest_cmd_interface *pcd_interface,
 	struct cmd_interface_msg *request)
 {
-	return cerberus_protocol_manifest_update_complete (pcd_interface, request, false);
+	bool delayed_activation_allowed;
+
+	if (request->length == sizeof (struct cerberus_protocol_complete_pcd_update)) {
+		delayed_activation_allowed = true;
+	}
+	else if (request->length == CERBERUS_PROTOCOL_COMPLETE_PCD_UPDATE_MIN_LENGTH) {
+		delayed_activation_allowed = false;
+	}
+	else {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	return cerberus_protocol_manifest_update_complete (pcd_interface, request,
+		delayed_activation_allowed);
 }
 
 /**
