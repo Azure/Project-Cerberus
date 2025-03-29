@@ -123,6 +123,23 @@ int aes_gcm_mbedtls_decrypt_with_add_data (const struct aes_gcm_engine *engine,
 		return AES_GCM_ENGINE_NO_KEY;
 	}
 
+	/* The function description for GCM decrypt indicates that the output buffer needs to trail the
+	 * input by at least 8 bytes.  However, there is no evidence of this actually being a
+	 * requirement in the code itself since temporary buffers are used internally, nor is there any
+	 * evidence from tested workflows to suggest this, either.
+	 *
+	 * This comment was added in 2012 based on an early implementation of GCM that did have this
+	 * requirement, and at the time, it was enforced by the function.
+	 * https://github.com/Mbed-TLS/mbedtls/commit/ca4ab491585b432d7db0266aa6fbcbc6813eda00.
+	 *
+	 * A subsequent commit in 2013 enabled in-place operation for GCM.  This commit removed the
+	 * enforcement from the code, but did not remove the comment, which has remained ever since.
+	 * https://github.com/Mbed-TLS/mbedtls/commit/09d67258a2a92831c9d49f9f845c2691ea5bb613.
+	 *
+	 * Since this requirement seems to not apply, it will not be a requirement of this
+	 * implementation nor will it be added as a requirement of the AES-GCM interface APIs.  Having
+	 * such a requirement would add complexity and/or memory usage to scenarios that use GCM with no
+	 * obvious benefit. */
 	status = mbedtls_gcm_auth_decrypt (&mbedtls->state->context, length, iv, iv_length,
 		additional_data, additional_data_length, tag, 16, ciphertext, plaintext);
 	if (status != 0) {
