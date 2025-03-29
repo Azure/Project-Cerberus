@@ -10,7 +10,8 @@
 #include "common/unused.h"
 
 
-int impactful_update_handler_start_update (const struct firmware_update_control *update)
+int impactful_update_handler_start_update (const struct firmware_update_control *update,
+	bool execute_on_completion)
 {
 	const struct impactful_update_handler *handler =
 		TO_DERIVED_TYPE (update, const struct impactful_update_handler, base_ctrl);
@@ -27,7 +28,8 @@ int impactful_update_handler_start_update (const struct firmware_update_control 
 	 * expected with firmware_update_handler implementations that need to do more than just schedule
 	 * the event. */
 	return firmware_update_handler_submit_event (handler->update, &handler->base_event,
-		FIRMWARE_UPDATE_HANDLER_ACTION_RUN_UPDATE, NULL, 0);
+		FIRMWARE_UPDATE_HANDLER_ACTION_RUN_UPDATE, (uint8_t*) &execute_on_completion,
+		sizeof (execute_on_completion));
 }
 
 int impactful_update_handler_get_status (const struct firmware_update_control *update)
@@ -86,6 +88,7 @@ void impactful_update_handler_execute (const struct event_task_handler *handler,
 	const struct impactful_update_handler *fw =
 		TO_DERIVED_TYPE (handler, const struct impactful_update_handler, base_event);
 	int status;
+	int update_status;
 
 	fw->update->base_event.execute (&fw->update->base_event, context, reset);
 
@@ -93,9 +96,9 @@ void impactful_update_handler_execute (const struct event_task_handler *handler,
 	 * any other events that may come here. */
 	if (context->action == FIRMWARE_UPDATE_HANDLER_ACTION_RUN_UPDATE) {
 		/* Only run impactful operations if the firmware update was successful.  This can be
-		 * determined by checking getting the current update status. */
-		status = fw->update->base_ctrl.get_status (&fw->update->base_ctrl);
-		if (status == 0) {
+		 * determined by checking the current update status. */
+		update_status = fw->update->base_ctrl.get_status (&fw->update->base_ctrl);
+		if ((update_status == 0) || (update_status == UPDATE_STATUS_SUCCESS_NO_RESET)) {
 			/* Impactful authorization is only valid for a single update.  If this fails,
 			 * authorization will eventually time out, if configured to do so. */
 			status = fw->impactful->reset_authorization (fw->impactful);
@@ -104,17 +107,22 @@ void impactful_update_handler_execute (const struct event_task_handler *handler,
 					FIRMWARE_LOGGING_IMPACTFUL_RESET_AUTH_FAIL, status, 0);
 			}
 
-			status = fw->impactful->is_update_not_impactful (fw->impactful);
-			if (status != 0) {
-				/* The update has been determined to be impactful, so disable the device reset that
-				 * would normally apply the new firmware image. */
-				firmware_update_handler_set_update_status_with_error (fw->update,
-					UPDATE_STATUS_SUCCESS_NO_RESET, status);
+			/* Checking for an impactful update is only necessary when the device would otherwise
+			 * self-reset. */
+			if (update_status == 0) {
+				status = fw->impactful->is_update_not_impactful (fw->impactful);
+				if (status != 0) {
+					/* The update has been determined to be impactful, so disable the device reset
+					 * that would normally apply the new firmware image. */
+					firmware_update_handler_set_update_status_with_error (fw->update,
+						UPDATE_STATUS_SUCCESS_NO_RESET, status);
 
-				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CERBERUS_FW,
-					FIRMWARE_LOGGING_IMPACTFUL_UPDATE, status, 0);
+					debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO,
+						DEBUG_LOG_COMPONENT_CERBERUS_FW, FIRMWARE_LOGGING_IMPACTFUL_UPDATE, status,
+						0);
 
-				*reset = false;
+					*reset = false;
+				}
 			}
 		}
 	}

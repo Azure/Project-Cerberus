@@ -71,7 +71,8 @@ int firmware_update_handler_submit_event (const struct firmware_update_handler *
 	const struct event_task_handler *event_handler, uint32_t action, const uint8_t *data,
 	size_t length);
 
-int firmware_update_handler_start_update (const struct firmware_update_control *update);
+int firmware_update_handler_start_update (const struct firmware_update_control *update,
+	bool execute_on_completion);
 int firmware_update_handler_get_status (const struct firmware_update_control *update);
 int32_t firmware_update_handler_get_remaining_len (const struct firmware_update_control *update);
 int firmware_update_handler_prepare_staging (const struct firmware_update_control *update,

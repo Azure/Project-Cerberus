@@ -40,6 +40,10 @@ void cerberus_protocol_optional_commands_testing_process_fw_update_fail (CuTest 
 
 void cerberus_protocol_optional_commands_testing_process_complete_fw_update (CuTest *test,
 	struct cmd_interface *cmd, struct firmware_update_control_mock *update);
+void cerberus_protocol_optional_commands_testing_process_complete_fw_update_false_execute_update (
+	CuTest *test, struct cmd_interface *cmd, struct firmware_update_control_mock *update);
+void cerberus_protocol_optional_commands_testing_process_complete_fw_update_no_optional_data (
+	CuTest *test, struct cmd_interface *cmd, struct firmware_update_control_mock *update);
 void cerberus_protocol_optional_commands_testing_process_complete_fw_update_invalid_len (
 	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_optional_commands_testing_process_complete_fw_update_fail (CuTest *test,

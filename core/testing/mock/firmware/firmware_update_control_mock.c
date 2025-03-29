@@ -7,7 +7,8 @@
 #include "firmware_update_control_mock.h"
 
 
-int firmware_update_control_mock_start_update (const struct firmware_update_control *update)
+int firmware_update_control_mock_start_update (const struct firmware_update_control *update,
+	bool execute_on_completion)
 {
 	struct firmware_update_control_mock *mock = (struct firmware_update_control_mock*) update;
 
@@ -15,7 +16,8 @@ int firmware_update_control_mock_start_update (const struct firmware_update_cont
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN_NO_ARGS (&mock->mock, firmware_update_control_mock_start_update, update);
+	MOCK_RETURN (&mock->mock, firmware_update_control_mock_start_update, update,
+		MOCK_ARG_CALL (execute_on_completion));
 }
 
 int firmware_update_control_mock_get_status (const struct firmware_update_control *update)
@@ -69,7 +71,8 @@ int firmware_update_control_mock_write_staging (const struct firmware_update_con
 
 static int firmware_update_control_mock_func_arg_count (void *func)
 {
-	if (func == firmware_update_control_mock_prepare_staging) {
+	if ((func == firmware_update_control_mock_start_update) ||
+		(func == firmware_update_control_mock_prepare_staging)) {
 		return 1;
 	}
 	else if (func == firmware_update_control_mock_write_staging) {
@@ -104,13 +107,16 @@ static const char* firmware_update_control_mock_func_name_map (void *func)
 
 static const char* firmware_update_control_mock_arg_name_map (void *func, int arg)
 {
-	if (func == firmware_update_control_mock_prepare_staging) {
+	if (func == firmware_update_control_mock_start_update) {
+		switch (arg) {
+			case 0:
+				return "execute_on_completion";
+		}
+	}
+	else if (func == firmware_update_control_mock_prepare_staging) {
 		switch (arg) {
 			case 0:
 				return "size";
-
-			default:
-				return "unknown";
 		}
 	}
 	else if (func == firmware_update_control_mock_write_staging) {
@@ -120,14 +126,10 @@ static const char* firmware_update_control_mock_arg_name_map (void *func, int ar
 
 			case 1:
 				return "buf_len";
-
-			default:
-				return "unknown";
 		}
 	}
-	else {
-		return "unknown";
-	}
+
+	return "unknown";
 }
 
 /**

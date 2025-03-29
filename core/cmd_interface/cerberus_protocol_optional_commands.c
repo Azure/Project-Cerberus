@@ -163,13 +163,25 @@ int cerberus_protocol_fw_update (const struct firmware_update_control *control,
 int cerberus_protocol_fw_update_start (const struct firmware_update_control *control,
 	struct cmd_interface_msg *request)
 {
-	if (request->length != sizeof (struct cerberus_protocol_complete_fw_update)) {
+	struct cerberus_protocol_complete_fw_update *rq =
+		(struct cerberus_protocol_complete_fw_update*) request->data;
+	bool execute_update;
+
+	if (request->length == CERBERUS_PROTOCOL_COMPLETE_FW_UPDATE_MIN_LENGTH) {
+		/* No option has been provided to specify whether the update should be executed or not.
+		 * Default to execute the new firmware. */
+		execute_update = true;
+	}
+	else if (request->length == sizeof (struct cerberus_protocol_complete_fw_update)) {
+		execute_update = rq->execute_update;
+	}
+	else {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
 	request->length = 0;
 
-	return control->start_update (control);
+	return control->start_update (control, execute_update);
 }
 
 /**

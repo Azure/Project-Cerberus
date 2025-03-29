@@ -422,6 +422,7 @@ static void impactful_update_handler_test_start_update (CuTest *test)
 {
 	struct impactful_update_handler_testing handler;
 	int status;
+	bool execute = true;
 
 	TEST_START;
 
@@ -437,9 +438,48 @@ static void impactful_update_handler_test_start_update (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.base_ctrl.start_update (&handler.test.base_ctrl);
+	status = handler.test.base_ctrl.start_update (&handler.test.base_ctrl, execute);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_HANDLER_ACTION_RUN_UPDATE, handler.context.action);
+	CuAssertIntEquals (test, sizeof (execute), handler.context.buffer_length);
+	CuAssertIntEquals (test, execute, *((bool*) handler.context.event_buffer));
+
+	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.base_ctrl.get_status (&handler.test.base_ctrl);
+	CuAssertIntEquals (test, UPDATE_STATUS_STARTING, status);
+
+	impactful_update_handler_testing_release (test, &handler);
+}
+
+static void impactful_update_handler_test_start_update_no_execute (CuTest *test)
+{
+	struct impactful_update_handler_testing handler;
+	int status;
+	bool execute = false;
+
+	TEST_START;
+
+	impactful_update_handler_testing_init (test, &handler, 0, 0, 0);
+
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
+		sizeof (handler.context_ptr), -1);
+
+	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
+		MOCK_ARG_PTR (&handler.test.base_event));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.base_ctrl.start_update (&handler.test.base_ctrl, execute);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, FIRMWARE_UPDATE_HANDLER_ACTION_RUN_UPDATE, handler.context.action);
+	CuAssertIntEquals (test, sizeof (execute), handler.context.buffer_length);
+	CuAssertIntEquals (test, execute, *((bool*) handler.context.event_buffer));
 
 	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
@@ -458,6 +498,7 @@ static void impactful_update_handler_test_start_update_static_init (CuTest *test
 		.test = impactful_update_handler_static_init (&handler.fw_update, &handler.impactful.base)
 	};
 	int status;
+	bool execute = true;
 
 	TEST_START;
 
@@ -473,9 +514,11 @@ static void impactful_update_handler_test_start_update_static_init (CuTest *test
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.base_ctrl.start_update (&handler.test.base_ctrl);
+	status = handler.test.base_ctrl.start_update (&handler.test.base_ctrl, execute);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_HANDLER_ACTION_RUN_UPDATE, handler.context.action);
+	CuAssertIntEquals (test, sizeof (execute), handler.context.buffer_length);
+	CuAssertIntEquals (test, execute, *((bool*) handler.context.event_buffer));
 
 	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
@@ -497,7 +540,7 @@ static void impactful_update_handler_test_start_update_null (CuTest *test)
 
 	impactful_update_handler_testing_init (test, &handler, 0, 0, 0);
 
-	status = handler.test.base_ctrl.start_update (NULL);
+	status = handler.test.base_ctrl.start_update (NULL, true);
 	CuAssertIntEquals (test, IMPACTFUL_UPDATE_INVALID_ARGUMENT, status);
 
 	impactful_update_handler_testing_release (test, &handler);
@@ -520,7 +563,7 @@ static void impactful_update_handler_test_start_update_no_task (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.base_ctrl.start_update (&handler.test.base_ctrl);
+	status = handler.test.base_ctrl.start_update (&handler.test.base_ctrl, true);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_NO_TASK, status);
 
 	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -551,7 +594,7 @@ static void impactful_update_handler_test_start_update_task_busy (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.base_ctrl.start_update (&handler.test.base_ctrl);
+	status = handler.test.base_ctrl.start_update (&handler.test.base_ctrl, true);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_TASK_BUSY, status);
 
 	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -586,7 +629,7 @@ static void impactful_update_handler_test_start_update_get_context_error (CuTest
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.base_ctrl.start_update (&handler.test.base_ctrl);
+	status = handler.test.base_ctrl.start_update (&handler.test.base_ctrl, true);
 	CuAssertIntEquals (test, EVENT_TASK_GET_CONTEXT_FAILED, status);
 
 	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -623,7 +666,7 @@ static void impactful_update_handler_test_start_update_notify_error (CuTest *tes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.base_ctrl.start_update (&handler.test.base_ctrl);
+	status = handler.test.base_ctrl.start_update (&handler.test.base_ctrl, true);
 	CuAssertIntEquals (test, EVENT_TASK_NOTIFY_FAILED, status);
 
 	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -1016,6 +1059,7 @@ static void impactful_update_handler_test_execute_run_update_impactless (CuTest 
 		.arg1 = 0,
 		.arg2 = 0
 	};
+	bool execute_fw = true;
 	bool reset = false;
 
 	TEST_START;
@@ -1110,6 +1154,8 @@ static void impactful_update_handler_test_execute_run_update_impactless (CuTest 
 	CuAssertIntEquals (test, 0, status);
 
 	handler.context.action = FIRMWARE_UPDATE_HANDLER_ACTION_RUN_UPDATE;
+	handler.context.buffer_length = sizeof (execute_fw);
+	memcpy (handler.context.event_buffer, &execute_fw, sizeof (execute_fw));
 
 	handler.test.base_event.execute (&handler.test.base_event, handler.context_ptr, &reset);
 	CuAssertIntEquals (test, 1, reset);
@@ -1121,6 +1167,138 @@ static void impactful_update_handler_test_execute_run_update_impactless (CuTest 
 
 	status = handler.test.base_ctrl.get_status (&handler.test.base_ctrl);
 	CuAssertIntEquals (test, 0, status);
+
+	impactful_update_handler_testing_release (test, &handler);
+}
+
+static void impactful_update_handler_test_execute_run_update_impactless_no_reset (CuTest *test)
+{
+	struct impactful_update_handler_testing handler;
+	int status;
+	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
+	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_UPDATE_START,
+		.arg1 = 0,
+		.arg2 = 0
+	};
+	struct debug_log_entry_info entry_done = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_UPDATE_COMPLETE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
+	bool execute_fw = false;
+	bool reset = false;
+
+	TEST_START;
+
+	impactful_update_handler_testing_init (test, &handler, 0, 0, 0);
+
+	status = mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	/* Lock for state update: UPDATE_STATUS_VERIFYING_IMAGE */
+	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x30000));
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
+		MOCK_ARG_PTR (&handler.hash));
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
+		sizeof (staging_data));
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
+		MOCK_RETURN_PTR (&handler.header));
+
+	status |= mock_expect (&handler.security.mock,
+		handler.security.base.internal.get_security_policy, &handler.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&handler.security.mock, 0, &handler.policy_ptr,
+		sizeof (handler.policy_ptr), -1);
+	status |= mock_expect (&handler.policy.mock, handler.policy.base.enforce_anti_rollback,
+		&handler.policy, 1);
+
+	/* Lock for state update: UPDATE_STATUS_SAVING_STATE */
+	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
+	status |= mock_expect (&handler.app.mock, handler.app.base.save, &handler.app, 0);
+
+	/* Lock for state update: UPDATE_STATUS_BACKUP_ACTIVE */
+	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
+		sizeof (active_data));
+	status |= flash_mock_expect_erase_copy_verify (&handler.flash, &handler.flash, 0x20000, 0x10000,
+		active_data, sizeof (active_data));
+
+	/* Lock for state update: UPDATE_STATUS_UPDATING_IMAGE */
+	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
+	status |= firmware_update_testing_flash_page_size (&handler.flash, FLASH_PAGE_SIZE);
+	status |= flash_mock_expect_erase_flash_verify (&handler.flash, 0x10000, sizeof (staging_data));
+	status |= flash_mock_expect_copy_flash_verify (&handler.flash, &handler.flash, 0x10000, 0x30000,
+		staging_data, sizeof (staging_data));
+
+	/* Lock for state update: UPDATE_STATUS_CHECK_REVOCATION */
+	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_key_manifest, &handler.fw,
+		MOCK_RETURN_PTR (&handler.manifest));
+	status |= mock_expect (&handler.manifest.mock, handler.manifest.base.revokes_old_manifest,
+		&handler.manifest, 0);
+
+	/* Lock for state update: UPDATE_STATUS_CHECK_RECOVERY */
+	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
+	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry_done, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry_done)));
+	status |= mock_expect (&handler.log.mock, handler.log.base.flush, &handler.log, 0);
+
+	/* Lock for state update: 0 */
+	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
+	/* Additional handling for impactful updates. */
+	/* Lock for status check. */
+	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
+	status |= mock_expect (&handler.impactful.mock, handler.impactful.base.reset_authorization,
+		&handler.impactful.base, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	handler.context.action = FIRMWARE_UPDATE_HANDLER_ACTION_RUN_UPDATE;
+	handler.context.buffer_length = sizeof (execute_fw);
+	memcpy (handler.context.event_buffer, &execute_fw, sizeof (execute_fw));
+
+	handler.test.base_event.execute (&handler.test.base_event, handler.context_ptr, &reset);
+	CuAssertIntEquals (test, 0, reset);
+
+	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.base_ctrl.get_status (&handler.test.base_ctrl);
+	CuAssertIntEquals (test, UPDATE_STATUS_SUCCESS_NO_RESET, status);
 
 	impactful_update_handler_testing_release (test, &handler);
 }
@@ -1155,6 +1333,7 @@ static void impactful_update_handler_test_execute_run_update_impactful (CuTest *
 		.arg1 = IMPACTFUL_CHECK_IMPACTFUL_UPDATE,
 		.arg2 = 0
 	};
+	bool execute_fw = true;
 	bool reset = false;
 
 	TEST_START;
@@ -1257,6 +1436,8 @@ static void impactful_update_handler_test_execute_run_update_impactful (CuTest *
 	CuAssertIntEquals (test, 0, status);
 
 	handler.context.action = FIRMWARE_UPDATE_HANDLER_ACTION_RUN_UPDATE;
+	handler.context.buffer_length = sizeof (execute_fw);
+	memcpy (handler.context.event_buffer, &execute_fw, sizeof (execute_fw));
 
 	handler.test.base_event.execute (&handler.test.base_event, handler.context_ptr, &reset);
 	CuAssertIntEquals (test, 0, reset);
@@ -1306,6 +1487,7 @@ static void impactful_update_handler_test_execute_run_update_static_init (CuTest
 		.arg1 = IMPACTFUL_CHECK_IMPACTFUL_UPDATE,
 		.arg2 = 0
 	};
+	bool execute_fw = true;
 	bool reset = false;
 
 	TEST_START;
@@ -1408,6 +1590,8 @@ static void impactful_update_handler_test_execute_run_update_static_init (CuTest
 	CuAssertIntEquals (test, 0, status);
 
 	handler.context.action = FIRMWARE_UPDATE_HANDLER_ACTION_RUN_UPDATE;
+	handler.context.buffer_length = sizeof (execute_fw);
+	memcpy (handler.context.event_buffer, &execute_fw, sizeof (execute_fw));
 
 	handler.test.base_event.execute (&handler.test.base_event, handler.context_ptr, &reset);
 	CuAssertIntEquals (test, 0, reset);
@@ -1445,6 +1629,7 @@ static void impactful_update_handler_test_execute_run_update_failure (CuTest *te
 		.arg1 = UPDATE_STATUS_INVALID_IMAGE,
 		.arg2 = FIRMWARE_IMAGE_BAD_SIGNATURE
 	};
+	bool execute_fw = true;
 	bool reset = false;
 
 	TEST_START;
@@ -1485,6 +1670,8 @@ static void impactful_update_handler_test_execute_run_update_failure (CuTest *te
 	CuAssertIntEquals (test, 0, status);
 
 	handler.context.action = FIRMWARE_UPDATE_HANDLER_ACTION_RUN_UPDATE;
+	handler.context.buffer_length = sizeof (execute_fw);
+	memcpy (handler.context.event_buffer, &execute_fw, sizeof (execute_fw));
 
 	handler.test.base_event.execute (&handler.test.base_event, handler.context_ptr, &reset);
 	CuAssertIntEquals (test, 0, reset);
@@ -1531,6 +1718,7 @@ static void impactful_update_handler_test_execute_run_update_reset_auth_failure 
 		.arg1 = IMPACTFUL_UPDATE_RESET_AUTH_FAILED,
 		.arg2 = 0
 	};
+	bool execute_fw = true;
 	bool reset = false;
 
 	TEST_START;
@@ -1629,6 +1817,8 @@ static void impactful_update_handler_test_execute_run_update_reset_auth_failure 
 	CuAssertIntEquals (test, 0, status);
 
 	handler.context.action = FIRMWARE_UPDATE_HANDLER_ACTION_RUN_UPDATE;
+	handler.context.buffer_length = sizeof (execute_fw);
+	memcpy (handler.context.event_buffer, &execute_fw, sizeof (execute_fw));
 
 	handler.test.base_event.execute (&handler.test.base_event, handler.context_ptr, &reset);
 	CuAssertIntEquals (test, 1, reset);
@@ -1674,6 +1864,7 @@ static void impactful_update_handler_test_execute_run_update_impactful_check_fai
 		.arg1 = IMPACTFUL_UPDATE_IS_NOT_IMPACTFUL_FAILED,
 		.arg2 = 0
 	};
+	bool execute_fw = true;
 	bool reset = false;
 
 	TEST_START;
@@ -1777,6 +1968,8 @@ static void impactful_update_handler_test_execute_run_update_impactful_check_fai
 	CuAssertIntEquals (test, 0, status);
 
 	handler.context.action = FIRMWARE_UPDATE_HANDLER_ACTION_RUN_UPDATE;
+	handler.context.buffer_length = sizeof (execute_fw);
+	memcpy (handler.context.event_buffer, &execute_fw, sizeof (execute_fw));
 
 	handler.test.base_event.execute (&handler.test.base_event, handler.context_ptr, &reset);
 	CuAssertIntEquals (test, 0, reset);
@@ -1893,6 +2086,7 @@ TEST (impactful_update_handler_test_get_remaining_len);
 TEST (impactful_update_handler_test_get_remaining_len_static_init);
 TEST (impactful_update_handler_test_get_remaining_len_null);
 TEST (impactful_update_handler_test_start_update);
+TEST (impactful_update_handler_test_start_update_no_execute);
 TEST (impactful_update_handler_test_start_update_static_init);
 TEST (impactful_update_handler_test_start_update_null);
 TEST (impactful_update_handler_test_start_update_no_task);
@@ -1911,6 +2105,7 @@ TEST (impactful_update_handler_test_write_staging_static_init);
 TEST (impactful_update_handler_test_write_staging_null);
 TEST (impactful_update_handler_test_write_staging_too_much_data);
 TEST (impactful_update_handler_test_execute_run_update_impactless);
+TEST (impactful_update_handler_test_execute_run_update_impactless_no_reset);
 TEST (impactful_update_handler_test_execute_run_update_impactful);
 TEST (impactful_update_handler_test_execute_run_update_static_init);
 TEST (impactful_update_handler_test_execute_run_update_failure);

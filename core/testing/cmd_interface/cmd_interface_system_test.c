@@ -1817,6 +1817,32 @@ static void cmd_interface_system_test_process_complete_fw_update (CuTest *test)
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
+static void cmd_interface_system_test_process_complete_fw_update_false_execute_update (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_complete_fw_update_false_execute_update (
+		test, &cmd.handler.base, &cmd.update);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_complete_fw_update_no_optional_data (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_complete_fw_update_no_optional_data (test,
+		&cmd.handler.base, &cmd.update);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
 static void cmd_interface_system_test_process_complete_fw_update_invalid_len (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -8563,6 +8589,8 @@ TEST (cmd_interface_system_test_process_fw_update);
 TEST (cmd_interface_system_test_process_fw_update_no_data);
 TEST (cmd_interface_system_test_process_fw_update_fail);
 TEST (cmd_interface_system_test_process_complete_fw_update);
+TEST (cmd_interface_system_test_process_complete_fw_update_false_execute_update);
+TEST (cmd_interface_system_test_process_complete_fw_update_no_optional_data);
 TEST (cmd_interface_system_test_process_complete_fw_update_invalid_len);
 TEST (cmd_interface_system_test_process_complete_fw_update_fail);
 TEST (cmd_interface_system_test_process_get_fw_update_status);

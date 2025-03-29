@@ -253,12 +253,78 @@ void cerberus_protocol_optional_commands_testing_process_complete_fw_update (CuT
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_COMPLETE_FW_UPDATE;
 
+	req->execute_update = 1;
+
 	request.length = sizeof (struct cerberus_protocol_complete_fw_update);
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&update->mock, update->base.start_update, update, 0);
+	status = mock_expect (&update->mock, update->base.start_update, update, 0, MOCK_ARG (true));
+	CuAssertIntEquals (test, 0, status);
+
+	request.crypto_timeout = true;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, request.length);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_complete_fw_update_false_execute_update (
+	CuTest *test, struct cmd_interface *cmd, struct firmware_update_control_mock *update)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_complete_fw_update *req =
+		(struct cerberus_protocol_complete_fw_update*) data;
+	int status;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_COMPLETE_FW_UPDATE;
+
+	req->execute_update = 0;
+
+	request.length = sizeof (struct cerberus_protocol_complete_fw_update);
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = mock_expect (&update->mock, update->base.start_update, update, 0, MOCK_ARG (false));
+	CuAssertIntEquals (test, 0, status);
+
+	request.crypto_timeout = true;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, request.length);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_complete_fw_update_no_optional_data (
+	CuTest *test, struct cmd_interface *cmd, struct firmware_update_control_mock *update)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_complete_fw_update *req =
+		(struct cerberus_protocol_complete_fw_update*) data;
+	int status;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_COMPLETE_FW_UPDATE;
+
+	request.length = CERBERUS_PROTOCOL_COMPLETE_FW_UPDATE_MIN_LENGTH;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = mock_expect (&update->mock, update->base.start_update, update, 0, MOCK_ARG (true));
 	CuAssertIntEquals (test, 0, status);
 
 	request.crypto_timeout = true;
@@ -283,6 +349,8 @@ void cerberus_protocol_optional_commands_testing_process_complete_fw_update_inva
 	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_COMPLETE_FW_UPDATE;
+
+	req->execute_update = 1;
 
 	request.length = sizeof (struct cerberus_protocol_complete_fw_update) + 1;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -311,13 +379,15 @@ void cerberus_protocol_optional_commands_testing_process_complete_fw_update_fail
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_COMPLETE_FW_UPDATE;
 
+	req->execute_update = 1;
+
 	request.length = sizeof (struct cerberus_protocol_complete_fw_update);
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&update->mock, update->base.start_update, update,
-		FIRMWARE_UPDATE_NO_MEMORY);
+		FIRMWARE_UPDATE_NO_MEMORY, MOCK_ARG (true));
 	CuAssertIntEquals (test, 0, status);
 
 	request.crypto_timeout = true;
@@ -12914,6 +12984,7 @@ static void cerberus_protocol_optional_commands_test_complete_fw_update_format (
 {
 	uint8_t raw_buffer_req[] = {
 		0x7e,0x14,0x13,0x03,0x69,
+		0x12
 	};
 	struct cerberus_protocol_complete_fw_update *req;
 
@@ -12921,6 +12992,8 @@ static void cerberus_protocol_optional_commands_test_complete_fw_update_format (
 
 	CuAssertIntEquals (test, sizeof (raw_buffer_req),
 		sizeof (struct cerberus_protocol_complete_fw_update));
+	CuAssertIntEquals (test, sizeof (raw_buffer_req) - 1,
+		CERBERUS_PROTOCOL_COMPLETE_FW_UPDATE_MIN_LENGTH);
 
 	req = (struct cerberus_protocol_complete_fw_update*) raw_buffer_req;
 	CuAssertIntEquals (test, 0, req->header.integrity_check);
@@ -12931,6 +13004,8 @@ static void cerberus_protocol_optional_commands_test_complete_fw_update_format (
 	CuAssertIntEquals (test, 0, req->header.crypt);
 	CuAssertIntEquals (test, 0x03, req->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_COMPLETE_FW_UPDATE, req->header.command);
+
+	CuAssertIntEquals (test, 0x12, req->execute_update);
 }
 
 static void cerberus_protocol_optional_commands_test_reset_config_format (CuTest *test)

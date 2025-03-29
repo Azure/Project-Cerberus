@@ -761,7 +761,16 @@ struct cerberus_protocol_fw_update {
  */
 struct cerberus_protocol_complete_fw_update {
 	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t execute_update;					/**< Optional flag to automatically execute the updated firmware. */
 };
+
+
+/**
+ * Minimum required length of the activate firmware update request.  This length excludes optional
+ * payload bytes.
+ */
+#define	CERBERUS_PROTOCOL_COMPLETE_FW_UPDATE_MIN_LENGTH     \
+	(sizeof (struct cerberus_protocol_complete_fw_update) - sizeof (uint8_t))
 
 /**
  * Cerberus protocol reset configuration request format

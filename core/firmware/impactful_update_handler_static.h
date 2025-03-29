@@ -8,7 +8,8 @@
 
 
 /* Internal functions declared to allow for static initialization. */
-int impactful_update_handler_start_update (const struct firmware_update_control *update);
+int impactful_update_handler_start_update (const struct firmware_update_control *update,
+	bool execute_on_completion);
 int impactful_update_handler_get_status (const struct firmware_update_control *update);
 int32_t impactful_update_handler_get_remaining_len (const struct firmware_update_control *update);
 int impactful_update_handler_prepare_staging (const struct firmware_update_control *update,

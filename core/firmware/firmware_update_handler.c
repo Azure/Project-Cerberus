@@ -61,7 +61,8 @@ int firmware_update_handler_submit_event (const struct firmware_update_handler *
 	return status;
 }
 
-int firmware_update_handler_start_update (const struct firmware_update_control *update)
+int firmware_update_handler_start_update (const struct firmware_update_control *update,
+	bool execute_on_completion)
 {
 	const struct firmware_update_handler *handler =
 		TO_DERIVED_TYPE (update, const struct firmware_update_handler, base_ctrl);
@@ -71,7 +72,8 @@ int firmware_update_handler_start_update (const struct firmware_update_control *
 	}
 
 	return firmware_update_handler_submit_event (handler, &handler->base_event,
-		FIRMWARE_UPDATE_HANDLER_ACTION_RUN_UPDATE, NULL, 0);
+		FIRMWARE_UPDATE_HANDLER_ACTION_RUN_UPDATE, (uint8_t*) &execute_on_completion,
+		sizeof (execute_on_completion));
 }
 
 int firmware_update_handler_get_status (const struct firmware_update_control *update)
@@ -194,6 +196,7 @@ void firmware_update_handler_execute (const struct event_task_handler *handler,
 		TO_DERIVED_TYPE (handler, const struct firmware_update_handler, base_event);
 	int status;
 	bool unknown_action = false;
+	int update_status = UPDATE_STATUS_SUCCESS;
 
 	switch (context->action) {
 		case FIRMWARE_UPDATE_HANDLER_ACTION_RUN_UPDATE:
@@ -205,7 +208,12 @@ void firmware_update_handler_execute (const struct event_task_handler *handler,
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CERBERUS_FW,
 					FIRMWARE_LOGGING_UPDATE_COMPLETE, 0, 0);
 
-				*reset = true;
+				/* Only trigger a reset if the request specified the firmware should be executed
+				 * upon completion of the update. */
+				*reset = *((bool*) context->event_buffer);
+				if (*reset == false) {
+					update_status = UPDATE_STATUS_SUCCESS_NO_RESET;
+				}
 			}
 			else {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CERBERUS_FW,
@@ -241,7 +249,7 @@ void firmware_update_handler_execute (const struct event_task_handler *handler,
 	if (!unknown_action) {
 		fw->task->lock (fw->task);
 		if (status == 0) {
-			fw->state->update_status = 0;
+			fw->state->update_status = update_status;
 
 #ifdef FIRMWARE_UPDATE_DISABLE_SELF_RESET
 			if (*reset == true) {

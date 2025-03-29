@@ -16,10 +16,14 @@ struct firmware_update_control {
 	 * progress being reported separately.
 	 *
 	 * @param update The update instance to trigger.
+	 * @param execute_on_completion Flag to indicate that the new firmware should automatically be
+	 * executed upon successful completion of the update process.  If this is false, the new
+	 * firmware will be stored in the boot flash, but the device will continue to run the current
+	 * firmware.
 	 *
 	 * @return 0 if the update was successfully started or an error code.
 	 */
-	int (*start_update) (const struct firmware_update_control *update);
+	int (*start_update) (const struct firmware_update_control *update, bool execute_on_completion);
 
 	/**
 	 * Get the status of the last firmware update to run.
