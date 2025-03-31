@@ -6,9 +6,10 @@
 #include "crypto_logging.h"
 #include "platform_api.h"
 #include "rsa_mbedtls.h"
+#include "common/unused.h"
+#include "crypto/mbedtls_compat.h"
 #include "logging/debug_log.h"
 #include "mbedtls/pk.h"
-#include "mbedtls/pk_internal.h"
 #include "mbedtls/rsa.h"
 
 
@@ -101,6 +102,7 @@ error:
 int rsa_mbedtls_init_private_key (const struct rsa_engine *engine, struct rsa_private_key *key,
 	const uint8_t *der, size_t length)
 {
+	const struct rsa_engine_mbedtls *mbedtls = (const struct rsa_engine_mbedtls*) engine;
 	mbedtls_pk_context *rsa;
 	int status;
 
@@ -115,7 +117,13 @@ int rsa_mbedtls_init_private_key (const struct rsa_engine *engine, struct rsa_pr
 		return RSA_ENGINE_NO_MEMORY;
 	}
 
+#if MBEDTLS_IS_VERSION_3
+	status = mbedtls_pk_parse_key (rsa, der, length, NULL, 0, mbedtls_ctr_drbg_random,
+		&mbedtls->state->ctr_drbg);
+#else
+	UNUSED (mbedtls);
 	status = mbedtls_pk_parse_key (rsa, der, length, NULL, 0);
+#endif
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_PK_PARSE_EC, status, 0);
@@ -215,9 +223,14 @@ int rsa_mbedtls_decrypt (const struct rsa_engine *engine, const struct rsa_priva
 			MBEDTLS_MD_SHA256);
 	}
 
+#if MBEDTLS_IS_VERSION_3
+	status = mbedtls_rsa_rsaes_oaep_decrypt (rsa_mbedtls_get_rsa_key (key), mbedtls_ctr_drbg_random,
+		&mbedtls->state->ctr_drbg, label, label_length, &length, encrypted, decrypted, out_length);
+#else
 	status = mbedtls_rsa_rsaes_oaep_decrypt (rsa_mbedtls_get_rsa_key (key), mbedtls_ctr_drbg_random,
 		&mbedtls->state->ctr_drbg, MBEDTLS_RSA_PRIVATE, label, label_length, &length, encrypted,
 		decrypted, out_length);
+#endif
 	if (status == 0) {
 		status = length;
 	}
@@ -269,7 +282,7 @@ int rsa_mbedtls_init_public_key (const struct rsa_engine *engine, struct rsa_pub
 		goto exit;
 	}
 
-	rsa = (mbedtls_rsa_context*) pk->pk_ctx;
+	rsa = mbedtls_pk_rsa (*pk);
 
 	status = mbedtls_rsa_check_pubkey (rsa);
 	if (status != 0) {
@@ -278,26 +291,15 @@ int rsa_mbedtls_init_public_key (const struct rsa_engine *engine, struct rsa_pub
 		goto exit;
 	}
 
-	key->mod_length = mbedtls_mpi_size (&rsa->N);
+	key->mod_length = mbedtls_rsa_get_len (rsa);
 	if (key->mod_length > sizeof (key->modulus)) {
 		status = RSA_ENGINE_UNSUPPORTED_KEY_LENGTH;
 		goto exit;
 	}
 
-	status = mbedtls_mpi_write_binary (&rsa->N, key->modulus, key->mod_length);
+	status = mbedtls_rsa_export_raw (rsa, key->modulus, key->mod_length, NULL, 0, NULL, 0, NULL, 0,
+		exp, sizeof (exp));
 	if (status != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-			CRYPTO_LOG_MSG_MBEDTLS_MPI_WRITE_BIN_EC, status, 0);
-		goto exit;
-	}
-
-	status = mbedtls_mpi_write_binary (&rsa->E, exp, sizeof (exp));
-	if (status != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-			CRYPTO_LOG_MSG_MBEDTLS_MPI_WRITE_BIN_EC, status, 0);
-		if (status == MBEDTLS_ERR_MPI_BUFFER_TOO_SMALL) {
-			status = RSA_ENGINE_UNSUPPORTED_KEY_LENGTH;
-		}
 		goto exit;
 	}
 
@@ -359,32 +361,28 @@ static int rsa_mbedtls_load_pubkey (mbedtls_rsa_context *rsa, const struct rsa_p
 {
 	int status;
 	uint8_t exp[4];
-	uint8_t msg_code;
 
+#if MBEDTLS_IS_VERSION_3
+	mbedtls_rsa_init (rsa);
+#else
 	mbedtls_rsa_init (rsa, MBEDTLS_RSA_PKCS_V15, 0);
+#endif
 
 	exp[0] = key->exponent >> 24;
 	exp[1] = key->exponent >> 16;
 	exp[2] = key->exponent >> 8;
 	exp[3] = key->exponent;
 
-	status = mbedtls_mpi_read_binary (&rsa->N, key->modulus, key->mod_length);
+	status = mbedtls_rsa_import_raw (rsa, key->modulus, key->mod_length, NULL, 0, NULL, 0, NULL, 0,
+		exp, sizeof (exp));
 	if (status != 0) {
-		msg_code = CRYPTO_LOG_MSG_MBEDTLS_MPI_READ_BIN_EC;
 		goto exit;
 	}
-
-	status = mbedtls_mpi_read_binary (&rsa->E, exp, sizeof (exp));
-	if (status != 0) {
-		msg_code = CRYPTO_LOG_MSG_MBEDTLS_MPI_READ_BIN_EC;
-		goto exit;
-	}
-
-	rsa->len = mbedtls_mpi_size (&rsa->N);
 
 	status = mbedtls_rsa_check_pubkey (rsa);
 	if (status != 0) {
-		msg_code = CRYPTO_LOG_MSG_MBEDTLS_RSA_PUBKEY_CHECK_EC;
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
+			CRYPTO_LOG_MSG_MBEDTLS_RSA_PUBKEY_CHECK_EC, status, 0);
 		goto exit;
 	}
 
@@ -392,9 +390,6 @@ static int rsa_mbedtls_load_pubkey (mbedtls_rsa_context *rsa, const struct rsa_p
 
 exit:
 	mbedtls_rsa_free (rsa);
-
-	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO, msg_code, status,
-		0);
 
 	return status;
 }
@@ -441,8 +436,12 @@ int rsa_mbedtls_sig_verify (const struct rsa_engine *engine, const struct rsa_pu
 		return status;
 	}
 
+#if MBEDTLS_IS_VERSION_3
+	status = mbedtls_rsa_pkcs1_verify (&rsa, match_type, match_length, match, signature);
+#else
 	status = mbedtls_rsa_pkcs1_verify (&rsa, NULL, NULL, MBEDTLS_RSA_PUBLIC, match_type,
 		match_length, match, signature);
+#endif
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_RSA_PKCS1_VERIFY_EC, status, 0);

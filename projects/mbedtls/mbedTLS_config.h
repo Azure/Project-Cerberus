@@ -24,11 +24,12 @@
  * or disable features selectively, and reduce the global
  * memory footprint.
  */
-#ifndef MBEDTLS_CONFIG_H
-#define MBEDTLS_CONFIG_H
+#ifndef MBEDTLS_CONFIG_H_
+#define MBEDTLS_CONFIG_H_
 
 #include "platform_api.h"
 #include "crypto/ecc.h"
+#include "mbedtls/version.h"
 
 
 /* System support */
@@ -208,6 +209,8 @@
 #endif
 //#define MBEDTLS_XTEA_C
 
+#if (MBEDTLS_VERSION_MAJOR != 3)
 #include "mbedtls/check_config.h"
+#endif
 
-#endif /* MBEDTLS_CONFIG_H */
+#endif /* MBEDTLS_CONFIG_H_ */

@@ -7,6 +7,7 @@
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
+#include "crypto/mbedtls_compat.h"
 #include "crypto/rsa_mbedtls.h"
 #include "crypto/rsa_mbedtls_static.h"
 #include "mbedtls/pk.h"
@@ -56,19 +57,44 @@ int rsa_mbedtls_testing_sign_data (const uint8_t *data, size_t length, const uin
 	size_t key_length, uint8_t *signature, size_t sig_length)
 {
 	mbedtls_pk_context pk;
+	mbedtls_ctr_drbg_context ctr_drbg;
+	mbedtls_entropy_context entropy;
 	uint8_t hash[SHA256_HASH_LENGTH];
 	int status;
 
+	mbedtls_ctr_drbg_init (&ctr_drbg);
+	mbedtls_entropy_init (&entropy);
+
+	status = mbedtls_ctr_drbg_seed (&ctr_drbg, mbedtls_entropy_func, &entropy, NULL, 0);
+	if (status != 0) {
+		return status;
+	}
+
 	mbedtls_sha256 (data, length, hash, 0);
 	mbedtls_pk_init (&pk);
+
+#if MBEDTLS_IS_VERSION_3
+	status = mbedtls_pk_parse_key (&pk, key, key_length, NULL, 0, mbedtls_ctr_drbg_random,
+		&ctr_drbg);
+	if (status != 0) {
+		return status;
+	}
+
+	status = mbedtls_pk_sign (&pk, MBEDTLS_MD_SHA256, hash, sizeof (hash), signature, sig_length,
+		&sig_length, mbedtls_ctr_drbg_random, &ctr_drbg);
+#else
 	status = mbedtls_pk_parse_key (&pk, key, key_length, NULL, 0);
 	if (status != 0) {
 		return status;
 	}
 
 	status = mbedtls_pk_sign (&pk, MBEDTLS_MD_SHA256, hash, sizeof (hash), signature, &sig_length,
-		NULL, NULL);
+		mbedtls_ctr_drbg_random, &ctr_drbg);
+#endif
+
 	mbedtls_pk_free (&pk);
+	mbedtls_ctr_drbg_free (&ctr_drbg);
+	mbedtls_entropy_free (&entropy);
 
 	return status;
 }

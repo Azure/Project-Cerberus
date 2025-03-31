@@ -5,7 +5,6 @@
 #include "platform_port.h"
 #include "common/unused.h"
 #include "mbedtls/entropy.h"
-#include "mbedtls/entropy_poll.h"
 
 
 /* mbedTLS hardware entropy callback function. */

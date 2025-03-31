@@ -4,6 +4,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include "hash_mbedtls.h"
+#include "crypto/mbedtls_compat.h"
+
+
+/**
+ * Handle the different function names between mbedTLS version 2 and 3.
+ */
+#if MBEDTLS_IS_VERSION_3
+#define	HASH_MBEDTLS_SHA_FUNCTION(func)	func
+#else
+#define	HASH_MBEDTLS_SHA_FUNCTION(func)	func ## _ret
+#endif
 
 
 /**
@@ -53,7 +64,7 @@ int hash_mbedtls_calculate_sha1 (const struct hash_engine *engine, const uint8_t
 		return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 	}
 
-	return mbedtls_sha1_ret (data, length, hash);
+	return HASH_MBEDTLS_SHA_FUNCTION (mbedtls_sha1) (data, length, hash);
 }
 
 int hash_mbedtls_start_sha1 (const struct hash_engine *engine)
@@ -70,7 +81,7 @@ int hash_mbedtls_start_sha1 (const struct hash_engine *engine)
 	}
 
 	mbedtls_sha1_init (&mbedtls->state->context.sha1);
-	status = mbedtls_sha1_starts_ret (&mbedtls->state->context.sha1);
+	status = HASH_MBEDTLS_SHA_FUNCTION (mbedtls_sha1_starts) (&mbedtls->state->context.sha1);
 	if (status != 0) {
 		return status;
 	}
@@ -98,7 +109,7 @@ int hash_mbedtls_calculate_sha256 (const struct hash_engine *engine, const uint8
 		return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 	}
 
-	return mbedtls_sha256_ret (data, length, hash, 0);
+	return HASH_MBEDTLS_SHA_FUNCTION (mbedtls_sha256) (data, length, hash, 0);
 }
 
 int hash_mbedtls_start_sha256 (const struct hash_engine *engine)
@@ -115,7 +126,7 @@ int hash_mbedtls_start_sha256 (const struct hash_engine *engine)
 	}
 
 	mbedtls_sha256_init (&mbedtls->state->context.sha256);
-	status = mbedtls_sha256_starts_ret (&mbedtls->state->context.sha256, 0);
+	status = HASH_MBEDTLS_SHA_FUNCTION (mbedtls_sha256_starts) (&mbedtls->state->context.sha256, 0);
 	if (status != 0) {
 		return status;
 	}
@@ -143,7 +154,7 @@ int hash_mbedtls_calculate_sha384 (const struct hash_engine *engine, const uint8
 		return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 	}
 
-	return mbedtls_sha512_ret (data, length, hash, 1);
+	return HASH_MBEDTLS_SHA_FUNCTION (mbedtls_sha512) (data, length, hash, 1);
 }
 
 int hash_mbedtls_start_sha384 (const struct hash_engine *engine)
@@ -160,7 +171,7 @@ int hash_mbedtls_start_sha384 (const struct hash_engine *engine)
 	}
 
 	mbedtls_sha512_init (&mbedtls->state->context.sha512);
-	status = mbedtls_sha512_starts_ret (&mbedtls->state->context.sha512, 1);
+	status = HASH_MBEDTLS_SHA_FUNCTION (mbedtls_sha512_starts) (&mbedtls->state->context.sha512, 1);
 	if (status != 0) {
 		return status;
 	}
@@ -189,7 +200,7 @@ int hash_mbedtls_calculate_sha512 (const struct hash_engine *engine, const uint8
 		return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 	}
 
-	return mbedtls_sha512_ret (data, length, hash, 0);
+	return HASH_MBEDTLS_SHA_FUNCTION (mbedtls_sha512) (data, length, hash, 0);
 }
 
 int hash_mbedtls_start_sha512 (const struct hash_engine *engine)
@@ -206,7 +217,7 @@ int hash_mbedtls_start_sha512 (const struct hash_engine *engine)
 	}
 
 	mbedtls_sha512_init (&mbedtls->state->context.sha512);
-	status = mbedtls_sha512_starts_ret (&mbedtls->state->context.sha512, 0);
+	status = HASH_MBEDTLS_SHA_FUNCTION (mbedtls_sha512_starts) (&mbedtls->state->context.sha512, 0);
 	if (status != 0) {
 		return status;
 	}
@@ -240,18 +251,23 @@ int hash_mbedtls_update (const struct hash_engine *engine, const uint8_t *data, 
 	switch (mbedtls->state->active) {
 #ifdef HASH_ENABLE_SHA1
 		case HASH_ACTIVE_SHA1:
-			status = mbedtls_sha1_update_ret (&mbedtls->state->context.sha1, data, length);
+			status = HASH_MBEDTLS_SHA_FUNCTION (mbedtls_sha1_update) (&mbedtls->state->context.sha1,
+				data, length);
 			break;
 #endif
 
 		case HASH_ACTIVE_SHA256:
-			status = mbedtls_sha256_update_ret (&mbedtls->state->context.sha256, data, length);
+			status =
+				HASH_MBEDTLS_SHA_FUNCTION (mbedtls_sha256_update) (&mbedtls->state->context.sha256,
+				data, length);
 			break;
 
 #if defined HASH_ENABLE_SHA384 || defined HASH_ENABLE_SHA512
 		case HASH_ACTIVE_SHA384:
 		case HASH_ACTIVE_SHA512:
-			status = mbedtls_sha512_update_ret (&mbedtls->state->context.sha512, data, length);
+			status =
+				HASH_MBEDTLS_SHA_FUNCTION (mbedtls_sha512_update) (&mbedtls->state->context.sha512,
+				data, length);
 			break;
 #endif
 
@@ -283,7 +299,8 @@ int hash_mbedtls_get_hash (const struct hash_engine *engine, uint8_t *hash, size
 
 			mbedtls_sha1_init (&mbedtls_clone.context.sha1);
 			mbedtls_sha1_clone (&mbedtls_clone.context.sha1, &mbedtls->state->context.sha1);
-			status = mbedtls_sha1_finish_ret (&mbedtls_clone.context.sha1, hash);
+			status = HASH_MBEDTLS_SHA_FUNCTION (mbedtls_sha1_finish) (&mbedtls_clone.context.sha1,
+				hash);
 			break;
 #endif
 
@@ -294,7 +311,9 @@ int hash_mbedtls_get_hash (const struct hash_engine *engine, uint8_t *hash, size
 
 			mbedtls_sha256_init (&mbedtls_clone.context.sha256);
 			mbedtls_sha256_clone (&mbedtls_clone.context.sha256, &mbedtls->state->context.sha256);
-			status = mbedtls_sha256_finish_ret (&mbedtls_clone.context.sha256, hash);
+			status =
+				HASH_MBEDTLS_SHA_FUNCTION (mbedtls_sha256_finish) (&mbedtls_clone.context.sha256,
+				hash);
 			break;
 
 #if defined HASH_ENABLE_SHA384 || defined HASH_ENABLE_SHA512
@@ -309,7 +328,9 @@ int hash_mbedtls_get_hash (const struct hash_engine *engine, uint8_t *hash, size
 
 			mbedtls_sha512_init (&mbedtls_clone.context.sha512);
 			mbedtls_sha512_clone (&mbedtls_clone.context.sha512, &mbedtls->state->context.sha512);
-			status = mbedtls_sha512_finish_ret (&mbedtls_clone.context.sha512, hash);
+			status =
+				HASH_MBEDTLS_SHA_FUNCTION (mbedtls_sha512_finish) (&mbedtls_clone.context.sha512,
+				hash);
 			break;
 #endif
 
@@ -338,7 +359,8 @@ int hash_mbedtls_finish (const struct hash_engine *engine, uint8_t *hash, size_t
 				return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 			}
 
-			status = mbedtls_sha1_finish_ret (&mbedtls->state->context.sha1, hash);
+			status = HASH_MBEDTLS_SHA_FUNCTION (mbedtls_sha1_finish) (&mbedtls->state->context.sha1,
+				hash);
 			break;
 #endif
 
@@ -347,7 +369,9 @@ int hash_mbedtls_finish (const struct hash_engine *engine, uint8_t *hash, size_t
 				return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 			}
 
-			status = mbedtls_sha256_finish_ret (&mbedtls->state->context.sha256, hash);
+			status =
+				HASH_MBEDTLS_SHA_FUNCTION (mbedtls_sha256_finish) (&mbedtls->state->context.sha256,
+				hash);
 			break;
 
 #ifdef HASH_ENABLE_SHA384
@@ -356,7 +380,9 @@ int hash_mbedtls_finish (const struct hash_engine *engine, uint8_t *hash, size_t
 				return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 			}
 
-			status = mbedtls_sha512_finish_ret (&mbedtls->state->context.sha512, hash);
+			status =
+				HASH_MBEDTLS_SHA_FUNCTION (mbedtls_sha512_finish) (&mbedtls->state->context.sha512,
+				hash);
 			break;
 #endif
 
@@ -366,7 +392,9 @@ int hash_mbedtls_finish (const struct hash_engine *engine, uint8_t *hash, size_t
 				return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 			}
 
-			status = mbedtls_sha512_finish_ret (&mbedtls->state->context.sha512, hash);
+			status =
+				HASH_MBEDTLS_SHA_FUNCTION (mbedtls_sha512_finish) (&mbedtls->state->context.sha512,
+				hash);
 			break;
 #endif
 

@@ -191,7 +191,7 @@ int riot_core_common_generate_alias_key (const struct riot_core *riot, const uin
 	const struct riot_core_common *core = (const struct riot_core_common*) riot;
 	uint8_t fwid_hmac[HASH_MAX_HASH_LEN];
 	uint8_t alias_kdf[ECC_MAX_KEY_LENGTH];
-	char common_name[BASE64_LENGTH (SHA512_HASH_LENGTH)];
+	char common_name[BASE64_LENGTH (HASH_MAX_HASH_LEN)];
 	int status;
 
 	if ((riot == NULL) || (fwid == NULL) || (length == 0)) {
