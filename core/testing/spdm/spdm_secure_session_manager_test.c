@@ -1456,7 +1456,7 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_has
 	session->base_hash_algo = UINT32_MAX;
 	session->hash_size = SHA384_HASH_LENGTH;
 	status = session_manager->generate_session_handshake_keys (session_manager, session);
-	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
+	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
 
 	session_manager->release_session (session_manager, session_id);
 

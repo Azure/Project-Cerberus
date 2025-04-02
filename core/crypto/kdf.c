@@ -6,6 +6,7 @@
 #include <string.h>
 #include "kdf.h"
 #include "platform_api.h"
+#include "common/buffer_util.h"
 #include "common/common_math.h"
 
 
@@ -37,7 +38,7 @@ int kdf_nist800_108_counter_mode (const struct hash_engine *hash, enum hmac_hash
 	uint32_t i;
 	uint32_t rounds;
 	uint32_t int_be;
-	uint8_t round_hmac[HASH_MAX_HASH_LEN];
+	uint8_t round_hmac[HASH_MAX_HASH_LEN] = {0};
 	const uint8_t separator = 0x00;
 	int status;
 
@@ -61,30 +62,30 @@ int kdf_nist800_108_counter_mode (const struct hash_engine *hash, enum hmac_hash
 		status = hash_hmac_init (&hmac, hash, hash_type, key_derivation_key,
 			key_derivation_key_len);
 		if (status != 0) {
-			return status;
+			goto exit;
 		}
 
 		int_be = platform_htonl (i);
 
 		status = hash_hmac_update (&hmac, (const uint8_t*) &int_be, sizeof (int_be));
 		if (status != 0) {
-			goto fail;
+			goto hmac_cancel;
 		}
 
 		status = hash_hmac_update (&hmac, label, label_len);
 		if (status != 0) {
-			goto fail;
+			goto hmac_cancel;
 		}
 
 		status = hash_hmac_update (&hmac, &separator, sizeof (separator));
 		if (status != 0) {
-			goto fail;
+			goto hmac_cancel;
 		}
 
 		if (context != NULL) {
 			status = hash_hmac_update (&hmac, context, context_len);
 			if (status != 0) {
-				goto fail;
+				goto hmac_cancel;
 			}
 		}
 
@@ -92,12 +93,12 @@ int kdf_nist800_108_counter_mode (const struct hash_engine *hash, enum hmac_hash
 
 		status = hash_hmac_update (&hmac, (const uint8_t*) &int_be, sizeof (int_be));
 		if (status != 0) {
-			goto fail;
+			goto hmac_cancel;
 		}
 
 		status = hash_hmac_finish (&hmac, round_hmac, sizeof (round_hmac));
 		if (status != 0) {
-			return status;
+			goto exit;
 		}
 
 		copy_len = min (hash_len, key_len - key_out_pos);
@@ -107,10 +108,13 @@ int kdf_nist800_108_counter_mode (const struct hash_engine *hash, enum hmac_hash
 		key_out_pos += copy_len;
 	}
 
-	return status;
+hmac_cancel:
+	if (status != 0) {
+		hash_hmac_cancel (&hmac);
+	}
 
-fail:
-	hash_hmac_cancel (&hmac);
+exit:
+	buffer_zeroize (round_hmac, sizeof (round_hmac));
 
 	return status;
 }
@@ -118,6 +122,10 @@ fail:
 /**
  * Expands keying material from a pseudorandom key and optional additional information using the
  * HKDF-Expand algorithm as described in RFC#5869.
+ *
+ * NOTE:  Since this does not have any explicit binding to the extract step, this function cannot be
+ * used on its own in a FIPS-compliant way.  For FIPS-compliant HKDF, use an instance of the
+ * hkdf_interface to run both HKDF-Extract and HKDF-Expand.
  *
  * @param hash The hash engine to use for HMAC operations.
  * @param hash_type The hash type to use for HMAC operations.
@@ -139,7 +147,7 @@ int kdf_hkdf_expand (const struct hash_engine *hash, enum hmac_hash hash_type,
 	uint32_t i;
 	int status = 0;
 	size_t n;
-	uint8_t t[HASH_MAX_HASH_LEN];
+	uint8_t t[HASH_MAX_HASH_LEN] = {0};
 	size_t t_len = 0;
 	size_t where = 0;
 	uint8_t c;
@@ -179,32 +187,32 @@ int kdf_hkdf_expand (const struct hash_engine *hash, enum hmac_hash hash_type,
 
 		status = hash_hmac_init (&hmac, hash, hash_type, pseudorandom_key, pseudorandom_key_len);
 		if (status != 0) {
-			return status;
+			goto exit;
 		}
 
 		if (t_len != 0) {
 			status = hash_hmac_update (&hmac, t, t_len);
 			if (status != 0) {
-				goto fail;
+				goto hmac_cancel;
 			}
 		}
 
 		if (info != NULL) {
 			status = hash_hmac_update (&hmac, info, info_len);
 			if (status != 0) {
-				goto fail;
+				goto hmac_cancel;
 			}
 		}
 
 		/* The constant concatenated to the end of each T(n) is a single octet. */
 		status = hash_hmac_update (&hmac, &c, 1);
 		if (status != 0) {
-			goto fail;
+			goto hmac_cancel;
 		}
 
 		status = hash_hmac_finish (&hmac, t, sizeof (t));
 		if (status != 0) {
-			return status;
+			goto exit;
 		}
 
 		num_to_copy = (i != n) ? hash_len : (output_keying_material_len - where);
@@ -213,10 +221,13 @@ int kdf_hkdf_expand (const struct hash_engine *hash, enum hmac_hash hash_type,
 		t_len = hash_len;
 	}
 
-	return status;
+hmac_cancel:
+	if (status != 0) {
+		hash_hmac_cancel (&hmac);
+	}
 
-fail:
-	hash_hmac_cancel (&hmac);
+exit:
+	buffer_zeroize (t, sizeof (t));
 
 	return status;
 }

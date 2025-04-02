@@ -343,7 +343,7 @@ int hash_hmac_init (struct hmac_engine *engine, const struct hash_engine *hash,
 	int status;
 	size_t i;
 
-	if ((engine == NULL) || (hash == NULL) || (key == NULL) || (key_length == 0)) {
+	if ((engine == NULL) || (hash == NULL) || ((key == NULL) && (key_length != 0))) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
@@ -367,7 +367,7 @@ int hash_hmac_init (struct hmac_engine *engine, const struct hash_engine *hash,
 
 		key_length = status;
 	}
-	else {
+	else if (key_length != 0) {
 		memcpy (engine->key, key, key_length);
 	}
 

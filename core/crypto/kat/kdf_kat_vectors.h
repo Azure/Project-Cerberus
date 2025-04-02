@@ -49,6 +49,14 @@ extern const size_t KDF_KAT_VECTORS_NIST800_108_CTR_SHA512_CONTEXT_LEN;
 extern const uint8_t KDF_KAT_VECTORS_NIST800_108_CTR_SHA512_KO[];
 #define	KDF_KAT_VECTORS_NIST800_108_CTR_SHA512_KO_LEN	32
 
+/* HKDF-Extract algorithm independent input. */
+extern const uint8_t KDF_KAT_VECTORS_HKDF_EXTRACT_IKM[];
+extern const size_t KDF_KAT_VECTORS_HKDF_EXTRACT_IKM_LEN;
+extern const size_t KDF_KAT_VECTORS_HKDF_EXTRACT_IKM_SHA1_LEN;
+
+extern const uint8_t KDF_KAT_VECTORS_HKDF_EXTRACT_SALT[];
+extern const size_t KDF_KAT_VECTORS_HKDF_EXTRACT_SALT_LEN;
+
 /* HKDF-Expand algorithm independent input. */
 extern const uint8_t KDF_KAT_VECTORS_HKDF_EXPAND_INFO[];
 extern const size_t KDF_KAT_VECTORS_HKDF_EXPAND_INFO_LEN;

@@ -28,15 +28,18 @@ int kdf_kat_run_self_test_nist800_108_counter_mode_sha1 (const struct hash_engin
 		KDF_KAT_VECTORS_NIST800_108_CTR_SHA1_CONTEXT,
 		KDF_KAT_VECTORS_NIST800_108_CTR_SHA1_CONTEXT_LEN, ko, sizeof (ko));
 	if (status != 0) {
-		return status;
+		goto exit;
 	}
 
 	status = buffer_compare (ko, KDF_KAT_VECTORS_NIST800_108_CTR_SHA1_KO, sizeof (ko));
 	if (status != 0) {
-		return KDF_NIST800_108_SHA1_KAT_FAILED;
+		status = KDF_NIST800_108_SHA1_KAT_FAILED;
 	}
 
-	return 0;
+exit:
+	buffer_zeroize (ko, sizeof (ko));
+
+	return status;
 }
 
 /**
@@ -62,15 +65,18 @@ int kdf_kat_run_self_test_nist800_108_counter_mode_sha256 (const struct hash_eng
 		KDF_KAT_VECTORS_NIST800_108_CTR_SHA256_CONTEXT,
 		KDF_KAT_VECTORS_NIST800_108_CTR_SHA256_CONTEXT_LEN, ko, sizeof (ko));
 	if (status != 0) {
-		return status;
+		goto exit;
 	}
 
 	status = buffer_compare (ko, KDF_KAT_VECTORS_NIST800_108_CTR_SHA256_KO, sizeof (ko));
 	if (status != 0) {
-		return KDF_NIST800_108_SHA256_KAT_FAILED;
+		status = KDF_NIST800_108_SHA256_KAT_FAILED;
 	}
 
-	return 0;
+exit:
+	buffer_zeroize (ko, sizeof (ko));
+
+	return status;
 }
 
 /**
@@ -96,15 +102,18 @@ int kdf_kat_run_self_test_nist800_108_counter_mode_sha384 (const struct hash_eng
 		KDF_KAT_VECTORS_NIST800_108_CTR_SHA384_CONTEXT,
 		KDF_KAT_VECTORS_NIST800_108_CTR_SHA384_CONTEXT_LEN, ko, sizeof (ko));
 	if (status != 0) {
-		return status;
+		goto exit;
 	}
 
 	status = buffer_compare (ko, KDF_KAT_VECTORS_NIST800_108_CTR_SHA384_KO, sizeof (ko));
 	if (status != 0) {
-		return KDF_NIST800_108_SHA384_KAT_FAILED;
+		status = KDF_NIST800_108_SHA384_KAT_FAILED;
 	}
 
-	return 0;
+exit:
+	buffer_zeroize (ko, sizeof (ko));
+
+	return status;
 }
 
 /**
@@ -130,137 +139,200 @@ int kdf_kat_run_self_test_nist800_108_counter_mode_sha512 (const struct hash_eng
 		KDF_KAT_VECTORS_NIST800_108_CTR_SHA512_CONTEXT,
 		KDF_KAT_VECTORS_NIST800_108_CTR_SHA512_CONTEXT_LEN, ko, sizeof (ko));
 	if (status != 0) {
-		return status;
+		goto exit;
 	}
 
 	status = buffer_compare (ko, KDF_KAT_VECTORS_NIST800_108_CTR_SHA512_KO, sizeof (ko));
 	if (status != 0) {
-		return KDF_NIST800_108_SHA512_KAT_FAILED;
+		status = KDF_NIST800_108_SHA512_KAT_FAILED;
 	}
 
-	return 0;
+exit:
+	buffer_zeroize (ko, sizeof (ko));
+
+	return status;
 }
 
 /**
- * Run known answer test (KAT) for the HKDF-Expand KDF algorithm using SHA-1 HMAC.
+ * Run known answer test (KAT) for the HKDF algorithm using SHA-1 HMAC.
  *
- * @param hash The hash engine to use for the self test.
+ * @param hkdf The HKDF instance to use for the self test.
  *
  * @return 0 if the test passed successfully or an error code.
  */
-int kdf_kat_run_self_test_hkdf_expand_sha1 (const struct hash_engine *hash)
+int kdf_kat_run_self_test_hkdf_sha1 (const struct hkdf_interface *hkdf)
 {
 	uint8_t okm[KDF_KAT_VECTORS_HKDF_EXPAND_SHA1_OKM_LEN] = {0};
 	int status;
+	int clear_status;
 
-	if (hash == NULL) {
+	if (hkdf == NULL) {
 		return KDF_INVALID_ARGUMENT;
 	}
 
-	status = kdf_hkdf_expand (hash, HMAC_SHA1, KDF_KAT_VECTORS_HKDF_EXPAND_SHA1_PRK,
-		KDF_KAT_VECTORS_HKDF_EXPAND_SHA1_PRK_LEN, KDF_KAT_VECTORS_HKDF_EXPAND_INFO,
-		KDF_KAT_VECTORS_HKDF_EXPAND_INFO_LEN, okm, sizeof (okm));
+	status = hkdf->extract (hkdf, HASH_TYPE_SHA1, KDF_KAT_VECTORS_HKDF_EXTRACT_IKM,
+		KDF_KAT_VECTORS_HKDF_EXTRACT_IKM_SHA1_LEN, KDF_KAT_VECTORS_HKDF_EXTRACT_SALT,
+		KDF_KAT_VECTORS_HKDF_EXTRACT_SALT_LEN);
 	if (status != 0) {
 		return status;
+	}
+
+	status = hkdf->expand (hkdf, KDF_KAT_VECTORS_HKDF_EXPAND_INFO,
+		KDF_KAT_VECTORS_HKDF_EXPAND_INFO_LEN, okm, sizeof (okm));
+	if (status != 0) {
+		goto exit;
 	}
 
 	status = buffer_compare (okm, KDF_KAT_VECTORS_HKDF_EXPAND_SHA1_OKM, sizeof (okm));
 	if (status != 0) {
-		return KDF_HKDF_EXPAND_SHA1_KAT_FAILED;
+		status = HKDF_SHA1_KAT_FAILED;
 	}
 
-	return 0;
+exit:
+	clear_status = hkdf->clear_prk (hkdf);
+	if ((clear_status != 0) && (status == 0)) {
+		status = clear_status;
+	}
+
+	buffer_zeroize (okm, sizeof (okm));
+
+	return status;
 }
 
 /**
- * Run known answer test (KAT) for the HKDF-Expand KDF algorithm using SHA-256 HMAC.
+ * Run known answer test (KAT) for the HKDF algorithm using SHA-256 HMAC.
  *
- * @param hash The hash engine to use for the self test.
+ * @param hkdf The HKDF instance to use for the self test.
  *
  * @return 0 if the test passed successfully or an error code.
  */
-int kdf_kat_run_self_test_hkdf_expand_sha256 (const struct hash_engine *hash)
+int kdf_kat_run_self_test_hkdf_sha256 (const struct hkdf_interface *hkdf)
 {
 	uint8_t okm[KDF_KAT_VECTORS_HKDF_EXPAND_SHA256_OKM_LEN] = {0};
 	int status;
+	int clear_status;
 
-	if (hash == NULL) {
+	if (hkdf == NULL) {
 		return KDF_INVALID_ARGUMENT;
 	}
 
-	status = kdf_hkdf_expand (hash, HMAC_SHA256, KDF_KAT_VECTORS_HKDF_EXPAND_SHA256_PRK,
-		KDF_KAT_VECTORS_HKDF_EXPAND_SHA256_PRK_LEN, KDF_KAT_VECTORS_HKDF_EXPAND_INFO,
-		KDF_KAT_VECTORS_HKDF_EXPAND_INFO_LEN, okm, sizeof (okm));
+	status = hkdf->extract (hkdf, HASH_TYPE_SHA256, KDF_KAT_VECTORS_HKDF_EXTRACT_IKM,
+		KDF_KAT_VECTORS_HKDF_EXTRACT_IKM_LEN, KDF_KAT_VECTORS_HKDF_EXTRACT_SALT,
+		KDF_KAT_VECTORS_HKDF_EXTRACT_SALT_LEN);
 	if (status != 0) {
 		return status;
+	}
+
+	status = hkdf->expand (hkdf, KDF_KAT_VECTORS_HKDF_EXPAND_INFO,
+		KDF_KAT_VECTORS_HKDF_EXPAND_INFO_LEN, okm, sizeof (okm));
+	if (status != 0) {
+		goto exit;
 	}
 
 	status = buffer_compare (okm, KDF_KAT_VECTORS_HKDF_EXPAND_SHA256_OKM, sizeof (okm));
 	if (status != 0) {
-		return KDF_HKDF_EXPAND_SHA256_KAT_FAILED;
+		status = HKDF_SHA256_KAT_FAILED;
 	}
 
-	return 0;
+exit:
+	clear_status = hkdf->clear_prk (hkdf);
+	if ((clear_status != 0) && (status == 0)) {
+		status = clear_status;
+	}
+
+	buffer_zeroize (okm, sizeof (okm));
+
+	return status;
 }
 
 /**
- * Run known answer test (KAT) for the HKDF-Expand KDF algorithm using SHA-384 HMAC.
+ * Run known answer test (KAT) for the HKDF algorithm using SHA-384 HMAC.
  *
- * @param hash The hash engine to use for the self test.
+ * @param hkdf The HKDF instance to use for the self test.
  *
  * @return 0 if the test passed successfully or an error code.
  */
-int kdf_kat_run_self_test_hkdf_expand_sha384 (const struct hash_engine *hash)
+int kdf_kat_run_self_test_hkdf_sha384 (const struct hkdf_interface *hkdf)
 {
 	uint8_t okm[KDF_KAT_VECTORS_HKDF_EXPAND_SHA384_OKM_LEN] = {0};
 	int status;
+	int clear_status;
 
-	if (hash == NULL) {
+	if (hkdf == NULL) {
 		return KDF_INVALID_ARGUMENT;
 	}
 
-	status = kdf_hkdf_expand (hash, HMAC_SHA384, KDF_KAT_VECTORS_HKDF_EXPAND_SHA384_PRK,
-		KDF_KAT_VECTORS_HKDF_EXPAND_SHA384_PRK_LEN, KDF_KAT_VECTORS_HKDF_EXPAND_INFO,
-		KDF_KAT_VECTORS_HKDF_EXPAND_INFO_LEN, okm, sizeof (okm));
+	status = hkdf->extract (hkdf, HASH_TYPE_SHA384, KDF_KAT_VECTORS_HKDF_EXTRACT_IKM,
+		KDF_KAT_VECTORS_HKDF_EXTRACT_IKM_LEN, KDF_KAT_VECTORS_HKDF_EXTRACT_SALT,
+		KDF_KAT_VECTORS_HKDF_EXTRACT_SALT_LEN);
 	if (status != 0) {
 		return status;
+	}
+
+	status = hkdf->expand (hkdf, KDF_KAT_VECTORS_HKDF_EXPAND_INFO,
+		KDF_KAT_VECTORS_HKDF_EXPAND_INFO_LEN, okm, sizeof (okm));
+	if (status != 0) {
+		goto exit;
 	}
 
 	status = buffer_compare (okm, KDF_KAT_VECTORS_HKDF_EXPAND_SHA384_OKM, sizeof (okm));
 	if (status != 0) {
-		return KDF_HKDF_EXPAND_SHA384_KAT_FAILED;
+		status = HKDF_SHA384_KAT_FAILED;
 	}
 
-	return 0;
+exit:
+	clear_status = hkdf->clear_prk (hkdf);
+	if ((clear_status != 0) && (status == 0)) {
+		status = clear_status;
+	}
+
+	buffer_zeroize (okm, sizeof (okm));
+
+	return status;
 }
 
 /**
- * Run known answer test (KAT) for the HKDF-Expand KDF algorithm using SHA-512 HMAC.
+ * Run known answer test (KAT) for the HKDF algorithm using SHA-512 HMAC.
  *
- * @param hash The hash engine to use for the self test.
+ * @param hkdf The HKDF instance to use for the self test.
  *
  * @return 0 if the test passed successfully or an error code.
  */
-int kdf_kat_run_self_test_hkdf_expand_sha512 (const struct hash_engine *hash)
+int kdf_kat_run_self_test_hkdf_sha512 (const struct hkdf_interface *hkdf)
 {
 	uint8_t okm[KDF_KAT_VECTORS_HKDF_EXPAND_SHA512_OKM_LEN] = {0};
 	int status;
+	int clear_status;
 
-	if (hash == NULL) {
+	if (hkdf == NULL) {
 		return KDF_INVALID_ARGUMENT;
 	}
 
-	status = kdf_hkdf_expand (hash, HMAC_SHA512, KDF_KAT_VECTORS_HKDF_EXPAND_SHA512_PRK,
-		KDF_KAT_VECTORS_HKDF_EXPAND_SHA512_PRK_LEN, KDF_KAT_VECTORS_HKDF_EXPAND_INFO,
-		KDF_KAT_VECTORS_HKDF_EXPAND_INFO_LEN, okm, sizeof (okm));
+	status = hkdf->extract (hkdf, HASH_TYPE_SHA512, KDF_KAT_VECTORS_HKDF_EXTRACT_IKM,
+		KDF_KAT_VECTORS_HKDF_EXTRACT_IKM_LEN, KDF_KAT_VECTORS_HKDF_EXTRACT_SALT,
+		KDF_KAT_VECTORS_HKDF_EXTRACT_SALT_LEN);
 	if (status != 0) {
 		return status;
 	}
 
-	status = buffer_compare (okm, KDF_KAT_VECTORS_HKDF_EXPAND_SHA512_OKM, sizeof (okm));
+	status = hkdf->expand (hkdf, KDF_KAT_VECTORS_HKDF_EXPAND_INFO,
+		KDF_KAT_VECTORS_HKDF_EXPAND_INFO_LEN, okm, sizeof (okm));
 	if (status != 0) {
-		return KDF_HKDF_EXPAND_SHA512_KAT_FAILED;
+		goto exit;
 	}
 
-	return 0;
+	status = buffer_compare (okm, KDF_KAT_VECTORS_HKDF_EXPAND_SHA512_OKM, sizeof (okm));
+	if (status != 0) {
+		status = HKDF_SHA512_KAT_FAILED;
+	}
+
+exit:
+	clear_status = hkdf->clear_prk (hkdf);
+	if ((clear_status != 0) && (status == 0)) {
+		status = clear_status;
+	}
+
+	buffer_zeroize (okm, sizeof (okm));
+
+	return status;
 }

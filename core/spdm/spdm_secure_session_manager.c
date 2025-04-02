@@ -415,9 +415,9 @@ exit:
  *
  * @return 0 if the SPDM AEAD key and IV are generated, error code otherwise.
  */
-static int spdm_session_manager_generate_aead_key_and_iv (const struct hash_engine *hash_engine,
-	struct spdm_secure_session *session, enum hmac_hash hmac_hash_type, const uint8_t *major_secret,
-	uint8_t *key, uint8_t *iv)
+static int spdm_secure_session_manager_generate_aead_key_and_iv (
+	const struct hash_engine *hash_engine, struct spdm_secure_session *session,
+	enum hmac_hash hmac_hash_type, const uint8_t *major_secret, uint8_t *key, uint8_t *iv)
 {
 	bool status;
 	size_t hash_size;
@@ -547,8 +547,8 @@ int spdm_secure_session_manager_generate_session_handshake_keys (
 	}
 
 	/* Generate the requester AEAD key and IV. */
-	status = spdm_session_manager_generate_aead_key_and_iv (hash_engine, session, hmac_hash_type,
-		session->handshake_secret.request_handshake_secret,
+	status = spdm_secure_session_manager_generate_aead_key_and_iv (hash_engine, session,
+		hmac_hash_type, session->handshake_secret.request_handshake_secret,
 		session->handshake_secret.request_handshake_encryption_key,
 		session->handshake_secret.request_handshake_salt);
 	if (status != 0) {
@@ -557,8 +557,8 @@ int spdm_secure_session_manager_generate_session_handshake_keys (
 	session->handshake_secret.request_handshake_sequence_number = 0;
 
 	/* Generate the responder AEAD key and IV. */
-	status = spdm_session_manager_generate_aead_key_and_iv (hash_engine, session, hmac_hash_type,
-		session->handshake_secret.response_handshake_secret,
+	status = spdm_secure_session_manager_generate_aead_key_and_iv (hash_engine, session,
+		hmac_hash_type, session->handshake_secret.response_handshake_secret,
 		session->handshake_secret.response_handshake_encryption_key,
 		session->handshake_secret.response_handshake_salt);
 	if (status != 0) {
@@ -686,17 +686,17 @@ int spdm_secure_session_manager_generate_session_data_keys (
 	}
 
 	/* Generate the requester data encryption key and IV. */
-	status = spdm_session_manager_generate_aead_key_and_iv (hash_engine, session, hmac_hash_type,
-		session->data_secret.request_data_secret, session->data_secret.request_data_encryption_key,
-		session->data_secret.request_data_salt);
+	status = spdm_secure_session_manager_generate_aead_key_and_iv (hash_engine, session,
+		hmac_hash_type, session->data_secret.request_data_secret,
+		session->data_secret.request_data_encryption_key, session->data_secret.request_data_salt);
 	if (status != 0) {
 		goto exit;
 	}
 	session->data_secret.request_data_sequence_number = 0;
 
 	/* Generate the responder data encryption key and IV. */
-	status = spdm_session_manager_generate_aead_key_and_iv (hash_engine, session, hmac_hash_type,
-		session->data_secret.response_data_secret,
+	status = spdm_secure_session_manager_generate_aead_key_and_iv (hash_engine, session,
+		hmac_hash_type, session->data_secret.response_data_secret,
 		session->data_secret.response_data_encryption_key, session->data_secret.response_data_salt);
 	if (status != 0) {
 		goto exit;
@@ -1128,7 +1128,7 @@ int spdm_secure_session_manager_encode_secure_message (
 		switch (req_rsp_code) {
 			case SPDM_RESPONSE_FINISH:
 				/* Change session state regardless of handshake type (in clear vs not)*/
-				spdm_secure_session_manager_set_session_state (session_manager,	session->session_id,
+				spdm_secure_session_manager_set_session_state (session_manager, session->session_id,
 					SPDM_SESSION_STATE_ESTABLISHED);
 				break;
 

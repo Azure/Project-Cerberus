@@ -120,6 +120,12 @@ static void add_all_crypto_tests (CuSuite *suite)
 	!defined TESTING_SKIP_HASH_THREAD_SAFE_SUITE
 	TESTING_RUN_SUITE (hash_thread_safe);
 #endif
+#if (defined TESTING_RUN_HKDF_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_HKDF_SUITE
+	TESTING_RUN_SUITE (hkdf);
+#endif
 #if (defined TESTING_RUN_KDF_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
