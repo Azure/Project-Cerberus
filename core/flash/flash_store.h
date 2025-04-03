@@ -59,7 +59,7 @@ struct flash_store {
 	int (*erase_all) (const struct flash_store *flash_store);
 
 	/**
-	 * Get the length of the data stored in flash block.  This represents the minimum buffer size
+	 * Get the length of the data stored in a flash block.  This represents the minimum buffer size
 	 * needed to read a block data from storage.
 	 *
 	 * Depending on how the data is physically stored, this value may not represent the length of
@@ -89,7 +89,7 @@ struct flash_store {
 	/**
 	 * Get the maximum amount of data that can be stored in a single flash block.
 	 *
-	 * This is not represent the physical storage space available to a flash block.  Rather, this
+	 * This does not represent the physical storage space available to a flash block.  Rather, this
 	 * indicates the largest data buffer that can be provided for storage in a flash block.
 	 *
 	 * @param flash_store The flash to query.

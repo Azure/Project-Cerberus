@@ -24,7 +24,7 @@ struct rsa_engine_mbedtls_state {
 struct rsa_engine_mbedtls {
 	struct rsa_engine base;							/**< The base RSA engine. */
 	struct rsa_engine_mbedtls_state *state;			/**< Variable context for the RSA engine. */
-	void *rng;										/**< The source for random number. */
+	void *rng;										/**< The source for random numbers. */
 	int (*f_rng) (void*, unsigned char*, size_t);	/**< Callback function for retrieving random numbers. */
 };
 

@@ -272,7 +272,7 @@ int flash_store_contiguous_blocks_key_wrap_init_state (
 			sizeof (struct flash_store_header);
 	}
 	else {
-		/* For variable length storage, any additional data needed beyond the specified length is
+		/* For fixed length storage, any additional data needed beyond the specified length is
 		 * considered storage overhead. */
 		padding = AES_KEY_WRAP_INTERFACE_WRAPPED_LENGTH (data_length) - data_length;
 	}

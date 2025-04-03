@@ -24,7 +24,7 @@ struct ecc_engine_mbedtls_state {
 struct ecc_engine_mbedtls {
 	struct ecc_engine base;							/**< The base ECC engine. */
 	struct ecc_engine_mbedtls_state *state;			/**< Variable context for the ECC engine. */
-	void *rng;										/**< The source for random number. */
+	void *rng;										/**< The source for random numbers. */
 	int (*f_rng) (void*, unsigned char*, size_t);	/**< Callback function for retrieving random numbers. */
 };
 

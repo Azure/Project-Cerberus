@@ -88,7 +88,7 @@ int rsa_mbedtls_sig_verify (const struct rsa_engine *engine, const struct rsa_pu
  * There is no validation done on the arguments.
  *
  * @note There is no variable state when operating in this mode, so no state structure is required.
- * As such, there is no need to call ecc_mbedtls_init_state() to complete initialization of this
+ * As such, there is no need to call rsa_mbedtls_init_state() to complete initialization of this
  * instance.
  *
  * @param rng_ptr The source for random numbers during RSA operations.

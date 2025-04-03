@@ -544,6 +544,9 @@ int rsa_mbedtls_init_with_external_rng (struct rsa_engine_mbedtls *engine,
  *
  * This would generally be used with a statically initialized instance.
  *
+ * @note Do not call this function for instances initialized to use an external source for random
+ * numbers.  There is no variable state to initialize in this case.
+ *
  * @param engine The RSA engine that contains the state to initialize.
  *
  * @return 0 if the state was successfully initialized or an error code.
