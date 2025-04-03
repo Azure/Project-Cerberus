@@ -4,6 +4,7 @@
 #ifndef RSA_MBEDTLS_STATIC_H_
 #define RSA_MBEDTLS_STATIC_H_
 
+#include "rng_mbedtls.h"
 #include "rsa_mbedtls.h"
 
 
@@ -65,6 +66,9 @@ int rsa_mbedtls_sig_verify (const struct rsa_engine *engine, const struct rsa_pu
 /**
  * Initialize a static mbedTLS RSA engine.
  *
+ * Random number generation will be handled by an internally managed mbedTLS implementation of a
+ * software DRBG.
+ *
  * There is no validation done on the arguments.
  *
  * @param state_ptr Variable context for RSA operations.
@@ -72,6 +76,28 @@ int rsa_mbedtls_sig_verify (const struct rsa_engine *engine, const struct rsa_pu
 #define	rsa_mbedtls_static_init(state_ptr) { \
 		.base = RSA_MBEDTLS_API_INIT, \
 		.state = state_ptr, \
+		.rng = &(state_ptr)->ctr_drbg, \
+		.f_rng = mbedtls_ctr_drbg_random, \
+	}
+
+/**
+ * Initialize a static mbedTLS RSA engine.
+ *
+ * Random number generation will be handled by the provided RNG engine.
+ *
+ * There is no validation done on the arguments.
+ *
+ * @note There is no variable state when operating in this mode, so no state structure is required.
+ * As such, there is no need to call ecc_mbedtls_init_state() to complete initialization of this
+ * instance.
+ *
+ * @param rng_ptr The source for random numbers during RSA operations.
+ */
+#define	rsa_mbedtls_static_init_with_external_rng(rng_ptr) { \
+		.base = RSA_MBEDTLS_API_INIT, \
+		.state = NULL, \
+		.rng = (void*) rng_ptr, \
+		.f_rng = rng_mbedtls_rng_callback, \
 	}
 
 

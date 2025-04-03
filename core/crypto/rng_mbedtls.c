@@ -91,8 +91,8 @@ void rng_mbedtls_release (const struct rng_engine_mbedtls *engine)
 /**
  * mbedTLS callback function to generate random data from an arbitrary RNG engine.
  *
- * This is intended to work with any RNG engine implementation.  This provides a wrapper compatible
- * with the random number generation function pointer used with mbedTLS API calls.
+ * This is intended to work with any RNG engine implementation, providing a wrapper compatible with
+ * the random number generation function pointer used with mbedTLS API calls.
  *
  * @param rng_engine The RNG engine to query for random data.  This must be a #struct rng_engine
  * instance.  It does not have to be an mbedTLS RNG implementation.

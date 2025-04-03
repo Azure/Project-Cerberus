@@ -5,6 +5,7 @@
 #include <string.h>
 #include "crypto_logging.h"
 #include "platform_api.h"
+#include "rng_mbedtls.h"
 #include "rsa_mbedtls.h"
 #include "common/unused.h"
 #include "crypto/mbedtls_compat.h"
@@ -78,8 +79,7 @@ int rsa_mbedtls_generate_key (const struct rsa_engine *engine, struct rsa_privat
 		goto error;
 	}
 
-	status = mbedtls_rsa_gen_key (mbedtls_pk_rsa (*rsa), mbedtls_ctr_drbg_random,
-		&mbedtls->state->ctr_drbg, bits, 65537);
+	status = mbedtls_rsa_gen_key (mbedtls_pk_rsa (*rsa), mbedtls->f_rng, mbedtls->rng, bits, 65537);
 	if (status != 0) {
 		msg_code = CRYPTO_LOG_MSG_MBEDTLS_RSA_GEN_KEY_EC;
 		goto error;
@@ -118,8 +118,7 @@ int rsa_mbedtls_init_private_key (const struct rsa_engine *engine, struct rsa_pr
 	}
 
 #if MBEDTLS_IS_VERSION_3
-	status = mbedtls_pk_parse_key (rsa, der, length, NULL, 0, mbedtls_ctr_drbg_random,
-		&mbedtls->state->ctr_drbg);
+	status = mbedtls_pk_parse_key (rsa, der, length, NULL, 0, mbedtls->f_rng, mbedtls->rng);
 #else
 	UNUSED (mbedtls);
 	status = mbedtls_pk_parse_key (rsa, der, length, NULL, 0);
@@ -224,12 +223,12 @@ int rsa_mbedtls_decrypt (const struct rsa_engine *engine, const struct rsa_priva
 	}
 
 #if MBEDTLS_IS_VERSION_3
-	status = mbedtls_rsa_rsaes_oaep_decrypt (rsa_mbedtls_get_rsa_key (key), mbedtls_ctr_drbg_random,
-		&mbedtls->state->ctr_drbg, label, label_length, &length, encrypted, decrypted, out_length);
+	status = mbedtls_rsa_rsaes_oaep_decrypt (rsa_mbedtls_get_rsa_key (key), mbedtls->f_rng,
+		mbedtls->rng, label, label_length, &length, encrypted, decrypted, out_length);
 #else
-	status = mbedtls_rsa_rsaes_oaep_decrypt (rsa_mbedtls_get_rsa_key (key), mbedtls_ctr_drbg_random,
-		&mbedtls->state->ctr_drbg, MBEDTLS_RSA_PRIVATE, label, label_length, &length, encrypted,
-		decrypted, out_length);
+	status = mbedtls_rsa_rsaes_oaep_decrypt (rsa_mbedtls_get_rsa_key (key), mbedtls->f_rng,
+		mbedtls->rng, MBEDTLS_RSA_PRIVATE, label, label_length, &length, encrypted, decrypted,
+		out_length);
 #endif
 	if (status == 0) {
 		status = length;
@@ -463,6 +462,9 @@ int rsa_mbedtls_sig_verify (const struct rsa_engine *engine, const struct rsa_pu
 /**
  * Initialize an mbedTLS RSA engine.
  *
+ * Random number generation will be handled by an internally managed mbedTLS implementation of a
+ * software DRBG.
+ *
  * @param engine The RSA engine to initialize.
  * @param state Variable context for RSA operations.  This must be uninitialized.
  *
@@ -490,8 +492,50 @@ int rsa_mbedtls_init (struct rsa_engine_mbedtls *engine, struct rsa_engine_mbedt
 	engine->base.sig_verify = rsa_mbedtls_sig_verify;
 
 	engine->state = state;
+	engine->rng = &state->ctr_drbg;
+	engine->f_rng = mbedtls_ctr_drbg_random;
 
 	return rsa_mbedtls_init_state (engine);
+}
+
+/**
+ * Initialize an mbedTLS RSA engine.
+ *
+ * Random number generation will be handled by the provided RNG engine.
+ *
+ * @note There is no variable state when operating in this mode, so no state structure is required.
+ *
+ * @param engine The RSA engine to initialize.
+ * @param rng The source for random numbers during RSA operations.
+ *
+ * @return 0 if the engine was successfully initialized or an error code.
+ */
+int rsa_mbedtls_init_with_external_rng (struct rsa_engine_mbedtls *engine,
+	const struct rng_engine *rng)
+{
+	if ((engine == NULL) || (rng == NULL)) {
+		return RSA_ENGINE_INVALID_ARGUMENT;
+	}
+
+	memset (engine, 0, sizeof (struct rsa_engine_mbedtls));
+
+#ifdef RSA_ENABLE_PRIVATE_KEY
+	engine->base.generate_key = rsa_mbedtls_generate_key;
+	engine->base.init_private_key = rsa_mbedtls_init_private_key;
+	engine->base.release_key = rsa_mbedtls_release_key;
+	engine->base.get_private_key_der = rsa_mbedtls_get_private_key_der;
+	engine->base.decrypt = rsa_mbedtls_decrypt;
+#endif
+#ifdef RSA_ENABLE_DER_PUBLIC_KEY
+	engine->base.init_public_key = rsa_mbedtls_init_public_key;
+	engine->base.get_public_key_der = rsa_mbedtls_get_public_key_der;
+#endif
+	engine->base.sig_verify = rsa_mbedtls_sig_verify;
+
+	engine->rng = (void*) rng;
+	engine->f_rng = rng_mbedtls_rng_callback;
+
+	return 0;
 }
 
 /**
@@ -541,7 +585,7 @@ exit:
  */
 void rsa_mbedtls_release (const struct rsa_engine_mbedtls *engine)
 {
-	if (engine) {
+	if ((engine != NULL) && (engine->state != NULL)) {
 		mbedtls_entropy_free (&engine->state->entropy);
 		mbedtls_ctr_drbg_free (&engine->state->ctr_drbg);
 	}

@@ -5,6 +5,7 @@
 #define ECC_MBEDTLS_STATIC_H_
 
 #include "crypto/ecc_mbedtls.h"
+#include "crypto/rng_mbedtls.h"
 
 
 /* Internal functions declared to allow for static initialization. */
@@ -82,6 +83,9 @@ int ecc_mbedtls_compute_shared_secret (const struct ecc_engine *engine,
 /**
  * Initialize a static for running ECC operations using mbedTLS.
  *
+ * Random number generation will be handled by an internally managed mbedTLS implementation of a
+ * software DRBG.
+ *
  * There is no validation done on the arguments.
  *
  * @param state_ptr Variable context for the ECC engine.
@@ -89,6 +93,28 @@ int ecc_mbedtls_compute_shared_secret (const struct ecc_engine *engine,
 #define	ecc_mbedtls_static_init(state_ptr)	{ \
 		.base = ECC_MBEDTLS_API_INIT, \
 		.state = state_ptr, \
+		.rng = &(state_ptr)->ctr_drbg, \
+		.f_rng = mbedtls_ctr_drbg_random, \
+	}
+
+/**
+ * Initialize a static for running ECC operations using mbedTLS.
+ *
+ * Random number generation will be handled by the provided RNG engine.
+ *
+ * There is no validation done on the arguments.
+ *
+ * @note There is no variable state when operating in this mode, so no state structure is required.
+ * As such, there is no need to call ecc_mbedtls_init_state() to complete initialization of this
+ * instance.
+ *
+ * @param rng_ptr The source for random numbers during ECC operations.
+ */
+#define	ecc_mbedtls_static_init_with_external_rng(rng_ptr)	{ \
+		.base = ECC_MBEDTLS_API_INIT, \
+		.state = NULL, \
+		.rng = (void*) rng_ptr, \
+		.f_rng = rng_mbedtls_rng_callback, \
 	}
 
 
