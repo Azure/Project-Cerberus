@@ -22,8 +22,10 @@ set(PROTOBUF_DIR ${PROTOBUFBACKEND_DIR}/pb)
 
 file(GLOB ACVPPARSER_SOURCES
     ${PROTO_DIR}/proto.c
+    ${PROTO_DIR}/proto_aead.c
     ${PROTO_DIR}/proto_sha.c
     ${PROTOBUFBACKEND_DIR}/src/protobuf-c.c
+    ${PROTOBUF_DIR}/aead.pb-c.c
     ${PROTOBUF_DIR}/sha.pb-c.c
     ${PARSER_DIR}/algorithms.c
 )

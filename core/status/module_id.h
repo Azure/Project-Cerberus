@@ -168,6 +168,7 @@ enum {
 	ROT_MODULE_AES_CBC_ENGINE = 0x009c,					/**< An AES-CBC crypto engine.  All engines use the same ID. */
 	ROT_MODULE_AES_KEY_WRAP = 0x0009d,					/**< Handler for AES key wrap/unwrap. */
 	ROT_MODULE_HKDF = 0x009e,							/**< HKDF key derivation. */
+	ROT_MODULE_BACKEND_AEAD = 0x009f,					/**< ACVP AEAD backend. */
 };
 
 
