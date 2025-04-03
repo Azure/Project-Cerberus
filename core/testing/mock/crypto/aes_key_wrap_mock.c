@@ -103,36 +103,30 @@ static const char* aes_key_wrap_mock_arg_name_map (void *func, int arg)
 	if (func == aes_key_wrap_mock_wrap) {
 		switch (arg) {
 			case 0:
-				return "ecb";
-
-			case 1:
 				return "data";
 
-			case 2:
+			case 1:
 				return "length";
 
-			case 3:
+			case 2:
 				return "wrapped";
 
-			case 4:
+			case 3:
 				return "out_length";
 		}
 	}
 	else if (func == aes_key_wrap_mock_unwrap) {
 		switch (arg) {
 			case 0:
-				return "ecb";
-
-			case 1:
 				return "wrapped";
 
-			case 2:
+			case 1:
 				return "length";
 
-			case 3:
+			case 2:
 				return "data";
 
-			case 4:
+			case 3:
 				return "out_length";
 		}
 	}

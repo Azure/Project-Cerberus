@@ -26,7 +26,7 @@ TEST_SUITE_LABEL ("flash_store_contiguous_blocks_encrypted");
  */
 struct flash_store_contiguous_blocks_encrypted_testing {
 	struct flash_mock flash;								/**< The flash device. */
-	struct aes_gcm_engine_mock aes;							/**< AES engine for data encryption. */
+	struct aes_gcm_engine_mock aes;							/**< AES-GCM engine for data encryption. */
 	struct rng_engine_mock rng;								/**< RNG engine to use for testing. */
 	uint32_t page;											/**< Number of bytes per flash programming page. */
 	uint32_t sector;										/**< Number of bytes per flash erase sector. */
@@ -41,7 +41,7 @@ struct flash_store_contiguous_blocks_encrypted_testing {
  * Helper to initialize all dependencies for testing.
  *
  * @param test The test framework.
- * @param store Testing dependencies to initailize.
+ * @param store Testing dependencies to initialize.
  *
  */
 static void flash_store_contiguous_blocks_encrypted_testing_init_dependencies (CuTest *test,
@@ -56,6 +56,25 @@ static void flash_store_contiguous_blocks_encrypted_testing_init_dependencies (C
 	CuAssertIntEquals (test, 0, status);
 
 	status = rng_mock_init (&store->rng);
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Helper to validate mocks and release all testing dependencies.
+ *
+ * @param test The test framework.
+ * @param store Testing dependencies to release.
+ *
+ */
+static void flash_store_contiguous_blocks_encrypted_testing_release_dependencies (CuTest *test,
+	struct flash_store_contiguous_blocks_encrypted_testing *store)
+{
+	int status;
+
+	status = flash_mock_validate_and_release (&store->flash);
+	status |= aes_gcm_mock_validate_and_release (&store->aes);
+	status |= rng_mock_validate_and_release (&store->rng);
+
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -100,28 +119,6 @@ static void flash_store_contiguous_blocks_encrypted_testing_prepare_init (CuTest
 	status |= mock_expect_output (&store->flash.mock, 0, &store->min_write,
 		sizeof (store->min_write), -1);
 
-	CuAssertIntEquals (test, 0, status);
-}
-
-/**
- * Helper to validate mocks and release all testing dependencies.
- *
- * @param test The test framework.
- * @param store Testing dependencies to release.
- *
- */
-static void flash_store_contiguous_blocks_encrypted_testing_release_dependencies (CuTest *test,
-	struct flash_store_contiguous_blocks_encrypted_testing *store)
-{
-	int status;
-
-	status = flash_mock_validate_and_release (&store->flash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = aes_gcm_mock_validate_and_release (&store->aes);
-	CuAssertIntEquals (test, 0, status);
-
-	status = rng_mock_validate_and_release (&store->rng);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -222,7 +219,7 @@ flash_store_contiguous_blocks_encrypted_test_init_fixed_storage_one_sector_per_b
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_store_contiguous_blocks_encrypted_init_fixed_storage (&store.test, &store.state,
-		&store.flash.base, 0xfd000, 3, sector - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN,	&store.aes.base,
+		&store.flash.base, 0xfd000, 3, sector - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN, &store.aes.base,
 		&store.rng.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -381,8 +378,6 @@ flash_store_contiguous_blocks_encrypted_test_init_fixed_storage_extra_sector_for
 		&store.flash.base, 0xffa00, 3, sector, &store.aes.base, &store.rng.base);
 	CuAssertIntEquals (test, 0, status);
 
-	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
-
 	status = store.test.base.base.get_max_data_length (&store.test.base.base);
 	CuAssertIntEquals (test, sector, status);
 
@@ -391,6 +386,8 @@ flash_store_contiguous_blocks_encrypted_test_init_fixed_storage_extra_sector_for
 
 	status = store.test.base.base.get_num_blocks (&store.test.base.base);
 	CuAssertIntEquals (test, 3, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
 
 	flash_store_contiguous_blocks_encrypted_release (&store.test);
 }
@@ -454,6 +451,10 @@ static void flash_store_contiguous_blocks_encrypted_test_init_fixed_storage_null
 	flash_store_contiguous_blocks_encrypted_testing_init_dependencies (test, &store);
 
 	status = flash_store_contiguous_blocks_encrypted_init_fixed_storage (NULL, &store.state,
+		&store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_fixed_storage (&store.test, NULL,
 		&store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
 	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
 
@@ -1058,8 +1059,6 @@ flash_store_contiguous_blocks_encrypted_test_init_fixed_storage_decreasing_extra
 		&store.state, &store.flash.base, 0x400, 3, sector, &store.aes.base, &store.rng.base);
 	CuAssertIntEquals (test, 0, status);
 
-	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
-
 	status = store.test.base.base.get_max_data_length (&store.test.base.base);
 	CuAssertIntEquals (test, sector, status);
 
@@ -1068,6 +1067,8 @@ flash_store_contiguous_blocks_encrypted_test_init_fixed_storage_decreasing_extra
 
 	status = store.test.base.base.get_num_blocks (&store.test.base.base);
 	CuAssertIntEquals (test, 3, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
 
 	flash_store_contiguous_blocks_encrypted_release (&store.test);
 }
@@ -1135,6 +1136,10 @@ static void flash_store_contiguous_blocks_encrypted_test_init_fixed_storage_decr
 
 	status = flash_store_contiguous_blocks_encrypted_init_fixed_storage_decreasing (NULL,
 		&store.state, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_fixed_storage_decreasing (&store.test,
+		NULL, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
 	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
 
 	status = flash_store_contiguous_blocks_encrypted_init_fixed_storage_decreasing (&store.test,
@@ -1749,8 +1754,6 @@ flash_store_contiguous_blocks_encrypted_test_init_variable_storage_extra_sector_
 		&store.aes.base, &store.rng.base);
 	CuAssertIntEquals (test, 0, status);
 
-	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
-
 	status = store.test.base.base.get_max_data_length (&store.test.base.base);
 	CuAssertIntEquals (test,
 		(sector * 2) - sizeof (struct flash_store_header) - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN,
@@ -1761,6 +1764,8 @@ flash_store_contiguous_blocks_encrypted_test_init_variable_storage_extra_sector_
 
 	status = store.test.base.base.get_num_blocks (&store.test.base.base);
 	CuAssertIntEquals (test, 3, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
 
 	flash_store_contiguous_blocks_encrypted_release (&store.test);
 }
@@ -1804,8 +1809,6 @@ flash_store_contiguous_blocks_encrypted_test_init_variable_storage_extra_sector_
 		&store.aes.base, &store.rng.base);
 	CuAssertIntEquals (test, 0, status);
 
-	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
-
 	status = store.test.base.base.get_max_data_length (&store.test.base.base);
 	CuAssertIntEquals (test,
 		(sector * 2) - sizeof (struct flash_store_header) - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN,
@@ -1816,6 +1819,8 @@ flash_store_contiguous_blocks_encrypted_test_init_variable_storage_extra_sector_
 
 	status = store.test.base.base.get_num_blocks (&store.test.base.base);
 	CuAssertIntEquals (test, 3, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
 
 	flash_store_contiguous_blocks_encrypted_release (&store.test);
 }
@@ -1884,6 +1889,10 @@ static void flash_store_contiguous_blocks_encrypted_test_init_variable_storage_n
 	flash_store_contiguous_blocks_encrypted_testing_init_dependencies (test, &store);
 
 	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (NULL, &store.state,
+		&store.flash.base, 0x10000, 3, 0, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&store.test, NULL,
 		&store.flash.base, 0x10000, 3, 0, &store.aes.base, &store.rng.base);
 	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
 
@@ -2559,8 +2568,6 @@ flash_store_contiguous_blocks_encrypted_test_init_variable_storage_decreasing_ex
 		&store.aes.base, &store.rng.base);
 	CuAssertIntEquals (test, 0, status);
 
-	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
-
 	status = store.test.base.base.get_max_data_length (&store.test.base.base);
 	CuAssertIntEquals (test,
 		(sector * 2) - sizeof (struct flash_store_header) - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN,
@@ -2571,6 +2578,8 @@ flash_store_contiguous_blocks_encrypted_test_init_variable_storage_decreasing_ex
 
 	status = store.test.base.base.get_num_blocks (&store.test.base.base);
 	CuAssertIntEquals (test, 3, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
 
 	flash_store_contiguous_blocks_encrypted_release (&store.test);
 }
@@ -2614,8 +2623,6 @@ flash_store_contiguous_blocks_encrypted_test_init_variable_storage_decreasing_ex
 		&store.aes.base, &store.rng.base);
 	CuAssertIntEquals (test, 0, status);
 
-	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
-
 	status = store.test.base.base.get_max_data_length (&store.test.base.base);
 	CuAssertIntEquals (test,
 		(sector * 2) - sizeof (struct flash_store_header) - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN,
@@ -2626,6 +2633,8 @@ flash_store_contiguous_blocks_encrypted_test_init_variable_storage_decreasing_ex
 
 	status = store.test.base.base.get_num_blocks (&store.test.base.base);
 	CuAssertIntEquals (test, 3, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
 
 	flash_store_contiguous_blocks_encrypted_release (&store.test);
 }
@@ -2696,6 +2705,10 @@ static void flash_store_contiguous_blocks_encrypted_test_init_variable_storage_d
 
 	status = flash_store_contiguous_blocks_encrypted_init_variable_storage_decreasing (NULL,
 		&store.state, &store.flash.base, 0x10000, 3, 0, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage_decreasing (&store.test,
+		NULL, &store.flash.base, 0x10000, 3, 0, &store.aes.base, &store.rng.base);
 	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
 
 	status = flash_store_contiguous_blocks_encrypted_init_variable_storage_decreasing (&store.test,
@@ -3118,10 +3131,10 @@ flash_store_contiguous_blocks_encrypted_test_init_variable_storage_decreasing_mi
 
 static void flash_store_contiguous_blocks_encrypted_test_static_init_fixed_storage (CuTest *test)
 {
-	struct flash_store_contiguous_blocks_encrypted_testing store;
-	struct flash_store_contiguous_blocks_encrypted test_static =
-		flash_store_contiguous_blocks_encrypted_static_init_fixed_storage (&store.state, 0x10000,
-		&store.flash.base, &store.aes.base, &store.rng.base);
+	struct flash_store_contiguous_blocks_encrypted_testing store = {
+		.test = flash_store_contiguous_blocks_encrypted_static_init_fixed_storage (&store.state,
+			0x10000, 3, &store.flash.base, &store.aes.base, &store.rng.base)
+	};
 	int status;
 	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
@@ -3130,15 +3143,15 @@ static void flash_store_contiguous_blocks_encrypted_test_static_init_fixed_stora
 
 	TEST_START;
 
-	CuAssertPtrNotNull (test, test_static.base.base.write);
-	CuAssertPtrNotNull (test, test_static.base.base.read);
-	CuAssertPtrNotNull (test, test_static.base.base.erase);
-	CuAssertPtrNotNull (test, test_static.base.base.erase_all);
-	CuAssertPtrNotNull (test, test_static.base.base.get_data_length);
-	CuAssertPtrNotNull (test, test_static.base.base.has_data_stored);
-	CuAssertPtrNotNull (test, test_static.base.base.get_max_data_length);
-	CuAssertPtrNotNull (test, test_static.base.base.get_flash_size);
-	CuAssertPtrNotNull (test, test_static.base.base.get_num_blocks);
+	CuAssertPtrNotNull (test, store.test.base.base.write);
+	CuAssertPtrNotNull (test, store.test.base.base.read);
+	CuAssertPtrNotNull (test, store.test.base.base.erase);
+	CuAssertPtrNotNull (test, store.test.base.base.erase_all);
+	CuAssertPtrNotNull (test, store.test.base.base.get_data_length);
+	CuAssertPtrNotNull (test, store.test.base.base.has_data_stored);
+	CuAssertPtrNotNull (test, store.test.base.base.get_max_data_length);
+	CuAssertPtrNotNull (test, store.test.base.base.get_flash_size);
+	CuAssertPtrNotNull (test, store.test.base.base.get_num_blocks);
 
 	flash_store_contiguous_blocks_encrypted_testing_init_dependencies (test, &store);
 
@@ -3160,30 +3173,164 @@ static void flash_store_contiguous_blocks_encrypted_test_static_init_fixed_stora
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 3, 256);
+	status = flash_store_contiguous_blocks_encrypted_init_state (&store.test, 256);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.base.base.get_max_data_length (&test_static.base.base);
+	status = store.test.base.base.get_max_data_length (&store.test.base.base);
 	CuAssertIntEquals (test, 256, status);
 
-	status = test_static.base.base.get_flash_size (&test_static.base.base);
+	status = store.test.base.base.get_flash_size (&store.test.base.base);
 	CuAssertIntEquals (test, 3 * sector, status);
 
-	status = test_static.base.base.get_num_blocks (&test_static.base.base);
+	status = store.test.base.base.get_num_blocks (&store.test.base.base);
 	CuAssertIntEquals (test, 3, status);
 
 	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
 
-	flash_store_contiguous_blocks_encrypted_release (&test_static);
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_static_init_fixed_storage_one_sector_per_block_max_space
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store = {
+		.test = flash_store_contiguous_blocks_encrypted_static_init_fixed_storage (&store.state,
+			0xfb000, 5, &store.flash.base, &store.aes.base, &store.rng.base)
+	};
+	int status;
+	uint32_t page = 0x100;
+	uint32_t sector = 0x1000;
+	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_init_dependencies (test, &store);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&store.test,
+		sector - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_max_data_length (&store.test.base.base);
+	CuAssertIntEquals (test, sector - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN, status);
+
+	status = store.test.base.base.get_flash_size (&store.test.base.base);
+	CuAssertIntEquals (test, 5 * sector, status);
+
+	status = store.test.base.base.get_num_blocks (&store.test.base.base);
+	CuAssertIntEquals (test, 5, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_encrypted_test_static_init_fixed_storage_null (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+
+	struct flash_store_contiguous_blocks_encrypted null_state =
+		flash_store_contiguous_blocks_encrypted_static_init_fixed_storage (NULL, 0x10000, 3,
+		&store.flash.base, &store.aes.base, &store.rng.base);
+
+	struct flash_store_contiguous_blocks_encrypted null_flash =
+		flash_store_contiguous_blocks_encrypted_static_init_fixed_storage (&store.state, 0x10000, 3,
+		NULL, &store.aes.base, &store.rng.base);
+
+	struct flash_store_contiguous_blocks_encrypted null_aes =
+		flash_store_contiguous_blocks_encrypted_static_init_fixed_storage (&store.state, 0x10000, 3,
+		&store.flash.base, NULL, &store.rng.base);
+
+	struct flash_store_contiguous_blocks_encrypted null_rng =
+		flash_store_contiguous_blocks_encrypted_static_init_fixed_storage (&store.state, 0x10000, 3,
+		&store.flash.base, &store.aes.base, NULL);
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_init_dependencies (test, &store);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (NULL, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&null_state, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&null_flash, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&null_aes, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&null_rng, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_static_init_fixed_storage_one_sector_per_block_not_enough_space
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store = {
+		.test = flash_store_contiguous_blocks_encrypted_static_init_fixed_storage (&store.state,
+			0xfd000, 4, &store.flash.base, &store.aes.base, &store.rng.base)
+	};
+	int status;
+	uint32_t sector = 0x1000;
+	uint32_t bytes = 0x100000;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_init_dependencies (test, &store);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&store.test,
+		sector - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN);
+	CuAssertIntEquals (test, FLASH_STORE_INSUFFICIENT_STORAGE, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
 }
 
 static void flash_store_contiguous_blocks_encrypted_test_static_init_fixed_storage_decreasing (
 	CuTest *test)
 {
-	struct flash_store_contiguous_blocks_encrypted_testing store;
-	struct flash_store_contiguous_blocks_encrypted test_static =
-		flash_store_contiguous_blocks_encrypted_static_init_fixed_storage_decreasing (&store.state,
-		0x10000, &store.flash.base, &store.aes.base, &store.rng.base);
+	struct flash_store_contiguous_blocks_encrypted_testing store = {
+		.test =
+			flash_store_contiguous_blocks_encrypted_static_init_fixed_storage_decreasing (
+			&store.state, 0x10000, 3, &store.flash.base, &store.aes.base, &store.rng.base)
+	};
 	int status;
 	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
@@ -3192,15 +3339,15 @@ static void flash_store_contiguous_blocks_encrypted_test_static_init_fixed_stora
 
 	TEST_START;
 
-	CuAssertPtrNotNull (test, test_static.base.base.write);
-	CuAssertPtrNotNull (test, test_static.base.base.read);
-	CuAssertPtrNotNull (test, test_static.base.base.erase);
-	CuAssertPtrNotNull (test, test_static.base.base.erase_all);
-	CuAssertPtrNotNull (test, test_static.base.base.get_data_length);
-	CuAssertPtrNotNull (test, test_static.base.base.has_data_stored);
-	CuAssertPtrNotNull (test, test_static.base.base.get_max_data_length);
-	CuAssertPtrNotNull (test, test_static.base.base.get_flash_size);
-	CuAssertPtrNotNull (test, test_static.base.base.get_num_blocks);
+	CuAssertPtrNotNull (test, store.test.base.base.write);
+	CuAssertPtrNotNull (test, store.test.base.base.read);
+	CuAssertPtrNotNull (test, store.test.base.base.erase);
+	CuAssertPtrNotNull (test, store.test.base.base.erase_all);
+	CuAssertPtrNotNull (test, store.test.base.base.get_data_length);
+	CuAssertPtrNotNull (test, store.test.base.base.has_data_stored);
+	CuAssertPtrNotNull (test, store.test.base.base.get_max_data_length);
+	CuAssertPtrNotNull (test, store.test.base.base.get_flash_size);
+	CuAssertPtrNotNull (test, store.test.base.base.get_num_blocks);
 
 	flash_store_contiguous_blocks_encrypted_testing_init_dependencies (test, &store);
 
@@ -3222,29 +3369,164 @@ static void flash_store_contiguous_blocks_encrypted_test_static_init_fixed_stora
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 3, 256);
+	status = flash_store_contiguous_blocks_encrypted_init_state (&store.test, 256);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.base.base.get_max_data_length (&test_static.base.base);
+	status = store.test.base.base.get_max_data_length (&store.test.base.base);
 	CuAssertIntEquals (test, 256, status);
 
-	status = test_static.base.base.get_flash_size (&test_static.base.base);
+	status = store.test.base.base.get_flash_size (&store.test.base.base);
 	CuAssertIntEquals (test, 3 * sector, status);
 
-	status = test_static.base.base.get_num_blocks (&test_static.base.base);
+	status = store.test.base.base.get_num_blocks (&store.test.base.base);
 	CuAssertIntEquals (test, 3, status);
 
 	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
 
-	flash_store_contiguous_blocks_encrypted_release (&test_static);
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_static_init_fixed_storage_decreasing_one_sector_per_block_max_space
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store = {
+		.test =
+			flash_store_contiguous_blocks_encrypted_static_init_fixed_storage_decreasing (
+			&store.state, 0x3000, 4, &store.flash.base, &store.aes.base, &store.rng.base)
+	};
+	int status;
+	uint32_t page = 0x100;
+	uint32_t sector = 0x1000;
+	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_init_dependencies (test, &store);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&store.test,
+		sector - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_max_data_length (&store.test.base.base);
+	CuAssertIntEquals (test, sector - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN, status);
+
+	status = store.test.base.base.get_flash_size (&store.test.base.base);
+	CuAssertIntEquals (test, 4 * sector, status);
+
+	status = store.test.base.base.get_num_blocks (&store.test.base.base);
+	CuAssertIntEquals (test, 4, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_encrypted_test_static_init_fixed_storage_decreasing_null (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+
+	struct flash_store_contiguous_blocks_encrypted null_state =
+		flash_store_contiguous_blocks_encrypted_static_init_fixed_storage_decreasing (NULL, 0x10000,
+		3, &store.flash.base, &store.aes.base, &store.rng.base);
+
+	struct flash_store_contiguous_blocks_encrypted null_flash =
+		flash_store_contiguous_blocks_encrypted_static_init_fixed_storage_decreasing (&store.state,
+		0x10000, 3, NULL, &store.aes.base, &store.rng.base);
+
+	struct flash_store_contiguous_blocks_encrypted null_aes =
+		flash_store_contiguous_blocks_encrypted_static_init_fixed_storage_decreasing (&store.state,
+		0x10000, 3, &store.flash.base, NULL, &store.rng.base);
+
+	struct flash_store_contiguous_blocks_encrypted null_rng =
+		flash_store_contiguous_blocks_encrypted_static_init_fixed_storage_decreasing (&store.state,
+		0x10000, 3, &store.flash.base, &store.aes.base, NULL);
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_init_dependencies (test, &store);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (NULL, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&null_state, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&null_flash, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&null_aes, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&null_rng, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_static_init_fixed_storage_decreasing_one_sector_per_block_not_enough_space
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store = {
+		.test =
+			flash_store_contiguous_blocks_encrypted_static_init_fixed_storage_decreasing (
+			&store.state, 0x3000, 5, &store.flash.base, &store.aes.base, &store.rng.base)
+	};
+	int status;
+	uint32_t sector = 0x1000;
+	uint32_t bytes = 0x100000;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_init_dependencies (test, &store);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&store.test,
+		sector - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN);
+	CuAssertIntEquals (test, FLASH_STORE_INSUFFICIENT_STORAGE, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
 }
 
 static void flash_store_contiguous_blocks_encrypted_test_static_init_variable_storage (CuTest *test)
 {
-	struct flash_store_contiguous_blocks_encrypted_testing store;
-	struct flash_store_contiguous_blocks_encrypted test_static =
-		flash_store_contiguous_blocks_encrypted_static_init_variable_storage (&store.state,	0x10000,
-		&store.flash.base, &store.aes.base, &store.rng.base);
+	struct flash_store_contiguous_blocks_encrypted_testing store = {
+		.test = flash_store_contiguous_blocks_encrypted_static_init_variable_storage (&store.state,
+			0x10000, 3, &store.flash.base, &store.aes.base, &store.rng.base)
+	};
 	int status;
 	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
@@ -3253,15 +3535,15 @@ static void flash_store_contiguous_blocks_encrypted_test_static_init_variable_st
 
 	TEST_START;
 
-	CuAssertPtrNotNull (test, test_static.base.base.write);
-	CuAssertPtrNotNull (test, test_static.base.base.read);
-	CuAssertPtrNotNull (test, test_static.base.base.erase);
-	CuAssertPtrNotNull (test, test_static.base.base.erase_all);
-	CuAssertPtrNotNull (test, test_static.base.base.get_data_length);
-	CuAssertPtrNotNull (test, test_static.base.base.has_data_stored);
-	CuAssertPtrNotNull (test, test_static.base.base.get_max_data_length);
-	CuAssertPtrNotNull (test, test_static.base.base.get_flash_size);
-	CuAssertPtrNotNull (test, test_static.base.base.get_num_blocks);
+	CuAssertPtrNotNull (test, store.test.base.base.write);
+	CuAssertPtrNotNull (test, store.test.base.base.read);
+	CuAssertPtrNotNull (test, store.test.base.base.erase);
+	CuAssertPtrNotNull (test, store.test.base.base.erase_all);
+	CuAssertPtrNotNull (test, store.test.base.base.get_data_length);
+	CuAssertPtrNotNull (test, store.test.base.base.has_data_stored);
+	CuAssertPtrNotNull (test, store.test.base.base.get_max_data_length);
+	CuAssertPtrNotNull (test, store.test.base.base.get_flash_size);
+	CuAssertPtrNotNull (test, store.test.base.base.get_num_blocks);
 
 	flash_store_contiguous_blocks_encrypted_testing_init_dependencies (test, &store);
 
@@ -3283,31 +3565,164 @@ static void flash_store_contiguous_blocks_encrypted_test_static_init_variable_st
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 3, 256);
+	status = flash_store_contiguous_blocks_encrypted_init_state (&store.test, 256);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.base.base.get_max_data_length (&test_static.base.base);
+	status = store.test.base.base.get_max_data_length (&store.test.base.base);
 	CuAssertIntEquals (test,
 		sector - sizeof (struct flash_store_header) - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN, status);
 
-	status = test_static.base.base.get_flash_size (&test_static.base.base);
+	status = store.test.base.base.get_flash_size (&store.test.base.base);
 	CuAssertIntEquals (test, 3 * sector, status);
 
-	status = test_static.base.base.get_num_blocks (&test_static.base.base);
+	status = store.test.base.base.get_num_blocks (&store.test.base.base);
 	CuAssertIntEquals (test, 3, status);
 
 	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
 
-	flash_store_contiguous_blocks_encrypted_release (&test_static);
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_static_init_variable_storage_one_sector_per_block_max_space
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store = {
+		.test = flash_store_contiguous_blocks_encrypted_static_init_variable_storage (&store.state,
+			0xfc000, 4, &store.flash.base, &store.aes.base, &store.rng.base)
+	};
+	int status;
+	uint32_t page = 0x100;
+	uint32_t sector = 0x1000;
+	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_init_dependencies (test, &store);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&store.test, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_max_data_length (&store.test.base.base);
+	CuAssertIntEquals (test,
+		sector - sizeof (struct flash_store_header) - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN, status);
+
+	status = store.test.base.base.get_flash_size (&store.test.base.base);
+	CuAssertIntEquals (test, 4 * sector, status);
+
+	status = store.test.base.base.get_num_blocks (&store.test.base.base);
+	CuAssertIntEquals (test, 4, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_encrypted_test_static_init_variable_storage_null (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+
+	struct flash_store_contiguous_blocks_encrypted null_state =
+		flash_store_contiguous_blocks_encrypted_static_init_variable_storage (NULL, 0x10000, 3,
+		&store.flash.base, &store.aes.base, &store.rng.base);
+
+	struct flash_store_contiguous_blocks_encrypted null_flash =
+		flash_store_contiguous_blocks_encrypted_static_init_variable_storage (&store.state, 0x10000,
+		3, NULL, &store.aes.base, &store.rng.base);
+
+	struct flash_store_contiguous_blocks_encrypted null_aes =
+		flash_store_contiguous_blocks_encrypted_static_init_variable_storage (&store.state, 0x10000,
+		3, &store.flash.base, NULL, &store.rng.base);
+
+	struct flash_store_contiguous_blocks_encrypted null_rng =
+		flash_store_contiguous_blocks_encrypted_static_init_variable_storage (&store.state, 0x10000,
+		3, &store.flash.base, &store.aes.base, NULL);
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_init_dependencies (test, &store);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (NULL, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&null_state, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&null_flash, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&null_aes, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&null_rng, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_static_init_variable_storage_one_sector_per_block_not_enough_space
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store = {
+		.test = flash_store_contiguous_blocks_encrypted_static_init_variable_storage (&store.state,
+			0xfc000, 5, &store.flash.base, &store.aes.base, &store.rng.base)
+	};
+	int status;
+	uint32_t sector = 0x1000;
+	uint32_t bytes = 0x100000;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_init_dependencies (test, &store);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&store.test, 0);
+	CuAssertIntEquals (test, FLASH_STORE_INSUFFICIENT_STORAGE, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
 }
 
 static void flash_store_contiguous_blocks_encrypted_test_static_init_variable_storage_decreasing (
 	CuTest *test)
 {
-	struct flash_store_contiguous_blocks_encrypted_testing store;
-	struct flash_store_contiguous_blocks_encrypted test_static =
-		flash_store_contiguous_blocks_encrypted_static_init_variable_storage_decreasing (
-		&store.state, 0x10000, &store.flash.base, &store.aes.base, &store.rng.base);
+	struct flash_store_contiguous_blocks_encrypted_testing store = {
+		.test =
+			flash_store_contiguous_blocks_encrypted_static_init_variable_storage_decreasing (
+			&store.state, 0x10000, 3, &store.flash.base, &store.aes.base, &store.rng.base)
+	};
 	int status;
 	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
@@ -3316,15 +3731,15 @@ static void flash_store_contiguous_blocks_encrypted_test_static_init_variable_st
 
 	TEST_START;
 
-	CuAssertPtrNotNull (test, test_static.base.base.write);
-	CuAssertPtrNotNull (test, test_static.base.base.read);
-	CuAssertPtrNotNull (test, test_static.base.base.erase);
-	CuAssertPtrNotNull (test, test_static.base.base.erase_all);
-	CuAssertPtrNotNull (test, test_static.base.base.get_data_length);
-	CuAssertPtrNotNull (test, test_static.base.base.has_data_stored);
-	CuAssertPtrNotNull (test, test_static.base.base.get_max_data_length);
-	CuAssertPtrNotNull (test, test_static.base.base.get_flash_size);
-	CuAssertPtrNotNull (test, test_static.base.base.get_num_blocks);
+	CuAssertPtrNotNull (test, store.test.base.base.write);
+	CuAssertPtrNotNull (test, store.test.base.base.read);
+	CuAssertPtrNotNull (test, store.test.base.base.erase);
+	CuAssertPtrNotNull (test, store.test.base.base.erase_all);
+	CuAssertPtrNotNull (test, store.test.base.base.get_data_length);
+	CuAssertPtrNotNull (test, store.test.base.base.has_data_stored);
+	CuAssertPtrNotNull (test, store.test.base.base.get_max_data_length);
+	CuAssertPtrNotNull (test, store.test.base.base.get_flash_size);
+	CuAssertPtrNotNull (test, store.test.base.base.get_num_blocks);
 
 	flash_store_contiguous_blocks_encrypted_testing_init_dependencies (test, &store);
 
@@ -3346,22 +3761,157 @@ static void flash_store_contiguous_blocks_encrypted_test_static_init_variable_st
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 3, 256);
+	status = flash_store_contiguous_blocks_encrypted_init_state (&store.test, 256);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.base.base.get_max_data_length (&test_static.base.base);
+	status = store.test.base.base.get_max_data_length (&store.test.base.base);
 	CuAssertIntEquals (test,
 		sector - sizeof (struct flash_store_header) - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN, status);
 
-	status = test_static.base.base.get_flash_size (&test_static.base.base);
+	status = store.test.base.base.get_flash_size (&store.test.base.base);
 	CuAssertIntEquals (test, 3 * sector, status);
 
-	status = test_static.base.base.get_num_blocks (&test_static.base.base);
+	status = store.test.base.base.get_num_blocks (&store.test.base.base);
 	CuAssertIntEquals (test, 3, status);
 
 	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
 
-	flash_store_contiguous_blocks_encrypted_release (&test_static);
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_static_init_variable_storage_decreasing_one_sector_per_block_max_space
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store = {
+		.test =
+			flash_store_contiguous_blocks_encrypted_static_init_variable_storage_decreasing (
+			&store.state, 0x4000, 5, &store.flash.base, &store.aes.base, &store.rng.base)
+	};
+	int status;
+	uint32_t page = 0x100;
+	uint32_t sector = 0x1000;
+	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_init_dependencies (test, &store);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&store.test, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_max_data_length (&store.test.base.base);
+	CuAssertIntEquals (test,
+		sector - sizeof (struct flash_store_header) - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN, status);
+
+	status = store.test.base.base.get_flash_size (&store.test.base.base);
+	CuAssertIntEquals (test, 5 * sector, status);
+
+	status = store.test.base.base.get_num_blocks (&store.test.base.base);
+	CuAssertIntEquals (test, 5, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_static_init_variable_storage_decreasing_null (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+
+	struct flash_store_contiguous_blocks_encrypted null_state =
+		flash_store_contiguous_blocks_encrypted_static_init_variable_storage_decreasing (NULL,
+		0x10000, 3, &store.flash.base, &store.aes.base, &store.rng.base);
+
+	struct flash_store_contiguous_blocks_encrypted null_flash =
+		flash_store_contiguous_blocks_encrypted_static_init_variable_storage_decreasing (
+		&store.state, 0x10000, 3, NULL, &store.aes.base, &store.rng.base);
+
+	struct flash_store_contiguous_blocks_encrypted null_aes =
+		flash_store_contiguous_blocks_encrypted_static_init_variable_storage_decreasing (
+		&store.state, 0x10000, 3, &store.flash.base, NULL, &store.rng.base);
+
+	struct flash_store_contiguous_blocks_encrypted null_rng =
+		flash_store_contiguous_blocks_encrypted_static_init_variable_storage_decreasing (
+		&store.state, 0x10000, 3, &store.flash.base, &store.aes.base, NULL);
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_init_dependencies (test, &store);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (NULL, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&null_state, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&null_flash, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&null_aes, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&null_rng, 256);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_static_init_variable_storage_decreasing_one_sector_per_block_not_enough_space
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store = {
+		.test =
+			flash_store_contiguous_blocks_encrypted_static_init_variable_storage_decreasing (
+			&store.state, 0x2000, 4, &store.flash.base, &store.aes.base, &store.rng.base)
+	};
+	int status;
+	uint32_t sector = 0x1000;
+	uint32_t bytes = 0x100000;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_init_dependencies (test, &store);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&store.test, 0);
+	CuAssertIntEquals (test, FLASH_STORE_INSUFFICIENT_STORAGE, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
 }
 
 static void flash_store_contiguous_blocks_encrypted_test_release_null (CuTest *test)
@@ -4703,7 +5253,7 @@ static void flash_store_contiguous_blocks_encrypted_test_write_fixed_storage_sta
 {
 	struct flash_store_contiguous_blocks_encrypted_testing store;
 	struct flash_store_contiguous_blocks_encrypted test_static =
-		flash_store_contiguous_blocks_encrypted_static_init_fixed_storage (&store.state, 0x10000,
+		flash_store_contiguous_blocks_encrypted_static_init_fixed_storage (&store.state, 0x10000, 3,
 		&store.flash.base, &store.aes.base, &store.rng.base);
 	int status;
 	uint8_t data[256];
@@ -4725,7 +5275,7 @@ static void flash_store_contiguous_blocks_encrypted_test_write_fixed_storage_sta
 	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
 		0x100000, 1);
 
-	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 3, 256);
+	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 256);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.rng.mock, store.rng.base.generate_random_buffer, &store.rng, 0,
@@ -5008,7 +5558,7 @@ flash_store_contiguous_blocks_encrypted_test_write_fixed_storage_decreasing_mult
 	status |= mock_expect_output (&store.aes.mock, 6, AES_GCM_TESTING_RSA_PRIVKEY_GCM_TAG,
 		AES_GCM_TESTING_TAG_LEN, 7);
 
-	status |= flash_mock_expect_erase_flash_sector_ext (&store.flash, 0xfc00, sizeof (enc),	sector);
+	status |= flash_mock_expect_erase_flash_sector_ext (&store.flash, 0xfc00, sizeof (enc), sector);
 
 	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (enc),
 		MOCK_ARG (0xfc00), MOCK_ARG_PTR_CONTAINS (enc, sizeof (enc)), MOCK_ARG (sizeof (enc)));
@@ -6059,7 +6609,7 @@ static void flash_store_contiguous_blocks_encrypted_test_write_fixed_storage_dec
 	struct flash_store_contiguous_blocks_encrypted_testing store;
 	struct flash_store_contiguous_blocks_encrypted test_static =
 		flash_store_contiguous_blocks_encrypted_static_init_fixed_storage_decreasing (&store.state,
-		0x10000, &store.flash.base, &store.aes.base, &store.rng.base);
+		0x10000, 3, &store.flash.base, &store.aes.base, &store.rng.base);
 	int status;
 	uint8_t data[256];
 	uint8_t enc[sizeof (data)];
@@ -6080,7 +6630,7 @@ static void flash_store_contiguous_blocks_encrypted_test_write_fixed_storage_dec
 	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
 		0x100000, 1);
 
-	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 3, 256);
+	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 256);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.rng.mock, store.rng.base.generate_random_buffer, &store.rng, 0,
@@ -8008,8 +8558,8 @@ static void flash_store_contiguous_blocks_encrypted_test_write_variable_storage_
 {
 	struct flash_store_contiguous_blocks_encrypted_testing store;
 	struct flash_store_contiguous_blocks_encrypted test_static =
-		flash_store_contiguous_blocks_encrypted_static_init_variable_storage (&store.state,	0x10000,
-		&store.flash.base, &store.aes.base, &store.rng.base);
+		flash_store_contiguous_blocks_encrypted_static_init_variable_storage (&store.state, 0x10000,
+		3, &store.flash.base, &store.aes.base, &store.rng.base);
 	int status;
 	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
 	uint8_t data[256];
@@ -8031,7 +8581,7 @@ static void flash_store_contiguous_blocks_encrypted_test_write_variable_storage_
 	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
 		0x100000, 1);
 
-	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 3, 256);
+	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 256);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.rng.mock, store.rng.base.generate_random_buffer, &store.rng, 0,
@@ -8206,7 +8756,7 @@ flash_store_contiguous_blocks_encrypted_test_write_variable_storage_decreasing_l
 	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (tag),
 		MOCK_ARG (0xe000 + sizeof (header) + sizeof (enc)),
 		MOCK_ARG_PTR_CONTAINS (tag, sizeof (tag)), MOCK_ARG (sizeof (tag)));
-	status |= flash_mock_expect_verify_flash (&store.flash,	0xe000 + sizeof (header) + sizeof (enc),
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000 + sizeof (header) + sizeof (enc),
 		tag, sizeof (tag));
 
 	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (header),
@@ -8496,7 +9046,7 @@ flash_store_contiguous_blocks_encrypted_test_write_variable_storage_decreasing_m
 	status |= mock_expect_output (&store.aes.mock, 6, AES_GCM_TESTING_RSA_PRIVKEY_GCM_TAG,
 		AES_GCM_TESTING_TAG_LEN, 7);
 
-	status |= flash_mock_expect_erase_flash_sector_ext (&store.flash, 0xfc00, sizeof (enc),	sector);
+	status |= flash_mock_expect_erase_flash_sector_ext (&store.flash, 0xfc00, sizeof (enc), sector);
 
 	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (enc),
 		MOCK_ARG (0xfc00 + sizeof (header)), MOCK_ARG_PTR_CONTAINS (enc, sizeof (enc)),
@@ -9976,7 +10526,7 @@ flash_store_contiguous_blocks_encrypted_test_write_variable_storage_decreasing_s
 	struct flash_store_contiguous_blocks_encrypted_testing store;
 	struct flash_store_contiguous_blocks_encrypted test_static =
 		flash_store_contiguous_blocks_encrypted_static_init_variable_storage_decreasing (
-		&store.state, 0x10000, &store.flash.base, &store.aes.base, &store.rng.base);
+		&store.state, 0x10000, 3, &store.flash.base, &store.aes.base, &store.rng.base);
 	int status;
 	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
 	uint8_t data[256];
@@ -9998,7 +10548,7 @@ flash_store_contiguous_blocks_encrypted_test_write_variable_storage_decreasing_s
 	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
 		0x100000, 1);
 
-	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 3, 256);
+	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 256);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.rng.mock, store.rng.base.generate_random_buffer, &store.rng, 0,
@@ -12573,6 +13123,1190 @@ flash_store_contiguous_blocks_encrypted_test_write_variable_storage_min_write_mu
 	flash_store_contiguous_blocks_encrypted_release (&store.test);
 }
 
+static void flash_store_contiguous_blocks_encrypted_test_get_data_length_fixed_storage (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_fixed_storage (&store.test, &store.state,
+		&store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, 256, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_fixed_storage_multiple_sectors (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint32_t sector = 0x100;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, sector,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_fixed_storage (&store.test, &store.state,
+		&store.flash.base, 0x10000, 3, 512, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, 512, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_encrypted_test_get_data_length_fixed_storage_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	struct flash_store_contiguous_blocks_encrypted test_static =
+		flash_store_contiguous_blocks_encrypted_static_init_fixed_storage (&store.state, 0x10000, 3,
+		&store.flash.base, &store.aes.base, &store.rng.base);
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.base.get_data_length (&test_static.base.base, 0);
+	CuAssertIntEquals (test, 256, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&test_static);
+}
+
+static void flash_store_contiguous_blocks_encrypted_test_get_data_length_fixed_storage_decreasing (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_fixed_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, 256, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_fixed_storage_decreasing_multiple_sectors
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint32_t sector = 0x100;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, sector,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_fixed_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 512, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, 512, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_fixed_storage_decreasing_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	struct flash_store_contiguous_blocks_encrypted test_static =
+		flash_store_contiguous_blocks_encrypted_static_init_fixed_storage_decreasing (&store.state,
+		0x10000, 3, &store.flash.base, &store.aes.base, &store.rng.base);
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.base.get_data_length (&test_static.base.base, 0);
+	CuAssertIntEquals (test, 256, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&test_static);
+}
+
+static void flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, 256, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_last_block
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x00, 0x02};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x12000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 2);
+	CuAssertIntEquals (test, 512, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_max_length
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0xe0, 0x0f};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, 0xfe0, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_multiple_sectors (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint32_t sector = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xe0, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, sector,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508 - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN,
+		&store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, 0x1e0, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_multiple_sectors_last_block
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint32_t sector = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xe0, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, sector,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508 - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN,
+		&store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10400), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 2);
+	CuAssertIntEquals (test, 0x1e0, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_extra_sector_for_header
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint32_t sector = 0x200;
+	uint8_t header[] = {0x04, 0xa5, 0xe4, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, sector,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 512 - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN,
+		&store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, 0x1e4, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_extra_sector_for_header_last_block
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint32_t sector = 0x200;
+	uint8_t header[] = {0x04, 0xa5, 0xe4, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, sector,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 512 - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN,
+		&store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10800), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 2);
+	CuAssertIntEquals (test, 0x1e4, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_extra_sector_for_tag (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint32_t sector = 0x200;
+	uint8_t header[] = {0x04, 0xa5, 0xfc, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, sector,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, 0x1fc, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_extra_sector_for_tag_last_block
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint32_t sector = 0x200;
+	uint8_t header[] = {0x04, 0xa5, 0xfc, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, sector,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10800), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 2);
+	CuAssertIntEquals (test, 0x1fc, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_longer_header (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint8_t header[] = {0x05, 0xa5, 0x00, 0x01, 0x02};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (struct flash_store_header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, 256, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_old_format
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint8_t header[] = {0x00, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (struct flash_store_header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, 256, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	struct flash_store_contiguous_blocks_encrypted test_static =
+		flash_store_contiguous_blocks_encrypted_static_init_variable_storage (&store.state, 0x10000,
+		3, &store.flash.base, &store.aes.base, &store.rng.base);
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.base.get_data_length (&test_static.base.base, 0);
+	CuAssertIntEquals (test, 256, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&test_static);
+}
+
+static void flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, 256, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_last_block
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x00, 0x02};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0xe000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 2);
+	CuAssertIntEquals (test, 512, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_max_length
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0xe0, 0x0f};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, 0xfe0, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_multiple_sectors
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint32_t sector = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xe0, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, sector,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508 - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN,
+		&store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, 0x1e0, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_multiple_sectors_last_block
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint32_t sector = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xe0, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, sector,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508 - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN,
+		&store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0xfc00), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 2);
+	CuAssertIntEquals (test, 0x1e0, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_extra_sector_for_header
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint32_t sector = 0x200;
+	uint8_t header[] = {0x04, 0xa5, 0xe4, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, sector,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 512 - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN,
+		&store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, 0x1e4, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_extra_sector_for_header_last_block
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint32_t sector = 0x200;
+	uint8_t header[] = {0x04, 0xa5, 0xe4, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, sector,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 512 - FLASH_STORE_ENCRYPTED_TEST_TAG_LEN,
+		&store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0xf800), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 2);
+	CuAssertIntEquals (test, 0x1e4, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_extra_sector_for_tag
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint32_t sector = 0x200;
+	uint8_t header[] = {0x04, 0xa5, 0xfc, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, sector,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, 0x1fc, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_extra_sector_for_tag_last_block
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint32_t sector = 0x200;
+	uint8_t header[] = {0x04, 0xa5, 0xfc, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, sector,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0xf800), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 2);
+	CuAssertIntEquals (test, 0x1fc, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_longer_header
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint8_t header[] = {0x05, 0xa5, 0x00, 0x01, 0x02};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (struct flash_store_header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, 256, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_old_format
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint8_t header[] = {0x00, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (struct flash_store_header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, 256, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_static_init
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	struct flash_store_contiguous_blocks_encrypted test_static =
+		flash_store_contiguous_blocks_encrypted_static_init_variable_storage_decreasing (
+		&store.state, 0x10000, 3, &store.flash.base, &store.aes.base, &store.rng.base);
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.base.get_data_length (&test_static.base.base, 0);
+	CuAssertIntEquals (test, 256, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&test_static);
+}
+
+static void flash_store_contiguous_blocks_encrypted_test_get_data_length_fixed_storage_null (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_fixed_storage (&store.test, &store.state,
+		&store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (NULL, 0);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_encrypted_test_get_data_length_fixed_storage_invalid_id (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_fixed_storage (&store.test, &store.state,
+		&store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 3);
+	CuAssertIntEquals (test, FLASH_STORE_UNSUPPORTED_ID, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, -1);
+	CuAssertIntEquals (test, FLASH_STORE_UNSUPPORTED_ID, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_null (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (NULL, 0);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_invalid_id
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 3);
+	CuAssertIntEquals (test, FLASH_STORE_UNSUPPORTED_ID, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, -1);
+	CuAssertIntEquals (test, FLASH_STORE_UNSUPPORTED_ID, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_read_header_error (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, FLASH_READ_FAILED,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (struct flash_store_header)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_invalid_header_marker
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xb5, 0x00, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, FLASH_STORE_NO_DATA, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_short_header (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint8_t header[] = {0x03, 0xa5, 0x00, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, FLASH_STORE_NO_DATA, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_invalid_data_length (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0xe1, 0x0f};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, FLASH_STORE_NO_DATA, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void
+flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_old_format_invalid_data_length
+(
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	int status;
+	uint8_t header[] = {0xe1, 0x0f};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (struct flash_store_header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.base.get_data_length (&store.test.base.base, 0);
+	CuAssertIntEquals (test, FLASH_STORE_NO_DATA, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
 static void flash_store_contiguous_blocks_encrypted_test_read_fixed_storage (CuTest *test)
 {
 	struct flash_store_contiguous_blocks_encrypted_testing store;
@@ -13037,7 +14771,7 @@ static void flash_store_contiguous_blocks_encrypted_test_read_fixed_storage_stat
 {
 	struct flash_store_contiguous_blocks_encrypted_testing store;
 	struct flash_store_contiguous_blocks_encrypted test_static =
-		flash_store_contiguous_blocks_encrypted_static_init_fixed_storage (&store.state, 0x10000,
+		flash_store_contiguous_blocks_encrypted_static_init_fixed_storage (&store.state, 0x10000, 3,
 		&store.flash.base, &store.aes.base, &store.rng.base);
 	int status;
 	uint8_t data[256];
@@ -13060,7 +14794,7 @@ static void flash_store_contiguous_blocks_encrypted_test_read_fixed_storage_stat
 	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
 		0x100000, 1);
 
-	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 3, 256);
+	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 256);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -13504,65 +15238,6 @@ flash_store_contiguous_blocks_encrypted_test_read_fixed_storage_decreasing_extra
 	flash_store_contiguous_blocks_encrypted_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_encrypted_test_read_fixed_storage_decreasing_static_init (
-	CuTest *test)
-{
-	struct flash_store_contiguous_blocks_encrypted_testing store;
-	struct flash_store_contiguous_blocks_encrypted test_static =
-		flash_store_contiguous_blocks_encrypted_static_init_fixed_storage_decreasing (&store.state,
-		0x10000, &store.flash.base, &store.aes.base, &store.rng.base);
-	int status;
-	uint8_t data[256];
-	uint8_t enc[sizeof (data)];
-	uint8_t out[sizeof (data)] = {0};
-	int i;
-	uint8_t tag[FLASH_STORE_ENCRYPTED_TEST_TAG_LEN];
-
-	TEST_START;
-
-	for (i = 0; i < (int) sizeof (data); i++) {
-		data[i] = i;
-		enc[i] = ~i;
-	}
-
-	memcpy (tag, AES_GCM_TESTING_IV, AES_GCM_TESTING_IV_LEN);
-	memcpy (&tag[AES_GCM_TESTING_IV_LEN], AES_GCM_TESTING_RSA_PRIVKEY_GCM_TAG,
-		AES_GCM_TESTING_TAG_LEN);
-
-	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
-		0x100000, 1);
-
-	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 3, 256);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (out)));
-	status |= mock_expect_output (&store.flash.mock, 1, enc, sizeof (enc), 2);
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000 + sizeof (enc)), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (tag)));
-	status |= mock_expect_output (&store.flash.mock, 1, tag, sizeof (tag), 2);
-
-	status |= mock_expect (&store.aes.mock, store.aes.base.decrypt_data, &store.aes, 0,
-		MOCK_ARG_PTR_CONTAINS (enc, sizeof (enc)), MOCK_ARG (sizeof (enc)),
-		MOCK_ARG_PTR_CONTAINS (AES_GCM_TESTING_RSA_PRIVKEY_GCM_TAG, AES_GCM_TESTING_TAG_LEN),
-		MOCK_ARG_PTR_CONTAINS (AES_GCM_TESTING_IV, AES_GCM_TESTING_IV_LEN),
-		MOCK_ARG (AES_GCM_TESTING_IV_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (enc)));
-	status |= mock_expect_output (&store.aes.mock, 5, data, sizeof (data), 6);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = test_static.base.base.read (&test_static.base.base, 0, out, sizeof (out));
-	CuAssertIntEquals (test, sizeof (data), status);
-
-	status = testing_validate_array (data, out, status);
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_encrypted_release (&test_static);
-}
-
 static void
 flash_store_contiguous_blocks_encrypted_test_read_fixed_storage_decreasing_extra_sector_for_tag_last_block
 (
@@ -13622,6 +15297,65 @@ flash_store_contiguous_blocks_encrypted_test_read_fixed_storage_decreasing_extra
 	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
 
 	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_encrypted_test_read_fixed_storage_decreasing_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	struct flash_store_contiguous_blocks_encrypted test_static =
+		flash_store_contiguous_blocks_encrypted_static_init_fixed_storage_decreasing (&store.state,
+		0x10000, 3, &store.flash.base, &store.aes.base, &store.rng.base);
+	int status;
+	uint8_t data[256];
+	uint8_t enc[sizeof (data)];
+	uint8_t out[sizeof (data)] = {0};
+	int i;
+	uint8_t tag[FLASH_STORE_ENCRYPTED_TEST_TAG_LEN];
+
+	TEST_START;
+
+	for (i = 0; i < (int) sizeof (data); i++) {
+		data[i] = i;
+		enc[i] = ~i;
+	}
+
+	memcpy (tag, AES_GCM_TESTING_IV, AES_GCM_TESTING_IV_LEN);
+	memcpy (&tag[AES_GCM_TESTING_IV_LEN], AES_GCM_TESTING_RSA_PRIVKEY_GCM_TAG,
+		AES_GCM_TESTING_TAG_LEN);
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (out)));
+	status |= mock_expect_output (&store.flash.mock, 1, enc, sizeof (enc), 2);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000 + sizeof (enc)), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (tag)));
+	status |= mock_expect_output (&store.flash.mock, 1, tag, sizeof (tag), 2);
+
+	status |= mock_expect (&store.aes.mock, store.aes.base.decrypt_data, &store.aes, 0,
+		MOCK_ARG_PTR_CONTAINS (enc, sizeof (enc)), MOCK_ARG (sizeof (enc)),
+		MOCK_ARG_PTR_CONTAINS (AES_GCM_TESTING_RSA_PRIVKEY_GCM_TAG, AES_GCM_TESTING_TAG_LEN),
+		MOCK_ARG_PTR_CONTAINS (AES_GCM_TESTING_IV, AES_GCM_TESTING_IV_LEN),
+		MOCK_ARG (AES_GCM_TESTING_IV_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (enc)));
+	status |= mock_expect_output (&store.aes.mock, 5, data, sizeof (data), 6);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.base.read (&test_static.base.base, 0, out, sizeof (out));
+	CuAssertIntEquals (test, sizeof (data), status);
+
+	status = testing_validate_array (data, out, status);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_encrypted_test_read_variable_storage (CuTest *test)
@@ -14337,71 +16071,6 @@ flash_store_contiguous_blocks_encrypted_test_read_variable_storage_extra_sector_
 	flash_store_contiguous_blocks_encrypted_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_encrypted_test_read_variable_storage_static_init (
-	CuTest *test)
-{
-	struct flash_store_contiguous_blocks_encrypted_testing store;
-	struct flash_store_contiguous_blocks_encrypted test_static =
-		flash_store_contiguous_blocks_encrypted_static_init_variable_storage (&store.state,	0x10000,
-		&store.flash.base, &store.aes.base, &store.rng.base);
-	int status;
-	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
-	uint8_t data[256];
-	uint8_t enc[sizeof (data)];
-	uint8_t out[0x1000] = {0};
-	int i;
-	uint8_t tag[FLASH_STORE_ENCRYPTED_TEST_TAG_LEN];
-
-	TEST_START;
-
-	for (i = 0; i < (int) sizeof (data); i++) {
-		data[i] = i;
-		enc[i] = ~i;
-	}
-
-	memcpy (tag, AES_GCM_TESTING_IV, AES_GCM_TESTING_IV_LEN);
-	memcpy (&tag[AES_GCM_TESTING_IV_LEN], AES_GCM_TESTING_RSA_PRIVKEY_GCM_TAG,
-		AES_GCM_TESTING_TAG_LEN);
-
-	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
-		0x100000, 1);
-
-	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 3, 256);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
-	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (enc)));
-	status |= mock_expect_output (&store.flash.mock, 1, enc, sizeof (enc), 2);
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000 + sizeof (header) + sizeof (enc)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (sizeof (tag)));
-	status |= mock_expect_output (&store.flash.mock, 1, tag, sizeof (tag), 2);
-
-	status |= mock_expect (&store.aes.mock, store.aes.base.decrypt_data, &store.aes, 0,
-		MOCK_ARG_PTR_CONTAINS (enc, sizeof (enc)), MOCK_ARG (sizeof (enc)),
-		MOCK_ARG_PTR_CONTAINS (AES_GCM_TESTING_RSA_PRIVKEY_GCM_TAG, AES_GCM_TESTING_TAG_LEN),
-		MOCK_ARG_PTR_CONTAINS (AES_GCM_TESTING_IV, AES_GCM_TESTING_IV_LEN),
-		MOCK_ARG (AES_GCM_TESTING_IV_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (enc)));
-	status |= mock_expect_output (&store.aes.mock, 5, data, sizeof (data), 6);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = test_static.base.base.read (&test_static.base.base, 0, out, sizeof (out));
-	CuAssertIntEquals (test, sizeof (data), status);
-
-	status = testing_validate_array (data, out, status);
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_encrypted_release (&test_static);
-}
-
 static void flash_store_contiguous_blocks_encrypted_test_read_variable_storage_longer_header (
 	CuTest *test)
 {
@@ -14528,6 +16197,71 @@ static void flash_store_contiguous_blocks_encrypted_test_read_variable_storage_o
 	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
 
 	flash_store_contiguous_blocks_encrypted_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_encrypted_test_read_variable_storage_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_encrypted_testing store;
+	struct flash_store_contiguous_blocks_encrypted test_static =
+		flash_store_contiguous_blocks_encrypted_static_init_variable_storage (&store.state, 0x10000,
+		3, &store.flash.base, &store.aes.base, &store.rng.base);
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
+	uint8_t data[256];
+	uint8_t enc[sizeof (data)];
+	uint8_t out[0x1000] = {0};
+	int i;
+	uint8_t tag[FLASH_STORE_ENCRYPTED_TEST_TAG_LEN];
+
+	TEST_START;
+
+	for (i = 0; i < (int) sizeof (data); i++) {
+		data[i] = i;
+		enc[i] = ~i;
+	}
+
+	memcpy (tag, AES_GCM_TESTING_IV, AES_GCM_TESTING_IV_LEN);
+	memcpy (&tag[AES_GCM_TESTING_IV_LEN], AES_GCM_TESTING_RSA_PRIVKEY_GCM_TAG,
+		AES_GCM_TESTING_TAG_LEN);
+
+	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
+		0x100000, 1);
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (enc)));
+	status |= mock_expect_output (&store.flash.mock, 1, enc, sizeof (enc), 2);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000 + sizeof (header) + sizeof (enc)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (sizeof (tag)));
+	status |= mock_expect_output (&store.flash.mock, 1, tag, sizeof (tag), 2);
+
+	status |= mock_expect (&store.aes.mock, store.aes.base.decrypt_data, &store.aes, 0,
+		MOCK_ARG_PTR_CONTAINS (enc, sizeof (enc)), MOCK_ARG (sizeof (enc)),
+		MOCK_ARG_PTR_CONTAINS (AES_GCM_TESTING_RSA_PRIVKEY_GCM_TAG, AES_GCM_TESTING_TAG_LEN),
+		MOCK_ARG_PTR_CONTAINS (AES_GCM_TESTING_IV, AES_GCM_TESTING_IV_LEN),
+		MOCK_ARG (AES_GCM_TESTING_IV_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (enc)));
+	status |= mock_expect_output (&store.aes.mock, 5, data, sizeof (data), 6);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.base.read (&test_static.base.base, 0, out, sizeof (out));
+	CuAssertIntEquals (test, sizeof (data), status);
+
+	status = testing_validate_array (data, out, status);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_encrypted_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_encrypted_test_read_variable_storage_decreasing (
@@ -15389,7 +17123,7 @@ flash_store_contiguous_blocks_encrypted_test_read_variable_storage_decreasing_st
 	struct flash_store_contiguous_blocks_encrypted_testing store;
 	struct flash_store_contiguous_blocks_encrypted test_static =
 		flash_store_contiguous_blocks_encrypted_static_init_variable_storage_decreasing (
-		&store.state, 0x10000, &store.flash.base, &store.aes.base, &store.rng.base);
+		&store.state, 0x10000, 3, &store.flash.base, &store.aes.base, &store.rng.base);
 	int status;
 	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
 	uint8_t data[256];
@@ -15412,7 +17146,7 @@ flash_store_contiguous_blocks_encrypted_test_read_variable_storage_decreasing_st
 	flash_store_contiguous_blocks_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000,
 		0x100000, 1);
 
-	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 3, 256);
+	status = flash_store_contiguous_blocks_encrypted_init_state (&test_static, 256);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -15910,7 +17644,7 @@ static void flash_store_contiguous_blocks_encrypted_test_read_variable_storage_r
 	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
 
 	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash,
-		FLASH_READ_FAILED, MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_NOT_NULL,	MOCK_ARG (256));
+		FLASH_READ_FAILED, MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_NOT_NULL, MOCK_ARG (256));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -16109,9 +17843,21 @@ TEST (flash_store_contiguous_blocks_encrypted_test_init_variable_storage_decreas
 TEST (flash_store_contiguous_blocks_encrypted_test_init_variable_storage_decreasing_page_size_error);
 TEST (flash_store_contiguous_blocks_encrypted_test_init_variable_storage_decreasing_min_write_error);
 TEST (flash_store_contiguous_blocks_encrypted_test_static_init_fixed_storage);
+TEST (flash_store_contiguous_blocks_encrypted_test_static_init_fixed_storage_one_sector_per_block_max_space);
+TEST (flash_store_contiguous_blocks_encrypted_test_static_init_fixed_storage_null);
+TEST (flash_store_contiguous_blocks_encrypted_test_static_init_fixed_storage_one_sector_per_block_not_enough_space);
 TEST (flash_store_contiguous_blocks_encrypted_test_static_init_fixed_storage_decreasing);
+TEST (flash_store_contiguous_blocks_encrypted_test_static_init_fixed_storage_decreasing_one_sector_per_block_max_space);
+TEST (flash_store_contiguous_blocks_encrypted_test_static_init_fixed_storage_decreasing_null);
+TEST (flash_store_contiguous_blocks_encrypted_test_static_init_fixed_storage_decreasing_one_sector_per_block_not_enough_space);
 TEST (flash_store_contiguous_blocks_encrypted_test_static_init_variable_storage);
+TEST (flash_store_contiguous_blocks_encrypted_test_static_init_variable_storage_one_sector_per_block_max_space);
+TEST (flash_store_contiguous_blocks_encrypted_test_static_init_variable_storage_null);
+TEST (flash_store_contiguous_blocks_encrypted_test_static_init_variable_storage_one_sector_per_block_not_enough_space);
 TEST (flash_store_contiguous_blocks_encrypted_test_static_init_variable_storage_decreasing);
+TEST (flash_store_contiguous_blocks_encrypted_test_static_init_variable_storage_decreasing_one_sector_per_block_max_space);
+TEST (flash_store_contiguous_blocks_encrypted_test_static_init_variable_storage_decreasing_null);
+TEST (flash_store_contiguous_blocks_encrypted_test_static_init_variable_storage_decreasing_one_sector_per_block_not_enough_space);
 TEST (flash_store_contiguous_blocks_encrypted_test_release_null);
 TEST (flash_store_contiguous_blocks_encrypted_test_get_max_data_length_null);
 TEST (flash_store_contiguous_blocks_encrypted_test_get_flash_size_null);
@@ -16246,6 +17992,45 @@ TEST (flash_store_contiguous_blocks_encrypted_test_write_variable_storage_min_wr
 TEST (flash_store_contiguous_blocks_encrypted_test_write_variable_storage_min_write_multiple_pages_verify_tag_error);
 TEST (flash_store_contiguous_blocks_encrypted_test_write_variable_storage_min_write_multiple_pages_write_first_error);
 TEST (flash_store_contiguous_blocks_encrypted_test_write_variable_storage_min_write_multiple_pages_verify_first_error);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_fixed_storage);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_fixed_storage_multiple_sectors);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_fixed_storage_static_init);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_fixed_storage_decreasing);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_fixed_storage_decreasing_multiple_sectors);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_fixed_storage_decreasing_static_init);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_last_block);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_max_length);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_multiple_sectors);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_multiple_sectors_last_block);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_extra_sector_for_header);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_extra_sector_for_header_last_block);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_extra_sector_for_tag);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_extra_sector_for_tag_last_block);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_longer_header);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_old_format);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_static_init);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_last_block);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_max_length);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_multiple_sectors);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_multiple_sectors_last_block);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_extra_sector_for_header);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_extra_sector_for_header_last_block);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_extra_sector_for_tag);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_extra_sector_for_tag_last_block);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_longer_header);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_old_format);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_decreasing_static_init);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_fixed_storage_null);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_fixed_storage_invalid_id);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_null);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_invalid_id);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_read_header_error);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_invalid_header_marker);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_short_header);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_invalid_data_length);
+TEST (flash_store_contiguous_blocks_encrypted_test_get_data_length_variable_storage_old_format_invalid_data_length);
 TEST (flash_store_contiguous_blocks_encrypted_test_read_fixed_storage);
 TEST (flash_store_contiguous_blocks_encrypted_test_read_fixed_storage_last_block);
 TEST (flash_store_contiguous_blocks_encrypted_test_read_fixed_storage_large_buffer);

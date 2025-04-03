@@ -59,7 +59,13 @@ struct flash_store {
 	int (*erase_all) (const struct flash_store *flash_store);
 
 	/**
-	 * Get the length of the data stored in flash block.
+	 * Get the length of the data stored in flash block.  This represents the minimum buffer size
+	 * needed to read a block data from storage.
+	 *
+	 * Depending on how the data is physically stored, this value may not represent the length of
+	 * the data that will be returned when read, as there may be additional bytes added internally
+	 * that will get stripped off.  It's also possible for this value to be larger than the maximum
+	 * data length reported by flash_store.get_max_data_length().
 	 *
 	 * @param flash_store The flash to query.
 	 * @param id Block ID to query.
@@ -83,6 +89,9 @@ struct flash_store {
 	/**
 	 * Get the maximum amount of data that can be stored in a single flash block.
 	 *
+	 * This is not represent the physical storage space available to a flash block.  Rather, this
+	 * indicates the largest data buffer that can be provided for storage in a flash block.
+	 *
 	 * @param flash_store The flash to query.
 	 *
 	 * @return The maximum data length or an error code.  Use ROT_IS_ERROR to check the return
@@ -91,7 +100,7 @@ struct flash_store {
 	int (*get_max_data_length) (const struct flash_store *flash_store);
 
 	/**
-	 * Gets the total amount of flash reserved for storage.  This includes all overhead for sector
+	 * Get the total amount of flash reserved for storage.  This includes all overhead for sector
 	 * alignment and any additional metadata stored.
 	 *
 	 * @param flash_store The flash to query.

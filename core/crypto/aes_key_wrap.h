@@ -33,8 +33,7 @@ int aes_key_wrap_data_wrap (const struct aes_key_wrap *key_wrap,
 	const uint8_t initial_value[AES_KEY_WRAP_INTERFACE_BLOCK_SIZE], uint8_t *wrapped,
 	size_t length);
 int aes_key_wrap_data_unwrap (const struct aes_key_wrap *key_wrap, const uint8_t *wrapped,
-	size_t length, uint8_t *data, size_t out_length,
-	uint8_t integrity_check[AES_KEY_WRAP_INTERFACE_BLOCK_SIZE]);
+	size_t length, uint8_t *data, uint8_t integrity_check[AES_KEY_WRAP_INTERFACE_BLOCK_SIZE]);
 
 
 #endif	/* AES_KEY_WRAP_H_ */

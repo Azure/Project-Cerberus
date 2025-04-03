@@ -33,14 +33,14 @@ int flash_store_contiguous_blocks_verify_write_params (
 		return FLASH_STORE_INVALID_ARGUMENT;
 	}
 
-	if ((id < 0) || ((uint32_t) id >= flash->state->blocks)) {
+	if ((id < 0) || ((uint32_t) id >= flash->blocks)) {
 		return FLASH_STORE_UNSUPPORTED_ID;
 	}
 
-	if (!flash->variable && (length != flash->state->max_size)) {
+	if (!flash->variable && (length != (flash->state->max_size - flash->state->overhead))) {
 		return FLASH_STORE_BAD_DATA_LENGTH;
 	}
-	else if (length > flash->state->max_size) {
+	else if (length > (flash->state->max_size - flash->state->overhead)) {
 		return FLASH_STORE_BAD_DATA_LENGTH;
 	}
 
@@ -337,6 +337,9 @@ static int flash_store_contiguous_blocks_read_header (
  * @param id Block ID of the data.
  * @param data Output buffer for the data.
  * @param length Length of the data buffer.
+ * @param alignment Enforce a specific byte alignment on the length of the data in storage.  If the
+ * length is not properly aligned, report that the block has no data.  Set this to 0 if there no
+ * required alignment.
  * @param extra_data Output buffer for extra data that should be read from the data block.  Set to
  * null to read no extra data.
  * @param extra_length Length of the extra data to read.
@@ -345,8 +348,8 @@ static int flash_store_contiguous_blocks_read_header (
  * @return 0 if the data was read successfully or an error code.
  */
 int flash_store_contiguous_blocks_read_common (const struct flash_store_contiguous_blocks *flash,
-	int id, uint8_t *data, size_t length, uint8_t *extra_data, size_t extra_length,
-	size_t *out_length)
+	int id, uint8_t *data, size_t length, size_t alignment, uint8_t *extra_data,
+	size_t extra_length, size_t *out_length)
 {
 	int offset;
 	int status;
@@ -355,7 +358,7 @@ int flash_store_contiguous_blocks_read_common (const struct flash_store_contiguo
 		return FLASH_STORE_INVALID_ARGUMENT;
 	}
 
-	if ((id < 0) || ((uint32_t) id >= flash->state->blocks)) {
+	if ((id < 0) || ((uint32_t) id >= flash->blocks)) {
 		return FLASH_STORE_UNSUPPORTED_ID;
 	}
 
@@ -387,6 +390,10 @@ int flash_store_contiguous_blocks_read_common (const struct flash_store_contiguo
 		length = flash->state->max_size;
 	}
 
+	if ((alignment != 0) && ((length % alignment) != 0)) {
+		return FLASH_STORE_NO_DATA;
+	}
+
 	status = flash->flash->read (flash->flash, flash->base_addr + offset, data, length);
 	if (status != 0) {
 		return status;
@@ -413,7 +420,8 @@ int flash_store_contiguous_blocks_read_no_hash (const struct flash_store *flash_
 		(const struct flash_store_contiguous_blocks*) flash_store;
 	int status;
 
-	status = flash_store_contiguous_blocks_read_common (flash, id, data, length, NULL, 0, &length);
+	status = flash_store_contiguous_blocks_read_common (flash, id, data, length, 0, NULL, 0,
+		&length);
 
 	return (status == 0) ? (int) length : status;
 }
@@ -427,7 +435,7 @@ int flash_store_contiguous_blocks_read_with_hash (const struct flash_store *flas
 	uint8_t hash_flash[SHA256_HASH_LENGTH];
 	int status;
 
-	status = flash_store_contiguous_blocks_read_common (flash, id, data, length, hash_flash,
+	status = flash_store_contiguous_blocks_read_common (flash, id, data, length, 0, hash_flash,
 		sizeof (hash_flash), &length);
 	if (status != 0) {
 		return status;
@@ -455,7 +463,7 @@ int flash_store_contiguous_blocks_erase (const struct flash_store *flash_store, 
 		return FLASH_STORE_INVALID_ARGUMENT;
 	}
 
-	if ((id < 0) || ((uint32_t) id >= flash->state->blocks)) {
+	if ((id < 0) || ((uint32_t) id >= flash->blocks)) {
 		return FLASH_STORE_UNSUPPORTED_ID;
 	}
 
@@ -479,11 +487,11 @@ int flash_store_contiguous_blocks_erase_all (const struct flash_store *flash_sto
 	}
 
 	if (flash->decreasing) {
-		offset = flash->state->block_size * (flash->state->blocks - 1);
+		offset = flash->state->block_size * (flash->blocks - 1);
 	}
 
 	return flash_sector_erase_region_and_verify (flash->flash, flash->base_addr - offset,
-		flash->state->block_size * flash->state->blocks);
+		flash->state->block_size * flash->blocks);
 }
 
 int flash_store_contiguous_blocks_get_data_length (const struct flash_store *flash_store, int id)
@@ -495,7 +503,7 @@ int flash_store_contiguous_blocks_get_data_length (const struct flash_store *fla
 		return FLASH_STORE_INVALID_ARGUMENT;
 	}
 
-	if ((id < 0) || ((uint32_t) id >= flash->state->blocks)) {
+	if ((id < 0) || ((uint32_t) id >= flash->blocks)) {
 		return FLASH_STORE_UNSUPPORTED_ID;
 	}
 
@@ -523,42 +531,23 @@ int flash_store_contiguous_blocks_get_data_length (const struct flash_store *fla
 
 int flash_store_contiguous_blocks_has_data_stored (const struct flash_store *flash_store, int id)
 {
-	const struct flash_store_contiguous_blocks *flash =
-		(const struct flash_store_contiguous_blocks*) flash_store;
+	int length;
 
-	if (flash == NULL) {
+	if (flash_store == NULL) {
 		return FLASH_STORE_INVALID_ARGUMENT;
 	}
 
-	if ((id < 0) || ((uint32_t) id >= flash->state->blocks)) {
-		return FLASH_STORE_UNSUPPORTED_ID;
-	}
-
-	if (flash->variable) {
-		struct flash_store_header header;
-		int offset;
-		int status;
-
-		offset = id * flash->state->block_size;
-		if (flash->decreasing) {
-			offset = -offset;
+	length = flash_store->get_data_length (flash_store, id);
+	if (ROT_IS_ERROR (length)) {
+		if (length == FLASH_STORE_NO_DATA) {
+			return 0;
 		}
-
-		status = flash_store_contiguous_blocks_read_header (flash, offset, &header);
-		switch (status) {
-			case 0:
-				return 1;
-
-			case FLASH_STORE_NO_DATA:
-				return 0;
-
-			default:
-				return status;
+		else {
+			return length;
 		}
 	}
-	else {
-		return 1;
-	}
+
+	return 1;
 }
 
 int flash_store_contiguous_blocks_get_max_data_length (const struct flash_store *flash_store)
@@ -570,7 +559,7 @@ int flash_store_contiguous_blocks_get_max_data_length (const struct flash_store 
 		return FLASH_STORE_INVALID_ARGUMENT;
 	}
 
-	return flash->state->max_size;
+	return flash->state->max_size - flash->state->overhead;
 }
 
 int flash_store_contiguous_blocks_get_flash_size (const struct flash_store *flash_store)
@@ -582,7 +571,7 @@ int flash_store_contiguous_blocks_get_flash_size (const struct flash_store *flas
 		return FLASH_STORE_INVALID_ARGUMENT;
 	}
 
-	return flash->state->block_size * flash->state->blocks;
+	return flash->state->block_size * flash->blocks;
 }
 
 int flash_store_contiguous_blocks_get_num_blocks (const struct flash_store *flash_store)
@@ -594,21 +583,24 @@ int flash_store_contiguous_blocks_get_num_blocks (const struct flash_store *flas
 		return FLASH_STORE_INVALID_ARGUMENT;
 	}
 
-	return flash->state->blocks;
+	return flash->blocks;
 }
 
 /**
  * Common API to initialize the variable state of flash store interface.
  *
  * @param store The flash storage to initialize.
- * @param block_count The number of data blocks used for storage.
- * @param data_length The minimum length of each data block.
- * @param extra_data The length of extra internal data that will be added to each data block.
+ * @param data_length The minimum length of each data block.  This length must include any storage
+ * overhead necessary when the data is written to flash.
+ * @param overhead The amount of data that is storage overhead.  This will reduce the maximum amount
+ * of data that can be stored in a data block.
+ * @param extra_data The length of extra internal data that will be added to each data block.  This
+ * will not be counted as part of the available data storage.
  *
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
 int flash_store_contiguous_blocks_init_state_common (
-	const struct flash_store_contiguous_blocks *store, size_t block_count, size_t data_length,
+	const struct flash_store_contiguous_blocks *store, size_t data_length, size_t overhead,
 	size_t extra_data)
 {
 	uint32_t sector_size;
@@ -619,7 +611,7 @@ int flash_store_contiguous_blocks_init_state_common (
 #endif
 	int status;
 
-	if ((store == NULL) || (store->state == NULL) || (store->flash == NULL)) {
+	if ((store->state == NULL) || (store->flash == NULL)) {
 		return FLASH_STORE_INVALID_ARGUMENT;
 	}
 
@@ -644,7 +636,7 @@ int flash_store_contiguous_blocks_init_state_common (
 	}
 
 	store->state->max_size = data_length;
-	store->state->blocks = block_count;
+	store->state->overhead = overhead;
 
 	data_length += extra_data;
 	if (store->variable) {
@@ -660,12 +652,12 @@ int flash_store_contiguous_blocks_init_state_common (
 	store->state->block_size = (store->state->block_size + (sector_size - 1)) &
 		FLASH_REGION_MASK (sector_size);
 	if (!store->decreasing) {
-		if ((store->base_addr + (store->state->block_size * store->state->blocks)) > device_size) {
+		if ((store->base_addr + (store->state->block_size * store->blocks)) > device_size) {
 			return FLASH_STORE_INSUFFICIENT_STORAGE;
 		}
 	}
 	else {
-		if ((store->state->block_size * (store->state->blocks - 1)) > store->base_addr) {
+		if ((store->state->block_size * (store->blocks - 1)) > store->base_addr) {
 			return FLASH_STORE_INSUFFICIENT_STORAGE;
 		}
 	}
@@ -751,6 +743,7 @@ int flash_store_contiguous_blocks_init_storage_common (struct flash_store_contig
 	store->base.get_num_blocks = flash_store_contiguous_blocks_get_num_blocks;
 
 	store->base_addr = base_addr;
+	store->blocks = block_count;
 	store->decreasing = decreasing;
 	store->variable = variable;
 	store->flash = flash;
@@ -799,7 +792,7 @@ static int flash_store_contiguous_blocks_init (struct flash_store_contiguous_blo
 		store->base.read = flash_store_contiguous_blocks_read_no_hash;
 	}
 
-	status = flash_store_contiguous_blocks_init_state (store, block_count, data_length);
+	status = flash_store_contiguous_blocks_init_state (store, data_length);
 	if (status != 0) {
 		return status;
 	}
@@ -877,7 +870,7 @@ int flash_store_contiguous_blocks_init_variable_storage (
 	const struct hash_engine *hash)
 {
 	return flash_store_contiguous_blocks_init (store, state, flash, base_addr, block_count,
-		min_length,	hash, false, true);
+		min_length, hash, false, true);
 }
 
 /**
@@ -903,30 +896,32 @@ int flash_store_contiguous_blocks_init_variable_storage_decreasing (
 	const struct hash_engine *hash)
 {
 	return flash_store_contiguous_blocks_init (store, state, flash, base_addr, block_count,
-		min_length,	hash, true, true);
+		min_length, hash, true, true);
 }
 
 /**
  * Initialize only the variable state for flash store interface.
  *
  * @param store The flash storage to initialize.
- * @param block_count The number of data blocks used for storage.
  * @param data_length The minimum length of each data block.
  *
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
-int flash_store_contiguous_blocks_init_state (
-	const struct flash_store_contiguous_blocks *store, size_t block_count, size_t data_length)
+int flash_store_contiguous_blocks_init_state (const struct flash_store_contiguous_blocks *store,
+	size_t data_length)
 {
 	int status;
 
+	if (store == NULL) {
+		return FLASH_STORE_INVALID_ARGUMENT;
+	}
+
 	if (store->hash) {
-		status = flash_store_contiguous_blocks_init_state_common (store, block_count, data_length,
+		status = flash_store_contiguous_blocks_init_state_common (store, data_length, 0,
 			SHA256_HASH_LENGTH);
 	}
 	else {
-		status = flash_store_contiguous_blocks_init_state_common (store, block_count, data_length,
-			0);
+		status = flash_store_contiguous_blocks_init_state_common (store, data_length, 0, 0);
 	}
 
 	return status;

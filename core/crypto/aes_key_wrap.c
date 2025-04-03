@@ -31,13 +31,6 @@ static const uint8_t AES_KEY_WRAP_IV[AES_KEY_WRAP_INTERFACE_BLOCK_SIZE] = {
  */
 #define	AES_KEY_WRAP_ITERATIONS					6
 
-/**
- * Determine if the data length is not aligned to the key wrap processing block size.
- *
- * @param length Length of the input data.
- */
-#define	AES_KEY_WRAP_NOT_BLOCK_ALGINED(length)	((length) & (AES_KEY_WRAP_INTERFACE_BLOCK_SIZE - 1))
-
 
 int aes_key_wrap_set_kek (const struct aes_key_wrap_interface *aes_kw, const uint8_t *kek,
 	size_t length)
@@ -127,7 +120,7 @@ int aes_key_wrap_wrap (const struct aes_key_wrap_interface *aes_kw, const uint8_
 		return AES_KEY_WRAP_INVALID_ARGUMENT;
 	}
 
-	if (AES_KEY_WRAP_NOT_BLOCK_ALGINED (length)) {
+	if (AES_KEY_WRAP_INTERFACE_NOT_BLOCK_ALGINED (length)) {
 		return AES_KEY_WRAP_NOT_BLOCK_ALIGNED;
 	}
 
@@ -159,16 +152,13 @@ int aes_key_wrap_wrap (const struct aes_key_wrap_interface *aes_kw, const uint8_
  * @param wrapped Wrapped data that will be unwrapped.
  * @param length Length of the wrapped data.
  * @param data Output buffer for the data being unwrapped.  This can overlap the wrapped buffer.
- * @param out_length Length of the output buffer.  This must be no more than 8 bytes
- * smaller than the input.
  * @param integrity_check Output for the value of A[0] to serve as an integrity check of the
  * unwrapped data.
  *
  * @return 0 if the unwrapping round was successful or an error code.
  */
 int aes_key_wrap_data_unwrap (const struct aes_key_wrap *key_wrap, const uint8_t *wrapped,
-	size_t length, uint8_t *data, size_t out_length,
-	uint8_t integrity_check[AES_KEY_WRAP_INTERFACE_BLOCK_SIZE])
+	size_t length, uint8_t *data, uint8_t integrity_check[AES_KEY_WRAP_INTERFACE_BLOCK_SIZE])
 {
 	uint8_t b[AES_ECB_BLOCK_SIZE] = {0};
 	uint64_t *a = (uint64_t*) b;
@@ -226,7 +216,7 @@ int aes_key_wrap_unwrap (const struct aes_key_wrap_interface *aes_kw, const uint
 		return AES_KEY_WRAP_INVALID_ARGUMENT;
 	}
 
-	if (AES_KEY_WRAP_NOT_BLOCK_ALGINED (length)) {
+	if (AES_KEY_WRAP_INTERFACE_NOT_BLOCK_ALGINED (length)) {
 		return AES_KEY_WRAP_NOT_BLOCK_ALIGNED;
 	}
 
@@ -238,8 +228,7 @@ int aes_key_wrap_unwrap (const struct aes_key_wrap_interface *aes_kw, const uint
 		return AES_KEY_WRAP_SMALL_OUTPUT_BUFFER;
 	}
 
-	status = aes_key_wrap_data_unwrap (key_wrap, wrapped, length, data, *out_length,
-		integrity_check);
+	status = aes_key_wrap_data_unwrap (key_wrap, wrapped, length, data, integrity_check);
 	if (status == 0) {
 		if (buffer_compare (integrity_check, AES_KEY_WRAP_IV,
 			AES_KEY_WRAP_INTERFACE_BLOCK_SIZE) == 0) {

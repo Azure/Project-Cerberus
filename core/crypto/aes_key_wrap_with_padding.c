@@ -112,8 +112,7 @@ int aes_key_wrap_with_padding_unwrap (const struct aes_key_wrap_interface *aes_k
 	}
 
 	if (length > AES_ECB_BLOCK_SIZE) {
-		status = aes_key_wrap_data_unwrap (&aes_kwp->base, wrapped, length, data, *out_length,
-			integrity_check);
+		status = aes_key_wrap_data_unwrap (&aes_kwp->base, wrapped, length, data, integrity_check);
 	}
 	else {
 		uint8_t b[AES_ECB_BLOCK_SIZE] = {0};

@@ -36,6 +36,16 @@
 #define	AES_KEY_WRAP_INTERFACE_WRAPPED_LENGTH(length)   \
 	(AES_KEY_WRAP_INTERFACE_ALIGNED_LENGTH (length) + AES_KEY_WRAP_INTERFACE_BLOCK_SIZE)
 
+/**
+ * Determine if the data length is not aligned to the key wrap processing block size.
+ *
+ * @param length Length of the input data.
+ *
+ * @return true if the length is not aligned.
+ */
+#define	AES_KEY_WRAP_INTERFACE_NOT_BLOCK_ALGINED(length)    \
+	((length) & (AES_KEY_WRAP_INTERFACE_BLOCK_SIZE - 1))
+
 
 /**
  * Interface for handling key wrap/unwrap using AES.

@@ -45,6 +45,12 @@ static void add_all_flash_tests (CuSuite *suite)
 	!defined TESTING_SKIP_FLASH_STORE_CONTIGUOUS_BLOCKS_ENCRYPTED_SUITE
 	TESTING_RUN_SUITE (flash_store_contiguous_blocks_encrypted);
 #endif
+#if (defined TESTING_RUN_FLASH_STORE_CONTIGUOUS_BLOCKS_KEY_WRAP_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_FLASH_STORE_CONTIGUOUS_BLOCKS_KEY_WRAP_SUITE
+	TESTING_RUN_SUITE (flash_store_contiguous_blocks_key_wrap);
+#endif
 #if (defined TESTING_RUN_FLASH_UPDATER_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

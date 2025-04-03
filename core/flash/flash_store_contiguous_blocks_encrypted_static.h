@@ -4,6 +4,7 @@
 #ifndef FLASH_STORE_CONTIGUOUS_BLOCKS_ENCRYPTED_STATIC_H_
 #define FLASH_STORE_CONTIGUOUS_BLOCKS_ENCRYPTED_STATIC_H_
 
+#include "flash_store_contiguous_blocks_encrypted.h"
 #include "flash_store_contiguous_blocks_static.h"
 
 
@@ -31,90 +32,94 @@ int flash_store_contiguous_blocks_encrypted_read (const struct flash_store *flas
 
 
 /**
- * Initialize a static instance of a encrypted flash storage for fixed sized contiguous blocks of
- * data.
+ * Initialize a static instance of flash storage encrypted using AES-GCM for fixed sized contiguous
+ * blocks of data.
  *
  * There is no validation done on the arguments.
  *
  * @param state_ptr Variable context for the flash store.
  * @param flash_addr The address of the first storage block.  This must be aligned to a minimum
  * erase block.
+ * @param block_count The number of data blocks used for storage.
  * @param flash_ptr The flash device that is managed by the store.
- * @param aes_ptr AES engine instance for encryption.
+ * @param gcm_ptr AES-GCM engine instance for encryption.
  * @param rng_ptr RNG engine instance for encryption.
  */
 #define	flash_store_contiguous_blocks_encrypted_static_init_fixed_storage(state_ptr, flash_addr, \
-	flash_ptr, aes_ptr, rng_ptr) { \
+	block_count, flash_ptr, gcm_ptr, rng_ptr) { \
 		.base = flash_store_contiguous_blocks_static_init_fixed_storage ( \
-			FLASH_STORE_CONTIGUOUS_BLOCKS_ENCRYPTED_API_INIT, state_ptr, flash_addr, flash_ptr, \
-			NULL), \
-		.aes = aes_ptr, \
+			FLASH_STORE_CONTIGUOUS_BLOCKS_ENCRYPTED_API_INIT, state_ptr, flash_addr, block_count, \
+			flash_ptr, NULL), \
+		.gcm = gcm_ptr, \
 		.rng = rng_ptr, \
 	}
 
 /**
- * Initialize a static instance of a encrypted flash storage for fixed sized contiguous blocks of
- * data.  Blocks will be stored in addresses decreasing from the first block.
+ * Initialize a static instance of flash storage encrypted using AES-GCM for fixed sized contiguous
+ * blocks of data.  Blocks will be stored in addresses decreasing from the first block.
  *
  * There is no validation done on the arguments.
  *
  * @param state_ptr Variable context for the flash store.
  * @param flash_addr The address of the first storage block.  This must be aligned to a minimum
  * erase block.
+ * @param block_count The number of data blocks used for storage.
  * @param flash_ptr The flash device that is managed by the store.
- * @param aes_ptr AES engine instance for encryption.
+ * @param gcm_ptr AES-GCM engine instance for encryption.
  * @param rng_ptr RNG engine instance for encryption.
  */
 #define	flash_store_contiguous_blocks_encrypted_static_init_fixed_storage_decreasing(state_ptr, \
-	flash_addr, flash_ptr, aes_ptr, rng_ptr) { \
+	flash_addr, block_count, flash_ptr, gcm_ptr, rng_ptr) { \
 		.base = flash_store_contiguous_blocks_static_init_fixed_storage_decreasing ( \
-			FLASH_STORE_CONTIGUOUS_BLOCKS_ENCRYPTED_API_INIT, state_ptr, flash_addr, flash_ptr, \
-			NULL), \
-		.aes = aes_ptr, \
+			FLASH_STORE_CONTIGUOUS_BLOCKS_ENCRYPTED_API_INIT, state_ptr, flash_addr, block_count, \
+			flash_ptr, NULL), \
+		.gcm = gcm_ptr, \
 		.rng = rng_ptr, \
 	}
 
 /**
- * Initialize a static instance of a encrypted flash storage for variable sized contiguous blocks of
- * data.
+ * Initialize a static instance of flash storage encrypted using AES-GCM for variable sized
+ * contiguous blocks of data.
  *
  * There is no validation done on the arguments.
  *
  * @param state_ptr Variable context for the flash store.
  * @param flash_addr The address of the first storage block.  This must be aligned to a minimum
  * erase block.
+ * @param block_count The number of data blocks used for storage.
  * @param flash_ptr The flash device that is managed by the store.
- * @param aes_ptr AES engine instance for encryption.
+ * @param gcm_ptr AES-GCM engine instance for encryption.
  * @param rng_ptr RNG engine instance for encryption.
  */
 #define	flash_store_contiguous_blocks_encrypted_static_init_variable_storage(state_ptr, \
-	flash_addr, flash_ptr, aes_ptr, rng_ptr) { \
+	flash_addr, block_count, flash_ptr, gcm_ptr, rng_ptr) { \
 		.base = flash_store_contiguous_blocks_static_init_variable_storage ( \
-			FLASH_STORE_CONTIGUOUS_BLOCKS_ENCRYPTED_API_INIT, state_ptr, flash_addr, flash_ptr, \
-			NULL), \
-		.aes = aes_ptr, \
+			FLASH_STORE_CONTIGUOUS_BLOCKS_ENCRYPTED_API_INIT, state_ptr, flash_addr, block_count, \
+			flash_ptr, NULL), \
+		.gcm = gcm_ptr, \
 		.rng = rng_ptr, \
 	}
 
 /**
- * Initialize a static instance of a encrypted flash storage for variable sized contiguous blocks of
- * data.
+ * Initialize a static instance of flash storage encrypted using AES-GCM for variable sized
+ * contiguous blocks of data.  Blocks will be stored in addresses decreasing from the first block.
  *
  * There is no validation done on the arguments.
  *
  * @param state_ptr Variable context for the flash store.
  * @param flash_addr The address of the first storage block.  This must be aligned to a minimum
  * erase block.
+ * @param block_count The number of data blocks used for storage.
  * @param flash_ptr The flash device that is managed by the store.
- * @param aes_ptr AES engine instance for encryption.
+ * @param gcm_ptr AES-GCM engine instance for encryption.
  * @param rng_ptr RNG engine instance for encryption.
  */
 #define	flash_store_contiguous_blocks_encrypted_static_init_variable_storage_decreasing(state_ptr, \
-	flash_addr, flash_ptr, aes_ptr, rng_ptr) { \
+	flash_addr, block_count, flash_ptr, gcm_ptr, rng_ptr) { \
 		.base = flash_store_contiguous_blocks_static_init_variable_storage_decreasing ( \
-			FLASH_STORE_CONTIGUOUS_BLOCKS_ENCRYPTED_API_INIT, state_ptr, flash_addr, flash_ptr, \
-			NULL), \
-		.aes = aes_ptr, \
+			FLASH_STORE_CONTIGUOUS_BLOCKS_ENCRYPTED_API_INIT, state_ptr, flash_addr, block_count, \
+			flash_ptr, NULL), \
+		.gcm = gcm_ptr, \
 		.rng = rng_ptr, \
 	}
 

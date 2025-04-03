@@ -31,8 +31,8 @@ struct flash_store_header {
  */
 struct flash_store_contiguous_blocks_state {
 	uint32_t max_size;		/**< Maximum amount of data per storage block. */
+	uint32_t overhead;		/**< The number of overhead bytes added to the data during storage. */
 	uint32_t block_size;	/**< Flash size of each data block. */
-	uint32_t blocks;		/**< The number of managed data blocks. */
 #ifdef FLASH_STORE_SUPPORT_NO_PARTIAL_PAGE_WRITE
 	uint32_t page_size;		/**< Page programming size for the flash device. */
 	uint8_t *page_buffer;	/**< Buffer for ensuring full page programming. */
@@ -49,6 +49,7 @@ struct flash_store_contiguous_blocks {
 	struct flash_store base;							/**< Base flash_store. */
 	struct flash_store_contiguous_blocks_state *state;	/**< Variable context for the flash store instance. */
 	uint32_t base_addr;									/**< Base flash address for data storage. */
+	uint32_t blocks;									/**< The number of managed data blocks. */
 	bool decreasing;									/**< Flag indicating block storage grows down in the address space. */
 	bool variable;										/**< Flag indicating block storage is variable length. */
 	const struct flash *flash;							/**< Flash device used for storage. */
@@ -73,8 +74,8 @@ int flash_store_contiguous_blocks_init_variable_storage_decreasing (
 	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
 	const struct hash_engine *hash);
 
-int flash_store_contiguous_blocks_init_state (
-	const struct flash_store_contiguous_blocks *store, size_t block_count, size_t data_length);
+int flash_store_contiguous_blocks_init_state (const struct flash_store_contiguous_blocks *store,
+	size_t data_length);
 
 void flash_store_contiguous_blocks_release (const struct flash_store_contiguous_blocks *store);
 
@@ -83,7 +84,7 @@ void flash_store_contiguous_blocks_use_length_only_header (
 
 /* Internal functions for use by derived types. */
 int flash_store_contiguous_blocks_init_state_common (
-	const struct flash_store_contiguous_blocks *store, size_t block_count, size_t data_length,
+	const struct flash_store_contiguous_blocks *store, size_t data_length, size_t overhead,
 	size_t extra_data);
 
 int flash_store_contiguous_blocks_init_storage_common (struct flash_store_contiguous_blocks *store,
@@ -96,8 +97,10 @@ int flash_store_contiguous_blocks_write_common (const struct flash_store_contigu
 	int id, const uint8_t *data, size_t length, const uint8_t *extra_data, size_t extra_length);
 
 int flash_store_contiguous_blocks_read_common (const struct flash_store_contiguous_blocks *flash,
-	int id, uint8_t *data, size_t length, uint8_t *extra_data, size_t extra_length,
-	size_t *out_length);
+	int id, uint8_t *data, size_t length, size_t alignment, uint8_t *extra_data,
+	size_t extra_length, size_t *out_length);
+
+int flash_store_contiguous_blocks_get_data_length (const struct flash_store *flash_store, int id);
 
 
 #endif	/* FLASH_STORE_CONTIGUOUS_BLOCKS_H_ */
