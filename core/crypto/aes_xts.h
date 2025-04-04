@@ -104,7 +104,7 @@ enum {
 	AES_XTS_ENGINE_HW_NOT_INIT = AES_XTS_ENGINE_ERROR (0x0c),				/**< The AES hardware has not been initialized. */
 	AES_XTS_ENGINE_SELF_TEST_FAILED = AES_XTS_ENGINE_ERROR (0x0d),			/**< An internal self-test of the AES engine failed. */
 	AES_XTS_ENGINE_UNSUPPORTED_OPERATION = AES_XTS_ENGINE_ERROR (0x0e),		/**< The requested operation is not supported. */
-	AES_XTS_ENGINE_CLEAR_KEY_FAILED = AES_XTS_ENGINE_ERROR (0x0c),			/**< The encryption key could not be zeroized. */
+	AES_XTS_ENGINE_CLEAR_KEY_FAILED = AES_XTS_ENGINE_ERROR (0x0f),			/**< The encryption key could not be cleared. */
 };
 
 

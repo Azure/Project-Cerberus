@@ -104,17 +104,17 @@ enum {
 	AES_CBC_ENGINE_INVALID_ARGUMENT = AES_CBC_ENGINE_ERROR (0x00),			/**< Input parameter is null or not valid. */
 	AES_CBC_ENGINE_NO_MEMORY = AES_CBC_ENGINE_ERROR (0x01),					/**< Memory allocation failed. */
 	AES_CBC_ENGINE_SET_KEY_FAILED = AES_CBC_ENGINE_ERROR (0x02),			/**< The encryption key could not be set. */
-	AES_CBC_ENGINE_ENCRYPT_FAILED = AES_CBC_ENGINE_ERROR (0x03),			/**< The ciphertext was not decrypted. */
-	AES_CBC_ENGINE_DECRYPT_FAILED = AES_CBC_ENGINE_ERROR (0x04),			/**< The plaintext was not encrypted. */
-	AES_CBC_ENGINE_UNSUPPORTED_KEY_LENGTH = AES_CBC_ENGINE_ERROR (0x05),	/**< The encryption key length is not supported by the engine. */
-	AES_CBC_ENGINE_INVALID_KEY_LENGTH = AES_CBC_ENGINE_ERROR (0x06),		/**< The key length is not a valid AES-CBC key length. */
-	AES_CBC_ENGINE_INVALID_DATA_LENGTH = AES_CBC_ENGINE_ERROR (0x07),		/**< The data length is aligned to the AES block size. */
-	AES_CBC_ENGINE_OUT_BUFFER_TOO_SMALL = AES_CBC_ENGINE_ERROR (0x07),		/**< Not enough space in an output buffer provided for the operation. */
-	AES_CBC_ENGINE_NO_KEY = AES_CBC_ENGINE_ERROR (0x08),					/**< No key was set prior to encryption/decryption. */
-	AES_CBC_ENGINE_HW_NOT_INIT = AES_CBC_ENGINE_ERROR (0x09),				/**< The AES hardware has not been initialized. */
-	AES_CBC_ENGINE_SELF_TEST_FAILED = AES_CBC_ENGINE_ERROR (0x0a),			/**< An internal self-test of the AES engine failed. */
-	AES_CBC_ENGINE_UNSUPPORTED_OPERATION = AES_CBC_ENGINE_ERROR (0x0b),		/**< The requested operation is not supported. */
-	AES_CBC_ENGINE_CLEAR_KEY_FAILED = AES_CBC_ENGINE_ERROR (0x0c),			/**< The encryption key could not be zeroized. */
+	AES_CBC_ENGINE_CLEAR_KEY_FAILED = AES_CBC_ENGINE_ERROR (0x03),			/**< The encryption key could not be cleared. */
+	AES_CBC_ENGINE_ENCRYPT_FAILED = AES_CBC_ENGINE_ERROR (0x04),			/**< The ciphertext was not decrypted. */
+	AES_CBC_ENGINE_DECRYPT_FAILED = AES_CBC_ENGINE_ERROR (0x05),			/**< The plaintext was not encrypted. */
+	AES_CBC_ENGINE_UNSUPPORTED_KEY_LENGTH = AES_CBC_ENGINE_ERROR (0x06),	/**< The encryption key length is not supported by the engine. */
+	AES_CBC_ENGINE_INVALID_KEY_LENGTH = AES_CBC_ENGINE_ERROR (0x07),		/**< The key length is not a valid AES-CBC key length. */
+	AES_CBC_ENGINE_INVALID_DATA_LENGTH = AES_CBC_ENGINE_ERROR (0x08),		/**< The data length is aligned to the AES block size. */
+	AES_CBC_ENGINE_OUT_BUFFER_TOO_SMALL = AES_CBC_ENGINE_ERROR (0x09),		/**< Not enough space in an output buffer provided for the operation. */
+	AES_CBC_ENGINE_NO_KEY = AES_CBC_ENGINE_ERROR (0x0a),					/**< No key was set prior to encryption/decryption. */
+	AES_CBC_ENGINE_HW_NOT_INIT = AES_CBC_ENGINE_ERROR (0x0b),				/**< The AES hardware has not been initialized. */
+	AES_CBC_ENGINE_SELF_TEST_FAILED = AES_CBC_ENGINE_ERROR (0x0c),			/**< An internal self-test of the AES engine failed. */
+	AES_CBC_ENGINE_UNSUPPORTED_OPERATION = AES_CBC_ENGINE_ERROR (0x0d),		/**< The requested operation is not supported. */
 };
 
 

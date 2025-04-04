@@ -163,7 +163,7 @@ enum {
 	AES_GCM_ENGINE_UNSUPPORTED_OPERATION = AES_GCM_ENGINE_ERROR (0x0c),		/**< The requested operation is not supported. */
 	AES_GCM_ENGINE_ENCRYPT_ADD_DATA_FAILED = AES_GCM_ENGINE_ERROR (0x0d),	/**< The plaintext with additional data was not encrypted. */
 	AES_GCM_ENGINE_DECRYPT_ADD_DATA_FAILED = AES_GCM_ENGINE_ERROR (0x0e),	/**< The ciphertext with additional data was not decrypted. */
-	AES_GCM_ENGINE_CLEAR_KEY_FAILED = AES_GCM_ENGINE_ERROR (0x0c),			/**< The encryption key could not be zeroized. */
+	AES_GCM_ENGINE_CLEAR_KEY_FAILED = AES_GCM_ENGINE_ERROR (0x0f),			/**< The encryption key could not be cleared. */
 };
 
 
