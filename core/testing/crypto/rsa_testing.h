@@ -18,6 +18,8 @@ extern const uint8_t RSA_PUBKEY_DER[];
 extern const size_t RSA_PUBKEY_DER_LEN;
 extern const uint8_t RSA_PUBKEY_DER_HASH[];
 extern const size_t RSA_PUBKEY_DER_HASH_LEN;
+extern const uint8_t RSA_PUBKEY_EXPONENT[];
+extern const size_t RSA_PUBKEY_EXPONENT_LEN;
 
 extern const char RSA_PRIVKEY_PEM[];
 extern const size_t RSA_PRIVKEY_PEM_LEN;
@@ -26,6 +28,13 @@ extern const uint8_t RSA_PRIVKEY_DER[];
 extern const size_t RSA_PRIVKEY_DER_LEN;
 extern const uint8_t RSA_PRIVKEY_DER_HASH[];
 extern const size_t RSA_PRIVKEY_DER_HASH_LEN;
+
+extern const uint8_t RSA_PRIVKEY_D[];
+extern const size_t RSA_PRIVKEY_D_LEN;
+extern const uint8_t RSA_PRIVKEY_P[];
+extern const size_t RSA_PRIVKEY_P_LEN;
+extern const uint8_t RSA_PRIVKEY_Q[];
+extern const size_t RSA_PRIVKEY_Q_LEN;
 
 extern const char *RSA_ENCRYPT_LABEL;
 extern const size_t RSA_ENCRYPT_LABEL_LEN;
@@ -119,6 +128,13 @@ extern const size_t RSA3K_PRIVKEY_PEM_LEN;
 extern const uint8_t RSA3K_PRIVKEY_DER[];
 extern const size_t RSA3K_PRIVKEY_DER_LEN;
 
+extern const uint8_t RSA3K_PRIVKEY_D[];
+extern const size_t RSA3K_PRIVKEY_D_LEN;
+extern const uint8_t RSA3K_PRIVKEY_P[];
+extern const size_t RSA3K_PRIVKEY_P_LEN;
+extern const uint8_t RSA3K_PRIVKEY_Q[];
+extern const size_t RSA3K_PRIVKEY_Q_LEN;
+
 
 #if (RSA_MAX_KEY_LENGTH >= RSA_KEY_LENGTH_4K)
 extern const struct rsa_public_key RSA4K_PUBLIC_KEY;
@@ -139,6 +155,13 @@ extern const uint8_t RSA4K_PRIVKEY_DER[];
 extern const size_t RSA4K_PRIVKEY_DER_LEN;
 extern const uint8_t RSA4K_PRIVKEY_DER_HASH[];
 extern const size_t RSA4K_PRIVKEY_DER_HASH_LEN;
+
+extern const uint8_t RSA4K_PRIVKEY_D[];
+extern const size_t RSA4K_PRIVKEY_D_LEN;
+extern const uint8_t RSA4K_PRIVKEY_P[];
+extern const size_t RSA4K_PRIVKEY_P_LEN;
+extern const uint8_t RSA4K_PRIVKEY_Q[];
+extern const size_t RSA4K_PRIVKEY_Q_LEN;
 
 
 extern const uint8_t RSA5K_PUBKEY_DER[];

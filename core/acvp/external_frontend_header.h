@@ -24,5 +24,9 @@
 #define acvp_malloc(size)			platform_malloc(size)
 #define acvp_free(ptr)				platform_free(ptr)
 
+#ifndef ENOKEY
+#define ENOKEY						126	// Standard value for ENOKEY in Linux, used by ACVP Proto library.
+#endif
+
 
 #endif	/* EXTERNAL_FRONTEND_HEADER_H */
