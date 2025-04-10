@@ -39,6 +39,12 @@ static void add_all_acvp_tests (CuSuite *suite)
 	!defined TESTING_SKIP_BACKEND_AEAD_SUITE
 	TESTING_RUN_SUITE (backend_aead);
 #endif
+#if (defined TESTING_RUN_BACKEND_ECDSA_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_BACKEND_ECDSA_SUITE
+	TESTING_RUN_SUITE (backend_ecdsa);
+#endif
 #if (defined TESTING_RUN_BACKEND_RSA_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
