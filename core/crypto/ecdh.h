@@ -22,9 +22,13 @@ int ecdh_ecc_hw_generate_random_key (const struct ecc_hw *ecc_hw, size_t key_len
  * Error codes that can be generated during ECDH processing.
  */
 enum {
-	ECDH_INVALID_ARGUMENT = ECDH_ERROR (0x00),	/**< Input parameter is null or not valid. */
-	ECDH_NO_MEMORY = ECDH_ERROR (0x01),			/**< Memory allocation failed. */
-	ECDH_PCT_FAILURE = ECDH_ERROR (0x02),		/**< Failed the pairwise consistency test. */
+	ECDH_INVALID_ARGUMENT = ECDH_ERROR (0x00),		/**< Input parameter is null or not valid. */
+	ECDH_NO_MEMORY = ECDH_ERROR (0x01),				/**< Memory allocation failed. */
+	ECDH_PCT_FAILURE = ECDH_ERROR (0x02),			/**< Failed the pairwise consistency test. */
+	ECDH_P256_SELF_TEST_FAILED = ECDH_ERROR (0x03),	/**< Failed a self-test for ECDH for the P-256 curve. */
+	ECDH_P384_SELF_TEST_FAILED = ECDH_ERROR (0x04),	/**< Failed a self-test for ECDH for the P-384 curve. */
+	ECDH_P521_SELF_TEST_FAILED = ECDH_ERROR (0x05),	/**< Failed a self-test for ECDH for the P-521 curve. */
+	ECDH_UNSUPPORTED_SELF_TEST = ECDH_ERROR (0x06),	/**< The curve algorithm is not supported. */
 };
 
 
