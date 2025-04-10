@@ -9,6 +9,7 @@
 #include "testing.h"
 #include "crypto/hkdf.h"
 #include "crypto/hkdf_static.h"
+#include "testing/crypto/hkdf_testing.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/mock/crypto/hash_mock.h"
 
@@ -49,13 +50,6 @@ const uint8_t HKDF_TESTING_EXTRACT_IKM_NO_SALT[] = {
 };
 
 const size_t HKDF_TESTING_EXTRACT_IKM_NO_SALT_LEN = sizeof (HKDF_TESTING_EXTRACT_IKM_NO_SALT);
-
-/**
- * Input keying material for HKDF-Extract testing with SHA-1.  Taken from RFC 5869 test vectors.
- */
-#define	HKDF_TESTING_EXTRACT_IKM_SHA1			HKDF_TESTING_EXTRACT_IKM
-
-#define	HKDF_TESTING_EXTRACT_IKM_SHA1_LEN		11
 
 /**
  * Salt to use for HKDF-Extract testing.  Taken from RFC 5869 test vectors.

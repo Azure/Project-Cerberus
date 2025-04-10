@@ -171,6 +171,7 @@ enum {
 	ROT_MODULE_BACKEND_AEAD = 0x009f,					/**< ACVP AEAD backend. */
 	ROT_MODULE_BACKEND_RSA = 0x00a0,					/**< ACVP RSA backend. */
 	ROT_MODULE_BACKEND_ECDSA = 0x00a1,					/**< ACVP ECDSA backend. */
+	ROT_MODULE_BACKEND_HKDF = 0x00a2,					/**< ACVP HKDF backend. */
 };
 
 
