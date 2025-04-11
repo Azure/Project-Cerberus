@@ -206,6 +206,22 @@ void ecdsa_deterministic_k_drbg_clear (struct ecdsa_deterministic_k_drbg *drbg)
 	buffer_zeroize (drbg, sizeof (*drbg));
 }
 
+#ifdef ECDSA_ENABLE_FIPS_CMVP_TESTING
+/**
+ * Global flag that will be used to trigger a PCT failure for a single generated ECDSA key pair when
+ * using the ECC engine API.  Triggering this failure is necessary to support FIPS CMVP testing for
+ * certification.
+ */
+bool ecdsa_fail_pct;
+
+/**
+ * Global flag that will be used to trigger a PCT failure for a single generated ECDSA key pair when
+ * using the direct ECC hardware API.  Triggering this failure is necessary to support FIPS CMVP
+ * testing for certification.
+ */
+bool ecdsa_hw_fail_pct;
+#endif
+
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
 /**
  * Generate a random ECDSA key pair.  A pairwise consistency test (PCT) will be executed for the new
@@ -228,7 +244,6 @@ void ecdsa_deterministic_k_drbg_clear (struct ecdsa_deterministic_k_drbg *drbg)
 int ecdsa_generate_random_key (const struct ecc_engine *ecc, const struct hash_engine *hash,
 	size_t key_length, struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
-	uint8_t signature[ECC_DER_ECDSA_MAX_LENGTH] = {0};
 	struct ecc_public_key temp_pub;
 	enum hash_type hash_algo = HASH_TYPE_SHA256;
 	int status;
@@ -256,6 +271,90 @@ int ecdsa_generate_random_key (const struct ecc_engine *ecc, const struct hash_e
 		return status;
 	}
 
+	status = ecdsa_pairwise_consistency_test (ecc, hash, hash_algo, priv_key, pub_key);
+	if (status != 0) {
+		ecc->release_key_pair (ecc, priv_key, pub_key);
+	}
+	else if (pub_key == &temp_pub) {
+		ecc->release_key_pair (ecc, NULL, &temp_pub);
+	}
+
+	return status;
+}
+#endif	/* ECC_ENABLE_GENERATE_KEY_PAIR */
+
+/**
+ * Execute a pairwise consistency test (PCT) on an ECDSA key pair.
+ *
+ * @param ecc The ECC engine to use for the PCT.
+ * @param hash Hash engine that will be used for the PCT sign/verify operations.
+ * @param hash_algo Hash algorithm to use for the PCT signature.
+ * @param priv_key The ECDSA private key.
+ * @param pub_key The ECDSA public key.
+ *
+ * @return 0 if the PCT passed or an error code.
+ */
+int ecdsa_pairwise_consistency_test (const struct ecc_engine *ecc, const struct hash_engine *hash,
+	enum hash_type hash_algo, const struct ecc_private_key *priv_key,
+	const struct ecc_public_key *pub_key)
+{
+	uint8_t signature[ECC_DER_ECDSA_MAX_LENGTH] = {0};
+	int status;
+
+#ifdef ECDSA_ENABLE_FIPS_CMVP_TESTING
+	struct ecc_public_key cmvp_pub;
+#endif
+
+	/* Other arguments are checked as part of signature generation. */
+	if ((ecc == NULL) || (pub_key == NULL)) {
+		return ECDSA_INVALID_ARGUMENT;
+	}
+
+#ifdef ECDSA_ENABLE_FIPS_CMVP_TESTING
+	/* Provide the ability to inject errors into the ECDSA PCT to validate negative test scenarios
+	 * for FIPS CMVP certification. */
+	if (ecdsa_fail_pct) {
+		int sig_length;
+		const uint8_t *pct_der = ECC_KAT_VECTORS_CMVP_PCT_FAIL_P256_ECC_PUBLIC_DER;
+		size_t pct_der_length = ECC_KAT_VECTORS_CMVP_PCT_FAIL_P256_ECC_PUBLIC_DER_LEN;
+
+		ecdsa_fail_pct = false;
+
+		sig_length = ecc->get_signature_max_length (ecc, priv_key);
+		if (ROT_IS_ERROR (sig_length)) {
+			return sig_length;
+		}
+
+		switch (sig_length) {
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+			case ECC_DER_P384_ECDSA_MAX_LENGTH:
+				pct_der = ECC_KAT_VECTORS_CMVP_PCT_FAIL_P384_ECC_PUBLIC_DER;
+				pct_der_length = ECC_KAT_VECTORS_CMVP_PCT_FAIL_P384_ECC_PUBLIC_DER_LEN;
+				break;
+#endif
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+			case ECC_DER_P521_ECDSA_MAX_LENGTH:
+				pct_der = ECC_KAT_VECTORS_CMVP_PCT_FAIL_P521_ECC_PUBLIC_DER;
+				pct_der_length = ECC_KAT_VECTORS_CMVP_PCT_FAIL_P521_ECC_PUBLIC_DER_LEN;
+				break;
+#endif
+
+			default:
+				/* If the signature length is anything else, just use the P-256 key. */
+				break;
+		}
+
+		status = ecc->init_public_key (ecc, pct_der, pct_der_length, &cmvp_pub);
+		if (status != 0) {
+			return status;
+		}
+
+		/* Replace the public key with a bad one. */
+		pub_key = &cmvp_pub;
+	}
+#endif	/* ECDH_ENABLE_FIPS_CMVP_TESTING */
+
 	status = ecdsa_sign_message_with_key (ecc, hash, hash_algo, NULL, priv_key,
 		ECC_KAT_VECTORS_ECDSA_SIGNED, ECC_KAT_VECTORS_ECDSA_SIGNED_LEN, signature,
 		sizeof (signature));
@@ -265,20 +364,21 @@ int ecdsa_generate_random_key (const struct ecc_engine *ecc, const struct hash_e
 
 	status = ecdsa_verify_message_with_key (ecc, hash, hash_algo, ECC_KAT_VECTORS_ECDSA_SIGNED,
 		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN, pub_key, signature, status);
+	if (status == SIG_VERIFICATION_BAD_SIGNATURE) {
+		status = ECDSA_PCT_FAILURE;
+	}
 
 exit:
-	if (status != 0) {
-		ecc->release_key_pair (ecc, priv_key, pub_key);
-	}
-	else if (pub_key == &temp_pub) {
-		ecc->release_key_pair (ecc, NULL, &temp_pub);
-	}
-
 	buffer_zeroize (signature, sizeof (signature));
+
+#ifdef ECDSA_ENABLE_FIPS_CMVP_TESTING
+	if (pub_key == &cmvp_pub) {
+		ecc->release_key_pair (ecc, NULL, &cmvp_pub);
+	}
+#endif
 
 	return status;
 }
-#endif	/* ECC_ENABLE_GENERATE_KEY_PAIR */
 
 /**
  * Generate a random ECDSA key pair using an ECC hardware implementation.  A pairwise consistency
@@ -301,7 +401,6 @@ exit:
 int ecdsa_ecc_hw_generate_random_key (const struct ecc_hw *ecc_hw, const struct hash_engine *hash,
 	size_t key_length, struct ecc_raw_private_key *priv_key, struct ecc_point_public_key *pub_key)
 {
-	struct ecc_ecdsa_signature signature = {0};
 	struct ecc_point_public_key temp_pub = {0};
 	enum hash_type hash_algo = HASH_TYPE_SHA256;
 	int status;
@@ -331,17 +430,8 @@ int ecdsa_ecc_hw_generate_random_key (const struct ecc_hw *ecc_hw, const struct 
 
 	priv_key->key_length = key_length;
 
-	status = ecdsa_ecc_hw_sign_message (ecc_hw, hash, hash_algo, NULL, priv_key->d,
-		priv_key->key_length, ECC_KAT_VECTORS_ECDSA_SIGNED, ECC_KAT_VECTORS_ECDSA_SIGNED_LEN,
-		&signature);
-	if (status != 0) {
-		goto exit;
-	}
-
-	status = ecdsa_ecc_hw_verify_message (ecc_hw, hash, hash_algo, ECC_KAT_VECTORS_ECDSA_SIGNED,
-		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN, pub_key, &signature);
-
-exit:
+	status = ecdsa_ecc_hw_pairwise_consistency_test (ecc_hw, hash, hash_algo, priv_key->d,
+		priv_key->key_length, pub_key);
 	if (status != 0) {
 		buffer_zeroize (priv_key, sizeof (*priv_key));
 		buffer_zeroize (pub_key, sizeof (*pub_key));
@@ -350,7 +440,67 @@ exit:
 		buffer_zeroize (&temp_pub, sizeof (temp_pub));
 	}
 
+	return status;
+}
+
+/**
+ * Execute a pairwise consistency test (PCT) on an ECDSA key pair using an ECC hardware
+ * implementation.
+ *
+ * @param ecc_hw The ECC HW engine to use for the PCT.
+ * @param hash Hash engine that will be used for the PCT sign/verify operations.
+ * @param hash_algo Hash algorithm to use for the PCT signature.
+ * @param priv_key The ECDSA private key.
+ * @param key_length Length of the private key.
+ * @param pub_key The ECDSA public key.
+ *
+ * @return 0 if the PCT passed or an error code.
+ */
+int ecdsa_ecc_hw_pairwise_consistency_test (const struct ecc_hw *ecc_hw,
+	const struct hash_engine *hash, enum hash_type hash_algo, const uint8_t *priv_key,
+	size_t key_length, const struct ecc_point_public_key *pub_key)
+{
+	struct ecc_ecdsa_signature signature = {0};
+	int status;
+
+#ifdef ECDH_ENABLE_FIPS_CMVP_TESTING
+	uint8_t bad_priv[ECC_MAX_KEY_LENGTH];
+#endif
+
+	/* Other arguments are checked as part of signature generation. */
+	if (pub_key == NULL) {
+		return ECDSA_INVALID_ARGUMENT;
+	}
+
+#ifdef ECDSA_ENABLE_FIPS_CMVP_TESTING
+	/* Provide the ability to inject errors into the ECDSA PCT to validate negative test scenarios
+	 * for FIPS CMVP certification. */
+	if (ecdsa_hw_fail_pct) {
+		memcpy (bad_priv, priv_key, key_length);
+		bad_priv[16] ^= 0x10;
+		priv_key = bad_priv;
+
+		ecdsa_hw_fail_pct = false;
+	}
+#endif
+
+	status = ecdsa_ecc_hw_sign_message (ecc_hw, hash, hash_algo, NULL, priv_key, key_length,
+		ECC_KAT_VECTORS_ECDSA_SIGNED, ECC_KAT_VECTORS_ECDSA_SIGNED_LEN, &signature);
+	if (status != 0) {
+		goto exit;
+	}
+
+	status = ecdsa_ecc_hw_verify_message (ecc_hw, hash, hash_algo, ECC_KAT_VECTORS_ECDSA_SIGNED,
+		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN, pub_key, &signature);
+	if (status == ECC_HW_ECDSA_BAD_SIGNATURE) {
+		status = ECDSA_PCT_FAILURE;
+	}
+
+exit:
 	buffer_zeroize (&signature, sizeof (signature));
+#ifdef ECDSA_ENABLE_FIPS_CMVP_TESTING
+	buffer_zeroize (bad_priv, sizeof (bad_priv));
+#endif
 
 	return status;
 }

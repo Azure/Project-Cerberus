@@ -32,10 +32,23 @@ int ecdsa_deterministic_k_drbg_generate (struct ecdsa_deterministic_k_drbg *drbg
 	const struct hash_engine *hash, uint8_t *k, size_t k_length);
 void ecdsa_deterministic_k_drbg_clear (struct ecdsa_deterministic_k_drbg *drbg);
 
+#ifdef ECDSA_ENABLE_FIPS_CMVP_TESTING
+/* Flags for PCT fault-injection during key generation for FIPS CMVP certification tests. */
+extern bool ecdsa_fail_pct;
+extern bool ecdsa_hw_fail_pct;
+#endif
+
 int ecdsa_generate_random_key (const struct ecc_engine *ecc, const struct hash_engine *hash,
 	size_t key_length, struct ecc_private_key *priv_key, struct ecc_public_key *pub_key);
+int ecdsa_pairwise_consistency_test (const struct ecc_engine *ecc, const struct hash_engine *hash,
+	enum hash_type hash_algo, const struct ecc_private_key *priv_key,
+	const struct ecc_public_key *pub_key);
+
 int ecdsa_ecc_hw_generate_random_key (const struct ecc_hw *ecc_hw, const struct hash_engine *hash,
 	size_t key_length, struct ecc_raw_private_key *priv_key, struct ecc_point_public_key *pub_key);
+int ecdsa_ecc_hw_pairwise_consistency_test (const struct ecc_hw *ecc_hw,
+	const struct hash_engine *hash, enum hash_type hash_algo, const uint8_t *priv_key,
+	size_t key_length, const struct ecc_point_public_key *pub_key);
 
 int ecdsa_sign_message (const struct ecc_engine *ecc, const struct hash_engine *hash,
 	enum hash_type hash_algo, const struct rng_engine *rng, const uint8_t *priv_key,
@@ -116,6 +129,7 @@ enum {
 	ECDSA_P521_VERIFY_SELF_TEST_FAILED = ECDSA_ERROR (0x07),	/**< Failed a self-test for ECDSA verify for the P-521 curve. */
 	ECDSA_UNSUPPORTED_SELF_TEST = ECDSA_ERROR (0x08),			/**< The curve or hash algorithm is not supported. */
 	ECDSA_NO_ACTVE_HASH = ECDSA_ERROR (0x09),					/**< There is no active hash context available to sign. */
+	ECDSA_PCT_FAILURE = ECDSA_ERROR (0x0a),						/**< Failed the pairwise consistency test. */
 };
 
 
