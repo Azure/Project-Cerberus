@@ -27,12 +27,14 @@ file(GLOB ACVPPARSER_SOURCES
     ${PROTO_DIR}/proto_hkdf.c
     ${PROTO_DIR}/proto_rsa.c
     ${PROTO_DIR}/proto_sha.c
+    ${PROTO_DIR}/proto_sym.c
     ${PROTOBUFBACKEND_DIR}/src/protobuf-c.c
     ${PROTOBUF_DIR}/aead.pb-c.c
     ${PROTOBUF_DIR}/ecdsa.pb-c.c
     ${PROTOBUF_DIR}/kda_hkdf.pb-c.c
     ${PROTOBUF_DIR}/rsa.pb-c.c
     ${PROTOBUF_DIR}/sha.pb-c.c
+    ${PROTOBUF_DIR}/sym.pb-c.c
     ${PARSER_DIR}/algorithms.c
 )
 

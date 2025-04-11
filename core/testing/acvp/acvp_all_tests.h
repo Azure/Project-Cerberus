@@ -63,6 +63,12 @@ static void add_all_acvp_tests (CuSuite *suite)
 	!defined TESTING_SKIP_BACKEND_SHA_SUITE
 	TESTING_RUN_SUITE (backend_sha);
 #endif
+#if (defined TESTING_RUN_BACKEND_SYM_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_BACKEND_SYM_SUITE
+	TESTING_RUN_SUITE (backend_sym);
+#endif
 }
 
 

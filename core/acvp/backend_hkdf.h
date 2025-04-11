@@ -35,6 +35,7 @@ enum {
 	BACKEND_HKDF_NO_MEMORY = BACKEND_HKDF_ERROR (0x01),			/**< Memory allocation failed. */
 	BACKEND_HKDF_NO_ENGINE = BACKEND_HKDF_ERROR (0x02),			/**< No HKDF engine is available. */
 	BACKEND_HKDF_ENGINE_NOT_FOUND = BACKEND_HKDF_ERROR (0x03),	/**< No HKDF engine found for the specified implementation. */
+	BACKEND_HKDF_HKDF_FAILED = BACKEND_HKDF_ERROR (0x04),		/**< HKDF operation failed. */
 };
 
 
