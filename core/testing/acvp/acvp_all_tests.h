@@ -51,6 +51,12 @@ static void add_all_acvp_tests (CuSuite *suite)
 	!defined TESTING_SKIP_BACKEND_HKDF_SUITE
 	TESTING_RUN_SUITE (backend_hkdf);
 #endif
+#if (defined TESTING_RUN_BACKEND_HMAC_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_BACKEND_HMAC_SUITE
+	TESTING_RUN_SUITE (backend_hmac);
+#endif
 #if (defined TESTING_RUN_BACKEND_RSA_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
