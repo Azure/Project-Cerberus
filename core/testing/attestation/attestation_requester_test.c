@@ -9177,6 +9177,10 @@ static void attestation_requester_test_attest_device_spdm_different_measurement_
 		HASH_TYPE_SHA256, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
 		component_id);
 
+	status = device_manager_update_device_state (&testing.device_mgr, 1,
+		DEVICE_MANAGER_UNIDENTIFIED);
+	CuAssertIntEquals (test, 0, status);
+
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
@@ -38568,6 +38572,10 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
 		component_id);
 
+	status = device_manager_update_device_state (&testing.device_mgr, 1,
+		DEVICE_MANAGER_UNIDENTIFIED);
+	CuAssertIntEquals (test, 0, status);
+
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
@@ -38748,6 +38756,10 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
 		component_id);
+
+	status = device_manager_update_device_state (&testing.device_mgr, 1,
+		DEVICE_MANAGER_UNIDENTIFIED);
+	CuAssertIntEquals (test, 0, status);
 
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;

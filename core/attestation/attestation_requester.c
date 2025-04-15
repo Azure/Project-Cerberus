@@ -3648,7 +3648,10 @@ int attestation_requester_get_mctp_routing_table (const struct attestation_reque
 		return 0;
 	}
 
-	device_manager_clear_unidentified_devices (attestation->device_mgr);
+	status = device_manager_restart_device_discovery (attestation->device_mgr);
+	if (status != 0) {
+		return status;
+	}
 
 	bridge_addr = device_manager_get_device_addr (attestation->device_mgr,
 		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);

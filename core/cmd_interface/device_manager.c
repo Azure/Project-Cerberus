@@ -52,6 +52,10 @@
 	(state == DEVICE_MANAGER_NEVER_ATTESTED))
 
 
+/* Forward declaration to enable usage when releasing the instance. */
+static void device_manager_clear_unidentified_devices (struct device_manager *mgr);
+
+
 /**
  * Initialize a device manager.
  *
@@ -62,8 +66,9 @@
  * @param mgr Device manager instance to initialize.
  * @param num_requester_devices Number of requester devices to manage. This must be at least 1 to
  * 	support the local device.
- * @param num_unique_responder_devices Number of unique responder devices to manage.
- * @param num_responder_devices Number of responder devices to manage.
+ * @param num_unique_responder_devices Number of different types of responder devices to manage.
+ * This value does not have an affect on the total number devices being managed.
+ * @param num_responder_devices Total number of responder devices to manage.
  * @param hierarchy Role of the local device in the Cerberus hierarchy (PA vs. AC RoT).
  * @param bus_role Role the local device will take on the I2C bus.
  * @param unauthenticated_cadence_ms Period to wait before reauthenticating unauthenticated device.
@@ -1587,7 +1592,7 @@ int device_manager_update_device_ids (struct device_manager *mgr, int device_num
  *
  * @param mgr Device manager instance to utilize
  */
-void device_manager_clear_unidentified_devices (struct device_manager *mgr)
+static void device_manager_clear_unidentified_devices (struct device_manager *mgr)
 {
 	struct device_manager_unidentified_entry *entry;
 
@@ -1708,6 +1713,28 @@ int device_manager_unidentified_device_timed_out (struct device_manager *mgr, ui
 }
 
 /**
+ * Determine if any of the managed devices are unidentified.  This is not a check against the list
+ * of device EIDs that can be used to identify device manager entries.  This is a check against
+ * device manager entries to see if any remain unidentified.
+ *
+ * @param mgr Device manager to check for unidentified devices.
+ *
+ * @return true if there are unidentified devices.
+ */
+static bool device_manager_has_unidentified_devices (const struct device_manager *mgr)
+{
+	size_t i;
+
+	for (i = 0; i < mgr->num_devices; i++) {
+		if (mgr->entries[i].state == DEVICE_MANAGER_UNIDENTIFIED) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
  * Get EID of next device to discover from device manager unidentified device linked list.
  *
  * @param mgr Device manager instance to utilize.
@@ -1724,6 +1751,14 @@ int device_manager_get_eid_of_next_device_to_discover (struct device_manager *mg
 	}
 
 	if (mgr->unidentified == NULL) {
+		return DEVICE_MGR_NO_DEVICES_AVAILABLE;
+	}
+
+	if (!device_manager_has_unidentified_devices (mgr)) {
+		/* There are no devices remaining to be identified.  Free the rest of the unidentified EIDs
+		 * and report that there are no more devices. */
+		device_manager_clear_unidentified_devices (mgr);
+
 		return DEVICE_MGR_NO_DEVICES_AVAILABLE;
 	}
 
@@ -1760,6 +1795,34 @@ found:
 	mgr->unidentified = runner->next;
 
 	return runner->eid;
+}
+
+/**
+ * Reset the device manager so that all attestable devices will be marked as unidentified.  Any
+ * existing list of unidentified EIDs will be erased.
+ *
+ * @param mgr The device manager for the attestable devices to rediscover.
+ *
+ * @return 0 if the device states were reset or an error code.
+ */
+int device_manager_restart_device_discovery (struct device_manager *mgr)
+{
+	size_t i;
+
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	device_manager_clear_unidentified_devices (mgr);
+
+	/* Reset device states to unidentified to ensure discovery gets executed again for them. */
+	for (i = 0; i < mgr->num_devices; i++) {
+		if (mgr->entries[i].state != DEVICE_MANAGER_NOT_ATTESTABLE) {
+			mgr->entries[i].state = DEVICE_MANAGER_UNIDENTIFIED;
+		}
+	}
+
+	return 0;
 }
 #endif	// ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 
