@@ -52,8 +52,10 @@
 	(state == DEVICE_MANAGER_NEVER_ATTESTED))
 
 
+#ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 /* Forward declaration to enable usage when releasing the instance. */
 static void device_manager_clear_unidentified_devices (struct device_manager *mgr);
+#endif
 
 
 /**
