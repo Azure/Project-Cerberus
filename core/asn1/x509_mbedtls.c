@@ -1490,7 +1490,7 @@ int x509_mbedtls_init (struct x509_engine_mbedtls *engine, struct x509_engine_mb
  */
 int x509_mbedtls_init_state (const struct x509_engine_mbedtls *engine)
 {
-	int status;
+	int status = 0;
 
 	if ((engine == NULL) || (engine->state == NULL)) {
 		return X509_ENGINE_INVALID_ARGUMENT;
@@ -1498,6 +1498,7 @@ int x509_mbedtls_init_state (const struct x509_engine_mbedtls *engine)
 
 	memset (engine->state, 0, sizeof (*engine->state));
 
+#ifdef X509_ENABLE_CREATE_CERTIFICATES
 	mbedtls_ctr_drbg_init (&engine->state->ctr_drbg);
 	mbedtls_entropy_init (&engine->state->entropy);
 
@@ -1515,6 +1516,7 @@ int x509_mbedtls_init_state (const struct x509_engine_mbedtls *engine)
 exit:
 	mbedtls_entropy_free (&engine->state->entropy);
 	mbedtls_ctr_drbg_free (&engine->state->ctr_drbg);
+#endif
 
 	return status;
 }
@@ -1526,8 +1528,12 @@ exit:
  */
 void x509_mbedtls_release (const struct x509_engine_mbedtls *engine)
 {
+#ifdef X509_ENABLE_CREATE_CERTIFICATES
 	if (engine) {
 		mbedtls_entropy_free (&engine->state->entropy);
 		mbedtls_ctr_drbg_free (&engine->state->ctr_drbg);
 	}
+#else
+	UNUSED (engine);
+#endif
 }

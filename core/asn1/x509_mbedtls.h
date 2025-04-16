@@ -20,8 +20,10 @@
  * Variable context for mbedTLS X.509 operations.
  */
 struct x509_engine_mbedtls_state {
+#ifdef X509_ENABLE_CREATE_CERTIFICATES
 	mbedtls_ctr_drbg_context ctr_drbg;	/**< A random number generator for the engine. */
 	mbedtls_entropy_context entropy;	/**< Entropy source for the random number generator. */
+#endif
 	uint8_t der_buf[X509_MAX_SIZE];		/**< Temp buffer for building certificate DER data. */
 };
 
