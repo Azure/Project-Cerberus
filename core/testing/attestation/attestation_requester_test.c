@@ -375,7 +375,7 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 		&testing->keystore.base, &keys, x509, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&testing->device_mgr, 1, !no_mctp_bridge, !no_mctp_bridge,
+	status = device_manager_init (&testing->device_mgr, 1 + !no_mctp_bridge, !no_mctp_bridge, !no_mctp_bridge,
 		DEVICE_MANAGER_PA_ROT_MODE, DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 10, 10, 10, 10, 0, 0,
 		0);
 	CuAssertIntEquals (test, 0, status);
@@ -385,16 +385,19 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	if (!no_mctp_bridge) {
-		status = device_manager_update_not_attestable_device_entry (&testing->device_mgr, 1, 0x0A,
-			0x20, 1);
+		status = device_manager_update_not_attestable_device_entry (&testing->device_mgr, 1,
+			MCTP_BASE_PROTOCOL_BMC_EID, 0x20, 1);
 		CuAssertIntEquals (test, 0, status);
 
-		status = device_manager_update_device_state (&testing->device_mgr, 1,
+		status = device_manager_update_device_eid (&testing->device_mgr, 2, 0xAA);
+		CuAssertIntEquals (test, 0, status);
+
+		status = device_manager_update_device_state (&testing->device_mgr, 2,
 			DEVICE_MANAGER_UNIDENTIFIED);
 		CuAssertIntEquals (test, 0, status);
 	}
 
-	status = device_manager_add_unidentified_device (&testing->device_mgr, 0x0A);
+	status = device_manager_add_unidentified_device (&testing->device_mgr, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_interface_multi_handler_msg_type_init (&testing->mctp_ctrl,
@@ -704,7 +707,7 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 
 	setup_attestation_requester_mock_certificate_test (test, true, riot_no_root_ca, testing);
 
-	testing->cert_eid[0] = 0x0A;
+	testing->cert_eid[0] = 0xAA;
 	testing->cert_eid[1] = 0x0C;
 
 	cert_chain->length = testing->cert_buffer_len;
@@ -713,11 +716,11 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 		attestation_requester_testing_add_certs_to_riot_key_manager (test, testing);
 	}
 
-	status = device_manager_update_mctp_bridge_device_entry (&testing->device_mgr, 1, 0xAA, 0xBB,
+	status = device_manager_update_mctp_bridge_device_entry (&testing->device_mgr, 2, 0xAA, 0xBB,
 		0xCC, 0xDD, 1, component_id, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state (&testing->device_mgr, 1,
+	status = device_manager_update_device_state (&testing->device_mgr, 2,
 		DEVICE_MANAGER_READY_FOR_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
 
@@ -910,7 +913,7 @@ static int64_t attestation_requester_testing_cerberus_error_rsp_callback (
 	header->rsvd = 0;
 	header->header_version = 1;
 	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->source_eid = 0x0A;
+	header->source_eid = 0xAA;
 	header->som = 1;
 	header->eom = 1;
 	header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
@@ -973,7 +976,7 @@ static int64_t attestation_requester_testing_cerberus_device_capabilities_rsp_ca
 	header->rsvd = 0;
 	header->header_version = 1;
 	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->source_eid = 0x0A;
+	header->source_eid = 0xAA;
 	header->som = 1;
 	header->eom = 1;
 	header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
@@ -1037,7 +1040,7 @@ static int64_t attestation_requester_testing_cerberus_get_digest_rsp_callback (
 	header->rsvd = 0;
 	header->header_version = 1;
 	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->source_eid = 0x0A;
+	header->source_eid = 0xAA;
 	header->som = 1;
 	header->eom = 1;
 	header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
@@ -1125,7 +1128,7 @@ static int64_t attestation_requester_testing_cerberus_get_certificate_rsp_callba
 	testing->cert_num = testing->cert_num + 1;
 
 	msg_len = attestation_requester_testing_generate_mctp_packets_from_payload (msg, payload_len,
-		sizeof (msg), MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, 0x0A, 0x20, msg_tag,
+		sizeof (msg), MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, 0xAA, 0x20, msg_tag,
 		MCTP_BASE_PROTOCOL_TO_RESPONSE);
 
 	while (offset < msg_len) {
@@ -1182,7 +1185,7 @@ static int64_t attestation_requester_testing_cerberus_challenge_rsp_callback (
 	header->rsvd = 0;
 	header->header_version = 1;
 	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->source_eid = 0x0A;
+	header->source_eid = 0xAA;
 	header->som = 1;
 	header->eom = 1;
 	header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
@@ -1264,7 +1267,7 @@ static void attestation_requester_testing_send_and_receive_cerberus_device_capab
 	header->source_addr = (0x41 << 1) | 1;
 	header->rsvd = 0;
 	header->header_version = 1;
-	header->destination_eid = 0x0A;
+	header->destination_eid = 0xAA;
 	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	header->som = 1;
 	header->eom = 1;
@@ -1357,7 +1360,7 @@ static void attestation_requester_testing_send_and_receive_cerberus_get_digest (
 	header->source_addr = (0x41 << 1) | 1;
 	header->rsvd = 0;
 	header->header_version = 1;
-	header->destination_eid = 0x0A;
+	header->destination_eid = 0xAA;
 	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	header->som = 1;
 	header->eom = 1;
@@ -1452,7 +1455,7 @@ static void attestation_requester_testing_send_and_receive_cerberus_get_certific
 	header->source_addr = (0x41 << 1) | 1;
 	header->rsvd = 0;
 	header->header_version = 1;
-	header->destination_eid = 0x0A;
+	header->destination_eid = 0xAA;
 	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	header->som = 1;
 	header->eom = 1;
@@ -1563,7 +1566,7 @@ static void attestation_requester_testing_send_and_receive_cerberus_challenge (C
 	header->source_addr = (0x41 << 1) | 1;
 	header->rsvd = 0;
 	header->header_version = 1;
-	header->destination_eid = 0x0A;
+	header->destination_eid = 0xAA;
 	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	header->som = 1;
 	header->eom = 1;
@@ -2033,7 +2036,7 @@ static int64_t attestation_requester_testing_spdm_error_rsp_callback (
 	header->rsvd = 0;
 	header->header_version = 1;
 	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->source_eid = 0x0A;
+	header->source_eid = 0xAA;
 	header->som = 1;
 	header->eom = 1;
 	header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
@@ -2117,7 +2120,7 @@ static int64_t attestation_requester_testing_spdm_get_version_rsp_callback (
 	header->rsvd = 0;
 	header->header_version = 1;
 	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->source_eid = (testing->second_response[0] && testing->multiple_devices) ? 0x0C : 0x0A;
+	header->source_eid = (testing->second_response[0] && testing->multiple_devices) ? 0x0C : 0xAA;
 	header->som = 1;
 	header->eom = 1;
 	header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
@@ -2196,7 +2199,7 @@ static int64_t attestation_requester_testing_spdm_get_capabilities_rsp_callback 
 	header->rsvd = 0;
 	header->header_version = 1;
 	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->source_eid = (testing->second_response[0] && testing->multiple_devices) ? 0x0C : 0x0A;
+	header->source_eid = (testing->second_response[0] && testing->multiple_devices) ? 0x0C : 0xAA;
 	header->som = 1;
 	header->eom = 1;
 	header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
@@ -2296,7 +2299,7 @@ static int64_t attestation_requester_testing_spdm_negotiate_algorithms_rsp_callb
 	header->rsvd = 0;
 	header->header_version = 1;
 	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->source_eid = (testing->second_response[0] && testing->multiple_devices) ? 0x0C : 0x0A;
+	header->source_eid = (testing->second_response[0] && testing->multiple_devices) ? 0x0C : 0xAA;
 	header->som = 1;
 	header->eom = 1;
 	header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
@@ -2391,7 +2394,7 @@ static int64_t attestation_requester_testing_spdm_get_digests_rsp_callback (
 	header->rsvd = 0;
 	header->header_version = 1;
 	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->source_eid = (testing->second_response[0] && testing->multiple_devices) ? 0x0C : 0x0A;
+	header->source_eid = (testing->second_response[0] && testing->multiple_devices) ? 0x0C : 0xAA;
 	header->som = 1;
 	header->eom = 1;
 	header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
@@ -2600,7 +2603,7 @@ static int64_t attestation_requester_testing_spdm_challenge_rsp_callback (
 	header->rsvd = 0;
 	header->header_version = 1;
 	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->source_eid = second_rsp ? 0x0C : 0x0A;
+	header->source_eid = second_rsp ? 0x0C : 0xAA;
 	header->som = 1;
 	header->eom = 1;
 	header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
@@ -2896,7 +2899,7 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 
 	msg_len = attestation_requester_testing_generate_mctp_packets_from_payload (msg, payload_len,
 		sizeof (msg), MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41,
-		(testing->second_response[0] && testing->multiple_devices) ? 0x0C : 0x0A, 0x20,
+		(testing->second_response[0] && testing->multiple_devices) ? 0x0C : 0xAA, 0x20,
 		testing->msg_tag_resp, MCTP_BASE_PROTOCOL_TO_RESPONSE);
 
 	while (offset < msg_len) {
@@ -2957,7 +2960,7 @@ static int64_t attestation_requester_testing_mctp_get_message_type_rsp_callback 
 	header->rsvd = 0;
 	header->header_version = 1;
 	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->source_eid = (testing->second_response[0] && testing->multiple_devices) ? 0x0C : 0x0A;
+	header->source_eid = (testing->second_response[0] && testing->multiple_devices) ? 0x0C : 0xAA;
 	header->som = 1;
 	header->eom = 1;
 	header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
@@ -3033,7 +3036,7 @@ static int64_t attestation_requester_testing_mctp_get_routing_table_entries_rsp_
 	header->rsvd = 0;
 	header->header_version = 1;
 	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->source_eid = 0x0A;
+	header->source_eid = 0xAA;
 	header->som = 1;
 	header->eom = 1;
 	header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
@@ -3125,7 +3128,7 @@ static void attestation_requester_testing_receive_mctp_set_eid_request (CuTest *
 	header->rsvd = 0;
 	header->header_version = 1;
 	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->source_eid = 0x0A;
+	header->source_eid = 0xAA;
 	header->som = 1;
 	header->eom = 1;
 	header->tag_owner = MCTP_BASE_PROTOCOL_TO_REQUEST;
@@ -3189,7 +3192,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_version (CuT
 	header->source_addr = (0x41 << 1) | 1;
 	header->rsvd = 0;
 	header->header_version = 1;
-	header->destination_eid = testing->second_device ? 0x0C : 0x0A;
+	header->destination_eid = testing->second_device ? 0x0C : 0xAA;
 	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	header->som = 1;
 	header->eom = 1;
@@ -3357,7 +3360,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_capabilities
 	header->source_addr = (0x41 << 1) | 1;
 	header->rsvd = 0;
 	header->header_version = 1;
-	header->destination_eid = testing->second_device ? 0x0C : 0x0A;
+	header->destination_eid = testing->second_device ? 0x0C : 0xAA;
 	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	header->som = 1;
 	header->eom = 1;
@@ -3583,7 +3586,7 @@ static void attestation_requester_testing_send_and_receive_spdm_negotiate_algori
 	header->source_addr = (0x41 << 1) | 1;
 	header->rsvd = 0;
 	header->header_version = 1;
-	header->destination_eid = testing->second_device ? 0x0C : 0x0A;
+	header->destination_eid = testing->second_device ? 0x0C : 0xAA;
 	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	header->som = 1;
 	header->eom = 1;
@@ -3752,7 +3755,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_digests (CuT
 	header->source_addr = (0x41 << 1) | 1;
 	header->rsvd = 0;
 	header->header_version = 1;
-	header->destination_eid = testing->second_device ? 0x0C : 0x0A;
+	header->destination_eid = testing->second_device ? 0x0C : 0xAA;
 	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	header->som = 1;
 	header->eom = 1;
@@ -3929,7 +3932,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate 
 	header->source_addr = (0x41 << 1) | 1;
 	header->rsvd = 0;
 	header->header_version = 1;
-	header->destination_eid = testing->second_device ? 0x0C : 0x0A;
+	header->destination_eid = testing->second_device ? 0x0C : 0xAA;
 	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	header->som = 1;
 	header->eom = 1;
@@ -4468,7 +4471,7 @@ static void attestation_requester_testing_send_and_receive_spdm_challenge (CuTes
 	header->source_addr = (0x41 << 1) | 1;
 	header->rsvd = 0;
 	header->header_version = 1;
-	header->destination_eid = testing->second_device ? 0x0C : 0x0A;
+	header->destination_eid = testing->second_device ? 0x0C : 0xAA;
 	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	header->som = 1;
 	header->eom = 1;
@@ -4702,7 +4705,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	header->source_addr = (0x41 << 1) | 1;
 	header->rsvd = 0;
 	header->header_version = 1;
-	header->destination_eid = testing->second_device ? 0x0C : 0x0A;
+	header->destination_eid = testing->second_device ? 0x0C : 0xAA;
 	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	header->som = 1;
 	header->eom = 1;
@@ -4984,7 +4987,7 @@ static void attestation_requester_testing_send_and_receive_mctp_get_msg_type (Cu
 	header->source_addr = (0x41 << 1) | 1;
 	header->rsvd = 0;
 	header->header_version = 1;
-	header->destination_eid = testing->second_device ? 0x0C : 0x0A;
+	header->destination_eid = testing->second_device ? 0x0C : 0xAA;
 	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	header->som = 1;
 	header->eom = 1;
@@ -5325,7 +5328,7 @@ static void attestation_requester_test_init_state (CuTest *test)
 		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_add_unidentified_device (&testing.device_mgr, 0x0A);
+	status = device_manager_add_unidentified_device (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_interface_multi_handler_msg_type_init (&testing.mctp_ctrl,
@@ -5432,13 +5435,13 @@ static void attestation_requester_test_attest_device_cerberus_ecc (CuTest *test)
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -5497,13 +5500,13 @@ static void attestation_requester_test_attest_device_cerberus_ecc_vendor_root_ca
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -5561,13 +5564,13 @@ static void attestation_requester_test_attest_device_cerberus_ecc_untrusted_root
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -5625,13 +5628,13 @@ static void attestation_requester_test_attest_device_cerberus_rsa (CuTest *test)
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -5689,13 +5692,13 @@ static void attestation_requester_test_attest_device_cerberus_mbedtls_x509 (CuTe
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -5753,20 +5756,20 @@ static void attestation_requester_test_attest_device_cerberus_already_authentica
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -5825,20 +5828,20 @@ static void attestation_requester_test_attest_device_cerberus_already_authentica
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -5897,13 +5900,13 @@ static void attestation_requester_test_attest_device_cerberus_multiple_pmr0_dige
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -5932,13 +5935,13 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	attestation_requester_testing_send_and_receive_cerberus_device_capabilities (test, true, false,
 		true, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -5967,13 +5970,13 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	attestation_requester_testing_send_and_receive_cerberus_device_capabilities (test, false, false,
 		false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6002,20 +6005,20 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	attestation_requester_testing_send_and_receive_cerberus_device_capabilities (test, false, false,
 		false, &testing);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6044,20 +6047,20 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	attestation_requester_testing_send_and_receive_cerberus_device_capabilities (test, false, false,
 		false, &testing);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6086,13 +6089,13 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	attestation_requester_testing_send_and_receive_cerberus_device_capabilities (test, true, true,
 		false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6123,13 +6126,13 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_fail (C
 	attestation_requester_testing_send_and_receive_cerberus_get_digest (test, true, true, false,
 		SHA256_HASH_LENGTH, ATTESTATION_RIOT_SLOT_NUM, ATTESTATION_ECDHE_KEY_EXCHANGE, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6173,13 +6176,13 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_hash_fa
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6211,13 +6214,13 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_unexpec
 	attestation_requester_testing_send_and_receive_cerberus_get_digest (test, true, false, true,
 		SHA256_HASH_LENGTH, ATTESTATION_RIOT_SLOT_NUM, ATTESTATION_ECDHE_KEY_EXCHANGE, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6248,13 +6251,13 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp 
 	attestation_requester_testing_send_and_receive_cerberus_get_digest (test, false, false, false,
 		SHA256_HASH_LENGTH, ATTESTATION_RIOT_SLOT_NUM, ATTESTATION_ECDHE_KEY_EXCHANGE, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6286,20 +6289,20 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp_
 	attestation_requester_testing_send_and_receive_cerberus_get_digest (test, false, false, false,
 		SHA256_HASH_LENGTH, ATTESTATION_RIOT_SLOT_NUM, ATTESTATION_ECDHE_KEY_EXCHANGE, &testing);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6331,20 +6334,20 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp_
 	attestation_requester_testing_send_and_receive_cerberus_get_digest (test, false, false, false,
 		SHA256_HASH_LENGTH, ATTESTATION_RIOT_SLOT_NUM, ATTESTATION_ECDHE_KEY_EXCHANGE, &testing);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6382,13 +6385,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_fa
 		&testing.primary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6427,13 +6430,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_un
 		&testing.primary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6472,13 +6475,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_un
 		&testing.primary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6522,13 +6525,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_in
 		&testing.x509_mock, X509_ENGINE_NO_MEMORY, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6579,13 +6582,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ad
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6636,13 +6639,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6707,13 +6710,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 		MOCK_ARG (HASH_MAX_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6782,13 +6785,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6866,13 +6869,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6928,13 +6931,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_st
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -6998,13 +7001,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_up
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -7060,13 +7063,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ha
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -7128,13 +7131,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_lo
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_LOAD_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -7203,13 +7206,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_au
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_CERT_NOT_VALID, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -7280,13 +7283,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_in
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_INIT_STORE_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -7365,13 +7368,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ad
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_TRUSTED_CA_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -7435,13 +7438,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ha
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -7511,13 +7514,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_lo
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_LOAD_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -7594,13 +7597,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_au
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_CERT_NOT_VALID, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -7680,13 +7683,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_fi
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -7765,13 +7768,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_co
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MGR_DIGEST_MISMATCH, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -7858,13 +7861,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ge
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_KEY_TYPE_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -7955,13 +7958,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ge
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_KEY_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -7999,13 +8002,13 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 		&testing.primary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8044,20 +8047,20 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 		&testing.primary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8096,20 +8099,20 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 		&testing.primary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8147,13 +8150,13 @@ static void attestation_requester_test_attest_device_cerberus_challenge_start_ha
 		&testing.primary_hash, HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8196,13 +8199,13 @@ static void attestation_requester_test_attest_device_cerberus_generate_challenge
 		RNG_ENGINE_NO_MEMORY, MOCK_ARG (ATTESTATION_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, RNG_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8239,13 +8242,13 @@ static void attestation_requester_test_attest_device_cerberus_challenge_hash_upd
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, true, false,
 		false, false, false, false, 0, HASH_ENGINE_NO_MEMORY, 0, 0, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8281,13 +8284,13 @@ static void attestation_requester_test_attest_device_cerberus_challenge_fail (Cu
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, true, false,
 		false, false, false, false, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8324,13 +8327,13 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		true, false, false, false, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8367,13 +8370,13 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, true, false, false, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8410,13 +8413,13 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, false, true, false, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8453,13 +8456,13 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, false, false, true, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8496,13 +8499,13 @@ static void attestation_requester_test_attest_device_cerberus_challenge_update_h
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, false, false, false, 0, 0, HASH_ENGINE_NO_MEMORY, 0, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8539,13 +8542,13 @@ static void attestation_requester_test_attest_device_cerberus_challenge_hash_fin
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, false, false, false, 0, 0, 0, HASH_ENGINE_NO_MEMORY, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8582,13 +8585,13 @@ static void attestation_requester_test_attest_device_cerberus_challenge_ecc_init
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, false, false, false, 0, 0, 0, 0, ECC_ENGINE_NO_MEMORY, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ECC_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8625,13 +8628,13 @@ static void attestation_requester_test_attest_device_cerberus_challenge_ecc_veri
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, false, false, false, 0, 0, 0, 0, 0, ECC_ENGINE_NO_MEMORY, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ECC_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8668,13 +8671,13 @@ static void attestation_requester_test_attest_device_cerberus_challenge_rsa_not_
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, false, false, false, 0, 0, 0, 0, 0, 0, false, true, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_ALGORITHM, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8711,13 +8714,13 @@ static void attestation_requester_test_attest_device_cerberus_challenge_rsa_init
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, false, false, false, 0, 0, 0, 0, ECC_ENGINE_NO_MEMORY, 0, false, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ECC_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8754,13 +8757,13 @@ static void attestation_requester_test_attest_device_cerberus_challenge_rsa_veri
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, false, false, false, 0, 0, 0, 0, 0, ECC_ENGINE_NO_MEMORY, false, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ECC_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8797,13 +8800,13 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, true,
 		false, false, false, false, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8839,13 +8842,13 @@ static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp (
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, false, false, false,
 		false, false, false, false, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8882,20 +8885,20 @@ static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp_a
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, false, false, false,
 		false, false, false, false, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8932,20 +8935,20 @@ static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp_a
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, false, false, false,
 		false, false, false, false, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -8987,13 +8990,13 @@ static void attestation_requester_test_attest_device_cerberus_get_component_pmr_
 		&testing.cfm, MANIFEST_NO_MEMORY, MOCK_ARG (component_id), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MANIFEST_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -9046,13 +9049,13 @@ static void attestation_requester_test_attest_device_cerberus_pmr0_digest_invali
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_INVALID_ATTESTATION, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -9105,13 +9108,13 @@ static void attestation_requester_test_attest_device_cerberus_no_pmr0_digest_mat
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -9177,7 +9180,7 @@ static void attestation_requester_test_attest_device_spdm_different_measurement_
 		HASH_TYPE_SHA256, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
 		component_id);
 
-	status = device_manager_update_device_state (&testing.device_mgr, 1,
+	status = device_manager_update_device_state (&testing.device_mgr, 2,
 		DEVICE_MANAGER_UNIDENTIFIED);
 	CuAssertIntEquals (test, 0, status);
 
@@ -9198,7 +9201,7 @@ static void attestation_requester_test_attest_device_spdm_different_measurement_
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
 		0xEF, true, &testing);
 
-	status = device_manager_update_device_ids (&testing.device_mgr, 1, 0xAA, 0xBB, 0xCC, 0xDD);
+	status = device_manager_update_device_ids (&testing.device_mgr, 2, 0xAA, 0xBB, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
@@ -9297,10 +9300,10 @@ static void attestation_requester_test_attest_device_spdm_different_measurement_
 		sizeof (pcr_event_version_info) , attestation_status, sizeof (attestation_status_expected));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -9408,13 +9411,13 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_challenge 
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -9509,13 +9512,13 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_challe
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -9625,13 +9628,13 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_challenge 
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -9726,13 +9729,13 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_challe
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -9842,13 +9845,13 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_challenge 
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -9943,13 +9946,13 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_challe
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -10081,13 +10084,13 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0 (CuTe
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -10192,13 +10195,13 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -10303,20 +10306,20 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -10421,20 +10424,20 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -10547,13 +10550,13 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0 (
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -10652,13 +10655,13 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_g
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -10757,20 +10760,20 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_g
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -10869,20 +10872,20 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_g
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -11014,13 +11017,13 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_pmr0 (CuTe
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -11133,13 +11136,13 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_pmr0 (
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -11271,13 +11274,13 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_pmr0 (CuTe
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -11390,13 +11393,13 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_pmr0 (
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -11547,13 +11550,13 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -11704,13 +11707,13 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -11803,13 +11806,13 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -11942,13 +11945,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_multiple_pmr
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -12084,13 +12087,13 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_measuremen
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -12207,13 +12210,13 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_measur
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -12349,13 +12352,13 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_measuremen
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -12472,13 +12475,13 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_measur
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -12614,13 +12617,13 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_measuremen
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -12737,13 +12740,13 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_measur
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -12880,13 +12883,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_multi
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -13095,13 +13098,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -13310,13 +13313,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_versi
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -13526,13 +13529,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_skip_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -13748,13 +13751,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -13960,13 +13963,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -14110,13 +14113,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -14261,13 +14264,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -14417,13 +14420,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -14565,13 +14568,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -14719,13 +14722,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -14874,13 +14877,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -15029,13 +15032,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -15187,13 +15190,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -15335,13 +15338,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -15487,13 +15490,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -15640,13 +15643,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -15793,13 +15796,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -15946,13 +15949,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -16104,13 +16107,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -16252,13 +16255,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -16405,13 +16408,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -16558,13 +16561,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -16711,13 +16714,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -16862,13 +16865,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -17020,13 +17023,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -17177,13 +17180,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -17327,13 +17330,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -17481,13 +17484,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -17634,13 +17637,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -17787,13 +17790,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -17945,13 +17948,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -18093,13 +18096,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -18246,13 +18249,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -18399,13 +18402,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -18551,10 +18554,10 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18692,13 +18695,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -18850,13 +18853,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -19007,13 +19010,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -19157,13 +19160,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -19312,13 +19315,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -19467,13 +19470,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -19619,13 +19622,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -19774,13 +19777,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -19926,13 +19929,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -20078,13 +20081,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_INVALID_ATTESTATION, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -20230,13 +20233,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_INVALID_ATTESTATION, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -20382,13 +20385,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_INVALID_ATTESTATION, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -20534,13 +20537,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_INVALID_ATTESTATION, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -20700,13 +20703,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -20831,13 +20834,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -20982,13 +20985,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -21133,13 +21136,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -21363,13 +21366,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -21593,13 +21596,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -21823,13 +21826,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -22058,13 +22061,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -22285,13 +22288,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -22418,13 +22421,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_FAILED_TO_SELECT_VERSION_SET, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -22641,13 +22644,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_then_measu
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -22864,13 +22867,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_then_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -22973,11 +22976,11 @@ static void attestation_requester_test_attest_device_spdm_sha256_no_cert_retriev
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_cert_chain_digest (&testing.device_mgr, 0x0A,
+	status = device_manager_update_cert_chain_digest (&testing.device_mgr, 0xAA,
 		ATTESTATION_RIOT_SLOT_NUM, cert_chain_digest, sizeof (cert_chain_digest));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_alias_key (&testing.device_mgr, 0x0A,
+	status = device_manager_update_alias_key (&testing.device_mgr, 0xAA,
 		RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN,
 		X509_PUBLIC_KEY_ECC);
 	CuAssertIntEquals (test, 0, status);
@@ -22991,13 +22994,13 @@ static void attestation_requester_test_attest_device_spdm_sha256_no_cert_retriev
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -23101,11 +23104,11 @@ static void attestation_requester_test_attest_device_spdm_sha384_no_cert_retriev
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_cert_chain_digest (&testing.device_mgr, 0x0A,
+	status = device_manager_update_cert_chain_digest (&testing.device_mgr, 0xAA,
 		ATTESTATION_RIOT_SLOT_NUM, cert_chain_digest, sizeof (cert_chain_digest));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_alias_key (&testing.device_mgr, 0x0A,
+	status = device_manager_update_alias_key (&testing.device_mgr, 0xAA,
 		RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN,
 		X509_PUBLIC_KEY_ECC);
 	CuAssertIntEquals (test, 0, status);
@@ -23119,13 +23122,13 @@ static void attestation_requester_test_attest_device_spdm_sha384_no_cert_retriev
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -23229,11 +23232,11 @@ static void attestation_requester_test_attest_device_spdm_sha512_no_cert_retriev
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_cert_chain_digest (&testing.device_mgr, 0x0A,
+	status = device_manager_update_cert_chain_digest (&testing.device_mgr, 0xAA,
 		ATTESTATION_RIOT_SLOT_NUM, cert_chain_digest, sizeof (cert_chain_digest));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_alias_key (&testing.device_mgr, 0x0A,
+	status = device_manager_update_alias_key (&testing.device_mgr, 0xAA,
 		RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN,
 		X509_PUBLIC_KEY_ECC);
 	CuAssertIntEquals (test, 0, status);
@@ -23247,13 +23250,13 @@ static void attestation_requester_test_attest_device_spdm_sha512_no_cert_retriev
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -23359,7 +23362,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_update_cert_cha
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_cert_chain_digest (&testing.device_mgr, 0x0A,
+	status = device_manager_update_cert_chain_digest (&testing.device_mgr, 0xAA,
 		ATTESTATION_RIOT_SLOT_NUM, cert_chain_digest, sizeof (cert_chain_digest));
 	CuAssertIntEquals (test, 0, status);
 
@@ -23372,13 +23375,13 @@ static void attestation_requester_test_attest_device_spdm_sha256_update_cert_cha
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -23484,7 +23487,7 @@ static void attestation_requester_test_attest_device_spdm_sha384_update_cert_cha
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_cert_chain_digest (&testing.device_mgr, 0x0A,
+	status = device_manager_update_cert_chain_digest (&testing.device_mgr, 0xAA,
 		ATTESTATION_RIOT_SLOT_NUM, cert_chain_digest, sizeof (cert_chain_digest));
 	CuAssertIntEquals (test, 0, status);
 
@@ -23497,13 +23500,13 @@ static void attestation_requester_test_attest_device_spdm_sha384_update_cert_cha
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -23609,7 +23612,7 @@ static void attestation_requester_test_attest_device_spdm_sha512_update_cert_cha
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_cert_chain_digest (&testing.device_mgr, 0x0A,
+	status = device_manager_update_cert_chain_digest (&testing.device_mgr, 0xAA,
 		ATTESTATION_RIOT_SLOT_NUM, cert_chain_digest, sizeof (cert_chain_digest));
 	CuAssertIntEquals (test, 0, status);
 
@@ -23622,13 +23625,13 @@ static void attestation_requester_test_attest_device_spdm_sha512_update_cert_cha
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -23739,13 +23742,13 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca (CuTest
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -23855,13 +23858,13 @@ static void attestation_requester_test_attest_device_spdm_riot_root_ca (CuTest *
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -23971,13 +23974,13 @@ static void attestation_requester_test_attest_device_spdm_mbedtls_x509 (CuTest *
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -24078,7 +24081,7 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated 
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
@@ -24091,16 +24094,16 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated 
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -24202,7 +24205,7 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated_
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
 	CuAssertIntEquals (test, 0, status);
 
@@ -24215,16 +24218,16 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated_
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -24367,13 +24370,13 @@ static void attestation_requester_test_attest_device_spdm_cert_retrieval_more_th
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -24484,13 +24487,13 @@ static void attestation_requester_test_attest_device_spdm_multiple_pmr0_digest_o
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -24546,13 +24549,13 @@ static void attestation_requester_test_attest_device_spdm_no_secondary_hash (CuT
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_OPERATION, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -24581,13 +24584,13 @@ static void attestation_requester_test_attest_device_spdm_start_hash_sha256_fail
 		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -24616,13 +24619,13 @@ static void attestation_requester_test_attest_device_spdm_start_hash_sha384_fail
 		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -24651,13 +24654,13 @@ static void attestation_requester_test_attest_device_spdm_start_hash_sha512_fail
 		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -24699,13 +24702,13 @@ static void attestation_requester_test_attest_device_spdm_get_version_req_hash_u
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -24749,13 +24752,13 @@ static void attestation_requester_test_attest_device_spdm_get_version_fail (CuTe
 	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, true, false, false,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -24802,13 +24805,13 @@ static void attestation_requester_test_attest_device_spdm_get_version_response_n
 	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, true, false, false,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -24852,13 +24855,13 @@ static void attestation_requester_test_attest_device_spdm_get_version_unexpected
 	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, true, false,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -24902,13 +24905,13 @@ static void attestation_requester_test_attest_device_spdm_get_version_no_rsp (Cu
 	attestation_requester_testing_send_and_receive_spdm_get_version (test, false, false, false,
 		false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -24953,20 +24956,20 @@ static void attestation_requester_test_attest_device_spdm_get_version_no_rsp_alr
 	attestation_requester_testing_send_and_receive_spdm_get_version (test, false, false, false,
 		false, &testing);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -25011,20 +25014,20 @@ static void attestation_requester_test_attest_device_spdm_get_version_no_rsp_alr
 	attestation_requester_testing_send_and_receive_spdm_get_version (test, false, false, false,
 		false, &testing);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -25069,13 +25072,13 @@ static void attestation_requester_test_attest_device_spdm_get_version_unsupporte
 	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, false, true,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_DEVICE_NOT_INTEROPERABLE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_VERSION, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -25123,13 +25126,13 @@ static void attestation_requester_test_attest_device_spdm_get_version_unsupporte
 	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, false,
 		false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_DEVICE_NOT_INTEROPERABLE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_VERSION, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -25176,13 +25179,13 @@ static void attestation_requester_test_attest_device_spdm_get_version_unsupporte
 	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, false,
 		false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_DEVICE_NOT_INTEROPERABLE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_VERSION, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -25215,13 +25218,13 @@ static void attestation_requester_test_attest_device_spdm_get_version_rsp_hash_u
 	attestation_requester_testing_send_and_receive_spdm_get_version_with_mocks (test, true,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -25295,13 +25298,13 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_req_h
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -25368,13 +25371,13 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_fail 
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -25444,13 +25447,13 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_respo
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -25518,13 +25521,13 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_unexp
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -25592,13 +25595,13 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rs
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -25666,20 +25669,20 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rs
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -25747,20 +25750,20 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rs
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -25830,13 +25833,13 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_GET_MEAS_NOT_SUPPORTED_BY_DEVICE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CAPS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -25906,13 +25909,13 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_GET_MEAS_CAP_MISMATCH_BY_DEVICE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CAPS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -25982,13 +25985,13 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_GET_MEAS_CAP_MISMATCH_BY_DEVICE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CAPS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -26059,13 +26062,13 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_chall
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CHAL_CAP_MISMATCH_BY_DEVICE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CAPS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -26098,13 +26101,13 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_rsp_h
 	attestation_requester_testing_send_and_receive_spdm_get_capabilities_with_mocks (test, true,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -26142,21 +26145,21 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_verif
 	attestation_requester_testing_send_and_receive_spdm_get_capabilities_with_mocks (test, true,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_device_num (&testing.device_mgr, 0x0A);
-	CuAssertIntEquals (test, 1, status);
+	status = device_manager_get_device_num (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, 2, status);
 
 	status = device_manager_get_device_capabilities (&testing.device_mgr, status, &capabilities);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, SPDM_1_0_AND_1_1_MAX_RESPONSE_LEN,
 		capabilities.request.max_message_size);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -26194,21 +26197,21 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_verif
 	attestation_requester_testing_send_and_receive_spdm_get_capabilities_with_mocks (test, true,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_device_num (&testing.device_mgr, 0x0A);
-	CuAssertIntEquals (test, 1, status);
+	status = device_manager_get_device_num (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, 2, status);
 
 	status = device_manager_get_device_capabilities (&testing.device_mgr, status, &capabilities);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, SPDM_1_0_AND_1_1_MAX_RESPONSE_LEN,
 		capabilities.request.max_message_size);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -26261,13 +26264,13 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_r
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -26322,13 +26325,13 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_f
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -26385,13 +26388,13 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_r
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -26446,13 +26449,13 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -26507,13 +26510,13 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_n
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -26561,7 +26564,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_n
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms (test, false, false,
 		false, &testing);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
@@ -26572,16 +26575,16 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_n
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -26629,7 +26632,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_n
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms (test, false, false,
 		false, &testing);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
 	CuAssertIntEquals (test, 0, status);
 
@@ -26640,16 +26643,16 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_n
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -26705,13 +26708,13 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_MEASUREMENT_SPEC, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -26768,13 +26771,13 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_m
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_ALGORITHM, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -26834,13 +26837,13 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_s
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_ALGORITHM, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -26900,13 +26903,13 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_s
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_ALGORITHM, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -26963,13 +26966,13 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_ALGORITHM, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -27026,13 +27029,13 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_UNEXPECTED_ALG_IN_RESPONSE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -27089,13 +27092,13 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_ALGORITHM, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -27152,13 +27155,13 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_UNEXPECTED_ALG_IN_RESPONSE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -27191,13 +27194,13 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_r
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
 		true, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -27244,13 +27247,13 @@ static void attestation_requester_test_attest_device_spdm_get_digests_req_hash_u
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -27298,13 +27301,13 @@ static void attestation_requester_test_attest_device_spdm_get_digests_fail (CuTe
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -27352,13 +27355,13 @@ static void attestation_requester_test_attest_device_spdm_get_digests_unexpected
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -27406,13 +27409,13 @@ static void attestation_requester_test_attest_device_spdm_get_digests_no_rsp (Cu
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -27461,20 +27464,20 @@ static void attestation_requester_test_attest_device_spdm_get_digests_no_rsp_alr
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -27523,20 +27526,20 @@ static void attestation_requester_test_attest_device_spdm_get_digests_no_rsp_alr
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -27586,13 +27589,13 @@ static void attestation_requester_test_attest_device_spdm_get_digests_invalid_rs
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_BAD_LENGTH, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_DIGESTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -27639,13 +27642,13 @@ static void attestation_requester_test_attest_device_spdm_get_digests_req_slot_e
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUESTED_SLOT_NUM_EMPTY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_DIGESTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -27680,13 +27683,13 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_hash_u
 	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, true, true,
 		false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -27844,7 +27847,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 		&testing.keystore.base, &keys, &testing.x509_mock.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&testing.device_mgr, 1, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
+	status = device_manager_init (&testing.device_mgr, 2, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 10, 10, 10, 10, 0, 0, 1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -27852,15 +27855,18 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 1, 0x0A, 0x20,
-		1);
+	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 1,
+		MCTP_BASE_PROTOCOL_BMC_EID, 0x20, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state (&testing.device_mgr, 1,
+	status = device_manager_update_device_eid (&testing.device_mgr, 2, 0xAA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&testing.device_mgr, 2,
 		DEVICE_MANAGER_UNIDENTIFIED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_add_unidentified_device (&testing.device_mgr, 0x0A);
+	status = device_manager_add_unidentified_device (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_interface_multi_handler_msg_type_init (&testing.mctp_ctrl,
@@ -27908,16 +27914,16 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 
 	setup_attestation_requester_mock_certificate_test (test, true, false, &testing);
 
-	testing.cert_eid[0] = 0x0A;
+	testing.cert_eid[0] = 0xAA;
 	testing.cert_eid[1] = 0x0C;
 
 	cert_chain->length = testing.cert_buffer_len;
 
-	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 1, 0xAA, 0xBB,
+	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 2, 0xAA, 0xBB,
 		0xCC, 0xDD, 1, component_id, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state (&testing.device_mgr, 1,
+	status = device_manager_update_device_state (&testing.device_mgr, 2,
 		DEVICE_MANAGER_READY_FOR_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
 
@@ -27986,7 +27992,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	header->source_addr = (0x41 << 1) | 1;
 	header->rsvd = 0;
 	header->header_version = 1;
-	header->destination_eid = 0x0A;
+	header->destination_eid = 0xAA;
 	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	header->som = 1;
 	header->eom = 1;
@@ -28091,13 +28097,13 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -28149,13 +28155,13 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_TOO_MANY_RETRIES_REQUESTED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -28208,13 +28214,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_req_ha
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -28268,13 +28274,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_fail (
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -28329,13 +28335,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_unexpe
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -28389,13 +28395,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -28451,13 +28457,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -28512,20 +28518,20 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -28579,20 +28585,20 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -28649,13 +28655,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_rsp_un
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_UNEXPECTED_SLOT_NUM, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -28692,13 +28698,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_rsp_ha
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, true,
 		false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -28752,13 +28758,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_too_la
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CERT_TOO_LARGE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -28801,10 +28807,10 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_zero_r
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_CERT_CHAIN, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CERTS, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -28840,10 +28846,10 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_invali
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_CERT_CHAIN, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CERTS, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -28974,13 +28980,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -29118,13 +29124,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -29178,13 +29184,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_init_c
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -29245,13 +29251,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_add_ro
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -29312,13 +29318,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rio
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -29368,13 +29374,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_get_ve
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, CFM_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -29449,13 +29455,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -29534,13 +29540,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -29628,13 +29634,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -29700,13 +29706,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -29781,13 +29787,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -29853,13 +29859,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA384_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -29934,13 +29940,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -30006,13 +30012,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA512_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -30087,13 +30093,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -30173,13 +30179,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -30246,13 +30252,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_hash_i
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -30324,13 +30330,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_load_i
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_LOAD_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -30410,13 +30416,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_authen
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_CERT_NOT_VALID, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -30498,13 +30504,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_init_i
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_INIT_STORE_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -30594,13 +30600,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_add_tr
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_TRUSTED_CA_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -30677,13 +30683,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_hash_a
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -30765,13 +30771,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_load_a
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_LOAD_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -30860,13 +30866,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_authen
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_CERT_NOT_VALID, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -30958,13 +30964,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_finish
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -31055,13 +31061,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_compar
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MGR_DIGEST_MISMATCH, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -31160,13 +31166,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_get_al
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_KEY_TYPE_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -31269,13 +31275,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_get_al
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, X509_ENGINE_KEY_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -31323,13 +31329,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_1_2_mi
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, RNG_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -31374,13 +31380,13 @@ static void attestation_requester_test_attest_device_spdm_generate_random_buffer
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, RNG_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -31445,13 +31451,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_req_hash_upd
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -31518,13 +31524,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_fail (Cu
 	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, true, false, false,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -31591,13 +31597,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_unexpected_r
 	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, true, false,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -31664,13 +31670,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_rsp (CuTe
 	attestation_requester_testing_send_and_receive_spdm_challenge (test, false, false, false, false,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -31735,23 +31741,23 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_rsp_alrea
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
 	attestation_requester_testing_send_and_receive_spdm_challenge (test, false, false, false, false,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -31819,20 +31825,20 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_rsp_alrea
 	attestation_requester_testing_send_and_receive_spdm_challenge (test, false, false, false, false,
 		&testing);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -31902,13 +31908,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_unexpect
 	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, false,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_UNEXPECTED_SLOT_NUM, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -31978,13 +31984,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_unsuppor
 	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, false,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_OPERATION, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -32054,13 +32060,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_req_slot
 	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, false,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUESTED_SLOT_NUM_EMPTY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -32129,13 +32135,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_invalid_rsp_
 	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, false,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_BAD_LENGTH, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -32205,13 +32211,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_compare_cert
 	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, false,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MGR_DIGEST_MISMATCH, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -32251,13 +32257,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_hash_upd
 	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, true, false,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -32303,13 +32309,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_hash_finish_
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -32362,13 +32368,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -32421,13 +32427,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -32480,13 +32486,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -32550,13 +32556,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -32623,13 +32629,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -32699,13 +32705,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -32782,13 +32788,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_init_pub
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ECC_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -32881,13 +32887,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_verify_f
 		&testing.ecc, 0, MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ECC_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -32985,13 +32991,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_get_componen
 		&testing.cfm, MANIFEST_NO_MEMORY, MOCK_ARG (component_id), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MANIFEST_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -33102,13 +33108,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_pmr0_digest_
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_INVALID_ATTESTATION, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -33218,13 +33224,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_pmr0_dige
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -33277,13 +33283,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_get_pmr_dige
 		&testing.cfm, CFM_NO_MEMORY, MOCK_ARG (component_id), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, CFM_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -33355,13 +33361,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_start_hash_f
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -33444,13 +33450,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_1_2_setup_de
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -33528,13 +33534,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_generate_ran
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, RNG_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -33640,13 +33646,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_req_hash_upd
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -33814,13 +33820,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_fail (Cu
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -33988,13 +33994,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp (CuTe
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -34163,20 +34169,20 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp_alrea
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -34345,20 +34351,20 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp_alrea
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xA);
+	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -34526,13 +34532,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_unexpected_r
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -34702,13 +34708,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_unexpect
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_UNEXPECTED_SLOT_NUM, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -34783,13 +34789,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_hash_upd
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -34871,13 +34877,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_hash_finish_
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -34960,13 +34966,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -35049,13 +35055,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -35138,13 +35144,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -35238,13 +35244,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -35341,13 +35347,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -35447,13 +35453,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -35541,13 +35547,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_ecc_ini
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ECC_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -35652,13 +35658,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_ecc_ver
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ECC_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -35772,13 +35778,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_hash_co
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -35892,13 +35898,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_pmr0_dige
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -35953,13 +35959,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_next_m
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, CFM_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -36037,13 +36043,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_measur
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -36177,13 +36183,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -36315,13 +36321,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -36401,13 +36407,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_get_m
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -36550,13 +36556,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_raw_r
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_GET_MEAS_RSP_NOT_RAW, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -36690,13 +36696,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_num_b
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_UNEXPECTED_NUM_MEAS_BLOCKS, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -36839,13 +36845,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_unexp
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_GET_MEAS_OPERATION_UNEXPECTED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -36987,13 +36993,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -37017,7 +37023,7 @@ static void attestation_requester_test_attest_device_update_routing_table (CuTes
 
 	attestation_requester_testing_receive_mctp_set_eid_request (test, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REFRESH_ROUTING_TABLE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -37035,7 +37041,7 @@ static void attestation_requester_test_attest_device_update_routing_table_bridge
 
 	attestation_requester_refresh_routing_table (&testing.test);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REFRESH_ROUTING_TABLE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -37153,8 +37159,7 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 1, 0x0A, 0x20,
-		1);
+	status = device_manager_update_device_eid (&testing.device_mgr, 1, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 1, 0xAA, 0xBB,
@@ -37227,13 +37232,13 @@ static void attestation_requester_test_attest_device_unsupported_attestation_pro
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, (enum cfm_attestation_type) 2,
 		ATTESTATION_RIOT_SLOT_NUM, 0);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_PROTOCOL, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -37280,13 +37285,13 @@ static void attestation_requester_test_attest_device_spdm_response_not_ready_une
 	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, true, false, false,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -37343,13 +37348,13 @@ static void attestation_requester_test_attest_device_cfm_contains_unsupported_ha
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_ALGORITHM, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -37377,13 +37382,13 @@ static void attestation_requester_test_attest_device_cfm_contains_unsupported_ha
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_ALGORITHM, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -37402,7 +37407,7 @@ static void attestation_requester_test_attest_device_invalid_arg (CuTest *test)
 
 	TEST_START;
 
-	status = attestation_requester_attest_device (NULL, 0x0A);
+	status = attestation_requester_attest_device (NULL, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 }
 
@@ -37428,10 +37433,10 @@ static void attestation_requester_test_attest_device_no_cfm (CuTest *test)
 		&testing.cfm_manager, MOCK_RETURN_PTR (NULL));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_NO_CFM, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CFM, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -37466,10 +37471,10 @@ static void attestation_requester_test_attest_device_invalid_component_device (C
 		MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CFM, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -37481,7 +37486,7 @@ static void attestation_requester_test_discover_device_invalid_arg (CuTest *test
 
 	TEST_START;
 
-	status = attestation_requester_discover_device (NULL, 0x0A);
+	status = attestation_requester_discover_device (NULL, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 }
 
@@ -37511,16 +37516,16 @@ static void attestation_requester_test_discover_device_spdm (CuTest *test)
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
 		0xEF, true, &testing);
 
-	status = device_manager_update_device_ids (&testing.device_mgr, 1, 0xAA, 0xBB, 0xCC, 0xDD);
+	status = device_manager_update_device_ids (&testing.device_mgr, 2, 0xAA, 0xBB, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
 	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
 
-	status = device_manager_get_device_state (&testing.device_mgr, 1);
+	status = device_manager_get_device_state (&testing.device_mgr, 2);
 	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -37556,16 +37561,16 @@ static void attestation_requester_test_discover_device_spdm_1_1 (CuTest *test)
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
 		5, true, &testing);
 
-	status = device_manager_update_device_ids (&testing.device_mgr, 1, 0xAA, 0xBB, 0xCC, 0xDD);
+	status = device_manager_update_device_ids (&testing.device_mgr, 2, 0xAA, 0xBB, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
 	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
 
-	status = device_manager_get_device_state (&testing.device_mgr, 1);
+	status = device_manager_get_device_state (&testing.device_mgr, 2);
 	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -37582,7 +37587,7 @@ static void attestation_requester_test_discover_device_spdm_update_routing_table
 
 	attestation_requester_testing_receive_mctp_set_eid_request (test, &testing);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REFRESH_ROUTING_TABLE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -37600,7 +37605,7 @@ static void attestation_requester_test_discover_device_spdm_update_routing_table
 
 	attestation_requester_refresh_routing_table (&testing.test);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REFRESH_ROUTING_TABLE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -37615,7 +37620,7 @@ static void attestation_requester_test_discover_device_no_mctp_bridge (CuTest *t
 
 	setup_attestation_requester_mock_test (test, &testing, true, true, true);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -37632,7 +37637,7 @@ static void attestation_requester_test_discover_device_get_msg_type_unexpected_r
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, true, &testing);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -37649,7 +37654,7 @@ static void attestation_requester_test_discover_device_get_msg_type_no_rsp (CuTe
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, false, false, &testing);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -37668,7 +37673,7 @@ static void attestation_requester_test_discover_device_get_msg_type_rsp_fail (Cu
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, &testing);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -37686,7 +37691,7 @@ static void attestation_requester_test_discover_device_get_msg_type_no_attestati
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, &testing);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
@@ -37714,7 +37719,7 @@ static void attestation_requester_test_discover_device_spdm_setup_device_fail (C
 	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, true, false, false,
 		&testing);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
@@ -37749,7 +37754,7 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_fail
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, true, false,
 		0xEF, true, &testing);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
@@ -37787,7 +37792,7 @@ static void attestation_requester_test_discover_device_spdm_1_1_get_measurement_
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, true, false,
 		0, true, &testing);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
@@ -37826,7 +37831,7 @@ static void attestation_requester_test_discover_device_spdm_1_1_get_measurement_
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, true, false,
 		5, true, &testing);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
@@ -37863,7 +37868,7 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_devi
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
 		0xEF, true, &testing);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_GET_DEVICE_ID_FAIL, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
@@ -37900,7 +37905,7 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
 		0xEF, true, &testing);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
@@ -37936,16 +37941,16 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
 		0xEF, true, &testing);
 
-	status = device_manager_update_device_ids (&testing.device_mgr, 1, 0, 0xBB, 0xCC, 0xDD);
+	status = device_manager_update_device_ids (&testing.device_mgr, 2, 0, 0xBB, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
 	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
 
-	status = device_manager_get_device_state (&testing.device_mgr, 1);
+	status = device_manager_get_device_state (&testing.device_mgr, 2);
 	CuAssertIntEquals (test, DEVICE_MANAGER_UNIDENTIFIED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -37978,16 +37983,16 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
 		0xEF, true, &testing);
 
-	status = device_manager_update_device_ids (&testing.device_mgr, 1, 0xAA, 0, 0xCC, 0xDD);
+	status = device_manager_update_device_ids (&testing.device_mgr, 2, 0xAA, 0, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
 	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
 
-	status = device_manager_get_device_state (&testing.device_mgr, 1);
+	status = device_manager_get_device_state (&testing.device_mgr, 2);
 	CuAssertIntEquals (test, DEVICE_MANAGER_UNIDENTIFIED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -38020,16 +38025,16 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
 		0xEF, true, &testing);
 
-	status = device_manager_update_device_ids (&testing.device_mgr, 1, 0xAA, 0xBB, 0, 0xDD);
+	status = device_manager_update_device_ids (&testing.device_mgr, 2, 0xAA, 0xBB, 0, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
 	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
 
-	status = device_manager_get_device_state (&testing.device_mgr, 1);
+	status = device_manager_get_device_state (&testing.device_mgr, 2);
 	CuAssertIntEquals (test, DEVICE_MANAGER_UNIDENTIFIED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -38062,16 +38067,16 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
 		0xEF, true, &testing);
 
-	status = device_manager_update_device_ids (&testing.device_mgr, 1, 0xAA, 0xBB, 0xCC, 0);
+	status = device_manager_update_device_ids (&testing.device_mgr, 2, 0xAA, 0xBB, 0xCC, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
 	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
 
-	status = device_manager_get_device_state (&testing.device_mgr, 1);
+	status = device_manager_get_device_state (&testing.device_mgr, 2);
 	CuAssertIntEquals (test, DEVICE_MANAGER_UNIDENTIFIED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -38105,16 +38110,16 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
 		0xEF, true, &testing);
 
-	status = device_manager_update_device_ids (&testing.device_mgr, 1, 0xAA, 0xBB, 0xCC, 0);
+	status = device_manager_update_device_ids (&testing.device_mgr, 2, 0xAA, 0xBB, 0xCC, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
 	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
 
-	status = device_manager_get_device_state (&testing.device_mgr, 1);
+	status = device_manager_get_device_state (&testing.device_mgr, 2);
 	CuAssertIntEquals (test, DEVICE_MANAGER_UNIDENTIFIED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -38148,16 +38153,16 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
 		0xEF, true, &testing);
 
-	status = device_manager_update_device_ids (&testing.device_mgr, 1, 0xAA, 0xBB, 0xCC, 0xDD);
+	status = device_manager_update_device_ids (&testing.device_mgr, 2, 0xAA, 0xBB, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
 	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
 
-	status = device_manager_get_device_state (&testing.device_mgr, 1);
+	status = device_manager_get_device_state (&testing.device_mgr, 2);
 	CuAssertIntEquals (test, DEVICE_MANAGER_UNIDENTIFIED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -38191,16 +38196,16 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
 		0xEF, true, &testing);
 
-	status = device_manager_update_device_ids (&testing.device_mgr, 1, 0xAA, 0xBB, 0xCC, 0xDD);
+	status = device_manager_update_device_ids (&testing.device_mgr, 2, 0xAA, 0xBB, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
 	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
 
-	status = device_manager_get_device_state (&testing.device_mgr, 1);
+	status = device_manager_get_device_state (&testing.device_mgr, 2);
 	CuAssertIntEquals (test, DEVICE_MANAGER_UNIDENTIFIED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -38234,16 +38239,16 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
 		0xEF, true, &testing);
 
-	status = device_manager_update_device_ids (&testing.device_mgr, 1, 0xAA, 0xBB, 0xCC, 0xDD);
+	status = device_manager_update_device_ids (&testing.device_mgr, 2, 0xAA, 0xBB, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
 	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
 
-	status = device_manager_get_device_state (&testing.device_mgr, 1);
+	status = device_manager_get_device_state (&testing.device_mgr, 2);
 	CuAssertIntEquals (test, DEVICE_MANAGER_UNIDENTIFIED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -38277,16 +38282,16 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
 		0xEF, true, &testing);
 
-	status = device_manager_update_device_ids (&testing.device_mgr, 1, 0xAA, 0xBB, 0xCC, 0xDD);
+	status = device_manager_update_device_ids (&testing.device_mgr, 2, 0xAA, 0xBB, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
 	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
 
-	status = device_manager_get_device_state (&testing.device_mgr, 1);
+	status = device_manager_get_device_state (&testing.device_mgr, 2);
 	CuAssertIntEquals (test, DEVICE_MANAGER_UNIDENTIFIED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -38489,14 +38494,14 @@ static void attestation_requester_test_reset_authenticated_devices_on_cfm_activa
 
 	setup_attestation_requester_mock_test (test, &testing, true, false, true);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_READY_FOR_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_eid_of_next_device_to_attest (&testing.device_mgr);
-	CuAssertIntEquals (test, 0x0A, status);
+	CuAssertIntEquals (test, 0xAA, status);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
@@ -38506,7 +38511,7 @@ static void attestation_requester_test_reset_authenticated_devices_on_cfm_activa
 	testing.test.cfm_observer.on_cfm_activation_request (&testing.test.cfm_observer);
 
 	status = device_manager_get_eid_of_next_device_to_attest (&testing.device_mgr);
-	CuAssertIntEquals (test, 0x0A, status);
+	CuAssertIntEquals (test, 0xAA, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -38572,7 +38577,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
 		component_id);
 
-	status = device_manager_update_device_state (&testing.device_mgr, 1,
+	status = device_manager_update_device_state (&testing.device_mgr, 2,
 		DEVICE_MANAGER_UNIDENTIFIED);
 	CuAssertIntEquals (test, 0, status);
 
@@ -38593,7 +38598,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
 		0xEF, true, &testing);
 
-	status = device_manager_update_device_ids (&testing.device_mgr, 1, 0xAA, 0xBB, 0xCC, 0xDD);
+	status = device_manager_update_device_ids (&testing.device_mgr, 2, 0xAA, 0xBB, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
@@ -38685,10 +38690,10 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	status = testing_validate_array (attestation_status_expected, attestation_status, status);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -38757,7 +38762,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
 		component_id);
 
-	status = device_manager_update_device_state (&testing.device_mgr, 1,
+	status = device_manager_update_device_state (&testing.device_mgr, 2,
 		DEVICE_MANAGER_UNIDENTIFIED);
 	CuAssertIntEquals (test, 0, status);
 
@@ -38778,7 +38783,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
 		0xEF, true, &testing);
 
-	status = device_manager_update_device_ids (&testing.device_mgr, 1, 0xAA, 0xBB, 0xCC, 0xDD);
+	status = device_manager_update_device_ids (&testing.device_mgr, 2, 0xAA, 0xBB, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
@@ -38878,10 +38883,10 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 		attestation_status, sizeof (attestation_status_expected));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -39043,7 +39048,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		&testing.keystore.base, &keys, &testing.x509_mock.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&testing.device_mgr, 1, 2, 2,
+	status = device_manager_init (&testing.device_mgr, 2, 2, 2,
 		DEVICE_MANAGER_PA_ROT_MODE, DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 10000, 10000, 10000,
 		0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -39052,10 +39057,11 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 1, 0, 0x20, 1);
+	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 1,
+		MCTP_BASE_PROTOCOL_BMC_EID, 0x20, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_add_unidentified_device (&testing.device_mgr, 0x0A);
+	status = device_manager_add_unidentified_device (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_add_unidentified_device (&testing.device_mgr, 0x0C);
@@ -39110,16 +39116,16 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	/* Loop the GET_CERTIFICATE requests 1 time. */
 	testing.cert_msg[testing.cert_msg_count].loop_cnt = 1;
 
-	testing.cert_eid[0] = 0x0A;
+	testing.cert_eid[0] = 0xAA;
 	testing.cert_eid[1] = 0x0C;
 
 	cert_chain->length = testing.cert_buffer_len;
 
-	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 1, 0xAA, 0xBB,
+	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 2, 0xAA, 0xBB,
 		0xCC, 0xDD, 1, component_id, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 2, 0xAB, 0xBC,
+	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 3, 0xAB, 0xBC,
 		0xCD, 0xDE, 1, component_id2, 2);
 	CuAssertIntEquals (test, 0, status);
 
@@ -39162,7 +39168,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
 		0xEF, true, &testing);
 
-	status = device_manager_update_device_ids (&testing.device_mgr, 1, 0xAA, 0xBB, 0xCC, 0xDD);
+	status = device_manager_update_device_ids (&testing.device_mgr, 2, 0xAA, 0xBB, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	testing.second_device = true;
@@ -39179,7 +39185,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 
 	testing.second_device = false;
 
-	status = device_manager_update_device_ids (&testing.device_mgr, 2, 0xAB, 0xBC, 0xCD, 0xDE);
+	status = device_manager_update_device_ids (&testing.device_mgr, 3, 0xAB, 0xBC, 0xCD, 0xDE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
@@ -39364,10 +39370,10 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		sizeof (attestation_status_expected));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -39429,7 +39435,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms (test, false, false,
 		false, &testing);
 
-	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, 0xAA,
 		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
@@ -39440,13 +39446,13 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
@@ -39605,13 +39611,13 @@ static void attestation_requester_test_mctp_bridge_was_reset (CuTest *test)
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0A,
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
@@ -39626,7 +39632,7 @@ static void attestation_requester_test_mctp_bridge_was_reset (CuTest *test)
 
 	attestation_requester_refresh_routing_table (&testing.test);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_REFRESH_ROUTING_TABLE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);

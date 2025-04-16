@@ -413,6 +413,7 @@ enum {
 	DEVICE_MGR_NO_DEVICES_AVAILABLE = DEVICE_MGR_ERROR (0x08),		/**< No devices ready for attestation. */
 	DEVICE_MGR_DIGEST_NOT_UNIQUE = DEVICE_MGR_ERROR (0x09),			/**< Certificate chain digest not unique. */
 	DEVICE_MGR_INVALID_RESPONDER_COUNT = DEVICE_MGR_ERROR (0x0A),	/**< Invalid responder count. */
+	DEVICE_MGR_STATE_UPDATE_UNSUPPORTED = DEVICE_MGR_ERROR (0x0B),	/**< State update not supported. */
 };
 
 

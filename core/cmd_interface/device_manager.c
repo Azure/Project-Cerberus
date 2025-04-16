@@ -1128,6 +1128,12 @@ int device_manager_update_device_state (struct device_manager *mgr, int device_n
 	}
 
 	prev_state = mgr->entries[device_num].state;
+
+	/* If the device is not attestable, state changes should not be allowed. */
+	if (prev_state == DEVICE_MANAGER_NOT_ATTESTABLE) {
+		return DEVICE_MGR_STATE_UPDATE_UNSUPPORTED;
+	}
+
 	mgr->entries[device_num].state = state;
 
 	if ((state == DEVICE_MANAGER_AUTHENTICATED) ||

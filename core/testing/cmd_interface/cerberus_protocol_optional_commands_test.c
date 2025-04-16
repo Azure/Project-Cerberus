@@ -11024,7 +11024,7 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_summary
 	uint8_t component_instance = 0;
 	int status;
 
-	status = device_manager_update_mctp_bridge_device_entry (device_manager, 0, 0xAA, 0xBB, 0xCC, 0xDD, 1,
+	status = device_manager_update_mctp_bridge_device_entry (device_manager, 2, 0xAA, 0xBB, 0xCC, 0xDD, 1,
 		component_id, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -11044,14 +11044,17 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_summary
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	for (device_state = 0; device_state <= DEVICE_MANAGER_ATTESTATION_INTERRUPTED; ++device_state) {
-		status = device_manager_update_device_state (device_manager, 0, device_state);
+		if (device_state == DEVICE_MANAGER_NOT_ATTESTABLE) {
+			continue;
+		}
+		status = device_manager_update_device_state (device_manager, 2, device_state);
 		CuAssertIntEquals (test, 0, status);
 
-		status = device_manager_update_attestation_summary_event_counters (device_manager, 0);
+		status = device_manager_update_attestation_summary_event_counters (device_manager, 2);
 		CuAssertIntEquals (test, 0, status);
 	}
 
-	status = device_manager_get_attestation_summary_event_counters (device_manager, 0,
+	status = device_manager_get_attestation_summary_event_counters (device_manager, 2,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, event_counters.status_success_count);
@@ -11063,14 +11066,14 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_summary
 
 	for (device_state = DEVICE_MANAGER_ATTESTATION_INVALID_VERSION;
 		device_state <= DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE; ++device_state) {
-		status = device_manager_update_device_state (device_manager, 0, device_state);
+		status = device_manager_update_device_state (device_manager, 2, device_state);
 		CuAssertIntEquals (test, 0, status);
 
-		status = device_manager_update_attestation_summary_event_counters (device_manager, 0);
+		status = device_manager_update_attestation_summary_event_counters (device_manager, 2);
 		CuAssertIntEquals (test, 0, status);
 	}
 
-	status = device_manager_get_attestation_summary_event_counters (device_manager, 0,
+	status = device_manager_get_attestation_summary_event_counters (device_manager, 2,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, event_counters.status_success_count);
@@ -11082,14 +11085,14 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_summary
 
 	for (device_state = DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH;
 		device_state < MAX_DEVICE_MANAGER_STATES; ++device_state) {
-		status = device_manager_update_device_state (device_manager, 0, device_state);
+		status = device_manager_update_device_state (device_manager, 2, device_state);
 		CuAssertIntEquals (test, 0, status);
 
-		status = device_manager_update_attestation_summary_event_counters (device_manager, 0);
+		status = device_manager_update_attestation_summary_event_counters (device_manager, 2);
 		CuAssertIntEquals (test, 0, status);
 	}
 
-	status = device_manager_get_attestation_summary_event_counters (device_manager, 0,
+	status = device_manager_get_attestation_summary_event_counters (device_manager, 2,
 		&event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, event_counters.status_success_count);
