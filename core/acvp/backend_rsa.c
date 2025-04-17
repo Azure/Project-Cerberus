@@ -200,6 +200,7 @@ static int backend_rsa_rsa_keygen (struct rsa_keygen_data *data, flags_t parsed_
 	}
 
 	status = engine->engine->get_private_key_der (engine->engine, &key, &key_der, &key_der_len);
+	engine->engine->release_key (engine->engine, &key);
 	if ((status != 0) || (key_der == NULL)) {
 		goto exit;
 	}

@@ -188,6 +188,7 @@ static void backend_rsa_test_init (CuTest *test)
 
 static void backend_rsa_test_rsa_keygen (CuTest *test)
 {
+	RSA_TESTING_ENGINE (engine);
 	const struct rsa_backend *rsa_impl;
 	struct backend_rsa_testing backend;
 	uint32_t implementation = 0;
@@ -195,33 +196,19 @@ static void backend_rsa_test_rsa_keygen (CuTest *test)
 		{
 			.impl_id = implementation,
 			.random_e_supported = false,
-			.engine = &backend.engine.base
+			.engine = &engine.base
 		}
 	};
-	uint8_t *key_der = NULL;
 	int status;
 
 	TEST_START;
 
 	backend_rsa_testing_init (test, &backend, RSA_TEST_TYPE_KEYGEN);
 
-	key_der = platform_malloc (RSA_PRIVKEY_DER_LEN);
-	CuAssertPtrNotNull (test, key_der);
-
-	memcpy (key_der, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN);
-
-	status = mock_expect (&backend.engine.mock, backend.engine.base.generate_key, &backend.engine,
-		0, MOCK_ARG_NOT_NULL, MOCK_ARG (RSA_KEY_LENGTH_2K * 8));
-	status |= mock_expect_save_arg (&backend.engine.mock, 0, 0);
-
-	status |= mock_expect (&backend.engine.mock, backend.engine.base.get_private_key_der,
-		&backend.engine, 0,	MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&backend.engine.mock, 1, &key_der, sizeof (key_der), -1);
-	status |= mock_expect_output (&backend.engine.mock, 2, &RSA_PRIVKEY_DER_LEN,
-		sizeof (RSA_PRIVKEY_DER_LEN), -1);
-	CuAssertIntEquals (test, 0, status);
-
 	acvp_implementation = implementation;
+
+	status = RSA_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
 
 	backend_rsa_register_engines (rsa_engines, 1);
 
@@ -243,23 +230,12 @@ static void backend_rsa_test_rsa_keygen (CuTest *test)
 	CuAssertPtrNotNull (test, backend.data.keygen.e.buf);
 	CuAssertIntEquals (test, RSA_PUBKEY_EXPONENT_LEN, backend.data.keygen.e.len);
 
-	status = testing_validate_array (RSA_PUBLIC_KEY.modulus, backend.data.keygen.n.buf,
-		RSA_PUBLIC_KEY.mod_length);
-	CuAssertIntEquals (test, 0, status);
-
-	status = testing_validate_array (RSA_PRIVKEY_D, backend.data.keygen.d.buf, RSA_PRIVKEY_D_LEN);
-	CuAssertIntEquals (test, 0, status);
-
-	status = testing_validate_array (RSA_PRIVKEY_P, backend.data.keygen.p.buf, RSA_PRIVKEY_P_LEN);
-	CuAssertIntEquals (test, 0, status);
-
-	status = testing_validate_array (RSA_PRIVKEY_Q, backend.data.keygen.q.buf, RSA_PRIVKEY_Q_LEN);
-	CuAssertIntEquals (test, 0, status);
-
 	// The exponent was set on input, but verify that it hasn't changed.
 	status = testing_validate_array (RSA_PUBKEY_EXPONENT, backend.data.keygen.e.buf,
 		RSA_PUBKEY_EXPONENT_LEN);
 	CuAssertIntEquals (test, 0, status);
+
+	RSA_TESTING_ENGINE_RELEASE (&engine);
 
 	backend_rsa_testing_release (test, &backend);
 }
@@ -297,6 +273,9 @@ static void backend_rsa_test_rsa_keygen_3k (CuTest *test)
 	status |= mock_expect_output (&backend.engine.mock, 1, &key_der, sizeof (key_der), -1);
 	status |= mock_expect_output (&backend.engine.mock, 2, &RSA3K_PRIVKEY_DER_LEN,
 		sizeof (RSA3K_PRIVKEY_DER_LEN), -1);
+
+	status |= mock_expect (&backend.engine.mock, backend.engine.base.release_key, &backend.engine,
+		0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	acvp_implementation = implementation;
@@ -378,6 +357,9 @@ static void backend_rsa_test_rsa_keygen_4k (CuTest *test)
 	status |= mock_expect_output (&backend.engine.mock, 1, &key_der, sizeof (key_der), -1);
 	status |= mock_expect_output (&backend.engine.mock, 2, &RSA4K_PRIVKEY_DER_LEN,
 		sizeof (RSA4K_PRIVKEY_DER_LEN), -1);
+
+	status |= mock_expect (&backend.engine.mock, backend.engine.base.release_key, &backend.engine,
+		0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	acvp_implementation = implementation;
@@ -780,6 +762,9 @@ static void backend_rsa_test_rsa_keygen_get_private_key_der_error (CuTest *test)
 	status |= mock_expect (&backend.engine.mock, backend.engine.base.get_private_key_der,
 		&backend.engine, RSA_ENGINE_PRIVATE_KEY_DER_FAILED,	MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&backend.engine.mock, backend.engine.base.release_key, &backend.engine,
+		0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	acvp_implementation = implementation;
@@ -846,6 +831,9 @@ static void backend_rsa_test_rsa_keygen_parse_key_error (CuTest *test)
 		&backend.engine, 0,	MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&backend.engine.mock, 1, &key_der, sizeof (key_der), -1);
 	status |= mock_expect_output (&backend.engine.mock, 2, &bad_key_len, sizeof (bad_key_len), -1);
+
+	status |= mock_expect (&backend.engine.mock, backend.engine.base.release_key, &backend.engine,
+		0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	acvp_implementation = implementation;
