@@ -23,6 +23,7 @@ set(PROTOBUF_DIR ${PROTOBUFBACKEND_DIR}/pb)
 file(GLOB ACVPPARSER_SOURCES
     ${PROTO_DIR}/proto.c
     ${PROTO_DIR}/proto_aead.c
+    ${PROTO_DIR}/proto_ecdh.c
     ${PROTO_DIR}/proto_ecdsa.c
     ${PROTO_DIR}/proto_hkdf.c
     ${PROTO_DIR}/proto_hmac.c
@@ -31,6 +32,7 @@ file(GLOB ACVPPARSER_SOURCES
     ${PROTO_DIR}/proto_sym.c
     ${PROTOBUFBACKEND_DIR}/src/protobuf-c.c
     ${PROTOBUF_DIR}/aead.pb-c.c
+    ${PROTOBUF_DIR}/ecdh.pb-c.c
     ${PROTOBUF_DIR}/ecdsa.pb-c.c
     ${PROTOBUF_DIR}/hmac.pb-c.c
     ${PROTOBUF_DIR}/kda_hkdf.pb-c.c

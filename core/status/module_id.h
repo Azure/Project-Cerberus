@@ -174,6 +174,7 @@ enum {
 	ROT_MODULE_BACKEND_HKDF = 0x00a2,					/**< ACVP HKDF backend. */
 	ROT_MODULE_BACKEND_SYM = 0x00a3,					/**< ACVP symmetric cipher backend. */
 	ROT_MODULE_BACKEND_HMAC = 0x00a4,					/**< ACVP HMAC backend. */
+	ROT_MODULE_BACKEND_ECDH = 0x00a5,					/**< ACVP ECDH backend. */
 };
 
 
