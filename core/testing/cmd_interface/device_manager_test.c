@@ -5199,12 +5199,87 @@ static void device_manager_test_remove_unidentified_device_unidentified_null (Cu
 
 	TEST_START;
 
-	status = device_manager_init (&manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&manager, 2, 1, 1, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_remove_unidentified_device (&manager, 0xAA);
 	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_clear_unidentified_devices (CuTest *test)
+{
+	struct device_manager manager;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 2, 2, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_NOT_ATTESTABLE);
+	status |= device_manager_update_device_state (&manager, 2, DEVICE_MANAGER_UNIDENTIFIED);
+	status |= device_manager_update_device_state (&manager, 3, DEVICE_MANAGER_UNIDENTIFIED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_add_unidentified_device (&manager, 0xAA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_add_unidentified_device (&manager, 0xBB);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_eid_of_next_device_to_discover (&manager);
+	CuAssertIntEquals (test, 0xAA, status);
+
+	device_manager_clear_unidentified_devices (&manager);
+
+	status = device_manager_get_eid_of_next_device_to_discover (&manager);
+	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_clear_unidentified_devices_invalid_arg (CuTest *test)
+{
+	struct device_manager manager;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_clear_unidentified_devices (NULL);
+
+	status = device_manager_get_eid_of_next_device_to_discover (&manager);
+	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_clear_unidentified_devices_no_unidentified_devices (CuTest *test)
+{
+	struct device_manager manager;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_NOT_ATTESTABLE);
+	status |= device_manager_update_device_state (&manager, 2, DEVICE_MANAGER_UNIDENTIFIED);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_clear_unidentified_devices (&manager);
+
+	status = device_manager_get_eid_of_next_device_to_discover (&manager);
+	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
 
 	device_manager_release (&manager);
 }
@@ -5722,9 +5797,6 @@ static void device_manager_test_restart_device_discovery (CuTest *test)
 	status |= device_manager_update_device_state (&manager, 2, DEVICE_MANAGER_UNIDENTIFIED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_add_unidentified_device (&manager, 0xAA);
-	CuAssertIntEquals (test, 0, status);
-
 	status = device_manager_restart_device_discovery (&manager);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5734,9 +5806,6 @@ static void device_manager_test_restart_device_discovery (CuTest *test)
 		device_manager_get_device_state (&manager, 1));
 	CuAssertIntEquals (test, DEVICE_MANAGER_UNIDENTIFIED,
 		device_manager_get_device_state (&manager, 2));
-
-	status = device_manager_get_eid_of_next_device_to_discover (&manager);
-	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
 
 	device_manager_release (&manager);
 }
@@ -5755,9 +5824,6 @@ static void device_manager_test_restart_device_discovery_no_responders (CuTest *
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_NOT_ATTESTABLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_add_unidentified_device (&manager, 0xAA);
-	CuAssertIntEquals (test, 0, status);
-
 	status = device_manager_restart_device_discovery (&manager);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5765,9 +5831,6 @@ static void device_manager_test_restart_device_discovery_no_responders (CuTest *
 		device_manager_get_device_state (&manager, 0));
 	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE,
 		device_manager_get_device_state (&manager, 1));
-
-	status = device_manager_get_eid_of_next_device_to_discover (&manager);
-	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
 
 	device_manager_release (&manager);
 }
@@ -5792,15 +5855,6 @@ static void device_manager_test_restart_device_discovery_mark_devices_unidentifi
 		DEVICE_MANAGER_ATTESTATION_INTERRUPTED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_add_unidentified_device (&manager, 0xAA);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_add_unidentified_device (&manager, 0xBB);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_add_unidentified_device (&manager, 0xCC);
-	CuAssertIntEquals (test, 0, status);
-
 	status = device_manager_restart_device_discovery (&manager);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5814,9 +5868,6 @@ static void device_manager_test_restart_device_discovery_mark_devices_unidentifi
 		device_manager_get_device_state (&manager, 3));
 	CuAssertIntEquals (test, DEVICE_MANAGER_UNIDENTIFIED,
 		device_manager_get_device_state (&manager, 4));
-
-	status = device_manager_get_eid_of_next_device_to_discover (&manager);
-	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
 
 	device_manager_release (&manager);
 }
@@ -7892,6 +7943,9 @@ TEST (device_manager_test_remove_unidentified_device_unknown_device);
 TEST (device_manager_test_remove_unidentified_device_unknown_device_multiple_entries);
 TEST (device_manager_test_remove_unidentified_device_invalid_arg);
 TEST (device_manager_test_remove_unidentified_device_unidentified_null);
+TEST (device_manager_test_clear_unidentified_devices);
+TEST (device_manager_test_clear_unidentified_devices_invalid_arg);
+TEST (device_manager_test_clear_unidentified_devices_no_unidentified_devices);
 TEST (device_manager_test_unidentified_device_timed_out);
 TEST (device_manager_test_unidentified_device_timed_out_single_entry);
 TEST (device_manager_test_unidentified_device_timed_out_unknown_device);

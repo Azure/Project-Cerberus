@@ -51,13 +51,6 @@
 	(state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT) || \
 	(state == DEVICE_MANAGER_NEVER_ATTESTED))
 
-
-#ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
-/* Forward declaration to enable usage when releasing the instance. */
-static void device_manager_clear_unidentified_devices (struct device_manager *mgr);
-#endif
-
-
 /**
  * Initialize a device manager.
  *
@@ -1600,11 +1593,11 @@ int device_manager_update_device_ids (struct device_manager *mgr, int device_num
  *
  * @param mgr Device manager instance to utilize
  */
-static void device_manager_clear_unidentified_devices (struct device_manager *mgr)
+void device_manager_clear_unidentified_devices (struct device_manager *mgr)
 {
 	struct device_manager_unidentified_entry *entry;
 
-	if (mgr->unidentified != NULL) {
+	if ((mgr) && (mgr->unidentified != NULL)) {
 		while (mgr->unidentified->next != mgr->unidentified) {
 			entry = mgr->unidentified->next;
 			mgr->unidentified->next = entry->next;
@@ -1806,8 +1799,7 @@ found:
 }
 
 /**
- * Reset the device manager so that all attestable devices will be marked as unidentified.  Any
- * existing list of unidentified EIDs will be erased.
+ * Reset the device manager so that all attestable devices will be marked as unidentified.
  *
  * @param mgr The device manager for the attestable devices to rediscover.
  *
@@ -1820,8 +1812,6 @@ int device_manager_restart_device_discovery (struct device_manager *mgr)
 	if (mgr == NULL) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
-
-	device_manager_clear_unidentified_devices (mgr);
 
 	/* Reset device states to unidentified to ensure discovery gets executed again for them. */
 	for (i = 0; i < mgr->num_devices; i++) {

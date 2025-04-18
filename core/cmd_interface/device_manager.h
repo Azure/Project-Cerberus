@@ -380,6 +380,7 @@ int device_manager_update_device_ids (struct device_manager *mgr, int device_num
 	uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id);
 
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
+void device_manager_clear_unidentified_devices (struct device_manager *mgr);
 int device_manager_add_unidentified_device (struct device_manager *mgr, uint8_t eid);
 int device_manager_remove_unidentified_device (struct device_manager *mgr, uint8_t eid);
 int device_manager_unidentified_device_timed_out (struct device_manager *mgr, uint8_t eid);
