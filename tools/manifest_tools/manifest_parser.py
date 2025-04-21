@@ -985,3 +985,65 @@ def load_and_process_selection_xml (xml_file):
 
     return result_dict
 
+def get_manifest_format (xml_file):
+    """
+    Returns the xml manifest format.  Extracts the "type" attribute from the root of the parsed 
+    xml file.  Returns 1 if "type" attribute is None, otherwise returns 2.
+
+    :param xml_file: XML to utilize
+
+    :return manifest_format int
+    """
+
+    root = et.parse (xml_file).getroot ()
+    fw_type = xml_extract_attrib (root, XML_TYPE_ATTRIB, True, xml_file, False)
+    return manifest_types.VERSION_1 if fw_type is None else manifest_types.VERSION_2
+
+def get_manifest_version (xml_file):
+    """
+    Extracts the "version" attribute from the root of the parsed xml file and returns it.
+
+    :param xml_file: XML to utilize
+
+    :return manifest version str
+    """
+
+    root = et.parse (xml_file).getroot ()
+    return xml_extract_attrib (root, XML_VERSION_ATTRIB, True, xml_file, False)
+
+def get_manifest_type (xml_file):
+    """
+    Extracts the "type" attribute from the root of the parsed xml file and returns it.
+
+    :param xml_file: XML to utilize
+
+    :return manifest type str
+    """
+
+    root = et.parse (xml_file).getroot ()
+    return xml_extract_attrib (root, XML_TYPE_ATTRIB, True,xml_file,  False)
+
+def get_manifest_components (xml_file, sku_id):
+    """
+    For parsed xml files whose sku matches the sku_id provided, this function returns a list
+    "type" attribute values extracted from the "Component" tags under "Components".
+
+    :param xml_file: XML manifest to analyze
+    :param sku_id: Valid platform SKU to check for
+
+    :return list of component values (e.g. "type" attribute value for each "Component" tag) 
+            under the matching sku_id
+    """
+
+    component_list = []
+    root = et.parse (xml_file).getroot ()
+    components_tag = xml_find_single_tag (root, XML_COMPONENTS_TAG, xml_file, False)
+    if components_tag is not None:
+        for component in components_tag.findall (XML_COMPONENT_TAG):
+            result = xml_extract_attrib (root, XML_SKU_ATTRIB, True, xml_file)
+            if (result == None or result != sku_id):
+                continue
+            result = xml_extract_attrib (component, XML_TYPE_ATTRIB, True, xml_file)
+            if result is not None:
+                component_list.append(result)
+    return component_list
