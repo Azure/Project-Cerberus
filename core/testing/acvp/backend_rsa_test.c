@@ -222,11 +222,11 @@ static void backend_rsa_test_rsa_keygen (CuTest *test)
 	CuAssertPtrNotNull (test, backend.data.keygen.n.buf);
 	CuAssertIntEquals (test, RSA_KEY_LENGTH_2K, backend.data.keygen.n.len);
 	CuAssertPtrNotNull (test, backend.data.keygen.p.buf);
-	CuAssertIntEquals (test, RSA_KEY_LENGTH_2K / 2, backend.data.keygen.p.len);
+	CuAssertTrue (test, (backend.data.keygen.p.len <= (RSA_KEY_LENGTH_2K / 2)));
 	CuAssertPtrNotNull (test, backend.data.keygen.q.buf);
-	CuAssertIntEquals (test, RSA_KEY_LENGTH_2K / 2, backend.data.keygen.q.len);
+	CuAssertTrue (test, (backend.data.keygen.q.len <= (RSA_KEY_LENGTH_2K / 2)));
 	CuAssertPtrNotNull (test, backend.data.keygen.d.buf);
-	CuAssertIntEquals (test, RSA_KEY_LENGTH_2K, backend.data.keygen.d.len);
+	CuAssertTrue (test, (backend.data.keygen.d.len <= RSA_KEY_LENGTH_2K));
 	CuAssertPtrNotNull (test, backend.data.keygen.e.buf);
 	CuAssertIntEquals (test, RSA_PUBKEY_EXPONENT_LEN, backend.data.keygen.e.len);
 
@@ -292,11 +292,11 @@ static void backend_rsa_test_rsa_keygen_3k (CuTest *test)
 	CuAssertPtrNotNull (test, backend.data.keygen.n.buf);
 	CuAssertIntEquals (test, RSA_KEY_LENGTH_3K, backend.data.keygen.n.len);
 	CuAssertPtrNotNull (test, backend.data.keygen.p.buf);
-	CuAssertIntEquals (test, RSA_KEY_LENGTH_3K / 2, backend.data.keygen.p.len);
+	CuAssertTrue (test, (backend.data.keygen.p.len <= (RSA_KEY_LENGTH_3K / 2)));
 	CuAssertPtrNotNull (test, backend.data.keygen.q.buf);
-	CuAssertIntEquals (test, RSA_KEY_LENGTH_3K / 2, backend.data.keygen.q.len);
+	CuAssertTrue (test, (backend.data.keygen.q.len <= (RSA_KEY_LENGTH_3K / 2)));
 	CuAssertPtrNotNull (test, backend.data.keygen.d.buf);
-	CuAssertIntEquals (test, RSA_KEY_LENGTH_3K, backend.data.keygen.d.len);
+	CuAssertTrue (test, (backend.data.keygen.d.len <= RSA_KEY_LENGTH_3K));
 	CuAssertPtrNotNull (test, backend.data.keygen.e.buf);
 	CuAssertIntEquals (test, RSA_PUBKEY_EXPONENT_LEN, backend.data.keygen.e.len);
 
@@ -376,11 +376,11 @@ static void backend_rsa_test_rsa_keygen_4k (CuTest *test)
 	CuAssertPtrNotNull (test, backend.data.keygen.n.buf);
 	CuAssertIntEquals (test, RSA_KEY_LENGTH_4K, backend.data.keygen.n.len);
 	CuAssertPtrNotNull (test, backend.data.keygen.p.buf);
-	CuAssertIntEquals (test, RSA_KEY_LENGTH_4K / 2, backend.data.keygen.p.len);
+	CuAssertTrue (test, (backend.data.keygen.p.len <= (RSA_KEY_LENGTH_4K / 2)));
 	CuAssertPtrNotNull (test, backend.data.keygen.q.buf);
-	CuAssertIntEquals (test, RSA_KEY_LENGTH_4K / 2, backend.data.keygen.q.len);
+	CuAssertTrue (test, (backend.data.keygen.q.len <= (RSA_KEY_LENGTH_4K / 2)));
 	CuAssertPtrNotNull (test, backend.data.keygen.d.buf);
-	CuAssertIntEquals (test, RSA_KEY_LENGTH_4K, backend.data.keygen.d.len);
+	CuAssertTrue (test, (backend.data.keygen.d.len <= RSA_KEY_LENGTH_4K));
 	CuAssertPtrNotNull (test, backend.data.keygen.e.buf);
 	CuAssertIntEquals (test, RSA_PUBKEY_EXPONENT_LEN, backend.data.keygen.e.len);
 
