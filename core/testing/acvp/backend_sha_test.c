@@ -118,6 +118,7 @@ static void backend_sha_test_init (CuTest *test)
 	CuAssertPtrEquals (test, NULL, sha_impl->hash_mct_inner_loop);
 }
 
+#ifdef HASH_ENABLE_SHA1
 static void backend_sha_test_hash_generate_sha1 (CuTest *test)
 {
 	HASH_TESTING_ENGINE (engine);
@@ -160,132 +161,6 @@ static void backend_sha_test_hash_generate_sha1 (CuTest *test)
 	backend_sha_testing_release (test, &backend);
 }
 
-static void backend_sha_test_hash_generate_sha256 (CuTest *test)
-{
-	HASH_TESTING_ENGINE (engine);
-	const struct sha_backend *sha_impl;
-	struct backend_sha_testing backend;
-	uint32_t implementation = 0;
-	struct backend_sha_engine sha_engines[] = {
-		{
-			.impl_id = implementation,
-			.is_one_shot = false,
-			.engine = &engine.base
-		}
-	};
-	int status;
-
-	TEST_START;
-
-	backend_sha_testing_init (test, &backend);
-	backend.data.cipher = ACVP_SHA256;
-
-	status = HASH_TESTING_ENGINE_INIT (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	acvp_implementation = implementation;
-
-	backend_sha_register_engines (sha_engines, 1);
-
-	sha_impl = backend_sha_get_impl ();
-	CuAssertPtrNotNull (test, sha_impl);
-
-	status = sha_impl->hash_generate (&backend.data, 0);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, SHA256_HASH_LENGTH, backend.data.mac.len);
-
-	status = testing_validate_array (SHA256_TEST_HASH, backend.data.mac.buf, backend.data.mac.len);
-	CuAssertIntEquals (test, 0, status);
-
-	HASH_TESTING_ENGINE_RELEASE (&engine);
-
-	backend_sha_testing_release (test, &backend);
-}
-
-static void backend_sha_test_hash_generate_sha384 (CuTest *test)
-{
-	HASH_TESTING_ENGINE (engine);
-	const struct sha_backend *sha_impl;
-	struct backend_sha_testing backend;
-	uint32_t implementation = 0;
-	struct backend_sha_engine sha_engines[] = {
-		{
-			.impl_id = implementation,
-			.is_one_shot = false,
-			.engine = &engine.base
-		}
-	};
-	int status;
-
-	TEST_START;
-
-	backend_sha_testing_init (test, &backend);
-	backend.data.cipher = ACVP_SHA384;
-
-	status = HASH_TESTING_ENGINE_INIT (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	acvp_implementation = implementation;
-
-	backend_sha_register_engines (sha_engines, 1);
-
-	sha_impl = backend_sha_get_impl ();
-	CuAssertPtrNotNull (test, sha_impl);
-
-	status = sha_impl->hash_generate (&backend.data, 0);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, SHA384_HASH_LENGTH, backend.data.mac.len);
-
-	status = testing_validate_array (SHA384_TEST_HASH, backend.data.mac.buf, backend.data.mac.len);
-	CuAssertIntEquals (test, 0, status);
-
-	HASH_TESTING_ENGINE_RELEASE (&engine);
-
-	backend_sha_testing_release (test, &backend);
-}
-
-static void backend_sha_test_hash_generate_sha512 (CuTest *test)
-{
-	HASH_TESTING_ENGINE (engine);
-	const struct sha_backend *sha_impl;
-	struct backend_sha_testing backend;
-	uint32_t implementation = 0;
-	struct backend_sha_engine sha_engines[] = {
-		{
-			.impl_id = implementation,
-			.is_one_shot = false,
-			.engine = &engine.base
-		}
-	};
-	int status;
-
-	TEST_START;
-
-	backend_sha_testing_init (test, &backend);
-	backend.data.cipher = ACVP_SHA512;
-
-	status = HASH_TESTING_ENGINE_INIT (&engine);
-	CuAssertIntEquals (test, 0, status);
-
-	acvp_implementation = implementation;
-
-	backend_sha_register_engines (sha_engines, 1);
-
-	sha_impl = backend_sha_get_impl ();
-	CuAssertPtrNotNull (test, sha_impl);
-
-	status = sha_impl->hash_generate (&backend.data, 0);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, SHA512_HASH_LENGTH, backend.data.mac.len);
-
-	status = testing_validate_array (SHA512_TEST_HASH, backend.data.mac.buf, backend.data.mac.len);
-	CuAssertIntEquals (test, 0, status);
-
-	HASH_TESTING_ENGINE_RELEASE (&engine);
-
-	backend_sha_testing_release (test, &backend);
-}
-
 static void backend_sha_test_hash_generate_sha1_oneshot (CuTest *test)
 {
 	HASH_TESTING_ENGINE (engine);
@@ -321,6 +196,49 @@ static void backend_sha_test_hash_generate_sha1_oneshot (CuTest *test)
 	CuAssertIntEquals (test, SHA1_HASH_LENGTH, backend.data.mac.len);
 
 	status = testing_validate_array (SHA1_TEST_HASH, backend.data.mac.buf, backend.data.mac.len);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&engine);
+
+	backend_sha_testing_release (test, &backend);
+}
+#endif
+
+static void backend_sha_test_hash_generate_sha256 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (engine);
+	const struct sha_backend *sha_impl;
+	struct backend_sha_testing backend;
+	uint32_t implementation = 0;
+	struct backend_sha_engine sha_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_one_shot = false,
+			.engine = &engine.base
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_sha_testing_init (test, &backend);
+	backend.data.cipher = ACVP_SHA256;
+
+	status = HASH_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_sha_register_engines (sha_engines, 1);
+
+	sha_impl = backend_sha_get_impl ();
+	CuAssertPtrNotNull (test, sha_impl);
+
+	status = sha_impl->hash_generate (&backend.data, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, backend.data.mac.len);
+
+	status = testing_validate_array (SHA256_TEST_HASH, backend.data.mac.buf, backend.data.mac.len);
 	CuAssertIntEquals (test, 0, status);
 
 	HASH_TESTING_ENGINE_RELEASE (&engine);
@@ -370,6 +288,49 @@ static void backend_sha_test_hash_generate_sha256_oneshot (CuTest *test)
 	backend_sha_testing_release (test, &backend);
 }
 
+#ifdef HASH_ENABLE_SHA384
+static void backend_sha_test_hash_generate_sha384 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (engine);
+	const struct sha_backend *sha_impl;
+	struct backend_sha_testing backend;
+	uint32_t implementation = 0;
+	struct backend_sha_engine sha_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_one_shot = false,
+			.engine = &engine.base
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_sha_testing_init (test, &backend);
+	backend.data.cipher = ACVP_SHA384;
+
+	status = HASH_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_sha_register_engines (sha_engines, 1);
+
+	sha_impl = backend_sha_get_impl ();
+	CuAssertPtrNotNull (test, sha_impl);
+
+	status = sha_impl->hash_generate (&backend.data, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, backend.data.mac.len);
+
+	status = testing_validate_array (SHA384_TEST_HASH, backend.data.mac.buf, backend.data.mac.len);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&engine);
+
+	backend_sha_testing_release (test, &backend);
+}
+
 static void backend_sha_test_hash_generate_sha384_oneshot (CuTest *test)
 {
 	HASH_TESTING_ENGINE (engine);
@@ -405,6 +366,50 @@ static void backend_sha_test_hash_generate_sha384_oneshot (CuTest *test)
 	CuAssertIntEquals (test, SHA384_HASH_LENGTH, backend.data.mac.len);
 
 	status = testing_validate_array (SHA384_TEST_HASH, backend.data.mac.buf, backend.data.mac.len);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&engine);
+
+	backend_sha_testing_release (test, &backend);
+}
+#endif
+
+#ifdef HASH_ENABLE_SHA512
+static void backend_sha_test_hash_generate_sha512 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (engine);
+	const struct sha_backend *sha_impl;
+	struct backend_sha_testing backend;
+	uint32_t implementation = 0;
+	struct backend_sha_engine sha_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_one_shot = false,
+			.engine = &engine.base
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_sha_testing_init (test, &backend);
+	backend.data.cipher = ACVP_SHA512;
+
+	status = HASH_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_sha_register_engines (sha_engines, 1);
+
+	sha_impl = backend_sha_get_impl ();
+	CuAssertPtrNotNull (test, sha_impl);
+
+	status = sha_impl->hash_generate (&backend.data, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, backend.data.mac.len);
+
+	status = testing_validate_array (SHA512_TEST_HASH, backend.data.mac.buf, backend.data.mac.len);
 	CuAssertIntEquals (test, 0, status);
 
 	HASH_TESTING_ENGINE_RELEASE (&engine);
@@ -453,6 +458,7 @@ static void backend_sha_test_hash_generate_sha512_oneshot (CuTest *test)
 
 	backend_sha_testing_release (test, &backend);
 }
+#endif
 
 static void backend_sha_test_hash_generate_sha_multiple_engines (CuTest *test)
 {
@@ -463,13 +469,15 @@ static void backend_sha_test_hash_generate_sha_multiple_engines (CuTest *test)
 	struct backend_sha_testing backend;
 	uint32_t implementation1 = 5;
 	uint32_t implementation2 = 10;
-	const uint8_t implementation1_out[SHA1_HASH_LENGTH] = {
+	const uint8_t implementation1_out[SHA256_HASH_LENGTH] = {
 		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
-		0x10, 0x11, 0x12, 0x13, 0x14
+		0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E,
+		0x1F, 0x20
 	};
-	const uint8_t implementation2_out[SHA1_HASH_LENGTH] = {
+	const uint8_t implementation2_out[SHA256_HASH_LENGTH] = {
 		0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF,
-		0xF0, 0xF1, 0xF2, 0xF3, 0xF4
+		0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE,
+		0xFF, 0x00
 	};
 	struct backend_sha_engine sha_engines[] = {
 		{
@@ -488,7 +496,7 @@ static void backend_sha_test_hash_generate_sha_multiple_engines (CuTest *test)
 	TEST_START;
 
 	backend_sha_testing_init (test, &backend);
-	backend.data.cipher = ACVP_SHA1;
+	backend.data.cipher = ACVP_SHA256;
 
 	status = hash_mock_init (&engine1);
 	CuAssertIntEquals (test, 0, status);
@@ -496,10 +504,10 @@ static void backend_sha_test_hash_generate_sha_multiple_engines (CuTest *test)
 	status = hash_mock_init (&engine2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&engine1.mock, engine1.base.start_sha1, &engine1, 0,
+	status = mock_expect (&engine1.mock, engine1.base.start_sha256, &engine1, 0,
 		MOCK_ARG_PTR_CONTAINS (sha_test_data_msg, strlen (sha_test_data_msg)),
 		MOCK_ARG (strlen (sha_test_data_msg)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
+		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 
 	status |= mock_expect (&engine1.mock, engine1.base.update, &engine1, 0,
 		MOCK_ARG_PTR_CONTAINS (sha_test_data_msg, strlen (sha_test_data_msg)),
@@ -507,14 +515,14 @@ static void backend_sha_test_hash_generate_sha_multiple_engines (CuTest *test)
 
 	status |= mock_expect (&engine1.mock, engine1.base.finish, &engine1, 0,	MOCK_ARG_NOT_NULL,
 		MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output (&engine1.mock, 0, implementation1_out, SHA1_HASH_LENGTH, -1);
+	status |= mock_expect_output (&engine1.mock, 0, implementation1_out, SHA256_HASH_LENGTH, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&engine2.mock, engine2.base.calculate_sha1, &engine2, 0,
+	status = mock_expect (&engine2.mock, engine2.base.calculate_sha256, &engine2, 0,
 		MOCK_ARG_PTR_CONTAINS (sha_test_data_msg, strlen (sha_test_data_msg)),
 		MOCK_ARG (strlen (sha_test_data_msg)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
+		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	status |= mock_expect_output (&engine2.mock, 2, implementation2_out,
 		sizeof (implementation2_out), 3);
 	CuAssertIntEquals (test, 0, status);
@@ -563,13 +571,15 @@ static void backend_sha_test_hash_generate_sha_reregister_engine (CuTest *test)
 	const struct sha_backend *sha_impl;
 	struct backend_sha_testing backend;
 	uint32_t implementation = 2;
-	const uint8_t implementation1_out[SHA1_HASH_LENGTH] = {
+	const uint8_t implementation1_out[SHA256_HASH_LENGTH] = {
 		0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
-		0x20, 0x21, 0x22, 0x23, 0x24
+		0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E,
+		0x2F, 0x30
 	};
-	const uint8_t implementation2_out[SHA1_HASH_LENGTH] = {
+	const uint8_t implementation2_out[SHA256_HASH_LENGTH] = {
 		0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF,
-		0xE0, 0xE1, 0xE2, 0xE3, 0xE4
+		0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED, 0xEE,
+		0xEF, 0xF0
 	};
 	struct backend_sha_engine sha_engines1[] = {
 		{
@@ -590,7 +600,7 @@ static void backend_sha_test_hash_generate_sha_reregister_engine (CuTest *test)
 	TEST_START;
 
 	backend_sha_testing_init (test, &backend);
-	backend.data.cipher = ACVP_SHA1;
+	backend.data.cipher = ACVP_SHA256;
 
 	status = hash_mock_init (&engine1);
 	CuAssertIntEquals (test, 0, status);
@@ -598,19 +608,19 @@ static void backend_sha_test_hash_generate_sha_reregister_engine (CuTest *test)
 	status = hash_mock_init (&engine2);
 	CuAssertIntEquals (test, 0, status);
 
-	status |= mock_expect (&engine1.mock, engine1.base.calculate_sha1, &engine1, 0,
+	status |= mock_expect (&engine1.mock, engine1.base.calculate_sha256, &engine1, 0,
 		MOCK_ARG_PTR_CONTAINS (sha_test_data_msg, strlen (sha_test_data_msg)),
 		MOCK_ARG (strlen (sha_test_data_msg)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
+		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	status |= mock_expect_output (&engine1.mock, 2, implementation1_out,
 		sizeof (implementation1_out), 3);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status |= mock_expect (&engine2.mock, engine2.base.calculate_sha1, &engine2, 0,
+	status |= mock_expect (&engine2.mock, engine2.base.calculate_sha256, &engine2, 0,
 		MOCK_ARG_PTR_CONTAINS (sha_test_data_msg, strlen (sha_test_data_msg)),
 		MOCK_ARG (strlen (sha_test_data_msg)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
+		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	status |= mock_expect_output (&engine2.mock, 2, implementation2_out,
 		sizeof (implementation2_out), 3);
 
@@ -669,7 +679,7 @@ static void backend_sha_test_hash_generate_null (CuTest *test)
 	TEST_START;
 
 	backend_sha_testing_init (test, &backend);
-	backend.data.cipher = ACVP_SHA1;
+	backend.data.cipher = ACVP_SHA256;
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -744,7 +754,7 @@ static void backend_sha_test_hash_generate_engine_not_found (CuTest *test)
 	TEST_START;
 
 	backend_sha_testing_init (test, &backend);
-	backend.data.cipher = ACVP_SHA512;
+	backend.data.cipher = ACVP_SHA256;
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -846,7 +856,7 @@ static void backend_sha_test_hash_generate_start_error (CuTest *test)
 	TEST_START;
 
 	backend_sha_testing_init (test, &backend);
-	backend.data.cipher = ACVP_SHA1;
+	backend.data.cipher = ACVP_SHA256;
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -856,11 +866,11 @@ static void backend_sha_test_hash_generate_start_error (CuTest *test)
 	status = hash_mock_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&engine.mock, engine.base.start_sha1, &engine,
+	status = mock_expect (&engine.mock, engine.base.start_sha256, &engine,
 		HASH_ENGINE_UNSUPPORTED_HASH,
 		MOCK_ARG_PTR_CONTAINS (sha_test_data_msg, strlen (sha_test_data_msg)),
 		MOCK_ARG (strlen (sha_test_data_msg)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
+		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	sha_impl = backend_sha_get_impl ();
@@ -905,7 +915,7 @@ static void backend_sha_test_hash_generate_update_error (CuTest *test)
 	TEST_START;
 
 	backend_sha_testing_init (test, &backend);
-	backend.data.cipher = ACVP_SHA1;
+	backend.data.cipher = ACVP_SHA256;
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -915,10 +925,10 @@ static void backend_sha_test_hash_generate_update_error (CuTest *test)
 	status = hash_mock_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&engine.mock, engine.base.start_sha1, &engine, 0,
+	status = mock_expect (&engine.mock, engine.base.start_sha256, &engine, 0,
 		MOCK_ARG_PTR_CONTAINS (sha_test_data_msg, strlen (sha_test_data_msg)),
 		MOCK_ARG (strlen (sha_test_data_msg)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
+		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 
 	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
 		MOCK_ARG_PTR_CONTAINS (sha_test_data_msg, strlen (sha_test_data_msg)),
@@ -970,7 +980,7 @@ static void backend_sha_test_hash_generate_finish_error (CuTest *test)
 	TEST_START;
 
 	backend_sha_testing_init (test, &backend);
-	backend.data.cipher = ACVP_SHA1;
+	backend.data.cipher = ACVP_SHA256;
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -980,10 +990,10 @@ static void backend_sha_test_hash_generate_finish_error (CuTest *test)
 	status = hash_mock_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&engine.mock, engine.base.start_sha1, &engine, 0,
+	status = mock_expect (&engine.mock, engine.base.start_sha256, &engine, 0,
 		MOCK_ARG_PTR_CONTAINS (sha_test_data_msg, strlen (sha_test_data_msg)),
 		MOCK_ARG (strlen (sha_test_data_msg)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
+		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 
 	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0,
 		MOCK_ARG_PTR_CONTAINS (sha_test_data_msg, strlen (sha_test_data_msg)),
@@ -1038,7 +1048,7 @@ static void backend_sha_test_hash_generate_length_error (CuTest *test)
 	TEST_START;
 
 	backend_sha_testing_init (test, &backend);
-	backend.data.cipher = ACVP_SHA1;
+	backend.data.cipher = ACVP_SHA256;
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -1048,10 +1058,11 @@ static void backend_sha_test_hash_generate_length_error (CuTest *test)
 	status = hash_mock_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status |= mock_expect (&engine.mock, engine.base.calculate_sha1, &engine, SHA1_HASH_LENGTH - 1,
+	status |= mock_expect (&engine.mock, engine.base.calculate_sha256, &engine,
+		SHA256_HASH_LENGTH - 1,
 		MOCK_ARG_PTR_CONTAINS (sha_test_data_msg, strlen (sha_test_data_msg)),
 		MOCK_ARG (strlen (sha_test_data_msg)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
+		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1076,14 +1087,20 @@ static void backend_sha_test_hash_generate_length_error (CuTest *test)
 TEST_SUITE_START (backend_sha);
 
 TEST (backend_sha_test_init);
+#ifdef HASH_ENABLE_SHA1
 TEST (backend_sha_test_hash_generate_sha1);
-TEST (backend_sha_test_hash_generate_sha256);
-TEST (backend_sha_test_hash_generate_sha384);
-TEST (backend_sha_test_hash_generate_sha512);
 TEST (backend_sha_test_hash_generate_sha1_oneshot);
+#endif
+TEST (backend_sha_test_hash_generate_sha256);
 TEST (backend_sha_test_hash_generate_sha256_oneshot);
+#ifdef HASH_ENABLE_SHA384
+TEST (backend_sha_test_hash_generate_sha384);
 TEST (backend_sha_test_hash_generate_sha384_oneshot);
+#endif
+#ifdef HASH_ENABLE_SHA512
+TEST (backend_sha_test_hash_generate_sha512);
 TEST (backend_sha_test_hash_generate_sha512_oneshot);
+#endif
 TEST (backend_sha_test_hash_generate_sha_multiple_engines);
 TEST (backend_sha_test_hash_generate_sha_reregister_engine);
 TEST (backend_sha_test_hash_generate_null);

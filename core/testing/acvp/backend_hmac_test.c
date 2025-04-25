@@ -150,6 +150,7 @@ static void backend_hmac_test_init (CuTest *test)
 	CuAssertPtrEquals (test, NULL, hmac_impl->cmac_verify);
 }
 
+#ifdef HASH_ENABLE_SHA1
 static void backend_hmac_test_hmac_generate_sha1 (CuTest *test)
 {
 	HASH_TESTING_ENGINE (engine);
@@ -189,6 +190,7 @@ static void backend_hmac_test_hmac_generate_sha1 (CuTest *test)
 
 	backend_hmac_testing_release (test, &backend);
 }
+#endif
 
 static void backend_hmac_test_hmac_generate_sha256 (CuTest *test)
 {
@@ -230,6 +232,7 @@ static void backend_hmac_test_hmac_generate_sha256 (CuTest *test)
 	backend_hmac_testing_release (test, &backend);
 }
 
+#ifdef HASH_ENABLE_SHA384
 static void backend_hmac_test_hmac_generate_sha384 (CuTest *test)
 {
 	HASH_TESTING_ENGINE (engine);
@@ -269,7 +272,9 @@ static void backend_hmac_test_hmac_generate_sha384 (CuTest *test)
 
 	backend_hmac_testing_release (test, &backend);
 }
+#endif
 
+#ifdef HASH_ENABLE_SHA512
 static void backend_hmac_test_hmac_generate_sha512 (CuTest *test)
 {
 	HASH_TESTING_ENGINE (engine);
@@ -309,6 +314,7 @@ static void backend_hmac_test_hmac_generate_sha512 (CuTest *test)
 
 	backend_hmac_testing_release (test, &backend);
 }
+#endif
 
 static void backend_hmac_test_hmac_generate_null (CuTest *test)
 {
@@ -326,7 +332,7 @@ static void backend_hmac_test_hmac_generate_null (CuTest *test)
 
 	TEST_START;
 
-	backend_hmac_testing_init (test, &backend, HASH_TYPE_SHA384);
+	backend_hmac_testing_init (test, &backend, HASH_TYPE_SHA256);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -383,7 +389,7 @@ static void backend_hmac_test_hmac_generate_null (CuTest *test)
 	CuAssertIntEquals (test, -1, status);
 
 	// Test non-null MAC output buffer.
-	backend.data.mac.buf = (unsigned char*) platform_malloc (SHA384_HASH_LENGTH);
+	backend.data.mac.buf = (unsigned char*) platform_malloc (SHA256_HASH_LENGTH);
 	CuAssertPtrNotNull (test, backend.data.mac.buf);
 
 	status = hmac_impl->hmac_generate (&backend.data, 0);
@@ -391,7 +397,7 @@ static void backend_hmac_test_hmac_generate_null (CuTest *test)
 
 	platform_free (backend.data.mac.buf);
 	backend.data.mac.buf = NULL;
-	backend.data.mac.len = SHA384_HASH_LENGTH;
+	backend.data.mac.len = SHA256_HASH_LENGTH;
 
 	status = hmac_impl->hmac_generate (&backend.data, 0);
 	CuAssertIntEquals (test, -1, status);
@@ -415,7 +421,7 @@ static void backend_hmac_test_hmac_generate_no_engine (CuTest *test)
 
 	TEST_START;
 
-	backend_hmac_testing_init (test, &backend, HASH_TYPE_SHA384);
+	backend_hmac_testing_init (test, &backend, HASH_TYPE_SHA256);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -455,7 +461,7 @@ static void backend_hmac_test_hmac_generate_engine_not_found (CuTest *test)
 
 	TEST_START;
 
-	backend_hmac_testing_init (test, &backend, HASH_TYPE_SHA512);
+	backend_hmac_testing_init (test, &backend, HASH_TYPE_SHA256);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -581,10 +587,16 @@ static void backend_hmac_test_hmac_generate_generate_error (CuTest *test)
 TEST_SUITE_START (backend_hmac);
 
 TEST (backend_hmac_test_init);
+#ifdef HASH_ENABLE_SHA1
 TEST (backend_hmac_test_hmac_generate_sha1);
+#endif
 TEST (backend_hmac_test_hmac_generate_sha256);
+#ifdef HASH_ENABLE_SHA384
 TEST (backend_hmac_test_hmac_generate_sha384);
+#endif
+#ifdef HASH_ENABLE_SHA512
 TEST (backend_hmac_test_hmac_generate_sha512);
+#endif
 TEST (backend_hmac_test_hmac_generate_null);
 TEST (backend_hmac_test_hmac_generate_no_engine);
 TEST (backend_hmac_test_hmac_generate_engine_not_found);

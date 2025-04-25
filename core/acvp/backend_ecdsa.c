@@ -567,7 +567,8 @@ static int backend_ecdsa_siggen (struct ecdsa_siggen_data *data, flags_t parsed_
 
 		if (engine->api_type == BACKEND_ECDSA_API_TYPE_MESSAGE) {
 			status = ecdsa_sign_message (engine->ecc.engine, engine->hash, hash_type, NULL,	key_der,
-				key_der_len, data->msg.buf, data->msg.len, signature.eng, sizeof (signature.eng));
+				key_der_len, data->msg.buf, data->msg.len, (uint8_t*) signature.eng,
+				sizeof (signature.eng));
 		}
 		else {
 			status = hash_start_new_hash (engine->hash, hash_type);
@@ -583,7 +584,7 @@ static int backend_ecdsa_siggen (struct ecdsa_siggen_data *data, flags_t parsed_
 			}
 
 			status = ecdsa_sign_hash_and_finish (engine->ecc.engine, engine->hash, NULL, key_der,
-				key_der_len, signature.eng, sizeof (signature.eng));
+				key_der_len, (uint8_t*) signature.eng, sizeof (signature.eng));
 		}
 
 		if (ROT_IS_ERROR (status)) {
@@ -592,7 +593,7 @@ static int backend_ecdsa_siggen (struct ecdsa_siggen_data *data, flags_t parsed_
 
 		sig_der_len = status;
 
-		status = ecc_der_decode_ecdsa_signature (signature.eng, sig_der_len, data->R.buf,
+		status = ecc_der_decode_ecdsa_signature ((uint8_t*) signature.eng, sig_der_len, data->R.buf,
 			data->S.buf, key_length);
 	}
 

@@ -88,13 +88,14 @@ struct backend_ecdsa_testing {
 /**
  * Get the ACVP ECDSA test cipher value for the specified key and hash types.
  *
+ * @param test The test framework.
  * @param key_type The key type to use for the test.
  * @param hash_type The hash type to use for the test.
  *
  * @return The ACVP cipher value for the specified key and hash types.
  */
-static uint64_t backend_ecdsa_testing_get_cipher (enum ecdsa_test_ecc_key_type key_type,
-	enum hash_type hash_type)
+static uint64_t backend_ecdsa_testing_get_cipher (CuTest *test,
+	enum ecdsa_test_ecc_key_type key_type, enum hash_type hash_type)
 {
 	uint64_t cipher;
 
@@ -111,31 +112,49 @@ static uint64_t backend_ecdsa_testing_get_cipher (enum ecdsa_test_ecc_key_type k
 			cipher = ACVP_NISTP521;
 			break;
 
-		default:
+		case ECDSA_TEST_ECC_KEY_TYPE_INVALID:
 			// Use unsupported cipher
 			cipher = ACVP_NISTB571;
+			break;
+
+		default:
+			CuFail (test, "Invalid key type.");
+
+			return 0;
 	}
 
 	switch (hash_type) {
+#ifdef HASH_ENABLE_SHA1
 		case HASH_TYPE_SHA1:
 			cipher |= ACVP_SHA1;
 			break;
+#endif
 
 		case HASH_TYPE_SHA256:
 			cipher |= ACVP_SHA256;
 			break;
 
+#ifdef HASH_ENABLE_SHA384
 		case HASH_TYPE_SHA384:
 			cipher |= ACVP_SHA384;
 			break;
+#endif
 
+#ifdef HASH_ENABLE_SHA512
 		case HASH_TYPE_SHA512:
 			cipher |= ACVP_SHA512;
 			break;
+#endif
 
-		default:
+		case HASH_TYPE_INVALID:
 			// Use unsupported cipher
 			cipher |= ACVP_SHA3_512;
+			break;
+
+		default:
+			CuFail (test, "Invalid hash type.");
+
+			return 0;
 	}
 
 	return cipher;
@@ -154,24 +173,7 @@ static void backend_ecdsa_testing_set_siggen_buffers (CuTest *test,	struct ecdsa
 	enum ecdsa_test_ecc_key_type key_type)
 {
 	switch (key_type) {
-		case ECDSA_TEST_ECC_KEY_TYPE_256:
-			data->Qx.buf =
-				(unsigned char*) platform_malloc (sizeof (ECC_PUBKEY_POINT.x));
-			CuAssertPtrNotNull (test, data->Qx.buf);
-
-			memcpy (data->Qx.buf, ECC_PUBKEY_POINT.x, sizeof (ECC_PUBKEY_POINT.x));
-			data->Qx.len = sizeof (ECC_PUBKEY_POINT.x);
-
-			data->Qy.buf =
-				(unsigned char*) platform_malloc (sizeof (ECC_PUBKEY_POINT.y));
-			CuAssertPtrNotNull (test, data->Qy.buf);
-
-			memcpy (data->Qy.buf, ECC_PUBKEY_POINT.y, sizeof (ECC_PUBKEY_POINT.y));
-			data->Qy.len = sizeof (ECC_PUBKEY_POINT.y);
-
-			data->privkey = (void*) ECC_PRIVKEY;
-			break;
-
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 		case ECDSA_TEST_ECC_KEY_TYPE_384:
 			data->Qx.buf =
 				(unsigned char*) platform_malloc (sizeof (ECC384_PUBKEY_POINT.x));
@@ -189,10 +191,10 @@ static void backend_ecdsa_testing_set_siggen_buffers (CuTest *test,	struct ecdsa
 
 			data->privkey = (void*) ECC384_PRIVKEY;
 			break;
+#endif
 
-		default:
-			/* By default, set ECC521 buffers.  Invalid curve test cases are handled at a higher
-			 * level by the cipher value. */
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+		case ECDSA_TEST_ECC_KEY_TYPE_521:
 			data->Qx.buf =
 				(unsigned char*) platform_malloc (sizeof (ECC521_PUBKEY_POINT.x));
 			CuAssertPtrNotNull (test, data->Qx.buf);
@@ -208,6 +210,28 @@ static void backend_ecdsa_testing_set_siggen_buffers (CuTest *test,	struct ecdsa
 			data->Qy.len = sizeof (ECC521_PUBKEY_POINT.y);
 
 			data->privkey = (void*) ECC521_PRIVKEY;
+			break;
+#endif
+
+		default:
+			/* By default, set ECC256 buffers.  Invalid curve test cases are handled at a higher
+			* level by the cipher value. */
+			data->Qx.buf =
+				(unsigned char*) platform_malloc (sizeof (ECC_PUBKEY_POINT.x));
+			CuAssertPtrNotNull (test, data->Qx.buf);
+
+			memcpy (data->Qx.buf, ECC_PUBKEY_POINT.x, sizeof (ECC_PUBKEY_POINT.x));
+			data->Qx.len = sizeof (ECC_PUBKEY_POINT.x);
+
+			data->Qy.buf =
+				(unsigned char*) platform_malloc (sizeof (ECC_PUBKEY_POINT.y));
+			CuAssertPtrNotNull (test, data->Qy.buf);
+
+			memcpy (data->Qy.buf, ECC_PUBKEY_POINT.y, sizeof (ECC_PUBKEY_POINT.y));
+			data->Qy.len = sizeof (ECC_PUBKEY_POINT.y);
+
+			data->privkey = (void*) ECC_PRIVKEY;
+			break;
 	}
 }
 
@@ -224,36 +248,7 @@ static void backend_ecdsa_testing_set_sigver_buffers (CuTest *test,	struct ecdsa
 	enum ecdsa_test_ecc_key_type key_type)
 {
 	switch (key_type) {
-		case ECDSA_TEST_ECC_KEY_TYPE_256:
-			data->Qx.buf =
-				(unsigned char*) platform_malloc (sizeof (ECC_PUBKEY_POINT.x));
-			CuAssertPtrNotNull (test, data->Qx.buf);
-
-			memcpy (data->Qx.buf, ECC_PUBKEY_POINT.x, sizeof (ECC_PUBKEY_POINT.x));
-			data->Qx.len = sizeof (ECC_PUBKEY_POINT.x);
-
-			data->Qy.buf =
-				(unsigned char*) platform_malloc (sizeof (ECC_PUBKEY_POINT.y));
-			CuAssertPtrNotNull (test, data->Qy.buf);
-
-			memcpy (data->Qy.buf, ECC_PUBKEY_POINT.y, sizeof (ECC_PUBKEY_POINT.y));
-			data->Qy.len = sizeof (ECC_PUBKEY_POINT.y);
-
-			data->R.buf =
-				(unsigned char*) platform_malloc (sizeof (ECC_SIGNATURE_TEST_STRUCT.r));
-			CuAssertPtrNotNull (test, data->R.buf);
-
-			memcpy (data->R.buf, ECC_SIGNATURE_TEST_STRUCT.r, sizeof (ECC_SIGNATURE_TEST_STRUCT.r));
-			data->R.len = sizeof (ECC_SIGNATURE_TEST_STRUCT.r);
-
-			data->S.buf =
-				(unsigned char*) platform_malloc (sizeof (ECC_SIGNATURE_TEST_STRUCT.s));
-			CuAssertPtrNotNull (test, data->S.buf);
-
-			memcpy (data->S.buf, ECC_SIGNATURE_TEST_STRUCT.s, sizeof (ECC_SIGNATURE_TEST_STRUCT.s));
-			data->S.len = sizeof (ECC_SIGNATURE_TEST_STRUCT.s);
-			break;
-
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 		case ECDSA_TEST_ECC_KEY_TYPE_384:
 			data->Qx.buf =
 				(unsigned char*) platform_malloc (sizeof (ECC384_PUBKEY_POINT.x));
@@ -285,10 +280,10 @@ static void backend_ecdsa_testing_set_sigver_buffers (CuTest *test,	struct ecdsa
 				sizeof (ECC384_SIGNATURE_TEST_STRUCT.s));
 			data->S.len = sizeof (ECC384_SIGNATURE_TEST_STRUCT.s);
 			break;
+#endif
 
-		default:
-			/* By default, set ECC521 buffers.  Invalid curve test cases are handled at a higher
-			 * level by the cipher value. */
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+		case ECDSA_TEST_ECC_KEY_TYPE_521:
 			data->Qx.buf =
 				(unsigned char*) platform_malloc (sizeof (ECC521_PUBKEY_POINT.x));
 			CuAssertPtrNotNull (test, data->Qx.buf);
@@ -318,6 +313,40 @@ static void backend_ecdsa_testing_set_sigver_buffers (CuTest *test,	struct ecdsa
 			memcpy (data->S.buf, ECC521_SIGNATURE_TEST_STRUCT.s,
 				sizeof (ECC521_SIGNATURE_TEST_STRUCT.s));
 			data->S.len = sizeof (ECC521_SIGNATURE_TEST_STRUCT.s);
+			break;
+#endif
+
+		default:
+			/* By default, set ECC256 buffers.  Invalid curve test cases are handled at a higher
+			 * level by the cipher value. */
+			data->Qx.buf =
+				(unsigned char*) platform_malloc (sizeof (ECC_PUBKEY_POINT.x));
+			CuAssertPtrNotNull (test, data->Qx.buf);
+
+			memcpy (data->Qx.buf, ECC_PUBKEY_POINT.x, sizeof (ECC_PUBKEY_POINT.x));
+			data->Qx.len = sizeof (ECC_PUBKEY_POINT.x);
+
+			data->Qy.buf =
+				(unsigned char*) platform_malloc (sizeof (ECC_PUBKEY_POINT.y));
+			CuAssertPtrNotNull (test, data->Qy.buf);
+
+			memcpy (data->Qy.buf, ECC_PUBKEY_POINT.y, sizeof (ECC_PUBKEY_POINT.y));
+			data->Qy.len = sizeof (ECC_PUBKEY_POINT.y);
+
+			data->R.buf =
+				(unsigned char*) platform_malloc (sizeof (ECC_SIGNATURE_TEST_STRUCT.r));
+			CuAssertPtrNotNull (test, data->R.buf);
+
+			memcpy (data->R.buf, ECC_SIGNATURE_TEST_STRUCT.r, sizeof (ECC_SIGNATURE_TEST_STRUCT.r));
+			data->R.len = sizeof (ECC_SIGNATURE_TEST_STRUCT.r);
+
+			data->S.buf =
+				(unsigned char*) platform_malloc (sizeof (ECC_SIGNATURE_TEST_STRUCT.s));
+			CuAssertPtrNotNull (test, data->S.buf);
+
+			memcpy (data->S.buf, ECC_SIGNATURE_TEST_STRUCT.s, sizeof (ECC_SIGNATURE_TEST_STRUCT.s));
+			data->S.len = sizeof (ECC_SIGNATURE_TEST_STRUCT.s);
+			break;
 	}
 }
 
@@ -336,7 +365,7 @@ static void backend_ecdsa_testing_init (CuTest *test, struct backend_ecdsa_testi
 	union ecdsa_testing_data data;
 	int status;
 
-	cipher = backend_ecdsa_testing_get_cipher (key_type, hash_type);
+	cipher = backend_ecdsa_testing_get_cipher (test, key_type, hash_type);
 
 	switch (type) {
 		case ECDSA_TEST_TYPE_KEYGEN:
@@ -545,8 +574,9 @@ static void backend_ecdsa_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, ecdsa_impl->ecdsa_free_key);
 }
 
-static void backend_ecdsa_test_keygen (CuTest *test)
+static void backend_ecdsa_test_keygen_p256 (CuTest *test)
 {
+	ECC_TESTING_ENGINE (engine);
 	HASH_TESTING_ENGINE (hash_engine);
 	const struct ecdsa_backend *ecdsa_impl;
 	struct backend_ecdsa_testing backend;
@@ -555,77 +585,20 @@ static void backend_ecdsa_test_keygen (CuTest *test)
 		{
 			.impl_id = implementation,
 			.is_hw = false,
-			.ecc.engine = &backend.engine.base,
+			.ecc.engine = &engine.base,
 			.hash = &hash_engine.base,
 			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
 			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
 		}
 	};
-	uint8_t *test_key_der;
-	uint8_t *priv_key_der = NULL;
-	uint8_t *pub_key_der = NULL;
 	int status;
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
-		HASH_TYPE_SHA384);
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
 
-	test_key_der = platform_malloc (ECC384_PUBKEY_DER_LEN);
-	CuAssertPtrNotNull (test, test_key_der);
-
-	priv_key_der = platform_malloc (ECC384_PRIVKEY_DER_LEN);
-	CuAssertPtrNotNull (test, priv_key_der);
-
-	pub_key_der = platform_malloc (ECC384_PUBKEY_DER_LEN);
-	CuAssertPtrNotNull (test, pub_key_der);
-
-	memcpy (test_key_der, ECC384_PUBKEY_DER, ECC384_PUBKEY_DER_LEN);
-	memcpy (priv_key_der, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN);
-	memcpy (pub_key_der, ECC384_PUBKEY_DER, ECC384_PUBKEY_DER_LEN);
-
-	status = mock_expect (&backend.engine.mock, backend.engine.base.generate_key_pair,
-		&backend.engine, 0, MOCK_ARG (ECC_KEY_LENGTH_384), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&backend.engine.mock, 1, 0);
-	status |= mock_expect_save_arg (&backend.engine.mock, 2, 1);
-
-	status |= mock_expect (&backend.engine.mock, backend.engine.base.sign, &backend.engine,
-		ECC384_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_ANY, MOCK_ARG_NOT_NULL,	MOCK_ARG_ANY);
-
-	status |= mock_expect (&backend.engine.mock, backend.engine.base.get_public_key_der,
-		&backend.engine, 0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&backend.engine.mock, 1, &test_key_der, sizeof (test_key_der),
-		-1);
-	status |= mock_expect_output (&backend.engine.mock, 2, &ECC384_PUBKEY_DER_LEN,
-		sizeof (ECC384_PUBKEY_DER_LEN), -1);
-
-	status |= mock_expect (&backend.engine.mock, backend.engine.base.init_public_key,
-		&backend.engine, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (ECC384_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-
-	status |= mock_expect (&backend.engine.mock, backend.engine.base.verify, &backend.engine, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_ANY);
-
-	status |= mock_expect (&backend.engine.mock, backend.engine.base.release_key_pair,
-		&backend.engine, 0, MOCK_ARG_ANY, MOCK_ARG_ANY);
-
-	status |= mock_expect (&backend.engine.mock, backend.engine.base.get_private_key_der,
-		&backend.engine, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&backend.engine.mock, 1, &priv_key_der, sizeof (priv_key_der),
-		-1);
-	status |= mock_expect_output (&backend.engine.mock, 2, &ECC384_PRIVKEY_DER_LEN,
-		sizeof (ECC384_PRIVKEY_DER_LEN), -1);
-
-	status |= mock_expect (&backend.engine.mock, backend.engine.base.get_public_key_der,
-		&backend.engine, 0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&backend.engine.mock, 1, &pub_key_der, sizeof (pub_key_der), -1);
-	status |= mock_expect_output (&backend.engine.mock, 2, &ECC384_PUBKEY_DER_LEN,
-		sizeof (ECC384_PUBKEY_DER_LEN),	-1);
-
-	status |= mock_expect (&backend.engine.mock, backend.engine.base.release_key_pair,
-		&backend.engine, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
-
+	status = ECC_TESTING_ENGINE_INIT (&engine);
 	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
@@ -641,29 +614,22 @@ static void backend_ecdsa_test_keygen (CuTest *test)
 	status = ecdsa_impl->ecdsa_keygen (&backend.data.keygen, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, ECC384_PRIVKEY_LEN, backend.data.keygen.d.len);
+	CuAssertIntEquals (test, ECC_PRIVKEY_LEN, backend.data.keygen.d.len);
 	CuAssertPtrNotNull (test, backend.data.keygen.d.buf);
-	status = testing_validate_array (ECC384_PRIVKEY, backend.data.keygen.d.buf,	ECC384_PRIVKEY_LEN);
-	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, ECC384_PUBKEY_POINT.key_length, backend.data.keygen.Qx.len);
+	CuAssertIntEquals (test, ECC_PUBKEY_POINT.key_length, backend.data.keygen.Qx.len);
 	CuAssertPtrNotNull (test, backend.data.keygen.Qx.buf);
-	status = testing_validate_array (ECC384_PUBKEY_POINT.x, backend.data.keygen.Qx.buf,
-		ECC384_PUBKEY_POINT.key_length);
-	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, ECC384_PUBKEY_POINT.key_length, backend.data.keygen.Qy.len);
+	CuAssertIntEquals (test, ECC_PUBKEY_POINT.key_length, backend.data.keygen.Qy.len);
 	CuAssertPtrNotNull (test, backend.data.keygen.Qy.buf);
-	status = testing_validate_array (ECC384_PUBKEY_POINT.y, backend.data.keygen.Qy.buf,
-		ECC384_PUBKEY_POINT.key_length);
-	CuAssertIntEquals (test, 0, status);
 
+	ECC_TESTING_ENGINE_RELEASE (&engine);
 	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
 
 	backend_ecdsa_testing_release (test, &backend);
 }
 
-static void backend_ecdsa_test_keygen_hw (CuTest *test)
+static void backend_ecdsa_test_keygen_hw_p256 (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash_engine);
 	const struct ecdsa_backend *ecdsa_impl;
@@ -739,6 +705,277 @@ static void backend_ecdsa_test_keygen_hw (CuTest *test)
 	backend_ecdsa_testing_release (test, &backend);
 }
 
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && (defined HASH_ENABLE_SHA384)
+static void backend_ecdsa_test_keygen_p384 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (engine);
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = false,
+			.ecc.engine = &engine.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
+		HASH_TYPE_SHA384);
+
+	status = ECC_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	acvp_implementation = implementation;
+
+	status = ecdsa_impl->ecdsa_keygen (&backend.data.keygen, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, ECC384_PRIVKEY_LEN, backend.data.keygen.d.len);
+	CuAssertPtrNotNull (test, backend.data.keygen.d.buf);
+
+	CuAssertIntEquals (test, ECC384_PUBKEY_POINT.key_length, backend.data.keygen.Qx.len);
+	CuAssertPtrNotNull (test, backend.data.keygen.Qx.buf);
+
+	CuAssertIntEquals (test, ECC384_PUBKEY_POINT.key_length, backend.data.keygen.Qy.len);
+	CuAssertPtrNotNull (test, backend.data.keygen.Qy.buf);
+
+	ECC_TESTING_ENGINE_RELEASE (&engine);
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+
+static void backend_ecdsa_test_keygen_hw_p384 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
+		HASH_TYPE_SHA384);
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.generate_ecc_key_pair, &backend.hw,	0,
+		MOCK_ARG (ECC_KEY_LENGTH_384), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&backend.hw.mock, 1, ECC384_PRIVKEY, ECC384_PRIVKEY_LEN, -1);
+	status |= mock_expect_output (&backend.hw.mock, 2, &ECC384_PUBKEY_POINT,
+		sizeof (ECC384_PUBKEY_POINT), -1);
+
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_sign, &backend.hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC384_PRIVKEY, ECC384_PRIVKEY_LEN), MOCK_ARG (ECC_KEY_LENGTH_384),
+		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&backend.hw.mock, 5, ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN,
+		-1);
+
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
+		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	acvp_implementation = implementation;
+
+	status = ecdsa_impl->ecdsa_keygen (&backend.data.keygen, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrNotNull (test, backend.data.keygen.d.buf);
+	CuAssertPtrNotNull (test, backend.data.keygen.Qx.buf);
+	CuAssertPtrNotNull (test, backend.data.keygen.Qy.buf);
+	CuAssertIntEquals (test, ECC384_PRIVKEY_LEN, backend.data.keygen.d.len);
+	CuAssertIntEquals (test, ECC384_PUBKEY_POINT.key_length, backend.data.keygen.Qx.len);
+	CuAssertIntEquals (test, ECC384_PUBKEY_POINT.key_length, backend.data.keygen.Qy.len);
+
+	status = testing_validate_array (ECC384_PRIVKEY, backend.data.keygen.d.buf, ECC384_PRIVKEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (ECC384_PUBKEY_POINT.x, backend.data.keygen.Qx.buf,
+		ECC_KEY_LENGTH_384);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (ECC384_PUBKEY_POINT.y, backend.data.keygen.Qy.buf,
+		ECC_KEY_LENGTH_384);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+#endif
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && (defined HASH_ENABLE_SHA512)
+static void backend_ecdsa_test_keygen_p521 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (engine);
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = false,
+			.ecc.engine = &engine.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_521,
+		HASH_TYPE_SHA512);
+
+	status = ECC_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	acvp_implementation = implementation;
+
+	status = ecdsa_impl->ecdsa_keygen (&backend.data.keygen, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, ECC521_PRIVKEY_LEN, backend.data.keygen.d.len);
+	CuAssertPtrNotNull (test, backend.data.keygen.d.buf);
+
+	CuAssertIntEquals (test, ECC521_PUBKEY_POINT.key_length, backend.data.keygen.Qx.len);
+	CuAssertPtrNotNull (test, backend.data.keygen.Qx.buf);
+
+	CuAssertIntEquals (test, ECC521_PUBKEY_POINT.key_length, backend.data.keygen.Qy.len);
+	CuAssertPtrNotNull (test, backend.data.keygen.Qy.buf);
+
+	ECC_TESTING_ENGINE_RELEASE (&engine);
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+static void backend_ecdsa_test_keygen_hw_p521 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_521,
+		HASH_TYPE_SHA512);
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.generate_ecc_key_pair, &backend.hw,	0,
+		MOCK_ARG (ECC_KEY_LENGTH_521), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&backend.hw.mock, 1, ECC521_PRIVKEY, ECC521_PRIVKEY_LEN, -1);
+	status |= mock_expect_output (&backend.hw.mock, 2, &ECC521_PUBKEY_POINT,
+		sizeof (ECC521_PUBKEY_POINT), -1);
+
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_sign, &backend.hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC521_PRIVKEY, ECC521_PRIVKEY_LEN), MOCK_ARG (ECC_KEY_LENGTH_521),
+		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&backend.hw.mock, 5, ECC521_SIGNATURE_TEST, ECC521_SIG_TEST_LEN,
+		-1);
+
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (ECC521_SIGNATURE_TEST, ECC521_SIG_TEST_LEN),
+		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	acvp_implementation = implementation;
+
+	status = ecdsa_impl->ecdsa_keygen (&backend.data.keygen, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrNotNull (test, backend.data.keygen.d.buf);
+	CuAssertPtrNotNull (test, backend.data.keygen.Qx.buf);
+	CuAssertPtrNotNull (test, backend.data.keygen.Qy.buf);
+	CuAssertIntEquals (test, ECC521_PRIVKEY_LEN, backend.data.keygen.d.len);
+	CuAssertIntEquals (test, ECC521_PUBKEY_POINT.key_length, backend.data.keygen.Qx.len);
+	CuAssertIntEquals (test, ECC521_PUBKEY_POINT.key_length, backend.data.keygen.Qy.len);
+
+	status = testing_validate_array (ECC521_PRIVKEY, backend.data.keygen.d.buf, ECC521_PRIVKEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (ECC521_PUBKEY_POINT.x, backend.data.keygen.Qx.buf,
+		ECC_KEY_LENGTH_521);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (ECC521_PUBKEY_POINT.y, backend.data.keygen.Qy.buf,
+		ECC_KEY_LENGTH_521);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+#endif
+
 static void backend_ecdsa_test_keygen_null (CuTest *test)
 {
 	const struct ecdsa_backend *ecdsa_impl;
@@ -755,7 +992,7 @@ static void backend_ecdsa_test_keygen_null (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
@@ -788,7 +1025,7 @@ static void backend_ecdsa_test_keygen_no_engine (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
@@ -893,7 +1130,7 @@ static void backend_ecdsa_test_keygen_unsupported_type (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
@@ -1010,11 +1247,11 @@ static void backend_ecdsa_test_keygen_gen_error (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
-		HASH_TYPE_SHA384);
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
 
 	status = mock_expect (&backend.engine.mock, backend.engine.base.generate_key_pair,
-		&backend.engine, ECC_ENGINE_GENERATE_KEY_FAILED, MOCK_ARG (ECC_KEY_LENGTH_384),
+		&backend.engine, ECC_ENGINE_GENERATE_KEY_FAILED, MOCK_ARG (ECC_KEY_LENGTH_256),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&backend.engine.mock, backend.engine.base.release_key_pair,
@@ -1073,11 +1310,11 @@ static void backend_ecdsa_test_keygen_hw_gen_error (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
-		HASH_TYPE_SHA384);
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
 
 	status = mock_expect (&backend.hw.mock, backend.hw.base.generate_ecc_key_pair, &backend.hw,
-		ECC_HW_ECC_GENERATE_FAILED,	MOCK_ARG (ECC_KEY_LENGTH_384), MOCK_ARG_NOT_NULL,
+		ECC_HW_ECC_GENERATE_FAILED,	MOCK_ARG (ECC_KEY_LENGTH_256), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1104,7 +1341,270 @@ static void backend_ecdsa_test_keygen_hw_gen_error (CuTest *test)
 	backend_ecdsa_testing_release (test, &backend);
 }
 
-static void backend_ecdsa_test_keygen_extra (CuTest *test)
+static void backend_ecdsa_test_keygen_extra_p256 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (engine);
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 1;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = false,
+			.ecc.engine = &engine.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_EXTRA_ENTROPY,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
+
+	status = ECC_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	acvp_implementation = implementation;
+
+	status = ecdsa_impl->ecdsa_keygen_extra (&backend.data.keygen_extra, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrNotNull (test, backend.data.keygen_extra.d.buf);
+	CuAssertPtrNotNull (test, backend.data.keygen_extra.Qx.buf);
+	CuAssertPtrNotNull (test, backend.data.keygen_extra.Qy.buf);
+	CuAssertIntEquals (test, ECC_PRIVKEY_LEN, backend.data.keygen_extra.d.len);
+	CuAssertIntEquals (test, ECC_PUBKEY_POINT.key_length, backend.data.keygen_extra.Qx.len);
+	CuAssertIntEquals (test, ECC_PUBKEY_POINT.key_length, backend.data.keygen_extra.Qy.len);
+
+	ECC_TESTING_ENGINE_RELEASE (&engine);
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+static void backend_ecdsa_test_keygen_extra_hw_p256 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_EXTRA_ENTROPY,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.generate_ecc_key_pair, &backend.hw,	0,
+		MOCK_ARG (ECC_KEY_LENGTH_256), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&backend.hw.mock, 1, ECC_PRIVKEY, ECC_PRIVKEY_LEN, -1);
+	status |= mock_expect_output (&backend.hw.mock, 2, &ECC_PUBKEY_POINT, sizeof (ECC_PUBKEY_POINT),
+		-1);
+
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_sign, &backend.hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_KEY_LENGTH_256),
+		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&backend.hw.mock, 5, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN, -1);
+
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN),
+		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	acvp_implementation = implementation;
+
+	status = ecdsa_impl->ecdsa_keygen_extra (&backend.data.keygen_extra, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrNotNull (test, backend.data.keygen_extra.d.buf);
+	CuAssertPtrNotNull (test, backend.data.keygen_extra.Qx.buf);
+	CuAssertPtrNotNull (test, backend.data.keygen_extra.Qy.buf);
+	CuAssertIntEquals (test, ECC_PRIVKEY_LEN, backend.data.keygen_extra.d.len);
+	CuAssertIntEquals (test, ECC_PUBKEY_POINT.key_length, backend.data.keygen_extra.Qx.len);
+	CuAssertIntEquals (test, ECC_PUBKEY_POINT.key_length, backend.data.keygen_extra.Qy.len);
+
+	status = testing_validate_array (ECC_PRIVKEY, backend.data.keygen_extra.d.buf, ECC_PRIVKEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (ECC_PUBKEY_POINT.x, backend.data.keygen_extra.Qx.buf,
+		ECC_KEY_LENGTH_256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (ECC_PUBKEY_POINT.y, backend.data.keygen_extra.Qy.buf,
+		ECC_KEY_LENGTH_256);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && (defined HASH_ENABLE_SHA384)
+static void backend_ecdsa_test_keygen_extra_p384 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (engine);
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 1;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = false,
+			.ecc.engine = &engine.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_EXTRA_ENTROPY,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
+		HASH_TYPE_SHA384);
+
+	status = ECC_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	acvp_implementation = implementation;
+
+	status = ecdsa_impl->ecdsa_keygen_extra (&backend.data.keygen_extra, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrNotNull (test, backend.data.keygen_extra.d.buf);
+	CuAssertPtrNotNull (test, backend.data.keygen_extra.Qx.buf);
+	CuAssertPtrNotNull (test, backend.data.keygen_extra.Qy.buf);
+	CuAssertIntEquals (test, ECC384_PRIVKEY_LEN, backend.data.keygen_extra.d.len);
+	CuAssertIntEquals (test, ECC384_PUBKEY_POINT.key_length, backend.data.keygen_extra.Qx.len);
+	CuAssertIntEquals (test, ECC384_PUBKEY_POINT.key_length, backend.data.keygen_extra.Qy.len);
+
+	ECC_TESTING_ENGINE_RELEASE (&engine);
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+static void backend_ecdsa_test_keygen_extra_hw_p384 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_EXTRA_ENTROPY,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
+		HASH_TYPE_SHA384);
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.generate_ecc_key_pair, &backend.hw,	0,
+		MOCK_ARG (ECC_KEY_LENGTH_384), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&backend.hw.mock, 1, ECC384_PRIVKEY, ECC384_PRIVKEY_LEN, -1);
+	status |= mock_expect_output (&backend.hw.mock, 2, &ECC384_PUBKEY_POINT,
+		sizeof (ECC384_PUBKEY_POINT), -1);
+
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_sign, &backend.hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC384_PRIVKEY, ECC384_PRIVKEY_LEN), MOCK_ARG (ECC_KEY_LENGTH_384),
+		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&backend.hw.mock, 5, ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN,
+		-1);
+
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
+		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	acvp_implementation = implementation;
+
+	status = ecdsa_impl->ecdsa_keygen_extra (&backend.data.keygen_extra, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrNotNull (test, backend.data.keygen_extra.d.buf);
+	CuAssertPtrNotNull (test, backend.data.keygen_extra.Qx.buf);
+	CuAssertPtrNotNull (test, backend.data.keygen_extra.Qy.buf);
+	CuAssertIntEquals (test, ECC384_PRIVKEY_LEN, backend.data.keygen_extra.d.len);
+	CuAssertIntEquals (test, ECC384_PUBKEY_POINT.key_length, backend.data.keygen_extra.Qx.len);
+	CuAssertIntEquals (test, ECC384_PUBKEY_POINT.key_length, backend.data.keygen_extra.Qy.len);
+
+	status = testing_validate_array (ECC384_PRIVKEY, backend.data.keygen_extra.d.buf,
+		ECC384_PRIVKEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (ECC384_PUBKEY_POINT.x, backend.data.keygen_extra.Qx.buf,
+		ECC_KEY_LENGTH_384);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (ECC384_PUBKEY_POINT.y, backend.data.keygen_extra.Qy.buf,
+		ECC_KEY_LENGTH_384);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+#endif
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && (defined HASH_ENABLE_SHA512)
+static void backend_ecdsa_test_keygen_extra_p521 (CuTest *test)
 {
 	ECC_TESTING_ENGINE (engine);
 	HASH_TESTING_ENGINE (hash_engine);
@@ -1126,7 +1626,7 @@ static void backend_ecdsa_test_keygen_extra (CuTest *test)
 	TEST_START;
 
 	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_521,
-		HASH_TYPE_SHA384);
+		HASH_TYPE_SHA512);
 
 	status = ECC_TESTING_ENGINE_INIT (&engine);
 	CuAssertIntEquals (test, 0, status);
@@ -1157,7 +1657,7 @@ static void backend_ecdsa_test_keygen_extra (CuTest *test)
 	backend_ecdsa_testing_release (test, &backend);
 }
 
-static void backend_ecdsa_test_keygen_extra_hw (CuTest *test)
+static void backend_ecdsa_test_keygen_extra_hw_p521 (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash_engine);
 	const struct ecdsa_backend *ecdsa_impl;
@@ -1234,6 +1734,7 @@ static void backend_ecdsa_test_keygen_extra_hw (CuTest *test)
 
 	backend_ecdsa_testing_release (test, &backend);
 }
+#endif
 
 static void backend_ecdsa_test_keygen_extra_null (CuTest *test)
 {
@@ -1419,8 +1920,9 @@ static void backend_ecdsa_test_keygen_extra_unsupported_type (CuTest *test)
 	backend_ecdsa_testing_release (test, &backend);
 }
 
-static void backend_ecdsa_test_siggen (CuTest *test)
+static void backend_ecdsa_test_siggen_p256 (CuTest *test)
 {
+	ECC_TESTING_ENGINE (engine);
 	HASH_TESTING_ENGINE (hash_engine);
 	const struct ecdsa_backend *ecdsa_impl;
 	struct backend_ecdsa_testing backend;
@@ -1429,7 +1931,7 @@ static void backend_ecdsa_test_siggen (CuTest *test)
 		{
 			.impl_id = implementation,
 			.is_hw = false,
-			.ecc.engine = &backend.engine.base,
+			.ecc.engine = &engine.base,
 			.hash = &hash_engine.base,
 			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
 			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
@@ -1442,21 +1944,7 @@ static void backend_ecdsa_test_siggen (CuTest *test)
 	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
 		HASH_TYPE_SHA256);
 
-	status = mock_expect (&backend.engine.mock, backend.engine.base.init_key_pair, &backend.engine,
-		0, MOCK_ARG_PTR_CONTAINS_TMP (ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN),
-		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG_ANY, MOCK_ARG_ANY);
-
-	status |= mock_expect (&backend.engine.mock, backend.engine.base.sign, &backend.engine,
-		ECC_SIG_TEST_LEN, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_PTR_CONTAINS_TMP (SHA256_TEST_HASH, SHA256_HASH_LENGTH),
-		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_ANY, MOCK_ARG_NOT_NULL,
-		MOCK_ARG (ECC_DER_ECDSA_MAX_LENGTH));
-	status |= mock_expect_output (&backend.engine.mock, 4, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN,
-		-1);
-
-	status |= mock_expect (&backend.engine.mock, backend.engine.base.release_key_pair,
-		&backend.engine, 0, MOCK_ARG_ANY, MOCK_ARG_ANY);
-
+	status = ECC_TESTING_ENGINE_INIT (&engine);
 	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
@@ -1472,21 +1960,15 @@ static void backend_ecdsa_test_siggen (CuTest *test)
 	status = ecdsa_impl->ecdsa_siggen (&backend.data.siggen, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (ECC_SIGNATURE_TEST_STRUCT.r, backend.data.siggen.R.buf,
-		ECC_KEY_LENGTH_256);
-	CuAssertIntEquals (test, 0, status);
-
-	status = testing_validate_array (ECC_SIGNATURE_TEST_STRUCT.s, backend.data.siggen.S.buf,
-		ECC_KEY_LENGTH_256);
-	CuAssertIntEquals (test, 0, status);
-
+	ECC_TESTING_ENGINE_RELEASE (&engine);
 	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
 
 	backend_ecdsa_testing_release (test, &backend);
 }
 
-static void backend_ecdsa_test_siggen_hash_and_finish (CuTest *test)
+static void backend_ecdsa_test_siggen_hash_and_finish_p256 (CuTest *test)
 {
+	ECC_TESTING_ENGINE (engine);
 	HASH_TESTING_ENGINE (hash_engine);
 	const struct ecdsa_backend *ecdsa_impl;
 	struct backend_ecdsa_testing backend;
@@ -1495,7 +1977,7 @@ static void backend_ecdsa_test_siggen_hash_and_finish (CuTest *test)
 		{
 			.impl_id = implementation,
 			.is_hw = false,
-			.ecc.engine = &backend.engine.base,
+			.ecc.engine = &engine.base,
 			.hash = &hash_engine.base,
 			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
 			.api_type = BACKEND_ECDSA_API_TYPE_HASH_AND_FINISH
@@ -1508,21 +1990,62 @@ static void backend_ecdsa_test_siggen_hash_and_finish (CuTest *test)
 	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
 		HASH_TYPE_SHA256);
 
-	status = mock_expect (&backend.engine.mock, backend.engine.base.init_key_pair, &backend.engine,
-		0, MOCK_ARG_PTR_CONTAINS_TMP (ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN),
-		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG_ANY, MOCK_ARG_ANY);
+	status = ECC_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
 
-	status |= mock_expect (&backend.engine.mock, backend.engine.base.sign, &backend.engine,
-		ECC_SIG_TEST_LEN, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_PTR_CONTAINS_TMP (SHA256_TEST_HASH, SHA256_HASH_LENGTH),
-		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_ANY, MOCK_ARG_NOT_NULL,
-		MOCK_ARG (ECC_DER_ECDSA_MAX_LENGTH));
-	status |= mock_expect_output (&backend.engine.mock, 4, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN,
-		-1);
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
 
-	status |= mock_expect (&backend.engine.mock, backend.engine.base.release_key_pair,
-		&backend.engine, 0, MOCK_ARG_ANY, MOCK_ARG_ANY);
+	acvp_implementation = implementation;
 
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_siggen (&backend.data.siggen, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&engine);
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+static void backend_ecdsa_test_siggen_hw_p256 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_KEYGEN_UNSUPPORTED,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	struct ecc_ecdsa_signature sig_ex;
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
+
+	memset (&sig_ex, 0, sizeof (struct ecc_ecdsa_signature));
+	memcpy (sig_ex.r, ECC_SIGNATURE_TEST_STRUCT.r, ECC_KEY_LENGTH_256);
+	memcpy (sig_ex.s, ECC_SIGNATURE_TEST_STRUCT.s, ECC_KEY_LENGTH_256);
+	sig_ex.length = ECC_KEY_LENGTH_256;
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_sign, &backend.hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_KEY_LENGTH_256),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_ANY, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_ptr_tmp (&backend.hw.mock, 5, &sig_ex,
+		sizeof (struct ecc_ecdsa_signature), -1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
@@ -1551,7 +2074,162 @@ static void backend_ecdsa_test_siggen_hash_and_finish (CuTest *test)
 	backend_ecdsa_testing_release (test, &backend);
 }
 
-static void backend_ecdsa_test_siggen_hw (CuTest *test)
+static void backend_ecdsa_test_siggen_hw_hash_and_finish_p256 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_HASH_AND_FINISH
+		}
+	};
+	struct ecc_ecdsa_signature sig_ex;
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
+
+	memset (&sig_ex, 0, sizeof (struct ecc_ecdsa_signature));
+	memcpy (sig_ex.r, ECC_SIGNATURE_TEST_STRUCT.r, ECC_KEY_LENGTH_256);
+	memcpy (sig_ex.s, ECC_SIGNATURE_TEST_STRUCT.s, ECC_KEY_LENGTH_256);
+	sig_ex.length = ECC_KEY_LENGTH_256;
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_sign, &backend.hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_KEY_LENGTH_256),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_ANY, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_ptr_tmp (&backend.hw.mock, 5, &sig_ex,
+		sizeof (struct ecc_ecdsa_signature), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_siggen (&backend.data.siggen, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (ECC_SIGNATURE_TEST_STRUCT.r, backend.data.siggen.R.buf,
+		ECC_KEY_LENGTH_256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (ECC_SIGNATURE_TEST_STRUCT.s, backend.data.siggen.S.buf,
+		ECC_KEY_LENGTH_256);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && (defined HASH_ENABLE_SHA384)
+static void backend_ecdsa_test_siggen_p384 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (engine);
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = false,
+			.ecc.engine = &engine.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
+		HASH_TYPE_SHA384);
+
+	status = ECC_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_siggen (&backend.data.siggen, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&engine);
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+static void backend_ecdsa_test_siggen_hash_and_finish_p384 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (engine);
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = false,
+			.ecc.engine = &engine.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_HASH_AND_FINISH
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
+		HASH_TYPE_SHA384);
+
+	status = ECC_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_siggen (&backend.data.siggen, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&engine);
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+static void backend_ecdsa_test_siggen_hw_p384 (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash_engine);
 	const struct ecdsa_backend *ecdsa_impl;
@@ -1613,7 +2291,7 @@ static void backend_ecdsa_test_siggen_hw (CuTest *test)
 	backend_ecdsa_testing_release (test, &backend);
 }
 
-static void backend_ecdsa_test_siggen_hw_hash_and_finish (CuTest *test)
+static void backend_ecdsa_test_siggen_hw_hash_and_finish_p384 (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash_engine);
 	const struct ecdsa_backend *ecdsa_impl;
@@ -1674,6 +2352,225 @@ static void backend_ecdsa_test_siggen_hw_hash_and_finish (CuTest *test)
 
 	backend_ecdsa_testing_release (test, &backend);
 }
+#endif
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && (defined HASH_ENABLE_SHA512)
+static void backend_ecdsa_test_siggen_p521 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (engine);
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = false,
+			.ecc.engine = &engine.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_521,
+		HASH_TYPE_SHA512);
+
+	status = ECC_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_siggen (&backend.data.siggen, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&engine);
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+static void backend_ecdsa_test_siggen_hash_and_finish_p521 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (engine);
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = false,
+			.ecc.engine = &engine.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_HASH_AND_FINISH
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_521,
+		HASH_TYPE_SHA512);
+
+	status = ECC_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_siggen (&backend.data.siggen, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&engine);
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+static void backend_ecdsa_test_siggen_hw_p521 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_KEYGEN_UNSUPPORTED,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	struct ecc_ecdsa_signature sig_ex;
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_521,
+		HASH_TYPE_SHA512);
+
+	memset (&sig_ex, 0, sizeof (struct ecc_ecdsa_signature));
+	memcpy (sig_ex.r, ECC521_SIGNATURE_TEST_STRUCT.r, ECC_KEY_LENGTH_521);
+	memcpy (sig_ex.s, ECC521_SIGNATURE_TEST_STRUCT.s, ECC_KEY_LENGTH_521);
+	sig_ex.length = ECC_KEY_LENGTH_521;
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_sign, &backend.hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC521_PRIVKEY, ECC521_PRIVKEY_LEN), MOCK_ARG (ECC_KEY_LENGTH_521),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_ANY, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_ptr_tmp (&backend.hw.mock, 5, &sig_ex,
+		sizeof (struct ecc_ecdsa_signature), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_siggen (&backend.data.siggen, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (ECC521_SIGNATURE_TEST_STRUCT.r, backend.data.siggen.R.buf,
+		ECC_KEY_LENGTH_521);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (ECC521_SIGNATURE_TEST_STRUCT.s, backend.data.siggen.S.buf,
+		ECC_KEY_LENGTH_521);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+static void backend_ecdsa_test_siggen_hw_hash_and_finish_p521 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_HASH_AND_FINISH
+		}
+	};
+	struct ecc_ecdsa_signature sig_ex;
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_521,
+		HASH_TYPE_SHA512);
+
+	memset (&sig_ex, 0, sizeof (struct ecc_ecdsa_signature));
+	memcpy (sig_ex.r, ECC521_SIGNATURE_TEST_STRUCT.r, ECC_KEY_LENGTH_521);
+	memcpy (sig_ex.s, ECC521_SIGNATURE_TEST_STRUCT.s, ECC_KEY_LENGTH_521);
+	sig_ex.length = ECC_KEY_LENGTH_521;
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_sign, &backend.hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC521_PRIVKEY, ECC521_PRIVKEY_LEN), MOCK_ARG (ECC_KEY_LENGTH_521),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH), MOCK_ARG_ANY, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_ptr_tmp (&backend.hw.mock, 5, &sig_ex,
+		sizeof (struct ecc_ecdsa_signature), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_siggen (&backend.data.siggen, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (ECC521_SIGNATURE_TEST_STRUCT.r, backend.data.siggen.R.buf,
+		ECC_KEY_LENGTH_521);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (ECC521_SIGNATURE_TEST_STRUCT.s, backend.data.siggen.S.buf,
+		ECC_KEY_LENGTH_521);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+#endif
 
 static void backend_ecdsa_test_siggen_null (CuTest *test)
 {
@@ -1745,7 +2642,7 @@ static void backend_ecdsa_test_siggen_null (CuTest *test)
 	CuAssertIntEquals (test, -1, status);
 
 	backend.data.siggen.Qx.buf =
-		(unsigned char*) platform_malloc (sizeof (ECC384_PUBKEY_POINT.x));
+		(unsigned char*) platform_malloc (sizeof (ECC_PUBKEY_POINT.x));
 	CuAssertPtrNotNull (test, backend.data.siggen.Qx.buf);
 
 	// Test null Qy buffer.
@@ -2013,7 +2910,7 @@ static void backend_ecdsa_test_siggen_hash_and_finish_hash_start_error (CuTest *
 		.severity = DEBUG_LOG_SEVERITY_ERROR,
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
-		.arg1 = HASH_ENGINE_START_SHA384_FAILED,
+		.arg1 = HASH_ENGINE_START_SHA256_FAILED,
 		.arg2 = 0
 	};
 	uint32_t implementation = 0;
@@ -2031,11 +2928,11 @@ static void backend_ecdsa_test_siggen_hash_and_finish_hash_start_error (CuTest *
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
-		HASH_TYPE_SHA384);
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
 
-	status = mock_expect (&backend.hash.mock, backend.hash.base.start_sha384, &backend.hash,
-		HASH_ENGINE_START_SHA384_FAILED);
+	status = mock_expect (&backend.hash.mock, backend.hash.base.start_sha256, &backend.hash,
+		HASH_ENGINE_START_SHA256_FAILED);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
@@ -2142,11 +3039,11 @@ static void backend_ecdsa_test_siggen_sign_error (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
-		HASH_TYPE_SHA384);
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
 
 	status = mock_expect (&backend.engine.mock, backend.engine.base.init_key_pair, &backend.engine,
-		ECC_ENGINE_KEY_PAIR_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_DER_P384_PRIVATE_LENGTH),
+		ECC_ENGINE_KEY_PAIR_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_DER_P256_PRIVATE_LENGTH),
 		MOCK_ARG_ANY, MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
@@ -2252,7 +3149,7 @@ static void backend_ecdsa_test_siggen_hw_hash_and_finish_hash_update_error (CuTe
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&backend.hash.mock, backend.hash.base.start_sha256, &backend.hash, 0);
@@ -2311,11 +3208,11 @@ static void backend_ecdsa_test_siggen_hw_sign_error (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
-		HASH_TYPE_SHA384);
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
 
 	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_sign, &backend.hw,
-		ECC_HW_ECDSA_SIGN_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_KEY_LENGTH_384), MOCK_ARG_ANY,
+		ECC_HW_ECDSA_SIGN_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_KEY_LENGTH_256), MOCK_ARG_ANY,
 		MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
@@ -2371,13 +3268,13 @@ static void backend_ecdsa_test_siggen_decode_sig_error (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
-		HASH_TYPE_SHA384);
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
 
 	memset (bad_signature, 1, ECC_SIG_TEST_LEN);
 
 	status = mock_expect (&backend.engine.mock, backend.engine.base.init_key_pair, &backend.engine,
-		0, MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_DER_P384_PRIVATE_LENGTH), MOCK_ARG_ANY,	MOCK_ARG_ANY);
+		0, MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_DER_P256_PRIVATE_LENGTH), MOCK_ARG_ANY,	MOCK_ARG_ANY);
 
 	status |= mock_expect (&backend.engine.mock, backend.engine.base.sign, &backend.engine,	0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_ANY);
@@ -2411,7 +3308,204 @@ static void backend_ecdsa_test_siggen_decode_sig_error (CuTest *test)
 	backend_ecdsa_testing_release (test, &backend);
 }
 
-static void backend_ecdsa_test_sigver (CuTest *test)
+static void backend_ecdsa_test_sigver_p256 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (engine);
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = false,
+			.ecc.engine = &engine.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
+
+	status = ECC_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_sigver (&backend.data.sigver, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, backend.data.sigver.sigver_success);
+
+	ECC_TESTING_ENGINE_RELEASE (&engine);
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+static void backend_ecdsa_test_sigver_hash_and_finish_p256 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (engine);
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = false,
+			.ecc.engine = &engine.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_HASH_AND_FINISH
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
+
+	status = ECC_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_sigver (&backend.data.sigver, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, backend.data.sigver.sigver_success);
+
+	ECC_TESTING_ENGINE_RELEASE (&engine);
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+static void backend_ecdsa_test_sigver_hw_p256 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)),
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
+		sizeof (struct ecc_ecdsa_signature)),
+		MOCK_ARG_PTR_CONTAINS (SHA256_TEST_HASH, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_sigver (&backend.data.sigver, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, backend.data.sigver.sigver_success);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+static void backend_ecdsa_test_sigver_hw_hash_and_finish_p256 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_HASH_AND_FINISH
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)),
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
+		sizeof (struct ecc_ecdsa_signature)),
+		MOCK_ARG_PTR_CONTAINS (SHA256_TEST_HASH, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_sigver (&backend.data.sigver, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, backend.data.sigver.sigver_success);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && (defined HASH_ENABLE_SHA384)
+static void backend_ecdsa_test_sigver_p384 (CuTest *test)
 {
 	ECC_TESTING_ENGINE (engine);
 	HASH_TESTING_ENGINE (hash_engine);
@@ -2458,7 +3552,7 @@ static void backend_ecdsa_test_sigver (CuTest *test)
 	backend_ecdsa_testing_release (test, &backend);
 }
 
-static void backend_ecdsa_test_sigver_hash_and_finish (CuTest *test)
+static void backend_ecdsa_test_sigver_hash_and_finish_p384 (CuTest *test)
 {
 	ECC_TESTING_ENGINE (engine);
 	HASH_TESTING_ENGINE (hash_engine);
@@ -2504,6 +3598,307 @@ static void backend_ecdsa_test_sigver_hash_and_finish (CuTest *test)
 
 	backend_ecdsa_testing_release (test, &backend);
 }
+
+static void backend_ecdsa_test_sigver_hw_p384 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_384,
+		HASH_TYPE_SHA384);
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)),
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC384_SIGNATURE_TEST_STRUCT,
+		sizeof (struct ecc_ecdsa_signature)),
+		MOCK_ARG_PTR_CONTAINS (SHA384_TEST_HASH, SHA384_HASH_LENGTH),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_sigver (&backend.data.sigver, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, backend.data.sigver.sigver_success);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+static void backend_ecdsa_test_sigver_hw_hash_and_finish_p384 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_HASH_AND_FINISH
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_384,
+		HASH_TYPE_SHA384);
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)),
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC384_SIGNATURE_TEST_STRUCT,
+		sizeof (struct ecc_ecdsa_signature)),
+		MOCK_ARG_PTR_CONTAINS (SHA384_TEST_HASH, SHA384_HASH_LENGTH),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_sigver (&backend.data.sigver, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, backend.data.sigver.sigver_success);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+#endif
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && (defined HASH_ENABLE_SHA512)
+static void backend_ecdsa_test_sigver_p521 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (engine);
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = false,
+			.ecc.engine = &engine.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_521,
+		HASH_TYPE_SHA512);
+
+	status = ECC_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_sigver (&backend.data.sigver, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, backend.data.sigver.sigver_success);
+
+	ECC_TESTING_ENGINE_RELEASE (&engine);
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+static void backend_ecdsa_test_sigver_hash_and_finish_p521 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (engine);
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = false,
+			.ecc.engine = &engine.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_HASH_AND_FINISH
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_521,
+		HASH_TYPE_SHA512);
+
+	status = ECC_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_sigver (&backend.data.sigver, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, backend.data.sigver.sigver_success);
+
+	ECC_TESTING_ENGINE_RELEASE (&engine);
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+static void backend_ecdsa_test_sigver_hw_p521 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_521,
+		HASH_TYPE_SHA512);
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)),
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC521_SIGNATURE_TEST_STRUCT,
+		sizeof (struct ecc_ecdsa_signature)),
+		MOCK_ARG_PTR_CONTAINS (SHA512_TEST_HASH, SHA512_HASH_LENGTH),
+		MOCK_ARG (SHA512_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_sigver (&backend.data.sigver, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, backend.data.sigver.sigver_success);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+static void backend_ecdsa_test_sigver_hw_hash_and_finish_p521 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_HASH_AND_FINISH
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_521,
+		HASH_TYPE_SHA512);
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)),
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC521_SIGNATURE_TEST_STRUCT,
+		sizeof (struct ecc_ecdsa_signature)),
+		MOCK_ARG_PTR_CONTAINS (SHA512_TEST_HASH, SHA512_HASH_LENGTH),
+		MOCK_ARG (SHA512_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_sigver (&backend.data.sigver, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, backend.data.sigver.sigver_success);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+#endif
 
 static void backend_ecdsa_test_sigver_bad_signature (CuTest *test)
 {
@@ -2534,8 +3929,8 @@ static void backend_ecdsa_test_sigver_bad_signature (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_384,
-		HASH_TYPE_SHA384);
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
 
 	// Testing engine used produces log message on verification failure.
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
@@ -2544,8 +3939,8 @@ static void backend_ecdsa_test_sigver_bad_signature (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	// Corrupt the signature to trigger signature verification failure.
-	memcpy (backend.data.sigver.S.buf, ECC384_SIGNATURE_TEST2_STRUCT.s,
-		ECC384_SIGNATURE_TEST2_STRUCT.length);
+	memcpy (backend.data.sigver.S.buf, ECC_SIGNATURE_TEST2_STRUCT.s,
+		ECC_SIGNATURE_TEST2_STRUCT.length);
 
 	status = ECC_TESTING_ENGINE_INIT (&engine);
 	CuAssertIntEquals (test, 0, status);
@@ -2565,108 +3960,6 @@ static void backend_ecdsa_test_sigver_bad_signature (CuTest *test)
 	CuAssertIntEquals (test, 0, backend.data.sigver.sigver_success);
 
 	ECC_TESTING_ENGINE_RELEASE (&engine);
-	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
-
-	backend_ecdsa_testing_release (test, &backend);
-}
-
-static void backend_ecdsa_test_sigver_hw (CuTest *test)
-{
-	HASH_TESTING_ENGINE (hash_engine);
-	const struct ecdsa_backend *ecdsa_impl;
-	struct backend_ecdsa_testing backend;
-	uint32_t implementation = 0;
-	struct backend_ecdsa_engine ecdsa_engines[] = {
-		{
-			.impl_id = implementation,
-			.is_hw = true,
-			.ecc.hw = &backend.hw.base,
-			.hash = &hash_engine.base,
-			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
-			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
-		}
-	};
-	int status;
-
-	TEST_START;
-
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_384,
-		HASH_TYPE_SHA384);
-
-	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
-		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
-		sizeof (struct ecc_point_public_key)),
-		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC384_SIGNATURE_TEST_STRUCT,
-		sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR_CONTAINS (SHA384_TEST_HASH, SHA384_HASH_LENGTH),
-		MOCK_ARG (SHA384_HASH_LENGTH));
-	CuAssertIntEquals (test, 0, status);
-
-	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
-	CuAssertIntEquals (test, 0, status);
-
-	acvp_implementation = implementation;
-
-	backend_ecdsa_register_engines (ecdsa_engines, 1);
-
-	ecdsa_impl = backend_ecdsa_get_impl ();
-	CuAssertPtrNotNull (test, ecdsa_impl);
-
-	status = ecdsa_impl->ecdsa_sigver (&backend.data.sigver, 0);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 1, backend.data.sigver.sigver_success);
-
-	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
-
-	backend_ecdsa_testing_release (test, &backend);
-}
-
-static void backend_ecdsa_test_sigver_hw_hash_and_finish (CuTest *test)
-{
-	HASH_TESTING_ENGINE (hash_engine);
-	const struct ecdsa_backend *ecdsa_impl;
-	struct backend_ecdsa_testing backend;
-	uint32_t implementation = 0;
-	struct backend_ecdsa_engine ecdsa_engines[] = {
-		{
-			.impl_id = implementation,
-			.is_hw = true,
-			.ecc.hw = &backend.hw.base,
-			.hash = &hash_engine.base,
-			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
-			.api_type = BACKEND_ECDSA_API_TYPE_HASH_AND_FINISH
-		}
-	};
-	int status;
-
-	TEST_START;
-
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_384,
-		HASH_TYPE_SHA384);
-
-	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
-		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
-		sizeof (struct ecc_point_public_key)),
-		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC384_SIGNATURE_TEST_STRUCT,
-		sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR_CONTAINS (SHA384_TEST_HASH, SHA384_HASH_LENGTH),
-		MOCK_ARG (SHA384_HASH_LENGTH));
-	CuAssertIntEquals (test, 0, status);
-
-	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
-	CuAssertIntEquals (test, 0, status);
-
-	acvp_implementation = implementation;
-
-	backend_ecdsa_register_engines (ecdsa_engines, 1);
-
-	ecdsa_impl = backend_ecdsa_get_impl ();
-	CuAssertPtrNotNull (test, ecdsa_impl);
-
-	status = ecdsa_impl->ecdsa_sigver (&backend.data.sigver, 0);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 1, backend.data.sigver.sigver_success);
-
 	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
 
 	backend_ecdsa_testing_release (test, &backend);
@@ -2692,17 +3985,17 @@ static void backend_ecdsa_test_sigver_hw_bad_signature (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_384,
-		HASH_TYPE_SHA384);
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
 
 	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw,
 		ECC_HW_ECDSA_BAD_SIGNATURE,
-		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
 		sizeof (struct ecc_point_public_key)),
-		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC384_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
 		sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR_CONTAINS (SHA384_TEST_HASH, SHA384_HASH_LENGTH),
-		MOCK_ARG (SHA384_HASH_LENGTH));
+		MOCK_ARG_PTR_CONTAINS (SHA256_TEST_HASH, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
@@ -2778,7 +4071,7 @@ static void backend_ecdsa_test_sigver_null (CuTest *test)
 	CuAssertIntEquals (test, -1, status);
 
 	backend.data.sigver.R.buf =
-		(unsigned char*) platform_malloc (sizeof (ECC384_SIGNATURE_TEST_STRUCT.r));
+		(unsigned char*) platform_malloc (sizeof (ECC_SIGNATURE_TEST_STRUCT.r));
 	CuAssertPtrNotNull (test, backend.data.sigver.R.buf);
 
 	// Test null S buffer.
@@ -2789,7 +4082,7 @@ static void backend_ecdsa_test_sigver_null (CuTest *test)
 	CuAssertIntEquals (test, -1, status);
 
 	backend.data.sigver.S.buf =
-		(unsigned char*) platform_malloc (sizeof (ECC384_SIGNATURE_TEST_STRUCT.s));
+		(unsigned char*) platform_malloc (sizeof (ECC_SIGNATURE_TEST_STRUCT.s));
 	CuAssertPtrNotNull (test, backend.data.sigver.S.buf);
 
 	// Test null msg buffer.
@@ -2811,7 +4104,7 @@ static void backend_ecdsa_test_sigver_null (CuTest *test)
 	CuAssertIntEquals (test, -1, status);
 
 	backend.data.sigver.Qx.buf =
-		(unsigned char*) platform_malloc (sizeof (ECC384_PUBKEY_POINT.x));
+		(unsigned char*) platform_malloc (sizeof (ECC_PUBKEY_POINT.x));
 	CuAssertPtrNotNull (test, backend.data.sigver.Qx.buf);
 
 	// Test null Qy buffer.
@@ -3079,7 +4372,7 @@ static void backend_ecdsa_test_sigver_hash_and_finish_hash_start_error (CuTest *
 		.severity = DEBUG_LOG_SEVERITY_ERROR,
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
-		.arg1 = HASH_ENGINE_START_SHA384_FAILED,
+		.arg1 = HASH_ENGINE_START_SHA256_FAILED,
 		.arg2 = 0
 	};
 	uint32_t implementation = 0;
@@ -3097,11 +4390,11 @@ static void backend_ecdsa_test_sigver_hash_and_finish_hash_start_error (CuTest *
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_384,
-		HASH_TYPE_SHA384);
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
 
-	status = mock_expect (&backend.hash.mock, backend.hash.base.start_sha384, &backend.hash,
-		HASH_ENGINE_START_SHA384_FAILED);
+	status = mock_expect (&backend.hash.mock, backend.hash.base.start_sha256, &backend.hash,
+		HASH_ENGINE_START_SHA256_FAILED);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
@@ -3149,7 +4442,7 @@ static void backend_ecdsa_test_sigver_hash_and_finish_hash_update_error (CuTest 
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_384,
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_256,
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&backend.hash.mock, backend.hash.base.start_sha256, &backend.hash, 0);
@@ -3182,7 +4475,6 @@ static void backend_ecdsa_test_sigver_hash_and_finish_hash_update_error (CuTest 
 
 static void backend_ecdsa_test_sigver_verify_error (CuTest *test)
 {
-	ECC_TESTING_ENGINE (engine);
 	HASH_TESTING_ENGINE (hash_engine);
 	const struct ecdsa_backend *ecdsa_impl;
 	struct backend_ecdsa_testing backend;
@@ -3209,15 +4501,12 @@ static void backend_ecdsa_test_sigver_verify_error (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_384,
-		HASH_TYPE_SHA384);
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry)));
-	CuAssertIntEquals (test, 0, status);
-
-	status = ECC_TESTING_ENGINE_INIT (&engine);
 	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
@@ -3233,7 +4522,6 @@ static void backend_ecdsa_test_sigver_verify_error (CuTest *test)
 	status = ecdsa_impl->ecdsa_sigver (&backend.data.sigver, 0);
 	CuAssertIntEquals (test, -1, status);
 
-	ECC_TESTING_ENGINE_RELEASE (&engine);
 	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
 
 	backend_ecdsa_testing_release (test, &backend);
@@ -3248,7 +4536,7 @@ static void backend_ecdsa_test_sigver_hw_hash_and_finish_hash_start_error (CuTes
 		.severity = DEBUG_LOG_SEVERITY_ERROR,
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
-		.arg1 = HASH_ENGINE_START_SHA512_FAILED,
+		.arg1 = HASH_ENGINE_START_SHA256_FAILED,
 		.arg2 = 0
 	};
 	uint32_t implementation = 0;
@@ -3266,11 +4554,11 @@ static void backend_ecdsa_test_sigver_hw_hash_and_finish_hash_start_error (CuTes
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_521,
-		HASH_TYPE_SHA512);
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
 
-	status = mock_expect (&backend.hash.mock, backend.hash.base.start_sha512, &backend.hash,
-		HASH_ENGINE_START_SHA512_FAILED);
+	status = mock_expect (&backend.hash.mock, backend.hash.base.start_sha256, &backend.hash,
+		HASH_ENGINE_START_SHA256_FAILED);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
@@ -3318,7 +4606,7 @@ static void backend_ecdsa_test_sigver_hw_hash_and_finish_hash_update_error (CuTe
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_384,
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_256,
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&backend.hash.mock, backend.hash.base.start_sha256, &backend.hash, 0);
@@ -3377,8 +4665,8 @@ static void backend_ecdsa_test_sigver_hw_verify_error (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_384,
-		HASH_TYPE_SHA384);
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -3387,12 +4675,12 @@ static void backend_ecdsa_test_sigver_hw_verify_error (CuTest *test)
 
 	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw,
 		ECC_HW_ECDSA_VERIFY_FAILED,
-		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
 		sizeof (struct ecc_point_public_key)),
-		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC384_SIGNATURE_TEST_STRUCT,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature, &ECC_SIGNATURE_TEST_STRUCT,
 		sizeof (struct ecc_ecdsa_signature)),
-		MOCK_ARG_PTR_CONTAINS (SHA384_TEST_HASH, SHA384_HASH_LENGTH),
-		MOCK_ARG (SHA384_HASH_LENGTH));
+		MOCK_ARG_PTR_CONTAINS (SHA256_TEST_HASH, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
@@ -3413,7 +4701,139 @@ static void backend_ecdsa_test_sigver_hw_verify_error (CuTest *test)
 	backend_ecdsa_testing_release (test, &backend);
 }
 
-static void backend_ecdsa_test_keygen_en (CuTest *test)
+static void backend_ecdsa_test_keygen_en_p256 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (engine);
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = false,
+			.ecc.engine = &engine.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	struct buffer qx;
+	struct buffer qy;
+	uint8_t *privkey = NULL;
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
+
+	status = ECC_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_keygen_en (backend.data.keygen.cipher, &qx, &qy, (void**) &privkey);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrNotNull (test, qx.buf);
+	CuAssertPtrNotNull (test, qy.buf);
+	CuAssertPtrNotNull (test, privkey);
+
+	ecdsa_impl->ecdsa_free_key (privkey);
+	platform_free (qx.buf);
+	platform_free (qy.buf);
+
+	ECC_TESTING_ENGINE_RELEASE (&engine);
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+static void backend_ecdsa_test_keygen_en_hw_p256 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	struct buffer qx;
+	struct buffer qy;
+	uint8_t *privkey = NULL;
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.generate_ecc_key_pair, &backend.hw,	0,
+		MOCK_ARG (ECC_KEY_LENGTH_256), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&backend.hw.mock, 1, ECC_PRIVKEY, ECC_PRIVKEY_LEN, -1);
+	status |= mock_expect_output (&backend.hw.mock, 2, &ECC_PUBKEY_POINT, sizeof (ECC_PUBKEY_POINT),
+		-1);
+
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_sign, &backend.hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_KEY_LENGTH_256),
+		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&backend.hw.mock, 5, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN, -1);
+
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN),
+		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_keygen_en (backend.data.keygen.cipher, &qx, &qy, (void**) &privkey);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (qx.buf, ECC_PUBKEY_POINT.x, ECC_PUBKEY_POINT.key_length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (qy.buf, ECC_PUBKEY_POINT.y, ECC_PUBKEY_POINT.key_length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (privkey, ECC_PRIVKEY, ECC_PRIVKEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	ecdsa_impl->ecdsa_free_key (privkey);
+	platform_free (qx.buf);
+	platform_free (qy.buf);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && (defined HASH_ENABLE_SHA384)
+static void backend_ecdsa_test_keygen_en_p384 (CuTest *test)
 {
 	ECC_TESTING_ENGINE (engine);
 	HASH_TESTING_ENGINE (hash_engine);
@@ -3470,7 +4890,7 @@ static void backend_ecdsa_test_keygen_en (CuTest *test)
 	backend_ecdsa_testing_release (test, &backend);
 }
 
-static void backend_ecdsa_test_keygen_en_hw (CuTest *test)
+static void backend_ecdsa_test_keygen_en_hw_p384 (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash_engine);
 	const struct ecdsa_backend *ecdsa_impl;
@@ -3544,6 +4964,141 @@ static void backend_ecdsa_test_keygen_en_hw (CuTest *test)
 
 	backend_ecdsa_testing_release (test, &backend);
 }
+#endif
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && (defined HASH_ENABLE_SHA512)
+static void backend_ecdsa_test_keygen_en_p521 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (engine);
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = false,
+			.ecc.engine = &engine.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	struct buffer qx;
+	struct buffer qy;
+	uint8_t *privkey = NULL;
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_521,
+		HASH_TYPE_SHA512);
+
+	status = ECC_TESTING_ENGINE_INIT (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_keygen_en (backend.data.keygen.cipher, &qx, &qy, (void**) &privkey);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrNotNull (test, qx.buf);
+	CuAssertPtrNotNull (test, qy.buf);
+	CuAssertPtrNotNull (test, privkey);
+
+	ecdsa_impl->ecdsa_free_key (privkey);
+	platform_free (qx.buf);
+	platform_free (qy.buf);
+
+	ECC_TESTING_ENGINE_RELEASE (&engine);
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
+static void backend_ecdsa_test_keygen_en_hw_p521 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	struct buffer qx;
+	struct buffer qy;
+	uint8_t *privkey = NULL;
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_521,
+		HASH_TYPE_SHA512);
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.generate_ecc_key_pair, &backend.hw,	0,
+		MOCK_ARG (ECC_KEY_LENGTH_521), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&backend.hw.mock, 1, ECC521_PRIVKEY, ECC521_PRIVKEY_LEN, -1);
+	status |= mock_expect_output (&backend.hw.mock, 2, &ECC521_PUBKEY_POINT,
+		sizeof (ECC521_PUBKEY_POINT), -1);
+
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_sign, &backend.hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC521_PRIVKEY, ECC521_PRIVKEY_LEN), MOCK_ARG (ECC_KEY_LENGTH_521),
+		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&backend.hw.mock, 5, ECC521_SIGNATURE_TEST, ECC521_SIG_TEST_LEN,
+		-1);
+
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (ECC521_SIGNATURE_TEST, ECC521_SIG_TEST_LEN),
+		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_keygen_en (backend.data.keygen.cipher, &qx, &qy, (void**) &privkey);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (qx.buf, ECC521_PUBKEY_POINT.x, ECC521_PUBKEY_POINT.key_length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (qy.buf, ECC521_PUBKEY_POINT.y, ECC521_PUBKEY_POINT.key_length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (privkey, ECC521_PRIVKEY, ECC521_PRIVKEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	ecdsa_impl->ecdsa_free_key (privkey);
+	platform_free (qx.buf);
+	platform_free (qy.buf);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+#endif
 
 static void backend_ecdsa_test_keygen_en_null (CuTest *test)
 {
@@ -3612,8 +5167,8 @@ static void backend_ecdsa_test_keygen_en_no_engine (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
-		HASH_TYPE_SHA384);
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -3661,8 +5216,8 @@ static void backend_ecdsa_test_keygen_en_engine_not_found (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
-		HASH_TYPE_SHA384);
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -3724,7 +5279,7 @@ static void backend_ecdsa_test_keygen_en_unsupported_curve (CuTest *test)
 	TEST_START;
 
 	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN,
-		ECDSA_TEST_ECC_KEY_TYPE_INVALID, HASH_TYPE_SHA384);
+		ECDSA_TEST_ECC_KEY_TYPE_INVALID, HASH_TYPE_SHA256);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -3777,8 +5332,8 @@ static void backend_ecdsa_test_free_key (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_384,
-		HASH_TYPE_SHA384);
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_KEYGEN, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
 
 	status = ECC_TESTING_ENGINE_INIT (&engine);
 	CuAssertIntEquals (test, 0, status);
@@ -3829,8 +5384,16 @@ static void backend_ecdsa_test_free_key_null (CuTest *test)
 TEST_SUITE_START (backend_ecdsa);
 
 TEST (backend_ecdsa_test_init);
-TEST (backend_ecdsa_test_keygen);
-TEST (backend_ecdsa_test_keygen_hw);
+TEST (backend_ecdsa_test_keygen_p256);
+TEST (backend_ecdsa_test_keygen_hw_p256);
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && (defined HASH_ENABLE_SHA384)
+TEST (backend_ecdsa_test_keygen_p384);
+TEST (backend_ecdsa_test_keygen_hw_p384);
+#endif
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && (defined HASH_ENABLE_SHA512)
+TEST (backend_ecdsa_test_keygen_p521);
+TEST (backend_ecdsa_test_keygen_hw_p521);
+#endif
 TEST (backend_ecdsa_test_keygen_null);
 TEST (backend_ecdsa_test_keygen_no_engine);
 TEST (backend_ecdsa_test_keygen_engine_not_found);
@@ -3838,16 +5401,36 @@ TEST (backend_ecdsa_test_keygen_unsupported_type);
 TEST (backend_ecdsa_test_keygen_unsupported_curve);
 TEST (backend_ecdsa_test_keygen_gen_error);
 TEST (backend_ecdsa_test_keygen_hw_gen_error);
-TEST (backend_ecdsa_test_keygen_extra);
-TEST (backend_ecdsa_test_keygen_extra_hw);
+TEST (backend_ecdsa_test_keygen_extra_p256);
+TEST (backend_ecdsa_test_keygen_extra_hw_p256);
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && (defined HASH_ENABLE_SHA384)
+TEST (backend_ecdsa_test_keygen_extra_p384);
+TEST (backend_ecdsa_test_keygen_extra_hw_p384);
+#endif
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && (defined HASH_ENABLE_SHA512)
+TEST (backend_ecdsa_test_keygen_extra_p521);
+TEST (backend_ecdsa_test_keygen_extra_hw_p521);
+#endif
 TEST (backend_ecdsa_test_keygen_extra_null);
 TEST (backend_ecdsa_test_keygen_extra_no_engine);
 TEST (backend_ecdsa_test_keygen_extra_engine_not_found);
 TEST (backend_ecdsa_test_keygen_extra_unsupported_type);
-TEST (backend_ecdsa_test_siggen);
-TEST (backend_ecdsa_test_siggen_hash_and_finish);
-TEST (backend_ecdsa_test_siggen_hw);
-TEST (backend_ecdsa_test_siggen_hw_hash_and_finish);
+TEST (backend_ecdsa_test_siggen_p256);
+TEST (backend_ecdsa_test_siggen_hash_and_finish_p256);
+TEST (backend_ecdsa_test_siggen_hw_p256);
+TEST (backend_ecdsa_test_siggen_hw_hash_and_finish_p256);
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && (defined HASH_ENABLE_SHA384)
+TEST (backend_ecdsa_test_siggen_p384);
+TEST (backend_ecdsa_test_siggen_hash_and_finish_p384);
+TEST (backend_ecdsa_test_siggen_hw_p384);
+TEST (backend_ecdsa_test_siggen_hw_hash_and_finish_p384);
+#endif
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && (defined HASH_ENABLE_SHA512)
+TEST (backend_ecdsa_test_siggen_p521);
+TEST (backend_ecdsa_test_siggen_hash_and_finish_p521);
+TEST (backend_ecdsa_test_siggen_hw_p521);
+TEST (backend_ecdsa_test_siggen_hw_hash_and_finish_p521);
+#endif
 TEST (backend_ecdsa_test_siggen_null);
 TEST (backend_ecdsa_test_siggen_invalid_component_type);
 TEST (backend_ecdsa_test_siggen_no_engine);
@@ -3861,11 +5444,23 @@ TEST (backend_ecdsa_test_siggen_hw_hash_and_finish_hash_start_error);
 TEST (backend_ecdsa_test_siggen_hw_hash_and_finish_hash_update_error);
 TEST (backend_ecdsa_test_siggen_hw_sign_error);
 TEST (backend_ecdsa_test_siggen_decode_sig_error);
-TEST (backend_ecdsa_test_sigver);
-TEST (backend_ecdsa_test_sigver_hash_and_finish);
+TEST (backend_ecdsa_test_sigver_p256);
+TEST (backend_ecdsa_test_sigver_hash_and_finish_p256);
+TEST (backend_ecdsa_test_sigver_hw_p256);
+TEST (backend_ecdsa_test_sigver_hw_hash_and_finish_p256);
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && (defined HASH_ENABLE_SHA384)
+TEST (backend_ecdsa_test_sigver_p384);
+TEST (backend_ecdsa_test_sigver_hash_and_finish_p384);
+TEST (backend_ecdsa_test_sigver_hw_p384);
+TEST (backend_ecdsa_test_sigver_hw_hash_and_finish_p384);
+#endif
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && (defined HASH_ENABLE_SHA512)
+TEST (backend_ecdsa_test_sigver_p521);
+TEST (backend_ecdsa_test_sigver_hash_and_finish_p521);
+TEST (backend_ecdsa_test_sigver_hw_p521);
+TEST (backend_ecdsa_test_sigver_hw_hash_and_finish_p521);
+#endif
 TEST (backend_ecdsa_test_sigver_bad_signature);
-TEST (backend_ecdsa_test_sigver_hw);
-TEST (backend_ecdsa_test_sigver_hw_hash_and_finish);
 TEST (backend_ecdsa_test_sigver_hw_bad_signature);
 TEST (backend_ecdsa_test_sigver_null);
 TEST (backend_ecdsa_test_sigver_invalid_component_type);
@@ -3879,8 +5474,16 @@ TEST (backend_ecdsa_test_sigver_verify_error);
 TEST (backend_ecdsa_test_sigver_hw_hash_and_finish_hash_start_error);
 TEST (backend_ecdsa_test_sigver_hw_hash_and_finish_hash_update_error);
 TEST (backend_ecdsa_test_sigver_hw_verify_error);
-TEST (backend_ecdsa_test_keygen_en);
-TEST (backend_ecdsa_test_keygen_en_hw);
+TEST (backend_ecdsa_test_keygen_en_p256);
+TEST (backend_ecdsa_test_keygen_en_hw_p256);
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && (defined HASH_ENABLE_SHA384)
+TEST (backend_ecdsa_test_keygen_en_p384);
+TEST (backend_ecdsa_test_keygen_en_hw_p384);
+#endif
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && (defined HASH_ENABLE_SHA512)
+TEST (backend_ecdsa_test_keygen_en_p521);
+TEST (backend_ecdsa_test_keygen_en_hw_p521);
+#endif
 TEST (backend_ecdsa_test_keygen_en_null);
 TEST (backend_ecdsa_test_keygen_en_no_engine);
 TEST (backend_ecdsa_test_keygen_en_engine_not_found);

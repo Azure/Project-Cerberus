@@ -5,6 +5,7 @@
 #include "rsa_kat_vectors.h"
 #include "signature_verification_kat.h"
 #include "signature_verification_kat_vectors.h"
+#include "common/unused.h"
 #include "crypto/ecdsa.h"
 #include "crypto/rsassa.h"
 

@@ -5,6 +5,7 @@
 #include "ecc_kat_vectors.h"
 #include "ecdh_kat.h"
 #include "common/buffer_util.h"
+#include "common/unused.h"
 
 /**
  * Self test function for ECDH 256 bits compute shared secret algorithm.

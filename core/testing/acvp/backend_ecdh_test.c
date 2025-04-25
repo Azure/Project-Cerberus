@@ -69,11 +69,12 @@ struct backend_ecdh_testing {
 /**
  * Get the ACVP ECDH test cipher value for the specified key type.
  *
+ * @param test The test framework.
  * @param key_type The key type to use for the test.
  *
  * @return The ACVP cipher value for the specified key type.
  */
-static uint64_t backend_ecdh_testing_get_cipher (enum ecdh_test_ecc_key_type key_type)
+static uint64_t backend_ecdh_testing_get_cipher (CuTest *test, enum ecdh_test_ecc_key_type key_type)
 {
 	uint64_t cipher;
 
@@ -90,9 +91,15 @@ static uint64_t backend_ecdh_testing_get_cipher (enum ecdh_test_ecc_key_type key
 			cipher = ACVP_NISTP521;
 			break;
 
-		default:
+		case ECDH_TEST_ECC_KEY_TYPE_INVALID:
 			// Use unsupported cipher
 			cipher = ACVP_NISTB571;
+			break;
+
+		default:
+			CuFail (test, "Invalid key type.");
+
+			return 0;
 	}
 
 	return cipher;
@@ -113,17 +120,7 @@ static void backend_ecdh_testing_set_ss_buffers (CuTest *test, struct ecdh_ss_da
 	memset (data, 0, sizeof (struct ecdh_ss_data));
 
 	switch (key_type) {
-		case ECDH_TEST_ECC_KEY_TYPE_256:
-			data->Qxrem.buf = (unsigned char*) ECC_PUBKEY2_POINT.x;
-			data->Qxrem.len = ECC_PUBKEY2_POINT.key_length;
-
-			data->Qyrem.buf = (unsigned char*) ECC_PUBKEY2_POINT.y;
-			data->Qyrem.len = ECC_PUBKEY2_POINT.key_length;
-
-			data->cipher = ACVP_NISTP256;
-
-			break;
-
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 		case ECDH_TEST_ECC_KEY_TYPE_384:
 			data->Qxrem.buf = (unsigned char*) ECC384_PUBKEY2_POINT.x;
 			data->Qxrem.len = ECC384_PUBKEY2_POINT.key_length;
@@ -134,10 +131,10 @@ static void backend_ecdh_testing_set_ss_buffers (CuTest *test, struct ecdh_ss_da
 			data->cipher = ACVP_NISTP384;
 
 			break;
+#endif
 
-		default:
-			/* By default, set ECC521 buffers.  Invalid curve test cases are handled at a higher
-			 * level by the cipher value. */
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+		case ECDH_TEST_ECC_KEY_TYPE_521:
 			data->Qxrem.buf = (unsigned char*) ECC521_PUBKEY2_POINT.x;
 			data->Qxrem.len = ECC521_PUBKEY2_POINT.key_length;
 
@@ -145,6 +142,22 @@ static void backend_ecdh_testing_set_ss_buffers (CuTest *test, struct ecdh_ss_da
 			data->Qyrem.len = ECC521_PUBKEY2_POINT.key_length;
 
 			data->cipher = ACVP_NISTP521;
+
+			break;
+#endif
+
+		default:
+			/* By default, set ECC256 buffers.  Invalid curve test cases are handled at a higher
+			 * level by the cipher value. */
+			data->Qxrem.buf = (unsigned char*) ECC_PUBKEY2_POINT.x;
+			data->Qxrem.len = ECC_PUBKEY2_POINT.key_length;
+
+			data->Qyrem.buf = (unsigned char*) ECC_PUBKEY2_POINT.y;
+			data->Qyrem.len = ECC_PUBKEY2_POINT.key_length;
+
+			data->cipher = ACVP_NISTP256;
+
+			break;
 	}
 }
 
@@ -166,21 +179,7 @@ static void backend_ecdh_testing_set_ss_ver_buffers (CuTest *test, struct ecdh_s
 	data->Qyloc.buf = NULL;
 
 	switch (key_type) {
-		case ECDH_TEST_ECC_KEY_TYPE_256:
-			data->Qxrem.buf = (unsigned char*) ECC_PUBKEY_POINT.x;
-			data->Qxrem.len = ECC_PUBKEY_POINT.key_length;
-
-			data->Qyrem.buf = (unsigned char*) ECC_PUBKEY_POINT.y;
-			data->Qyrem.len = ECC_PUBKEY_POINT.key_length;
-
-			data->privloc.buf = (unsigned char*) ECC_PRIVKEY;
-			data->privloc.len = ECC_PRIVKEY_LEN;
-
-			data->hashzz.buf = (unsigned char*) ECC_DH_SECRET;
-			data->hashzz.len = ECC_DH_SECRET_LEN;
-
-			break;
-
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 		case ECDH_TEST_ECC_KEY_TYPE_384:
 			data->Qxrem.buf = (unsigned char*) ECC384_PUBKEY_POINT.x;
 			data->Qxrem.len = ECC384_PUBKEY_POINT.key_length;
@@ -195,10 +194,10 @@ static void backend_ecdh_testing_set_ss_ver_buffers (CuTest *test, struct ecdh_s
 			data->hashzz.len = ECC384_DH_SECRET_LEN;
 
 			break;
+#endif
 
-		default:
-			/* By default, set ECC521 buffers.  Invalid curve test cases are handled at a higher
-			 * level by the cipher value. */
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+		case ECDH_TEST_ECC_KEY_TYPE_521:
 			data->Qxrem.buf = (unsigned char*) ECC521_PUBKEY_POINT.x;
 			data->Qxrem.len = ECC521_PUBKEY_POINT.key_length;
 
@@ -210,6 +209,26 @@ static void backend_ecdh_testing_set_ss_ver_buffers (CuTest *test, struct ecdh_s
 
 			data->hashzz.buf = (unsigned char*) ECC521_DH_SECRET;
 			data->hashzz.len = ECC521_DH_SECRET_LEN;
+
+			break;
+#endif
+
+		default:
+			/* By default, set ECC256 buffers.  Invalid curve test cases are handled at a higher
+			 * level by the cipher value. */
+			data->Qxrem.buf = (unsigned char*) ECC_PUBKEY_POINT.x;
+			data->Qxrem.len = ECC_PUBKEY_POINT.key_length;
+
+			data->Qyrem.buf = (unsigned char*) ECC_PUBKEY_POINT.y;
+			data->Qyrem.len = ECC_PUBKEY_POINT.key_length;
+
+			data->privloc.buf = (unsigned char*) ECC_PRIVKEY;
+			data->privloc.len = ECC_PRIVKEY_LEN;
+
+			data->hashzz.buf = (unsigned char*) ECC_DH_SECRET;
+			data->hashzz.len = ECC_DH_SECRET_LEN;
+
+			break;
 	}
 }
 
@@ -227,7 +246,7 @@ static void backend_ecdh_testing_init (CuTest *test, struct backend_ecdh_testing
 	union ecdh_testing_data data;
 	int status;
 
-	cipher = backend_ecdh_testing_get_cipher (key_type);
+	cipher = backend_ecdh_testing_get_cipher (test, key_type);
 
 	switch (type) {
 		case ECDH_TEST_TYPE_SS:
@@ -328,7 +347,7 @@ static void backend_ecdh_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, ecdh_impl->ecdh_ss_ver);
 }
 
-static void backend_ecdh_test_ecdh_ss (CuTest *test)
+static void backend_ecdh_test_ecdh_ss_p256 (CuTest *test)
 {
 	ECC_TESTING_ENGINE (engine);
 	const struct ecdh_backend *ecdh_impl;
@@ -345,7 +364,7 @@ static void backend_ecdh_test_ecdh_ss (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS, ECDH_TEST_ECC_KEY_TYPE_384);
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS, ECDH_TEST_ECC_KEY_TYPE_256);
 
 	backend_ecdh_register_engines (ecdh_engines, 1);
 
@@ -359,13 +378,13 @@ static void backend_ecdh_test_ecdh_ss (CuTest *test)
 	status = ecdh_impl->ecdh_ss (&backend.data.ss, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, ECC_KEY_LENGTH_384, backend.data.ss.hashzz.len);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_256, backend.data.ss.hashzz.len);
 	CuAssertPtrNotNull (test, backend.data.ss.hashzz.buf);
 
-	CuAssertIntEquals (test, ECC384_PUBKEY_POINT.key_length, backend.data.ss.Qxloc.len);
+	CuAssertIntEquals (test, ECC_PUBKEY_POINT.key_length, backend.data.ss.Qxloc.len);
 	CuAssertPtrNotNull (test, backend.data.ss.Qxloc.buf);
 
-	CuAssertIntEquals (test, ECC384_PUBKEY_POINT.key_length, backend.data.ss.Qyloc.len);
+	CuAssertIntEquals (test, ECC_PUBKEY_POINT.key_length, backend.data.ss.Qyloc.len);
 	CuAssertPtrNotNull (test, backend.data.ss.Qyloc.buf);
 
 	ECC_TESTING_ENGINE_RELEASE (&engine);
@@ -373,7 +392,7 @@ static void backend_ecdh_test_ecdh_ss (CuTest *test)
 	backend_ecdh_testing_release (test, &backend);
 }
 
-static void backend_ecdh_test_ecdh_ss_hw (CuTest *test)
+static void backend_ecdh_test_ecdh_ss_hw_p256 (CuTest *test)
 {
 	const struct ecdh_backend *ecdh_impl;
 	struct backend_ecdh_testing backend;
@@ -440,6 +459,238 @@ static void backend_ecdh_test_ecdh_ss_hw (CuTest *test)
 	backend_ecdh_testing_release (test, &backend);
 }
 
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+static void backend_ecdh_test_ecdh_ss_p384 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (engine);
+	const struct ecdh_backend *ecdh_impl;
+	struct backend_ecdh_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdh_engine ecdh_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = false,
+			.ecc.engine = &engine.base
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS, ECDH_TEST_ECC_KEY_TYPE_384);
+
+	backend_ecdh_register_engines (ecdh_engines, 1);
+
+	ECC_TESTING_ENGINE_INIT (&engine);
+
+	ecdh_impl = backend_ecdh_get_impl ();
+	CuAssertPtrNotNull (test, ecdh_impl);
+
+	acvp_implementation = implementation;
+
+	status = ecdh_impl->ecdh_ss (&backend.data.ss, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_384, backend.data.ss.hashzz.len);
+	CuAssertPtrNotNull (test, backend.data.ss.hashzz.buf);
+
+	CuAssertIntEquals (test, ECC384_PUBKEY_POINT.key_length, backend.data.ss.Qxloc.len);
+	CuAssertPtrNotNull (test, backend.data.ss.Qxloc.buf);
+
+	CuAssertIntEquals (test, ECC384_PUBKEY_POINT.key_length, backend.data.ss.Qyloc.len);
+	CuAssertPtrNotNull (test, backend.data.ss.Qyloc.buf);
+
+	ECC_TESTING_ENGINE_RELEASE (&engine);
+
+	backend_ecdh_testing_release (test, &backend);
+}
+
+static void backend_ecdh_test_ecdh_ss_hw_p384 (CuTest *test)
+{
+	const struct ecdh_backend *ecdh_impl;
+	struct backend_ecdh_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdh_engine ecdh_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS, ECDH_TEST_ECC_KEY_TYPE_384);
+
+	// Remote pubkey: ECC384_PUBKEY2
+	// Local key pair will be: ECC384_PRIVKEY / ECC384_PUBKEY
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.generate_ecc_key_pair, &backend.hw, 0,
+		MOCK_ARG (ECC_KEY_LENGTH_384), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&backend.hw.mock, 1, &ECC384_PRIVKEY, ECC384_PRIVKEY_LEN, -1);
+	status |= mock_expect_output (&backend.hw.mock, 2, &ECC384_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key), -1);
+
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdh_compute, &backend.hw,	0,
+		MOCK_ARG_PTR_CONTAINS_TMP (ECC384_PRIVKEY, ECC384_PRIVKEY_LEN),
+		MOCK_ARG (ECC_KEY_LENGTH_384),
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY2_POINT,
+		sizeof (struct ecc_point_public_key)), MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_KEY_LENGTH_384));
+	status |= mock_expect_output (&backend.hw.mock, 3, &ECC384_PRIVKEY3, ECC_KEY_LENGTH_384, -1);
+	CuAssertIntEquals (test, 0, status);
+
+	backend_ecdh_register_engines (ecdh_engines, 1);
+
+	ecdh_impl = backend_ecdh_get_impl ();
+	CuAssertPtrNotNull (test, ecdh_impl);
+
+	acvp_implementation = implementation;
+
+	status = ecdh_impl->ecdh_ss (&backend.data.ss, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, ECC384_PRIVKEY3_LEN, backend.data.ss.hashzz.len);
+	CuAssertPtrNotNull (test, backend.data.ss.hashzz.buf);
+
+	status = testing_validate_array (ECC384_PRIVKEY3, backend.data.ss.hashzz.buf,
+		ECC384_PRIVKEY3_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, ECC384_PUBKEY_POINT.key_length, backend.data.ss.Qxloc.len);
+	CuAssertPtrNotNull (test, backend.data.ss.Qxloc.buf);
+
+	status = testing_validate_array (ECC384_PUBKEY_POINT.x, backend.data.ss.Qxloc.buf,
+		ECC384_PUBKEY_POINT.key_length);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, ECC384_PUBKEY_POINT.key_length, backend.data.ss.Qyloc.len);
+	CuAssertPtrNotNull (test, backend.data.ss.Qyloc.buf);
+
+	status = testing_validate_array (ECC384_PUBKEY_POINT.y, backend.data.ss.Qyloc.buf,
+		ECC384_PUBKEY_POINT.key_length);
+	CuAssertIntEquals (test, 0, status);
+
+	backend_ecdh_testing_release (test, &backend);
+}
+#endif
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+static void backend_ecdh_test_ecdh_ss_p521 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (engine);
+	const struct ecdh_backend *ecdh_impl;
+	struct backend_ecdh_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdh_engine ecdh_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = false,
+			.ecc.engine = &engine.base
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS, ECDH_TEST_ECC_KEY_TYPE_521);
+
+	backend_ecdh_register_engines (ecdh_engines, 1);
+
+	ECC_TESTING_ENGINE_INIT (&engine);
+
+	ecdh_impl = backend_ecdh_get_impl ();
+	CuAssertPtrNotNull (test, ecdh_impl);
+
+	acvp_implementation = implementation;
+
+	status = ecdh_impl->ecdh_ss (&backend.data.ss, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_521, backend.data.ss.hashzz.len);
+	CuAssertPtrNotNull (test, backend.data.ss.hashzz.buf);
+
+	CuAssertIntEquals (test, ECC521_PUBKEY_POINT.key_length, backend.data.ss.Qxloc.len);
+	CuAssertPtrNotNull (test, backend.data.ss.Qxloc.buf);
+
+	CuAssertIntEquals (test, ECC521_PUBKEY_POINT.key_length, backend.data.ss.Qyloc.len);
+	CuAssertPtrNotNull (test, backend.data.ss.Qyloc.buf);
+
+	ECC_TESTING_ENGINE_RELEASE (&engine);
+
+	backend_ecdh_testing_release (test, &backend);
+}
+
+static void backend_ecdh_test_ecdh_ss_hw_p521 (CuTest *test)
+{
+	const struct ecdh_backend *ecdh_impl;
+	struct backend_ecdh_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdh_engine ecdh_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS, ECDH_TEST_ECC_KEY_TYPE_521);
+
+	// Remote pubkey: ECC521_PUBKEY2
+	// Local key pair will be: ECC521_PRIVKEY / ECC521_PUBKEY
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.generate_ecc_key_pair, &backend.hw, 0,
+		MOCK_ARG (ECC_KEY_LENGTH_521), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&backend.hw.mock, 1, &ECC521_PRIVKEY, ECC521_PRIVKEY_LEN, -1);
+	status |= mock_expect_output (&backend.hw.mock, 2, &ECC521_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key), -1);
+
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdh_compute, &backend.hw,	0,
+		MOCK_ARG_PTR_CONTAINS_TMP (ECC521_PRIVKEY, ECC521_PRIVKEY_LEN),
+		MOCK_ARG (ECC_KEY_LENGTH_521),
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY2_POINT,
+		sizeof (struct ecc_point_public_key)), MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_KEY_LENGTH_521));
+	status |= mock_expect_output (&backend.hw.mock, 3, &ECC521_PRIVKEY3, ECC_KEY_LENGTH_521, -1);
+	CuAssertIntEquals (test, 0, status);
+
+	backend_ecdh_register_engines (ecdh_engines, 1);
+
+	ecdh_impl = backend_ecdh_get_impl ();
+	CuAssertPtrNotNull (test, ecdh_impl);
+
+	acvp_implementation = implementation;
+
+	status = ecdh_impl->ecdh_ss (&backend.data.ss, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, ECC521_PRIVKEY3_LEN, backend.data.ss.hashzz.len);
+	CuAssertPtrNotNull (test, backend.data.ss.hashzz.buf);
+
+	status = testing_validate_array (ECC521_PRIVKEY3, backend.data.ss.hashzz.buf,
+		ECC521_PRIVKEY3_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, ECC521_PUBKEY_POINT.key_length, backend.data.ss.Qxloc.len);
+	CuAssertPtrNotNull (test, backend.data.ss.Qxloc.buf);
+
+	status = testing_validate_array (ECC521_PUBKEY_POINT.x, backend.data.ss.Qxloc.buf,
+		ECC521_PUBKEY_POINT.key_length);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, ECC521_PUBKEY_POINT.key_length, backend.data.ss.Qyloc.len);
+	CuAssertPtrNotNull (test, backend.data.ss.Qyloc.buf);
+
+	status = testing_validate_array (ECC521_PUBKEY_POINT.y, backend.data.ss.Qyloc.buf,
+		ECC521_PUBKEY_POINT.key_length);
+	CuAssertIntEquals (test, 0, status);
+
+	backend_ecdh_testing_release (test, &backend);
+}
+#endif
+
 static void backend_ecdh_test_ecdh_ss_null (CuTest *test)
 {
 	const struct ecdh_backend *ecdh_impl;
@@ -456,7 +707,7 @@ static void backend_ecdh_test_ecdh_ss_null (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS, ECDH_TEST_ECC_KEY_TYPE_384);
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS, ECDH_TEST_ECC_KEY_TYPE_256);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -487,13 +738,13 @@ static void backend_ecdh_test_ecdh_ss_null (CuTest *test)
 	status = ecdh_impl->ecdh_ss_ver (&backend.data.ss_ver, 0);
 	CuAssertIntEquals (test, -1, status);
 
-	backend.data.ss_ver.Qxrem.buf = (unsigned char*) ECC384_PUBKEY_POINT.x;
+	backend.data.ss_ver.Qxrem.buf = (unsigned char*) ECC_PUBKEY_POINT.x;
 	backend.data.ss_ver.Qxrem.len = 0;
 
 	status = ecdh_impl->ecdh_ss_ver (&backend.data.ss_ver, 0);
 	CuAssertIntEquals (test, -1, status);
 
-	backend.data.ss_ver.Qxrem.len = ECC384_PUBKEY_POINT.key_length;
+	backend.data.ss_ver.Qxrem.len = ECC_PUBKEY_POINT.key_length;
 
 	// Test null public key Y coordinate buffer.
 	backend.data.ss_ver.Qyrem.buf = NULL;
@@ -501,7 +752,7 @@ static void backend_ecdh_test_ecdh_ss_null (CuTest *test)
 	status = ecdh_impl->ecdh_ss_ver (&backend.data.ss_ver, 0);
 	CuAssertIntEquals (test, -1, status);
 
-	backend.data.ss_ver.Qyrem.buf = (unsigned char*) ECC384_PUBKEY_POINT.y;
+	backend.data.ss_ver.Qyrem.buf = (unsigned char*) ECC_PUBKEY_POINT.y;
 	backend.data.ss_ver.Qyrem.len = 0;
 
 	status = ecdh_impl->ecdh_ss_ver (&backend.data.ss_ver, 0);
@@ -526,7 +777,7 @@ static void backend_ecdh_test_ecdh_ss_no_engine (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS, ECDH_TEST_ECC_KEY_TYPE_384);
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS, ECDH_TEST_ECC_KEY_TYPE_256);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -666,7 +917,7 @@ static void backend_ecdh_test_ecdh_ss_generate_key_pair_error (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS, ECDH_TEST_ECC_KEY_TYPE_384);
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS, ECDH_TEST_ECC_KEY_TYPE_256);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -674,7 +925,7 @@ static void backend_ecdh_test_ecdh_ss_generate_key_pair_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&backend.engine.mock, backend.engine.base.generate_key_pair,
-		&backend.engine, ECC_ENGINE_GENERATE_KEY_FAILED, MOCK_ARG (ECC_KEY_LENGTH_384),
+		&backend.engine, ECC_ENGINE_GENERATE_KEY_FAILED, MOCK_ARG (ECC_KEY_LENGTH_256),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -715,7 +966,7 @@ static void backend_ecdh_test_ecdh_ss_get_pubkey_der_error (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS, ECDH_TEST_ECC_KEY_TYPE_384);
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS, ECDH_TEST_ECC_KEY_TYPE_256);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -723,7 +974,7 @@ static void backend_ecdh_test_ecdh_ss_get_pubkey_der_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&backend.engine.mock, backend.engine.base.generate_key_pair,
-		&backend.engine, 0, MOCK_ARG (ECC_KEY_LENGTH_384), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		&backend.engine, 0, MOCK_ARG (ECC_KEY_LENGTH_256), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&backend.engine.mock, 1, 0);
 	status |= mock_expect_save_arg (&backend.engine.mock, 2, 1);
 
@@ -769,10 +1020,10 @@ static void backend_ecdh_test_ecdh_ss_init_pubkey_error (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS, ECDH_TEST_ECC_KEY_TYPE_384);
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS, ECDH_TEST_ECC_KEY_TYPE_256);
 
-	// Remote pubkey: ECC384_PUBKEY2
-	// Local key pair will be: ECC384_PRIVKEY / ECC384_PUBKEY
+	// Remote pubkey: ECC_PUBKEY2
+	// Local key pair will be: ECC_PRIVKEY / ECC_PUBKEY
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -780,7 +1031,7 @@ static void backend_ecdh_test_ecdh_ss_init_pubkey_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&backend.engine.mock, backend.engine.base.generate_key_pair,
-		&backend.engine, 0, MOCK_ARG (ECC_KEY_LENGTH_384), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		&backend.engine, 0, MOCK_ARG (ECC_KEY_LENGTH_256), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&backend.engine.mock, 1, 0);
 	status |= mock_expect_save_arg (&backend.engine.mock, 2, 1);
 
@@ -789,8 +1040,8 @@ static void backend_ecdh_test_ecdh_ss_init_pubkey_error (CuTest *test)
 
 	status |= mock_expect (&backend.engine.mock, backend.engine.base.init_public_key,
 		&backend.engine, ECC_ENGINE_PUBLIC_KEY_FAILED,
-		MOCK_ARG_PTR_CONTAINS_TMP (ECC384_PUBKEY2_DER, ECC384_PUBKEY2_DER_LEN),
-		MOCK_ARG (ECC384_PUBKEY2_DER_LEN), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR_CONTAINS_TMP (ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY2_DER_LEN), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&backend.engine.mock, backend.engine.base.release_key_pair,
 		&backend.engine, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
@@ -833,10 +1084,10 @@ static void backend_ecdh_test_ecdh_ss_compute_error (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS, ECDH_TEST_ECC_KEY_TYPE_384);
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS, ECDH_TEST_ECC_KEY_TYPE_256);
 
-	// Remote pubkey: ECC384_PUBKEY2
-	// Local key pair will be: ECC384_PRIVKEY / ECC384_PUBKEY
+	// Remote pubkey: ECC_PUBKEY2
+	// Local key pair will be: ECC_PRIVKEY / ECC_PUBKEY
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -844,7 +1095,7 @@ static void backend_ecdh_test_ecdh_ss_compute_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&backend.engine.mock, backend.engine.base.generate_key_pair,
-		&backend.engine, 0, MOCK_ARG (ECC_KEY_LENGTH_384), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		&backend.engine, 0, MOCK_ARG (ECC_KEY_LENGTH_256), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&backend.engine.mock, 1, 0);
 	status |= mock_expect_save_arg (&backend.engine.mock, 2, 1);
 
@@ -852,14 +1103,14 @@ static void backend_ecdh_test_ecdh_ss_compute_error (CuTest *test)
 		&backend.engine, 0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&backend.engine.mock, backend.engine.base.init_public_key,
-		&backend.engine, 0, MOCK_ARG_PTR_CONTAINS_TMP (ECC384_PUBKEY2_DER, ECC384_PUBKEY2_DER_LEN),
-		MOCK_ARG (ECC384_PUBKEY2_DER_LEN), MOCK_ARG_NOT_NULL);
+		&backend.engine, 0, MOCK_ARG_PTR_CONTAINS_TMP (ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY2_DER_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&backend.engine.mock, 2, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status |= mock_expect (&backend.engine.mock, backend.engine.base.compute_shared_secret,
 		&backend.engine, ECC_ENGINE_SHARED_SECRET_FAILED, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_KEY_LENGTH_384));
+		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_KEY_LENGTH_256));
 
 	status |= mock_expect (&backend.engine.mock, backend.engine.base.release_key_pair,
 		&backend.engine, 0, MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (2));
@@ -984,7 +1235,7 @@ static void backend_ecdh_test_ecdh_ss_hw_compute_error (CuTest *test)
 	backend_ecdh_testing_release (test, &backend);
 }
 
-static void backend_ecdh_test_ecdh_ss_ver (CuTest *test)
+static void backend_ecdh_test_ecdh_ss_ver_p256 (CuTest *test)
 {
 	ECC_TESTING_ENGINE (engine);
 	const struct ecdh_backend *ecdh_impl;
@@ -1001,7 +1252,7 @@ static void backend_ecdh_test_ecdh_ss_ver (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_521);
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_256);
 
 	backend_ecdh_register_engines (ecdh_engines, 1);
 
@@ -1021,7 +1272,89 @@ static void backend_ecdh_test_ecdh_ss_ver (CuTest *test)
 	backend_ecdh_testing_release (test, &backend);
 }
 
-static void backend_ecdh_test_ecdh_ss_ver_hw (CuTest *test)
+static void backend_ecdh_test_ecdh_ss_ver_hw_p256 (CuTest *test)
+{
+	const struct ecdh_backend *ecdh_impl;
+	struct backend_ecdh_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdh_engine ecdh_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_256);
+
+	// Expected hash: ECC_DH_SECRET
+	// Remote pubkey: ECC_PUBKEY
+	// Given privkey: ECC_PRIVKEY
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdh_compute, &backend.hw, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_KEY_LENGTH_256),
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)), MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_KEY_LENGTH_256));
+	status |= mock_expect_output (&backend.hw.mock, 3, ECC_DH_SECRET, ECC_DH_SECRET_LEN, 4);
+	CuAssertIntEquals (test, 0, status);
+
+	backend_ecdh_register_engines (ecdh_engines, 1);
+
+	ecdh_impl = backend_ecdh_get_impl ();
+	CuAssertPtrNotNull (test, ecdh_impl);
+
+	acvp_implementation = implementation;
+
+	status = ecdh_impl->ecdh_ss_ver (&backend.data.ss_ver, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, backend.data.ss_ver.validity_success);
+
+	backend_ecdh_testing_release (test, &backend);
+}
+
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+static void backend_ecdh_test_ecdh_ss_ver_p384 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (engine);
+	const struct ecdh_backend *ecdh_impl;
+	struct backend_ecdh_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdh_engine ecdh_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = false,
+			.ecc.engine = &engine.base
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_384);
+
+	backend_ecdh_register_engines (ecdh_engines, 1);
+
+	ECC_TESTING_ENGINE_INIT (&engine);
+
+	ecdh_impl = backend_ecdh_get_impl ();
+	CuAssertPtrNotNull (test, ecdh_impl);
+
+	acvp_implementation = implementation;
+
+	status = ecdh_impl->ecdh_ss_ver (&backend.data.ss_ver, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, backend.data.ss_ver.validity_success);
+
+	ECC_TESTING_ENGINE_RELEASE (&engine);
+
+	backend_ecdh_testing_release (test, &backend);
+}
+
+static void backend_ecdh_test_ecdh_ss_ver_hw_p384 (CuTest *test)
 {
 	const struct ecdh_backend *ecdh_impl;
 	struct backend_ecdh_testing backend;
@@ -1064,6 +1397,90 @@ static void backend_ecdh_test_ecdh_ss_ver_hw (CuTest *test)
 
 	backend_ecdh_testing_release (test, &backend);
 }
+#endif
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+static void backend_ecdh_test_ecdh_ss_ver_p521 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (engine);
+	const struct ecdh_backend *ecdh_impl;
+	struct backend_ecdh_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdh_engine ecdh_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = false,
+			.ecc.engine = &engine.base
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_521);
+
+	backend_ecdh_register_engines (ecdh_engines, 1);
+
+	ECC_TESTING_ENGINE_INIT (&engine);
+
+	ecdh_impl = backend_ecdh_get_impl ();
+	CuAssertPtrNotNull (test, ecdh_impl);
+
+	acvp_implementation = implementation;
+
+	status = ecdh_impl->ecdh_ss_ver (&backend.data.ss_ver, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, backend.data.ss_ver.validity_success);
+
+	ECC_TESTING_ENGINE_RELEASE (&engine);
+
+	backend_ecdh_testing_release (test, &backend);
+}
+
+static void backend_ecdh_test_ecdh_ss_ver_hw_p521 (CuTest *test)
+{
+	const struct ecdh_backend *ecdh_impl;
+	struct backend_ecdh_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdh_engine ecdh_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_521);
+
+	// Expected hash: ECC521_DH_SECRET
+	// Remote pubkey: ECC521_PUBKEY
+	// Given privkey: ECC521_PRIVKEY
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdh_compute, &backend.hw, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (ECC521_PRIVKEY, ECC521_PRIVKEY_LEN),
+		MOCK_ARG (ECC_KEY_LENGTH_521),
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)), MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_KEY_LENGTH_521));
+	status |= mock_expect_output (&backend.hw.mock, 3, ECC521_DH_SECRET, ECC521_DH_SECRET_LEN, 4);
+	CuAssertIntEquals (test, 0, status);
+
+	backend_ecdh_register_engines (ecdh_engines, 1);
+
+	ecdh_impl = backend_ecdh_get_impl ();
+	CuAssertPtrNotNull (test, ecdh_impl);
+
+	acvp_implementation = implementation;
+
+	status = ecdh_impl->ecdh_ss_ver (&backend.data.ss_ver, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, backend.data.ss_ver.validity_success);
+
+	backend_ecdh_testing_release (test, &backend);
+}
+#endif
 
 static void backend_ecdh_test_ecdh_ss_ver_invalid_ss (CuTest *test)
 {
@@ -1081,27 +1498,26 @@ static void backend_ecdh_test_ecdh_ss_ver_invalid_ss (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_521);
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_256);
 
-	// Expected hash: ECC521_DH_SECRET
-	// Remote pubkey: ECC521_PUBKEY
-	// Given privkey: ECC521_PRIVKEY
+	// Expected hash: ECC_DH_SECRET
+	// Remote pubkey: ECC_PUBKEY
+	// Given privkey: ECC_PRIVKEY
 
 	status = mock_expect (&backend.engine.mock, backend.engine.base.init_key_pair, &backend.engine,
-		0,
-		MOCK_ARG_PTR_CONTAINS_TMP (ECC521_PRIVKEY_NO_PUBKEY_DER, ECC521_PRIVKEY_NO_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC521_PRIVKEY_NO_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+		0, MOCK_ARG_PTR_CONTAINS_TMP (ECC_PRIVKEY_NO_PUBKEY_DER, ECC_PRIVKEY_NO_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PRIVKEY_NO_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
 	status |= mock_expect_save_arg (&backend.engine.mock, 2, 0);
 
 	status |= mock_expect (&backend.engine.mock, backend.engine.base.init_public_key,
-		&backend.engine, 0,	MOCK_ARG_PTR_CONTAINS_TMP (ECC521_PUBKEY_DER, ECC521_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC521_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+		&backend.engine, 0,	MOCK_ARG_PTR_CONTAINS_TMP (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&backend.engine.mock, 2, 1);
 
 	status = mock_expect (&backend.engine.mock, backend.engine.base.compute_shared_secret,
-		&backend.engine, ECC_KEY_LENGTH_521, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_KEY_LENGTH_521));
-	status |= mock_expect_output (&backend.engine.mock, 2, &ECC521_PRIVKEY, ECC_KEY_LENGTH_521, -1);
+		&backend.engine, ECC_KEY_LENGTH_256, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_KEY_LENGTH_256));
+	status |= mock_expect_output (&backend.engine.mock, 2, &ECC_PRIVKEY, ECC_KEY_LENGTH_256, -1);
 	CuAssertIntEquals (test, 0, status);
 
 	status |= mock_expect (&backend.engine.mock, backend.engine.base.release_key_pair,
@@ -1140,18 +1556,17 @@ static void backend_ecdh_test_ecdh_ss_ver_hw_invalid_ss (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_384);
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_256);
 
-	// Expected hash: ECC384_DH_SECRET
-	// Remote pubkey: ECC384_PUBKEY
-	// Given privkey: ECC384_PRIVKEY
+	// Expected hash: ECC_DH_SECRET
+	// Remote pubkey: ECC_PUBKEY
+	// Given privkey: ECC_PRIVKEY
 
 	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdh_compute, &backend.hw, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (ECC384_PRIVKEY, ECC384_PRIVKEY_LEN),
-		MOCK_ARG (ECC_KEY_LENGTH_384),
-		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
-		sizeof (struct ecc_point_public_key)), MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_KEY_LENGTH_384));
-	status |= mock_expect_output (&backend.hw.mock, 3, &ECC384_PRIVKEY2, ECC_KEY_LENGTH_384, -1);
+		MOCK_ARG_PTR_CONTAINS_TMP (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_KEY_LENGTH_256),
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)), MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_KEY_LENGTH_256));
+	status |= mock_expect_output (&backend.hw.mock, 3, &ECC_PRIVKEY2, ECC_KEY_LENGTH_256, -1);
 	CuAssertIntEquals (test, 0, status);
 
 	backend_ecdh_register_engines (ecdh_engines, 1);
@@ -1184,7 +1599,7 @@ static void backend_ecdh_test_ecdh_ss_ver_null (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_384);
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_256);
 
 	// Testing five null cases.
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
@@ -1228,13 +1643,13 @@ static void backend_ecdh_test_ecdh_ss_ver_null (CuTest *test)
 	status = ecdh_impl->ecdh_ss_ver (&backend.data.ss_ver, 0);
 	CuAssertIntEquals (test, -1, status);
 
-	backend.data.ss_ver.privloc.buf = (void*) ECC384_PRIVKEY2;
+	backend.data.ss_ver.privloc.buf = (void*) ECC_PRIVKEY2;
 	backend.data.ss_ver.privloc.len = 0;
 
 	status = ecdh_impl->ecdh_ss_ver (&backend.data.ss_ver, 0);
 	CuAssertIntEquals (test, -1, status);
 
-	backend.data.ss_ver.privloc.len = ECC384_PRIVKEY2_LEN;
+	backend.data.ss_ver.privloc.len = ECC_PRIVKEY2_LEN;
 
 	// Test null remote public key X coordinate buffer.
 	backend.data.ss_ver.Qxrem.buf = NULL;
@@ -1242,13 +1657,13 @@ static void backend_ecdh_test_ecdh_ss_ver_null (CuTest *test)
 	status = ecdh_impl->ecdh_ss_ver (&backend.data.ss_ver, 0);
 	CuAssertIntEquals (test, -1, status);
 
-	backend.data.ss_ver.Qxrem.buf = (unsigned char*) ECC384_PUBKEY_POINT.x;
+	backend.data.ss_ver.Qxrem.buf = (unsigned char*) ECC_PUBKEY_POINT.x;
 	backend.data.ss_ver.Qxrem.len = 0;
 
 	status = ecdh_impl->ecdh_ss_ver (&backend.data.ss_ver, 0);
 	CuAssertIntEquals (test, -1, status);
 
-	backend.data.ss_ver.Qxrem.len = ECC384_PUBKEY_POINT.key_length;
+	backend.data.ss_ver.Qxrem.len = ECC_PUBKEY_POINT.key_length;
 
 	// Test null remote public key Y coordinate buffer.
 	backend.data.ss_ver.Qyrem.buf = NULL;
@@ -1256,13 +1671,13 @@ static void backend_ecdh_test_ecdh_ss_ver_null (CuTest *test)
 	status = ecdh_impl->ecdh_ss_ver (&backend.data.ss_ver, 0);
 	CuAssertIntEquals (test, -1, status);
 
-	backend.data.ss_ver.Qyrem.buf = (unsigned char*) ECC384_PUBKEY_POINT.y;
+	backend.data.ss_ver.Qyrem.buf = (unsigned char*) ECC_PUBKEY_POINT.y;
 	backend.data.ss_ver.Qyrem.len = 0;
 
 	status = ecdh_impl->ecdh_ss_ver (&backend.data.ss_ver, 0);
 	CuAssertIntEquals (test, -1, status);
 
-	backend.data.ss_ver.Qyrem.len = ECC384_PUBKEY_POINT.key_length;
+	backend.data.ss_ver.Qyrem.len = ECC_PUBKEY_POINT.key_length;
 
 	// Test null expected shared secret buffer.
 	backend.data.ss_ver.hashzz.buf = NULL;
@@ -1430,7 +1845,7 @@ static void backend_ecdh_test_ecdh_ss_ver_init_privkey_error (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_521);
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_256);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -1439,8 +1854,8 @@ static void backend_ecdh_test_ecdh_ss_ver_init_privkey_error (CuTest *test)
 
 	status = mock_expect (&backend.engine.mock, backend.engine.base.init_key_pair, &backend.engine,
 		ECC_ENGINE_KEY_PAIR_FAILED,
-		MOCK_ARG_PTR_CONTAINS_TMP (ECC521_PRIVKEY_NO_PUBKEY_DER, ECC521_PRIVKEY_NO_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC521_PRIVKEY_NO_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+		MOCK_ARG_PTR_CONTAINS_TMP (ECC_PRIVKEY_NO_PUBKEY_DER, ECC_PRIVKEY_NO_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PRIVKEY_NO_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
 	backend_ecdh_register_engines (ecdh_engines, 1);
@@ -1480,27 +1895,26 @@ static void backend_ecdh_test_ecdh_ss_ver_init_pubkey_error (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_521);
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_256);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry)));
 	CuAssertIntEquals (test, 0, status);
 
-	// Expected hash: ECC521_DH_SECRET
-	// Remote pubkey: ECC521_PUBKEY
-	// Given privkey: ECC521_PRIVKEY
+	// Expected hash: ECC_DH_SECRET
+	// Remote pubkey: ECC_PUBKEY
+	// Given privkey: ECC_PRIVKEY
 
 	status = mock_expect (&backend.engine.mock, backend.engine.base.init_key_pair, &backend.engine,
-		0,
-		MOCK_ARG_PTR_CONTAINS_TMP (ECC521_PRIVKEY_NO_PUBKEY_DER, ECC521_PRIVKEY_NO_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC521_PRIVKEY_NO_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+		0, MOCK_ARG_PTR_CONTAINS_TMP (ECC_PRIVKEY_NO_PUBKEY_DER, ECC_PRIVKEY_NO_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PRIVKEY_NO_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
 	status |= mock_expect_save_arg (&backend.engine.mock, 2, 0);
 
 	status |= mock_expect (&backend.engine.mock, backend.engine.base.init_public_key,
 		&backend.engine, ECC_ENGINE_PUBLIC_KEY_FAILED,
-		MOCK_ARG_PTR_CONTAINS_TMP (ECC521_PUBKEY_DER, ECC521_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC521_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR_CONTAINS_TMP (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&backend.engine.mock, backend.engine.base.release_key_pair,
 		&backend.engine, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_ANY);
@@ -1543,31 +1957,30 @@ static void backend_ecdh_test_ecdh_ss_ver_compute_error (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_521);
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_256);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry)));
 	CuAssertIntEquals (test, 0, status);
 
-	// Expected hash: ECC521_DH_SECRET
-	// Remote pubkey: ECC521_PUBKEY
-	// Given privkey: ECC521_PRIVKEY
+	// Expected hash: ECC_DH_SECRET
+	// Remote pubkey: ECC_PUBKEY
+	// Given privkey: ECC_PRIVKEY
 
 	status = mock_expect (&backend.engine.mock, backend.engine.base.init_key_pair, &backend.engine,
-		0,
-		MOCK_ARG_PTR_CONTAINS_TMP (ECC521_PRIVKEY_NO_PUBKEY_DER, ECC521_PRIVKEY_NO_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC521_PRIVKEY_NO_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+		0, MOCK_ARG_PTR_CONTAINS_TMP (ECC_PRIVKEY_NO_PUBKEY_DER, ECC_PRIVKEY_NO_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PRIVKEY_NO_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
 	status |= mock_expect_save_arg (&backend.engine.mock, 2, 0);
 
 	status |= mock_expect (&backend.engine.mock, backend.engine.base.init_public_key,
-		&backend.engine, 0,	MOCK_ARG_PTR_CONTAINS_TMP (ECC521_PUBKEY_DER, ECC521_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC521_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+		&backend.engine, 0,	MOCK_ARG_PTR_CONTAINS_TMP (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&backend.engine.mock, 2, 1);
 
 	status = mock_expect (&backend.engine.mock, backend.engine.base.compute_shared_secret,
 		&backend.engine, ECC_ENGINE_SHARED_SECRET_FAILED, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_MAX_KEY_LENGTH));
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_KEY_LENGTH_256));
 
 	status |= mock_expect (&backend.engine.mock, backend.engine.base.release_key_pair,
 		&backend.engine, 0, MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
@@ -1613,22 +2026,22 @@ static void backend_ecdh_test_ecdh_ss_ver_hw_compute_error (CuTest *test)
 
 	TEST_START;
 
-	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_384);
+	backend_ecdh_testing_init (test, &backend, ECDH_TEST_TYPE_SS_VER, ECDH_TEST_ECC_KEY_TYPE_256);
 
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry)));
 	CuAssertIntEquals (test, 0, status);
 
-	// Expected hash: ECC384_DH_SECRET
-	// Remote pubkey: ECC384_PUBKEY
-	// Given privkey: ECC384_PRIVKEY
+	// Expected hash: ECC_DH_SECRET
+	// Remote pubkey: ECC_PUBKEY
+	// Given privkey: ECC_PRIVKEY
 
 	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdh_compute, &backend.hw,
-		ECC_HW_ECDH_COMPUTE_FAILED,	MOCK_ARG_PTR_CONTAINS_TMP (ECC384_PRIVKEY, ECC384_PRIVKEY_LEN),
-		MOCK_ARG (ECC_KEY_LENGTH_384),
-		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
-		sizeof (struct ecc_point_public_key)), MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_KEY_LENGTH_384));
+		ECC_HW_ECDH_COMPUTE_FAILED,	MOCK_ARG_PTR_CONTAINS_TMP (ECC_PRIVKEY, ECC_PRIVKEY_LEN),
+		MOCK_ARG (ECC_KEY_LENGTH_256),
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)), MOCK_ARG_NOT_NULL, MOCK_ARG (ECC_KEY_LENGTH_256));
 	CuAssertIntEquals (test, 0, status);
 
 	backend_ecdh_register_engines (ecdh_engines, 1);
@@ -1649,8 +2062,16 @@ static void backend_ecdh_test_ecdh_ss_ver_hw_compute_error (CuTest *test)
 TEST_SUITE_START (backend_ecdh);
 
 TEST (backend_ecdh_test_init);
-TEST (backend_ecdh_test_ecdh_ss);
-TEST (backend_ecdh_test_ecdh_ss_hw);
+TEST (backend_ecdh_test_ecdh_ss_p256);
+TEST (backend_ecdh_test_ecdh_ss_hw_p256);
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+TEST (backend_ecdh_test_ecdh_ss_p384);
+TEST (backend_ecdh_test_ecdh_ss_hw_p384);
+#endif
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+TEST (backend_ecdh_test_ecdh_ss_p521);
+TEST (backend_ecdh_test_ecdh_ss_hw_p521);
+#endif
 TEST (backend_ecdh_test_ecdh_ss_null);
 TEST (backend_ecdh_test_ecdh_ss_no_engine);
 TEST (backend_ecdh_test_ecdh_ss_engine_not_found);
@@ -1661,8 +2082,16 @@ TEST (backend_ecdh_test_ecdh_ss_init_pubkey_error);
 TEST (backend_ecdh_test_ecdh_ss_compute_error);
 TEST (backend_ecdh_test_ecdh_ss_hw_generate_ecc_key_pair_error);
 TEST (backend_ecdh_test_ecdh_ss_hw_compute_error);
-TEST (backend_ecdh_test_ecdh_ss_ver);
-TEST (backend_ecdh_test_ecdh_ss_ver_hw);
+TEST (backend_ecdh_test_ecdh_ss_ver_p256);
+TEST (backend_ecdh_test_ecdh_ss_ver_hw_p256);
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+TEST (backend_ecdh_test_ecdh_ss_ver_p384);
+TEST (backend_ecdh_test_ecdh_ss_ver_hw_p384);
+#endif
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+TEST (backend_ecdh_test_ecdh_ss_ver_p521);
+TEST (backend_ecdh_test_ecdh_ss_ver_hw_p521);
+#endif
 TEST (backend_ecdh_test_ecdh_ss_ver_invalid_ss);
 TEST (backend_ecdh_test_ecdh_ss_ver_hw_invalid_ss);
 TEST (backend_ecdh_test_ecdh_ss_ver_null);
