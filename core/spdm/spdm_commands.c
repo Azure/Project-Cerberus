@@ -1275,18 +1275,9 @@ static int spdm_responder_data_sign (struct spdm_state *state,
 		/* SPDM 1.1 and earlier cannot be made FIPS compliant with the current architecture, since
 		 * the ECDSA hash and sign happen in different steps.  This is not much of a concern since
 		 * everything is expected to use at least SPDM 1.2.
-		 *
-		 * TODO:  Perhaps FIPS compliant implementations need to explicitly fail requests using
-		 * SPDM 1.1 or earlier? */
-		status = ecc_engine->init_key_pair (ecc_engine, keys->alias_key, keys->alias_key_length,
-			&alias_priv_key, NULL);
-		if (status != 0) {
-			goto exit;
-		}
-		release_alias_key = true;
-
-		sig_size_der = ecc_engine->sign (ecc_engine, &alias_priv_key, message_hash, hash_size, NULL,
-			sig_der, sizeof (sig_der));
+		 */
+		status = SPDM_ERROR_VERSION_MISMATCH;
+		goto exit;
 	}
 	if (ROT_IS_ERROR (sig_size_der)) {
 		status = sig_size_der;
@@ -1740,10 +1731,6 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 		(request->payload_length >= sizeof (struct spdm_get_capabilities))) {
 		req_resp_size = sizeof (struct spdm_get_capabilities);
 	}
-	else if ((spdm_version == SPDM_VERSION_1_1) &&
-		(request->payload_length >= sizeof (struct spdm_get_capabilities_1_1))) {
-		req_resp_size = sizeof (struct spdm_get_capabilities_1_1);
-	}
 	else {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
 		spdm_error = SPDM_ERROR_INVALID_REQUEST;
@@ -1778,12 +1765,10 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 	}
 
 	/* Check the CT Exponent. */
-	if (spdm_version >= SPDM_VERSION_1_1) {
-		if (req_resp->base_capabilities.ct_exponent > SPDM_MAX_CT_EXPONENT) {
-			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
-			spdm_error = SPDM_ERROR_INVALID_REQUEST;
-			goto exit;
-		}
+	if (req_resp->base_capabilities.ct_exponent > SPDM_MAX_CT_EXPONENT) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
 	}
 
 	/* Update SPDM version in transcript manager to make sure proper behavior */

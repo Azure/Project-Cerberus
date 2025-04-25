@@ -301,14 +301,25 @@ int cmd_interface_spdm_responder_init_state (
 	uint8_t supported_max_version;
 	uint8_t idx;
 
+	/* Current implementation is strictly supports only SPDM v1.2 and nothing else.
+	   TODO: in order to support future versions, like 1.3, below restrictions must be
+	   adjusted to allow support for multiple versions. Code base also would need to be
+	   adjusted to properly handle any future version. */
 	if ((spdm_responder == NULL) || (spdm_responder->hash_engine == NULL) ||
 		(spdm_responder->hash_engine_count < SPDM_RESPONDER_HASH_ENGINE_REQUIRED_COUNT) ||
 		(spdm_responder->transcript_manager == NULL) || (spdm_responder->version_num == NULL) ||
-		(spdm_responder->version_num_count == 0) ||
+		(spdm_responder->version_num_count != 1) ||
 		(spdm_responder->local_capabilities == NULL) ||
 		(spdm_responder->local_algorithms == NULL) || (spdm_responder->key_manager == NULL) ||
 		(spdm_responder->measurements == NULL) || (spdm_responder->ecc_engine == NULL) ||
 		(spdm_responder->rng_engine == NULL)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
+		goto exit;
+	}
+
+	// Restrict SPDM responder to support v1.2 only
+	if (SPDM_MAKE_VERSION (spdm_responder->version_num[0].major_version,
+		spdm_responder->version_num[0].minor_version) != SPDM_VERSION_1_2) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 		goto exit;
 	}

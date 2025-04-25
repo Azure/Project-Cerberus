@@ -93,7 +93,7 @@ struct spdm_command_testing {
 	struct spdm_secure_session_manager_state session_manager_state;								/**< The session manager state. */
 	struct hash_engine_mock hash_engine_mock[SPDM_RESPONDER_HASH_ENGINE_REQUIRED_COUNT];		/**< Mock hash engine for the responder. */
 	const struct hash_engine *hash_engine[SPDM_RESPONDER_HASH_ENGINE_REQUIRED_COUNT];			/**< Hash engines. */
-	struct spdm_version_num_entry version_num[2];												/**< Version number entries. */
+	struct spdm_version_num_entry version_num[1];												/**< Version number entries. */
 	struct spdm_version_num_entry secured_message_version_num[SECURED_MESSAGE_VERSION_COUNT];	/**< Secured version number entries. */
 	struct spdm_device_capability local_capabilities;											/**< Local capabilities. */
 	struct spdm_local_device_algorithms local_algorithms;										/**< Local algorithms. */
@@ -184,7 +184,7 @@ static void spdm_command_testing_init_key_manager (CuTest *test,
 		switch (base_asym_algo) {
 			case SPDM_TPM_ALG_ECDSA_ECC_NIST_P256:
 				memcpy (dev_id_der, RIOT_CORE_DEVID_INTR_SIGNED_CERT, dev_id_len);
-				memcpy (ca_der, X509_CERTSS_RSA_CA_NOPL_DER , ca_len);
+				memcpy (ca_der, X509_CERTSS_RSA_CA_NOPL_DER, ca_len);
 				memcpy (int_der, X509_CERTCA_ECC_CA_NOPL_DER, int_len);
 				break;
 
@@ -207,26 +207,24 @@ static void spdm_command_testing_init_key_manager (CuTest *test,
 				break;
 		}
 
-
 		status = mock_expect (&testing->keystore.mock, testing->keystore.base.load_key,
 			&testing->keystore, 0, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 		status |= mock_expect_output_tmp (&testing->keystore.mock, 1, &dev_id_der,
 			sizeof (dev_id_der), -1);
-		status |= mock_expect_output_tmp (&testing->keystore.mock, 2,
-			&dev_id_len, sizeof (dev_id_len), -1);
+		status |= mock_expect_output_tmp (&testing->keystore.mock, 2, &dev_id_len,
+			sizeof (dev_id_len), -1);
 
 		status |= mock_expect (&testing->keystore.mock, testing->keystore.base.load_key,
 			&testing->keystore, 0, MOCK_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 		status |= mock_expect_output_tmp (&testing->keystore.mock, 1, &ca_der, sizeof (ca_der), -1);
-		status |= mock_expect_output_tmp (&testing->keystore.mock, 2,
-			&ca_len, sizeof (ca_len), -1);
+		status |= mock_expect_output_tmp (&testing->keystore.mock, 2, &ca_len, sizeof (ca_len), -1);
 
 		status |= mock_expect (&testing->keystore.mock, testing->keystore.base.load_key,
 			&testing->keystore, 0, MOCK_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 		status |= mock_expect_output_tmp (&testing->keystore.mock, 1, &int_der, sizeof (int_der),
 			-1);
-		status |= mock_expect_output_tmp (&testing->keystore.mock, 2,
-			&int_len, sizeof (int_len), -1);
+		status |= mock_expect_output_tmp (&testing->keystore.mock, 2, &int_len, sizeof (int_len),
+			-1);
 
 		CuAssertIntEquals (test, 0, status);
 	}
@@ -263,14 +261,13 @@ static void spdm_command_testing_init_key_manager (CuTest *test,
 			&testing->keystore, 0, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 		status |= mock_expect_output_tmp (&testing->keystore.mock, 1, &dev_id_der,
 			sizeof (dev_id_der), -1);
-		status |= mock_expect_output_tmp (&testing->keystore.mock, 2,
-			&dev_id_len, sizeof (dev_id_len), -1);
+		status |= mock_expect_output_tmp (&testing->keystore.mock, 2, &dev_id_len,
+			sizeof (dev_id_len), -1);
 
 		status |= mock_expect (&testing->keystore.mock, testing->keystore.base.load_key,
 			&testing->keystore, 0, MOCK_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 		status |= mock_expect_output_tmp (&testing->keystore.mock, 1, &ca_der, sizeof (ca_der), -1);
-		status |= mock_expect_output_tmp (&testing->keystore.mock, 2,
-			&ca_len, sizeof (ca_len), -1);
+		status |= mock_expect_output_tmp (&testing->keystore.mock, 2, &ca_len, sizeof (ca_len), -1);
 
 		status |= mock_expect (&testing->keystore.mock, testing->keystore.base.load_key,
 			&testing->keystore, KEYSTORE_NO_KEY, MOCK_ARG (2), MOCK_ARG_NOT_NULL,
@@ -302,8 +299,8 @@ static void spdm_command_testing_init_dependencies (CuTest *test,
 	uint32_t measurement_hash_algo)
 {
 	int status;
-	struct spdm_version_num_entry version_num[SPDM_MAX_MINOR_VERSION - SPDM_MIN_MINOR_VERSION + 1] =
-	{{0, 0, 1, 1}, {0, 0, 2, 1}};
+	struct spdm_version_num_entry version_num[1] =
+	{{0, 0, 2, 1}};
 	struct spdm_version_number secured_message_version_num[SECURED_MESSAGE_VERSION_COUNT] =
 	{{0, 0, 0, 1}, {0, 0, 1, 1}};
 	uint8_t idx;
@@ -446,6 +443,7 @@ static void spdm_command_testing_init_dependencies (CuTest *test,
 			testing->keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_521_LEN;
 
 			break;
+
 		default:
 			testing->keys.devid_csr_length = RIOT_CORE_DEVID_CSR_384_LEN;
 			testing->keys.devid_cert_length = RIOT_CORE_DEVID_CERT_384_LEN;
@@ -460,8 +458,8 @@ static void spdm_command_testing_init_dependencies (CuTest *test,
 			break;
 	}
 
-	spdm_command_testing_init_key_manager (test, testing, true, true,
-		base_hash_algo, base_asym_algo, measurement_hash_algo);
+	spdm_command_testing_init_key_manager (test, testing, true, true, base_hash_algo,
+		base_asym_algo, measurement_hash_algo);
 
 	status = spdm_measurements_mock_init (&testing->measurements_mock);
 	CuAssertIntEquals (test, 0, status);
@@ -1378,7 +1376,7 @@ static void spdm_test_get_version (CuTest *test)
 	CuAssertIntEquals (test, 0, resp->reserved);
 	CuAssertIntEquals (test, 0, resp->reserved2);
 	CuAssertIntEquals (test, 0, resp->reserved3);
-	CuAssertIntEquals (test, 2, resp->version_num_entry_count);
+	CuAssertIntEquals (test, 1, resp->version_num_entry_count);
 
 	version_num = spdm_get_version_resp_version_table (resp);
 	status = memcmp (version_num, testing.version_num,
@@ -1471,7 +1469,7 @@ static void spdm_test_get_version_no_session_manager (CuTest *test)
 	CuAssertIntEquals (test, 0, resp->reserved);
 	CuAssertIntEquals (test, 0, resp->reserved2);
 	CuAssertIntEquals (test, 0, resp->reserved3);
-	CuAssertIntEquals (test, 2, resp->version_num_entry_count);
+	CuAssertIntEquals (test, 1, resp->version_num_entry_count);
 
 	version_num = spdm_get_version_resp_version_table (resp);
 	status = memcmp (version_num, testing.version_num,
@@ -1567,7 +1565,7 @@ static void spdm_test_get_version_response_state_need_resync (CuTest *test)
 	CuAssertIntEquals (test, 0, resp->reserved);
 	CuAssertIntEquals (test, 0, resp->reserved2);
 	CuAssertIntEquals (test, 0, resp->reserved3);
-	CuAssertIntEquals (test, 2, resp->version_num_entry_count);
+	CuAssertIntEquals (test, 1, resp->version_num_entry_count);
 
 	version_num = spdm_get_version_resp_version_table (resp);
 	status = memcmp (version_num, testing.version_num,
@@ -1663,7 +1661,7 @@ static void spdm_test_get_version_response_state_processing_encap (CuTest *test)
 	CuAssertIntEquals (test, 0, resp->reserved);
 	CuAssertIntEquals (test, 0, resp->reserved2);
 	CuAssertIntEquals (test, 0, resp->reserved3);
-	CuAssertIntEquals (test, 2, resp->version_num_entry_count);
+	CuAssertIntEquals (test, 1, resp->version_num_entry_count);
 
 	version_num = spdm_get_version_resp_version_table (resp);
 	memcpy (version_num, testing.version_num,
@@ -2214,12 +2212,12 @@ static void spdm_test_get_capabilities_1_1 (CuTest *test)
 	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	struct spdm_get_capabilities_1_1 rq = {0};
-	struct spdm_get_capabilities_1_1 *resp = (struct spdm_get_capabilities_1_1*) buf;
 	int status;
 	struct cmd_interface_spdm_responder *spdm_responder;
 	struct spdm_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_device_capability *local_capabilities;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 
 	TEST_START;
 
@@ -2246,50 +2244,13 @@ static void spdm_test_get_capabilities_1_1 (CuTest *test)
 
 	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
 
-	status = mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.set_spdm_version,
-		&testing.transcript_manager_mock.base, 0,
-		MOCK_ARG (SPDM_MAKE_VERSION (rq.header.spdm_major_version, rq.header.spdm_minor_version)));
-
-	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.reset_transcript,
-		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
-		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
-
-	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
-		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
-		MOCK_ARG_PTR_CONTAINS (&rq, sizeof (struct spdm_get_capabilities_1_1)),
-		MOCK_ARG (sizeof (struct spdm_get_capabilities_1_1)), MOCK_ARG (false),
-		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
-
-	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
-		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (sizeof (struct spdm_get_capabilities_1_1)), MOCK_ARG (false),
-		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
-
-	CuAssertIntEquals (test, 0, status);
-
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct spdm_get_capabilities_1_1), msg.length);
-	CuAssertIntEquals (test, msg.length, msg.payload_length);
-	CuAssertPtrEquals (test, buf, msg.data);
-	CuAssertPtrEquals (test, resp, msg.payload);
-	CuAssertIntEquals (test, 1, resp->header.spdm_minor_version);
-	CuAssertIntEquals (test, 1, resp->header.spdm_major_version);
-	CuAssertIntEquals (test, SPDM_RESPONSE_GET_CAPABILITIES, resp->header.req_rsp_code);
-	CuAssertIntEquals (test, 0, resp->reserved);
-	CuAssertIntEquals (test, 0, resp->reserved2);
-	CuAssertIntEquals (test, 0, resp->reserved3);
-	CuAssertIntEquals (test, 0, resp->reserved4);
-	CuAssertIntEquals (test, local_capabilities->ct_exponent, resp->ct_exponent);
-
-	status = memcmp (&local_capabilities->flags, &resp->flags,
-		sizeof (struct spdm_get_capabilities_flags_format));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_VERSION_MISMATCH);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
 
 	spdm_command_testing_release_dependencies (test, &testing);
 }
@@ -2336,7 +2297,7 @@ static void spdm_test_get_capabilities_response_state_busy (CuTest *test)
 	spdm_state->response_state = SPDM_RESPONSE_STATE_BUSY;
 
 	rq->base_capabilities.header.spdm_major_version = 1;
-	rq->base_capabilities.header.spdm_minor_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -2376,7 +2337,7 @@ static void spdm_test_get_capabilities_response_state_need_resync (CuTest *test)
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NEED_RESYNC;
 
 	rq->base_capabilities.header.spdm_major_version = 1;
-	rq->base_capabilities.header.spdm_minor_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -2415,7 +2376,7 @@ static void spdm_test_get_capabilities_response_state_processing_encap (CuTest *
 	spdm_state->response_state = SPDM_RESPONSE_STATE_PROCESSING_ENCAP;
 
 	rq->base_capabilities.header.spdm_major_version = 1;
-	rq->base_capabilities.header.spdm_minor_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -2456,7 +2417,7 @@ static void spdm_test_get_capabilities_incorrect_connection_state (CuTest *test)
 	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NOT_STARTED;
 
 	rq->base_capabilities.header.spdm_major_version = 1;
-	rq->base_capabilities.header.spdm_minor_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -2604,52 +2565,6 @@ static void spdm_test_get_capabilities_incorrect_request_size_v_1_2 (CuTest *tes
 	rq->base_capabilities.flags = local_capabilities->flags;
 	rq->data_transfer_size = local_capabilities->data_transfer_size;
 	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
-
-	status = spdm_get_capabilities (spdm_responder, &msg);
-
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
-	CuAssertIntEquals (test, error_response->error_data, 0);
-	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
-	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
-
-	spdm_command_testing_release_dependencies (test, &testing);
-}
-
-static void spdm_test_get_capabilities_incorrect_request_size_v_1_1 (CuTest *test)
-{
-	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
-	struct cmd_interface_msg msg;
-	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
-	int status;
-	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
-	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
-	struct spdm_command_testing testing;
-	struct spdm_device_capability *local_capabilities;
-
-	TEST_START;
-
-	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
-		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
-	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
-	local_capabilities = &testing.local_capabilities;
-
-	memset (&msg, 0, sizeof (msg));
-	msg.data = buf;
-	msg.payload = (uint8_t*) buf;
-	msg.max_response = sizeof (buf);
-	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1) - 1;
-	msg.length = msg.payload_length;
-
-	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
-
-	rq->base_capabilities.header.spdm_major_version = 1;
-	rq->base_capabilities.header.spdm_minor_version = 1;
-	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
-	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
-	rq->base_capabilities.flags = local_capabilities->flags;
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -3050,401 +2965,6 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTe
 	rq->base_capabilities.flags.pub_key_id_cap = 0;
 	rq->base_capabilities.flags.chal_cap = 0;
 	rq->base_capabilities.flags.mut_auth_cap = 1;
-
-	status = spdm_get_capabilities (spdm_responder, &msg);
-
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
-	CuAssertIntEquals (test, error_response->error_data, 0);
-	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
-	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
-
-	spdm_command_testing_release_dependencies (test, &testing);
-}
-
-static void spdm_test_get_capabilities_request_flag_compatibility_1_1_fail (CuTest *test)
-{
-	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
-	struct cmd_interface_msg msg;
-	struct spdm_get_capabilities_1_1 *rq = (struct spdm_get_capabilities_1_1*) buf;
-	int status;
-	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
-	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
-	struct spdm_command_testing testing;
-	struct spdm_device_capability *local_capabilities;
-
-	TEST_START;
-
-	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
-		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
-
-	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
-	local_capabilities = &testing.local_capabilities;
-
-	memset (&msg, 0, sizeof (msg));
-	msg.data = buf;
-	msg.payload = (uint8_t*) rq;
-	msg.max_response = sizeof (buf);
-
-	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
-
-	/* Invalid flags.psk_cap = SPDM_PSK_RESERVED */
-	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
-	msg.length = msg.payload_length;
-
-	rq->header.spdm_major_version = 1;
-	rq->header.spdm_minor_version = 1;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
-	rq->ct_exponent = local_capabilities->ct_exponent;
-
-	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
-	rq->flags.psk_cap = SPDM_PSK_RESERVED;
-
-	status = spdm_get_capabilities (spdm_responder, &msg);
-
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
-	CuAssertIntEquals (test, error_response->error_data, 0);
-	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
-	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
-
-	/* flags.key_ex_cap = 1 && flags.psk_cap = 0 && flags.mac_cap == 0 */
-	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
-	msg.length = msg.payload_length;
-
-	rq->header.spdm_major_version = 1;
-	rq->header.spdm_minor_version = 1;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
-	rq->ct_exponent = local_capabilities->ct_exponent;
-
-	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
-	rq->flags.key_ex_cap = 1;
-	rq->flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
-	rq->flags.mac_cap = 0;
-
-	status = spdm_get_capabilities (spdm_responder, &msg);
-
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
-	CuAssertIntEquals (test, error_response->error_data, 0);
-	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
-	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
-
-	/* flags.key_ex_cap = 0 && flags.psk_cap = 1 && flags.mac_cap == 0 */
-	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
-	msg.length = msg.payload_length;
-
-	rq->header.spdm_major_version = 1;
-	rq->header.spdm_minor_version = 1;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
-	rq->ct_exponent = local_capabilities->ct_exponent;
-
-	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
-	rq->flags.key_ex_cap = 0;
-	rq->flags.psk_cap = SPDM_PSK_SUPPORTED_NO_CONTEXT;
-	rq->flags.mac_cap = 0;
-
-	status = spdm_get_capabilities (spdm_responder, &msg);
-
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
-	CuAssertIntEquals (test, error_response->error_data, 0);
-	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
-	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
-
-	/*
-	 * flags.key_ex_cap = 0 && flags.psk_cap = 0 && flags.mac_cap = 1 && flags.encrypt_cap = 0
-	 * && flags.handshake_in_the_clear_cap = 0 && flags.hbeat_cap = 0 && flags.key_upd_cap = 0 */
-	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
-	msg.length = msg.payload_length;
-
-	rq->header.spdm_major_version = 1;
-	rq->header.spdm_minor_version = 1;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
-	rq->ct_exponent = local_capabilities->ct_exponent;
-
-	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
-	rq->flags.key_ex_cap = 0;
-	rq->flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
-	rq->flags.mac_cap = 1;
-	rq->flags.encrypt_cap = 0;
-	rq->flags.handshake_in_the_clear_cap = 0;
-	rq->flags.hbeat_cap = 0;
-	rq->flags.key_upd_cap = 0;
-
-	status = spdm_get_capabilities (spdm_responder, &msg);
-
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
-	CuAssertIntEquals (test, error_response->error_data, 0);
-	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
-	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
-
-	/*
-	 * flags.key_ex_cap = 0 && flags.psk_cap = 0 && flags.mac_cap = 0 && flags.encrypt_cap = 1
-	 * && flags.handshake_in_the_clear_cap = 0 && flags.hbeat_cap = 0 && flags.key_upd_cap = 0 */
-	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
-	msg.length = msg.payload_length;
-
-	rq->header.spdm_major_version = 1;
-	rq->header.spdm_minor_version = 1;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
-	rq->ct_exponent = local_capabilities->ct_exponent;
-
-	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
-	rq->flags.key_ex_cap = 0;
-	rq->flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
-	rq->flags.mac_cap = 0;
-	rq->flags.encrypt_cap = 1;
-	rq->flags.handshake_in_the_clear_cap = 0;
-	rq->flags.hbeat_cap = 0;
-	rq->flags.key_upd_cap = 0;
-
-	status = spdm_get_capabilities (spdm_responder, &msg);
-
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
-	CuAssertIntEquals (test, error_response->error_data, 0);
-	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
-	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
-
-	/*
-	 * flags.key_ex_cap = 0 && flags.psk_cap = 0 && flags.mac_cap = 0 && flags.encrypt_cap = 0
-	 * && flags.handshake_in_the_clear_cap = 1 && flags.hbeat_cap = 0 && flags.key_upd_cap = 0 */
-	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
-	msg.length = msg.payload_length;
-
-	rq->header.spdm_major_version = 1;
-	rq->header.spdm_minor_version = 1;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
-	rq->ct_exponent = local_capabilities->ct_exponent;
-
-	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
-	rq->flags.key_ex_cap = 0;
-	rq->flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
-	rq->flags.mac_cap = 0;
-	rq->flags.encrypt_cap = 0;
-	rq->flags.handshake_in_the_clear_cap = 1;
-	rq->flags.hbeat_cap = 0;
-	rq->flags.key_upd_cap = 0;
-
-	status = spdm_get_capabilities (spdm_responder, &msg);
-
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
-	CuAssertIntEquals (test, error_response->error_data, 0);
-	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
-	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
-
-	/*
-	 * flags.key_ex_cap = 0 && flags.psk_cap = 0 && flags.mac_cap = 0 && flags.encrypt_cap = 0
-	 * && flags.handshake_in_the_clear_cap = 0 && flags.hbeat_cap = 1 && flags.key_upd_cap = 0 */
-	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
-	msg.length = msg.payload_length;
-
-	rq->header.spdm_major_version = 1;
-	rq->header.spdm_minor_version = 1;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
-	rq->ct_exponent = local_capabilities->ct_exponent;
-
-	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
-	rq->flags.key_ex_cap = 0;
-	rq->flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
-	rq->flags.mac_cap = 0;
-	rq->flags.encrypt_cap = 0;
-	rq->flags.handshake_in_the_clear_cap = 0;
-	rq->flags.hbeat_cap = 1;
-	rq->flags.key_upd_cap = 0;
-
-	status = spdm_get_capabilities (spdm_responder, &msg);
-
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
-	CuAssertIntEquals (test, error_response->error_data, 0);
-	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
-	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
-
-	/*
-	 * flags.key_ex_cap = 0 && flags.psk_cap = 0 && flags.mac_cap = 0 && flags.encrypt_cap = 0
-	 * && flags.handshake_in_the_clear_cap = 0 && flags.hbeat_cap = 0 && flags.key_upd_cap = 1 */
-	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
-	msg.length = msg.payload_length;
-
-	rq->header.spdm_major_version = 1;
-	rq->header.spdm_minor_version = 1;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
-	rq->ct_exponent = local_capabilities->ct_exponent;
-
-	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
-	rq->flags.key_ex_cap = 0;
-	rq->flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
-	rq->flags.mac_cap = 0;
-	rq->flags.encrypt_cap = 0;
-	rq->flags.handshake_in_the_clear_cap = 0;
-	rq->flags.hbeat_cap = 0;
-	rq->flags.key_upd_cap = 1;
-
-	status = spdm_get_capabilities (spdm_responder, &msg);
-
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
-	CuAssertIntEquals (test, error_response->error_data, 0);
-	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
-	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
-
-	/* flags.key_ex_cap = 0 && flags.psk_cap = 1 && flags.mac_cap = 1 && flags.handshake_in_the_clear_cap = 1 */
-	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
-	msg.length = msg.payload_length;
-
-	rq->header.spdm_major_version = 1;
-	rq->header.spdm_minor_version = 1;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
-	rq->ct_exponent = local_capabilities->ct_exponent;
-
-	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
-	rq->flags.key_ex_cap = 0;
-	rq->flags.psk_cap = SPDM_PSK_SUPPORTED_NO_CONTEXT;
-	rq->flags.mac_cap = 1;
-	rq->flags.handshake_in_the_clear_cap = 1;
-
-	status = spdm_get_capabilities (spdm_responder, &msg);
-
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
-	CuAssertIntEquals (test, error_response->error_data, 0);
-	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
-	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
-
-	/* flags.cert_cap = 1 && flags.pub_key_id_cap = 1 */
-	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
-	msg.length = msg.payload_length;
-
-	rq->header.spdm_major_version = 1;
-	rq->header.spdm_minor_version = 1;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
-	rq->ct_exponent = local_capabilities->ct_exponent;
-
-	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
-	rq->flags.cert_cap = 1;
-	rq->flags.pub_key_id_cap = 1;
-
-	status = spdm_get_capabilities (spdm_responder, &msg);
-
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
-	CuAssertIntEquals (test, error_response->error_data, 0);
-	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
-	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
-
-	/* flags.cert_cap = 1 && flags.pub_key_id_cap = 0 && flags.chal_cap = 0 && flags.key_ex_cap = 0 */
-	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
-	msg.length = msg.payload_length;
-
-	rq->header.spdm_major_version = 1;
-	rq->header.spdm_minor_version = 1;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
-	rq->ct_exponent = local_capabilities->ct_exponent;
-
-	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
-	rq->flags.cert_cap = 1;
-	rq->flags.pub_key_id_cap = 0;
-	rq->flags.chal_cap = 0;
-	rq->flags.key_ex_cap = 0;
-
-	status = spdm_get_capabilities (spdm_responder, &msg);
-
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
-	CuAssertIntEquals (test, error_response->error_data, 0);
-	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
-	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
-
-	/* flags.cert_cap == 0 && flags.pub_key_id_cap = 1 && flags.chal_cap = 0 && flags.key_ex_cap = 0 */
-	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
-	msg.length = msg.payload_length;
-
-	rq->header.spdm_major_version = 1;
-	rq->header.spdm_minor_version = 1;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
-	rq->ct_exponent = local_capabilities->ct_exponent;
-
-	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
-	rq->flags.cert_cap = 0;
-	rq->flags.pub_key_id_cap = 1;
-	rq->flags.chal_cap = 0;
-	rq->flags.key_ex_cap = 0;
-
-	status = spdm_get_capabilities (spdm_responder, &msg);
-
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
-	CuAssertIntEquals (test, error_response->error_data, 0);
-	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
-	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
-
-	/* flags.cert_cap = 0 && flags.pub_key_id_cap = 0 && flags.chal_cap = 1 && flags.mut_auth_cap = 0 */
-	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
-	msg.length = msg.payload_length;
-
-	rq->header.spdm_major_version = 1;
-	rq->header.spdm_minor_version = 1;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
-	rq->ct_exponent = local_capabilities->ct_exponent;
-
-	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
-	rq->flags.cert_cap = 0;
-	rq->flags.pub_key_id_cap = 0;
-	rq->flags.chal_cap = 1;
-	rq->flags.mut_auth_cap = 0;
-
-	status = spdm_get_capabilities (spdm_responder, &msg);
-
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
-	CuAssertIntEquals (test, error_response->error_data, 0);
-	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
-	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
-
-	/* flags.cert_cap = 0 && flags.pub_key_id_cap = 0 && flags.chal_cap = 0 && flags.mut_auth_cap = 1 */
-	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
-	msg.length = msg.payload_length;
-
-	rq->header.spdm_major_version = 1;
-	rq->header.spdm_minor_version = 1;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
-	rq->ct_exponent = local_capabilities->ct_exponent;
-
-	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
-	rq->flags.cert_cap = 0;
-	rq->flags.pub_key_id_cap = 0;
-	rq->flags.chal_cap = 0;
-	rq->flags.mut_auth_cap = 1;
-
-	status = spdm_get_capabilities (spdm_responder, &msg);
-
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
-	CuAssertIntEquals (test, error_response->error_data, 0);
-	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
-	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
-
-	/* flags.mut_auth_cap = 1 && flags.encap_cap = 0 */
-	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
-	msg.length = msg.payload_length;
-
-	rq->header.spdm_major_version = 1;
-	rq->header.spdm_minor_version = 1;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
-	rq->ct_exponent = local_capabilities->ct_exponent;
-
-	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
-	rq->flags.cert_cap = 1;
-	rq->flags.chal_cap = 1;
-
-	rq->flags.mut_auth_cap = 1;
-	rq->flags.encap_cap = 0;
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -9072,8 +8592,8 @@ static void spdm_test_get_digests_no_root_and_intermediate_certs (CuTest *test)
 
 	/* Get rid of provisioned certs. */
 	riot_key_manager_release (&testing.key_manager);
-	spdm_command_testing_init_key_manager (test, &testing, false, false,
-		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
+	spdm_command_testing_init_key_manager (test, &testing, false, false, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -9197,8 +8717,8 @@ static void spdm_test_get_digests_no_intermediate_cert (CuTest *test)
 
 	/* Get rid of intermediate CA cert. */
 	riot_key_manager_release (&testing.key_manager);
-	spdm_command_testing_init_key_manager (test, &testing, true, false,
-		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
+	spdm_command_testing_init_key_manager (test, &testing, true, false,	SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -9611,8 +9131,8 @@ static void spdm_test_get_digests_device_cert_null (CuTest *test)
 	/* Corrupt the devid cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.devid_cert = NULL;
-	spdm_command_testing_init_key_manager (test, &testing, false, false,
-		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
+	spdm_command_testing_init_key_manager (test, &testing, false, false, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -9683,8 +9203,8 @@ static void spdm_test_get_digests_device_cert_zero_length (CuTest *test)
 	/* Corrupt the devid cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.devid_cert_length = 0;
-	spdm_command_testing_init_key_manager (test, &testing, false, false,
-		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
+	spdm_command_testing_init_key_manager (test, &testing, false, false, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -9755,8 +9275,8 @@ static void spdm_test_get_digests_alias_cert_null (CuTest *test)
 	/* Corrupt the alias cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.alias_cert = NULL;
-	spdm_command_testing_init_key_manager (test, &testing, false, false,
-		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
+	spdm_command_testing_init_key_manager (test, &testing, false, false, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -9827,8 +9347,8 @@ static void spdm_test_get_digests_alias_cert_zero_length (CuTest *test)
 	/* Corrupt the alias cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.alias_cert_length = 0;
-	spdm_command_testing_init_key_manager (test, &testing, false, false,
-		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
+	spdm_command_testing_init_key_manager (test, &testing, false, false, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -12330,8 +11850,8 @@ static void spdm_test_get_certificate_no_root_and_intermediate_certs (CuTest *te
 
 	/* Get rid of provisioned certs. */
 	riot_key_manager_release (&testing.key_manager);
-	spdm_command_testing_init_key_manager (test, &testing, false, false,
-		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
+	spdm_command_testing_init_key_manager (test, &testing, false, false, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -12449,8 +11969,8 @@ static void spdm_test_get_certificate_no_intermediate_cert (CuTest *test)
 
 	/* Get rid of intermediate CA cert. */
 	riot_key_manager_release (&testing.key_manager);
-	spdm_command_testing_init_key_manager (test, &testing, true, false,
-		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
+	spdm_command_testing_init_key_manager (test, &testing, true, false,	SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -12921,8 +12441,8 @@ static void spdm_test_get_certificate_device_cert_null (CuTest *test)
 	/* Corrupt the devid cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.devid_cert = NULL;
-	spdm_command_testing_init_key_manager (test, &testing, false, false,
-		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
+	spdm_command_testing_init_key_manager (test, &testing, false, false, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -12977,8 +12497,8 @@ static void spdm_test_get_certificate_device_cert_zero_length (CuTest *test)
 	/* Corrupt the devid cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.devid_cert_length = 0;
-	spdm_command_testing_init_key_manager (test, &testing, false, false,
-		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
+	spdm_command_testing_init_key_manager (test, &testing, false, false, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -13033,8 +12553,8 @@ static void spdm_test_get_certificate_alias_cert_null (CuTest *test)
 	/* Corrupt the alias cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.alias_cert = NULL;
-	spdm_command_testing_init_key_manager (test, &testing, false, false,
-		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
+	spdm_command_testing_init_key_manager (test, &testing, false, false, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -13089,8 +12609,8 @@ static void spdm_test_get_certificate_alias_cert_zero_length (CuTest *test)
 	/* Corrupt the alias cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.alias_cert_length = 0;
-	spdm_command_testing_init_key_manager (test, &testing, false, false,
-		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
+	spdm_command_testing_init_key_manager (test, &testing, false, false, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -13738,8 +13258,8 @@ static void spdm_test_challenge_ecc_nist_p256 (CuTest *test)
 		&testing.ecc_mock.base, ECC_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
-	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC_SIGNATURE_TEST,
-		ECC_SIG_TEST_LEN, 5);
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN,
+		5);
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
@@ -13774,13 +13294,11 @@ static void spdm_test_challenge_ecc_nist_p256 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	response_ptr += sizeof (uint16_t);
 
-	status = testing_validate_array (ECC_SIGNATURE_TEST_STRUCT.r, response_ptr,
-		ECC_KEY_LENGTH_256);
+	status = testing_validate_array (ECC_SIGNATURE_TEST_STRUCT.r, response_ptr,	ECC_KEY_LENGTH_256);
 	CuAssertIntEquals (test, 0, status);
 	response_ptr += ECC_KEY_LENGTH_256;
 
-	status = testing_validate_array (ECC_SIGNATURE_TEST_STRUCT.s, response_ptr,
-		ECC_KEY_LENGTH_256);
+	status = testing_validate_array (ECC_SIGNATURE_TEST_STRUCT.s, response_ptr,	ECC_KEY_LENGTH_256);
 	CuAssertIntEquals (test, 0, status);
 
 	spdm_command_testing_release_dependencies (test, &testing);
@@ -15789,8 +15307,8 @@ static void spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p256 (
 		&testing.ecc_mock.base, ECC_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
-	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC_SIGNATURE_TEST,
-		ECC_SIG_TEST_LEN, 5);
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN,
+		5);
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
@@ -16220,7 +15738,7 @@ static void spdm_test_get_measurements_single_measurement_no_sig (CuTest *test)
 
 	for (measurement_block_idx = 1; measurement_block_idx < 0xFF; measurement_block_idx++) {
 		spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
-		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
+			SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 		spdm_responder = &testing.spdm_responder;
 		spdm_state = spdm_responder->state;
 
@@ -18321,294 +17839,6 @@ static void spdm_test_get_measurements_v_1_2_sig_req_sign_fail (CuTest *test)
 	spdm_command_testing_release_dependencies (test, &testing);
 }
 
-static void spdm_test_get_measurements_v_1_1_sig_req_init_key_pair_fail (CuTest *test)
-{
-	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
-	uint8_t buf2[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
-	struct cmd_interface_msg msg;
-	int status;
-	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf2;
-	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
-	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
-	struct spdm_command_testing testing;
-	const uint32_t measurement_count = 10;
-	const uint32_t measurement_length = 128;
-	uint8_t expected_nonce[SPDM_NONCE_LEN];
-	uint8_t expected_measurement_record[measurement_length];
-	uint32_t i;
-	size_t request_size = sizeof (struct spdm_get_measurements_request) + SPDM_NONCE_LEN +
-		sizeof (uint8_t);
-	size_t signature_size = ECC_KEY_LENGTH_384 * 2;
-
-	TEST_START;
-
-	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
-		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
-	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
-	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
-
-	memset (&msg, 0, sizeof (msg));
-	msg.data = buf;
-	msg.payload = buf;
-	msg.max_response = sizeof (buf);
-	msg.payload_length = request_size;
-	msg.length = msg.payload_length;
-
-	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
-	spdm_state->connection_info.version.minor_version = 1;
-	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
-	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
-	spdm_state->connection_info.peer_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_384;
-	spdm_state->connection_info.peer_algorithms.base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P384;
-	spdm_state->connection_info.peer_algorithms.measurement_spec = SPDM_MEASUREMENT_SPEC_DMTF;
-	spdm_state->connection_info.peer_algorithms.measurement_hash_algo =
-		SPDM_MEAS_RSP_TPM_ALG_SHA_384;
-
-	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
-	rq->header.spdm_minor_version = 1;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_MEASUREMENTS;
-	rq->sig_required = true;
-	rq->raw_bit_stream_requested = true;
-	rq->measurement_operation =
-		SPDM_GET_MEASUREMENTS_REQUEST_MEASUREMENT_OPERATION_ALL_MEASUREMENTS;
-	for (i = 0; i < SPDM_NONCE_LEN; i++) {
-		expected_nonce[i] = rand ();
-	}
-	memcpy (spdm_get_measurements_rq_nonce (rq), expected_nonce, SPDM_NONCE_LEN);
-	*(spdm_get_measurements_rq_slot_id_ptr ((rq))) = 0;
-
-	memcpy (msg.payload, rq, request_size);
-
-	for (i = 0; i < SPDM_NONCE_LEN; i++) {
-		expected_nonce[i] = rand ();
-	}
-	for (i = 0; i < measurement_length; i++) {
-		expected_measurement_record[i] = rand ();
-	}
-
-	status = mock_expect (&testing.session_manager_mock.mock,
-		testing.session_manager_mock.base.is_last_session_id_valid,
-		&testing.session_manager_mock.base, 0);
-
-	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.reset_transcript,
-		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
-		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
-
-	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
-		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2), MOCK_ARG_PTR_CONTAINS (rq, request_size),
-		MOCK_ARG (request_size), MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
-
-	status |= mock_expect (&testing.measurements_mock.mock,
-		testing.measurements_mock.base.get_measurement_count, &testing.measurements_mock.base,
-		measurement_count);
-
-	status |= mock_expect (&testing.measurements_mock.mock,
-		testing.measurements_mock.base.get_all_measurement_blocks, &testing.measurements_mock.base,
-		measurement_length, MOCK_ARG (rq->raw_bit_stream_requested),
-		MOCK_ARG_PTR (&testing.hash_engine_mock[0].base), MOCK_ARG (HASH_TYPE_SHA384),
-		MOCK_ARG_NOT_NULL,
-		MOCK_ARG (msg.max_response - (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + signature_size)));
-	status |= mock_expect_output (&testing.measurements_mock.mock, 3, expected_measurement_record,
-		measurement_length, -1);
-
-	status |= mock_expect (&testing.rng_mock.mock, testing.rng_mock.base.generate_random_buffer,
-		&testing.rng_mock, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&testing.rng_mock.mock, 1, expected_nonce, SPDM_NONCE_LEN, -1);
-
-	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
-		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + measurement_length), MOCK_ARG (false),
-		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
-
-	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
-		&testing.ecc_mock.base, ECC_ENGINE_KEY_PAIR_FAILED,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY_384, RIOT_CORE_ALIAS_KEY_384_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_384_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
-	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 0);
-
-	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
-		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2), MOCK_ARG (true), MOCK_ARG (false),
-		MOCK_ARG (SPDM_MAX_SESSION_COUNT), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
-	status |= mock_expect_output (&testing.transcript_manager_mock.mock, 4, SHA384_TEST_HASH,
-		SHA384_HASH_LENGTH, -1);
-
-	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.reset_transcript,
-		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
-		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
-
-	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.reset_transcript,
-		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
-		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = spdm_get_measurements (spdm_responder, &msg);
-
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, error_response->error_code);
-	CuAssertIntEquals (test, 0, error_response->error_data);
-	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
-	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
-
-	spdm_command_testing_release_dependencies (test, &testing);
-}
-
-static void spdm_test_get_measurements_v_1_1_sig_req_sign_fail (CuTest *test)
-{
-	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
-	uint8_t buf2[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
-	struct cmd_interface_msg msg;
-	int status;
-	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf2;
-	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
-	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
-	struct spdm_command_testing testing;
-	const uint32_t measurement_count = 10;
-	const uint32_t measurement_length = 128;
-	uint8_t expected_nonce[SPDM_NONCE_LEN];
-	uint8_t expected_measurement_record[measurement_length];
-	uint32_t i;
-	size_t request_size = sizeof (struct spdm_get_measurements_request) + SPDM_NONCE_LEN +
-		sizeof (uint8_t);
-	size_t signature_size = ECC_KEY_LENGTH_384 * 2;
-
-	TEST_START;
-
-	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
-		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
-	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
-	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
-
-	memset (&msg, 0, sizeof (msg));
-	msg.data = buf;
-	msg.payload = buf;
-	msg.max_response = sizeof (buf);
-	msg.payload_length = request_size;
-	msg.length = msg.payload_length;
-
-	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
-	spdm_state->connection_info.version.minor_version = 1;
-	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
-	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
-	spdm_state->connection_info.peer_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_384;
-	spdm_state->connection_info.peer_algorithms.base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P384;
-	spdm_state->connection_info.peer_algorithms.measurement_spec = SPDM_MEASUREMENT_SPEC_DMTF;
-	spdm_state->connection_info.peer_algorithms.measurement_hash_algo =
-		SPDM_MEAS_RSP_TPM_ALG_SHA_384;
-
-	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
-	rq->header.spdm_minor_version = 1;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_MEASUREMENTS;
-	rq->sig_required = true;
-	rq->raw_bit_stream_requested = true;
-	rq->measurement_operation =
-		SPDM_GET_MEASUREMENTS_REQUEST_MEASUREMENT_OPERATION_ALL_MEASUREMENTS;
-	for (i = 0; i < SPDM_NONCE_LEN; i++) {
-		expected_nonce[i] = rand ();
-	}
-	memcpy (spdm_get_measurements_rq_nonce (rq), expected_nonce, SPDM_NONCE_LEN);
-	*(spdm_get_measurements_rq_slot_id_ptr ((rq))) = 0;
-
-	memcpy (msg.payload, rq, request_size);
-
-	for (i = 0; i < SPDM_NONCE_LEN; i++) {
-		expected_nonce[i] = rand ();
-	}
-	for (i = 0; i < measurement_length; i++) {
-		expected_measurement_record[i] = rand ();
-	}
-
-	status = mock_expect (&testing.session_manager_mock.mock,
-		testing.session_manager_mock.base.is_last_session_id_valid,
-		&testing.session_manager_mock.base, 0);
-
-	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.reset_transcript,
-		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
-		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
-
-	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
-		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2), MOCK_ARG_PTR_CONTAINS (rq, request_size),
-		MOCK_ARG (request_size), MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
-
-	status |= mock_expect (&testing.measurements_mock.mock,
-		testing.measurements_mock.base.get_measurement_count, &testing.measurements_mock.base,
-		measurement_count);
-
-	status |= mock_expect (&testing.measurements_mock.mock,
-		testing.measurements_mock.base.get_all_measurement_blocks, &testing.measurements_mock.base,
-		measurement_length, MOCK_ARG (rq->raw_bit_stream_requested),
-		MOCK_ARG_PTR (&testing.hash_engine_mock[0].base), MOCK_ARG (HASH_TYPE_SHA384),
-		MOCK_ARG_NOT_NULL,
-		MOCK_ARG (msg.max_response - (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + signature_size)));
-	status |= mock_expect_output (&testing.measurements_mock.mock, 3, expected_measurement_record,
-		measurement_length, -1);
-
-	status |= mock_expect (&testing.rng_mock.mock, testing.rng_mock.base.generate_random_buffer,
-		&testing.rng_mock, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&testing.rng_mock.mock, 1, expected_nonce, SPDM_NONCE_LEN, -1);
-
-	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
-		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + measurement_length), MOCK_ARG (false),
-		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
-
-	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
-		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2), MOCK_ARG (true), MOCK_ARG (false),
-		MOCK_ARG (SPDM_MAX_SESSION_COUNT), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
-	status |= mock_expect_output (&testing.transcript_manager_mock.mock, 4, SHA384_TEST_HASH,
-		SHA384_HASH_LENGTH, -1);
-
-	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.reset_transcript,
-		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
-		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
-
-	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
-		&testing.ecc_mock.base, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY_384, RIOT_CORE_ALIAS_KEY_384_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_384_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
-	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 0);
-
-	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.sign,
-		&testing.ecc_mock.base, ECC_ENGINE_SIGN_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (ECC_DER_P384_ECDSA_MAX_LENGTH));
-
-	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
-		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
-
-	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.reset_transcript,
-		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
-		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = spdm_get_measurements (spdm_responder, &msg);
-
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, error_response->error_code);
-	CuAssertIntEquals (test, 0, error_response->error_data);
-	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
-	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
-
-	spdm_command_testing_release_dependencies (test, &testing);
-}
-
 static void spdm_test_get_measurements_ecc_der_decode_ecdsa_signature_fail (CuTest *test)
 {
 	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
@@ -18990,8 +18220,8 @@ static void spdm_test_key_exchange_ecc_nist_p256 (CuTest *test)
 		&testing.ecc_mock.base, ECC_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
-	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC_SIGNATURE_TEST,
-		ECC_SIG_TEST_LEN, 5);
+	status |= mock_expect_output (&testing.ecc_mock.mock, 4, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN,
+		5);
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
@@ -21488,8 +20718,8 @@ static void spdm_test_key_exchange_device_cert_null (CuTest *test)
 	/* Corrupt the devid cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.devid_cert = NULL;
-	spdm_command_testing_init_key_manager (test, &testing, false, false,
-		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
+	spdm_command_testing_init_key_manager (test, &testing, false, false, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -21627,8 +20857,8 @@ static void spdm_test_key_exchange_device_zero_length (CuTest *test)
 	/* Corrupt the devid cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.devid_cert_length = 0;
-	spdm_command_testing_init_key_manager (test, &testing, false, false,
-		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
+	spdm_command_testing_init_key_manager (test, &testing, false, false, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -21766,8 +20996,8 @@ static void spdm_test_key_exchange_alias_cert_null (CuTest *test)
 	/* Corrupt the alias cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.alias_cert = NULL;
-	spdm_command_testing_init_key_manager (test, &testing, false, false,
-		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
+	spdm_command_testing_init_key_manager (test, &testing, false, false, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -21905,8 +21135,8 @@ static void spdm_test_key_exchange_alias_cert_zero_length (CuTest *test)
 	/* Corrupt the alias cert. */
 	riot_key_manager_release (&testing.key_manager);
 	testing.keys.alias_cert_length = 0;
-	spdm_command_testing_init_key_manager (test, &testing, false, false,
-		SPDM_TPM_ALG_SHA_384, SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
+	spdm_command_testing_init_key_manager (test, &testing, false, false, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -29372,9 +28602,7 @@ TEST (spdm_test_get_capabilities_incorrect_connection_state);
 TEST (spdm_test_get_capabilities_version_lt_min);
 TEST (spdm_test_get_capabilities_version_gt_max);
 TEST (spdm_test_get_capabilities_incorrect_request_size_v_1_2);
-TEST (spdm_test_get_capabilities_incorrect_request_size_v_1_1);
 TEST (spdm_test_get_capabilities_request_flag_compatibility_1_2_fail);
-TEST (spdm_test_get_capabilities_request_flag_compatibility_1_1_fail);
 TEST (spdm_test_get_capabilities_request_data_transfer_size_lt_min_size);
 TEST (spdm_test_get_capabilities_request_data_transfer_size_gt_max_size);
 TEST (spdm_test_get_capabilities_request_data_transfer_size_ne_max_size);
@@ -29563,8 +28791,6 @@ TEST (spdm_test_get_measurements_sig_req_get_hash_fail);
 TEST (spdm_test_get_measurements_v_1_2_sig_req_init_key_pair_fail);
 TEST (spdm_test_get_measurements_v_1_2_sig_req_hash_calculate_fail);
 TEST (spdm_test_get_measurements_v_1_2_sig_req_sign_fail);
-TEST (spdm_test_get_measurements_v_1_1_sig_req_init_key_pair_fail);
-TEST (spdm_test_get_measurements_v_1_1_sig_req_sign_fail);
 TEST (spdm_test_get_measurements_ecc_der_decode_ecdsa_signature_fail);
 TEST (spdm_test_key_exchange_ecc_nist_p256);
 TEST (spdm_test_key_exchange_ecc_nist_p384);
