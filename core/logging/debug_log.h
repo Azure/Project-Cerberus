@@ -66,6 +66,7 @@ enum debug_log_component {
 	DEBUG_LOG_COMPONENT_KEYSTORE,				/**< Log entry for keystore operations */
 	DEBUG_LOG_COMPONENT_MMIO,					/**< Log entry for MMIO operations */
 	DEBUG_LOG_COMPONENT_ACVP,					/**< Log entry for FIPS ACVP testing. */
+	DEBUG_LOG_COMPONENT_FIPS,					/**< Log entry for FIPS handling. */
 	DEBUG_LOG_COMPONENT_DEVICE_SPECIFIC = 0xf0,	/**< Base component ID for device-specific messages. */
 	/* Component IDs 0xf0 - 0xff are reserved for device-specific logging. */
 };

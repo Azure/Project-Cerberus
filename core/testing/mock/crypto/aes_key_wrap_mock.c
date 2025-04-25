@@ -100,7 +100,7 @@ static const char* aes_key_wrap_mock_arg_name_map (void *func, int arg)
 				return "length";
 		}
 	}
-	if (func == aes_key_wrap_mock_wrap) {
+	else if (func == aes_key_wrap_mock_wrap) {
 		switch (arg) {
 			case 0:
 				return "data";

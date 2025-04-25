@@ -12,6 +12,7 @@
 #include "cmd_interface/cmd_interface_all_tests.h"
 #include "common/common_all_tests.h"
 #include "crypto/crypto_all_tests.h"
+#include "fips/fips_all_tests.h"
 #include "firmware/firmware_all_tests.h"
 #include "flash/flash_all_tests.h"
 #include "host_fw/host_fw_all_tests.h"
@@ -48,6 +49,7 @@ void add_all_core_tests (CuSuite *suite)
 	add_all_cmd_interface_tests (suite);
 	add_all_common_tests (suite);
 	add_all_crypto_tests (suite);
+	add_all_fips_tests (suite);
 	add_all_firmware_tests (suite);
 	add_all_flash_tests (suite);
 	add_all_host_fw_tests (suite);

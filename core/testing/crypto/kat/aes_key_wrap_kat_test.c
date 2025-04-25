@@ -9,17 +9,12 @@
 #include "crypto/aes_key_wrap_with_padding.h"
 #include "crypto/kat/aes_key_wrap_kat.h"
 #include "crypto/kat/aes_key_wrap_kat_vectors.h"
+#include "testing/crypto/kat/aes_key_wrap_kat_testing.h"
 #include "testing/engines/aes_testing_engine.h"
 #include "testing/mock/crypto/aes_key_wrap_mock.h"
 
 
 TEST_SUITE_LABEL ("aes_key_wrap_kat");
-
-
-/**
- * Block aligned length of the data used for AES Key Wrap with Padding tests.
- */
-#define	AES_KEY_WRAP_KAT_TESTING_KWP_ALIGNED_DATA_LEN	16
 
 
 /*******************

@@ -175,6 +175,8 @@ enum {
 	ROT_MODULE_BACKEND_SYM = 0x00a3,					/**< ACVP symmetric cipher backend. */
 	ROT_MODULE_BACKEND_HMAC = 0x00a4,					/**< ACVP HMAC backend. */
 	ROT_MODULE_BACKEND_ECDH = 0x00a5,					/**< ACVP ECDH backend. */
+	ROT_MODULE_ERROR_STATE_ENTRY = 0x00a6,				/**< FIPS error state entry handler. */
+	ROT_MODULE_ERROR_STATE_EXIT = 0x00a7,				/**< FIPS error state exit handler. */
 };
 
 
