@@ -12,6 +12,7 @@ int hkdf_extract (const struct hkdf_interface *hkdf, enum hash_type hash_algo, c
 	size_t length, const uint8_t *salt, size_t salt_length);
 int hkdf_expand (const struct hkdf_interface *hkdf, const uint8_t *info, size_t info_length,
 	uint8_t *key_out, size_t key_length);
+int hkdf_update_prk (const struct hkdf_interface *hkdf, const uint8_t *info, size_t info_length);
 int hkdf_clear_prk (const struct hkdf_interface *hkdf);
 
 
@@ -21,6 +22,7 @@ int hkdf_clear_prk (const struct hkdf_interface *hkdf);
 #define	HKDF_API_INIT { \
 		.extract = hkdf_extract, \
 		.expand = hkdf_expand, \
+		.update_prk = hkdf_update_prk, \
 		.clear_prk = hkdf_clear_prk ,\
 	}
 

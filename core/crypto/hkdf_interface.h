@@ -53,6 +53,22 @@ struct hkdf_interface {
 		uint8_t *key_out, size_t key_length);
 
 	/**
+	 * Update the pseudorandom key (PRK) inplace. It takes info context and runs expand operation
+	 * using current PRK, generates new key and then updates current PRK with newly generated key.
+	 * This scenario is useful when result of expand operation is used as PRK for the next expand
+	 * operation.
+	 *
+	 * @param hkdf The HKDF instance that contains the PRK to use for key derivation.
+	 * @param info Optional KDF context to use during derivation.  If this is null, no additional
+	 * context will be used.
+	 * @param info_length Length of the optional info.  If the info is null, this value will be
+	 * ignored.
+	 *
+	 * @return 0 if the PRK was successfully updated or an error code.
+	 */
+	int (*update_prk) (const struct hkdf_interface *hkdf, const uint8_t *info, size_t info_length);
+
+	/**
 	 * Zeroize the pseudorandom key (PRK) and prevent future attempts to derive keys.
 	 *
 	 * @param hkdf The HKDF instance to clear.
@@ -79,6 +95,7 @@ enum {
 	HKDF_SHA256_KAT_FAILED = HKDF_ERROR (0x07),	/**< Failed a SHA-256 HKDF-Expand self test. */
 	HKDF_SHA384_KAT_FAILED = HKDF_ERROR (0x08),	/**< Failed a SHA-384 HKDF-Expand self test. */
 	HKDF_SHA512_KAT_FAILED = HKDF_ERROR (0x09),	/**< Failed a SHA-512 HKDF-Expand self test. */
+	HKDF_UPDATE_PRK_FAILED = HKDF_ERROR (0x0A),	/**< Failed to update PRK. */
 };
 
 

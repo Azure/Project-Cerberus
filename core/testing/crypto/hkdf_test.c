@@ -454,6 +454,7 @@ static void hkdf_test_static_init (CuTest *test)
 
 	CuAssertPtrNotNull (test, hkdf.test.base.extract);
 	CuAssertPtrNotNull (test, hkdf.test.base.expand);
+	CuAssertPtrNotNull (test, hkdf.test.base.update_prk);
 	CuAssertPtrNotNull (test, hkdf.test.base.clear_prk);
 
 	hkdf_testing_init_dependencies (test, &hkdf);
@@ -1306,6 +1307,278 @@ static void hkdf_test_expand_hmac_error (CuTest *test)
 	hkdf_testing_release (test, &hkdf);
 }
 
+static void hkdf_test_update_prk_sha256 (CuTest *test)
+{
+	struct hkdf_testing hkdf;
+	int status;
+
+	TEST_START;
+
+	hkdf_testing_init (test, &hkdf);
+
+	status = hkdf.test.base.extract (&hkdf.test.base, HASH_TYPE_SHA256, HKDF_TESTING_EXTRACT_IKM,
+		HKDF_TESTING_EXTRACT_IKM_LEN, HKDF_TESTING_EXTRACT_SALT, HKDF_TESTING_EXTRACT_SALT_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hkdf.test.base.update_prk (&hkdf.test.base, HKDF_TESTING_EXPAND_INFO,
+		HKDF_TESTING_EXPAND_INFO_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (HKDF_TESTING_EXPAND_OKM_SHA256, hkdf.test.state->prk,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	hkdf_testing_release (test, &hkdf);
+}
+
+static void hkdf_test_update_prk_sha256_long_ikm (CuTest *test)
+{
+	struct hkdf_testing hkdf;
+	int status;
+
+	TEST_START;
+
+	hkdf_testing_init (test, &hkdf);
+
+	status = hkdf.test.base.extract (&hkdf.test.base, HASH_TYPE_SHA256,
+		HKDF_TESTING_EXTRACT_IKM_LONG, HKDF_TESTING_EXTRACT_IKM_LONG_LEN,
+		HKDF_TESTING_EXTRACT_SALT_LONG, HKDF_TESTING_EXTRACT_SALT_LONG_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hkdf.test.base.update_prk (&hkdf.test.base, HKDF_TESTING_EXPAND_INFO_LONG,
+		HKDF_TESTING_EXPAND_INFO_LONG_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (HKDF_TESTING_EXPAND_OKM_LONG_SHA256, hkdf.test.state->prk,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	hkdf_testing_release (test, &hkdf);
+}
+
+static void hkdf_test_update_prk_sha256_no_info (CuTest *test)
+{
+	struct hkdf_testing hkdf;
+	int status;
+
+	TEST_START;
+
+	hkdf_testing_init (test, &hkdf);
+
+	status = hkdf.test.base.extract (&hkdf.test.base, HASH_TYPE_SHA256, HKDF_TESTING_EXTRACT_IKM,
+		HKDF_TESTING_EXTRACT_IKM_LEN, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hkdf.test.base.update_prk (&hkdf.test.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (HKDF_TESTING_EXPAND_OKM_NO_INFO_SHA256, hkdf.test.state->prk,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	hkdf_testing_release (test, &hkdf);
+}
+
+#ifdef HASH_ENABLE_SHA1
+static void hkdf_test_update_prk_sha1_hash_length_key (CuTest *test)
+{
+	struct hkdf_testing hkdf;
+	int status;
+
+	TEST_START;
+
+	hkdf_testing_init (test, &hkdf);
+
+	status = hkdf.test.base.extract (&hkdf.test.base, HASH_TYPE_SHA1, HKDF_TESTING_EXTRACT_IKM_SHA1,
+		HKDF_TESTING_EXTRACT_IKM_SHA1_LEN, HKDF_TESTING_EXTRACT_SALT,
+		HKDF_TESTING_EXTRACT_SALT_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hkdf.test.base.update_prk (&hkdf.test.base, HKDF_TESTING_EXPAND_INFO,
+		HKDF_TESTING_EXPAND_INFO_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (HKDF_TESTING_EXPAND_OKM_SHA1, hkdf.test.state->prk,
+		SHA1_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	hkdf_testing_release (test, &hkdf);
+}
+
+static void hkdf_test_update_prk_sha1_long_ikm (CuTest *test)
+{
+	struct hkdf_testing hkdf;
+	int status;
+
+	TEST_START;
+
+	hkdf_testing_init (test, &hkdf);
+
+	status = hkdf.test.base.extract (&hkdf.test.base, HASH_TYPE_SHA1, HKDF_TESTING_EXTRACT_IKM_LONG,
+		HKDF_TESTING_EXTRACT_IKM_LONG_LEN, HKDF_TESTING_EXTRACT_SALT_LONG,
+		HKDF_TESTING_EXTRACT_SALT_LONG_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hkdf.test.base.update_prk (&hkdf.test.base, HKDF_TESTING_EXPAND_INFO_LONG,
+		HKDF_TESTING_EXPAND_INFO_LONG_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (HKDF_TESTING_EXPAND_OKM_LONG_SHA1, hkdf.test.state->prk,
+		SHA1_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	hkdf_testing_release (test, &hkdf);
+}
+
+static void hkdf_test_update_prk_sha1_no_info (CuTest *test)
+{
+	struct hkdf_testing hkdf;
+	int status;
+
+	TEST_START;
+
+	hkdf_testing_init (test, &hkdf);
+
+	status = hkdf.test.base.extract (&hkdf.test.base, HASH_TYPE_SHA1, HKDF_TESTING_EXTRACT_IKM,
+		HKDF_TESTING_EXTRACT_IKM_LEN, HKDF_TESTING_EXTRACT_SALT, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hkdf.test.base.update_prk (&hkdf.test.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (HKDF_TESTING_EXPAND_OKM_NO_INFO_SHA1, hkdf.test.state->prk,
+		SHA1_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	hkdf_testing_release (test, &hkdf);
+}
+
+#endif
+
+static void hkdf_test_update_prk_static_init (CuTest *test)
+{
+	struct hkdf_testing hkdf = {
+		.test = hkdf_static_init (&hkdf.state, &hkdf.hash.base)
+	};
+	int status;
+
+	TEST_START;
+
+	hkdf_testing_init_static (test, &hkdf);
+
+	status = hkdf.test.base.extract (&hkdf.test.base, HASH_TYPE_SHA256, HKDF_TESTING_EXTRACT_IKM,
+		HKDF_TESTING_EXTRACT_IKM_LEN, HKDF_TESTING_EXTRACT_SALT, HKDF_TESTING_EXTRACT_SALT_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hkdf.test.base.update_prk (&hkdf.test.base, HKDF_TESTING_EXPAND_INFO,
+		HKDF_TESTING_EXPAND_INFO_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (HKDF_TESTING_EXPAND_OKM_SHA256, hkdf.test.state->prk,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	hkdf_testing_release (test, &hkdf);
+}
+
+static void hkdf_test_update_prk_null (CuTest *test)
+{
+	struct hkdf_testing hkdf;
+	int status;
+
+	TEST_START;
+
+	hkdf_testing_init (test, &hkdf);
+
+	status = hkdf.test.base.extract (&hkdf.test.base, HASH_TYPE_SHA256, HKDF_TESTING_EXTRACT_IKM,
+		HKDF_TESTING_EXTRACT_IKM_LEN, HKDF_TESTING_EXTRACT_SALT, HKDF_TESTING_EXTRACT_SALT_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hkdf.test.base.update_prk (NULL, HKDF_TESTING_EXPAND_INFO,
+		HKDF_TESTING_EXPAND_INFO_LEN);
+	CuAssertIntEquals (test, HKDF_INVALID_ARGUMENT, status);
+
+	hkdf_testing_release (test, &hkdf);
+}
+
+static void hkdf_test_update_prk_no_extract (CuTest *test)
+{
+	struct hkdf_testing hkdf;
+	int status;
+
+	TEST_START;
+
+	hkdf_testing_init (test, &hkdf);
+
+	status = hkdf.test.base.update_prk (&hkdf.test.base, HKDF_TESTING_EXPAND_INFO,
+		HKDF_TESTING_EXPAND_INFO_LEN);
+	CuAssertIntEquals (test, HKDF_NO_PRK_AVAILABLE, status);
+
+	hkdf_testing_release (test, &hkdf);
+}
+
+static void hkdf_test_update_prk_no_extract_static_init (CuTest *test)
+{
+	struct hkdf_testing hkdf = {
+		.test = hkdf_static_init (&hkdf.state, &hkdf.hash.base)
+	};
+	int status;
+
+	TEST_START;
+
+	hkdf_testing_init_static (test, &hkdf);
+
+	status = hkdf.test.base.update_prk (&hkdf.test.base, HKDF_TESTING_EXPAND_INFO,
+		HKDF_TESTING_EXPAND_INFO_LEN);
+	CuAssertIntEquals (test, HKDF_NO_PRK_AVAILABLE, status);
+
+	hkdf_testing_release (test, &hkdf);
+}
+
+static void hkdf_test_update_prk_unknown_hash (CuTest *test)
+{
+	struct hkdf_testing hkdf;
+	int status;
+
+	TEST_START;
+
+	hkdf_testing_init (test, &hkdf);
+
+	status = hkdf.test.base.extract (&hkdf.test.base, HASH_TYPE_INVALID, HKDF_TESTING_EXTRACT_IKM,
+		HKDF_TESTING_EXTRACT_IKM_LEN, HKDF_TESTING_EXTRACT_SALT, HKDF_TESTING_EXTRACT_SALT_LEN);
+	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
+
+	status = hkdf.test.base.update_prk (&hkdf.test.base, HKDF_TESTING_EXPAND_INFO,
+		HKDF_TESTING_EXPAND_INFO_LEN);
+	CuAssertIntEquals (test, HKDF_NO_PRK_AVAILABLE, status);
+
+	hkdf_testing_release (test, &hkdf);
+}
+
+static void hkdf_test_update_prk_after_extract_failure (CuTest *test)
+{
+	struct hkdf_testing hkdf;
+	int status;
+
+	TEST_START;
+
+	hkdf_testing_init_with_mock (test, &hkdf);
+
+	status = mock_expect (&hkdf.hash_mock.mock, hkdf.hash_mock.base.start_sha256, &hkdf.hash_mock,
+		HASH_ENGINE_START_SHA256_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hkdf.test.base.extract (&hkdf.test.base, HASH_TYPE_SHA256, HKDF_TESTING_EXTRACT_IKM,
+		HKDF_TESTING_EXTRACT_IKM_LEN, HKDF_TESTING_EXTRACT_SALT, HKDF_TESTING_EXTRACT_SALT_LEN);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
+
+	status = hkdf.test.base.update_prk (&hkdf.test.base, HKDF_TESTING_EXPAND_INFO,
+		HKDF_TESTING_EXPAND_INFO_LEN);
+	CuAssertIntEquals (test, HKDF_NO_PRK_AVAILABLE, status);
+
+	hkdf_testing_release (test, &hkdf);
+}
+
 static void hkdf_test_clear_prk (CuTest *test)
 {
 	struct hkdf_testing hkdf;
@@ -1444,6 +1717,20 @@ TEST (hkdf_test_expand_unknown_hash);
 TEST (hkdf_test_expand_after_extract_failure);
 TEST (hkdf_test_expand_after_extract_failure_after_extract_success);
 TEST (hkdf_test_expand_hmac_error);
+TEST (hkdf_test_update_prk_sha256);
+TEST (hkdf_test_update_prk_sha256_long_ikm);
+TEST (hkdf_test_update_prk_sha256_no_info);
+#ifdef HASH_ENABLE_SHA1
+TEST (hkdf_test_update_prk_sha1_hash_length_key);
+TEST (hkdf_test_update_prk_sha1_long_ikm);
+TEST (hkdf_test_update_prk_sha1_no_info);
+#endif
+TEST (hkdf_test_update_prk_static_init);
+TEST (hkdf_test_update_prk_null);
+TEST (hkdf_test_update_prk_no_extract);
+TEST (hkdf_test_update_prk_no_extract_static_init);
+TEST (hkdf_test_update_prk_unknown_hash);
+TEST (hkdf_test_update_prk_after_extract_failure);
 TEST (hkdf_test_clear_prk);
 TEST (hkdf_test_clear_prk_no_extract);
 TEST (hkdf_test_clear_prk_static_init);

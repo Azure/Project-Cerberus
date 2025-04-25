@@ -66,6 +66,23 @@ int hkdf_expand (const struct hkdf_interface *hkdf, const uint8_t *info, size_t 
 		key_length);
 }
 
+int hkdf_update_prk (const struct hkdf_interface *hkdf, const uint8_t *info, size_t info_length)
+{
+	int status;
+	const struct hkdf *hkdf_impl = (const struct hkdf*) hkdf;
+	uint8_t new_prk[HASH_MAX_HASH_LEN];
+
+	status = hkdf_expand (hkdf, info, info_length, new_prk, sizeof (new_prk));
+	if (status == 0) {
+		memcpy (hkdf_impl->state->prk, new_prk,
+			hash_hmac_get_hmac_length (hkdf_impl->state->hmac_type));
+	}
+
+	buffer_zeroize (new_prk, sizeof (new_prk));
+
+	return status;
+}
+
 int hkdf_clear_prk (const struct hkdf_interface *hkdf)
 {
 	const struct hkdf *hkdf_impl = (const struct hkdf*) hkdf;
@@ -98,6 +115,7 @@ int hkdf_init (struct hkdf *hkdf, struct hkdf_state *state, const struct hash_en
 
 	hkdf->base.extract = hkdf_extract;
 	hkdf->base.expand = hkdf_expand;
+	hkdf->base.update_prk = hkdf_update_prk;
 	hkdf->base.clear_prk = hkdf_clear_prk;
 
 	hkdf->state = state;

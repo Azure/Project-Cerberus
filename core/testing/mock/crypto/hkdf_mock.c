@@ -34,6 +34,19 @@ int hkdf_mock_expand (const struct hkdf_interface *hkdf, const uint8_t *info, si
 		MOCK_ARG_CALL (info_length), MOCK_ARG_PTR_CALL (key_out), MOCK_ARG_CALL (key_length));
 }
 
+int hkdf_mock_update_prk (const struct hkdf_interface *hkdf, const uint8_t *info,
+	size_t info_length)
+{
+	struct hkdf_mock *mock = (struct hkdf_mock*) hkdf;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, hkdf_mock_update_prk, hkdf, MOCK_ARG_PTR_CALL (info),
+		MOCK_ARG_CALL (info_length));
+}
+
 int hkdf_mock_clear_prk (const struct hkdf_interface *hkdf)
 {
 	struct hkdf_mock *mock = (struct hkdf_mock*) hkdf;
@@ -53,6 +66,9 @@ static int hkdf_mock_func_arg_count (void *func)
 	else if (func == hkdf_mock_expand) {
 		return 4;
 	}
+	else if (func == hkdf_mock_update_prk) {
+		return 2;
+	}
 	else {
 		return 0;
 	}
@@ -65,6 +81,9 @@ static const char* hkdf_mock_func_name_map (void *func)
 	}
 	else if (func == hkdf_mock_expand) {
 		return "expand";
+	}
+	else if (func == hkdf_mock_update_prk) {
+		return "update_prk";
 	}
 	else if (func == hkdf_mock_clear_prk) {
 		return "clear_prk";
@@ -109,6 +128,15 @@ static const char* hkdf_mock_arg_name_map (void *func, int arg)
 				return "key_length";
 		}
 	}
+	else if (func == hkdf_mock_update_prk) {
+		switch (arg) {
+			case 0:
+				return "info";
+
+			case 1:
+				return "info_length";
+		}
+	}
 
 	return "unknown";
 }
@@ -139,6 +167,7 @@ int hkdf_mock_init (struct hkdf_mock *mock)
 
 	mock->base.extract = hkdf_mock_extract;
 	mock->base.expand = hkdf_mock_expand;
+	mock->base.update_prk = hkdf_mock_update_prk;
 	mock->base.clear_prk = hkdf_mock_clear_prk;
 
 	mock->mock.func_arg_count = hkdf_mock_func_arg_count;
