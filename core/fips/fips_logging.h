@@ -31,6 +31,7 @@ enum {
 	FIPS_LOGGING_ECDSA_SIGN_KAT_FAILED,				/**< Failed during execution of an ECDSA sign KAT. */
 	FIPS_LOGGING_ECDSA_VERIFY_KAT_FAILED,			/**< Failed during execution of an ECDSA verify KAT. */
 	FIPS_LOGGING_ECDH_KAT_FAILED,					/**< Failed during execution of an ECDH KAT. */
+	FIPS_LOGGING_SELF_TEST_NOT_EXECUTED,			/**< A self-test could not be executed. */
 };
 
 
