@@ -6,6 +6,8 @@
 
 #include "platform_config.h"
 #include "spdm_commands.h"
+#include "crypto/hkdf.h"
+
 /* TODO:  This fila has many dependencies but is missing headers for them. */
 
 
@@ -181,16 +183,13 @@ struct spdm_secured_message_cipher_header {
  */
 struct spdm_secure_session_master_secrets {
 	uint8_t dhe_secret[SPDM_MAX_DHE_SHARED_SECRET_SIZE];	/**< DHE secret. */
-	uint8_t handshake_secret[HASH_MAX_HASH_LEN];			/**< Handshake secret. */
-	uint8_t master_secret[HASH_MAX_HASH_LEN];				/**< Master secret. */
+	uint8_t master_secret_salt1[HASH_MAX_HASH_LEN];			/**< Salt for generating master secret */
 };
 
 /**
  * SPDM secure session handshake secrets.
  */
 struct spdm_secure_session_handshake_secrets {
-	uint8_t request_handshake_secret[HASH_MAX_HASH_LEN];				/**< Requester handshake secret. */
-	uint8_t response_handshake_secret[HASH_MAX_HASH_LEN];				/**< Responder handshake secret. */
 	uint8_t request_finished_key[HASH_MAX_HASH_LEN];					/**< Requester finished key. */
 	uint8_t response_finished_key[HASH_MAX_HASH_LEN];					/**< Responder finished key. */
 	uint8_t request_handshake_encryption_key[SPDM_MAX_AEAD_KEY_SIZE];	/**< Requester handshake encryption key. */
@@ -205,8 +204,6 @@ struct spdm_secure_session_handshake_secrets {
  * SPDM session data secrets.
  */
 struct spdm_secure_session_data_secrets {
-	uint8_t request_data_secret[HASH_MAX_HASH_LEN];					/**< Requester data secret. */
-	uint8_t response_data_secret[HASH_MAX_HASH_LEN];				/**< Responder data secret. */
 	uint8_t request_data_encryption_key[SPDM_MAX_AEAD_KEY_SIZE];	/**< Requester data encryption key. */
 	uint8_t request_data_salt[SPDM_MAX_AEAD_IV_SIZE];				/**< Requester data salt. */
 	uint64_t request_data_sequence_number;							/**< Requester data sequence number. */
@@ -243,7 +240,6 @@ struct spdm_secure_session {
 	struct spdm_secure_session_data_secrets data_secret_backup;			/**< Data secret backup. */
 	bool requester_backup_valid;										/**< Requester backup is valid. */
 	bool responder_backup_valid;										/**< Responder backup is valid. */
-	uint8_t export_master_secret[HASH_MAX_HASH_LEN];					/**< Export master secret. */
 	bool is_requester;													/**< Requester or responder role. */
 	struct spdm_device_capability peer_capabilities;					/**< Peer capabilities. */
 };
@@ -404,6 +400,7 @@ struct spdm_secure_session_manager {
 	const struct spdm_transcript_manager *transcript_manager;	/**< Transcript Manager. */
 	struct spdm_secure_session_manager_state *state;			/**< Session Manager State. */
 	uint64_t max_spdm_session_sequence_number;					/**< Max SPDM session sequence number. */
+	const struct hkdf_interface *hkdf;							/**< HKDF implementation */
 };
 
 
@@ -412,7 +409,8 @@ int spdm_secure_session_manager_init (struct spdm_secure_session_manager *sessio
 	const struct spdm_device_capability *local_capabilities,
 	const struct spdm_device_algorithms *local_algorithms, const struct aes_gcm_engine *aes_engine,
 	const struct hash_engine *hash_engine, const struct rng_engine *rng_engine,
-	const struct ecc_engine *ecc_engine, const struct spdm_transcript_manager *transcript_manager);
+	const struct ecc_engine *ecc_engine, const struct spdm_transcript_manager *transcript_manager,
+	const struct hkdf_interface *hkdf);
 
 void spdm_secure_session_manager_release (
 	const struct spdm_secure_session_manager *session_manager);

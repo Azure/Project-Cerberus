@@ -136,22 +136,10 @@ void spdm_secure_session_manager_release_session (
  */
 static void spdm_secure_session_clear_handshake_secret (struct spdm_secure_session *session)
 {
-	memset (session->master_secret.handshake_secret, 0,
-		sizeof (session->master_secret.handshake_secret));
 	memset (&session->handshake_secret, 0, sizeof (struct spdm_secure_session_handshake_secrets));
 
 	session->requester_backup_valid = false;
 	session->responder_backup_valid = false;
-}
-
-/**
- * Clear the master secrets.
- *
- * @param session SPDM secure session.
- */
-static void spdm_secure_session_clear_master_secret (struct spdm_secure_session *session)
-{
-	memset (session->master_secret.master_secret, 0, sizeof (session->master_secret.master_secret));
 }
 
 void spdm_secure_session_manager_set_session_state (
@@ -176,7 +164,6 @@ void spdm_secure_session_manager_set_session_state (
 		/* Session handshake keys should be zeroized after the handshake phase. */
 		if (session_state == SPDM_SESSION_STATE_ESTABLISHED) {
 			spdm_secure_session_clear_handshake_secret (session);
-			spdm_secure_session_clear_master_secret (session);
 		}
 	}
 }
@@ -368,17 +355,14 @@ static void spdm_secure_session_manager_bin_concat (struct spdm_version_number v
 /**
  * Generate the SPDM finished key for a session.
  *
- * @param hash_engine Hash engine instance to use.
+ * @param hkdf HKDF interface to be used.
  * @param session SPDM session.
- * @param hmac_hash_type HMAC hash type.
- * @param handshake_secret Handshake secret.
  * @param finished_key Buffer to store the finished key.
  *
  * @return 0 if the SPDM finished key for a session is generated, error code otherwise.
  */
-static int spdm_secure_session_manager_generate_finished_key (const struct hash_engine *hash_engine,
-	struct spdm_secure_session *session, enum hmac_hash hmac_hash_type,
-	const uint8_t *handshake_secret, uint8_t *finished_key)
+static int spdm_secure_session_manager_generate_finished_key (const struct hkdf_interface *hkdf,
+	struct spdm_secure_session *session, uint8_t *finished_key)
 {
 	int status;
 	size_t hash_size;
@@ -392,8 +376,7 @@ static int spdm_secure_session_manager_generate_finished_key (const struct hash_
 		sizeof (SPDM_BIN_STR_7_LABEL) - 1, NULL, (uint16_t) hash_size, hash_size, bin_str7,
 		&bin_str7_size);
 
-	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, handshake_secret, hash_size, bin_str7,
-		bin_str7_size, finished_key, hash_size);
+	status = hkdf->expand (hkdf, bin_str7, bin_str7_size, finished_key, hash_size);
 	if (status != 0) {
 		goto exit;
 	}
@@ -406,20 +389,19 @@ exit:
 /**
  * Generate the SPDM AEAD key and IV for a session.
  *
- * @param hash_engine Hash engine instance to use.
- * @param spdm_secured_message_context SPDM secured message context.
+ * @param hkdf HKDF interface
+ * @param session SPDM secured session.
  * @param hmac_hash_type HMAC hash type.
- * @param major_secret Major secret.
  * @param key Buffer to store the AEAD key.
  * @param iv Buffer to store the AEAD IV.
  *
  * @return 0 if the SPDM AEAD key and IV are generated, error code otherwise.
  */
 static int spdm_secure_session_manager_generate_aead_key_and_iv (
-	const struct hash_engine *hash_engine, struct spdm_secure_session *session,
-	enum hmac_hash hmac_hash_type, const uint8_t *major_secret, uint8_t *key, uint8_t *iv)
+	const struct hkdf_interface *hkdf, struct spdm_secure_session *session,	uint8_t *key,
+	uint8_t *iv)
 {
-	bool status;
+	int status;
 	size_t hash_size;
 	size_t key_length;
 	size_t iv_length;
@@ -438,8 +420,7 @@ static int spdm_secure_session_manager_generate_aead_key_and_iv (
 		sizeof (SPDM_BIN_STR_5_LABEL) - 1, NULL, (uint16_t) key_length, hash_size, bin_str5,
 		&bin_str5_size);
 
-	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, major_secret, hash_size, bin_str5,
-		bin_str5_size, key, key_length);
+	status = hkdf->expand (hkdf, bin_str5, bin_str5_size, key, key_length);
 	if (status != 0) {
 		goto exit;
 	}
@@ -450,8 +431,7 @@ static int spdm_secure_session_manager_generate_aead_key_and_iv (
 		sizeof (SPDM_BIN_STR_6_LABEL) - 1, NULL, (uint16_t) iv_length, hash_size, bin_str6,
 		&bin_str6_size);
 
-	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, major_secret, hash_size, bin_str6,
-		bin_str6_size, iv, iv_length);
+	status = hkdf->expand (hkdf, bin_str6, bin_str6_size, iv, iv_length);
 	if (status != 0) {
 		goto exit;
 	}
@@ -466,22 +446,21 @@ int spdm_secure_session_manager_generate_session_handshake_keys (
 {
 	int status;
 	const struct spdm_transcript_manager *transcript_manager;
-	const struct hash_engine *hash_engine;
 	uint8_t th1_hash[HASH_MAX_HASH_LEN];
 	size_t hash_size;
+	uint8_t bin_str0[128];
+	size_t bin_str0_size;
 	uint8_t bin_str1[128];
 	size_t bin_str1_size;
 	uint8_t bin_str2[128];
 	size_t bin_str2_size;
-	uint8_t salt0[HASH_MAX_HASH_LEN];
-	enum hmac_hash hmac_hash_type;
+	enum hash_type hash_type;
 
 	if ((session_manager == NULL) || (session == NULL)) {
-		status = SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
-		goto exit;
+		return SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
 	}
+
 	transcript_manager = session_manager->transcript_manager;
-	hash_engine = session_manager->hash_engine;
 	hash_size = session->hash_size;
 
 	/* Step 1: Get the TH hash; do not complete the hash context as it is needed later. */
@@ -492,14 +471,24 @@ int spdm_secure_session_manager_generate_session_handshake_keys (
 	}
 
 	/* Step 2: Use the TH hash to generate the session handshake key. */
-	hmac_hash_type = (enum hmac_hash) spdm_get_hash_type (session->base_hash_algo);
+	hash_type = spdm_get_hash_type (session->base_hash_algo);
 
-	memset (salt0, 0, sizeof (salt0));
+	/* Generate HKDF PRK of salt0 with DHE shared secret. */
+	status = session_manager->hkdf->extract (session_manager->hkdf, hash_type,
+		session->master_secret.dhe_secret, hash_size, NULL, 0);
 
-	/* Generate HMAC of salt0 with DHE shared secret. */
-	status = hash_generate_hmac (hash_engine, salt0, session->dhe_key_size,
-		session->master_secret.dhe_secret, hash_size, hmac_hash_type,
-		session->master_secret.handshake_secret, hash_size);
+	if (status != 0) {
+		goto exit;
+	}
+
+	/* Generate Salt1 for future master secret generation */
+	bin_str0_size = sizeof (bin_str0);
+	spdm_secure_session_manager_bin_concat (session->version, SPDM_BIN_STR_0_LABEL,
+		sizeof (SPDM_BIN_STR_0_LABEL) - 1, NULL, (uint16_t) hash_size, hash_size, bin_str0,
+		&bin_str0_size);
+
+	status = session_manager->hkdf->expand (session_manager->hkdf, bin_str0, bin_str0_size,
+		session->master_secret.master_secret_salt1, hash_size);
 	if (status != 0) {
 		goto exit;
 	}
@@ -510,9 +499,31 @@ int spdm_secure_session_manager_generate_session_handshake_keys (
 		sizeof (SPDM_BIN_STR_1_LABEL) - 1, th1_hash, (uint16_t) hash_size, hash_size, bin_str1,
 		&bin_str1_size);
 
-	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, session->master_secret.handshake_secret,
-		hash_size, bin_str1, bin_str1_size, session->handshake_secret.request_handshake_secret,
-		hash_size);
+	/* Generate request handshake secret and set it as PRK */
+	status = session_manager->hkdf->update_prk (session_manager->hkdf, bin_str1, bin_str1_size);
+	if (status != 0) {
+		goto exit;
+	}
+
+	/* Generate the requester finished key. */
+	status = spdm_secure_session_manager_generate_finished_key (session_manager->hkdf, session,
+		session->handshake_secret.request_finished_key);
+	if (status != 0) {
+		goto exit;
+	}
+
+	/* Generate the requester AEAD key and IV. */
+	status = spdm_secure_session_manager_generate_aead_key_and_iv (session_manager->hkdf, session,
+		session->handshake_secret.request_handshake_encryption_key,
+		session->handshake_secret.request_handshake_salt);
+	if (status != 0) {
+		goto exit;
+	}
+	session->handshake_secret.request_handshake_sequence_number = 0;
+
+	/* Generate HKDF PRK of salt0 with DHE shared secret. */
+	status = session_manager->hkdf->extract (session_manager->hkdf, hash_type,
+		session->master_secret.dhe_secret, hash_size, NULL, 0);
 	if (status != 0) {
 		goto exit;
 	}
@@ -523,42 +534,20 @@ int spdm_secure_session_manager_generate_session_handshake_keys (
 		sizeof (SPDM_BIN_STR_2_LABEL) - 1, th1_hash, (uint16_t) hash_size, hash_size, bin_str2,
 		&bin_str2_size);
 
-	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, session->master_secret.handshake_secret,
-		hash_size, bin_str2, bin_str2_size, session->handshake_secret.response_handshake_secret,
-		hash_size);
-	if (status != 0) {
-		goto exit;
-	}
-
-	/* Generate the requester finished key. */
-	status = spdm_secure_session_manager_generate_finished_key (hash_engine, session,
-		hmac_hash_type, session->handshake_secret.request_handshake_secret,
-		session->handshake_secret.request_finished_key);
+	status = session_manager->hkdf->update_prk (session_manager->hkdf, bin_str2, bin_str2_size);
 	if (status != 0) {
 		goto exit;
 	}
 
 	/* Generate the responder finished key. */
-	status = spdm_secure_session_manager_generate_finished_key (hash_engine, session,
-		hmac_hash_type, session->handshake_secret.response_handshake_secret,
+	status = spdm_secure_session_manager_generate_finished_key (session_manager->hkdf, session,
 		session->handshake_secret.response_finished_key);
 	if (status != 0) {
 		goto exit;
 	}
 
-	/* Generate the requester AEAD key and IV. */
-	status = spdm_secure_session_manager_generate_aead_key_and_iv (hash_engine, session,
-		hmac_hash_type, session->handshake_secret.request_handshake_secret,
-		session->handshake_secret.request_handshake_encryption_key,
-		session->handshake_secret.request_handshake_salt);
-	if (status != 0) {
-		goto exit;
-	}
-	session->handshake_secret.request_handshake_sequence_number = 0;
-
 	/* Generate the responder AEAD key and IV. */
-	status = spdm_secure_session_manager_generate_aead_key_and_iv (hash_engine, session,
-		hmac_hash_type, session->handshake_secret.response_handshake_secret,
+	status = spdm_secure_session_manager_generate_aead_key_and_iv (session_manager->hkdf, session,
 		session->handshake_secret.response_handshake_encryption_key,
 		session->handshake_secret.response_handshake_salt);
 	if (status != 0) {
@@ -567,9 +556,10 @@ int spdm_secure_session_manager_generate_session_handshake_keys (
 	session->handshake_secret.response_handshake_sequence_number = 0;
 
 	/* Clear the DHE shared secret. */
-	memset (session->master_secret.dhe_secret, 0, SPDM_MAX_DHE_SHARED_SECRET_SIZE);
+	buffer_zeroize (session->master_secret.dhe_secret, SPDM_MAX_DHE_SHARED_SECRET_SIZE);
 
 exit:
+	session_manager->hkdf->clear_prk (session_manager->hkdf);
 
 	return status;
 }
@@ -597,18 +587,11 @@ int spdm_secure_session_manager_generate_session_data_keys (
 {
 	int status;
 	size_t hash_size;
-	uint8_t salt1[HASH_MAX_HASH_LEN];
-	uint8_t bin_str0[128];
-	size_t bin_str0_size;
 	uint8_t bin_str3[128];
 	size_t bin_str3_size;
 	uint8_t bin_str4[128];
 	size_t bin_str4_size;
-	uint8_t bin_str8[128];
-	size_t bin_str8_size;
-	uint8_t zero_filled_buffer[HASH_MAX_HASH_LEN];
-	enum hmac_hash hmac_hash_type;
-	const struct hash_engine *hash_engine;
+	enum hash_type hash_type;
 	const struct spdm_transcript_manager *transcript_manager;
 	uint8_t th2_hash[HASH_MAX_HASH_LEN];
 
@@ -617,27 +600,12 @@ int spdm_secure_session_manager_generate_session_data_keys (
 	}
 
 	hash_size = session->hash_size;
-	hmac_hash_type = (enum hmac_hash) spdm_get_hash_type (session->base_hash_algo);
-	hash_engine = session_manager->hash_engine;
+	hash_type = spdm_get_hash_type (session->base_hash_algo);
 	transcript_manager = session_manager->transcript_manager;
 
-	/* Derive salt1 key. */
-	bin_str0_size = sizeof (bin_str0);
-	spdm_secure_session_manager_bin_concat (session->version, SPDM_BIN_STR_0_LABEL,
-		sizeof (SPDM_BIN_STR_0_LABEL) - 1, NULL, (uint16_t) hash_size, hash_size, bin_str0,
-		&bin_str0_size);
-
-	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, session->master_secret.handshake_secret,
-		hash_size, bin_str0, bin_str0_size, salt1, hash_size);
-	if (status != 0) {
-		goto exit;
-	}
-
 	/* Generate the master secret. */
-	memset (zero_filled_buffer, 0, sizeof (zero_filled_buffer));
-
-	status = hash_generate_hmac (hash_engine, salt1, hash_size, zero_filled_buffer, hash_size,
-		hmac_hash_type, session->master_secret.master_secret, hash_size);
+	status = session_manager->hkdf->extract (session_manager->hkdf, hash_type,
+		session->master_secret.master_secret_salt1, hash_size, NULL, 0);
 	if (status != 0) {
 		goto exit;
 	}
@@ -655,8 +623,22 @@ int spdm_secure_session_manager_generate_session_data_keys (
 		sizeof (SPDM_BIN_STR_3_LABEL) - 1, th2_hash, (uint16_t) hash_size, hash_size, bin_str3,
 		&bin_str3_size);
 
-	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, session->master_secret.master_secret,
-		hash_size, bin_str3, bin_str3_size, session->data_secret.request_data_secret, hash_size);
+	status = session_manager->hkdf->update_prk (session_manager->hkdf, bin_str3, bin_str3_size);
+	if (status != 0) {
+		goto exit;
+	}
+
+	/* Generate the requester data encryption key and IV. */
+	status = spdm_secure_session_manager_generate_aead_key_and_iv (session_manager->hkdf, session,
+		session->data_secret.request_data_encryption_key, session->data_secret.request_data_salt);
+	if (status != 0) {
+		goto exit;
+	}
+	session->data_secret.request_data_sequence_number = 0;
+
+	/* Generate the master secret for respond key generation. */
+	status = session_manager->hkdf->extract (session_manager->hkdf, hash_type,
+		session->master_secret.master_secret_salt1, hash_size, NULL, 0);
 	if (status != 0) {
 		goto exit;
 	}
@@ -667,45 +649,24 @@ int spdm_secure_session_manager_generate_session_data_keys (
 		sizeof (SPDM_BIN_STR_4_LABEL) - 1, th2_hash, (uint16_t) hash_size, hash_size, bin_str4,
 		&bin_str4_size);
 
-	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, session->master_secret.master_secret,
-		hash_size, bin_str4, bin_str4_size, session->data_secret.response_data_secret, hash_size);
+	status = session_manager->hkdf->update_prk (session_manager->hkdf, bin_str4, bin_str4_size);
 	if (status != 0) {
 		goto exit;
 	}
-
-	/* Generate the export master secret. */
-	bin_str8_size = sizeof (bin_str8);
-	spdm_secure_session_manager_bin_concat (session->version, SPDM_BIN_STR_8_LABEL,
-		sizeof (SPDM_BIN_STR_8_LABEL) - 1, th2_hash, (uint16_t) hash_size, hash_size, bin_str8,
-		&bin_str8_size);
-
-	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, session->master_secret.master_secret,
-		hash_size, bin_str8, bin_str8_size, session->export_master_secret, hash_size);
-	if (status != 0) {
-		goto exit;
-	}
-
-	/* Generate the requester data encryption key and IV. */
-	status = spdm_secure_session_manager_generate_aead_key_and_iv (hash_engine, session,
-		hmac_hash_type, session->data_secret.request_data_secret,
-		session->data_secret.request_data_encryption_key, session->data_secret.request_data_salt);
-	if (status != 0) {
-		goto exit;
-	}
-	session->data_secret.request_data_sequence_number = 0;
 
 	/* Generate the responder data encryption key and IV. */
-	status = spdm_secure_session_manager_generate_aead_key_and_iv (hash_engine, session,
-		hmac_hash_type, session->data_secret.response_data_secret,
+	status = spdm_secure_session_manager_generate_aead_key_and_iv (session_manager->hkdf, session,
 		session->data_secret.response_data_encryption_key, session->data_secret.response_data_salt);
 	if (status != 0) {
 		goto exit;
 	}
 	session->data_secret.response_data_sequence_number = 0;
 
+	/* Don't generate export master secret. We are keeping Salt1 for generating mster secret,
+	 * so we could use it later to regenearate export secret */
+
 exit:
-	/* Zeroize salt1 for security */
-	memset (salt1, 0, hash_size);
+	session_manager->hkdf->clear_prk (session_manager->hkdf);
 
 	return status;
 }
@@ -1155,6 +1116,7 @@ exit:
  * @param rng RNG engine.
  * @param ecc ECC engine.
  * @param transcript_manager Transcript Manager.
+ * @param hkdf HKDF implementation
  *
  * @return 0 if the session manager is initialized successfully, error code otherwise.
  */
@@ -1163,7 +1125,8 @@ int spdm_secure_session_manager_init (struct spdm_secure_session_manager *sessio
 	const struct spdm_device_capability *local_capabilities,
 	const struct spdm_device_algorithms *local_algorithms, const struct aes_gcm_engine *aes_engine,
 	const struct hash_engine *hash_engine, const struct rng_engine *rng_engine,
-	const struct ecc_engine *ecc_engine, const struct spdm_transcript_manager *transcript_manager)
+	const struct ecc_engine *ecc_engine, const struct spdm_transcript_manager *transcript_manager,
+	const struct hkdf_interface *hkdf)
 {
 	int status;
 
@@ -1183,6 +1146,7 @@ int spdm_secure_session_manager_init (struct spdm_secure_session_manager *sessio
 	session_manager->ecc_engine = ecc_engine;
 	session_manager->transcript_manager = transcript_manager;
 	session_manager->max_spdm_session_sequence_number = SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER;
+	session_manager->hkdf = hkdf;
 
 	session_manager->create_session = spdm_secure_session_manager_create_session;
 	session_manager->release_session = spdm_secure_session_manager_release_session;
@@ -1238,7 +1202,8 @@ int spdm_secure_session_manager_init_state (
 		(session_manager->aes_engine == NULL) || (session_manager->hash_engine == NULL) ||
 		(session_manager->rng_engine == NULL) || (session_manager->ecc_engine == NULL) ||
 		(session_manager->transcript_manager == NULL) ||
-		(session_manager->max_spdm_session_sequence_number == 0)) {
+		(session_manager->max_spdm_session_sequence_number == 0) ||
+		(session_manager->hkdf == NULL)) {
 		status = SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
 		goto exit;
 	}

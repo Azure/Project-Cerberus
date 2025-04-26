@@ -15,6 +15,7 @@
 #include "testing/mock/crypto/aes_gcm_mock.h"
 #include "testing/mock/crypto/ecc_mock.h"
 #include "testing/mock/crypto/hash_mock.h"
+#include "testing/mock/crypto/hkdf_mock.h"
 #include "testing/mock/crypto/rng_mock.h"
 #include "testing/mock/spdm/spdm_transcript_manager_mock.h"
 
@@ -35,6 +36,7 @@ struct spdm_secure_session_manager_testing {
 	struct ecc_engine_mock ecc_mock;									/**< Mock ECC engine. */
 	struct rng_engine_mock rng_mock;									/**< Mock RNG engine. */
 	struct aes_gcm_engine_mock aes_mock;								/**< Mock AES engine. */
+	struct hkdf_mock hkdf_mock;											/**< Mock for HKDF implementation */
 };
 
 
@@ -146,6 +148,9 @@ static void spdm_secure_session_manager_testing_init_dependencies (CuTest *test,
 
 	status = aes_gcm_mock_init (&testing->aes_mock);
 	CuAssertIntEquals (test, 0, status);
+
+	status = hkdf_mock_init (&testing->hkdf_mock);
+	CuAssertIntEquals (test, 0, status);
 }
 
 /**
@@ -173,6 +178,9 @@ static void spdm_secure_session_manager_testing_release_dependencies (CuTest *te
 
 	status = aes_gcm_mock_validate_and_release (&testing->aes_mock);
 	CuAssertIntEquals (test, 0, status);
+
+	status = hkdf_mock_validate_and_release (&testing->hkdf_mock);
+	CuAssertIntEquals (test, 0, status);
 }
 
 /**
@@ -192,7 +200,7 @@ static void spdm_secure_session_manager_testing_init (CuTest *test,
 		&testing->local_capabilities,
 		(const struct spdm_device_algorithms*) &testing->local_algorithms, &testing->aes_mock.base,
 		&testing->hash_engine_mock.base, &testing->rng_mock.base, &testing->ecc_mock.base,
-		&testing->transcript_manager_mock.base);
+		&testing->transcript_manager_mock.base, &testing->hkdf_mock.base);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -227,7 +235,7 @@ static void spdm_secure_session_manager_test_static_init (CuTest *test)
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
 
 	status = spdm_secure_session_manager_init_state (&session_manager);
 	CuAssertIntEquals (test, 0, status);
@@ -266,7 +274,7 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (NULL, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
 
 	status = spdm_secure_session_manager_init_state (&session_manager);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
@@ -276,7 +284,7 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, NULL,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
 
 	status = spdm_secure_session_manager_init_state (&session_manager2);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
@@ -285,7 +293,7 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 	const struct spdm_secure_session_manager session_manager3 =
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities, NULL,
 		&testing.aes_mock.base, &testing.hash_engine_mock.base, &testing.rng_mock.base,
-		&testing.ecc_mock.base, &testing.transcript_manager_mock.base);
+		&testing.ecc_mock.base, &testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
 
 	status = spdm_secure_session_manager_init_state (&session_manager3);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
@@ -295,7 +303,7 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, NULL,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
 
 	status = spdm_secure_session_manager_init_state (&session_manager4);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
@@ -304,8 +312,8 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 	const struct spdm_secure_session_manager session_manager5 =
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
-		NULL, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base);
+		NULL, &testing.rng_mock.base, &testing.ecc_mock.base, &testing.transcript_manager_mock.base,
+		&testing.hkdf_mock.base);
 
 	status = spdm_secure_session_manager_init_state (&session_manager5);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
@@ -315,7 +323,7 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
 
 	status = spdm_secure_session_manager_init_state (&session_manager6);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
@@ -325,7 +333,7 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, NULL,
-		&testing.transcript_manager_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
 
 	status = spdm_secure_session_manager_init_state (&session_manager7);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
@@ -334,7 +342,8 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 	const struct spdm_secure_session_manager session_manager8 =
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
-		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,	NULL);
+		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,	NULL,
+		&testing.hkdf_mock.base);
 
 	status = spdm_secure_session_manager_init_state (&session_manager8);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
@@ -343,11 +352,21 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
 
 	session_manager9.max_spdm_session_sequence_number = 0;
 
 	status = spdm_secure_session_manager_init_state (&session_manager9);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
+
+	/* hkdf = NULL */
+	const struct spdm_secure_session_manager session_manager10 =
+		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
+		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
+		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
+		&testing.transcript_manager_mock.base, NULL);
+
+	status = spdm_secure_session_manager_init_state (&session_manager10);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	spdm_secure_session_manager_testing_release_dependencies (test, &testing);
@@ -366,7 +385,7 @@ static void spdm_secure_session_manager_test_init (CuTest *test)
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, testing.session_manager.create_session);
 	CuAssertPtrNotNull (test, testing.session_manager.release_session);
@@ -396,7 +415,7 @@ static void spdm_secure_session_manager_test_init_invalid_params (CuTest *test)
 	status = spdm_secure_session_manager_init (NULL, &testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* state = NULL */
@@ -404,20 +423,21 @@ static void spdm_secure_session_manager_test_init_invalid_params (CuTest *test)
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* local_capabilities = NULL */
 	status = spdm_secure_session_manager_init (&testing.session_manager, &testing.state, NULL,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* local_algorithms = NULL */
 	status = spdm_secure_session_manager_init (&testing.session_manager, &testing.state,
 		&testing.local_capabilities, NULL, &testing.aes_mock.base, &testing.hash_engine_mock.base,
-		NULL, &testing.ecc_mock.base, &testing.transcript_manager_mock.base);
+		NULL, &testing.ecc_mock.base, &testing.transcript_manager_mock.base,
+		&testing.hkdf_mock.base);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* aes_engine = NULL */
@@ -425,28 +445,39 @@ static void spdm_secure_session_manager_test_init_invalid_params (CuTest *test)
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, NULL,
 		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* hash_engine = NULL */
 	status = spdm_secure_session_manager_init (&testing.session_manager, &testing.state,
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
-		NULL, NULL, &testing.ecc_mock.base, &testing.transcript_manager_mock.base);
+		NULL, NULL, &testing.ecc_mock.base, &testing.transcript_manager_mock.base,
+		&testing.hkdf_mock.base);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* ecc_engine = NULL */
 	status = spdm_secure_session_manager_init (&testing.session_manager, &testing.state,
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
-		&testing.hash_engine_mock.base, NULL, NULL, &testing.transcript_manager_mock.base);
+		&testing.hash_engine_mock.base, NULL, NULL, &testing.transcript_manager_mock.base,
+		&testing.hkdf_mock.base);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* transcript_manager = NULL */
 	status = spdm_secure_session_manager_init (&testing.session_manager, &testing.state,
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
-		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base, NULL);
+		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base, NULL,
+		&testing.hkdf_mock.base);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
+
+	/* hkdf = NULL */
+	status = spdm_secure_session_manager_init (&testing.session_manager, &testing.state,
+		&testing.local_capabilities,
+		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
+		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base,
+		&testing.transcript_manager_mock.base, NULL);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	spdm_secure_session_manager_testing_release_dependencies (test, &testing);
@@ -1006,7 +1037,7 @@ static void spdm_secure_session_manager_test_generate_shared_secret (CuTest *tes
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &aes_engine_real.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base,	&ecc_engine_real.base,
-		&testing.transcript_manager_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Generate a random key pair. */
@@ -1406,6 +1437,9 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_get
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
 
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session->hash_size = SHA384_HASH_LENGTH;
@@ -1417,8 +1451,7 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_get
 	spdm_secure_session_manager_testing_release (test, &testing);
 }
 
-static void spdm_secure_session_manager_test_generate_session_handshake_keys_hash_generate_hmac_fail
-	(CuTest *test)
+static void spdm_secure_session_manager_test_generate_session_handshake_keys (CuTest *test)
 {
 	int status;
 	struct spdm_secure_session_manager_testing testing;
@@ -1446,6 +1479,128 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_has
 		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
 		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
 		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate handshake secret
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.dhe_secret), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate master secret Salt1
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate request handshake PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// request finished key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_finished_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// request encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_handshake_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// request encryption IV
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_handshake_salt),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate handshake secret again
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.dhe_secret), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate response handshake PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// response finished key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.response_finished_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// response encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.response_handshake_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// response encryption IV
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.response_handshake_salt),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->dhe_key_size = SHA384_HASH_LENGTH;
+	session->aead_key_size = SHA384_HASH_LENGTH;
+	session->aead_iv_size = SHA384_HASH_LENGTH;
+
+	status = session_manager->generate_session_handshake_keys (session_manager, session);
+	CuAssertIntEquals (test, 0, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_extract_fail (
+	CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, HASH_ENGINE_UNKNOWN_HASH, MOCK_ARG (HASH_TYPE_INVALID),
+		MOCK_ARG_PTR (session->master_secret.dhe_secret), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
@@ -1463,7 +1618,8 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_has
 	spdm_secure_session_manager_testing_release (test, &testing);
 }
 
-static void spdm_secure_session_manager_test_generate_session_data_key (CuTest *test)
+static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_extract2_fail (
+	CuTest *test)
 {
 	int status;
 	struct spdm_secure_session_manager_testing testing;
@@ -1471,7 +1627,6 @@ static void spdm_secure_session_manager_test_generate_session_data_key (CuTest *
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
-	uint8_t idx;
 
 	TEST_START;
 
@@ -1488,71 +1643,52 @@ static void spdm_secure_session_manager_test_generate_session_data_key (CuTest *
 		&connection_info);
 	CuAssertPtrNotNull (test, session);
 
-	/* KDF */
-	status |= mock_expect (&testing.hash_engine_mock.mock,
-		testing.hash_engine_mock.base.start_sha384, &testing.hash_engine_mock.base, 0);
-
-	status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.update,
-		&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-
-	status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.update,
-		&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-
-	status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.update,
-		&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-
-	status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.finish,
-		&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-
-	/* HMAC Rounds (3). */
-	for (idx = 0; idx < 3; idx++) {
-		status |= mock_expect (&testing.hash_engine_mock.mock,
-			testing.hash_engine_mock.base.start_sha384, &testing.hash_engine_mock.base, 0);
-
-		status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.update,
-			&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-
-		status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.update,
-			&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-
-		status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.finish,
-			&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	}
-
 	status = mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
 		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
 		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
-	/* KDF. */
-	for (idx = 0; idx < 3; idx++) {
-		status |= mock_expect (&testing.hash_engine_mock.mock,
-			testing.hash_engine_mock.base.start_sha384, &testing.hash_engine_mock.base, 0);
+	// generate handshake secret
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.dhe_secret), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
-		status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.update,
-			&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	// generate master secret Salt1
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH));
 
-		status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.update,
-			&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	// generate request handshake PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
 
-		status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.update,
-			&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	// request finished key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_finished_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
 
-		status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.finish,
-			&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	// request encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_handshake_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
 
-		status |= mock_expect (&testing.hash_engine_mock.mock,
-			testing.hash_engine_mock.base.start_sha384, &testing.hash_engine_mock.base, 0);
+	// request encryption IV
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_handshake_salt),
+		MOCK_ARG (SHA384_HASH_LENGTH));
 
-		status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.update,
-			&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	// generate handshake secret again
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, HKDF_EXTRACT_FAILED, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.dhe_secret), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
-		status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.update,
-			&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-
-		status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.finish,
-			&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	}
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
@@ -1560,8 +1696,892 @@ static void spdm_secure_session_manager_test_generate_session_data_key (CuTest *
 
 	CuAssertIntEquals (test, 0, status);
 
-	session->hash_size = SHA384_HASH_LENGTH;
 	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->dhe_key_size = SHA384_HASH_LENGTH;
+	session->aead_key_size = SHA384_HASH_LENGTH;
+	session->aead_iv_size = SHA384_HASH_LENGTH;
+
+	status = session_manager->generate_session_handshake_keys (session_manager, session);
+	CuAssertIntEquals (test, HKDF_EXTRACT_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_update_prk_fail (
+	CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_INVALID),
+		MOCK_ARG_PTR (session->master_secret.dhe_secret), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate master secret Salt1
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate request handshake PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, HKDF_UPDATE_PRK_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = UINT32_MAX;
+	session->hash_size = SHA384_HASH_LENGTH;
+	status = session_manager->generate_session_handshake_keys (session_manager, session);
+	CuAssertIntEquals (test, HKDF_UPDATE_PRK_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_update_prk2_fail (
+	CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate handshake secret
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.dhe_secret), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate master secret Salt1
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate request handshake PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// request finished key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_finished_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// request encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_handshake_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// request encryption IV
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_handshake_salt),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate handshake secret again
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.dhe_secret), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate response handshake PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, HKDF_UPDATE_PRK_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->dhe_key_size = SHA384_HASH_LENGTH;
+	session->aead_key_size = SHA384_HASH_LENGTH;
+	session->aead_iv_size = SHA384_HASH_LENGTH;
+
+	status = session_manager->generate_session_handshake_keys (session_manager, session);
+	CuAssertIntEquals (test, HKDF_UPDATE_PRK_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_expand1_fail (
+	CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate handshake secret
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.dhe_secret), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate master secret Salt1
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, HKDF_EXPAND_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->dhe_key_size = SHA384_HASH_LENGTH;
+	session->aead_key_size = SHA384_HASH_LENGTH;
+	session->aead_iv_size = SHA384_HASH_LENGTH;
+
+	status = session_manager->generate_session_handshake_keys (session_manager, session);
+	CuAssertIntEquals (test, HKDF_EXPAND_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_expand2_fail (
+	CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate handshake secret
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.dhe_secret), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate master secret Salt1
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate request handshake PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// request finished key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, HKDF_EXPAND_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_finished_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->dhe_key_size = SHA384_HASH_LENGTH;
+	session->aead_key_size = SHA384_HASH_LENGTH;
+	session->aead_iv_size = SHA384_HASH_LENGTH;
+
+	status = session_manager->generate_session_handshake_keys (session_manager, session);
+	CuAssertIntEquals (test, HKDF_EXPAND_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_expand3_fail (
+	CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate handshake secret
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.dhe_secret), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate master secret Salt1
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate request handshake PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// request finished key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_finished_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// request encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, HKDF_EXPAND_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_handshake_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->dhe_key_size = SHA384_HASH_LENGTH;
+	session->aead_key_size = SHA384_HASH_LENGTH;
+	session->aead_iv_size = SHA384_HASH_LENGTH;
+
+	status = session_manager->generate_session_handshake_keys (session_manager, session);
+	CuAssertIntEquals (test, HKDF_EXPAND_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_expand4_fail (
+	CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate handshake secret
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.dhe_secret), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate master secret Salt1
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate request handshake PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// request finished key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_finished_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// request encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_handshake_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// request encryption IV
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, HKDF_EXPAND_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_handshake_salt),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->dhe_key_size = SHA384_HASH_LENGTH;
+	session->aead_key_size = SHA384_HASH_LENGTH;
+	session->aead_iv_size = SHA384_HASH_LENGTH;
+
+	status = session_manager->generate_session_handshake_keys (session_manager, session);
+	CuAssertIntEquals (test, HKDF_EXPAND_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_expand5_fail (
+	CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate handshake secret
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.dhe_secret), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate master secret Salt1
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate request handshake PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// request finished key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_finished_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// request encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_handshake_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// request encryption IV
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_handshake_salt),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate handshake secret again
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.dhe_secret), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate response handshake PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// response finished key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, HKDF_EXPAND_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.response_finished_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->dhe_key_size = SHA384_HASH_LENGTH;
+	session->aead_key_size = SHA384_HASH_LENGTH;
+	session->aead_iv_size = SHA384_HASH_LENGTH;
+
+	status = session_manager->generate_session_handshake_keys (session_manager, session);
+	CuAssertIntEquals (test, HKDF_EXPAND_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_expand6_fail (
+	CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate handshake secret
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.dhe_secret), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate master secret Salt1
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate request handshake PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// request finished key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_finished_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// request encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_handshake_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// request encryption IV
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_handshake_salt),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate handshake secret again
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.dhe_secret), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate response handshake PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// response finished key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.response_finished_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// response encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, HKDF_EXPAND_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.response_handshake_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->dhe_key_size = SHA384_HASH_LENGTH;
+	session->aead_key_size = SHA384_HASH_LENGTH;
+	session->aead_iv_size = SHA384_HASH_LENGTH;
+
+	status = session_manager->generate_session_handshake_keys (session_manager, session);
+	CuAssertIntEquals (test, HKDF_EXPAND_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_expand7_fail (
+	CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate handshake secret
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.dhe_secret), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate master secret Salt1
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate request handshake PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// request finished key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_finished_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// request encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_handshake_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// request encryption IV
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.request_handshake_salt),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// generate handshake secret again
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.dhe_secret), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate response handshake PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// response finished key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.response_finished_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// response encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.response_handshake_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// response encryption IV
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, HKDF_EXPAND_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->handshake_secret.response_handshake_salt),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->dhe_key_size = SHA384_HASH_LENGTH;
+	session->aead_key_size = SHA384_HASH_LENGTH;
+	session->aead_iv_size = SHA384_HASH_LENGTH;
+
+	status = session_manager->generate_session_handshake_keys (session_manager, session);
+	CuAssertIntEquals (test, HKDF_EXPAND_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+
+static void spdm_secure_session_manager_test_generate_session_data_keys (CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate request PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// request encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->data_secret.request_data_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// request encryption IV
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->data_secret.request_data_salt), MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate response PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// response encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->data_secret.response_data_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// response encryption IV
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->data_secret.response_data_salt), MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->dhe_key_size = SHA384_HASH_LENGTH;
+	session->aead_key_size = SHA384_HASH_LENGTH;
+	session->aead_iv_size = SHA384_HASH_LENGTH;
+
 	status = session_manager->generate_session_data_keys (session_manager, session);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1612,7 +2632,7 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_invalid_
 	spdm_secure_session_manager_testing_release (test, &testing);
 }
 
-static void spdm_secure_session_manager_test_generate_session_data_keys_kdf_hkdf_expand_fail (
+static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_extract_fail (
 	CuTest *test)
 {
 	int status;
@@ -1635,24 +2655,34 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_kdf_hkdf
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
-
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
 		&connection_info);
 	CuAssertPtrNotNull (test, session);
 
+	status = mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, HKDF_EXTRACT_FAILED, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
 	session->hash_size = SHA384_HASH_LENGTH;
-	session->base_hash_algo = UINT32_MAX;
 	status = session_manager->generate_session_data_keys (session_manager, session);
-	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
+	CuAssertIntEquals (test, HKDF_EXTRACT_FAILED, status);
 
 	session_manager->release_session (session_manager, session_id);
 
 	spdm_secure_session_manager_testing_release (test, &testing);
 }
 
-static void spdm_secure_session_manager_test_generate_session_data_keys_get_hash_fail (CuTest *test)
+static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_extract2_fail (
+	CuTest *test)
 {
 	int status;
 	struct spdm_secure_session_manager_testing testing;
@@ -1660,7 +2690,6 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_get_hash
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
-	uint8_t idx;
 
 	TEST_START;
 
@@ -1677,38 +2706,552 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_get_hash
 		&connection_info);
 	CuAssertPtrNotNull (test, session);
 
-	/* KDF */
-	status |= mock_expect (&testing.hash_engine_mock.mock,
-		testing.hash_engine_mock.base.start_sha384, &testing.hash_engine_mock.base, 0);
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
-	status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.update,
-		&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
-	status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.update,
-		&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	// generate request PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
 
-	status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.update,
-		&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	// request encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->data_secret.request_data_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
 
-	status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.finish,
-		&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	// request encryption IV
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->data_secret.request_data_salt), MOCK_ARG (SHA384_HASH_LENGTH));
 
-	/* HMAC Rounds (3). */
-	for (idx = 0; idx < 3; idx++) {
-		status |= mock_expect (&testing.hash_engine_mock.mock,
-			testing.hash_engine_mock.base.start_sha384, &testing.hash_engine_mock.base, 0);
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, HKDF_EXTRACT_FAILED, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
-		status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.update,
-			&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
 
-		status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.update,
-			&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
 
-		status |= mock_expect (&testing.hash_engine_mock.mock, testing.hash_engine_mock.base.finish,
-			&testing.hash_engine_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	}
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->dhe_key_size = SHA384_HASH_LENGTH;
+	session->aead_key_size = SHA384_HASH_LENGTH;
+	session->aead_iv_size = SHA384_HASH_LENGTH;
+
+	status = session_manager->generate_session_data_keys (session_manager, session);
+	CuAssertIntEquals (test, HKDF_EXTRACT_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_update_prk_fail (
+	CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
 
 	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate request PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, HKDF_UPDATE_PRK_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	session->hash_size = SHA384_HASH_LENGTH;
+	status = session_manager->generate_session_data_keys (session_manager, session);
+	CuAssertIntEquals (test, HKDF_UPDATE_PRK_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_update_prk2_fail (
+	CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate request PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// request encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->data_secret.request_data_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// request encryption IV
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->data_secret.request_data_salt), MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate response PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, HKDF_UPDATE_PRK_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->dhe_key_size = SHA384_HASH_LENGTH;
+	session->aead_key_size = SHA384_HASH_LENGTH;
+	session->aead_iv_size = SHA384_HASH_LENGTH;
+
+	status = session_manager->generate_session_data_keys (session_manager, session);
+	CuAssertIntEquals (test, HKDF_UPDATE_PRK_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_expand1_fail (
+	CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate request PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// response encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, HKDF_EXPAND_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->data_secret.request_data_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->aead_key_size = SHA384_HASH_LENGTH;
+	session->aead_iv_size = SHA384_HASH_LENGTH;
+	status = session_manager->generate_session_data_keys (session_manager, session);
+	CuAssertIntEquals (test, HKDF_EXPAND_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_expand2_fail (
+	CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate request PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// request encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->data_secret.request_data_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// request encryption IV
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, HKDF_EXPAND_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->data_secret.request_data_salt), MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->dhe_key_size = SHA384_HASH_LENGTH;
+	session->aead_key_size = SHA384_HASH_LENGTH;
+	session->aead_iv_size = SHA384_HASH_LENGTH;
+
+	status = session_manager->generate_session_data_keys (session_manager, session);
+	CuAssertIntEquals (test, HKDF_EXPAND_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_expand3_fail (
+	CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate request PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// request encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->data_secret.request_data_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// request encryption IV
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->data_secret.request_data_salt), MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate response PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// response encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, HKDF_EXPAND_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->data_secret.response_data_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->dhe_key_size = SHA384_HASH_LENGTH;
+	session->aead_key_size = SHA384_HASH_LENGTH;
+	session->aead_iv_size = SHA384_HASH_LENGTH;
+
+	status = session_manager->generate_session_data_keys (session_manager, session);
+	CuAssertIntEquals (test, HKDF_EXPAND_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_expand4_fail (
+	CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate request PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// request encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->data_secret.request_data_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// request encryption IV
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->data_secret.request_data_salt), MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	// generate response PRK
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.update_prk,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1));
+
+	// response encryption key
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->data_secret.response_data_encryption_key),
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	// response encryption IV
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.expand,
+		&testing.hkdf_mock.base, HKDF_EXPAND_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (1),
+		MOCK_ARG_PTR (session->data_secret.response_data_salt), MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->dhe_key_size = SHA384_HASH_LENGTH;
+	session->aead_key_size = SHA384_HASH_LENGTH;
+	session->aead_iv_size = SHA384_HASH_LENGTH;
+
+	status = session_manager->generate_session_data_keys (session_manager, session);
+	CuAssertIntEquals (test, HKDF_EXPAND_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+
+static void spdm_secure_session_manager_test_generate_session_data_keys_get_hash_fail (
+	CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status = mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.extract,
+		&testing.hkdf_mock.base, 0, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (session->master_secret.master_secret_salt1), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock,
 		SPDM_TRANSCRIPT_MANAGER_GET_HASH_FAILED, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (false), MOCK_ARG (true), MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL,
@@ -1718,10 +3261,13 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_get_hash
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
 
+	status |= mock_expect (&testing.hkdf_mock.mock, testing.hkdf_mock.base.clear_prk,
+		&testing.hkdf_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
-	session->hash_size = SHA384_HASH_LENGTH;
 	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	session->hash_size = SHA384_HASH_LENGTH;
 	status = session_manager->generate_session_data_keys (session_manager, session);
 	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_GET_HASH_FAILED, status);
 
@@ -2922,12 +4468,30 @@ TEST (spdm_secure_session_manager_test_generate_shared_secret_ecc_der_encode_pub
 TEST (spdm_secure_session_manager_test_generate_shared_secret_init_public_key_fail);
 TEST (spdm_secure_session_manager_test_generate_shared_secret_generate_key_pair_fail);
 TEST (spdm_secure_session_manager_test_generate_shared_secret_get_public_key_der_fail);
+TEST (spdm_secure_session_manager_test_generate_session_handshake_keys);
 TEST (spdm_secure_session_manager_test_generate_session_handshake_keys_invalid_param);
 TEST (spdm_secure_session_manager_test_generate_session_handshake_keys_get_hash_fail);
-TEST (spdm_secure_session_manager_test_generate_session_handshake_keys_hash_generate_hmac_fail);
-TEST (spdm_secure_session_manager_test_generate_session_data_key);
+TEST (spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_extract_fail);
+TEST (spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_extract2_fail);
+TEST (spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_update_prk_fail);
+TEST (spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_update_prk2_fail);
+TEST (spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_expand1_fail);
+TEST (spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_expand2_fail);
+TEST (spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_expand3_fail);
+TEST (spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_expand4_fail);
+TEST (spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_expand5_fail);
+TEST (spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_expand6_fail);
+TEST (spdm_secure_session_manager_test_generate_session_handshake_keys_hkdf_expand7_fail);
+TEST (spdm_secure_session_manager_test_generate_session_data_keys);
 TEST (spdm_secure_session_manager_test_generate_session_data_keys_invalid_param);
-TEST (spdm_secure_session_manager_test_generate_session_data_keys_kdf_hkdf_expand_fail);
+TEST (spdm_secure_session_manager_test_generate_session_data_keys_hkdf_extract_fail);
+TEST (spdm_secure_session_manager_test_generate_session_data_keys_hkdf_extract2_fail);
+TEST (spdm_secure_session_manager_test_generate_session_data_keys_hkdf_update_prk_fail);
+TEST (spdm_secure_session_manager_test_generate_session_data_keys_hkdf_update_prk2_fail);
+TEST (spdm_secure_session_manager_test_generate_session_data_keys_hkdf_expand1_fail);
+TEST (spdm_secure_session_manager_test_generate_session_data_keys_hkdf_expand2_fail);
+TEST (spdm_secure_session_manager_test_generate_session_data_keys_hkdf_expand3_fail);
+TEST (spdm_secure_session_manager_test_generate_session_data_keys_hkdf_expand4_fail);
 TEST (spdm_secure_session_manager_test_generate_session_data_keys_get_hash_fail);
 TEST (spdm_secure_session_manager_test_decode_secure_message);
 TEST (spdm_secure_session_manager_test_decode_secure_message_invalid_param);

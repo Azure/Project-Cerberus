@@ -84,9 +84,10 @@ int spdm_secure_session_manager_encode_secure_message (
  * @param rng_engine_ptr Pointer to the RNG engine.
  * @param ecc_engine_ptr Pointer to the ECC engine.
  * @param transcript_manager_ptr Pointer to the transcript manager.
+ * @param hkdf_ptr Pointer to HKDF implementation
  */
 #define	spdm_secure_session_manager_static_init(state_ptr, local_cap_ptr, local_algo_ptr, aes_engine_ptr, \
-	hash_engine_ptr, rng_engine_ptr, ecc_engine_ptr, transcript_manager_ptr)	{ \
+	hash_engine_ptr, rng_engine_ptr, ecc_engine_ptr, transcript_manager_ptr, hkdf_ptr)	{ \
 		SECURE_SESSION_MANAGER_API_INIT, \
 		.state = state_ptr, \
 		.local_capabilities = local_cap_ptr, \
@@ -97,6 +98,7 @@ int spdm_secure_session_manager_encode_secure_message (
 		.ecc_engine = ecc_engine_ptr, \
 		.transcript_manager = transcript_manager_ptr, \
 		.max_spdm_session_sequence_number = SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER, \
+		.hkdf = hkdf_ptr, \
 	}
 
 
