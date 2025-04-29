@@ -735,7 +735,7 @@ static int backend_ecdsa_sigver (struct ecdsa_sigver_data *data, flags_t parsed_
 		}
 	}
 
-	// If signature verification fails, the returned status should be 0. ECC_ENGINE_BAD_SIGNATURE
+	// If signature verification fails, the returned status should be 0.
 	if ((status == SIG_VERIFICATION_BAD_SIGNATURE) || (status == ECC_ENGINE_BAD_SIGNATURE) ||
 		(status == ECC_HW_ECDSA_BAD_SIGNATURE)) {
 		data->sigver_success = 0;
