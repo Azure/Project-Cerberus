@@ -63,6 +63,7 @@ spdm_cmd_common["NEGOTIATE_ALGORITHMS"]="0x05 $spdm_version 0xE3 0x00 0x00 0x20 
 spdm_cmd_common["GET_DIGESTS"]="0x05 $spdm_version 0x81 00 00"
 spdm_cmd_common["GET_CERTIFICATE"]="0x05 $spdm_version 0x82 0x00 0x00"
 spdm_cmd_common["GET_MEASUREMENT_DATA"]="0x05 $spdm_version 0xE0 0x03"
+spdm_cmd_common["GET_MEASUREMENT_DATA_WITHOUT_SIGNATURE"]="0x05 $spdm_version 0xE0 0x00"
 spdm_cmd_common["GET_MEASUREMENT_DIGEST"]="0x05 $spdm_version 0xE0 0x01"
 spdm_cmd_common["GET_MEASUREMENT_NONCE"]="0xdb 0x6b 0xf3 0xa5 0xb5 0xab 0x4d 0x67 0xbd 0xb1 0x18 0x40 0x29 0x10 0x7b 0x88 0x8e 0x69 0x4b 0xac 0xf4 0x62 0xe5 0x4a 0x6d 0x68 0xd9 0xd4 0xc6 0xb4 0x60 0x81"
 spdm_cmd_1_1["GET_MEASUREMENT_SLOTID"]="0x00"
@@ -78,6 +79,7 @@ declare pcd_device_id=""
 declare pcd_vendor_id=""
 declare pcd_subsystem_device_id=""
 declare pcd_subsystem_vendor_id=""
+declare cert_cap_flag="" # Get digests and get certs support flag
 
 # Function to display usage information
 usage() {
@@ -367,6 +369,22 @@ send_get_capabilities_request() {
         max_buffer_size_requester=$((max_buffer_size_requester - 8))
         log_debug 1 "$command_name: Max Buffer Size: $max_buffer_size_responder"
         log_debug 1 "$command_name: Max Buffer Size: $max_buffer_size_requester"
+    fi
+
+    if [[ "$spdm_version" == "0x11" || "$spdm_version" == "0x12" ]]; then
+        local capabilities_flags_offset=10 # Offset for Capabilities flags
+        local cert_flag_bit_offset=1 # Bit Offset for Certificate support flag
+        local rx_data=$(echo "$response" | grep -o 'mctptool: Rx: .*' | sed 's/mctptool: Rx: //')
+        local target_byte=$(echo $rx_data | cut -d ' ' -f $((capabilities_flags_offset)))
+        local decimal=$((16#$target_byte))
+        local bit_value=$(( (decimal >> $cert_flag_bit_offset) & 1 ))
+        if [ $bit_value -eq 1 ]; then
+            cert_cap_flag=true
+        else
+            cert_cap_flag=false
+        fi
+    else
+        cert_cap_flag=true
     fi
 
     echo $max_buffer_size_requester
@@ -806,22 +824,26 @@ validate_cfm_xml_measurements() {
     for measurement_id in "${!measurement_data[@]}" "${!measurement_digest[@]}"; do
         local command_name="GET_MEASUREMENT"
         log_debug 1 "$command_name ($measurement_id)"
-        if [[ -n ${measurement_data[$measurement_id]} ]]; then
-            if [ "$spdm_version" == "0x10" ]; then
-                response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DATA"]} $measurement_id ${spdm_cmd_common[$command_name"_NONCE"]})
-            elif [ "$spdm_version" == "0x11" ]; then
-                response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DATA"]} $measurement_id ${spdm_cmd_common[$command_name"_NONCE"]} ${spdm_cmd_1_1[$command_name"_SLOTID"]})
+        if [ "$cert_cap_flag" = "true" ]; then
+            if [[ -n ${measurement_data[$measurement_id]} ]]; then
+                if [ "$spdm_version" == "0x10" ]; then
+                    response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DATA"]} $measurement_id ${spdm_cmd_common[$command_name"_NONCE"]})
+                elif [ "$spdm_version" == "0x11" ]; then
+                    response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DATA"]} $measurement_id ${spdm_cmd_common[$command_name"_NONCE"]} ${spdm_cmd_1_1[$command_name"_SLOTID"]})
+                else
+                    response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DATA"]} $measurement_id ${spdm_cmd_common[$command_name"_NONCE"]} ${spdm_cmd_1_2[$command_name"_SLOTID"]})
+                fi
             else
-                response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DATA"]} $measurement_id ${spdm_cmd_common[$command_name"_NONCE"]} ${spdm_cmd_1_2[$command_name"_SLOTID"]})
+                if [ "$spdm_version" == "0x10" ]; then
+                    response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DIGEST"]} $measurement_id ${spdm_cmd_common[$command_name"_NONCE"]})
+                elif [ "$spdm_version" == "0x11" ]; then
+                    response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DIGEST"]} $measurement_id ${spdm_cmd_common[$command_name"_NONCE"]} ${spdm_cmd_1_1[$command_name"_SLOTID"]})
+                else
+                    response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DIGEST"]} $measurement_id ${spdm_cmd_common[$command_name"_NONCE"]} ${spdm_cmd_1_2[$command_name"_SLOTID"]})
+                fi
             fi
         else
-            if [ "$spdm_version" == "0x10" ]; then
-                response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DIGEST"]} $measurement_id ${spdm_cmd_common[$command_name"_NONCE"]})
-            elif [ "$spdm_version" == "0x11" ]; then
-                response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DIGEST"]} $measurement_id ${spdm_cmd_common[$command_name"_NONCE"]} ${spdm_cmd_1_1[$command_name"_SLOTID"]})
-            else
-                response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DIGEST"]} $measurement_id ${spdm_cmd_common[$command_name"_NONCE"]} ${spdm_cmd_1_2[$command_name"_SLOTID"]})
-            fi
+            response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DATA_WITHOUT_SIGNATURE"]} $measurement_id)
         fi
 
         if [ $? -ne 0 ]; then
@@ -1086,40 +1108,43 @@ main() {
 
         log_debug 1 "Base Hash Algo Bytes: $base_hash_algo_bytes"
 
-        send_get_digests_request
-        if [ $? -ne 0 ]; then
-            log_error "Error: GET_DIGESTS command failed."
-            failure_count=$((failure_count + 1))
-            if [ $stress_enabled -eq 0 ]; then
-                break
-            else
-                continue
+        if [ "$cert_cap_flag" = "true" ]; then
+            send_get_digests_request
+            if [ $? -ne 0 ]; then
+                log_error "Error: GET_DIGESTS command failed."
+                failure_count=$((failure_count + 1))
+                if [ $stress_enabled -eq 0 ]; then
+                    break
+                else
+                    continue
+                fi
             fi
+
+            local num_certs=$(send_get_certificate_requests)
+            if [ $? -ne 0 ]; then
+                log_error "GET_CERTIFICATE command failed."
+                failure_count=$((failure_count + 1))
+                if [ $stress_enabled -eq 0 ]; then
+                    break
+                else
+                    continue
+                fi
+            fi
+            log_debug 1 "Number of Certificates: $num_certs"
+
+            if [ -z "$num_certs" ] || [ $num_certs -eq 0 ]; then
+                log_error "No certificates found."
+                failure_count=$((failure_count + 1))
+                if [ $stress_enabled -eq 0 ]; then
+                    break
+                else
+                    continue
+                fi
+            fi
+
+            spdm_validate_certificates_using_openssl $num_certs
         fi
 
-        local num_certs=$(send_get_certificate_requests)
-        if [ $? -ne 0 ]; then
-            log_error "GET_CERTIFICATE command failed."
-            failure_count=$((failure_count + 1))
-            if [ $stress_enabled -eq 0 ]; then
-                break
-            else
-                continue
-            fi
-        fi
-        log_debug 1 "Number of Certificates: $num_certs"
-
-        if [ -z "$num_certs" ] || [ $num_certs -eq 0 ]; then
-            log_error "No certificates found."
-            failure_count=$((failure_count + 1))
-             if [ $stress_enabled -eq 0 ]; then
-                break
-            else
-                continue
-            fi
-        fi
-
-        spdm_validate_certificates_using_openssl $num_certs
         if [ -z "$cfm_xml_filename" ]; then
             log_debug 1 "No CFM File provided, Skipping measurements check."
         else
@@ -1136,7 +1161,9 @@ main() {
             fi
         fi
 
-        rm -f certificate-*.pem certificate-*.txt certificate-*.bin
+        if [ "$cert_cap_flag" = "true" ]; then
+            rm -f certificate-*.pem certificate-*.txt certificate-*.bin
+        fi
         success_count=$((success_count + 1))
 
         if [ -z "$stress_enabled" ] || [ "$stress_enabled" -eq 0 ]; then
