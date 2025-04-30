@@ -28452,6 +28452,9 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.cancel,
 		&testing.primary_hash, 0);
 
+	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
+	&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
 		&testing.secondary_hash, 0);
 

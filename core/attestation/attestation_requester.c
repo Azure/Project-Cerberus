@@ -3121,6 +3121,7 @@ static int attestation_requester_verify_and_load_leaf_key_spdm (
 			eid, cert_offset, &cert_data, &cert_len);
 		if (status != 0) {
 			attestation->primary_hash->cancel (attestation->primary_hash);
+			attestation->x509->release_ca_cert_store (attestation->x509, &certs_chain);
 
 			return status;
 		}
