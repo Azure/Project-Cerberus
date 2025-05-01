@@ -4,7 +4,9 @@
 #include <string.h>
 #include "spdm_secure_session_manager.h"
 #include "common/unused.h"
+#include "crypto/ecdh.h"
 #include "crypto/kdf.h"
+#include "fips/fips_logging.h"
 
 /**
  * Initialize a secure session's state.
@@ -227,6 +229,7 @@ int spdm_secure_session_manager_generate_shared_secret (
 	bool release_local_key_pair = false;
 	bool release_peer_pub_key = false;
 	int shared_secret_len;
+	struct debug_log_entry_info pct_error = {};
 	size_t key_point_length;
 
 	if ((session_manager == NULL) || (session == NULL) || (peer_pub_key_point == NULL) ||
@@ -254,9 +257,21 @@ int spdm_secure_session_manager_generate_shared_secret (
 	release_peer_pub_key = true;
 
 	/* Generate an ephemeral key pair. */
-	status = ecc_engine->generate_key_pair (ecc_engine, key_point_length, &local_priv_key,
+	status = ecdh_generate_random_key (ecc_engine, key_point_length, &local_priv_key,
 		&local_pub_key);
 	if (status != 0) {
+		if (session_manager->error != NULL) {
+			/* TODO: Consider creating global fatal_error() function which would pass control to
+			 * error handling task for eventual reset. */
+			pct_error.severity = DEBUG_LOG_SEVERITY_ERROR;
+			pct_error.component = DEBUG_LOG_COMPONENT_FIPS;
+			pct_error.msg_index = FIPS_LOGGING_ECDH_PCT_FAILED;
+			pct_error.arg1 = session_manager->algo_info.ecdh_instance_id;
+			pct_error.arg2 = status;
+			pct_error.format = 1;
+
+			session_manager->error->enter_error_state (session_manager->error, &pct_error);
+		}
 		goto exit;
 	}
 	release_local_key_pair = true;
@@ -1117,6 +1132,8 @@ exit:
  * @param ecc ECC engine.
  * @param transcript_manager Transcript Manager.
  * @param hkdf HKDF implementation
+ * @param error Error state management interface.
+ * @param algo_info Metadata for provided algorithms
  *
  * @return 0 if the session manager is initialized successfully, error code otherwise.
  */
@@ -1126,7 +1143,8 @@ int spdm_secure_session_manager_init (struct spdm_secure_session_manager *sessio
 	const struct spdm_device_algorithms *local_algorithms, const struct aes_gcm_engine *aes_engine,
 	const struct hash_engine *hash_engine, const struct rng_engine *rng_engine,
 	const struct ecc_engine *ecc_engine, const struct spdm_transcript_manager *transcript_manager,
-	const struct hkdf_interface *hkdf)
+	const struct hkdf_interface *hkdf, const struct error_state_entry_interface *error,
+	struct spdm_secure_session_manager_algo_info algo_info)
 {
 	int status;
 
@@ -1147,6 +1165,8 @@ int spdm_secure_session_manager_init (struct spdm_secure_session_manager *sessio
 	session_manager->transcript_manager = transcript_manager;
 	session_manager->max_spdm_session_sequence_number = SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER;
 	session_manager->hkdf = hkdf;
+	session_manager->error = error;
+	session_manager->algo_info = algo_info;
 
 	session_manager->create_session = spdm_secure_session_manager_create_session;
 	session_manager->release_session = spdm_secure_session_manager_release_session;

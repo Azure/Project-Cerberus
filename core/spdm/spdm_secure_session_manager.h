@@ -7,6 +7,7 @@
 #include "platform_config.h"
 #include "spdm_commands.h"
 #include "crypto/hkdf.h"
+#include "fips/error_state_entry_interface.h"
 
 /* TODO:  This fila has many dependencies but is missing headers for them. */
 
@@ -245,6 +246,16 @@ struct spdm_secure_session {
 };
 
 /**
+ * Structure to describe algorithms which are used by SPDM session manager. When user creates
+ * session manager instance, multiple pointers to different algorithms implementations are
+ * provided as initialization parameters. This struct classifies some of them, for example
+ * SW vs HW, so this information could be logged in case of critical errors.
+ */
+struct spdm_secure_session_manager_algo_info {
+	uint32_t ecdh_instance_id;	/**< ECDH algorithm classification */
+};
+
+/**
  * SPDM session manager state.
  */
 struct spdm_secure_session_manager_state {
@@ -401,6 +412,8 @@ struct spdm_secure_session_manager {
 	struct spdm_secure_session_manager_state *state;			/**< Session Manager State. */
 	uint64_t max_spdm_session_sequence_number;					/**< Max SPDM session sequence number. */
 	const struct hkdf_interface *hkdf;							/**< HKDF implementation */
+	const struct error_state_entry_interface *error;			/**< Error state management interface */
+	struct spdm_secure_session_manager_algo_info algo_info;		/**< Metadata for used algorithms */
 };
 
 
@@ -410,7 +423,8 @@ int spdm_secure_session_manager_init (struct spdm_secure_session_manager *sessio
 	const struct spdm_device_algorithms *local_algorithms, const struct aes_gcm_engine *aes_engine,
 	const struct hash_engine *hash_engine, const struct rng_engine *rng_engine,
 	const struct ecc_engine *ecc_engine, const struct spdm_transcript_manager *transcript_manager,
-	const struct hkdf_interface *hkdf);
+	const struct hkdf_interface *hkdf, const struct error_state_entry_interface *error,
+	struct spdm_secure_session_manager_algo_info algo_info);
 
 void spdm_secure_session_manager_release (
 	const struct spdm_secure_session_manager *session_manager);

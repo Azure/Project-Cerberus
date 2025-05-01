@@ -6,7 +6,10 @@
 #include <string.h>
 #include "testing.h"
 #include "common/array_size.h"
+#include "crypto/ecdh.h"
+#include "crypto/kat/ecc_kat_vectors.h"
 #include "crypto/kdf.h"
+#include "fips/fips_logging.h"
 #include "spdm/spdm_commands.h"
 #include "spdm/spdm_secure_session_manager_static.h"
 #include "testing/crypto/ecc_testing.h"
@@ -17,6 +20,7 @@
 #include "testing/mock/crypto/hash_mock.h"
 #include "testing/mock/crypto/hkdf_mock.h"
 #include "testing/mock/crypto/rng_mock.h"
+#include "testing/mock/fips/error_state_entry_mock.h"
 #include "testing/mock/spdm/spdm_transcript_manager_mock.h"
 
 
@@ -37,6 +41,8 @@ struct spdm_secure_session_manager_testing {
 	struct rng_engine_mock rng_mock;									/**< Mock RNG engine. */
 	struct aes_gcm_engine_mock aes_mock;								/**< Mock AES engine. */
 	struct hkdf_mock hkdf_mock;											/**< Mock for HKDF implementation */
+	struct error_state_entry_mock error_state_mock;						/**< Mock for error state entry interface */
+	struct spdm_secure_session_manager_algo_info algo_info;				/**< Metadata for crypto algorithms */
 };
 
 
@@ -50,6 +56,7 @@ static void spdm_secure_session_manager_testing_init_dependencies (CuTest *test,
 	struct spdm_secure_session_manager_testing *testing)
 {
 	int status;
+
 
 	status = spdm_transcript_manager_mock_init (&testing->transcript_manager_mock);
 	CuAssertIntEquals (test, 0, status);
@@ -99,47 +106,6 @@ static void spdm_secure_session_manager_testing_init_dependencies (CuTest *test,
 	testing->local_algorithms.device_algorithms.other_params_support.opaque_data_format =
 		SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1;
 
-	// /* Set the algorithm priorities. */
-	// testing->local_algorithms.algorithms_priority_table.aead_priority_table =
-	// 		spdm_command_testing_aead_priority_table;
-	// testing->local_algorithms.algorithms_priority_table.aead_priority_table_count =
-	// 	ARRAY_SIZE (spdm_command_testing_aead_priority_table);
-
-	// testing->local_algorithms.algorithms_priority_table.asym_priority_table =
-	// 	spdm_command_testing_asym_priority_table;
-	// testing->local_algorithms.algorithms_priority_table.asym_priority_table_count =
-	// 	ARRAY_SIZE (spdm_command_testing_asym_priority_table);
-
-	// testing->local_algorithms.algorithms_priority_table.dhe_priority_table =
-	// 		spdm_command_testing_dhe_priority_table;
-	// testing->local_algorithms.algorithms_priority_table.dhe_priority_table_count =
-	// 	ARRAY_SIZE (spdm_command_testing_dhe_priority_table);
-
-	// testing->local_algorithms.algorithms_priority_table.hash_priority_table =
-	// 		spdm_command_testing_hash_priority_table;
-	// testing->local_algorithms.algorithms_priority_table.hash_priority_table_count =
-	// 	ARRAY_SIZE (spdm_command_testing_hash_priority_table);
-
-	// testing->local_algorithms.algorithms_priority_table.key_schedule_priority_table =
-	// 		spdm_command_testing_key_schedule_priority_table;
-	// testing->local_algorithms.algorithms_priority_table.key_schedule_priority_table_count =
-	// 	ARRAY_SIZE (spdm_command_testing_key_schedule_priority_table);
-
-	// testing->local_algorithms.algorithms_priority_table.measurement_spec_priority_table =
-	// 		spdm_command_testing_measurement_spec_priority_table;
-	// testing->local_algorithms.algorithms_priority_table.measurement_spec_priority_table_count =
-	// 	ARRAY_SIZE (spdm_command_testing_measurement_spec_priority_table);
-
-	// testing->local_algorithms.algorithms_priority_table.other_params_support_priority_table =
-	// 		spdm_command_testing_other_params_support_priority_table;
-	// testing->local_algorithms.algorithms_priority_table.other_params_support_priority_table_count =
-	// 	ARRAY_SIZE (spdm_command_testing_other_params_support_priority_table);
-
-	// testing->local_algorithms.algorithms_priority_table.req_asym_priority_table =
-	// 		spdm_command_testing_req_asym_priority_table;
-	// testing->local_algorithms.algorithms_priority_table.req_asym_priority_table_count =
-	// 	ARRAY_SIZE (spdm_command_testing_req_asym_priority_table);
-
 	status = ecc_mock_init (&testing->ecc_mock);
 	CuAssertIntEquals (test, 0, status);
 
@@ -151,6 +117,11 @@ static void spdm_secure_session_manager_testing_init_dependencies (CuTest *test,
 
 	status = hkdf_mock_init (&testing->hkdf_mock);
 	CuAssertIntEquals (test, 0, status);
+
+	status = error_state_entry_mock_init (&testing->error_state_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	testing->algo_info.ecdh_instance_id = 0;
 }
 
 /**
@@ -163,6 +134,7 @@ static void spdm_secure_session_manager_testing_release_dependencies (CuTest *te
 	struct spdm_secure_session_manager_testing *testing)
 {
 	int status;
+
 
 	status = spdm_transcript_manager_mock_validate_and_release (&testing->transcript_manager_mock);
 	CuAssertIntEquals (test, 0, status);
@@ -181,6 +153,9 @@ static void spdm_secure_session_manager_testing_release_dependencies (CuTest *te
 
 	status = hkdf_mock_validate_and_release (&testing->hkdf_mock);
 	CuAssertIntEquals (test, 0, status);
+
+	status = error_state_entry_mock_validate_and_release (&testing->error_state_mock);
+	CuAssertIntEquals (test, 0, status);
 }
 
 /**
@@ -194,13 +169,15 @@ static void spdm_secure_session_manager_testing_init (CuTest *test,
 {
 	int status;
 
+
 	spdm_secure_session_manager_testing_init_dependencies (test, testing);
 
 	status = spdm_secure_session_manager_init (&testing->session_manager, &testing->state,
 		&testing->local_capabilities,
 		(const struct spdm_device_algorithms*) &testing->local_algorithms, &testing->aes_mock.base,
 		&testing->hash_engine_mock.base, &testing->rng_mock.base, &testing->ecc_mock.base,
-		&testing->transcript_manager_mock.base, &testing->hkdf_mock.base);
+		&testing->transcript_manager_mock.base, &testing->hkdf_mock.base,
+		&testing->error_state_mock.base, testing->algo_info);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -227,6 +204,7 @@ static void spdm_secure_session_manager_test_static_init (CuTest *test)
 	int status;
 	struct spdm_secure_session_manager_testing testing;
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init_dependencies (test, &testing);
@@ -235,7 +213,8 @@ static void spdm_secure_session_manager_test_static_init (CuTest *test)
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+
 
 	status = spdm_secure_session_manager_init_state (&session_manager);
 	CuAssertIntEquals (test, 0, status);
@@ -261,6 +240,7 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 	int status;
 	struct spdm_secure_session_manager_testing testing;
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init_dependencies (test, &testing);
@@ -274,7 +254,8 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (NULL, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+
 
 	status = spdm_secure_session_manager_init_state (&session_manager);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
@@ -284,7 +265,8 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, NULL,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+
 
 	status = spdm_secure_session_manager_init_state (&session_manager2);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
@@ -293,7 +275,9 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 	const struct spdm_secure_session_manager session_manager3 =
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities, NULL,
 		&testing.aes_mock.base, &testing.hash_engine_mock.base, &testing.rng_mock.base,
-		&testing.ecc_mock.base, &testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
+		&testing.ecc_mock.base, &testing.transcript_manager_mock.base, &testing.hkdf_mock.base,
+		NULL, testing.algo_info);
+
 
 	status = spdm_secure_session_manager_init_state (&session_manager3);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
@@ -303,7 +287,8 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, NULL,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+
 
 	status = spdm_secure_session_manager_init_state (&session_manager4);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
@@ -313,7 +298,8 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		NULL, &testing.rng_mock.base, &testing.ecc_mock.base, &testing.transcript_manager_mock.base,
-		&testing.hkdf_mock.base);
+		&testing.hkdf_mock.base, NULL, testing.algo_info);
+
 
 	status = spdm_secure_session_manager_init_state (&session_manager5);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
@@ -323,7 +309,8 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+
 
 	status = spdm_secure_session_manager_init_state (&session_manager6);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
@@ -333,7 +320,8 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, NULL,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+
 
 	status = spdm_secure_session_manager_init_state (&session_manager7);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
@@ -343,7 +331,8 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,	NULL,
-		&testing.hkdf_mock.base);
+		&testing.hkdf_mock.base, NULL, testing.algo_info);
+
 
 	status = spdm_secure_session_manager_init_state (&session_manager8);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
@@ -352,7 +341,8 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+
 
 	session_manager9.max_spdm_session_sequence_number = 0;
 
@@ -364,7 +354,8 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, NULL);
+		&testing.transcript_manager_mock.base, NULL, NULL, testing.algo_info);
+
 
 	status = spdm_secure_session_manager_init_state (&session_manager10);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
@@ -377,6 +368,7 @@ static void spdm_secure_session_manager_test_init (CuTest *test)
 	int status;
 	struct spdm_secure_session_manager_testing testing;
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init_dependencies (test, &testing);
@@ -385,7 +377,7 @@ static void spdm_secure_session_manager_test_init (CuTest *test)
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, testing.session_manager.create_session);
 	CuAssertPtrNotNull (test, testing.session_manager.release_session);
@@ -407,6 +399,7 @@ static void spdm_secure_session_manager_test_init_invalid_params (CuTest *test)
 	int status;
 	struct spdm_secure_session_manager_testing testing;
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init_dependencies (test, &testing);
@@ -415,7 +408,7 @@ static void spdm_secure_session_manager_test_init_invalid_params (CuTest *test)
 	status = spdm_secure_session_manager_init (NULL, &testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* state = NULL */
@@ -423,21 +416,21 @@ static void spdm_secure_session_manager_test_init_invalid_params (CuTest *test)
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* local_capabilities = NULL */
 	status = spdm_secure_session_manager_init (&testing.session_manager, &testing.state, NULL,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* local_algorithms = NULL */
 	status = spdm_secure_session_manager_init (&testing.session_manager, &testing.state,
 		&testing.local_capabilities, NULL, &testing.aes_mock.base, &testing.hash_engine_mock.base,
 		NULL, &testing.ecc_mock.base, &testing.transcript_manager_mock.base,
-		&testing.hkdf_mock.base);
+		&testing.hkdf_mock.base, NULL, testing.algo_info);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* aes_engine = NULL */
@@ -445,7 +438,7 @@ static void spdm_secure_session_manager_test_init_invalid_params (CuTest *test)
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, NULL,
 		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* hash_engine = NULL */
@@ -453,7 +446,7 @@ static void spdm_secure_session_manager_test_init_invalid_params (CuTest *test)
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		NULL, NULL, &testing.ecc_mock.base, &testing.transcript_manager_mock.base,
-		&testing.hkdf_mock.base);
+		&testing.hkdf_mock.base, NULL, testing.algo_info);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* ecc_engine = NULL */
@@ -461,15 +454,15 @@ static void spdm_secure_session_manager_test_init_invalid_params (CuTest *test)
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, NULL, NULL, &testing.transcript_manager_mock.base,
-		&testing.hkdf_mock.base);
+		&testing.hkdf_mock.base, NULL, testing.algo_info);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* transcript_manager = NULL */
 	status = spdm_secure_session_manager_init (&testing.session_manager, &testing.state,
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
-		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base, NULL,
-		&testing.hkdf_mock.base);
+		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base, NULL,	&testing.hkdf_mock.base,
+		NULL, testing.algo_info);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* hkdf = NULL */
@@ -477,7 +470,7 @@ static void spdm_secure_session_manager_test_init_invalid_params (CuTest *test)
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, NULL);
+		&testing.transcript_manager_mock.base, NULL, NULL, testing.algo_info);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	spdm_secure_session_manager_testing_release_dependencies (test, &testing);
@@ -496,6 +489,7 @@ static void spdm_secure_session_manager_test_create_session (CuTest *test)
 	struct spdm_secure_session_manager *session_manager;
 	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
+
 
 	TEST_START;
 
@@ -530,6 +524,7 @@ static void spdm_secure_session_manager_test_create_session (CuTest *test)
 	struct spdm_secure_session *session = session_manager->create_session (session_manager,
 		session_id, false, &connection_info);
 
+
 	CuAssertPtrNotNull (test, session);
 	CuAssertIntEquals (test, SPDM_SESSION_TYPE_NONE, session->session_type);
 	CuAssertIntEquals (test, session_id, session->session_id);
@@ -561,6 +556,7 @@ static void spdm_secure_session_manager_test_create_session_enc_mac (CuTest *tes
 	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -582,6 +578,7 @@ static void spdm_secure_session_manager_test_create_session_enc_mac (CuTest *tes
 	struct spdm_secure_session *session = session_manager->create_session (session_manager,
 		session_id, false, &connection_info);
 
+
 	CuAssertPtrNotNull (test, session);
 	CuAssertIntEquals (test, SPDM_SESSION_TYPE_ENC_MAC, session->session_type);
 	CuAssertIntEquals (test, 0,
@@ -600,6 +597,7 @@ static void spdm_secure_session_manager_test_create_session_mac_only (CuTest *te
 	struct spdm_secure_session_manager *session_manager;
 	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
+
 
 	TEST_START;
 
@@ -624,6 +622,7 @@ static void spdm_secure_session_manager_test_create_session_mac_only (CuTest *te
 	struct spdm_secure_session *session = session_manager->create_session (session_manager,
 		session_id, false, &connection_info);
 
+
 	CuAssertPtrNotNull (test, session);
 	CuAssertIntEquals (test, SPDM_SESSION_TYPE_MAC_ONLY, session->session_type);
 
@@ -639,6 +638,7 @@ static void spdm_secure_session_manager_test_create_session_invalid_params (CuTe
 	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
+
 
 	TEST_START;
 
@@ -668,6 +668,7 @@ static void spdm_secure_session_manager_test_create_session_count_gt_max (CuTest
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -689,6 +690,7 @@ static void spdm_secure_session_manager_test_create_session_duplicate_session (C
 	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
+
 
 	TEST_START;
 
@@ -722,6 +724,7 @@ static void spdm_secure_session_manager_test_release_session (CuTest *test)
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -753,6 +756,7 @@ static void spdm_secure_session_manager_test_release_session_invalid_params (CuT
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -775,6 +779,7 @@ static void spdm_secure_session_manager_test_get_session (CuTest *test)
 	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session, *session2;
+
 
 	TEST_START;
 
@@ -813,6 +818,7 @@ static void spdm_secure_session_manager_test_get_session_invalid_param (CuTest *
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -836,6 +842,7 @@ static void spdm_secure_session_manager_test_get_session_no_session (CuTest *tes
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -855,6 +862,7 @@ static void spdm_secure_session_manager_test_set_session_state (CuTest *test)
 	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
+
 
 	TEST_START;
 
@@ -898,6 +906,7 @@ static void spdm_secure_session_manager_test_set_session_state_invalid_param (Cu
 	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
+
 
 	TEST_START;
 
@@ -944,6 +953,7 @@ static void spdm_secure_session_manager_test_reset (CuTest *test)
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -979,6 +989,7 @@ static void spdm_secure_session_manager_test_reset_invalid_param (CuTest *test)
 	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
+
 
 	TEST_START;
 
@@ -1023,6 +1034,7 @@ static void spdm_secure_session_manager_test_generate_shared_secret (CuTest *tes
 	uint8_t resp_pub_key_der[ECC_DER_MAX_PUBLIC_LENGTH];
 	uint8_t dhe_secret[SPDM_MAX_DHE_SHARED_SECRET_SIZE];
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init_dependencies (test, &testing);
@@ -1035,9 +1047,10 @@ static void spdm_secure_session_manager_test_generate_shared_secret (CuTest *tes
 
 	status = spdm_secure_session_manager_init (session_manager, &testing.state,
 		&testing.local_capabilities,
-		(const struct spdm_device_algorithms*) &testing.local_algorithms, &aes_engine_real.base,
+		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base,	&ecc_engine_real.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base,
+		&testing.error_state_mock.base, testing.algo_info);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Generate a random key pair. */
@@ -1116,6 +1129,7 @@ static void spdm_secure_session_manager_test_generate_shared_secret_invalid_para
 	struct ecc_point_public_key req_pub_key_point;
 	uint8_t resp_pub_key_point[ECC_KEY_LENGTH_384 << 1];
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -1172,6 +1186,7 @@ static void spdm_secure_session_manager_test_generate_shared_secret_ecc_der_enco
 	struct ecc_point_public_key req_pub_key_point = {0};
 	uint8_t resp_pub_key_point[ECC_KEY_LENGTH_384 << 1];
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -1212,6 +1227,7 @@ static void spdm_secure_session_manager_test_generate_shared_secret_init_public_
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
 	uint8_t resp_pub_key_point[ECC_KEY_LENGTH_384 << 1];
+
 
 	TEST_START;
 
@@ -1257,6 +1273,15 @@ static void spdm_secure_session_manager_test_generate_shared_secret_generate_key
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
 	uint8_t resp_pub_key_point[ECC_KEY_LENGTH_384 << 1];
+	struct debug_log_entry_info pct_error = {
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_FIPS,
+		.msg_index = FIPS_LOGGING_ECDH_PCT_FAILED,
+		.arg1 = 0,
+		.arg2 = ECC_ENGINE_GENERATE_KEY_FAILED,
+		.format = 1,
+	};
+
 
 	TEST_START;
 
@@ -1283,6 +1308,11 @@ static void spdm_secure_session_manager_test_generate_shared_secret_generate_key
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock, 0, MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&testing.error_state_mock.mock,
+		testing.error_state_mock.base.enter_error_state, &testing.error_state_mock.base, 0,
+		MOCK_ARG_PTR_CONTAINS (&pct_error, sizeof (pct_error)));
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -1292,6 +1322,198 @@ static void spdm_secure_session_manager_test_generate_shared_secret_generate_key
 	status = session_manager->generate_shared_secret (session_manager, session,
 		&ECC384_PUBKEY_POINT, resp_pub_key_point);
 	CuAssertIntEquals (test, ECC_ENGINE_GENERATE_KEY_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_shared_secret_pct_fail (
+	CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+	uint8_t resp_pub_key_point[ECC_KEY_LENGTH_384 << 1];
+	struct debug_log_entry_info pct_error = {
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_FIPS,
+		.msg_index = FIPS_LOGGING_ECDH_PCT_FAILED,
+		.arg1 = 0,
+		.arg2 = ECDH_PCT_FAILURE,
+		.format = 1,
+	};
+
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	// session create/release
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	// ecc operations
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_public_key,
+		&testing.ecc_mock, 0, MOCK_ARG_PTR_CONTAINS (ECC384_PUBKEY_DER, ECC384_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC384_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 0);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.generate_key_pair,
+		&testing.ecc_mock, 0, MOCK_ARG (ECC_KEY_LENGTH_384), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 1, 1);
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 2);
+
+	status |= mock_expect (&testing.ecc_mock.mock,
+		testing.ecc_mock.base.get_shared_secret_max_length, &testing.ecc_mock.base,
+		ECC_KEY_LENGTH_384, MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
+		&testing.ecc_mock.base, 0, MOCK_ARG_PTR (ECC_KAT_VECTORS_P384_ECC_PRIVATE_DER),
+		MOCK_ARG (ECC_KAT_VECTORS_P384_ECC_PRIVATE_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 3);
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 3, 4);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.compute_shared_secret,
+		&testing.ecc_mock.base, 1, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (ECC_MAX_KEY_LENGTH));
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.compute_shared_secret,
+		&testing.ecc_mock.base, 2, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (ECC_MAX_KEY_LENGTH));
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
+		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (3), MOCK_ARG_SAVED_ARG (4));
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
+		&testing.ecc_mock, 0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (2));
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
+		&testing.ecc_mock, 0, MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&testing.error_state_mock.mock,
+		testing.error_state_mock.base.enter_error_state, &testing.error_state_mock.base, 0,
+		MOCK_ARG_PTR_CONTAINS (&pct_error, sizeof (pct_error)));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status = session_manager->generate_shared_secret (session_manager, session,
+		&ECC384_PUBKEY_POINT, resp_pub_key_point);
+	CuAssertIntEquals (test, ECDH_PCT_FAILURE, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_shared_secret_pct_fail_algo_info (
+	CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+	uint8_t resp_pub_key_point[ECC_KEY_LENGTH_384 << 1];
+	struct debug_log_entry_info pct_error = {
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_FIPS,
+		.msg_index = FIPS_LOGGING_ECDH_PCT_FAILED,
+		.arg1 = 123,
+		.arg2 = ECDH_PCT_FAILURE,
+		.format = 1,
+	};
+
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init_dependencies (test, &testing);
+
+	status = spdm_secure_session_manager_init (&testing.session_manager, &testing.state,
+		&testing.local_capabilities,
+		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
+		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base,
+		&testing.error_state_mock.base,
+		(struct spdm_secure_session_manager_algo_info) {.ecdh_instance_id = 123, });
+	CuAssertIntEquals (test, 0, status);
+
+	session_manager = &testing.session_manager;
+
+	// session create/release
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	// ecc operations
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_public_key,
+		&testing.ecc_mock, 0, MOCK_ARG_PTR_CONTAINS (ECC384_PUBKEY_DER, ECC384_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC384_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 0);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.generate_key_pair,
+		&testing.ecc_mock, 0, MOCK_ARG (ECC_KEY_LENGTH_384), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 1, 1);
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 2);
+
+	status |= mock_expect (&testing.ecc_mock.mock,
+		testing.ecc_mock.base.get_shared_secret_max_length, &testing.ecc_mock.base,
+		ECC_KEY_LENGTH_384, MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
+		&testing.ecc_mock.base, 0, MOCK_ARG_PTR (ECC_KAT_VECTORS_P384_ECC_PRIVATE_DER),
+		MOCK_ARG (ECC_KAT_VECTORS_P384_ECC_PRIVATE_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 3);
+	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 3, 4);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.compute_shared_secret,
+		&testing.ecc_mock.base, 1, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (ECC_MAX_KEY_LENGTH));
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.compute_shared_secret,
+		&testing.ecc_mock.base, 2, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (ECC_MAX_KEY_LENGTH));
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
+		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (3), MOCK_ARG_SAVED_ARG (4));
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
+		&testing.ecc_mock, 0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (2));
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
+		&testing.ecc_mock, 0, MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&testing.error_state_mock.mock,
+		testing.error_state_mock.base.enter_error_state, &testing.error_state_mock.base, 0,
+		MOCK_ARG_PTR_CONTAINS (&pct_error, sizeof (pct_error)));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status = session_manager->generate_shared_secret (session_manager, session,
+		&ECC384_PUBKEY_POINT, resp_pub_key_point);
+	CuAssertIntEquals (test, ECDH_PCT_FAILURE, status);
 
 	session_manager->release_session (session_manager, session_id);
 
@@ -1308,6 +1530,7 @@ static void spdm_secure_session_manager_test_generate_shared_secret_get_public_k
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
 	uint8_t resp_pub_key_point[ECC_KEY_LENGTH_384 << 1];
+
 
 	TEST_START;
 
@@ -1332,6 +1555,25 @@ static void spdm_secure_session_manager_test_generate_shared_secret_get_public_k
 		&testing.ecc_mock, 0, MOCK_ARG (ECC_KEY_LENGTH_384), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 1, 1);
 	status |= mock_expect_save_arg (&testing.ecc_mock.mock, 2, 2);
+
+	status |= mock_expect (&testing.ecc_mock.mock,
+		testing.ecc_mock.base.get_shared_secret_max_length, &testing.ecc_mock.base,
+		ECC_KEY_LENGTH_384, MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.init_key_pair,
+		&testing.ecc_mock.base, 0, MOCK_ARG_PTR (ECC_KAT_VECTORS_P384_ECC_PRIVATE_DER),
+		MOCK_ARG (ECC_KAT_VECTORS_P384_ECC_PRIVATE_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.compute_shared_secret,
+		&testing.ecc_mock.base, 1, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (ECC_MAX_KEY_LENGTH));
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.compute_shared_secret,
+		&testing.ecc_mock.base, 1, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (ECC_MAX_KEY_LENGTH));
+
+	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
+		&testing.ecc_mock.base, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status = mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.get_public_key_der,
 		&testing.ecc_mock, ECC_ENGINE_PUBLIC_KEY_DER_FAILED, MOCK_ARG_SAVED_ARG (2),
@@ -1368,6 +1610,7 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_inv
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -1411,6 +1654,7 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_get
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -1459,6 +1703,7 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys (Cu
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -1574,6 +1819,7 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -1627,6 +1873,7 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -1720,6 +1967,7 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -1782,6 +2030,7 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -1879,6 +2128,7 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -1942,6 +2192,7 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -2016,6 +2267,7 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -2096,6 +2348,7 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -2182,6 +2435,7 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -2284,6 +2538,7 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -2392,6 +2647,7 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -2507,6 +2763,7 @@ static void spdm_secure_session_manager_test_generate_session_data_keys (CuTest 
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -2599,6 +2856,7 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_invalid_
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -2641,6 +2899,7 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_ext
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -2690,6 +2949,7 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_ext
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -2769,6 +3029,7 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_upd
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -2827,6 +3088,7 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_upd
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -2910,6 +3172,7 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_exp
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -2975,6 +3238,7 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_exp
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -3048,6 +3312,7 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_exp
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -3136,6 +3401,7 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_exp
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -3231,6 +3497,7 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_get_hash
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -3299,6 +3566,7 @@ static void spdm_secure_session_manager_test_decode_secure_message (CuTest *test
 		0x04
 	};
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -3366,6 +3634,7 @@ static void spdm_secure_session_manager_test_decode_secure_message_invalid_param
 	struct spdm_secure_session_manager *session_manager;
 	struct cmd_interface_msg request;
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -3389,6 +3658,7 @@ static void spdm_secure_session_manager_test_decode_secure_message_payload_lt_mi
 	struct spdm_secure_session_manager *session_manager;
 	struct cmd_interface_msg request = {0};
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -3410,6 +3680,7 @@ static void spdm_secure_session_manager_test_decode_secure_message_no_session (C
 	struct cmd_interface_msg request = {0};
 	struct spdm_secure_session_manager_testing testing;
 	struct spdm_secure_session_manager *session_manager;
+
 
 	TEST_START;
 
@@ -3439,6 +3710,7 @@ spdm_secure_session_manager_test_decode_secure_message_sequence_number_overflow_
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -3490,6 +3762,7 @@ spdm_secure_session_manager_test_decode_secure_message_sequence_number_overflow_
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -3537,6 +3810,7 @@ static void spdm_secure_session_manager_test_decode_secure_message_payload_incor
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
 	size_t aead_tag_size = 16;
+
 
 	TEST_START;
 
@@ -3591,6 +3865,7 @@ static void spdm_secure_session_manager_test_decode_secure_message_payload_incor
 	size_t encrypted_payload_length = 64;
 	struct spdm_secured_message_data_header_1 *record_header_1;
 	struct spdm_secured_message_data_header_2 *record_header_2;
+
 
 	TEST_START;
 
@@ -3651,6 +3926,7 @@ static void spdm_secure_session_manager_test_decode_secure_message_payload_incor
 	size_t encrypted_payload_length = 64;
 	struct spdm_secured_message_data_header_1 *record_header_1;
 	struct spdm_secured_message_data_header_2 *record_header_2;
+
 
 	TEST_START;
 
@@ -3716,6 +3992,7 @@ static void spdm_secure_session_manager_test_decode_secure_message_set_key_fail 
 		0x0e, 0x9a, 0x37, 0xff, 0x3e, 0xa0, 0x02, 0x34, 0xd6, 0x41, 0x80, 0xfa, 0x1a, 0x0e, 0x0a,
 		0x04
 	};
+
 
 	TEST_START;
 
@@ -3789,6 +4066,7 @@ static void spdm_secure_session_manager_test_decode_secure_message_decrypt_with_
 		0x0e, 0x9a, 0x37, 0xff, 0x3e, 0xa0, 0x02, 0x34, 0xd6, 0x41, 0x80, 0xfa, 0x1a, 0x0e, 0x0a,
 		0x04
 	};
+
 
 	TEST_START;
 
@@ -3870,6 +4148,7 @@ static void spdm_secure_session_manager_test_decode_secure_message_plaintext_siz
 		0x04
 	};
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -3947,6 +4226,7 @@ static void spdm_secure_session_manager_test_encode_secure_message_finish_respon
 		0x0e, 0x9a, 0x37, 0xff, 0x3e, 0xa0, 0x02, 0x34, 0xd6, 0x41, 0x80, 0xfa, 0x1a, 0x0e, 0x0a,
 		0x04
 	};
+
 
 	TEST_START;
 
@@ -4027,6 +4307,7 @@ static void spdm_secure_session_manager_test_encode_secure_message_end_session_r
 		0x04
 	};
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -4090,6 +4371,7 @@ static void spdm_secure_session_manager_test_encode_secure_message_invalid_param
 	struct spdm_secure_session_manager *session_manager;
 	struct cmd_interface_msg request;
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -4115,6 +4397,7 @@ spdm_secure_session_manager_test_encode_secure_message_last_spdm_request_secure_
 	struct spdm_secure_session_manager *session_manager;
 	struct cmd_interface_msg request;
 
+
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
@@ -4134,6 +4417,7 @@ static void spdm_secure_session_manager_test_encode_secure_message_no_session (C
 	struct cmd_interface_msg request;
 	struct spdm_secure_session_manager_testing testing;
 	struct spdm_secure_session_manager *session_manager;
+
 
 	TEST_START;
 
@@ -4159,6 +4443,7 @@ spdm_secure_session_manager_test_encode_secure_message_sequence_number_overflow_
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -4205,6 +4490,7 @@ spdm_secure_session_manager_test_encode_secure_message_sequence_number_overflow_
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
 	struct spdm_connection_info connection_info = {0};
+
 
 	TEST_START;
 
@@ -4253,6 +4539,7 @@ static void spdm_secure_session_manager_test_encode_secure_message_max_response_
 	struct spdm_connection_info connection_info = {0};
 	size_t plaintext_payload_length = 64;
 	size_t aead_tag_size = 16;
+
 
 	TEST_START;
 
@@ -4314,6 +4601,7 @@ static void spdm_secure_session_manager_test_encode_secure_message_set_key_fail 
 		0x0e, 0x9a, 0x37, 0xff, 0x3e, 0xa0, 0x02, 0x34, 0xd6, 0x41, 0x80, 0xfa, 0x1a, 0x0e, 0x0a,
 		0x04
 	};
+
 
 	TEST_START;
 
@@ -4383,6 +4671,7 @@ static void spdm_secure_session_manager_test_encode_secure_message_encrypt_with_
 		0x0e, 0x9a, 0x37, 0xff, 0x3e, 0xa0, 0x02, 0x34, 0xd6, 0x41, 0x80, 0xfa, 0x1a, 0x0e, 0x0a,
 		0x04
 	};
+
 
 	TEST_START;
 
@@ -4467,6 +4756,8 @@ TEST (spdm_secure_session_manager_test_generate_shared_secret_invalid_param);
 TEST (spdm_secure_session_manager_test_generate_shared_secret_ecc_der_encode_public_key_fail);
 TEST (spdm_secure_session_manager_test_generate_shared_secret_init_public_key_fail);
 TEST (spdm_secure_session_manager_test_generate_shared_secret_generate_key_pair_fail);
+TEST (spdm_secure_session_manager_test_generate_shared_secret_pct_fail);
+TEST (spdm_secure_session_manager_test_generate_shared_secret_pct_fail_algo_info);
 TEST (spdm_secure_session_manager_test_generate_shared_secret_get_public_key_der_fail);
 TEST (spdm_secure_session_manager_test_generate_session_handshake_keys);
 TEST (spdm_secure_session_manager_test_generate_session_handshake_keys_invalid_param);
