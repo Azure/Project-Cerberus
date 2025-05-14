@@ -247,9 +247,11 @@ int riot_core_common_generate_alias_key (const struct riot_core *riot, const uin
 		return status;
 	}
 
+#if (BASE64_LENGTH (HASH_MAX_HASH_LEN) > X509_MAX_COMMON_NAME)
 	if (strlen (common_name) > X509_MAX_COMMON_NAME) {
 		common_name[X509_MAX_COMMON_NAME] = '\0';
 	}
+#endif
 
 	status = core->x509->create_ca_signed_certificate (core->x509, &core->state->alias_cert,
 		core->state->alias_der, core->state->alias_length, alias_kdf, 8, common_name,

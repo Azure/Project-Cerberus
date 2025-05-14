@@ -17,7 +17,7 @@
 struct flash_store_contiguous_blocks_encrypted {
 	struct flash_store_contiguous_blocks base;	/**< Base flash storage instance. */
 	const struct aes_gcm_engine *gcm;			/**< Engine to use for data encryption. */
-	struct rng_engine *rng;						/**< Random number generator for encryption IVs. */
+	const struct rng_engine *rng;				/**< Random number generator for encryption IVs. */
 };
 
 
@@ -25,23 +25,23 @@ int flash_store_contiguous_blocks_encrypted_init_fixed_storage (
 	struct flash_store_contiguous_blocks_encrypted *store,
 	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,
 	uint32_t base_addr, size_t block_count, size_t data_length, const struct aes_gcm_engine *gcm,
-	struct rng_engine *rng);
+	const struct rng_engine *rng);
 int flash_store_contiguous_blocks_encrypted_init_fixed_storage_decreasing (
 	struct flash_store_contiguous_blocks_encrypted *store,
 	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,
 	uint32_t base_addr, size_t block_count, size_t data_length, const struct aes_gcm_engine *gcm,
-	struct rng_engine *rng);
+	const struct rng_engine *rng);
 
 int flash_store_contiguous_blocks_encrypted_init_variable_storage (
 	struct flash_store_contiguous_blocks_encrypted *store,
 	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,
 	uint32_t base_addr, size_t block_count, size_t min_length, const struct aes_gcm_engine *gcm,
-	struct rng_engine *rng);
+	const struct rng_engine *rng);
 int flash_store_contiguous_blocks_encrypted_init_variable_storage_decreasing (
 	struct flash_store_contiguous_blocks_encrypted *store,
 	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,
 	uint32_t base_addr, size_t block_count, size_t min_length, const struct aes_gcm_engine *gcm,
-	struct rng_engine *rng);
+	const struct rng_engine *rng);
 
 int flash_store_contiguous_blocks_encrypted_init_state (
 	const struct flash_store_contiguous_blocks_encrypted *store, size_t data_length);
