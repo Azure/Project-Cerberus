@@ -63,6 +63,7 @@ enum device_manager_device_state {
 	DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT,					/**< Autenticated with timeout */
 	DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT,	/**< Autenticated without certs with timeout */
 	DEVICE_MANAGER_ATTESTATION_INTERRUPTED,						/**< Communication with device is interrupted */
+	DEVICE_MANAGER_NOT_PRESENT,									/**< Device is not present in the system */
 
 	DEVICE_MANAGER_ATTESTATION_INVALID_VERSION = 0x10,			/**< Previous attestation attempt failed due to invalid version */
 	DEVICE_MANAGER_ATTESTATION_INVALID_CAPS,					/**< Previous attestation attempt failed due to invalid capabilities */
@@ -227,6 +228,7 @@ struct device_manager_entry {
 	uint8_t smbus_addr;										/**< SMBUS address */
 	uint8_t eid;											/**< Endpoint ID */
 	uint8_t pcd_component_index;							/**< Index of component in PCD */
+	uint8_t instance_id;									/**< Instance ID of specific device */
 };
 
 /**
@@ -293,6 +295,10 @@ int device_manager_get_device_addr (struct device_manager *mgr, int device_num);
 int device_manager_get_device_addr_by_eid (struct device_manager *mgr, uint8_t eid);
 int device_manager_get_device_eid (struct device_manager *mgr, int device_num);
 int device_manager_update_device_eid (struct device_manager *mgr, int device_num, uint8_t eid);
+int device_manager_update_device_instance_id (struct device_manager *mgr, int device_num,
+	uint8_t instance_id);
+int device_manager_update_device_instance_id_by_eid (struct device_manager *mgr, uint8_t eid,
+	uint8_t instance_id);
 int device_manager_update_not_attestable_device_entry (struct device_manager *mgr, int device_num,
 	uint8_t eid, uint8_t smbus_addr, uint8_t pcd_component_index);
 int device_manager_update_mctp_bridge_device_entry (struct device_manager *mgr, int device_num,
@@ -368,6 +374,7 @@ int device_manager_update_attestation_summary_event_counters_by_eid (struct devi
 	uint8_t eid);
 
 int device_manager_get_eid_of_next_device_to_attest (struct device_manager *mgr);
+int device_manager_get_device_num_of_next_device_to_attest (struct device_manager *mgr);
 int device_manager_reset_authenticated_devices (struct device_manager *mgr);
 int device_manager_reset_discovered_devices (struct device_manager *mgr);
 
@@ -376,6 +383,15 @@ int device_manager_get_component_id (struct device_manager *mgr, uint8_t eid,
 
 int device_manager_get_device_num_by_device_ids (struct device_manager *mgr, uint16_t pci_vid,
 	uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id);
+int device_manager_get_device_num_by_device_and_instance_ids (struct device_manager *mgr,
+	uint16_t pci_vid, uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id,
+	uint8_t instance_id);
+int device_manager_get_device_and_instance_ids_by_device_num (struct device_manager *mgr,
+	int device_num, uint16_t *pci_vid, uint16_t *pci_device_id, uint16_t *pci_subsystem_vid,
+	uint16_t *pci_subsystem_id, uint8_t *instance_id);
+int device_manager_get_device_and_instance_ids_by_eid (struct device_manager *mgr, uint8_t eid,
+	uint16_t *pci_vid, uint16_t *pci_device_id, uint16_t *pci_subsystem_vid,
+	uint16_t *pci_subsystem_id, uint8_t *instance_id);
 int device_manager_update_device_ids (struct device_manager *mgr, int device_num, uint16_t pci_vid,
 	uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id);
 
