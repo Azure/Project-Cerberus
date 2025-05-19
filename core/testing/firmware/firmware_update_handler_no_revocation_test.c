@@ -144,7 +144,7 @@ static void firmware_update_handler_no_revocation_testing_init (CuTest *test,
 {
 	int status;
 
-	firmware_update_handler_no_revocation_testing_init_dependencies (test, handler, header,	allowed,
+	firmware_update_handler_no_revocation_testing_init_dependencies (test, handler, header, allowed,
 		recovery);
 
 	status = firmware_update_handler_no_revocation_init (&handler->test, &handler->state,
@@ -168,7 +168,7 @@ static void firmware_update_handler_no_revocation_testing_init_keep_recovery_upd
 {
 	int status;
 
-	firmware_update_handler_no_revocation_testing_init_dependencies (test, handler, header,	allowed,
+	firmware_update_handler_no_revocation_testing_init_dependencies (test, handler, header, allowed,
 		recovery);
 
 	status = firmware_update_handler_no_revocation_init_keep_recovery_updated (&handler->test,
@@ -193,7 +193,7 @@ static void firmware_update_handler_no_revocation_testing_init_static (CuTest *t
 {
 	int status;
 
-	firmware_update_handler_no_revocation_testing_init_dependencies (test, handler, header,	allowed,
+	firmware_update_handler_no_revocation_testing_init_dependencies (test, handler, header, allowed,
 		recovery);
 
 	status = firmware_update_handler_init_state (&test_static->base, recovery_boot);
@@ -269,6 +269,8 @@ static void firmware_update_handler_no_revocation_test_init (CuTest *test)
 		handler.test.base.base_ctrl.get_remaining_len);
 	CuAssertPtrEquals (test, firmware_update_handler_prepare_staging,
 		handler.test.base.base_ctrl.prepare_staging);
+	CuAssertPtrEquals (test, firmware_update_handler_set_image_digest,
+		handler.test.base.base_ctrl.set_image_digest);
 	CuAssertPtrEquals (test, firmware_update_handler_write_staging,
 		handler.test.base.base_ctrl.write_staging);
 
@@ -295,7 +297,7 @@ static void firmware_update_handler_no_revocation_test_init_null (CuTest *test)
 		&handler.task.base, false);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
 
-	status = firmware_update_handler_no_revocation_init (&handler.test, &handler.state,	NULL,
+	status = firmware_update_handler_no_revocation_init (&handler.test, &handler.state, NULL,
 		&handler.task.base, false);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
 
@@ -330,6 +332,8 @@ static void firmware_update_handler_no_revocation_test_init_keep_recovery_update
 		handler.test.base.base_ctrl.get_remaining_len);
 	CuAssertPtrEquals (test, firmware_update_handler_prepare_staging,
 		handler.test.base.base_ctrl.prepare_staging);
+	CuAssertPtrEquals (test, firmware_update_handler_set_image_digest,
+		handler.test.base.base_ctrl.set_image_digest);
 	CuAssertPtrEquals (test, firmware_update_handler_write_staging,
 		handler.test.base.base_ctrl.write_staging);
 
@@ -390,6 +394,8 @@ static void firmware_update_handler_no_revocation_test_static_init (CuTest *test
 		test_static.base.base_ctrl.get_remaining_len);
 	CuAssertPtrEquals (test, firmware_update_handler_prepare_staging,
 		test_static.base.base_ctrl.prepare_staging);
+	CuAssertPtrEquals (test, firmware_update_handler_set_image_digest,
+		test_static.base.base_ctrl.set_image_digest);
 	CuAssertPtrEquals (test, firmware_update_handler_write_staging,
 		test_static.base.base_ctrl.write_staging);
 
@@ -458,6 +464,8 @@ static void firmware_update_handler_no_revocation_test_static_init_keep_recovery
 		test_static.base.base_ctrl.get_remaining_len);
 	CuAssertPtrEquals (test, firmware_update_handler_prepare_staging,
 		test_static.base.base_ctrl.prepare_staging);
+	CuAssertPtrEquals (test, firmware_update_handler_set_image_digest,
+		test_static.base.base_ctrl.set_image_digest);
 	CuAssertPtrEquals (test, firmware_update_handler_write_staging,
 		test_static.base.base_ctrl.write_staging);
 
@@ -1135,7 +1143,7 @@ static void firmware_update_handler_no_revocation_test_execute_run_update_static
 
 	TEST_START;
 
-	firmware_update_handler_no_revocation_testing_init_static (test, &handler, &test_static, 0,	0,
+	firmware_update_handler_no_revocation_testing_init_static (test, &handler, &test_static, 0, 0,
 		0, false);
 
 	status = mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
@@ -1251,7 +1259,7 @@ firmware_update_handler_no_revocation_test_execute_run_update_static_init_keep_r
 
 	TEST_START;
 
-	firmware_update_handler_no_revocation_testing_init_static (test, &handler, &test_static, 0,	0,
+	firmware_update_handler_no_revocation_testing_init_static (test, &handler, &test_static, 0, 0,
 		0, false);
 
 	status = mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
@@ -1496,7 +1504,7 @@ static void firmware_update_handler_no_revocation_test_execute_prepare_staging_s
 
 	TEST_START;
 
-	firmware_update_handler_no_revocation_testing_init_static (test, &handler, &test_static, 0,	0,
+	firmware_update_handler_no_revocation_testing_init_static (test, &handler, &test_static, 0, 0,
 		0, false);
 
 	/* Lock for state update: UPDATE_STATUS_STAGING_PREP */
@@ -1545,7 +1553,7 @@ firmware_update_handler_no_revocation_test_execute_prepare_staging_static_init_k
 
 	TEST_START;
 
-	firmware_update_handler_no_revocation_testing_init_static (test, &handler, &test_static, 0,	0,
+	firmware_update_handler_no_revocation_testing_init_static (test, &handler, &test_static, 0, 0,
 		0, false);
 
 	/* Lock for state update: UPDATE_STATUS_STAGING_PREP */
@@ -1747,7 +1755,7 @@ static void firmware_update_handler_no_revocation_test_execute_write_staging_sta
 
 	TEST_START;
 
-	firmware_update_handler_no_revocation_testing_init_static (test, &handler, &test_static, 0,	0,
+	firmware_update_handler_no_revocation_testing_init_static (test, &handler, &test_static, 0, 0,
 		0, false);
 
 	/* Lock for state update: UPDATE_STATUS_STAGING_WRITE */
@@ -1798,7 +1806,7 @@ firmware_update_handler_no_revocation_test_execute_write_staging_static_init_kee
 
 	TEST_START;
 
-	firmware_update_handler_no_revocation_testing_init_static (test, &handler, &test_static, 0,	0,
+	firmware_update_handler_no_revocation_testing_init_static (test, &handler, &test_static, 0, 0,
 		0, false);
 
 	/* Lock for state update: UPDATE_STATUS_STAGING_WRITE */
@@ -1904,7 +1912,7 @@ static void firmware_update_handler_no_revocation_test_execute_unknown_action_st
 
 	TEST_START;
 
-	firmware_update_handler_no_revocation_testing_init_static (test, &handler, &test_static, 0,	0,
+	firmware_update_handler_no_revocation_testing_init_static (test, &handler, &test_static, 0, 0,
 		0, false);
 
 	handler.context.action = 8;
@@ -1938,7 +1946,7 @@ firmware_update_handler_no_revocation_test_execute_unknown_action_static_init_ke
 
 	TEST_START;
 
-	firmware_update_handler_no_revocation_testing_init_static (test, &handler, &test_static, 0,	0,
+	firmware_update_handler_no_revocation_testing_init_static (test, &handler, &test_static, 0, 0,
 		0, false);
 
 	handler.context.action = 8;

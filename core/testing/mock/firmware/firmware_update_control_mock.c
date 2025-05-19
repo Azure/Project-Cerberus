@@ -56,6 +56,19 @@ int firmware_update_control_mock_prepare_staging (const struct firmware_update_c
 		MOCK_ARG_CALL (size));
 }
 
+int firmware_update_control_mock_set_image_digest (const struct firmware_update_control *update,
+	enum hash_type hash_type, const uint8_t *digest, size_t length)
+{
+	struct firmware_update_control_mock *mock = (struct firmware_update_control_mock*) update;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, firmware_update_control_mock_set_image_digest, update,
+		MOCK_ARG_CALL (hash_type), MOCK_ARG_PTR_CALL (digest), MOCK_ARG_CALL (length));
+}
+
 int firmware_update_control_mock_write_staging (const struct firmware_update_control *update,
 	uint8_t *buf, size_t buf_len)
 {
@@ -78,6 +91,9 @@ static int firmware_update_control_mock_func_arg_count (void *func)
 	else if (func == firmware_update_control_mock_write_staging) {
 		return 2;
 	}
+	else if (func == firmware_update_control_mock_set_image_digest) {
+		return 3;
+	}
 	else {
 		return 0;
 	}
@@ -96,6 +112,9 @@ static const char* firmware_update_control_mock_func_name_map (void *func)
 	}
 	else if (func == firmware_update_control_mock_prepare_staging) {
 		return "prepare_staging";
+	}
+	else if (func == firmware_update_control_mock_set_image_digest) {
+		return "set_image_digest";
 	}
 	else if (func == firmware_update_control_mock_write_staging) {
 		return "write_staging";
@@ -117,6 +136,18 @@ static const char* firmware_update_control_mock_arg_name_map (void *func, int ar
 		switch (arg) {
 			case 0:
 				return "size";
+		}
+	}
+	else if (func == firmware_update_control_mock_set_image_digest) {
+		switch (arg) {
+			case 0:
+				return "hash_type";
+
+			case 1:
+				return "digest";
+
+			case 2:
+				return "length";
 		}
 	}
 	else if (func == firmware_update_control_mock_write_staging) {
@@ -160,6 +191,7 @@ int firmware_update_control_mock_init (struct firmware_update_control_mock *mock
 	mock->base.get_status = firmware_update_control_mock_get_status;
 	mock->base.get_remaining_len = firmware_update_control_mock_get_remaining_len;
 	mock->base.prepare_staging = firmware_update_control_mock_prepare_staging;
+	mock->base.set_image_digest = firmware_update_control_mock_set_image_digest;
 	mock->base.write_staging = firmware_update_control_mock_write_staging;
 
 	mock->mock.func_arg_count = firmware_update_control_mock_func_arg_count;

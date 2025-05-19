@@ -77,6 +77,8 @@ int firmware_update_handler_get_status (const struct firmware_update_control *up
 int32_t firmware_update_handler_get_remaining_len (const struct firmware_update_control *update);
 int firmware_update_handler_prepare_staging (const struct firmware_update_control *update,
 	size_t size);
+int firmware_update_handler_set_image_digest (const struct firmware_update_control *update,
+	enum hash_type hash_type, const uint8_t *digest, size_t length);
 int firmware_update_handler_write_staging (const struct firmware_update_control *update,
 	uint8_t *buf, size_t buf_len);
 

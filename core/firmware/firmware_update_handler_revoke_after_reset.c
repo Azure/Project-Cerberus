@@ -58,6 +58,7 @@ int firmware_update_handler_revoke_after_reset_init (
 	handler->base.base_ctrl.get_status = firmware_update_handler_get_status;
 	handler->base.base_ctrl.get_remaining_len = firmware_update_handler_get_remaining_len;
 	handler->base.base_ctrl.prepare_staging = firmware_update_handler_prepare_staging;
+	handler->base.base_ctrl.set_image_digest = firmware_update_handler_set_image_digest;
 	handler->base.base_ctrl.write_staging = firmware_update_handler_write_staging;
 
 	handler->base.base_notify.status_change = firmware_update_handler_status_change;

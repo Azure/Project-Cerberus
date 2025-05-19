@@ -269,6 +269,8 @@ static void firmware_update_handler_revoke_after_reset_test_init (CuTest *test)
 		handler.test.base.base_ctrl.get_remaining_len);
 	CuAssertPtrEquals (test, firmware_update_handler_prepare_staging,
 		handler.test.base.base_ctrl.prepare_staging);
+	CuAssertPtrEquals (test, firmware_update_handler_set_image_digest,
+		handler.test.base.base_ctrl.set_image_digest);
 	CuAssertPtrEquals (test, firmware_update_handler_write_staging,
 		handler.test.base.base_ctrl.write_staging);
 
@@ -330,6 +332,8 @@ static void firmware_update_handler_revoke_after_reset_test_init_keep_recovery_u
 		handler.test.base.base_ctrl.get_remaining_len);
 	CuAssertPtrEquals (test, firmware_update_handler_prepare_staging,
 		handler.test.base.base_ctrl.prepare_staging);
+	CuAssertPtrEquals (test, firmware_update_handler_set_image_digest,
+		handler.test.base.base_ctrl.set_image_digest);
 	CuAssertPtrEquals (test, firmware_update_handler_write_staging,
 		handler.test.base.base_ctrl.write_staging);
 
@@ -390,6 +394,8 @@ static void firmware_update_handler_revoke_after_reset_test_static_init (CuTest 
 		test_static.base.base_ctrl.get_remaining_len);
 	CuAssertPtrEquals (test, firmware_update_handler_prepare_staging,
 		test_static.base.base_ctrl.prepare_staging);
+	CuAssertPtrEquals (test, firmware_update_handler_set_image_digest,
+		test_static.base.base_ctrl.set_image_digest);
 	CuAssertPtrEquals (test, firmware_update_handler_write_staging,
 		test_static.base.base_ctrl.write_staging);
 
@@ -458,6 +464,8 @@ static void firmware_update_handler_revoke_after_reset_test_static_init_keep_rec
 		test_static.base.base_ctrl.get_remaining_len);
 	CuAssertPtrEquals (test, firmware_update_handler_prepare_staging,
 		test_static.base.base_ctrl.prepare_staging);
+	CuAssertPtrEquals (test, firmware_update_handler_set_image_digest,
+		test_static.base.base_ctrl.set_image_digest);
 	CuAssertPtrEquals (test, firmware_update_handler_write_staging,
 		test_static.base.base_ctrl.write_staging);
 

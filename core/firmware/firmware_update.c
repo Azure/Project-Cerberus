@@ -6,6 +6,7 @@
 #include <string.h>
 #include "firmware_logging.h"
 #include "firmware_update.h"
+#include "common/buffer_util.h"
 #include "common/unused.h"
 #include "flash/flash_common.h"
 #include "flash/flash_util.h"
@@ -82,6 +83,77 @@ int firmware_update_init_no_firmware_header (struct firmware_update *updater,
 }
 
 /**
+ * Initialize the platform firmware updater.
+ *
+ * Firmware updates processed by this updater are required to provide a digest for the image that
+ * can be used to verify that the expected data was received prior accepting any of the image data.
+ *
+ * @param updater The updater to initialize.
+ * @param state Variable context for the updater.  This must be uninitialized.
+ * @param flash The device and address mapping for firmware images.
+ * @param context The application context API.
+ * @param fw The platform handler for firmware images.
+ * @param security The manager for the device security policy.
+ * @param hash The hash engine to use during updates.
+ * @param allowed_revision The lowest image ID that will be allowed for firmware updates.
+ *
+ * @return 0 if the updater was successfully initialized or an error code.
+ */
+int firmware_update_init_authorized (struct firmware_update *updater,
+	struct firmware_update_state *state, const struct firmware_flash_map *flash,
+	const struct app_context *context, const struct firmware_image *fw,
+	const struct security_manager *security, const struct hash_engine *hash, int allowed_revision)
+{
+	int status;
+
+	status = firmware_update_init (updater, state, flash, context, fw, security, hash,
+		allowed_revision);
+	if (status == 0) {
+		updater->require_digest = true;
+	}
+
+	return status;
+}
+
+/**
+ * Initialize the platform firmware updater.
+ *
+ * Firmware updates processed by this updater are required to provide a digest for the image that
+ * can be used to verify that the expected data was received prior accepting any of the image data.
+ *
+ * Firmware images processed by the updater are not required to contain a firmware header.  If the
+ * firmware header is present, it will be processed.  If the firmware header is not present, the
+ * update will proceed without it and any workflows that require information from the header will
+ * be skipped.
+ *
+ * @param updater The updater to initialize.
+ * @param state Variable context for the updater.  This must be uninitialized.
+ * @param flash The device and address mapping for firmware images.
+ * @param context The application context API.
+ * @param fw The platform handler for firmware images.
+ * @param security The manager for the device security policy.
+ * @param hash The hash engine to use during updates.
+ * @param allowed_revision The lowest image ID that will be allowed for firmware updates.
+ *
+ * @return 0 if the updater was successfully initialized or an error code.
+ */
+int firmware_update_init_authorized_no_firmware_header (struct firmware_update *updater,
+	struct firmware_update_state *state, const struct firmware_flash_map *flash,
+	const struct app_context *context, const struct firmware_image *fw,
+	const struct security_manager *security, const struct hash_engine *hash, int allowed_revision)
+{
+	int status;
+
+	status = firmware_update_init_no_firmware_header (updater, state, flash, context, fw, security,
+		hash, allowed_revision);
+	if (status == 0) {
+		updater->require_digest = true;
+	}
+
+	return status;
+}
+
+/**
  * Initialize only the variable state for the platform firmware updater.  The rest of the firmware
  * update instance is assumed to have already been initialized.
  *
@@ -127,6 +199,7 @@ int firmware_update_init_state (const struct firmware_update *updater, int allow
 
 	updater->state->recovery_rev = -1;
 	updater->state->min_rev = allowed_revision;
+	updater->state->img_digest_type = HASH_TYPE_INVALID;
 
 	return 0;
 }
@@ -221,7 +294,8 @@ static void firmware_update_status_change (const struct firmware_update_notifica
  * @param flash The flash device that contains the image to load and verify.
  * @param address Base address of the image.  This does not include any image offset.
  * @param check_bytes Flag indicating if remaining bytes of an active update should be considered
- * during verification.
+ * during verification.  This flag also controls checking the digest of the received image data, if
+ * necessary.
  * @param boot_image Flag indicating if boot image verification needs to be run.
  * @param check_rollback Flag indicating if recovery revision rollback should be checked.
  * @param img_size Output for the total size of the image.  This is only valid if the image was
@@ -244,10 +318,38 @@ static int firmware_update_load_and_verify_image (const struct firmware_update *
 	firmware_update_status_change (callback, UPDATE_STATUS_VERIFYING_IMAGE);
 
 	if (check_bytes) {
-		if (flash_updater_get_remaining_bytes (&updater->state->update_mgr) > 0) {
+		int remaining = flash_updater_get_remaining_bytes (&updater->state->update_mgr);
+
+		if (remaining > 0) {
 			firmware_update_status_change (callback, UPDATE_STATUS_INCOMPLETE_IMAGE);
 
 			return FIRMWARE_UPDATE_INCOMPLETE_IMAGE;
+		}
+		else if (remaining < 0) {
+			firmware_update_status_change (callback, UPDATE_STATUS_UNEXPECTED_IMAGE);
+
+			return FIRMWARE_UPDATE_EXTRA_IMAGE_DATA;
+		}
+
+		if (updater->state->img_digest_type != HASH_TYPE_INVALID) {
+			uint8_t received_digest[HASH_MAX_HASH_LEN] = {0};
+
+			status = flash_hash_contents (flash, address + updater->state->img_offset,
+				updater->state->img_length, updater->hash, updater->state->img_digest_type,
+				received_digest, sizeof (received_digest));
+			if (status != 0) {
+				firmware_update_status_change (callback, UPDATE_STATUS_VERIFY_FAILURE);
+
+				return status;
+			}
+
+			status = buffer_compare (received_digest, updater->state->img_digest,
+				updater->state->img_digest_length);
+			if (status != 0) {
+				firmware_update_status_change (callback, UPDATE_STATUS_UNEXPECTED_IMAGE);
+
+				return FIRMWARE_UPDATE_IMAGE_DIGEST_MISMATCH;
+			}
 		}
 	}
 
@@ -274,6 +376,8 @@ static int firmware_update_load_and_verify_image (const struct firmware_update *
 	if (boot_image && updater->internal.verify_boot_image) {
 		status = updater->internal.verify_boot_image (updater, flash, address);
 		if (status != 0) {
+			/* This is not run in the context of a firmware update, so no status change is
+			 * necessary. */
 			return status;
 		}
 	}
@@ -375,6 +479,68 @@ int firmware_update_is_recovery_good (const struct firmware_update *updater)
 	}
 
 	return updater->state->recovery_bad ? 0 : 1;
+}
+
+/**
+ * Specify the expected digest for the next image received for a firmware update.  When a digest is
+ * provided, it will be used as a pre-check against the received data before proceeding with more
+ * detailed verification of the image contents.
+ *
+ * Once a digest is provided, it will not be cleared until a valid firmware image has been applied
+ * to the active flash or a new update sequence has been started.
+ *
+ * This call is only possible after the staging has been prepared successfully.  If there is no
+ * expected image to be received, this call will fail.
+ *
+ * @param updater The updater to configure with the image digest.
+ * @param hash_type The hash algorithm used to generate the digest.
+ * @param digest Digest of the expected firmware image.
+ * @param length Length of the digest.
+ *
+ * @return 0 if the digest was set successfully or an error code.
+ */
+int firmware_update_set_image_digest (const struct firmware_update *updater,
+	enum hash_type hash_type, const uint8_t *digest, size_t length)
+{
+	if ((updater == NULL) || (digest == NULL) || (length == 0)) {
+		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
+	}
+
+	if (!hash_is_alg_supported (hash_type)) {
+		return FIRMWARE_UPDATE_UNSUPPORTED_HASH;
+	}
+
+	if (length > sizeof (updater->state->img_digest)) {
+		return FIRMWARE_UPDATE_DIGEST_TOO_LARGE;
+	}
+
+	if (updater->state->img_length == 0) {
+		return FIRMWARE_UPDATE_NO_EXPECTED_IMAGE;
+	}
+
+	/* Invalidate any existing digest to ensure no intermediate state is checked against a received
+	 * image. */
+	updater->state->img_digest_type = HASH_TYPE_INVALID;
+
+	/* Save the details for checking the received image digest. */
+	memcpy (updater->state->img_digest, digest, length);
+	updater->state->img_digest_length = length;
+	updater->state->img_digest_type = hash_type;
+
+	return 0;
+}
+
+/**
+ * Clear any expected digest stored for the received image.
+ *
+ * @param updater The updater to clear.
+ */
+static void firmware_update_clear_image_digest (const struct firmware_update *updater)
+{
+	updater->state->img_digest_type = HASH_TYPE_INVALID;
+	memset (updater->state->img_digest, 0, sizeof (updater->state->img_digest));
+	updater->state->img_digest_length = 0;
+	updater->state->img_length = 0;
 }
 
 /**
@@ -808,6 +974,9 @@ static int firmware_update_apply_recovery_update (const struct firmware_update *
 /**
  * Copy the image from staging flash to active flash.
  *
+ * Once the active flash has been successfully updated, any expected digest for the staging image
+ * will be invalidated.
+ *
  * @param updater The updater to execute.
  * @param callback Status callback to report status updates.  This can be null to not have status
  * reporting.
@@ -859,11 +1028,17 @@ static int firmware_update_apply_update (const struct firmware_update *updater,
 	}
 
 	/* Update the active image from staging flash. */
-	return firmware_update_write_image (updater, callback, updater->flash->active_flash,
+	status = firmware_update_write_image (updater, callback, updater->flash->active_flash,
 		updater->flash->active_addr, updater->flash->backup_flash, updater->flash->backup_addr,
 		updater->flash->staging_flash, updater->flash->staging_addr, img_length,
 		UPDATE_STATUS_BACKUP_ACTIVE, UPDATE_STATUS_BACKUP_FAILED, UPDATE_STATUS_UPDATING_IMAGE,
 		UPDATE_STATUS_UPDATE_FAILED, &img_good);
+	if (status == 0) {
+		/* Clear any staging image digest information. */
+		firmware_update_clear_image_digest (updater);
+	}
+
+	return status;
 }
 
 /**
@@ -1140,7 +1315,7 @@ int firmware_update_run_revocation (const struct firmware_update *updater,
 
 	/* Verify image in active flash. */
 	status = firmware_update_load_and_verify_image (updater, callback, updater->flash->active_flash,
-		updater->flash->active_addr, false, false, false, &new_len,	&new_revision);
+		updater->flash->active_addr, false, false, false, &new_len, &new_revision);
 	if (status != 0) {
 		return status;
 	}
@@ -1153,13 +1328,16 @@ int firmware_update_run_revocation (const struct firmware_update *updater,
 }
 
 /**
- * Prepare staging area for incoming FW update file
+ * Initiate a new firmware update session.  This means that:
+ * - The staging flash will be erased to accommodate at least as much data as is expected to be
+ *   received.
+ * - The expected image digest will be erased.
  *
- * @param updater Updater to use
- * @param size FW update file size to clear in staging area
+ * @param updater Updater to use for the new update session.
  * @param callback A set of notification handlers to use during the update process.  This can be
  * null if no notifications are necessary.  Also, individual callbacks that are not desired can be
  * left null.
+ * @param size Total length of the firmware update file that will be received.
  *
  * @return Preparation status, 0 if success or an error code.
  */
@@ -1191,18 +1369,22 @@ int firmware_update_prepare_staging (const struct firmware_update *updater,
 		firmware_update_status_change (callback, UPDATE_STATUS_STAGING_PREP_FAIL);
 	}
 
+	/* Save the expected image length for an additional hash check that may need to be performed. */
+	firmware_update_clear_image_digest (updater);
+	updater->state->img_length = size;
+
 	return status;
 }
 
 /**
- * Program FW update data to staging area
+ * Program firmware update data to the staging area.
  *
- * @param updater Updater to use
- * @param buf Buffer with FW update data to program
- * @param buf_len Length of FW update data buffer
+ * @param updater Updater to handle the image data.
  * @param callback A set of notification handlers to use during the update process.  This can be
  * null if no notifications are necessary.  Also, individual callbacks that are not desired can be
  * left null.
+ * @param buf Buffer with the FW update data to program.
+ * @param buf_len Length of FW update data buffer.
  *
  * @return Programming status, 0 if success or an error code.
  */
@@ -1215,6 +1397,12 @@ int firmware_update_write_to_staging (const struct firmware_update *updater,
 		firmware_update_status_change (callback, UPDATE_STATUS_STAGING_WRITE_FAIL);
 
 		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
+	}
+
+	if (updater->require_digest && (updater->state->img_digest_type == HASH_TYPE_INVALID)) {
+		firmware_update_status_change (callback, UPDATE_STATUS_NOT_AUTHORIZED);
+
+		return FIRMWARE_UPDATE_NO_IMAGE_DIGEST;
 	}
 
 	firmware_update_status_change (callback, UPDATE_STATUS_STAGING_WRITE);

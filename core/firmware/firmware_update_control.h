@@ -46,21 +46,39 @@ struct firmware_update_control {
 	int32_t (*get_remaining_len) (const struct firmware_update_control *update);
 
 	/**
-	 * Prepare staging area for incoming update.
+	 * Prepare the staging area for an incoming update.  This will immediately return with progress
+	 * being reported separately.
 	 *
-	 * @param update The update instance to query.
-	 * @param size Size of incoming update.
+	 * @param update The update instance to trigger.
+	 * @param size Total size of the update image that will be sent.
 	 *
 	 * @return Preparation status, 0 if success or an error code.
 	 */
 	int (*prepare_staging) (const struct firmware_update_control *update, size_t size);
 
 	/**
-	 * Write to staging area update data.
+	 * Provide a digest for the incoming update data.  This digest will be used to verify the
+	 * received data matched what was expected.  This should be called after preparing for an update
+	 * but before receiving any update data.  This means the digest should be provided between calls
+	 * to firmware_update_control.prepare_staging() and firmware_update_control.write_staging().
 	 *
-	 * @param update The update instance to query.
-	 * @param buf Buffer with update data.
-	 * @param buf_len Buffer length.
+	 * @param update The update instance.
+	 * @param hash_type Hash algorithm used to generate the image digest.
+	 * @param digest Digest of the complete update image that will be transmitted.
+	 * @param length Length of the image digest.
+	 *
+	 * @return 0 if the image digest was set successfully or an error code.
+	 */
+	int (*set_image_digest) (const struct firmware_update_control *update, enum hash_type hash_type,
+		const uint8_t *digest, size_t length);
+
+	/**
+	 * Write update image data to the staging area.  This will immediately return with progress
+	 * being reported separately.
+	 *
+	 * @param update The update instance to trigger.
+	 * @param buf Buffer with the update image data to write.
+	 * @param buf_len Length of the image data.
 	 *
 	 * @return Write status, 0 if success or an error code.
 	 */

@@ -78,6 +78,8 @@ enum firmware_update_status {
 	UPDATE_STATUS_BOOT_UPDATED_IMAGE,	/**< The new image is running but still initializing. */
 	UPDATE_STATUS_ROLLBACK,				/**< The device is running the previous image instead of the updated one. */
 	UPDATE_STATUS_SUCCESS_NO_RESET,		/**< The firmware update was applied successfully but the device was not reset. */
+	UPDATE_STATUS_UNEXPECTED_IMAGE,		/**< The received image does not match details specified when preparing the update. */
+	UPDATE_STATUS_NOT_AUTHORIZED,		/**< The update operation has not been authorized for execution. */
 };
 
 struct firmware_update;
@@ -123,12 +125,16 @@ struct firmware_update_hooks {
  * Variable context for a firmware updater.
  */
 struct firmware_update_state {
-	struct flash_updater update_mgr;	/**< Update manager for writing data to flash. */
-	struct observable observable;		/**< Observer manager for the updater. */
-	bool recovery_bad;					/**< Indication if the recovery image on flash is bad. */
-	int recovery_rev;					/**< Revision ID of the current recovery image. */
-	int min_rev;						/**< Minimum revision ID allowed for update. */
-	int img_offset;						/**< Offset to apply to FW image regions. */
+	struct flash_updater update_mgr;		/**< Update manager for writing data to flash. */
+	struct observable observable;			/**< Observer manager for the updater. */
+	bool recovery_bad;						/**< Indication if the recovery image on flash is bad. */
+	int recovery_rev;						/**< Revision ID of the current recovery image. */
+	int min_rev;							/**< Minimum revision ID allowed for update. */
+	int img_offset;							/**< Offset to apply to FW image regions. */
+	uint8_t img_digest[HASH_MAX_HASH_LEN];	/**< Expected digest of the next update image. */
+	size_t img_digest_length;				/**< Length of the expected digest. */
+	size_t img_length;						/**< Length of the image for the expected digest. */
+	enum hash_type img_digest_type;			/**< The hash algorithm used to generate the expected digest. */
 };
 
 /**
@@ -143,6 +149,7 @@ struct firmware_update {
 	const struct hash_engine *hash;				/**< The hash engine to use during update. */
 	const struct app_context *context;			/**< The platform application context API. */
 	bool no_fw_header;							/**< Indication that a firmware header is not required. */
+	bool require_digest;						/**< Indication that an expected digest is needed for the image. */
 };
 
 /**
@@ -168,6 +175,14 @@ int firmware_update_init_no_firmware_header (struct firmware_update *updater,
 	struct firmware_update_state *state, const struct firmware_flash_map *flash,
 	const struct app_context *context, const struct firmware_image *fw,
 	const struct security_manager *security, const struct hash_engine *hash, int allowed_revision);
+int firmware_update_init_authorized (struct firmware_update *updater,
+	struct firmware_update_state *state, const struct firmware_flash_map *flash,
+	const struct app_context *context, const struct firmware_image *fw,
+	const struct security_manager *security, const struct hash_engine *hash, int allowed_revision);
+int firmware_update_init_authorized_no_firmware_header (struct firmware_update *updater,
+	struct firmware_update_state *state, const struct firmware_flash_map *flash,
+	const struct app_context *context, const struct firmware_image *fw,
+	const struct security_manager *security, const struct hash_engine *hash, int allowed_revision);
 int firmware_update_init_state (const struct firmware_update *updater, int allowed_revision);
 void firmware_update_release (const struct firmware_update *updater);
 
@@ -177,6 +192,9 @@ void firmware_update_set_recovery_revision (const struct firmware_update *update
 void firmware_update_set_recovery_good (const struct firmware_update *updater, bool img_good);
 void firmware_update_validate_recovery_image (const struct firmware_update *updater);
 int firmware_update_is_recovery_good (const struct firmware_update *updater);
+
+int firmware_update_set_image_digest (const struct firmware_update *updater,
+	enum hash_type hash_type, const uint8_t *digest, size_t length);
 
 int firmware_update_restore_recovery_image (const struct firmware_update *updater);
 int firmware_update_restore_active_image (const struct firmware_update *updater);
@@ -201,6 +219,7 @@ int firmware_update_write_to_staging (const struct firmware_update *updater,
 int firmware_update_get_update_remaining (const struct firmware_update *updater);
 
 
+// *INDENT-OFF*
 #define	FIRMWARE_UPDATE_ERROR(code)		ROT_ERROR (ROT_MODULE_FIRMWARE_UPDATE, code)
 
 /**
@@ -209,26 +228,33 @@ int firmware_update_get_update_remaining (const struct firmware_update *updater)
  * Note: Commented error codes have been deprecated.
  */
 enum {
-	FIRMWARE_UPDATE_INVALID_ARGUMENT = FIRMWARE_UPDATE_ERROR (0x00),	/**< Input parameter is null or not valid. */
-	FIRMWARE_UPDATE_NO_MEMORY = FIRMWARE_UPDATE_ERROR (0x01),			/**< Memory allocation failed. */
-//	FIRMWARE_UPDATE_CONTEXT_SAVE_FAILED = FIRMWARE_UPDATE_ERROR (0x02),	/**< The running context has not been saved. */
-	FIRMWARE_UPDATE_FINALIZE_IMG_FAILED = FIRMWARE_UPDATE_ERROR (0x03),	/**< A generic error while executing the finalize hook. */
-	FIRMWARE_UPDATE_VERIFY_BOOT_FAILED = FIRMWARE_UPDATE_ERROR (0x04),	/**< An error not related to image validation caused verification to fail. */
-	FIRMWARE_UPDATE_INVALID_FLASH_MAP = FIRMWARE_UPDATE_ERROR (0x05),	/**< The flash map provided to the updater is not valid. */
-	FIRMWARE_UPDATE_INCOMPLETE_IMAGE = FIRMWARE_UPDATE_ERROR (0x06),	/**< The staging flash has not been programmed with all expected data. */
-	FIRMWARE_UPDATE_NO_KEY_MANIFEST = FIRMWARE_UPDATE_ERROR (0x07),		/**< Could not retrieve the key manifest for the new image. */
-//	FIRMWARE_UPDATE_IMG_TOO_LARGE = FIRMWARE_UPDATE_ERROR (0x08),		/**< The new image is too big for the staging flash region. */
-//	FIRMWARE_UPDATE_NO_SPACE = FIRMWARE_UPDATE_ERROR (0x09),			/**< Not enough space remaining in staging flash for more data. */
-//	FIRMWARE_UPDATE_INCOMPLETE_WRITE = FIRMWARE_UPDATE_ERROR (0x0a),	/**< Update payload was only partially written to flash. */
-	FIRMWARE_UPDATE_NO_TASK = FIRMWARE_UPDATE_ERROR (0x0b),				/**< No update task is running .*/
-	FIRMWARE_UPDATE_TASK_BUSY = FIRMWARE_UPDATE_ERROR (0x0c),			/**< The update task is busy performing an operation. */
-	FIRMWARE_UPDATE_NO_FIRMWARE_HEADER = FIRMWARE_UPDATE_ERROR (0x0d),	/**< Could not retrieve the firmware header for the new image. */
-	FIRMWARE_UPDATE_REJECTED_ROLLBACK = FIRMWARE_UPDATE_ERROR (0x0e),	/**< The new image revision ID is a disallowed version. */
-	FIRMWARE_UPDATE_NO_RECOVERY_IMAGE = FIRMWARE_UPDATE_ERROR (0x0f),	/**< There is no recovery image available for the operation. */
-	FIRMWARE_UPDATE_RESTORE_NOT_NEEDED = FIRMWARE_UPDATE_ERROR (0x10),	/**< An image restore operation was not necessary. */
-	FIRMWARE_UPDATE_INVALID_BOOT_IMAGE = FIRMWARE_UPDATE_ERROR (0x11),	/**< The boot image is not valid based on additional verification. */
-	FIRMWARE_UPDATE_TOO_MUCH_DATA = FIRMWARE_UPDATE_ERROR (0x12),		/**< Too much data was sent in a single request. */
+	FIRMWARE_UPDATE_INVALID_ARGUMENT = FIRMWARE_UPDATE_ERROR (0x00),		/**< Input parameter is null or not valid. */
+	FIRMWARE_UPDATE_NO_MEMORY = FIRMWARE_UPDATE_ERROR (0x01),				/**< Memory allocation failed. */
+//	FIRMWARE_UPDATE_CONTEXT_SAVE_FAILED = FIRMWARE_UPDATE_ERROR (0x02),		/**< The running context has not been saved. */
+	FIRMWARE_UPDATE_FINALIZE_IMG_FAILED = FIRMWARE_UPDATE_ERROR (0x03),		/**< A generic error while executing the finalize hook. */
+	FIRMWARE_UPDATE_VERIFY_BOOT_FAILED = FIRMWARE_UPDATE_ERROR (0x04),		/**< An error not related to image validation caused verification to fail. */
+	FIRMWARE_UPDATE_INVALID_FLASH_MAP = FIRMWARE_UPDATE_ERROR (0x05),		/**< The flash map provided to the updater is not valid. */
+	FIRMWARE_UPDATE_INCOMPLETE_IMAGE = FIRMWARE_UPDATE_ERROR (0x06),		/**< The staging flash has not been programmed with all expected data. */
+	FIRMWARE_UPDATE_NO_KEY_MANIFEST = FIRMWARE_UPDATE_ERROR (0x07),			/**< Could not retrieve the key manifest for the new image. */
+//	FIRMWARE_UPDATE_IMG_TOO_LARGE = FIRMWARE_UPDATE_ERROR (0x08),			/**< The new image is too big for the staging flash region. */
+//	FIRMWARE_UPDATE_NO_SPACE = FIRMWARE_UPDATE_ERROR (0x09),				/**< Not enough space remaining in staging flash for more data. */
+//	FIRMWARE_UPDATE_INCOMPLETE_WRITE = FIRMWARE_UPDATE_ERROR (0x0a),		/**< Update payload was only partially written to flash. */
+	FIRMWARE_UPDATE_NO_TASK = FIRMWARE_UPDATE_ERROR (0x0b),					/**< No update task is running .*/
+	FIRMWARE_UPDATE_TASK_BUSY = FIRMWARE_UPDATE_ERROR (0x0c),				/**< The update task is busy performing an operation. */
+	FIRMWARE_UPDATE_NO_FIRMWARE_HEADER = FIRMWARE_UPDATE_ERROR (0x0d),		/**< Could not retrieve the firmware header for the new image. */
+	FIRMWARE_UPDATE_REJECTED_ROLLBACK = FIRMWARE_UPDATE_ERROR (0x0e),		/**< The new image revision ID is a disallowed version. */
+	FIRMWARE_UPDATE_NO_RECOVERY_IMAGE = FIRMWARE_UPDATE_ERROR (0x0f),		/**< There is no recovery image available for the operation. */
+	FIRMWARE_UPDATE_RESTORE_NOT_NEEDED = FIRMWARE_UPDATE_ERROR (0x10),		/**< An image restore operation was not necessary. */
+	FIRMWARE_UPDATE_INVALID_BOOT_IMAGE = FIRMWARE_UPDATE_ERROR (0x11),		/**< The boot image is not valid based on additional verification. */
+	FIRMWARE_UPDATE_TOO_MUCH_DATA = FIRMWARE_UPDATE_ERROR (0x12),			/**< Too much data was sent in a single request. */
+	FIRMWARE_UPDATE_UNSUPPORTED_HASH = FIRMWARE_UPDATE_ERROR (0x13),		/**< A specified digest uses an unsupported hash algorithm. */
+	FIRMWARE_UPDATE_DIGEST_TOO_LARGE = FIRMWARE_UPDATE_ERROR (0x14),		/**< A specified digest is too large. */
+	FIRMWARE_UPDATE_NO_EXPECTED_IMAGE = FIRMWARE_UPDATE_ERROR (0x15),		/**< The updater is not expecting to receive any image data. */
+	FIRMWARE_UPDATE_EXTRA_IMAGE_DATA = FIRMWARE_UPDATE_ERROR (0x16),		/**< More image data was received than was expected. */
+	FIRMWARE_UPDATE_IMAGE_DIGEST_MISMATCH = FIRMWARE_UPDATE_ERROR (0x17),	/**< The staging image does not match the expected digest. */
+	FIRMWARE_UPDATE_NO_IMAGE_DIGEST = FIRMWARE_UPDATE_ERROR (0x18),			/**< No expected digest has been provided for the image data. */
 };
+// *INDENT-ON*
 
 
 #endif	/* FIRMWARE_UPDATE_H_ */

@@ -124,6 +124,19 @@ int firmware_update_handler_prepare_staging (const struct firmware_update_contro
 		FIRMWARE_UPDATE_HANDLER_ACTION_PREP_STAGING, (uint8_t*) &size, sizeof (size));
 }
 
+int firmware_update_handler_set_image_digest (const struct firmware_update_control *update,
+	enum hash_type hash_type, const uint8_t *digest, size_t length)
+{
+	const struct firmware_update_handler *handler =
+		TO_DERIVED_TYPE (update, const struct firmware_update_handler, base_ctrl);
+
+	if (update == NULL) {
+		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
+	}
+
+	return firmware_update_set_image_digest (handler->updater, hash_type, digest, length);
+}
+
 int firmware_update_handler_write_staging (const struct firmware_update_control *update,
 	uint8_t *buf, size_t buf_len)
 {
@@ -291,6 +304,7 @@ int firmware_update_handler_init (struct firmware_update_handler *handler,
 	handler->base_ctrl.get_status = firmware_update_handler_get_status;
 	handler->base_ctrl.get_remaining_len = firmware_update_handler_get_remaining_len;
 	handler->base_ctrl.prepare_staging = firmware_update_handler_prepare_staging;
+	handler->base_ctrl.set_image_digest = firmware_update_handler_set_image_digest;
 	handler->base_ctrl.write_staging = firmware_update_handler_write_staging;
 
 	handler->base_notify.status_change = firmware_update_handler_status_change;
