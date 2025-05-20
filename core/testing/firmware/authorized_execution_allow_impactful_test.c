@@ -121,6 +121,7 @@ static void authorized_execution_allow_impactful_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, execution.test.base.execute);
+	CuAssertPtrNotNull (test, execution.test.base.validate_data);
 	CuAssertPtrNotNull (test, execution.test.base.get_status_identifiers);
 
 	authorized_execution_allow_impactful_testing_release (test, &execution);
@@ -156,6 +157,7 @@ static void authorized_execution_allow_impactful_test_static_init (CuTest *test)
 	TEST_START;
 
 	CuAssertPtrNotNull (test, execution.test.base.execute);
+	CuAssertPtrNotNull (test, execution.test.base.validate_data);
 	CuAssertPtrNotNull (test, execution.test.base.get_status_identifiers);
 
 	authorized_execution_allow_impactful_testing_init_dependencies (test, &execution);
@@ -170,7 +172,7 @@ static void authorized_execution_allow_impactful_test_release_null (CuTest *test
 	authorized_execution_allow_impactful_release (NULL);
 }
 
-static void authorized_execution_allow_impactful_test_execute_allow_impactful (CuTest *test)
+static void authorized_execution_allow_impactful_test_execute (CuTest *test)
 {
 	struct authorized_execution_allow_impactful_testing execution;
 	uint32_t auth_time = 150;
@@ -198,15 +200,14 @@ static void authorized_execution_allow_impactful_test_execute_allow_impactful (C
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, &reset_req);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, false, reset_req);
 
 	authorized_execution_allow_impactful_testing_release (test, &execution);
 }
 
-static void authorized_execution_allow_impactful_test_execute_allow_impactful_no_reset_req (
-	CuTest *test)
+static void authorized_execution_allow_impactful_test_execute_no_reset_req (CuTest *test)
 {
 	struct authorized_execution_allow_impactful_testing execution;
 	uint32_t auth_time = 1500;
@@ -233,14 +234,13 @@ static void authorized_execution_allow_impactful_test_execute_allow_impactful_no
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, NULL);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	authorized_execution_allow_impactful_testing_release (test, &execution);
 }
 
-static void authorized_execution_allow_impactful_test_execute_allow_impactful_static_init (
-	CuTest *test)
+static void authorized_execution_allow_impactful_test_execute_static_init (CuTest *test)
 {
 	uint32_t auth_time = 5000;
 	struct authorized_execution_allow_impactful_testing execution = {
@@ -271,7 +271,7 @@ static void authorized_execution_allow_impactful_test_execute_allow_impactful_st
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, &reset_req);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, true, reset_req);
 
@@ -289,7 +289,7 @@ static void authorized_execution_allow_impactful_test_execute_null (CuTest *test
 
 	authorized_execution_allow_impactful_testing_init (test, &execution, auth_time);
 
-	status = execution.test.base.execute (NULL, &reset_req);
+	status = execution.test.base.execute (NULL, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, AUTHORIZED_EXECUTION_INVALID_ARGUMENT, status);
 	CuAssertIntEquals (test, false, reset_req);
 
@@ -325,9 +325,60 @@ static void authorized_execution_allow_impactful_test_execute_authorize_update_f
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, &reset_req);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, IMPACTFUL_UPDATE_AUTHORIZE_FAILED, status);
 	CuAssertIntEquals (test, false, reset_req);
+
+	authorized_execution_allow_impactful_testing_release (test, &execution);
+}
+
+static void authorized_execution_allow_impactful_test_validate_data (CuTest *test)
+{
+	struct authorized_execution_allow_impactful_testing execution;
+	uint32_t auth_time = 100;
+	int status;
+
+	TEST_START;
+
+	authorized_execution_allow_impactful_testing_init (test, &execution, auth_time);
+
+	status = execution.test.base.validate_data (&execution.test.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	authorized_execution_allow_impactful_testing_release (test, &execution);
+}
+
+static void authorized_execution_allow_impactful_test_validate_data_static_init (CuTest *test)
+{
+	uint32_t auth_time = 5000;
+	struct authorized_execution_allow_impactful_testing execution = {
+		.test = authorized_execution_allow_impactful_static_init (&execution.impactful.base,
+			auth_time)
+	};
+	int status;
+
+	TEST_START;
+
+	authorized_execution_allow_impactful_testing_init_dependencies (test, &execution);
+
+	status = execution.test.base.validate_data (&execution.test.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	authorized_execution_allow_impactful_testing_release (test, &execution);
+}
+
+static void authorized_execution_allow_impactful_test_validate_data_null (CuTest *test)
+{
+	struct authorized_execution_allow_impactful_testing execution;
+	uint32_t auth_time = 100;
+	int status;
+
+	TEST_START;
+
+	authorized_execution_allow_impactful_testing_init (test, &execution, auth_time);
+
+	status = execution.test.base.validate_data (NULL, NULL, 0);
+	CuAssertIntEquals (test, AUTHORIZED_EXECUTION_INVALID_ARGUMENT, status);
 
 	authorized_execution_allow_impactful_testing_release (test, &execution);
 }
@@ -407,11 +458,14 @@ TEST (authorized_execution_allow_impactful_test_init);
 TEST (authorized_execution_allow_impactful_test_init_null);
 TEST (authorized_execution_allow_impactful_test_static_init);
 TEST (authorized_execution_allow_impactful_test_release_null);
-TEST (authorized_execution_allow_impactful_test_execute_allow_impactful);
-TEST (authorized_execution_allow_impactful_test_execute_allow_impactful_no_reset_req);
-TEST (authorized_execution_allow_impactful_test_execute_allow_impactful_static_init);
+TEST (authorized_execution_allow_impactful_test_execute);
+TEST (authorized_execution_allow_impactful_test_execute_no_reset_req);
+TEST (authorized_execution_allow_impactful_test_execute_static_init);
 TEST (authorized_execution_allow_impactful_test_execute_null);
 TEST (authorized_execution_allow_impactful_test_execute_authorize_update_failure);
+TEST (authorized_execution_allow_impactful_test_validate_data);
+TEST (authorized_execution_allow_impactful_test_validate_data_static_init);
+TEST (authorized_execution_allow_impactful_test_validate_data_null);
 TEST (authorized_execution_allow_impactful_test_get_status_identifiers);
 TEST (authorized_execution_allow_impactful_test_get_status_identifiers_static_init);
 TEST (authorized_execution_allow_impactful_test_get_status_identifiers_null);

@@ -10,12 +10,15 @@
 
 
 int authorized_execution_allow_impactful_execute (const struct authorized_execution *execution,
-	bool *reset_req)
+	const uint8_t *data, size_t length, bool *reset_req)
 {
 	const struct authorized_execution_allow_impactful *reset =
 		(const struct authorized_execution_allow_impactful*) execution;
 	int status;
 
+	/* No data is needed for execution. */
+	UNUSED (data);
+	UNUSED (length);
 	UNUSED (reset_req);
 
 	if (reset == NULL) {
@@ -33,6 +36,20 @@ int authorized_execution_allow_impactful_execute (const struct authorized_execut
 	}
 
 	return status;
+}
+
+int authorized_execution_allow_impactful_validate_data (
+	const struct authorized_execution *execution, const uint8_t *data, size_t length)
+{
+	if (execution == NULL) {
+		return AUTHORIZED_EXECUTION_INVALID_ARGUMENT;
+	}
+
+	/* The command consumes no data, so anything is considered valid. */
+	UNUSED (data);
+	UNUSED (length);
+
+	return 0;
 }
 
 void authorized_execution_allow_impactful_get_status_identifiers (
@@ -70,6 +87,7 @@ int authorized_execution_allow_impactful_init (
 	memset (execution, 0, sizeof (*execution));
 
 	execution->base.execute = authorized_execution_allow_impactful_execute;
+	execution->base.validate_data = authorized_execution_allow_impactful_validate_data;
 	execution->base.get_status_identifiers =
 		authorized_execution_allow_impactful_get_status_identifiers;
 

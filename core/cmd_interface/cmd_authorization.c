@@ -11,19 +11,19 @@
 
 int cmd_authorization_authorize_operation (const struct cmd_authorization *auth,
 	uint32_t operation_id, const uint8_t **token, size_t *length,
-	const struct authorized_execution **execution)
+	struct cmd_authorization_operation_context *op_context)
 {
 	const struct cmd_authorization_operation *operation = NULL;
 	size_t i = 0;
 	int status;
 
-	if (execution == NULL) {
+	if (op_context == NULL) {
 		return CMD_AUTHORIZATION_INVALID_ARGUMENT;
 	}
 
-	*execution = NULL;
+	memset (op_context, 0, sizeof (*op_context));
 
-	if (auth == NULL) {
+	if ((auth == NULL) || (token == NULL) || (length == NULL)) {
 		return CMD_AUTHORIZATION_INVALID_ARGUMENT;
 	}
 
@@ -42,7 +42,27 @@ int cmd_authorization_authorize_operation (const struct cmd_authorization *auth,
 			status = operation->authorization->authorize (operation->authorization, token, length);
 			if (status == 0) {
 				/* The operation was authorized, so provide the execution context. */
-				*execution = operation->execution;
+				struct cmd_authorization_operation_context tmp_context = {0};
+
+				if ((*token != NULL) && (operation->data != NULL)) {
+					status = operation->data->get_authenticated_data (operation->data, *token,
+						*length, &tmp_context.data, &tmp_context.data_length);
+					if (status != 0) {
+						return status;
+					}
+				}
+
+				if (operation->execution != NULL) {
+					status = operation->execution->validate_data (operation->execution,
+						tmp_context.data, tmp_context.data_length);
+					if (status != 0) {
+						return status;
+					}
+
+					tmp_context.execution = operation->execution;
+				}
+
+				*op_context = tmp_context;
 			}
 		}
 		else {

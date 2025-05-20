@@ -7285,6 +7285,11 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_a
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = &execution->base,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	uint8_t *null = NULL;
 	size_t zero = 0;
@@ -7306,10 +7311,10 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_a
 		MOCK_ARG (CERBERUS_PROTOCOL_REVERT_BYPASS),
 		MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
 		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &execution, sizeof (execution), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	status |= mock_expect (&background->mock, background->base.execute_authorized_operation,
-		background, 0, MOCK_ARG_PTR (execution));
+		background, 0, MOCK_ARG_PTR_CONTAINS_TMP (&op_context, sizeof (op_context)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -7488,6 +7493,11 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_with_nonce
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = &execution->base,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	int i;
 	size_t length = 253;
@@ -7513,10 +7523,10 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_with_nonce
 		MOCK_ARG (CERBERUS_PROTOCOL_REVERT_BYPASS),
 		MOCK_ARG_PTR_PTR_CONTAINS_TMP (cerberus_protocol_reset_authorization (req), length),
 		MOCK_ARG_PTR_CONTAINS_TMP (&length, sizeof (length)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &execution, sizeof (execution), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	status |= mock_expect (&background->mock, background->base.execute_authorized_operation,
-		background, 0, MOCK_ARG_PTR (execution));
+		background, 0, MOCK_ARG_PTR_CONTAINS_TMP (&op_context, sizeof (op_context)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -7576,6 +7586,11 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_authorized
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = NULL,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	uint8_t *null = NULL;
 	size_t zero = 0;
@@ -7597,7 +7612,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_authorized
 		MOCK_ARG (CERBERUS_PROTOCOL_REVERT_BYPASS),
 		MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
 		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &null, sizeof (null), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -7708,6 +7723,11 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_error (CuT
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = &execution->base,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	uint8_t *null = NULL;
 	size_t zero = 0;
@@ -7729,10 +7749,11 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_error (CuT
 		MOCK_ARG (CERBERUS_PROTOCOL_REVERT_BYPASS),
 		MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
 		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &execution, sizeof (execution), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	status |= mock_expect (&background->mock, background->base.execute_authorized_operation,
-		background, CMD_BACKGROUND_BYPASS_FAILED, MOCK_ARG_PTR (execution));
+		background, CMD_BACKGROUND_BYPASS_FAILED,
+		MOCK_ARG_PTR_CONTAINS_TMP (&op_context, sizeof (op_context)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -7749,6 +7770,11 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = &execution->base,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	uint8_t *null = NULL;
 	size_t zero = 0;
@@ -7770,10 +7796,10 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 		MOCK_ARG (CERBERUS_PROTOCOL_FACTORY_RESET),
 		MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
 		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &execution, sizeof (execution), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	status |= mock_expect (&background->mock, background->base.execute_authorized_operation,
-		background, 0, MOCK_ARG_PTR (execution));
+		background, 0, MOCK_ARG_PTR_CONTAINS_TMP (&op_context, sizeof (op_context)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -7952,6 +7978,11 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_with_n
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = &execution->base,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	int i;
 	size_t length = 253;
@@ -7977,10 +8008,10 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_with_n
 		MOCK_ARG (CERBERUS_PROTOCOL_FACTORY_RESET),
 		MOCK_ARG_PTR_PTR_CONTAINS_TMP (cerberus_protocol_reset_authorization (req), length),
 		MOCK_ARG_PTR_CONTAINS_TMP (&length, sizeof (length)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &execution, sizeof (execution), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	status |= mock_expect (&background->mock, background->base.execute_authorized_operation,
-		background, 0, MOCK_ARG_PTR (execution));
+		background, 0, MOCK_ARG_PTR_CONTAINS_TMP (&op_context, sizeof (op_context)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -8040,6 +8071,11 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_author
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = NULL,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	uint8_t *null = NULL;
 	size_t zero = 0;
@@ -8061,7 +8097,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_author
 		MOCK_ARG (CERBERUS_PROTOCOL_FACTORY_RESET),
 		MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
 		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &null, sizeof (null), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -8172,6 +8208,11 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_error 
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = &execution->base,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	uint8_t *null = NULL;
 	size_t zero = 0;
@@ -8193,10 +8234,11 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_error 
 		MOCK_ARG (CERBERUS_PROTOCOL_FACTORY_RESET),
 		MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
 		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &execution, sizeof (execution), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	status |= mock_expect (&background->mock, background->base.execute_authorized_operation,
-		background, CMD_BACKGROUND_DEFAULT_FAILED, MOCK_ARG_PTR (execution));
+		background, CMD_BACKGROUND_DEFAULT_FAILED,
+		MOCK_ARG_PTR_CONTAINS_TMP (&op_context, sizeof (op_context)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -8213,6 +8255,11 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_n
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = &execution->base,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	uint8_t *null = NULL;
 	size_t zero = 0;
@@ -8233,10 +8280,10 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_n
 	status = mock_expect (&auth->mock, auth->base.authorize_operation, auth, 0,
 		MOCK_ARG (CERBERUS_PROTOCOL_CLEAR_PCD), MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
 		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &execution, sizeof (execution), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	status |= mock_expect (&background->mock, background->base.execute_authorized_operation,
-		background, 0, MOCK_ARG_PTR (execution));
+		background, 0, MOCK_ARG_PTR_CONTAINS_TMP (&op_context, sizeof (op_context)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -8415,6 +8462,11 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_w
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = &execution->base,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	int i;
 	size_t length = 253;
@@ -8440,10 +8492,10 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_w
 		MOCK_ARG (CERBERUS_PROTOCOL_CLEAR_PCD),
 		MOCK_ARG_PTR_PTR_CONTAINS_TMP (cerberus_protocol_reset_authorization (req), length),
 		MOCK_ARG_PTR_CONTAINS_TMP (&length, sizeof (length)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &execution, sizeof (execution), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	status |= mock_expect (&background->mock, background->base.execute_authorized_operation,
-		background, 0, MOCK_ARG_PTR (execution));
+		background, 0, MOCK_ARG_PTR_CONTAINS_TMP (&op_context, sizeof (op_context)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -8503,6 +8555,11 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_a
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = NULL,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	uint8_t *null = NULL;
 	size_t zero = 0;
@@ -8523,7 +8580,7 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_a
 	status = mock_expect (&auth->mock, auth->base.authorize_operation, auth, 0,
 		MOCK_ARG (CERBERUS_PROTOCOL_CLEAR_PCD), MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
 		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &null, sizeof (null), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -8634,6 +8691,11 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_e
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = &execution->base,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	uint8_t *null = NULL;
 	size_t zero = 0;
@@ -8654,10 +8716,11 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_e
 	status = mock_expect (&auth->mock, auth->base.authorize_operation, auth, 0,
 		MOCK_ARG (CERBERUS_PROTOCOL_CLEAR_PCD), MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
 		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &execution, sizeof (execution), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	status |= mock_expect (&background->mock, background->base.execute_authorized_operation,
-		background, CMD_BACKGROUND_PLATFORM_CFG_FAILED, MOCK_ARG_PTR (execution));
+		background, CMD_BACKGROUND_PLATFORM_CFG_FAILED,
+		MOCK_ARG_PTR_CONTAINS_TMP (&op_context, sizeof (op_context)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -8674,6 +8737,11 @@ void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_aut
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = &execution->base,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	uint8_t *null = NULL;
 	size_t zero = 0;
@@ -8694,10 +8762,10 @@ void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_aut
 	status = mock_expect (&auth->mock, auth->base.authorize_operation, auth, 0,
 		MOCK_ARG (CERBERUS_PROTOCOL_CLEAR_CFM), MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
 		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &execution, sizeof (execution), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	status |= mock_expect (&background->mock, background->base.execute_authorized_operation,
-		background, 0, MOCK_ARG_PTR (execution));
+		background, 0, MOCK_ARG_PTR_CONTAINS_TMP (&op_context, sizeof (op_context)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -8876,6 +8944,11 @@ void cerberus_protocol_optional_commands_testing_process_clear_cfms_with_nonce_a
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = &execution->base,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	int i;
 	size_t length = 253;
@@ -8901,10 +8974,10 @@ void cerberus_protocol_optional_commands_testing_process_clear_cfms_with_nonce_a
 		MOCK_ARG (CERBERUS_PROTOCOL_CLEAR_CFM),
 		MOCK_ARG_PTR_PTR_CONTAINS_TMP (cerberus_protocol_reset_authorization (req), length),
 		MOCK_ARG_PTR_CONTAINS_TMP (&length, sizeof (length)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &execution, sizeof (execution), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	status |= mock_expect (&background->mock, background->base.execute_authorized_operation,
-		background, 0, MOCK_ARG_PTR (execution));
+		background, 0, MOCK_ARG_PTR_CONTAINS_TMP (&op_context, sizeof (op_context)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -8964,6 +9037,11 @@ void cerberus_protocol_optional_commands_testing_process_clear_cfms_authorized_n
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = NULL,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	uint8_t *null = NULL;
 	size_t zero = 0;
@@ -8984,7 +9062,7 @@ void cerberus_protocol_optional_commands_testing_process_clear_cfms_authorized_n
 	status = mock_expect (&auth->mock, auth->base.authorize_operation, auth, 0,
 		MOCK_ARG (CERBERUS_PROTOCOL_CLEAR_CFM), MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
 		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &null, sizeof (null), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -9095,6 +9173,11 @@ void cerberus_protocol_optional_commands_testing_process_clear_cfms_error (CuTes
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = &execution->base,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	uint8_t *null = NULL;
 	size_t zero = 0;
@@ -9115,10 +9198,11 @@ void cerberus_protocol_optional_commands_testing_process_clear_cfms_error (CuTes
 	status = mock_expect (&auth->mock, auth->base.authorize_operation, auth, 0,
 		MOCK_ARG (CERBERUS_PROTOCOL_CLEAR_CFM), MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
 		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &execution, sizeof (execution), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	status |= mock_expect (&background->mock, background->base.execute_authorized_operation,
-		background, CMD_BACKGROUND_CFM_FAILED, MOCK_ARG_PTR (execution));
+		background, CMD_BACKGROUND_CFM_FAILED,
+		MOCK_ARG_PTR_CONTAINS_TMP (&op_context, sizeof (op_context)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -9135,6 +9219,11 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonc
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = &execution->base,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	uint8_t *null = NULL;
 	size_t zero = 0;
@@ -9156,10 +9245,10 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonc
 		MOCK_ARG (CERBERUS_PROTOCOL_RESET_INTRUSION),
 		MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
 		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &execution, sizeof (execution), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	status |= mock_expect (&background->mock, background->base.execute_authorized_operation,
-		background, 0, MOCK_ARG_PTR (execution));
+		background, 0, MOCK_ARG_PTR_CONTAINS_TMP (&op_context, sizeof (op_context)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -9338,6 +9427,11 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_with_no
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = &execution->base,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	int i;
 	size_t length = 253;
@@ -9363,10 +9457,10 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_with_no
 		MOCK_ARG (CERBERUS_PROTOCOL_RESET_INTRUSION),
 		MOCK_ARG_PTR_PTR_CONTAINS_TMP (cerberus_protocol_reset_authorization (req), length),
 		MOCK_ARG_PTR_CONTAINS_TMP (&length, sizeof (length)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &execution, sizeof (execution), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	status |= mock_expect (&background->mock, background->base.execute_authorized_operation,
-		background, 0, MOCK_ARG_PTR (execution));
+		background, 0, MOCK_ARG_PTR_CONTAINS_TMP(&op_context, sizeof (op_context)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -9426,6 +9520,11 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_authori
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = NULL,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	uint8_t *null = NULL;
 	size_t zero = 0;
@@ -9447,7 +9546,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_authori
 		MOCK_ARG (CERBERUS_PROTOCOL_RESET_INTRUSION),
 		MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
 		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &null, sizeof (null), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -9558,6 +9657,11 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_error (
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cmd_authorization_operation_context op_context = {
+		.execution = &execution->base,
+		.data = NULL,
+		.data_length = 0,
+	};
 	int status;
 	uint8_t *null = NULL;
 	size_t zero = 0;
@@ -9579,10 +9683,11 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_error (
 		MOCK_ARG (CERBERUS_PROTOCOL_RESET_INTRUSION),
 		MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
 		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&auth->mock, 3, &execution, sizeof (execution), -1);
+	status |= mock_expect_output (&auth->mock, 3, &op_context, sizeof (op_context), -1);
 
 	status |= mock_expect (&background->mock, background->base.execute_authorized_operation,
-		background, CMD_BACKGROUND_INTRUSION_FAILED, MOCK_ARG_PTR (execution));
+		background, CMD_BACKGROUND_INTRUSION_FAILED,
+		MOCK_ARG_PTR_CONTAINS_TMP (&op_context, sizeof (op_context)));
 
 	CuAssertIntEquals (test, 0, status);
 

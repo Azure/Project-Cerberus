@@ -13,7 +13,7 @@ int cmd_background_handler_unseal_start (const struct cmd_background *cmd,
 int cmd_background_handler_unseal_result (const struct cmd_background *cmd, uint8_t *key,
 	size_t *key_length, uint32_t *unseal_status);
 int cmd_background_handler_execute_authorized_operation (const struct cmd_background *cmd,
-	const struct authorized_execution *execution);
+	const struct cmd_authorization_operation_context *op_context);
 int cmd_background_handler_get_authorized_operation_status (const struct cmd_background *cmd);
 int cmd_background_handler_debug_log_clear (const struct cmd_background *cmd);
 int cmd_background_handler_debug_log_fill (const struct cmd_background *cmd);

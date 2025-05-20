@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include "auth_token.h"
 #include "authorization.h"
+#include "authorized_data.h"
 #include "platform_api.h"
 #include "crypto/hash.h"
 
@@ -39,6 +40,7 @@ struct authorization_challenge {
 	struct authorization base;						/**< Base authorization manager. */
 	struct authorization_challenge_state *state;	/**< Variable context for authorization. */
 	const struct auth_token *token;					/**< Authorization token handler. */
+	const struct authorized_data *auth_data;		/**< Authorized data handler. */
 	uint32_t token_tag;								/**< Additional data to add to generated tokens. */
 	bool include_tag;								/**< Flag to indicate if the tag should be added. */
 	enum hash_type auth_hash;						/**< Hash algorithm to use for token verification. */
@@ -47,10 +49,10 @@ struct authorization_challenge {
 
 int authorization_challenge_init (struct authorization_challenge *auth,
 	struct authorization_challenge_state *state, const struct auth_token *token,
-	enum hash_type auth_hash);
+	const struct authorized_data *auth_data, enum hash_type auth_hash);
 int authorization_challenge_init_with_tag (struct authorization_challenge *auth,
 	struct authorization_challenge_state *state, const struct auth_token *token,
-	enum hash_type auth_hash, uint32_t tag);
+	const struct authorized_data *auth_data, enum hash_type auth_hash, uint32_t tag);
 int authorization_challenge_init_state (const struct authorization_challenge *auth);
 void authorization_challenge_release (const struct authorization_challenge *auth);
 

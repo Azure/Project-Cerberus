@@ -19,13 +19,32 @@ struct authorized_execution {
 	 * Execute the operation.
 	 *
 	 * @param execution Execution context for the operation being performed.
+	 * @param data Operation specific data that can be provided to the operation for execution.  Not
+	 * all operations require data for execution.
+	 * @param length Length of the operation specific data.
 	 * @param reset_req Optional output to indicate when a device reset is requested after execution
 	 * of the operation.  This will only be set if a reset is requested.  If no reset is requested
 	 * by the operation, the value be unchanged by the call.  This can be null if not needed.
 	 *
 	 * @return 0 the operation executed successfully or an error code.
 	 */
-	int (*execute) (const struct authorized_execution *execution, bool *reset_req);
+	int (*execute) (const struct authorized_execution *execution, const uint8_t *data,
+		size_t length, bool *reset_req);
+
+	/**
+	 * Check the validity of the operation specific data.  This provides a way to check that the
+	 * data is acceptable during the authorization phase of the operation, providing better
+	 * reporting for error scenarios.
+	 *
+	 * @param execution Execution context for the operation that will use the data.
+	 * @param data Operation specific data that will be provided during execution.  Not all
+	 * operations require data, so a null pointer can be valid.
+	 * @param length Length of the operation specific data.
+	 *
+	 * @return 0 if the data is valid for the execution context or an error code.
+	 */
+	int (*validate_data) (const struct authorized_execution *execution, const uint8_t *data,
+		size_t length);
 
 	/**
 	 * Get the command status identifiers for the operation.  These identifiers are used for
@@ -49,6 +68,8 @@ enum {
 	AUTHORIZED_EXECUTION_INVALID_ARGUMENT = AUTHORIZED_EXECUTION_ERROR (0x00),	/**< Input parameter is null or not valid. */
 	AUTHORIZED_EXECUTION_NO_MEMORY = AUTHORIZED_EXECUTION_ERROR (0x01),			/**< Memory allocation failed. */
 	AUTHORIZED_EXECUTION_EXECUTE_FAILED = AUTHORIZED_EXECUTION_ERROR (0x02),	/**< Failed to execute the operation. */
+	AUTHORIZED_EXECUTION_CHECK_DATA_FAILED = AUTHORIZED_EXECUTION_ERROR (0x03),	/**< Failed to check the operation data. */
+	AUTHORIZED_EXECUTION_DATA_NOT_VALID = AUTHORIZED_EXECUTION_ERROR (0x04),	/**< The provided data is not valid for the operation. */
 };
 
 

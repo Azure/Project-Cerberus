@@ -35,6 +35,45 @@ void cmd_background_handler_set_status (const struct cmd_background_handler *han
 }
 
 /**
+ * Process the result of task notification.
+ *
+ * @param handler The handler that submitted the event notification.
+ * @param submit_result Result of the notification submission.
+ * @param no_task_status Event status to report when the task is not running.
+ * @param error_status Event status for general errors.
+ * @param status_out Optional output for asynchronous status reporting.
+ *
+ * @return 0 if the task was notified successfully or an error code.
+ */
+int cmd_background_handler_submit_event_result (const struct cmd_background_handler *handler,
+	int submit_result, int no_task_status, int error_status, int *status_out)
+{
+	if (submit_result != 0) {
+		if (submit_result == EVENT_TASK_BUSY) {
+			/* Do not change the command status when the task is busy.  Something is running, which
+			 * could be using the status. */
+			submit_result = CMD_BACKGROUND_TASK_BUSY;
+		}
+		else if (submit_result == EVENT_TASK_TOO_MUCH_DATA) {
+			/* Do not change the command status, since we don't know the state of the task. */
+			return CMD_BACKGROUND_INPUT_TOO_BIG;
+		}
+		else if (submit_result == EVENT_TASK_NO_TASK) {
+			submit_result = CMD_BACKGROUND_NO_TASK;
+			if (status_out) {
+				*status_out = CMD_BACKGROUND_STATUS (no_task_status, submit_result);
+			}
+		}
+		else {
+			cmd_background_handler_set_status (handler, status_out,
+				CMD_BACKGROUND_STATUS (error_status, submit_result));
+		}
+	}
+
+	return submit_result;
+}
+
+/**
  * Notify the task that a background event needs to be processed.
  *
  * @param handler The handler that received the event.
@@ -56,29 +95,9 @@ int cmd_background_handler_submit_event (const struct cmd_background_handler *ha
 
 	status = event_task_submit_event (handler->task, &handler->base_event, action, data, length,
 		starting_status, status_out);
-	if (status != 0) {
-		if (status == EVENT_TASK_BUSY) {
-			/* Do not change the command status when the task is busy.  Something is running, which
-			 * could be using the status. */
-			status = CMD_BACKGROUND_TASK_BUSY;
-		}
-		else if (status == EVENT_TASK_TOO_MUCH_DATA) {
-			/* Do not change the command status, since we don't know that state of the task. */
-			return CMD_BACKGROUND_INPUT_TOO_BIG;
-		}
-		else if (status == EVENT_TASK_NO_TASK) {
-			status = CMD_BACKGROUND_NO_TASK;
-			if (status_out) {
-				*status_out = CMD_BACKGROUND_STATUS (no_task_status, status);
-			}
-		}
-		else {
-			cmd_background_handler_set_status (handler, status_out,
-				CMD_BACKGROUND_STATUS (error_status, status));
-		}
-	}
 
-	return status;
+	return cmd_background_handler_submit_event_result (handler, status, no_task_status,
+		error_status, status_out);
 }
 
 #ifdef CMD_ENABLE_UNSEAL
@@ -141,18 +160,46 @@ int cmd_background_handler_unseal_result (const struct cmd_background *cmd, uint
 
 #ifdef CMD_ENABLE_RESET_CONFIG
 int cmd_background_handler_execute_authorized_operation (const struct cmd_background *cmd,
-	const struct authorized_execution *execution)
+	const struct cmd_authorization_operation_context *op_context)
 {
 	const struct cmd_background_handler *handler = (const struct cmd_background_handler*) cmd;
+	struct event_task_context *context;
+	int status;
 
-	if ((handler == NULL) || (execution == NULL)) {
+	if ((handler == NULL) || (op_context == NULL) || (op_context->execution == NULL)) {
 		return CMD_BACKGROUND_INVALID_ARGUMENT;
 	}
 
-	return cmd_background_handler_submit_event (handler,
-		CMD_BACKGROUND_HANDLER_ACTION_AUTHORIZED_OP, (uint8_t*) &execution, sizeof (execution),
-		CONFIG_RESET_STATUS_STARTING, CONFIG_RESET_STATUS_TASK_NOT_RUNNING,
-		CONFIG_RESET_STATUS_INTERNAL_ERROR, &handler->state->config_status);
+	if ((op_context->data == NULL) && (op_context->data_length != 0)) {
+		return CMD_BACKGROUND_AUTH_OP_INVALID_DATA;
+	}
+
+	if ((sizeof (op_context->execution) + op_context->data_length) >
+		EVENT_TASK_CONTEXT_BUFFER_LENGTH) {
+		return CMD_BACKGROUND_INPUT_TOO_BIG;
+	}
+
+	status = handler->task->get_event_context (handler->task, &context);
+	if (status == 0) {
+		handler->state->config_status = CONFIG_RESET_STATUS_STARTING;
+
+		context->action = CMD_BACKGROUND_HANDLER_ACTION_AUTHORIZED_OP;
+
+		memcpy (context->event_buffer, &op_context->execution, sizeof (op_context->execution));
+		context->buffer_length = sizeof (op_context->execution);
+
+		if (op_context->data != NULL) {
+			memcpy (&context->event_buffer[context->buffer_length], op_context->data,
+				op_context->data_length);
+			context->buffer_length += op_context->data_length;
+		}
+
+		status = handler->task->notify (handler->task, &handler->base_event);
+	}
+
+	return cmd_background_handler_submit_event_result (handler, status,
+		CONFIG_RESET_STATUS_TASK_NOT_RUNNING, CONFIG_RESET_STATUS_INTERNAL_ERROR,
+		&handler->state->config_status);
 }
 
 int cmd_background_handler_get_authorized_operation_status (const struct cmd_background *cmd)
@@ -287,17 +334,25 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
 
 #ifdef CMD_ENABLE_RESET_CONFIG
 		case CMD_BACKGROUND_HANDLER_ACTION_AUTHORIZED_OP: {
-			const struct authorized_execution **execution =
+			const struct authorized_execution **op_execution =
 				(const struct authorized_execution**) context->event_buffer;
+			const uint8_t *op_data = NULL;
+			size_t op_data_length = 0;
 			uint8_t op_start;
 			uint8_t op_error;
 
-			(*execution)->get_status_identifiers (*execution, &op_start, &op_error);
+			if (context->buffer_length > sizeof (*op_execution)) {
+				/* There is additional data associated with this operation. */
+				op_data = &context->event_buffer[sizeof (*op_execution)];
+				op_data_length = context->buffer_length - sizeof (*op_execution);
+			}
+
+			(*op_execution)->get_status_identifiers (*op_execution, &op_start, &op_error);
 
 			op_status = &cmd->state->config_status;
 			cmd_background_handler_set_status (cmd, &cmd->state->config_status, op_start);
 
-			status = (*execution)->execute (*execution, reset);
+			status = (*op_execution)->execute (*op_execution, op_data, op_data_length, reset);
 			if (status != 0) {
 				status = CMD_BACKGROUND_STATUS (op_error, status);
 			}

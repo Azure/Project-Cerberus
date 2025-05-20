@@ -118,6 +118,7 @@ static void authorized_execution_reset_intrusion_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, execution.test.base.execute);
+	CuAssertPtrNotNull (test, execution.test.base.validate_data);
 	CuAssertPtrNotNull (test, execution.test.base.get_status_identifiers);
 
 	authorized_execution_reset_intrusion_testing_release (test, &execution);
@@ -150,6 +151,7 @@ static void authorized_execution_reset_intrusion_test_static_init (CuTest *test)
 	TEST_START;
 
 	CuAssertPtrNotNull (test, execution.test.base.execute);
+	CuAssertPtrNotNull (test, execution.test.base.validate_data);
 	CuAssertPtrNotNull (test, execution.test.base.get_status_identifiers);
 
 	authorized_execution_reset_intrusion_testing_init_dependencies (test, &execution);
@@ -164,7 +166,7 @@ static void authorized_execution_reset_intrusion_test_release_null (CuTest *test
 	authorized_execution_reset_intrusion_release (NULL);
 }
 
-static void authorized_execution_reset_intrusion_test_execute_reset_intrusion (CuTest *test)
+static void authorized_execution_reset_intrusion_test_execute (CuTest *test)
 {
 	struct authorized_execution_reset_intrusion_testing execution;
 	bool reset_req = false;
@@ -191,15 +193,14 @@ static void authorized_execution_reset_intrusion_test_execute_reset_intrusion (C
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, &reset_req);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, false, reset_req);
 
 	authorized_execution_reset_intrusion_testing_release (test, &execution);
 }
 
-static void authorized_execution_reset_intrusion_test_execute_reset_intrusion_no_reset_req (
-	CuTest *test)
+static void authorized_execution_reset_intrusion_test_execute_no_reset_req (CuTest *test)
 {
 	struct authorized_execution_reset_intrusion_testing execution;
 	int status;
@@ -225,14 +226,13 @@ static void authorized_execution_reset_intrusion_test_execute_reset_intrusion_no
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, NULL);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	authorized_execution_reset_intrusion_testing_release (test, &execution);
 }
 
-static void authorized_execution_reset_intrusion_test_execute_reset_intrusion_static_init (
-	CuTest *test)
+static void authorized_execution_reset_intrusion_test_execute_static_init (CuTest *test)
 {
 	struct authorized_execution_reset_intrusion_testing execution = {
 		.test = authorized_execution_reset_intrusion_static_init (&execution.intrusion.base)
@@ -261,7 +261,7 @@ static void authorized_execution_reset_intrusion_test_execute_reset_intrusion_st
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, &reset_req);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, true, reset_req);
 
@@ -278,7 +278,7 @@ static void authorized_execution_reset_intrusion_test_execute_null (CuTest *test
 
 	authorized_execution_reset_intrusion_testing_init (test, &execution);
 
-	status = execution.test.base.execute (NULL, &reset_req);
+	status = execution.test.base.execute (NULL, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, AUTHORIZED_EXECUTION_INVALID_ARGUMENT, status);
 	CuAssertIntEquals (test, false, reset_req);
 
@@ -312,9 +312,56 @@ static void authorized_execution_reset_intrusion_test_execute_reset_intrusion_fa
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, &reset_req);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_RESET_FAILED, status);
 	CuAssertIntEquals (test, false, reset_req);
+
+	authorized_execution_reset_intrusion_testing_release (test, &execution);
+}
+
+static void authorized_execution_reset_intrusion_test_validate_data (CuTest *test)
+{
+	struct authorized_execution_reset_intrusion_testing execution;
+	int status;
+
+	TEST_START;
+
+	authorized_execution_reset_intrusion_testing_init (test, &execution);
+
+	status = execution.test.base.validate_data (&execution.test.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	authorized_execution_reset_intrusion_testing_release (test, &execution);
+}
+
+static void authorized_execution_reset_intrusion_test_validate_data_static_init (CuTest *test)
+{
+	struct authorized_execution_reset_intrusion_testing execution = {
+		.test = authorized_execution_reset_intrusion_static_init (&execution.intrusion.base)
+	};
+	int status;
+
+	TEST_START;
+
+	authorized_execution_reset_intrusion_testing_init_dependencies (test, &execution);
+
+	status = execution.test.base.validate_data (&execution.test.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	authorized_execution_reset_intrusion_testing_release (test, &execution);
+}
+
+static void authorized_execution_reset_intrusion_test_validate_data_null (CuTest *test)
+{
+	struct authorized_execution_reset_intrusion_testing execution;
+	int status;
+
+	TEST_START;
+
+	authorized_execution_reset_intrusion_testing_init (test, &execution);
+
+	status = execution.test.base.validate_data (NULL, NULL, 0);
+	CuAssertIntEquals (test, AUTHORIZED_EXECUTION_INVALID_ARGUMENT, status);
 
 	authorized_execution_reset_intrusion_testing_release (test, &execution);
 }
@@ -390,11 +437,14 @@ TEST (authorized_execution_reset_intrusion_test_init);
 TEST (authorized_execution_reset_intrusion_test_init_null);
 TEST (authorized_execution_reset_intrusion_test_static_init);
 TEST (authorized_execution_reset_intrusion_test_release_null);
-TEST (authorized_execution_reset_intrusion_test_execute_reset_intrusion);
-TEST (authorized_execution_reset_intrusion_test_execute_reset_intrusion_no_reset_req);
-TEST (authorized_execution_reset_intrusion_test_execute_reset_intrusion_static_init);
+TEST (authorized_execution_reset_intrusion_test_execute);
+TEST (authorized_execution_reset_intrusion_test_execute_no_reset_req);
+TEST (authorized_execution_reset_intrusion_test_execute_static_init);
 TEST (authorized_execution_reset_intrusion_test_execute_null);
 TEST (authorized_execution_reset_intrusion_test_execute_reset_intrusion_failure);
+TEST (authorized_execution_reset_intrusion_test_validate_data);
+TEST (authorized_execution_reset_intrusion_test_validate_data_static_init);
+TEST (authorized_execution_reset_intrusion_test_validate_data_null);
 TEST (authorized_execution_reset_intrusion_test_get_status_identifiers);
 TEST (authorized_execution_reset_intrusion_test_get_status_identifiers_static_init);
 TEST (authorized_execution_reset_intrusion_test_get_status_identifiers_null);

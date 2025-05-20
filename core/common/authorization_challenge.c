@@ -14,7 +14,6 @@ int authorization_challenge_authorize (const struct authorization *auth, const u
 {
 	const struct authorization_challenge *challenge = (const struct authorization_challenge*) auth;
 	const uint8_t *token_data = NULL;
-	size_t data_length = 0;
 	int status;
 
 	if ((challenge == NULL) || (token == NULL) || (length == NULL)) {
@@ -24,6 +23,9 @@ int authorization_challenge_authorize (const struct authorization *auth, const u
 	platform_mutex_lock (&challenge->state->lock);
 
 	if (*token == NULL) {
+		/* Generate a new authorization token to challenge the requester. */
+		size_t data_length = 0;
+
 		if (challenge->include_tag) {
 			token_data = (const uint8_t*) &challenge->token_tag;
 			data_length = AUTHORIZATION_CHALLENGE_TAG_LENGTH;
@@ -36,8 +38,24 @@ int authorization_challenge_authorize (const struct authorization *auth, const u
 		}
 	}
 	else {
-		status = challenge->token->verify_data (challenge->token, *token, *length, 0, 0,
-			challenge->auth_hash);
+		/* Verify the authorized data to check for authorization. */
+		size_t token_offset;
+		size_t aad_length;
+
+		status = challenge->auth_data->get_token_offset (challenge->auth_data, *token, *length,
+			&token_offset);
+		if (status != 0) {
+			goto exit;
+		}
+
+		status = challenge->auth_data->get_authenticated_data_length (challenge->auth_data, *token,
+			*length, &aad_length);
+		if (status != 0) {
+			goto exit;
+		}
+
+		status = challenge->token->verify_data (challenge->token, *token, *length, token_offset,
+			aad_length, challenge->auth_hash);
 		if (status == 0) {
 			status = challenge->token->invalidate (challenge->token);
 		}
@@ -46,6 +64,7 @@ int authorization_challenge_authorize (const struct authorization *auth, const u
 		}
 	}
 
+exit:
 	platform_mutex_unlock (&challenge->state->lock);
 
 	return status;
@@ -58,13 +77,14 @@ int authorization_challenge_authorize (const struct authorization *auth, const u
  * @param state Variable context for authorization.  This must be uninitialized.
  * @param token Token manager to use for authorization tokens.  This must have been initialized to
  * use a nonce of AUTHORIZATION_CHALLENGE_NONCE_LENGTH bytes and no additional data.
+ * @param auth_data Parser for the authorized data that will be used when verifying authentication.
  * @param auth_hash Hash algorithm to use for signature verification of authorized tokens.
  *
  * @return 0 if the authorization manager was successfully initialized or an error code.
  */
 int authorization_challenge_init (struct authorization_challenge *auth,
 	struct authorization_challenge_state *state, const struct auth_token *token,
-	enum hash_type auth_hash)
+	const struct authorized_data *auth_data, enum hash_type auth_hash)
 {
 	if (auth == NULL) {
 		return AUTHORIZATION_INVALID_ARGUMENT;
@@ -76,6 +96,7 @@ int authorization_challenge_init (struct authorization_challenge *auth,
 
 	auth->state = state;
 	auth->token = token;
+	auth->auth_data = auth_data;
 	auth->auth_hash = auth_hash;
 
 	return authorization_challenge_init_state (auth);
@@ -90,6 +111,7 @@ int authorization_challenge_init (struct authorization_challenge *auth,
  * @param token Token manager to use for authorization tokens.  This must have been initialized to
  * use a nonce of AUTHORIZATION_CHALLENGE_NONCE_LENGTH bytes and an additional
  * AUTHORIZATION_CHALLENGE_TAG_LENGTH bytes of data for the tag.
+ * @param auth_data Parser for the authorized data that will be used when verifying authentication.
  * @param auth_hash Hash algorithm to use for signature verification of authorized tokens.
  * @param tag The identifying tag value to include as part of the authorization token.
  *
@@ -97,11 +119,11 @@ int authorization_challenge_init (struct authorization_challenge *auth,
  */
 int authorization_challenge_init_with_tag (struct authorization_challenge *auth,
 	struct authorization_challenge_state *state, const struct auth_token *token,
-	enum hash_type auth_hash, uint32_t tag)
+	const struct authorized_data *auth_data, enum hash_type auth_hash, uint32_t tag)
 {
 	int status;
 
-	status = authorization_challenge_init (auth, state, token, auth_hash);
+	status = authorization_challenge_init (auth, state, token, auth_data, auth_hash);
 	if (status == 0) {
 		auth->token_tag = tag;
 		auth->include_tag = true;
@@ -122,7 +144,8 @@ int authorization_challenge_init_with_tag (struct authorization_challenge *auth,
  */
 int authorization_challenge_init_state (const struct authorization_challenge *auth)
 {
-	if ((auth == NULL) || (auth->state == NULL) || (auth->token == NULL)) {
+	if ((auth == NULL) || (auth->state == NULL) || (auth->token == NULL) ||
+		(auth->auth_data == NULL)) {
 		return AUTHORIZATION_INVALID_ARGUMENT;
 	}
 

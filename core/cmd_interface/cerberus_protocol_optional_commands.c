@@ -767,7 +767,7 @@ int cerberus_protocol_reset_config (const struct cmd_authorization *cmd_auth,
 		(struct cerberus_protocol_reset_config*) request->data;
 	struct cerberus_protocol_reset_config_response *rsp =
 		(struct cerberus_protocol_reset_config_response*) request->data;
-	const struct authorized_execution *execution;
+	struct cmd_authorization_operation_context op_context;
 	const uint8_t *nonce = NULL;
 	size_t length;
 	int status;
@@ -783,12 +783,12 @@ int cerberus_protocol_reset_config (const struct cmd_authorization *cmd_auth,
 		nonce = cerberus_protocol_reset_authorization (rq);
 	}
 
-	status = cmd_auth->authorize_operation (cmd_auth, rq->type, &nonce, &length, &execution);
+	status = cmd_auth->authorize_operation (cmd_auth, rq->type, &nonce, &length, &op_context);
 
 	switch (status) {
 		case 0:
-			if (execution != NULL) {
-				status = background->execute_authorized_operation (background, execution);
+			if (op_context.execution != NULL) {
+				status = background->execute_authorized_operation (background, &op_context);
 				request->length = 0;
 			}
 			else {

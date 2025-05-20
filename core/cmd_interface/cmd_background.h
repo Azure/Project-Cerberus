@@ -6,7 +6,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include "common/authorized_execution.h"
+#include "cmd_interface/cmd_authorization.h"
 #include "status/rot_status.h"
 
 
@@ -68,12 +68,12 @@ struct cmd_background {
 	 * Execute a protected operation that has been authorized for execution.
 	 *
 	 * @param cmd The background context for executing the operation.
-	 * @param execution The execution context for the authorized operation to execute.
+	 * @param op_context The execution context for the authorized operation to execute.
 	 *
 	 * @return 0 if the operation was successfully scheduled or an error code.
 	 */
 	int (*execute_authorized_operation) (const struct cmd_background *cmd,
-		const struct authorized_execution *execution);
+		const struct cmd_authorization_operation_context *op_context);
 
 	/**
 	 * Get the status of the last authorized operation being executed.
@@ -164,6 +164,7 @@ enum {
 	CMD_BACKGROUND_CFM_FAILED = CMD_BACKGROUND_ERROR (0x0e),			/**< Failed to clear component manifests. */
 	CMD_BACKGROUND_REBOOT_FAILED = CMD_BACKGROUND_ERROR (0x0f),			/**< Failed to warm reset the device. */
 	CMD_BACKGROUND_AUTH_OP_FAILED = CMD_BACKGROUND_ERROR (0x10),		/**< Failed to execute an authorized operation. */
+	CMD_BACKGROUND_AUTH_OP_INVALID_DATA = CMD_BACKGROUND_ERROR (0x11),	/**< Invalid data provided for an authorized operation. */
 };
 
 

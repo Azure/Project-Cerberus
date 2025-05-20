@@ -8,7 +8,7 @@
 
 
 static int authorized_execution_mock_execute (const struct authorized_execution *execution,
-	bool *reset_req)
+	const uint8_t *data, size_t length, bool *reset_req)
 {
 	struct authorized_execution_mock *mock = (struct authorized_execution_mock*) execution;
 
@@ -17,7 +17,20 @@ static int authorized_execution_mock_execute (const struct authorized_execution 
 	}
 
 	MOCK_RETURN (&mock->mock, authorized_execution_mock_execute, execution,
-		MOCK_ARG_PTR_CALL (reset_req));
+		MOCK_ARG_PTR_CALL (data), MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (reset_req));
+}
+
+static int authorized_execution_mock_validate_data (const struct authorized_execution *execution,
+	const uint8_t *data, size_t length)
+{
+	struct authorized_execution_mock *mock = (struct authorized_execution_mock*) execution;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, authorized_execution_mock_validate_data, execution,
+		MOCK_ARG_PTR_CALL (data), MOCK_ARG_CALL (length));
 }
 
 static void authorized_execution_mock_get_status_identifiers (
@@ -35,11 +48,12 @@ static void authorized_execution_mock_get_status_identifiers (
 
 static int authorized_execution_mock_func_arg_count (void *func)
 {
-	if (func == authorized_execution_mock_get_status_identifiers) {
-		return 2;
+	if (func == authorized_execution_mock_execute) {
+		return 3;
 	}
-	else if (func == authorized_execution_mock_execute) {
-		return 1;
+	else if ((func == authorized_execution_mock_validate_data) ||
+		(func == authorized_execution_mock_get_status_identifiers)) {
+		return 2;
 	}
 	else {
 		return 0;
@@ -50,6 +64,9 @@ static const char* authorized_execution_mock_func_name_map (void *func)
 {
 	if (func == authorized_execution_mock_execute) {
 		return "execute";
+	}
+	else if (func == authorized_execution_mock_validate_data) {
+		return "validate_data";
 	}
 	else if (func == authorized_execution_mock_get_status_identifiers) {
 		return "get_status_identifiers";
@@ -64,7 +81,22 @@ static const char* authorized_execution_mock_arg_name_map (void *func, int arg)
 	if (func == authorized_execution_mock_execute) {
 		switch (arg) {
 			case 0:
+				return "data";
+
+			case 1:
+				return "length";
+
+			case 2:
 				return "reset_req";
+		}
+	}
+	else if (func == authorized_execution_mock_validate_data) {
+		switch (arg) {
+			case 0:
+				return "data";
+
+			case 1:
+				return "length";
 		}
 	}
 	else if (func == authorized_execution_mock_get_status_identifiers) {
@@ -105,6 +137,7 @@ int authorized_execution_mock_init (struct authorized_execution_mock *mock)
 	mock_set_name (&mock->mock, "authorized_execution");
 
 	mock->base.execute = authorized_execution_mock_execute;
+	mock->base.validate_data = authorized_execution_mock_validate_data;
 	mock->base.get_status_identifiers = authorized_execution_mock_get_status_identifiers;
 
 	mock->mock.func_arg_count = authorized_execution_mock_func_arg_count;

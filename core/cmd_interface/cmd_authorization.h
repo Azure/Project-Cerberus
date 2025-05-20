@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "common/authorization.h"
+#include "common/authorized_data.h"
 #include "common/authorized_execution.h"
 #include "status/rot_status.h"
 
@@ -27,10 +28,38 @@ struct cmd_authorization_operation {
 	const struct authorization *authorization;
 
 	/**
+	 * Parser for the authorized data used to authorize the operation.  If this is null, no data
+	 * will be provided during execution of the operation.
+	 */
+	const struct authorized_data *data;
+
+	/**
 	 * Execution context for the operation.  If this is null, no operation will be executed, even if
 	 * authorization succeeds.
 	 */
 	const struct authorized_execution *execution;
+};
+
+/**
+ * Descriptor for the complete execution context for an authorized operation.
+ */
+struct cmd_authorization_operation_context {
+	/**
+	 * Execution handler for the operation.  If this is null, there is no operation to execute, even
+	 * after successful authorization.
+	 */
+	const struct authorized_execution *execution;
+
+	/**
+	 * Data that must be provided to the handler during execution.  Not all operations require
+	 * data for execution, so this may be null for valid operations.
+	 */
+	const uint8_t *data;
+
+	/**
+	 * Length of the data to provide during execution.
+	 */
+	size_t data_length;
 };
 
 /**
@@ -47,16 +76,16 @@ struct cmd_authorization {
 	 * {@link struct authorization.authorize}.
 	 * @param length Input or output length of the authorization token, depending on the initial
 	 * value of the authorization token.  See {@link struct authorization.authorize}.
-	 * @param execution Output for the execution context of the operation.  This will only be valid
-	 * if authorization was successful and there is a operation associated with it.  Otherwise, this
-	 * will be null.
+	 * @param op_context Output for the execution context for the operation, which will be provided
+	 * only if authorization was successful.
 	 *
 	 * @return 0 if the operation is authorized or an error code.  If a token was generated,
 	 * CMD_AUTHORIZATION_CHALLENGE will be returned.  If the operation ID is not known,
 	 * CMD_AUTHORIZATION_UNSUPPORTED_OP will be returned.
 	 */
 	int (*authorize_operation) (const struct cmd_authorization *auth, uint32_t operation_id,
-		const uint8_t **token, size_t *length, const struct authorized_execution **execution);
+		const uint8_t **token, size_t *length,
+		struct cmd_authorization_operation_context *op_context);
 
 	/**
 	 * The list of supported operations requiring authorization.  A supported operation does not

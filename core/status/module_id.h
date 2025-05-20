@@ -177,6 +177,8 @@ enum {
 	ROT_MODULE_BACKEND_ECDH = 0x00a5,					/**< ACVP ECDH backend. */
 	ROT_MODULE_ERROR_STATE_ENTRY = 0x00a6,				/**< FIPS error state entry handler. */
 	ROT_MODULE_ERROR_STATE_EXIT = 0x00a7,				/**< FIPS error state exit handler. */
+	ROT_MODULE_AUTH_DATA = 0x00a8,						/**< Authorized data handler for operation authentication. */
+	ROT_MODULE_AUTH_SIGNATURE = 0x00a9,					/**< Authorized data signature for operation authentication. */
 };
 
 
