@@ -85,6 +85,11 @@ int ecc_openssl_init_key_pair (const struct ecc_engine *engine, const uint8_t *k
 		if (status == ERROR_NOT_EC) {
 			status = ECC_ENGINE_NOT_EC_KEY;
 		}
+#if (OPENSSL_IS_VERSION_3 && (OPENSSL_VERSION_MINOR == 0) && (OPENSSL_VERSION_PATCH <= 2))
+		else if (status == 0x68000a8) {
+			status = ECC_ENGINE_NOT_PRIVATE_KEY;
+		}
+#endif
 		else {
 			status = -status;
 		}

@@ -899,8 +899,12 @@ static void ecc_openssl_test_init_key_pair_with_public_key (CuTest *test)
 
 	status = engine.base.init_key_pair (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, NULL,
 		&pub_key);
+#if (OPENSSL_IS_VERSION_3 && (OPENSSL_VERSION_MINOR == 0) && (OPENSSL_VERSION_PATCH <= 2))
+	CuAssertIntEquals (test, ECC_ENGINE_NOT_PRIVATE_KEY, status);
+#else
 	// We can't distinguish this case from the RSA case.
 	CuAssertIntEquals (test, ECC_ENGINE_NOT_EC_KEY, status);
+#endif
 
 	ecc_openssl_release (&engine);
 }

@@ -199,11 +199,23 @@ int rsa_openssl_decrypt (const struct rsa_engine *engine, const struct rsa_priva
 		memcpy (label_copy, label, label_length);
 	}
 
-	/* Always set the label, since null pointers or 0 length will clear it. */
-	status = EVP_PKEY_CTX_set0_rsa_oaep_label (ctx, label_copy, label_length);
-	if (status != 1) {
-		status = -ERR_get_error ();
-		goto exit;
+#if (OPENSSL_IS_VERSION_3 && (OPENSSL_VERSION_MINOR == 0) && (OPENSSL_VERSION_PATCH <= 7))
+		/* There is a bug up to at least version 3.0.7 that reports a failure when calling
+		 * EVP_PKEY_CTX_set0_rsa_oaep_label with a null label.
+		 * https://github.com/openssl/openssl/issues/21288 */
+	if (label_copy != NULL)
+#endif
+	{
+		/* Always set the label, since null pointers or 0 length will clear it. */
+		status = EVP_PKEY_CTX_set0_rsa_oaep_label (ctx, label_copy, label_length);
+		if (status != 1) {
+			if (label_copy != NULL) {
+				platform_free (label_copy);
+			}
+
+			status = -ERR_get_error ();
+			goto exit;
+		}
 	}
 
 	status = EVP_PKEY_decrypt (ctx, decrypted, &out_length, encrypted, in_length);
