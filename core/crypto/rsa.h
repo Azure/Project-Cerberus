@@ -96,6 +96,7 @@ struct rsa_engine {
 	int (*get_private_key_der) (const struct rsa_engine *engine, const struct rsa_private_key *key,
 		uint8_t **der, size_t *length);
 
+#ifndef RSA_DISABLE_DECRYPT
 	/**
 	 * Decrypt data with an RSA private key.  The data is expected to have used OAEP padding.
 	 *
@@ -115,6 +116,7 @@ struct rsa_engine {
 	int (*decrypt) (const struct rsa_engine *engine, const struct rsa_private_key *key,
 		const uint8_t *encrypted, size_t in_length, const uint8_t *label, size_t label_length,
 		enum hash_type pad_hash, uint8_t *decrypted, size_t out_length);
+#endif
 #endif
 
 #ifdef RSA_ENABLE_DER_PUBLIC_KEY

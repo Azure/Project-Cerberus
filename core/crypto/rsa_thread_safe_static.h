@@ -28,6 +28,16 @@ int rsa_thread_safe_sig_verify (const struct rsa_engine *engine, const struct rs
 
 
 /**
+ * Constant initializer for the decrypt API.
+ */
+#ifndef RSA_DISABLE_DECRYPT
+#define	RSA_THREAD_SAFE_DECRYPT   \
+	.decrypt = rsa_thread_safe_decrypt,
+#else
+#define	RSA_THREAD_SAFE_DECRYPT
+#endif
+
+/**
  * Constant initializer for private key APIs.
  */
 #ifdef RSA_ENABLE_PRIVATE_KEY
@@ -36,7 +46,7 @@ int rsa_thread_safe_sig_verify (const struct rsa_engine *engine, const struct rs
 	.init_private_key = rsa_thread_safe_init_private_key, \
 	.release_key = rsa_thread_safe_release_key, \
 	.get_private_key_der = rsa_thread_safe_get_private_key_der, \
-	.decrypt = rsa_thread_safe_decrypt,
+	RSA_THREAD_SAFE_DECRYPT
 #else
 #define	RSA_THREAD_SAFE_PRIVATE_KEY
 #endif

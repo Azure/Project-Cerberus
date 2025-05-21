@@ -28,6 +28,16 @@ int rsa_openssl_sig_verify (const struct rsa_engine *engine, const struct rsa_pu
 
 
 /**
+ * Constant initializer for the decrypt API.
+ */
+#ifndef RSA_DISABLE_DECRYPT
+#define	RSA_OPENSSL_DECRYPT   \
+	.decrypt = rsa_openssl_decrypt,
+#else
+#define	RSA_OPENSSL_DECRYPT
+#endif
+
+/**
  * Constant initializer for private key APIs.
  */
 #ifdef RSA_ENABLE_PRIVATE_KEY
@@ -36,7 +46,7 @@ int rsa_openssl_sig_verify (const struct rsa_engine *engine, const struct rsa_pu
 	.init_private_key = rsa_openssl_init_private_key, \
 	.release_key = rsa_openssl_release_key, \
 	.get_private_key_der = rsa_openssl_get_private_key_der, \
-	.decrypt = rsa_openssl_decrypt,
+	RSA_OPENSSL_DECRYPT
 #else
 #define	RSA_OPENSSL_PRIVATE_KEY
 #endif

@@ -139,6 +139,7 @@ int rsa_openssl_get_private_key_der (const struct rsa_engine *engine,
 	return status;
 }
 
+#ifndef RSA_DISABLE_DECRYPT
 int rsa_openssl_decrypt (const struct rsa_engine *engine, const struct rsa_private_key *key,
 	const uint8_t *encrypted, size_t in_length, const uint8_t *label, size_t label_length,
 	enum hash_type pad_hash, uint8_t *decrypted, size_t out_length)
@@ -218,7 +219,8 @@ exit:
 
 	return status;
 }
-#endif
+#endif	// RSA_DISABLE_DECRYPT
+#endif	// RSA_ENABLE_PRIVATE_KEY
 
 #ifdef RSA_ENABLE_DER_PUBLIC_KEY
 int rsa_openssl_init_public_key (const struct rsa_engine *engine, struct rsa_public_key *key,
@@ -600,7 +602,9 @@ int rsa_openssl_init (struct rsa_engine_openssl *engine)
 	engine->base.init_private_key = rsa_openssl_init_private_key;
 	engine->base.release_key = rsa_openssl_release_key;
 	engine->base.get_private_key_der = rsa_openssl_get_private_key_der;
+#ifndef RSA_DISABLE_DECRYPT
 	engine->base.decrypt = rsa_openssl_decrypt;
+#endif
 #endif
 #ifdef RSA_ENABLE_DER_PUBLIC_KEY
 	engine->base.init_public_key = rsa_openssl_init_public_key;

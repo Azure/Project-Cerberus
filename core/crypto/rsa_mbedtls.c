@@ -189,6 +189,7 @@ int rsa_mbedtls_get_private_key_der (const struct rsa_engine *engine,
 	return status;
 }
 
+#ifndef RSA_DISABLE_DECRYPT
 int rsa_mbedtls_decrypt (const struct rsa_engine *engine, const struct rsa_private_key *key,
 	const uint8_t *encrypted, size_t in_length, const uint8_t *label, size_t label_length,
 	enum hash_type pad_hash, uint8_t *decrypted, size_t out_length)
@@ -247,7 +248,8 @@ int rsa_mbedtls_decrypt (const struct rsa_engine *engine, const struct rsa_priva
 
 	return status;
 }
-#endif
+#endif	// RSA_DISABLE_DECRYPT
+#endif	// RSA_ENABLE_PRIVATE_KEY
 
 #ifdef RSA_ENABLE_DER_PUBLIC_KEY
 int rsa_mbedtls_init_public_key (const struct rsa_engine *engine, struct rsa_public_key *key,
@@ -483,7 +485,9 @@ int rsa_mbedtls_init (struct rsa_engine_mbedtls *engine, struct rsa_engine_mbedt
 	engine->base.init_private_key = rsa_mbedtls_init_private_key;
 	engine->base.release_key = rsa_mbedtls_release_key;
 	engine->base.get_private_key_der = rsa_mbedtls_get_private_key_der;
+#ifndef RSA_DISABLE_DECRYPT
 	engine->base.decrypt = rsa_mbedtls_decrypt;
+#endif
 #endif
 #ifdef RSA_ENABLE_DER_PUBLIC_KEY
 	engine->base.init_public_key = rsa_mbedtls_init_public_key;
@@ -524,7 +528,9 @@ int rsa_mbedtls_init_with_external_rng (struct rsa_engine_mbedtls *engine,
 	engine->base.init_private_key = rsa_mbedtls_init_private_key;
 	engine->base.release_key = rsa_mbedtls_release_key;
 	engine->base.get_private_key_der = rsa_mbedtls_get_private_key_der;
+#ifndef RSA_DISABLE_DECRYPT
 	engine->base.decrypt = rsa_mbedtls_decrypt;
+#endif
 #endif
 #ifdef RSA_ENABLE_DER_PUBLIC_KEY
 	engine->base.init_public_key = rsa_mbedtls_init_public_key;

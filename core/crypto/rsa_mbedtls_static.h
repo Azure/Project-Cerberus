@@ -29,6 +29,16 @@ int rsa_mbedtls_sig_verify (const struct rsa_engine *engine, const struct rsa_pu
 
 
 /**
+ * Constant initializer for the decrypt API.
+ */
+#ifndef RSA_DISABLE_DECRYPT
+#define	RSA_MBEDTLS_DECRYPT   \
+	.decrypt = rsa_mbedtls_decrypt,
+#else
+#define	RSA_MBEDTLS_DECRYPT
+#endif
+
+/**
  * Constant initializer for private key APIs.
  */
 #ifdef RSA_ENABLE_PRIVATE_KEY
@@ -37,7 +47,7 @@ int rsa_mbedtls_sig_verify (const struct rsa_engine *engine, const struct rsa_pu
 	.init_private_key = rsa_mbedtls_init_private_key, \
 	.release_key = rsa_mbedtls_release_key, \
 	.get_private_key_der = rsa_mbedtls_get_private_key_der, \
-	.decrypt = rsa_mbedtls_decrypt,
+	RSA_MBEDTLS_DECRYPT
 #else
 #define	RSA_MBEDTLS_PRIVATE_KEY
 #endif
