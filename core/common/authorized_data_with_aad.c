@@ -8,6 +8,7 @@
 
 
 #pragma pack(push, 1)
+
 /**
  * Header that will be applied to every authorized data payload.
  */

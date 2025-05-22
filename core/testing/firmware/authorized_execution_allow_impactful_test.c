@@ -69,11 +69,11 @@ static void authorized_execution_allow_impactful_testing_release_dependencies (C
 }
 
 /**
- * Initialize an intrusion reset execution context for testing.
+ * Initialize an impactful update execution context for testing.
  *
  * @param test The testing framework.
  * @param execution The testing components to initialize.
- * @param auth_time The
+ * @param auth_time The authorization time to use.
  */
 static void authorized_execution_allow_impactful_testing_init (CuTest *test,
 	struct authorized_execution_allow_impactful_testing *execution, uint32_t auth_time)

@@ -245,6 +245,7 @@ size_t hash_get_active_hash_length (const struct hash_engine *hash);
 int hash_get_block_size (enum hash_type hash_type);
 
 bool hash_is_alg_supported (enum hash_type type);
+int hash_check_algorithm_is_supported (enum hash_type type);
 
 
 /* HMAC functions */

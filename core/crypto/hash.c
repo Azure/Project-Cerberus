@@ -281,6 +281,19 @@ bool hash_is_alg_supported (enum hash_type type)
 }
 
 /**
+ * Determine if a specific hashing algorithm is supported by the device.
+ *
+ * @param type The hashing algorithm to check.
+ *
+ * @return 0 if the algorithm is support or HASH_ENGINE_UNSUPPORTED_HASH.  Invalid/unknown hash
+ * algorithms will be reported as unsupported.
+ */
+int hash_check_algorithm_is_supported (enum hash_type type)
+{
+	return (hash_is_alg_supported (type)) ? 0 : HASH_ENGINE_UNSUPPORTED_HASH;
+}
+
+/**
  * Generate an HMAC for a block of data.
  *
  * @param engine The hashing engine to use for generating the HMAC.

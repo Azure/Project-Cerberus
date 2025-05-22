@@ -45,6 +45,12 @@ static void add_all_common_tests (CuSuite *suite)
 	!defined TESTING_SKIP_AUTHORIZATION_DISALLOWED_SUITE
 	TESTING_RUN_SUITE (authorization_disallowed);
 #endif
+#if (defined TESTING_RUN_AUTHORIZATION_GLOBAL_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_AUTHORIZATION_GLOBAL_SUITE
+	TESTING_RUN_SUITE (authorization_global);
+#endif
 #if (defined TESTING_RUN_AUTHORIZED_DATA_TOKEN_ONLY_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

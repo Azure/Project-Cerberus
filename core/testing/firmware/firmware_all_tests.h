@@ -39,6 +39,12 @@ static void add_all_firmware_tests (CuSuite *suite)
 	!defined TESTING_SKIP_AUTHORIZED_EXECUTION_ALLOW_IMPACTFUL_SUITE
 	TESTING_RUN_SUITE (authorized_execution_allow_impactful);
 #endif
+#if (defined TESTING_RUN_AUTHORIZED_EXECUTION_PREPARE_FIRMWARE_UPDATE_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_AUTHORIZED_EXECUTION_PREPARE_FIRMWARE_UPDATE_SUITE
+	TESTING_RUN_SUITE (authorized_execution_prepare_firmware_update);
+#endif
 #if (defined TESTING_RUN_FIRMWARE_COMPONENT_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

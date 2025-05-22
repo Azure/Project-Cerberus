@@ -74,6 +74,7 @@ enum {
 	CERBERUS_PROTOCOL_CLEAR_CFM = 3,		/**< Remove any CFM used for component attestation. */
 	CERBERUS_PROTOCOL_RESET_INTRUSION = 4,	/**< Clear the device intrusion state. */
 	CERBERUS_PROTOCOL_ALLOW_IMPACTFUL = 5,	/**< Allow an impactful firmware update to be accepted. */
+	CERBERUS_PROTOCOL_FIRMWARE_UPDATE = 6,	/**< Provide authorization to execute a firmware update. */
 };
 
 /**

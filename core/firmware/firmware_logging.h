@@ -32,6 +32,7 @@ enum {
 	FIRMWARE_LOGGING_IMPACTFUL_RESET_AUTH_FAIL,	/**< Failed to reset impactful authorization after an update. */
 	FIRMWARE_LOGGING_RECOVERY_COMPARE_FAIL,		/**< Failed to compare active and recovery images on flash. */
 	FIRMWARE_LOGGING_RECOVERY_UPDATE_DONE,		/**< Done updating the recovery image. */
+	FIRMWARE_LOGGING_AUTHORIZED_PREPARE_FAIL,	/**< Failed to prepare for a firmware update after authorization. */
 };
 
 
