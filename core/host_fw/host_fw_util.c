@@ -90,6 +90,7 @@ int host_fw_determine_offset_version (const struct flash *flash, uint32_t offset
 	}
 
 	*version = NULL;
+	version_len = 0;
 	i = allowed->count - 1;
 	while (!(*version) && (i >= 0)) {
 		current_len = strlen (allowed->versions[i].fw_version_id);
