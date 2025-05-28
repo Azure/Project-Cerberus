@@ -146,7 +146,7 @@ static void key_cache_flash_testing_read_key_and_validate_flash_sector_mock_setu
 		if (get_data_length_mock_status != FLASH_STORE_NO_DATA) {
 			struct debug_log_entry_info entry = {
 				.format = DEBUG_LOG_ENTRY_FORMAT,
-				.severity = DEBUG_LOG_SEVERITY_ERROR,
+				.severity = DEBUG_LOG_SEVERITY_WARNING,
 				.component = DEBUG_LOG_COMPONENT_KEYSTORE,
 				.msg_index = KEYSTORE_LOGGING_CACHE_READ_AND_VALIDATE_FAIL,
 				.arg1 = flash_index,
@@ -171,7 +171,7 @@ static void key_cache_flash_testing_read_key_and_validate_flash_sector_mock_setu
 	if (ROT_IS_ERROR (read_mock_status)) {
 		struct debug_log_entry_info entry = {
 			.format = DEBUG_LOG_ENTRY_FORMAT,
-			.severity = DEBUG_LOG_SEVERITY_ERROR,
+			.severity = DEBUG_LOG_SEVERITY_WARNING,
 			.component = DEBUG_LOG_COMPONENT_KEYSTORE,
 			.msg_index = KEYSTORE_LOGGING_CACHE_READ_AND_VALIDATE_FAIL,
 			.arg1 = flash_index,

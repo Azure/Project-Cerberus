@@ -121,7 +121,7 @@ static enum key_cache_flash_sector_status key_cache_flash_read_key_and_validate_
 		/* Flash has no data or the flash sector is corrupted.
 		 * Make sure that the flash sector is clear and can be used for storing the keys. */
 		if (key_length != FLASH_STORE_NO_DATA) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_KEYSTORE,
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_KEYSTORE,
 				KEYSTORE_LOGGING_CACHE_READ_AND_VALIDATE_FAIL, flash_id, key_length);
 		}
 
@@ -141,7 +141,7 @@ static enum key_cache_flash_sector_status key_cache_flash_read_key_and_validate_
 	platform_free (key);
 
 	if (ROT_IS_ERROR (read_status)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_KEYSTORE,
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_KEYSTORE,
 			KEYSTORE_LOGGING_CACHE_READ_AND_VALIDATE_FAIL, flash_id, read_status);
 
 		/* Make sure that the flash sector is clear and can be used for storing the keys */
