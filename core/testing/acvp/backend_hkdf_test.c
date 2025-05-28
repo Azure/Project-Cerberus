@@ -683,7 +683,7 @@ static void backend_hkdf_test_hkdf_null (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_HKDF_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_HKDF
 	};
 	uint32_t implementation = 0;
 	struct backend_hkdf_engine hkdf_engines[] = {
@@ -746,7 +746,7 @@ static void backend_hkdf_test_hkdf_no_engine (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_HKDF_NO_ENGINE,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_HKDF
 	};
 	int status;
 
@@ -778,7 +778,7 @@ static void backend_hkdf_test_hkdf_engine_not_found (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_HKDF_ENGINE_NOT_FOUND,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_HKDF
 	};
 	uint32_t implementation = 0;
 	struct backend_hkdf_engine hkdf_engines[] = {
@@ -821,7 +821,7 @@ static void backend_hkdf_test_hkdf_extract_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = HKDF_EXTRACT_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_HKDF
 	};
 	uint32_t implementation = 0;
 	struct backend_hkdf_engine hkdf_engines[] = {
@@ -872,7 +872,7 @@ static void backend_hkdf_test_hkdf_expand_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = HKDF_EXPAND_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_HKDF
 	};
 	uint32_t implementation = 0;
 	struct backend_hkdf_engine hkdf_engines[] = {

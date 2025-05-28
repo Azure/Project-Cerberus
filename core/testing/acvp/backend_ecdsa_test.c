@@ -987,7 +987,7 @@ static void backend_ecdsa_test_keygen_null (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 
 	TEST_START;
@@ -1019,7 +1019,7 @@ static void backend_ecdsa_test_keygen_no_engine (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_NO_ENGINE,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	int status;
 
@@ -1054,7 +1054,7 @@ static void backend_ecdsa_test_keygen_engine_not_found (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_ENGINE_NOT_FOUND,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -1113,7 +1113,7 @@ static void backend_ecdsa_test_keygen_unsupported_type (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_KEYGEN_TYPE_UNSUPPORTED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -1172,7 +1172,7 @@ static void backend_ecdsa_test_keygen_unsupported_curve (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_CURVE_TYPE_UNSUPPORTED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -1230,7 +1230,7 @@ static void backend_ecdsa_test_keygen_gen_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = ECC_ENGINE_GENERATE_KEY_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -1293,7 +1293,7 @@ static void backend_ecdsa_test_keygen_hw_gen_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = ECC_HW_ECC_GENERATE_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -1747,7 +1747,7 @@ static void backend_ecdsa_test_keygen_extra_null (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 
 	TEST_START;
@@ -1779,7 +1779,7 @@ static void backend_ecdsa_test_keygen_extra_no_engine (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_NO_ENGINE,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	int status;
 
@@ -1814,7 +1814,7 @@ static void backend_ecdsa_test_keygen_extra_engine_not_found (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_ENGINE_NOT_FOUND,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -1873,7 +1873,7 @@ static void backend_ecdsa_test_keygen_extra_unsupported_type (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_KEYGEN_TYPE_UNSUPPORTED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -2583,7 +2583,7 @@ static void backend_ecdsa_test_siggen_null (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 
 	TEST_START;
@@ -2666,7 +2666,7 @@ static void backend_ecdsa_test_siggen_invalid_component_type (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 
 	TEST_START;
@@ -2701,7 +2701,7 @@ static void backend_ecdsa_test_siggen_no_engine (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_NO_ENGINE,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	int status;
 
@@ -2736,7 +2736,7 @@ static void backend_ecdsa_test_siggen_engine_not_found (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_ENGINE_NOT_FOUND,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -2795,7 +2795,7 @@ static void backend_ecdsa_test_siggen_unsupported_hash (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_HASH_TYPE_UNSUPPORTED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -2854,7 +2854,7 @@ static void backend_ecdsa_test_siggen_unsupported_curve (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_CURVE_TYPE_UNSUPPORTED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -2911,7 +2911,7 @@ static void backend_ecdsa_test_siggen_hash_and_finish_hash_start_error (CuTest *
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = HASH_ENGINE_START_SHA256_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -2963,7 +2963,7 @@ static void backend_ecdsa_test_siggen_hash_and_finish_hash_update_error (CuTest 
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = HASH_ENGINE_UPDATE_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -3022,7 +3022,7 @@ static void backend_ecdsa_test_siggen_sign_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = ECC_ENGINE_KEY_PAIR_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -3080,7 +3080,7 @@ static void backend_ecdsa_test_siggen_hw_hash_and_finish_hash_start_error (CuTes
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = HASH_ENGINE_START_SHA256_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -3132,7 +3132,7 @@ static void backend_ecdsa_test_siggen_hw_hash_and_finish_hash_update_error (CuTe
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = HASH_ENGINE_UPDATE_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -3191,7 +3191,7 @@ static void backend_ecdsa_test_siggen_hw_sign_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = ECC_HW_ECDSA_SIGN_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -3250,7 +3250,7 @@ static void backend_ecdsa_test_siggen_decode_sig_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = ECC_DER_UTIL_MALFORMED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -4028,7 +4028,7 @@ static void backend_ecdsa_test_sigver_null (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 
 	TEST_START;
@@ -4128,7 +4128,7 @@ static void backend_ecdsa_test_sigver_invalid_component_type (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 
 	TEST_START;
@@ -4163,7 +4163,7 @@ static void backend_ecdsa_test_sigver_no_engine (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_NO_ENGINE,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	int status;
 
@@ -4198,7 +4198,7 @@ static void backend_ecdsa_test_sigver_engine_not_found (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_ENGINE_NOT_FOUND,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -4257,7 +4257,7 @@ static void backend_ecdsa_test_sigver_unsupported_hash (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_HASH_TYPE_UNSUPPORTED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -4316,7 +4316,7 @@ static void backend_ecdsa_test_sigver_unsupported_curve (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_CURVE_TYPE_UNSUPPORTED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -4373,7 +4373,7 @@ static void backend_ecdsa_test_sigver_hash_and_finish_hash_start_error (CuTest *
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = HASH_ENGINE_START_SHA256_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -4425,7 +4425,7 @@ static void backend_ecdsa_test_sigver_hash_and_finish_hash_update_error (CuTest 
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = HASH_ENGINE_UPDATE_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -4484,7 +4484,7 @@ static void backend_ecdsa_test_sigver_verify_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = SIG_VERIFICATION_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -4537,7 +4537,7 @@ static void backend_ecdsa_test_sigver_hw_hash_and_finish_hash_start_error (CuTes
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = HASH_ENGINE_START_SHA256_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -4589,7 +4589,7 @@ static void backend_ecdsa_test_sigver_hw_hash_and_finish_hash_update_error (CuTe
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = HASH_ENGINE_UPDATE_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -4648,7 +4648,7 @@ static void backend_ecdsa_test_sigver_hw_verify_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = ECC_HW_ECDSA_VERIFY_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -5111,7 +5111,7 @@ static void backend_ecdsa_test_keygen_en_null (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	struct buffer qx;
 	struct buffer qy;
@@ -5158,7 +5158,7 @@ static void backend_ecdsa_test_keygen_en_no_engine (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_NO_ENGINE,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	struct buffer qx;
 	struct buffer qy;
@@ -5196,7 +5196,7 @@ static void backend_ecdsa_test_keygen_en_engine_not_found (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_ENGINE_NOT_FOUND,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {
@@ -5258,7 +5258,7 @@ static void backend_ecdsa_test_keygen_en_unsupported_curve (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDSA_CURVE_TYPE_UNSUPPORTED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDSA
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdsa_engine ecdsa_engines[] = {

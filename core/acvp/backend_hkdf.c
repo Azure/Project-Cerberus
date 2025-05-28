@@ -195,7 +195,7 @@ exit:
 		// On failure, set status to -1 to trigger test failure handling in Acvpparser library. Log
 		// error to give more information about the failure.
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ACVP,
-			ACVP_LOGGING_TEST_FAILURE, status, 0);
+			ACVP_LOGGING_TEST_FAILURE, status, ACVP_ALGORITHM_HKDF);
 
 		status = -1;
 	}

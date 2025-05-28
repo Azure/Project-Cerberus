@@ -702,7 +702,7 @@ static void backend_ecdh_test_ecdh_ss_null (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDH_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDH
 	};
 
 	TEST_START;
@@ -771,7 +771,7 @@ static void backend_ecdh_test_ecdh_ss_no_engine (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDH_NO_ENGINE,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDH
 	};
 	int status;
 
@@ -804,7 +804,7 @@ static void backend_ecdh_test_ecdh_ss_engine_not_found (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDH_ENGINE_NOT_FOUND,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDH
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdh_engine ecdh_engines[] = {
@@ -854,7 +854,7 @@ static void backend_ecdh_test_ecdh_ss_unsupported_curve (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDH_CURVE_TYPE_UNSUPPORTED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDH
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdh_engine ecdh_engines[] = {
@@ -903,7 +903,7 @@ static void backend_ecdh_test_ecdh_ss_generate_key_pair_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = ECC_ENGINE_GENERATE_KEY_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDH
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdh_engine ecdh_engines[] = {
@@ -952,7 +952,7 @@ static void backend_ecdh_test_ecdh_ss_get_pubkey_der_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = ECC_ENGINE_PUBLIC_KEY_DER_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDH
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdh_engine ecdh_engines[] = {
@@ -1006,7 +1006,7 @@ static void backend_ecdh_test_ecdh_ss_init_pubkey_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = ECC_ENGINE_PUBLIC_KEY_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDH
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdh_engine ecdh_engines[] = {
@@ -1070,7 +1070,7 @@ static void backend_ecdh_test_ecdh_ss_compute_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = ECC_ENGINE_SHARED_SECRET_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDH
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdh_engine ecdh_engines[] = {
@@ -1142,7 +1142,7 @@ static void backend_ecdh_test_ecdh_ss_hw_generate_ecc_key_pair_error (CuTest *te
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = ECC_HW_ECC_GENERATE_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDH
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdh_engine ecdh_engines[] = {
@@ -1191,7 +1191,7 @@ static void backend_ecdh_test_ecdh_ss_hw_compute_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = ECC_HW_ECDH_COMPUTE_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDH
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdh_engine ecdh_engines[] = {
@@ -1594,7 +1594,7 @@ static void backend_ecdh_test_ecdh_ss_ver_null (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDH_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDH
 	};
 
 	TEST_START;
@@ -1704,7 +1704,7 @@ static void backend_ecdh_test_ecdh_ss_ver_no_engine (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDH_NO_ENGINE,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDH
 	};
 	int status;
 
@@ -1737,7 +1737,7 @@ static void backend_ecdh_test_ecdh_ss_ver_engine_not_found (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDH_ENGINE_NOT_FOUND,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDH
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdh_engine ecdh_engines[] = {
@@ -1786,7 +1786,7 @@ static void backend_ecdh_test_ecdh_ss_ver_unsupported_curve (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_ECDH_CURVE_TYPE_UNSUPPORTED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDH
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdh_engine ecdh_engines[] = {
@@ -1831,7 +1831,7 @@ static void backend_ecdh_test_ecdh_ss_ver_init_privkey_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = ECC_ENGINE_KEY_PAIR_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDH
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdh_engine ecdh_engines[] = {
@@ -1881,7 +1881,7 @@ static void backend_ecdh_test_ecdh_ss_ver_init_pubkey_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = ECC_ENGINE_PUBLIC_KEY_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDH
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdh_engine ecdh_engines[] = {
@@ -1943,7 +1943,7 @@ static void backend_ecdh_test_ecdh_ss_ver_compute_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = ECC_ENGINE_SHARED_SECRET_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDH
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdh_engine ecdh_engines[] = {
@@ -2012,7 +2012,7 @@ static void backend_ecdh_test_ecdh_ss_ver_hw_compute_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = ECC_HW_ECDH_COMPUTE_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_ECDH
 	};
 	uint32_t implementation = 0;
 	struct backend_ecdh_engine ecdh_engines[] = {

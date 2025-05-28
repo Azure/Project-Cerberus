@@ -326,7 +326,7 @@ static void backend_hmac_test_hmac_generate_null (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_HMAC_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_HMAC
 	};
 	int status;
 
@@ -415,7 +415,7 @@ static void backend_hmac_test_hmac_generate_no_engine (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_HMAC_NO_ENGINE,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_HMAC
 	};
 	int status;
 
@@ -448,7 +448,7 @@ static void backend_hmac_test_hmac_generate_engine_not_found (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_HMAC_ENGINE_NOT_FOUND,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_HMAC
 	};
 	uint32_t implementation = 0;
 	struct backend_hmac_engine hmac_engines[] = {
@@ -497,7 +497,7 @@ static void backend_hmac_test_hmac_generate_unsupported_hash (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_HMAC_HASH_TYPE_UNSUPPORTED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_HMAC
 	};
 	uint32_t implementation = 0;
 	struct backend_hmac_engine hmac_engines[] = {
@@ -545,7 +545,7 @@ static void backend_hmac_test_hmac_generate_generate_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = HASH_ENGINE_START_SHA256_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_HMAC
 	};
 	uint32_t implementation = 3;
 	struct backend_hmac_engine hmac_engines[] = {

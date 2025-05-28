@@ -419,7 +419,7 @@ static void backend_rsa_test_rsa_keygen_null (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_RSA_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_RSA
 	};
 
 	TEST_START;
@@ -454,7 +454,7 @@ static void backend_rsa_test_rsa_keygen_no_engine (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_RSA_NO_ENGINE,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_RSA
 	};
 	int status;
 
@@ -492,7 +492,7 @@ static void backend_rsa_test_rsa_keygen_engine_not_found (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_RSA_ENGINE_NOT_FOUND,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_RSA
 	};
 	uint32_t implementation = 0;
 	struct backend_rsa_engine rsa_engines[] = {
@@ -547,7 +547,7 @@ static void backend_rsa_test_rsa_keygen_modulus_too_large (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_RSA_KEY_LEN_TOO_LARGE,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_RSA
 	};
 	uint32_t implementation = 0;
 	struct backend_rsa_engine rsa_engines[] = {
@@ -604,7 +604,7 @@ static void backend_rsa_test_rsa_keygen_random_e_unsupported (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_RSA_RANDOM_E_UNSUPPORTED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_RSA
 	};
 	uint32_t implementation = 0;
 	struct backend_rsa_engine rsa_engines[] = {
@@ -681,7 +681,7 @@ static void backend_rsa_test_rsa_keygen_generate_key_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = RSA_ENGINE_GENERATE_KEY_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_RSA
 	};
 	uint32_t implementation = 0;
 	struct backend_rsa_engine rsa_engines[] = {
@@ -734,7 +734,7 @@ static void backend_rsa_test_rsa_keygen_get_private_key_der_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = RSA_ENGINE_PRIVATE_KEY_DER_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_RSA
 	};
 	uint32_t implementation = 0;
 	struct backend_rsa_engine rsa_engines[] = {
@@ -795,7 +795,7 @@ static void backend_rsa_test_rsa_keygen_parse_key_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = MBEDTLS_ERR_PK_KEY_INVALID_FORMAT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_RSA
 	};
 	uint32_t implementation = 0;
 	struct backend_rsa_engine rsa_engines[] = {

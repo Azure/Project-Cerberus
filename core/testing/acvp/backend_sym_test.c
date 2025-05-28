@@ -346,7 +346,7 @@ static void backend_sym_test_encrypt_null (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_SYM_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SYM
 	};
 	int status;
 
@@ -422,7 +422,7 @@ static void backend_sym_test_encrypt_no_engine (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_SYM_NO_ENGINE,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SYM
 	};
 	int status;
 
@@ -464,7 +464,7 @@ static void backend_sym_test_encrypt_engine_not_found (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_SYM_ENGINE_NOT_FOUND,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SYM
 	};
 	int status;
 
@@ -514,7 +514,7 @@ static void backend_sym_test_encrypt_unsupported_type (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_SYM_UNSUPPORTED_CIPHER_TYPE,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SYM
 	};
 	int status;
 
@@ -559,7 +559,7 @@ static void backend_sym_test_encrypt_aes_kwp_set_kek_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = AES_KEY_WRAP_SET_KEK_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SYM
 	};
 	int status;
 
@@ -610,7 +610,7 @@ static void backend_sym_test_encrypt_aes_kwp_wrap_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = AES_KEY_WRAP_WRAP_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SYM
 	};
 	int status;
 
@@ -901,7 +901,7 @@ static void backend_sym_test_decrypt_null (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_SYM_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SYM
 	};
 	int status;
 
@@ -977,7 +977,7 @@ static void backend_sym_test_decrypt_no_engine (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_SYM_NO_ENGINE,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SYM
 	};
 	int status;
 
@@ -1019,7 +1019,7 @@ static void backend_sym_test_decrypt_engine_not_found (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_SYM_ENGINE_NOT_FOUND,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SYM
 	};
 	int status;
 
@@ -1069,7 +1069,7 @@ static void backend_sym_test_decrypt_unsupported_type (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_SYM_UNSUPPORTED_CIPHER_TYPE,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SYM
 	};
 	int status;
 
@@ -1114,7 +1114,7 @@ static void backend_sym_test_decrypt_aes_kwp_set_kek_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = AES_KEY_WRAP_SET_KEK_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SYM
 	};
 	int status;
 
@@ -1165,7 +1165,7 @@ static void backend_sym_test_decrypt_aes_kwp_unwrap_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = AES_KEY_WRAP_UNWRAP_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SYM
 	};
 	int status;
 

@@ -370,7 +370,7 @@ static void backend_aead_test_gcm_encrypt_null (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_AEAD_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_AEAD
 	};
 	int status;
 
@@ -440,7 +440,7 @@ static void backend_aead_test_gcm_encrypt_invalid_tag (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_AEAD_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_AEAD
 	};
 	int status;
 
@@ -488,7 +488,7 @@ static void backend_aead_test_gcm_encrypt_no_engine (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_AEAD_NO_ENGINE,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_AEAD
 	};
 	int status;
 
@@ -528,7 +528,7 @@ static void backend_aead_test_gcm_encrypt_engine_not_found (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_AEAD_ENGINE_NOT_FOUND,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_AEAD
 	};
 	int status;
 
@@ -578,7 +578,7 @@ static void backend_aead_test_gcm_encrypt_generate_iv_no_rng (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_AEAD_NO_RNG,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_AEAD
 	};
 	int status;
 
@@ -627,7 +627,7 @@ static void backend_aead_test_gcm_encrypt_generate_iv_rng_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = RNG_ENGINE_RANDOM_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_AEAD
 	};
 	int status;
 
@@ -675,7 +675,7 @@ static void backend_aead_test_gcm_encrypt_set_key_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = AES_GCM_ENGINE_INVALID_KEY_LENGTH,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_AEAD
 	};
 	size_t key_len = 3;
 	int status;
@@ -727,7 +727,7 @@ static void backend_aead_test_gcm_encrypt_encrypt_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = AES_GCM_ENGINE_ENCRYPT_ADD_DATA_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_AEAD
 	};
 	int status;
 
@@ -873,7 +873,7 @@ static void backend_aead_test_gcm_decrypt_null (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_AEAD_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_AEAD
 	};
 	int status;
 
@@ -942,7 +942,7 @@ static void backend_aead_test_gcm_decrypt_invalid_tag (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_AEAD_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_AEAD
 	};
 	int status;
 
@@ -993,7 +993,7 @@ static void backend_aead_test_gcm_decrypt_no_engine (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_AEAD_NO_ENGINE,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_AEAD
 	};
 	int status;
 
@@ -1033,7 +1033,7 @@ static void backend_aead_test_gcm_decrypt_engine_not_found (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_AEAD_ENGINE_NOT_FOUND,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_AEAD
 	};
 	int status;
 
@@ -1081,7 +1081,7 @@ static void backend_aead_test_gcm_decrypt_set_key_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = AES_GCM_ENGINE_INVALID_KEY_LENGTH,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_AEAD
 	};
 	size_t key_len = 2;
 	int status;
@@ -1133,7 +1133,7 @@ static void backend_aead_test_gcm_decrypt_decrypt_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = AES_GCM_ENGINE_DECRYPT_ADD_DATA_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_AEAD
 	};
 	int status;
 

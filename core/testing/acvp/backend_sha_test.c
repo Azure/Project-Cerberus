@@ -673,7 +673,7 @@ static void backend_sha_test_hash_generate_null (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_SHA_INVALID_ARGUMENT,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SHA
 	};
 
 	TEST_START;
@@ -705,7 +705,7 @@ static void backend_sha_test_hash_generate_no_engine (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_SHA_NO_ENGINE,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SHA
 	};
 	int status;
 
@@ -739,7 +739,7 @@ static void backend_sha_test_hash_generate_engine_not_found (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_SHA_ENGINE_NOT_FOUND,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SHA
 	};
 	uint32_t implementation = 0;
 	struct backend_sha_engine sha_engines[] = {
@@ -790,7 +790,7 @@ static void backend_sha_test_hash_generate_oneshot_calculate_error (CuTest *test
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = HASH_ENGINE_UNKNOWN_HASH,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SHA
 	};
 	uint32_t implementation = 0;
 	struct backend_sha_engine sha_engines[] = {
@@ -841,7 +841,7 @@ static void backend_sha_test_hash_generate_start_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = HASH_ENGINE_UNSUPPORTED_HASH,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SHA
 	};
 	uint32_t implementation = 3;
 	struct backend_sha_engine sha_engines[] = {
@@ -900,7 +900,7 @@ static void backend_sha_test_hash_generate_update_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = HASH_ENGINE_UPDATE_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SHA
 	};
 	uint32_t implementation = 4;
 	struct backend_sha_engine sha_engines[] = {
@@ -965,7 +965,7 @@ static void backend_sha_test_hash_generate_finish_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = HASH_ENGINE_FINISH_FAILED,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SHA
 	};
 	uint32_t implementation = 3;
 	struct backend_sha_engine sha_engines[] = {
@@ -1033,7 +1033,7 @@ static void backend_sha_test_hash_generate_length_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_ACVP,
 		.msg_index = ACVP_LOGGING_TEST_FAILURE,
 		.arg1 = BACKEND_SHA_UNEXPECTED_HASH_LENGTH,
-		.arg2 = 0
+		.arg2 = ACVP_ALGORITHM_SHA
 	};
 	uint32_t implementation = 3;
 	struct backend_sha_engine sha_engines[] = {
