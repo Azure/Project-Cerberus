@@ -609,6 +609,7 @@ int spdm_secure_session_manager_generate_session_data_keys (
 	enum hash_type hash_type;
 	const struct spdm_transcript_manager *transcript_manager;
 	uint8_t th2_hash[HASH_MAX_HASH_LEN];
+	uint8_t zero_filled_buffer[HASH_MAX_HASH_LEN];
 
 	if ((session_manager == NULL) || (session == NULL)) {
 		return SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
@@ -618,9 +619,11 @@ int spdm_secure_session_manager_generate_session_data_keys (
 	hash_type = spdm_get_hash_type (session->base_hash_algo);
 	transcript_manager = session_manager->transcript_manager;
 
+	memset (zero_filled_buffer, 0, sizeof (zero_filled_buffer));
+
 	/* Generate the master secret. */
-	status = session_manager->hkdf->extract (session_manager->hkdf, hash_type,
-		session->master_secret.master_secret_salt1, hash_size, NULL, 0);
+	status = session_manager->hkdf->extract (session_manager->hkdf, hash_type, zero_filled_buffer,
+		hash_size, session->master_secret.master_secret_salt1, hash_size);
 	if (status != 0) {
 		goto exit;
 	}
@@ -652,8 +655,8 @@ int spdm_secure_session_manager_generate_session_data_keys (
 	session->data_secret.request_data_sequence_number = 0;
 
 	/* Generate the master secret for respond key generation. */
-	status = session_manager->hkdf->extract (session_manager->hkdf, hash_type,
-		session->master_secret.master_secret_salt1, hash_size, NULL, 0);
+	status = session_manager->hkdf->extract (session_manager->hkdf, hash_type, zero_filled_buffer,
+		hash_size, session->master_secret.master_secret_salt1, hash_size);
 	if (status != 0) {
 		goto exit;
 	}
