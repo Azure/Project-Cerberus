@@ -195,6 +195,8 @@ int cfm_manager_flash_init (struct cfm_manager_flash *manager,
 	manager->base.base.verify_pending_manifest = cfm_manager_flash_verify_pending_manifest;
 	manager->base.base.clear_all_manifests = cfm_manager_flash_clear_all_manifests;
 
+	cfm_manager_flash_activate_pending_manifest (&manager->base.base);
+
 	return 0;
 }
 
@@ -225,7 +227,11 @@ int cfm_manager_flash_init_state (const struct cfm_manager_flash *manager)
 		MANIFEST_LOGGING_EMPTY_CFM);
 	if (status != 0) {
 		cfm_manager_release (&manager->base);
+
+		return status;
 	}
+
+	cfm_manager_flash_activate_pending_manifest (&manager->base.base);
 
 	return status;
 }
