@@ -26,7 +26,7 @@
 #define DEVICE_MANAGER_MAX_KEY_LEN								RSA_MAX_KEY_LENGTH
 
 // Default minimum activity check
-#define DEVICE_MANAGER_MIN_ACTIVITY_CHECK						300000
+#define DEVICE_MANAGER_MIN_ACTIVITY_CHECK						60000
 
 // MCTP control protocol default timeout
 #define DEVICE_MANAGER_MCTP_CTRL_PROTOCOL_TIMEOUT_MS			1000
