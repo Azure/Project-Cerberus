@@ -13,8 +13,6 @@ int authorized_execution_prepare_firmware_update_execute (
 	bool *reset_req);
 int authorized_execution_prepare_firmware_update_validate_data (
 	const struct authorized_execution *execution, const uint8_t *data, size_t length);
-void authorized_execution_prepare_firmware_update_get_status_identifiers (
-	const struct authorized_execution *execution, uint8_t *start, uint8_t *error);
 
 
 /**
@@ -23,8 +21,7 @@ void authorized_execution_prepare_firmware_update_get_status_identifiers (
 #define	AUTHORIZED_EXECUTION_PREPARE_FIRMWARE_UPDATE_API_INIT	{ \
 		.execute = authorized_execution_prepare_firmware_update_execute, \
 		.validate_data = authorized_execution_prepare_firmware_update_validate_data, \
-		.get_status_identifiers = \
-			authorized_execution_prepare_firmware_update_get_status_identifiers, \
+		.get_status_identifiers = authorized_execution_get_status_identifiers, \
 	}
 
 

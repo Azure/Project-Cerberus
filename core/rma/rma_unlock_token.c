@@ -26,8 +26,18 @@
 #define	RMA_UNLOCK_TOKEN_UUID_LENGTH		16
 
 
-int rma_unlock_token_authenticate (const struct rma_unlock_token *handler, const uint8_t *data,
-	size_t length)
+/**
+ * Validate the contents of the RMA unlock token.  This does not include any signature checks.`
+ *
+ * @param handler Token handler providing the validation context.
+ * @param data The token data to validate.
+ * @param length Length of the token data.
+ * @param end Output for the offset in the data that represents the end of the validated contents.
+ *
+ * @return 0 if the token data is correct or an error code.
+ */
+static int rma_unlock_token_validate_token_data (const struct rma_unlock_token *handler,
+	const uint8_t *data, size_t length, size_t *end)
 {
 	uint8_t uuid[RMA_UNLOCK_TOKEN_UUID_LENGTH] = {0};
 	const uint8_t *oid;
@@ -114,15 +124,46 @@ int rma_unlock_token_authenticate (const struct rma_unlock_token *handler, const
 	}
 
 	offset += handler->dice_length;
+	*end = offset;
 
-	/* token signature */
+	return 0;
+}
+
+int rma_unlock_token_authenticate (const struct rma_unlock_token *handler, const uint8_t *data,
+	size_t length)
+{
+	size_t end;
+	int status;
+
+	status = rma_unlock_token_validate_token_data (handler, data, length, &end);
+	if (status != 0) {
+		return status;
+	}
+
+	/* The rest of the data is expected to be the token signature. */
 	return signature_verification_verify_message (handler->authority, handler->hash,
-		handler->auth_hash, data, offset, handler->authority_key, handler->auth_key_length,
-		&data[offset], length - offset);
+		handler->auth_hash, data, end, handler->authority_key, handler->auth_key_length, &data[end],
+		length - end);
+}
+
+int rma_unlock_token_authenticate_no_signature (const struct rma_unlock_token *handler,
+	const uint8_t *data, size_t length)
+{
+	size_t end;
+	int status;
+
+	status = rma_unlock_token_validate_token_data (handler, data, length, &end);
+	if ((status == 0) && (end != length)) {
+		/* There's more data than expected. */
+		status = RMA_UNLOCK_TOKEN_BAD_TOKEN_DATA;
+	}
+
+	return status;
 }
 
 /**
- * Initialize a handler for authorizing RMA unlock tokens.
+ * Initialize a handler for authorizing RMA unlock tokens.  The token will be signed by external
+ * authority, granting permission for the RMA transition.
  *
  * @param handler The RMA token handler to initialize.
  * @param authority_key The public key for entity that will be generating RMA tokens.
@@ -161,6 +202,43 @@ int rma_unlock_token_init (struct rma_unlock_token *handler, const uint8_t *auth
 	handler->authority_key = authority_key;
 	handler->auth_key_length = key_length;
 	handler->auth_hash = auth_hash;
+	handler->uuid = uuid;
+	handler->oid = oid;
+	handler->oid_length = oid_length;
+	handler->dice_hash = dice_hash;
+	handler->dice_length = hash_length;
+
+	return 0;
+}
+
+/**
+ * Initialize a handler for authorizing RMA unlock tokens.  The token will not contain any signature
+ * authorizing it's use.  Authorization for the operation will be managed separately.
+ *
+ * @param handler The RMA token handler to initialize.
+ * @param uuid Interface for retrieving the device UUID.
+ * @param oid The OID indicating the type of device generating the tokens.  This must be a base128
+ * encoded value.
+ * @param oid_length Length of the device type OID.
+ * @param dice_hash Digest of the DICE Device ID public key.  This would typically be available
+ * through the DME structure.
+ * @param hash_length Length of the Device ID digest.
+ *
+ * @return 0 if the RMA token handler was initialized successfully or an error code.
+ */
+int rma_unlock_token_init_no_signature (struct rma_unlock_token *handler,
+	const struct cmd_device *uuid, const uint8_t *oid, size_t oid_length, const uint8_t *dice_hash,
+	size_t hash_length)
+{
+	if ((handler == NULL) || (uuid == NULL) || (oid == NULL) || (oid_length == 0) ||
+		(dice_hash == NULL) || (hash_length == 0)) {
+		return RMA_UNLOCK_TOKEN_INVALID_ARGUMENT;
+	}
+
+	memset (handler, 0, sizeof (struct rma_unlock_token));
+
+	handler->authenticate = rma_unlock_token_authenticate_no_signature;
+
 	handler->uuid = uuid;
 	handler->oid = oid;
 	handler->oid_length = oid_length;

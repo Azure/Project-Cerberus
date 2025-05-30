@@ -12,8 +12,6 @@ int authorized_execution_allow_impactful_execute (const struct authorized_execut
 	const uint8_t *data, size_t length, bool *reset_req);
 int authorized_execution_allow_impactful_validate_data (
 	const struct authorized_execution *execution, const uint8_t *data, size_t length);
-void authorized_execution_allow_impactful_get_status_identifiers (
-	const struct authorized_execution *execution, uint8_t *start, uint8_t *error);
 
 
 /**
@@ -22,7 +20,7 @@ void authorized_execution_allow_impactful_get_status_identifiers (
 #define	AUTHORIZED_EXECUTION_ALLOW_IMPACTFUL_API_INIT	{ \
 		.execute = authorized_execution_allow_impactful_execute, \
 		.validate_data = authorized_execution_allow_impactful_validate_data, \
-		.get_status_identifiers = authorized_execution_allow_impactful_get_status_identifiers, \
+		.get_status_identifiers = authorized_execution_get_status_identifiers, \
 	}
 
 

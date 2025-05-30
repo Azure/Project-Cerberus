@@ -52,20 +52,6 @@ int authorized_execution_allow_impactful_validate_data (
 	return 0;
 }
 
-void authorized_execution_allow_impactful_get_status_identifiers (
-	const struct authorized_execution *execution, uint8_t *start, uint8_t *error)
-{
-	UNUSED (execution);
-
-	if (start) {
-		*start = CONFIG_RESET_STATUS_AUTHORIZED_OPERATION;
-	}
-
-	if (error) {
-		*error = CONFIG_RESET_STATUS_AUTHORIZED_OP_FAILED;
-	}
-}
-
 /**
  * Initialize an authorized execution context to allow impactful firmware updates.
  *
@@ -88,8 +74,7 @@ int authorized_execution_allow_impactful_init (
 
 	execution->base.execute = authorized_execution_allow_impactful_execute;
 	execution->base.validate_data = authorized_execution_allow_impactful_validate_data;
-	execution->base.get_status_identifiers =
-		authorized_execution_allow_impactful_get_status_identifiers;
+	execution->base.get_status_identifiers = authorized_execution_get_status_identifiers;
 
 	execution->impactful = impactful;
 	execution->auth_time_ms = auth_time_ms;

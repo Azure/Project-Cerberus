@@ -75,6 +75,7 @@ enum {
 	CERBERUS_PROTOCOL_RESET_INTRUSION = 4,	/**< Clear the device intrusion state. */
 	CERBERUS_PROTOCOL_ALLOW_IMPACTFUL = 5,	/**< Allow an impactful firmware update to be accepted. */
 	CERBERUS_PROTOCOL_FIRMWARE_UPDATE = 6,	/**< Provide authorization to execute a firmware update. */
+	CERBERUS_PROTOCOL_RMA = 7,				/**< Transition the device to the RMA state. */
 };
 
 /**

@@ -5,7 +5,6 @@
 #include <string.h>
 #include "authorized_execution_prepare_firmware_update.h"
 #include "platform_api.h"
-#include "cmd_interface/config_reset.h"
 #include "common/buffer_util.h"
 #include "common/unused.h"
 #include "firmware/firmware_logging.h"
@@ -193,20 +192,6 @@ int authorized_execution_prepare_firmware_update_validate_data (
 		&hash_type, &digest_length);
 }
 
-void authorized_execution_prepare_firmware_update_get_status_identifiers (
-	const struct authorized_execution *execution, uint8_t *start, uint8_t *error)
-{
-	UNUSED (execution);
-
-	if (start) {
-		*start = CONFIG_RESET_STATUS_AUTHORIZED_OPERATION;
-	}
-
-	if (error) {
-		*error = CONFIG_RESET_STATUS_AUTHORIZED_OP_FAILED;
-	}
-}
-
 /**
  * Initialize an authorized execution context to prepare the device to receive a firmware update.
  *
@@ -229,8 +214,7 @@ int authorized_execution_prepare_firmware_update_init (
 
 	execution->base.execute = authorized_execution_prepare_firmware_update_execute;
 	execution->base.validate_data = authorized_execution_prepare_firmware_update_validate_data;
-	execution->base.get_status_identifiers =
-		authorized_execution_prepare_firmware_update_get_status_identifiers;
+	execution->base.get_status_identifiers = authorized_execution_get_status_identifiers;
 
 	execution->fw_update = fw_update;
 	execution->timeout_ms = prepare_timeout_ms;

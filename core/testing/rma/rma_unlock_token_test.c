@@ -102,6 +102,29 @@ static void rma_unlock_token_testing_init (CuTest *test, struct rma_unlock_token
 }
 
 /**
+ * Initialize a RMA unlock token handler without signature verification for testing.
+ *
+ * @param test The test framework.
+ * @param token Testing components to initialize.
+ * @param oid The OID to use in the tokens.
+ * @param oid_length Length of the OID.
+ * @param dice Hash of the DICE key in the token.
+ * @param dice_length Length of the DICE key hash.
+ */
+static void rma_unlock_token_testing_init_no_signature (CuTest *test,
+	struct rma_unlock_token_testing *token, const uint8_t *oid, size_t oid_length,
+	const uint8_t *dice, size_t dice_length)
+{
+	int status;
+
+	rma_unlock_token_testing_init_dependencies (test, token);
+
+	status = rma_unlock_token_init_no_signature (&token->test, &token->uuid.base, oid, oid_length,
+		dice, dice_length);
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
  * Release test components and validate all mocks.
  *
  * @param test The test framework.
@@ -121,7 +144,7 @@ static void rma_unlock_token_testing_release (CuTest *test, struct rma_unlock_to
  * @param uuid The UUID to use in the token.  This will always be 16 bytes.
  * @param dice_hash The DICE key hash to use in the token.
  * @param dice_len Length of the DICE key hash.
- * @param signature The token signature.
+ * @param signature The token signature.  Set to null to not add a signature.
  * @param sig_len Length of the token signature.
  * @param token Output for the constructed token.  This must be large enough for all the token data.
  */
@@ -150,7 +173,9 @@ void rma_unlock_token_testing_build_token (const uint8_t *oid, size_t oid_len, c
 	memcpy (pos, dice_hash, dice_len);
 	pos += dice_len;
 
-	memcpy (pos, signature, sig_len);
+	if (signature) {
+		memcpy (pos, signature, sig_len);
+	}
 }
 
 
@@ -197,7 +222,7 @@ static void rma_unlock_token_test_init_null (CuTest *test)
 		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
 
-	status = rma_unlock_token_init (&token.test, ECC_PUBKEY_DER, 0,	&token.authority.base,
+	status = rma_unlock_token_init (&token.test, ECC_PUBKEY_DER, 0, &token.authority.base,
 		&token.hash.base, HASH_TYPE_SHA256, &token.uuid.base, RIOT_CORE_DEVICE_ID_OID,
 		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
@@ -224,16 +249,71 @@ static void rma_unlock_token_test_init_null (CuTest *test)
 
 	status = rma_unlock_token_init (&token.test, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
 		&token.authority.base, &token.hash.base, HASH_TYPE_SHA256, &token.uuid.base,
-		RIOT_CORE_DEVICE_ID_OID, 0, ECC_PUBKEY2_SHA256,	SHA256_HASH_LENGTH);
+		RIOT_CORE_DEVICE_ID_OID, 0, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
 
 	status = rma_unlock_token_init (&token.test, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
 		&token.authority.base, &token.hash.base, HASH_TYPE_SHA256, &token.uuid.base,
-		RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN, NULL,	SHA256_HASH_LENGTH);
+		RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN, NULL, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
 
 	status = rma_unlock_token_init (&token.test, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
 		&token.authority.base, &token.hash.base, HASH_TYPE_SHA256, &token.uuid.base,
+		RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, 0);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
+
+	rma_unlock_token_testing_release_dependencies (test, &token);
+}
+
+static void rma_unlock_token_test_init_no_signature (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	int status;
+
+	TEST_START;
+
+	rma_unlock_token_testing_init_dependencies (test, &token);
+
+	status = rma_unlock_token_init_no_signature (&token.test, &token.uuid.base,
+		RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrNotNull (test, token.test.authenticate);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_init_no_signature_null (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	int status;
+
+	TEST_START;
+
+	rma_unlock_token_testing_init_dependencies (test, &token);
+
+	status = rma_unlock_token_init_no_signature (NULL, &token.uuid.base, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
+
+	status = rma_unlock_token_init_no_signature (&token.test, NULL, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
+
+	status = rma_unlock_token_init_no_signature (&token.test, &token.uuid.base, NULL,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
+
+	status = rma_unlock_token_init_no_signature (&token.test, &token.uuid.base,
+		RIOT_CORE_DEVICE_ID_OID, 0, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
+
+	status = rma_unlock_token_init_no_signature (&token.test, &token.uuid.base,
+		RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN, NULL, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
+
+	status = rma_unlock_token_init_no_signature (&token.test, &token.uuid.base,
 		RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, 0);
 	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
 
@@ -245,6 +325,23 @@ static void rma_unlock_token_test_static_init (CuTest *test)
 	struct rma_unlock_token_testing token = {
 		.test = rma_unlock_token_static_init (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
 			&token.authority.base, &token.hash.base, HASH_TYPE_SHA256, &token.uuid.base,
+			RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256,
+			SHA256_HASH_LENGTH)
+	};
+
+	TEST_START;
+
+	CuAssertPtrNotNull (test, token.test.authenticate);
+
+	rma_unlock_token_testing_init_dependencies (test, &token);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_static_init_no_signature (CuTest *test)
+{
+	struct rma_unlock_token_testing token = {
+		.test = rma_unlock_token_static_init_no_signature (&token.uuid.base,
 			RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256,
 			SHA256_HASH_LENGTH)
 	};
@@ -1293,13 +1390,715 @@ static void rma_unlock_token_test_authenticate_signature_verify_error (CuTest *t
 	rma_unlock_token_testing_release (test, &token);
 }
 
+static void rma_unlock_token_test_authenticate_no_signature (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	const size_t signed_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA256_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	rma_unlock_token_testing_init_no_signature (test, &token, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH, NULL, 0,
+		token_data);
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data, token_length);
+	CuAssertIntEquals (test, 0, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_sha384 (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	const size_t signed_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA384_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	rma_unlock_token_testing_init_no_signature (test, &token, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA384, SHA384_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID, ECC_PUBKEY2_SHA384, SHA384_HASH_LENGTH, NULL, 0,
+		token_data);
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data, token_length);
+	CuAssertIntEquals (test, 0, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_sha512 (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	const size_t signed_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA512_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	rma_unlock_token_testing_init_no_signature (test, &token, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA512, SHA512_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID, ECC_PUBKEY2_SHA512, SHA512_HASH_LENGTH, NULL, 0,
+		token_data);
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data, token_length);
+	CuAssertIntEquals (test, 0, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_longer_oid (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	uint8_t oid[RIOT_CORE_DEVICE_ID_OID_LEN + 4];
+	const size_t signed_length = 2 + sizeof (oid) + 2 + 4 + DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN +
+		SHA256_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	memcpy (oid, RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN);
+	oid[RIOT_CORE_DEVICE_ID_OID_LEN] = 0x11;
+	oid[RIOT_CORE_DEVICE_ID_OID_LEN + 1] = 0x22;
+	oid[RIOT_CORE_DEVICE_ID_OID_LEN + 2] = 0x33;
+	oid[RIOT_CORE_DEVICE_ID_OID_LEN + 3] = 0x44;
+
+	rma_unlock_token_testing_init_no_signature (test, &token, oid, sizeof (oid), ECC_PUBKEY2_SHA256,
+		SHA256_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (oid, sizeof (oid), DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH, NULL, 0, token_data);
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data, token_length);
+	CuAssertIntEquals (test, 0, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_short_uuid (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	const size_t signed_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA256_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	rma_unlock_token_testing_init_no_signature (test, &token, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_PADDED, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH, NULL, 0,
+		token_data);
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_PADDED_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID_PADDED,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_PADDED_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data, token_length);
+	CuAssertIntEquals (test, 0, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_static_init (CuTest *test)
+{
+	struct rma_unlock_token_testing token = {
+		.test = rma_unlock_token_static_init_no_signature (&token.uuid.base,
+			RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256,
+			SHA256_HASH_LENGTH)
+	};
+	const size_t signed_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA256_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	rma_unlock_token_testing_init_dependencies (test, &token);
+
+	rma_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH, NULL, 0,
+		token_data);
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data, token_length);
+	CuAssertIntEquals (test, 0, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_null (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	const size_t signed_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA256_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	rma_unlock_token_testing_init_no_signature (test, &token, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH, NULL, 0,
+		token_data);
+
+	status = token.test.authenticate (NULL, token_data, token_length);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
+
+	status = token.test.authenticate (&token.test, NULL, token_length);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_INVALID_ARGUMENT, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_get_uuid_error (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	const size_t signed_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA256_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	rma_unlock_token_testing_init_no_signature (test, &token, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH, NULL, 0,
+		token_data);
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		CMD_DEVICE_UUID_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data, token_length);
+	CuAssertIntEquals (test, CMD_DEVICE_UUID_FAILED, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_short_data_no_der (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	const size_t signed_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA256_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	rma_unlock_token_testing_init_no_signature (test, &token, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH, NULL, 0,
+		token_data);
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data, 0);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_BAD_TOKEN_DATA, status);
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data, 1);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_BAD_TOKEN_DATA, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_short_data_oid (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	const size_t signed_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA256_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	rma_unlock_token_testing_init_no_signature (test, &token, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH, NULL, 0,
+		token_data);
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data, 2 + RIOT_CORE_DEVICE_ID_OID_LEN - 1);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_BAD_TOKEN_DATA, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_mismatch_short_oid_length (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	uint8_t oid[RIOT_CORE_DEVICE_ID_OID_LEN - 1];
+	const size_t signed_length = 2 + sizeof (oid) + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA256_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	memcpy (oid, RIOT_CORE_DEVICE_ID_OID, sizeof (oid));
+
+	rma_unlock_token_testing_init_no_signature (test, &token, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (oid, sizeof (oid), DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH, NULL, 0, token_data);
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data, token_length);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_DEVICE_MISMATCH, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_mismatch_oid (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	uint8_t oid[RIOT_CORE_DEVICE_ID_OID_LEN];
+	const size_t signed_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA256_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	memcpy (oid, RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN);
+	oid[2] ^= 0x55;
+
+	rma_unlock_token_testing_init_no_signature (test, &token, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (oid, sizeof (oid), DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH, NULL, 0, token_data);
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data, token_length);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_DEVICE_MISMATCH, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_short_data_version (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	const size_t signed_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA256_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	rma_unlock_token_testing_init_no_signature (test, &token, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH, NULL, 0,
+		token_data);
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data,
+		2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 - 1);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_BAD_TOKEN_DATA, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_mismatch_version (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	const size_t signed_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA256_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	rma_unlock_token_testing_init_no_signature (test, &token, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH, NULL, 0,
+		token_data);
+	token_data[2 + RIOT_CORE_DEVICE_ID_OID_LEN + 1] = 0xf0;	/* Change the format version. */
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data, token_length);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_BAD_TOKEN_DATA, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_short_data_magic_number (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	const size_t signed_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA256_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	rma_unlock_token_testing_init_no_signature (test, &token, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH, NULL, 0,
+		token_data);
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data,
+		2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 - 1);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_BAD_TOKEN_DATA, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_mismatch_magic_number (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	const size_t signed_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA256_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	rma_unlock_token_testing_init_no_signature (test, &token, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH, NULL, 0,
+		token_data);
+	token_data[2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 1] ^= 0x55;	/* Change the magic number. */
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data, token_length);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_BAD_TOKEN_DATA, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_short_data_uuid (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	const size_t signed_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA256_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	rma_unlock_token_testing_init_no_signature (test, &token, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH, NULL, 0,
+		token_data);
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data,
+		2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 + DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN - 1);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_BAD_TOKEN_DATA, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_mismatch_uuid (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	uint8_t uuid[DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN];
+	const size_t signed_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA256_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	memcpy (uuid, DEVICE_UNLOCK_TOKEN_TESTING_UUID, DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN);
+	uuid[4] ^= 0x55;
+
+	rma_unlock_token_testing_init_no_signature (test, &token, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
+		uuid, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH, NULL, 0, token_data);
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data, token_length);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_DEVICE_MISMATCH, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_short_data_device_id_hash (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	const size_t signed_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA256_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	rma_unlock_token_testing_init_no_signature (test, &token, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH, NULL, 0,
+		token_data);
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data,
+		2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 + DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN +
+		SHA256_HASH_LENGTH - 1);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_BAD_TOKEN_DATA, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_mismatch_device_id_hash (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	const size_t signed_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA256_HASH_LENGTH;
+	const size_t token_length = signed_length;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	rma_unlock_token_testing_init_no_signature (test, &token, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID, ECC_PUBKEY3_SHA256, SHA256_HASH_LENGTH, NULL, 0,
+		token_data);
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data, token_length);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_DEVICE_MISMATCH, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
+static void rma_unlock_token_test_authenticate_no_signature_extra_data (CuTest *test)
+{
+	struct rma_unlock_token_testing token;
+	const size_t signed_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + 4 +
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + SHA256_HASH_LENGTH;
+	const size_t token_length = signed_length + 1;
+	uint8_t token_data[token_length];
+	int status;
+
+	TEST_START;
+
+	rma_unlock_token_testing_init_no_signature (test, &token, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH);
+
+	rma_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID, ECC_PUBKEY2_SHA256, SHA256_HASH_LENGTH, NULL, 0,
+		token_data);
+
+	status = mock_expect (&token.uuid.mock, token.uuid.base.get_uuid, &token.uuid,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&token.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = token.test.authenticate (&token.test, token_data, token_length);
+	CuAssertIntEquals (test, RMA_UNLOCK_TOKEN_BAD_TOKEN_DATA, status);
+
+	rma_unlock_token_testing_release (test, &token);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (rma_unlock_token);
 
 TEST (rma_unlock_token_test_init);
 TEST (rma_unlock_token_test_init_null);
+TEST (rma_unlock_token_test_init_no_signature);
+TEST (rma_unlock_token_test_init_no_signature_null);
 TEST (rma_unlock_token_test_static_init);
+TEST (rma_unlock_token_test_static_init_no_signature);
 TEST (rma_unlock_token_test_release_null);
 TEST (rma_unlock_token_test_authenticate);
 TEST (rma_unlock_token_test_authenticate_sha384);
@@ -1325,6 +2124,27 @@ TEST (rma_unlock_token_test_authenticate_unknown_signature_hash);
 TEST (rma_unlock_token_test_authenticate_verification_key_error);
 TEST (rma_unlock_token_test_authenticate_bad_signature);
 TEST (rma_unlock_token_test_authenticate_signature_verify_error);
+TEST (rma_unlock_token_test_authenticate_no_signature);
+TEST (rma_unlock_token_test_authenticate_no_signature_sha384);
+TEST (rma_unlock_token_test_authenticate_no_signature_sha512);
+TEST (rma_unlock_token_test_authenticate_no_signature_longer_oid);
+TEST (rma_unlock_token_test_authenticate_no_signature_short_uuid);
+TEST (rma_unlock_token_test_authenticate_no_signature_static_init);
+TEST (rma_unlock_token_test_authenticate_no_signature_null);
+TEST (rma_unlock_token_test_authenticate_no_signature_get_uuid_error);
+TEST (rma_unlock_token_test_authenticate_no_signature_short_data_no_der);
+TEST (rma_unlock_token_test_authenticate_no_signature_short_data_oid);
+TEST (rma_unlock_token_test_authenticate_no_signature_mismatch_short_oid_length);
+TEST (rma_unlock_token_test_authenticate_no_signature_mismatch_oid);
+TEST (rma_unlock_token_test_authenticate_no_signature_short_data_version);
+TEST (rma_unlock_token_test_authenticate_no_signature_mismatch_version);
+TEST (rma_unlock_token_test_authenticate_no_signature_short_data_magic_number);
+TEST (rma_unlock_token_test_authenticate_no_signature_mismatch_magic_number);
+TEST (rma_unlock_token_test_authenticate_no_signature_short_data_uuid);
+TEST (rma_unlock_token_test_authenticate_no_signature_mismatch_uuid);
+TEST (rma_unlock_token_test_authenticate_no_signature_short_data_device_id_hash);
+TEST (rma_unlock_token_test_authenticate_no_signature_mismatch_device_id_hash);
+TEST (rma_unlock_token_test_authenticate_no_signature_extra_data);
 
 TEST_SUITE_END;
 // *INDENT-ON*

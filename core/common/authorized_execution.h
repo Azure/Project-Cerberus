@@ -5,6 +5,7 @@
 #define AUTHORIZED_EXECUTION_H_
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include "status/rot_status.h"
 
@@ -57,6 +58,11 @@ struct authorized_execution {
 	void (*get_status_identifiers) (const struct authorized_execution *execution, uint8_t *start,
 		uint8_t *error);
 };
+
+
+/* Internal functions for use by derived types. */
+void authorized_execution_get_status_identifiers (const struct authorized_execution *execution,
+	uint8_t *start, uint8_t *error);
 
 
 #define	AUTHORIZED_EXECUTION_ERROR(code)		ROT_ERROR (ROT_MODULE_AUTHORIZED_EXECUTION, code)

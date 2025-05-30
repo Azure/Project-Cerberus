@@ -13,7 +13,7 @@
 
 
 /**
- * Handler for authenticating token used to unlock device RMA transition.
+ * Handler for authenticating a token used to unlock the device RMA transition.
  */
 struct rma_unlock_token {
 	/**
@@ -48,6 +48,9 @@ int rma_unlock_token_init (struct rma_unlock_token *handler, const uint8_t *auth
 	size_t key_length, const struct signature_verification *authority,
 	const struct hash_engine *hash, enum hash_type auth_hash, const struct cmd_device *uuid,
 	const uint8_t *oid, size_t oid_length, const uint8_t *dice_hash, size_t hash_length);
+int rma_unlock_token_init_no_signature (struct rma_unlock_token *handler,
+	const struct cmd_device *uuid, const uint8_t *oid, size_t oid_length, const uint8_t *dice_hash,
+	size_t hash_length);
 void rma_unlock_token_release (const struct rma_unlock_token *handler);
 
 
