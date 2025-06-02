@@ -482,7 +482,7 @@ static void cfm_flash_free_cfm_digests (const struct cfm_flash *cfm_flash,
 static void cfm_flash_free_cfm_allowable_digests (const struct cfm_flash *cfm_flash,
 	struct cfm_allowable_digests *allowable_digests, size_t allowable_digests_count)
 {
-	uint8_t i;
+	size_t i;
 
 	if (allowable_digests == NULL) {
 		return;
@@ -569,7 +569,7 @@ static int cfm_flash_populate_allowable_digests (const struct cfm_flash *cfm_fla
 	struct cfm_allowable_digest_element *allowable_digest_ptr = &allowable_digest;
 	struct cfm_allowable_digests *curr_allowable_digest;
 	size_t digests_len;
-	uint8_t i_allowable_digest;
+	size_t i_allowable_digest;
 	int hash_len;
 	int status;
 
@@ -768,8 +768,8 @@ static int cfm_flash_get_next_measurement (const struct cfm *cfm,
 static void cfm_flash_free_measurement_data (const struct cfm *cfm,
 	struct cfm_measurement_data *measurement_data)
 {
-	uint8_t i_check;
-	uint8_t i_data;
+	size_t i_check;
+	size_t i_data;
 	struct cfm_allowable_data_entry *curr_allowable_data;
 
 	UNUSED (cfm);
@@ -863,7 +863,8 @@ static int cfm_flash_get_next_measurement_data (const struct cfm *cfm,
 	struct cfm_allowable_data *allowable_data_ptr;
 	size_t measurement_data_element_len = sizeof (struct cfm_measurement_data_element);
 	size_t offset;
-	uint8_t i_allowable_data;
+	size_t i_data;
+	int i_allowable_data;
 	int num_allowable_data;
 	int status;
 
@@ -971,7 +972,7 @@ static int cfm_flash_get_next_measurement_data (const struct cfm *cfm,
 		}
 
 		// Read all Data entries of current Allowable Data element
-		for (uint8_t i_data = 0; i_data < allowable_data_ptr->data_count; i_data++) {
+		for (i_data = 0; i_data < allowable_data_ptr->data_count; i_data++) {
 			// Read Data header
 			status = manifest_flash_read_element_data (&cfm_flash->base_flash,
 				cfm_flash->base_flash.hash, CFM_ALLOWABLE_DATA, *entry, CFM_MEASUREMENT_DATA,
@@ -1238,7 +1239,7 @@ int cfm_flash_get_root_ca_digest (const struct cfm *cfm, uint32_t component_id,
 
 void cfm_flash_free_manifest (const struct cfm *cfm, struct cfm_manifest *manifest)
 {
-	uint8_t i_check;
+	size_t i_check;
 
 	UNUSED (cfm);
 
@@ -1283,6 +1284,7 @@ static int cfm_flash_get_next_manifest (const struct cfm *cfm, uint32_t componen
 	size_t allowable_pfm_element_len = sizeof (struct cfm_allowable_pfm_element);
 	size_t ids_len;
 	size_t offset;
+	size_t i_id;
 	uint8_t *element_entry_ptr;
 	int num_allowable_id;
 	int i_allowable_id;
@@ -1387,7 +1389,7 @@ static int cfm_flash_get_next_manifest (const struct cfm *cfm, uint32_t componen
 		}
 
 		if (allowable_id_element_ptr->check.endianness == CFM_MULTIBYTE_BIG_ENDIAN) {
-			for (uint8_t i_id = 0; i_id < allowable_id_ptr->id_count; i_id++) {
+			for (i_id = 0; i_id < allowable_id_ptr->id_count; i_id++) {
 				*((uint32_t*) &allowable_id_ptr->allowable_id[i_id]) =
 					common_math_swap_bytes_uint32 (allowable_id_ptr->allowable_id[i_id]);
 			}

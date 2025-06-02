@@ -136,7 +136,9 @@ static void kdf_test_kat_run_self_test_nist800_108_counter_mode_sha256_ko_mismat
 	TEST_START;
 
 	memset (ko_bad, 0x56, sizeof (ko_bad));
-	memcpy (ko_bad, KDF_KAT_VECTORS_NIST800_108_CTR_SHA256_KO, sizeof (ko_bad));
+
+	memcpy (ko_bad, KDF_KAT_VECTORS_NIST800_108_CTR_SHA256_KO,
+		KDF_KAT_VECTORS_NIST800_108_CTR_SHA256_KO_LEN);
 	ko_bad[5] ^= 0x55;
 
 	status = hash_mock_init (&hash);
@@ -235,7 +237,8 @@ static void kdf_test_kat_run_self_test_nist800_108_counter_mode_sha384_ko_mismat
 	TEST_START;
 
 	memset (ko_bad, 0x78, sizeof (ko_bad));
-	memcpy (ko_bad, KDF_KAT_VECTORS_NIST800_108_CTR_SHA384_KO, sizeof (ko_bad));
+	memcpy (ko_bad, KDF_KAT_VECTORS_NIST800_108_CTR_SHA384_KO,
+		KDF_KAT_VECTORS_NIST800_108_CTR_SHA384_KO_LEN);
 	ko_bad[5] ^= 0x55;
 
 	status = hash_mock_init (&hash);
@@ -325,7 +328,8 @@ static void kdf_test_kat_run_self_test_nist800_108_counter_mode_sha512_ko_mismat
 	TEST_START;
 
 	memset (ko_bad, 0x9a, sizeof (ko_bad));
-	memcpy (ko_bad, KDF_KAT_VECTORS_NIST800_108_CTR_SHA512_KO, sizeof (ko_bad));
+	memcpy (ko_bad, KDF_KAT_VECTORS_NIST800_108_CTR_SHA512_KO,
+		KDF_KAT_VECTORS_NIST800_108_CTR_SHA512_KO_LEN);
 	ko_bad[5] ^= 0x55;
 
 	status = hash_mock_init (&hash);

@@ -24,7 +24,7 @@ int ide_km_query (const struct ide_driver *ide_driver, struct cmd_interface_msg 
 	uint8_t port_index;
 	struct ide_capability_register *capability_register;
 	uint8_t *ptr;
-	uint8_t block_idx;
+	uint32_t block_idx;
 	size_t ide_addr_assoc_reg_block_length;
 	size_t available_payload_length;
 	size_t incr_length;
@@ -82,7 +82,7 @@ int ide_km_query (const struct ide_driver *ide_driver, struct cmd_interface_msg 
 	available_payload_length -= sizeof (struct ide_km_query_resp);
 	if (capability_register->link_ide_stream_supported == 1) {
 		for (block_idx = 0;
-			block_idx < (capability_register->number_of_tcs_supported_for_link_ide + 1);
+			block_idx < (capability_register->number_of_tcs_supported_for_link_ide + 1U);
 			block_idx++) {
 			if (available_payload_length < sizeof (struct ide_link_ide_stream_register_block)) {
 				status = CMD_INTERFACE_IDE_RESPONDER_OUT_OF_BUFFER_SPACE;
@@ -105,7 +105,7 @@ int ide_km_query (const struct ide_driver *ide_driver, struct cmd_interface_msg 
 	/* Add the Selective IDE Stream Register block(s). */
 	if (capability_register->selective_ide_streams_supported == 1) {
 		for (block_idx = 0;
-			block_idx < (capability_register->number_of_selective_ide_streams_supported + 1);
+			block_idx < (capability_register->number_of_selective_ide_streams_supported + 1U);
 			block_idx++) {
 			if (available_payload_length <
 				sizeof (struct ide_selective_ide_stream_register_block)) {

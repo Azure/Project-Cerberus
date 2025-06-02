@@ -402,7 +402,7 @@ int x509_openssl_create_csr (const struct x509_engine *engine, const uint8_t *pr
 	}
 
 	if (type) {
-		char constraint[35];
+		char constraint[37];
 
 		if (X509_CERT_PATHLEN (type) <= X509_CERT_MAX_PATHLEN) {
 			sprintf (constraint, "critical,CA:TRUE,pathlen:%d", X509_CERT_PATHLEN (type));
@@ -693,7 +693,7 @@ static int x509_openssl_create_certificate (struct x509_certificate *cert, EVP_P
 	}
 
 	if (type) {
-		char constraint[35];
+		char constraint[37];
 
 		if (X509_CERT_PATHLEN (type) <= X509_CERT_MAX_PATHLEN) {
 			sprintf (constraint, "critical,CA:TRUE,pathlen:%d", X509_CERT_PATHLEN (type));
