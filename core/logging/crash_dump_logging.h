@@ -37,7 +37,12 @@ enum {
 	CRASH_DUMP_LOGGING_ARM_BFAR = 0x0c,			/**< The BFAR value for the exception. */
 	CRASH_DUMP_LOGGING_ARM_UFSR = 0x0d,			/**< The UFSR value for the exception. */
 	CRASH_DUMP_LOGGING_ARM_AFSR = 0x0e,			/**< The AFSR value of the BusFault Address Register. */
-	/* 0x0f - 0x1f enum values resverved for additional ARM registers. */
+	CRASH_DUMP_LOGGING_ARM_CPSR = 0x0f,			/**< The CPSR value for the exception. */
+	CRASH_DUMP_LOGGING_ARM_DFAR = 0x10,			/**< The data Fault Address Register value. */
+	CRASH_DUMP_LOGGING_ARM_DFSR = 0x11,			/**< The data Fault status Register value. */
+	CRASH_DUMP_LOGGING_ARM_IFAR = 0x12,			/**< The instruction Fault Address Register value. */
+	CRASH_DUMP_LOGGING_ARM_IFSR = 0x13,			/**< The instruction Fault status Register value. */
+	/* 0x14 - 0x1f enum values resverved for additional ARM registers. */
 	CRASH_DUMP_LOGGING_RISCV_MEPC = 0x20,		/**< The MEPC current machine exception return pc. */
 	CRASH_DUMP_LOGGING_RISCV_MSTATUS = 0x21,	/**< The MSTATUS machine status. */
 	CRASH_DUMP_LOGGING_RISCV_MTVAL = 0x22,		/**< The MTVAL additional trap info. */
