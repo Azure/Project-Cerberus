@@ -534,7 +534,7 @@ static int spdm_validate_general_opaque_data (uint8_t spdm_version, uint8_t opaq
 				opaque_element_data_len;
 
 			if ((current_element_len & 3) != 0) {
-				if (memcmp (zero_padding,
+				if (buffer_compare (zero_padding,
 					(uint8_t*) (size_t) (opaque_element_table_header) + current_element_len,
 					4 - (current_element_len & 3)) != 0) {
 					goto exit;
@@ -1494,7 +1494,7 @@ static int spdm_verify_finish_req_hmac (const struct spdm_transcript_manager *tr
 	}
 
 	/* Compare the HMAC values. */
-	if (memcmp (hmac, hmac_computed, hmac_size) != 0) {
+	if (buffer_compare (hmac, hmac_computed, hmac_size) != 0) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
 		goto exit;
 	}
