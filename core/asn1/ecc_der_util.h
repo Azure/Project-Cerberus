@@ -137,6 +137,7 @@ enum {
 	ECC_DER_UTIL_UNEXPECTED_TAG = ECC_DER_UTIL_ERROR (0x0a),			/**< The encoded data contained a tag not correct for ASN.1 sequence. */
 	ECC_DER_UTIL_INVALID_ECPOINT = ECC_DER_UTIL_ERROR (0x0b),			/**< The public key is representation is not valid. */
 	ECC_DER_UTIL_COMPRESSED_ECPOINT = ECC_DER_UTIL_ERROR (0x0c),		/**< The public key is represented in compressed form. */
+	ECC_DER_UTIL_INFINITY_ECPOINT = ECC_DER_UTIL_ERROR (0x0d),			/**< The public key provided is the point at infinity. */
 };
 
 

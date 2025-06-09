@@ -1201,6 +1201,190 @@ static void ecc_openssl_test_init_public_key_with_rsa_key (CuTest *test)
 	ecc_openssl_release (&engine);
 }
 
+static void ecc_openssl_test_init_public_key_with_infinity_point (CuTest *test)
+{
+	struct ecc_engine_openssl engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_public_key (&engine.base, ECC_INFINITY_DER, ECC_INFINITY_DER_LEN,
+		&pub_key);
+	CuAssertIntEquals (test, ECC_ENGINE_INVALID_PUBLIC_KEY, status);
+
+	ecc_openssl_release (&engine);
+}
+
+static void ecc_openssl_test_init_public_key_p256_x_equal_curve_prime (CuTest *test)
+{
+	struct ecc_engine_openssl engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_public_key (&engine.base, ECC_X_CURVE_PRIME_DER,
+		ECC_X_CURVE_PRIME_DER_LEN, &pub_key);
+	CuAssertTrue (test, (status < 0));	/* Don't look for a specific error code. */
+
+	ecc_openssl_release (&engine);
+}
+
+static void ecc_openssl_test_init_public_key_p256_y_equal_curve_prime (CuTest *test)
+{
+	struct ecc_engine_openssl engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_public_key (&engine.base, ECC_Y_CURVE_PRIME_DER,
+		ECC_Y_CURVE_PRIME_DER_LEN, &pub_key);
+	CuAssertTrue (test, (status < 0));	/* Don't look for a specific error code. */
+
+	ecc_openssl_release (&engine);
+}
+
+static void ecc_openssl_test_init_public_key_p256_not_on_curve (CuTest *test)
+{
+	struct ecc_engine_openssl engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_public_key (&engine.base, ECC_NOT_ON_CURVE_DER,
+		ECC_NOT_ON_CURVE_DER_LEN, &pub_key);
+	CuAssertTrue (test, (status < 0));	/* Don't look for a specific error code. */
+
+	ecc_openssl_release (&engine);
+}
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+static void ecc_openssl_test_init_public_key_p384_x_equal_curve_prime (CuTest *test)
+{
+	struct ecc_engine_openssl engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_public_key (&engine.base, ECC384_X_CURVE_PRIME_DER,
+		ECC384_X_CURVE_PRIME_DER_LEN, &pub_key);
+	CuAssertTrue (test, (status < 0));	/* Don't look for a specific error code. */
+
+	ecc_openssl_release (&engine);
+}
+
+static void ecc_openssl_test_init_public_key_p384_y_equal_curve_prime (CuTest *test)
+{
+	struct ecc_engine_openssl engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_public_key (&engine.base, ECC384_Y_CURVE_PRIME_DER,
+		ECC384_Y_CURVE_PRIME_DER_LEN, &pub_key);
+	CuAssertTrue (test, (status < 0));	/* Don't look for a specific error code. */
+
+	ecc_openssl_release (&engine);
+}
+
+static void ecc_openssl_test_init_public_key_p384_not_on_curve (CuTest *test)
+{
+	struct ecc_engine_openssl engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_public_key (&engine.base, ECC384_NOT_ON_CURVE_DER,
+		ECC384_NOT_ON_CURVE_DER_LEN, &pub_key);
+	CuAssertTrue (test, (status < 0));	/* Don't look for a specific error code. */
+
+	ecc_openssl_release (&engine);
+}
+#endif
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+static void ecc_openssl_test_init_public_key_p521_x_equal_curve_prime (CuTest *test)
+{
+	struct ecc_engine_openssl engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_public_key (&engine.base, ECC521_X_CURVE_PRIME_DER,
+		ECC521_X_CURVE_PRIME_DER_LEN, &pub_key);
+	CuAssertTrue (test, (status < 0));	/* Don't look for a specific error code. */
+
+	ecc_openssl_release (&engine);
+}
+
+static void ecc_openssl_test_init_public_key_p521_y_equal_curve_prime (CuTest *test)
+{
+	struct ecc_engine_openssl engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_public_key (&engine.base, ECC521_Y_CURVE_PRIME_DER,
+		ECC521_Y_CURVE_PRIME_DER_LEN, &pub_key);
+	CuAssertTrue (test, (status < 0));	/* Don't look for a specific error code. */
+
+	ecc_openssl_release (&engine);
+}
+
+static void ecc_openssl_test_init_public_key_p521_not_on_curve (CuTest *test)
+{
+	struct ecc_engine_openssl engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_public_key (&engine.base, ECC521_NOT_ON_CURVE_DER,
+		ECC521_NOT_ON_CURVE_DER_LEN, &pub_key);
+	CuAssertTrue (test, (status < 0));	/* Don't look for a specific error code. */
+
+	ecc_openssl_release (&engine);
+}
+#endif
+
 static void ecc_openssl_test_public_key_generate_derived_key_pair_and_verify (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -3394,6 +3578,20 @@ TEST (ecc_openssl_test_init_public_key_and_verify_static_init);
 TEST (ecc_openssl_test_init_public_key_null);
 TEST (ecc_openssl_test_init_public_key_with_private_key);
 TEST (ecc_openssl_test_init_public_key_with_rsa_key);
+TEST (ecc_openssl_test_init_public_key_with_infinity_point);
+TEST (ecc_openssl_test_init_public_key_p256_x_equal_curve_prime);
+TEST (ecc_openssl_test_init_public_key_p256_y_equal_curve_prime);
+TEST (ecc_openssl_test_init_public_key_p256_not_on_curve);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+TEST (ecc_openssl_test_init_public_key_p384_x_equal_curve_prime);
+TEST (ecc_openssl_test_init_public_key_p384_y_equal_curve_prime);
+TEST (ecc_openssl_test_init_public_key_p384_not_on_curve);
+#endif
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+TEST (ecc_openssl_test_init_public_key_p521_x_equal_curve_prime);
+TEST (ecc_openssl_test_init_public_key_p521_y_equal_curve_prime);
+TEST (ecc_openssl_test_init_public_key_p521_not_on_curve);
+#endif
 TEST (ecc_openssl_test_public_key_generate_derived_key_pair_and_verify);
 TEST (ecc_openssl_test_public_key_generate_derived_key_pair_and_verify_p384);
 TEST (ecc_openssl_test_public_key_generate_derived_key_pair_and_verify_p521);

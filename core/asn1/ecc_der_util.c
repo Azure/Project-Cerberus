@@ -658,7 +658,36 @@ int ecc_der_decode_public_key_no_copy (const uint8_t *der, size_t length, const 
 		return status;
 	}
 
-	key_len = (type_len - 2) / 2;
+	/* Every public key bit string must have a leading zero and a format identifier. */
+	if (type_len < 2) {
+		return ECC_DER_UTIL_MALFORMED;
+	}
+
+	/* Skip over the leading zero in the public key bit string. */
+	pos++;
+	type_len--;
+
+	/* Confirm a valid ECPoint format for the public key. */
+	switch (pos[0]) {
+		case 0x00:
+			/* The point at infinity, which is not a valid public key. */
+			return ECC_DER_UTIL_INFINITY_ECPOINT;
+
+		case 0x02:
+		case 0x03:
+			/* Compressed ECPoint */
+			break;
+
+		case 0x04:
+			/* Uncompressed ECPoint */
+			break;
+
+		default:
+			return ECC_DER_UTIL_INVALID_ECPOINT;
+	}
+
+	/* TODO: This check will not work with compressed ECPoints. */
+	key_len = (type_len - 1) / 2;
 
 	switch (key_len) {
 		case ECC_KEY_LENGTH_256:
@@ -688,25 +717,6 @@ int ecc_der_decode_public_key_no_copy (const uint8_t *der, size_t length, const 
 
 		default:
 			return ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH;
-	}
-
-	/* Skip over the leading zero in the public key bit string. */
-	pos++;
-	type_len--;
-
-	/* Confirm a valid ECPoint format for the public key. */
-	switch (pos[0]) {
-		case 0x02:
-		case 0x03:
-			/* Compressed ECPoint */
-			break;
-
-		case 0x04:
-			/* Uncompressed ECPoint */
-			break;
-
-		default:
-			return ECC_DER_UTIL_INVALID_ECPOINT;
 	}
 
 	*pub_key = pos;

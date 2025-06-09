@@ -172,7 +172,9 @@ int ecc_ecc_hw_init_key_pair (const struct ecc_engine *engine, const uint8_t *ke
 int ecc_ecc_hw_init_public_key (const struct ecc_engine *engine, const uint8_t *key,
 	size_t key_length, struct ecc_public_key *pub_key)
 {
+	const struct ecc_engine_ecc_hw *ecc = (const struct ecc_engine_ecc_hw*) engine;
 	int pub_key_length;
+	int status;
 
 	if ((engine == NULL) || (key == NULL) || (key_length == 0) || (pub_key == NULL)) {
 		return ECC_ENGINE_INVALID_ARGUMENT;
@@ -193,13 +195,26 @@ int ecc_ecc_hw_init_public_key (const struct ecc_engine *engine, const uint8_t *
 			/* If we don't understand the structure, it's probably not an ECC key. */
 			pub_key_length = ECC_ENGINE_NOT_EC_KEY;
 		}
+		else if (pub_key_length == ECC_DER_UTIL_INFINITY_ECPOINT) {
+			pub_key_length = ECC_ENGINE_INVALID_PUBLIC_KEY;
+		}
 
 		return pub_key_length;
 	}
 
 	ecc_ecc_hw_public_key (pub_key).key_length = pub_key_length;
 
-	return 0;
+	status = ecc->hw->verify_ecc_public_key (ecc->hw, &ecc_ecc_hw_public_key (pub_key));
+	if (status != 0) {
+		ecc_ecc_hw_free_key_context (pub_key->context);
+		pub_key->context = NULL;
+
+		if (status == ECC_HW_INVALID_PUBLIC_KEY) {
+			status = ECC_ENGINE_INVALID_PUBLIC_KEY;
+		}
+	}
+
+	return status;
 }
 
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR

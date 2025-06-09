@@ -123,6 +123,7 @@ int ecc_openssl_init_public_key (const struct ecc_engine *engine, const uint8_t 
 	size_t key_length, struct ecc_public_key *pub_key)
 {
 	EVP_PKEY *ec_pub = NULL;
+	EVP_PKEY_CTX *ctx;
 	int status;
 
 	if ((engine == NULL) || (key == NULL) || (key_length == 0) || (pub_key == NULL)) {
@@ -142,6 +143,21 @@ int ecc_openssl_init_public_key (const struct ecc_engine *engine, const uint8_t 
 		EVP_PKEY_free (ec_pub);
 
 		return ECC_ENGINE_NOT_EC_KEY;
+	}
+
+	ctx = EVP_PKEY_CTX_new (ec_pub, NULL);
+	if (ctx == NULL) {
+		EVP_PKEY_free (ec_pub);
+
+		return -ERR_get_error ();
+	}
+
+	status = EVP_PKEY_public_check (ctx);
+	EVP_PKEY_CTX_free (ctx);
+	if (status != 1) {
+		EVP_PKEY_free (ec_pub);
+
+		return ECC_ENGINE_INVALID_PUBLIC_KEY;
 	}
 
 	pub_key->context = ec_pub;

@@ -310,6 +310,7 @@ enum {
 	ECC_ENGINE_SELF_TEST_FAILED = ECC_ENGINE_ERROR (0x16),			/**< An internal self-test of the ECC engine failed. */
 	ECC_ENGINE_UNSUPPORTED_OPERATION = ECC_ENGINE_ERROR (0x17),		/**< The requested operation is not supported by the implementation. */
 	ECC_ENGINE_INCOMPATIBLE_DIGEST = ECC_ENGINE_ERROR (0x18),		/**< The specified digest cannot be used for a signing operation. */
+	ECC_ENGINE_INVALID_PUBLIC_KEY = ECC_ENGINE_ERROR (0x19),		/**> The public key is not valid for the curve. */
 };
 
 

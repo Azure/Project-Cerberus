@@ -11,12 +11,27 @@
 
 /* Maximum lengths of DER-encoded ECDSA signatures.
  * Sequence -> 2 bytes overhead (3 for ECC521)
- *	BIT STRING (r) -> 2 bytes overhead (3 if MSB is 1)
- *	BIT STRING (s) -> 2 bytes overhead (3 if MSB is 1) */
-#define	ECC_TESTING_ECC256_DSA_MAX_LENGTH		72
-#define	ECC_TESTING_ECC384_DSA_MAX_LENGTH		104
-#define	ECC_TESTING_ECC521_DSA_MAX_LENGTH		139
+ *	BIT STRING (r) -> 2 bytes overhead (3 if MSB is 1, not possible for ECC521)
+ *	BIT STRING (s) -> 2 bytes overhead (3 if MSB is 1, not possible for ECC521) */
+#define	ECC_TESTING_ECC256_DSA_MAX_LENGTH		72	/* (32 * 2) + 2 + 3 + 3 */
+#define	ECC_TESTING_ECC384_DSA_MAX_LENGTH		104	/* (48 * 2) + 2 + 3 + 3 */
+#define	ECC_TESTING_ECC521_DSA_MAX_LENGTH		139	/* (66 * 2) + 3 + 2 + 2 */
 
+
+extern const uint8_t ECC_INFINITY_DER[];
+extern const size_t ECC_INFINITY_DER_LEN;
+
+extern const struct ecc_point_public_key ECC_NOT_ON_CURVE_POINT;
+extern const uint8_t ECC_NOT_ON_CURVE_DER[];
+extern const size_t ECC_NOT_ON_CURVE_DER_LEN;
+
+extern const struct ecc_point_public_key ECC_X_CURVE_PRIME_POINT;
+extern const uint8_t ECC_X_CURVE_PRIME_DER[];
+extern const size_t ECC_X_CURVE_PRIME_DER_LEN;
+
+extern const struct ecc_point_public_key ECC_Y_CURVE_PRIME_POINT;
+extern const uint8_t ECC_Y_CURVE_PRIME_DER[];
+extern const size_t ECC_Y_CURVE_PRIME_DER_LEN;
 
 extern const uint8_t ECC_PRIVKEY[];
 extern const uint8_t ECC_PRIVKEY_LE[];
@@ -387,6 +402,23 @@ extern const uint8_t ECC_PRIVKEY10_NO_PUBKEY_DER[];
 extern const size_t ECC_PRIVKEY10_NO_PUBKEY_DER_LEN;
 
 
+extern const uint8_t ECC384_INFINITY_DER[];
+extern const size_t ECC384_INFINITY_DER_LEN;
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+extern const struct ecc_point_public_key ECC384_NOT_ON_CURVE_POINT;
+extern const uint8_t ECC384_NOT_ON_CURVE_DER[];
+extern const size_t ECC384_NOT_ON_CURVE_DER_LEN;
+
+extern const struct ecc_point_public_key ECC384_X_CURVE_PRIME_POINT;
+extern const uint8_t ECC384_X_CURVE_PRIME_DER[];
+extern const size_t ECC384_X_CURVE_PRIME_DER_LEN;
+
+extern const struct ecc_point_public_key ECC384_Y_CURVE_PRIME_POINT;
+extern const uint8_t ECC384_Y_CURVE_PRIME_DER[];
+extern const size_t ECC384_Y_CURVE_PRIME_DER_LEN;
+#endif
+
 extern const uint8_t ECC384_PRIVKEY[];
 extern const uint8_t ECC384_PRIVKEY_LE[];
 extern const size_t ECC384_PRIVKEY_LEN;
@@ -739,6 +771,23 @@ extern const size_t ECC384_PRIVKEY10_DER_LEN;
 extern const uint8_t ECC384_PRIVKEY10_NO_PUBKEY_DER[];
 extern const size_t ECC384_PRIVKEY10_NO_PUBKEY_DER_LEN;
 
+
+extern const uint8_t ECC521_INFINITY_DER[];
+extern const size_t ECC521_INFINITY_DER_LEN;
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+extern const struct ecc_point_public_key ECC521_NOT_ON_CURVE_POINT;
+extern const uint8_t ECC521_NOT_ON_CURVE_DER[];
+extern const size_t ECC521_NOT_ON_CURVE_DER_LEN;
+
+extern const struct ecc_point_public_key ECC521_X_CURVE_PRIME_POINT;
+extern const uint8_t ECC521_X_CURVE_PRIME_DER[];
+extern const size_t ECC521_X_CURVE_PRIME_DER_LEN;
+
+extern const struct ecc_point_public_key ECC521_Y_CURVE_PRIME_POINT;
+extern const uint8_t ECC521_Y_CURVE_PRIME_DER[];
+extern const size_t ECC521_Y_CURVE_PRIME_DER_LEN;
+#endif
 
 extern const uint8_t ECC521_PRIVKEY[];
 extern const uint8_t ECC521_PRIVKEY_LE[];

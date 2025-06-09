@@ -2053,6 +2053,24 @@ static void ecc_der_decode_public_key_test_malformed_bit_string_too_long (CuTest
 	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
 }
 
+static void ecc_der_decode_public_key_test_malformed_bit_string_too_short (CuTest *test)
+{
+	uint8_t pub_key_x[ECC_KEY_LENGTH_256];
+	uint8_t pub_key_y[ECC_KEY_LENGTH_256];
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN + 1];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* The BIT STRING needs to be at least two bytes long. */
+	der[24] = 1;
+
+	status = ecc_der_decode_public_key (der, sizeof (der), pub_key_x, pub_key_y,
+		ECC_KEY_LENGTH_256);
+	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+}
+
 static void ecc_der_decode_public_key_test_unsupported_key_length (CuTest *test)
 {
 	uint8_t pub_key_x[ECC_KEY_LENGTH_256];
@@ -2087,6 +2105,19 @@ static void ecc_der_decode_public_key_test_invalid_ecpoint_format (CuTest *test)
 	status = ecc_der_decode_public_key (der, sizeof (der), pub_key_x, pub_key_y,
 		ECC_KEY_LENGTH_256);
 	CuAssertIntEquals (test, ECC_DER_UTIL_INVALID_ECPOINT, status);
+}
+
+static void ecc_der_decode_public_key_test_point_at_infinity_00 (CuTest *test)
+{
+	uint8_t pub_key_x[ECC_KEY_LENGTH_256];
+	uint8_t pub_key_y[ECC_KEY_LENGTH_256];
+	int status;
+
+	TEST_START;
+
+	status = ecc_der_decode_public_key (ECC_INFINITY_DER, ECC_INFINITY_DER_LEN, pub_key_x,
+		pub_key_y, ECC_KEY_LENGTH_256);
+	CuAssertIntEquals (test, ECC_DER_UTIL_INFINITY_ECPOINT, status);
 }
 
 static void ecc_der_decode_public_key_test_compressed_ecpoint_02 (CuTest *test)
@@ -2621,6 +2652,22 @@ static void ecc_der_decode_public_key_no_copy_test_malformed_bit_string_too_long
 	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
 }
 
+static void ecc_der_decode_public_key_no_copy_test_malformed_bit_string_too_short (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN + 1];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* The BIT STRING needs to be at least two bytes long. */
+	der[24] = 1;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+}
+
 static void ecc_der_decode_public_key_no_copy_test_unsupported_key_length (CuTest *test)
 {
 	const uint8_t *pub_key;
@@ -2651,6 +2698,17 @@ static void ecc_der_decode_public_key_no_copy_test_invalid_ecpoint_format (CuTes
 
 	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
 	CuAssertIntEquals (test, ECC_DER_UTIL_INVALID_ECPOINT, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_point_at_infinity_00 (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_der_decode_public_key_no_copy (ECC_INFINITY_DER, ECC_INFINITY_DER_LEN, &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_INFINITY_ECPOINT, status);
 }
 
 static void ecc_der_encode_public_key_test_p256 (CuTest *test)
@@ -3868,8 +3926,10 @@ TEST (ecc_der_decode_public_key_test_unsupported_algorithm_mismatch_oid_p521);
 #endif
 TEST (ecc_der_decode_public_key_test_malformed_not_bit_string);
 TEST (ecc_der_decode_public_key_test_malformed_bit_string_too_long);
+TEST (ecc_der_decode_public_key_test_malformed_bit_string_too_short);
 TEST (ecc_der_decode_public_key_test_unsupported_key_length);
 TEST (ecc_der_decode_public_key_test_invalid_ecpoint_format);
+TEST (ecc_der_decode_public_key_test_point_at_infinity_00);
 TEST (ecc_der_decode_public_key_test_compressed_ecpoint_02);
 TEST (ecc_der_decode_public_key_test_compressed_ecpoint_03);
 TEST (ecc_der_decode_public_key_test_small_key_buffer_p256);
@@ -3910,8 +3970,10 @@ TEST (ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_mismatch_oid_
 #endif
 TEST (ecc_der_decode_public_key_no_copy_test_malformed_not_bit_string);
 TEST (ecc_der_decode_public_key_no_copy_test_malformed_bit_string_too_long);
+TEST (ecc_der_decode_public_key_no_copy_test_malformed_bit_string_too_short);
 TEST (ecc_der_decode_public_key_no_copy_test_unsupported_key_length);
 TEST (ecc_der_decode_public_key_no_copy_test_invalid_ecpoint_format);
+TEST (ecc_der_decode_public_key_no_copy_test_point_at_infinity_00);
 TEST (ecc_der_encode_public_key_test_p256);
 TEST (ecc_der_encode_public_key_test_p384);
 TEST (ecc_der_encode_public_key_test_p521);

@@ -30,6 +30,20 @@ struct ecc_hw {
 		size_t key_length, struct ecc_point_public_key *pub_key);
 
 	/**
+	 * Verify that the public key is valid.
+	 *
+	 * It can be guaranteed that the public key provided to this call is not the point at infinity,
+	 * but no other validity checks can be assumed outside of this call.
+	 *
+	 * @param ecc_hw The ECC HW engine to use for public key validation.
+	 * @param pub_key The public key to validate.
+	 *
+	 * @return 0 if the public key is valid or an error code.
+	 */
+	int (*verify_ecc_public_key) (const struct ecc_hw *ecc_hw,
+		const struct ecc_point_public_key *pub_key);
+
+	/**
 	 * Generate a random ECC key pair.
 	 *
 	 * @param ecc_hw The ECC HW engine to use for generating the key pair.
@@ -91,15 +105,6 @@ struct ecc_hw {
 	 */
 	int (*ecdh_compute) (const struct ecc_hw *ecc_hw, const uint8_t *priv_key, size_t key_length,
 		const struct ecc_point_public_key *pub_key, uint8_t *secret, size_t length);
-
-	/**
-	 * Check if an ECC HW instance is able execute a new operation.
-	 *
-	 * @param ecc_hw Pointer to the ECC HW instance.
-	 *
-	 * @return 0 if the ECC HW is free, error code if not.
-	 */
-	int (*is_free) (const struct ecc_hw *ecc_hw);
 };
 
 
@@ -139,6 +144,8 @@ enum {
 	ECC_HW_MOD_ADD_FAILED = ECC_HW_ERROR (0x1b),			/**< Failed a modular addition. */
 	ECC_HW_MOD_REDUCE_FAILED = ECC_HW_ERROR (0x1c),			/**< Failed a modular reduction. */
 	ECC_HW_PRIV_KEY_GEN_FAILED = ECC_HW_ERROR (0x1d),		/**< Failed to generate a valid private key for the curve. */
+	ECC_HW_VERIFY_PUBLIC_FAILED = ECC_HW_ERROR (0x1e),		/**< Failed to verify an ECC public key. */
+	ECC_HW_INVALID_PUBLIC_KEY = ECC_HW_ERROR (0x1f),		/**< The ECC public key is not valid. */
 
 	/* Error codes >0x80 are reserved for reporting HW status bits. */
 };

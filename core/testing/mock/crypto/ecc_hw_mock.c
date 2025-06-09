@@ -22,6 +22,19 @@ static int ecc_hw_mock_get_ecc_public_key (const struct ecc_hw *ecc_hw, const ui
 		MOCK_ARG_CALL (key_length), MOCK_ARG_PTR_CALL (pub_key));
 }
 
+static int ecc_hw_mock_verify_ecc_public_key (const struct ecc_hw *ecc_hw,
+	const struct ecc_point_public_key *pub_key)
+{
+	struct ecc_hw_mock *mock = (struct ecc_hw_mock*) ecc_hw;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, ecc_hw_mock_verify_ecc_public_key, ecc_hw,
+		MOCK_ARG_PTR_CALL (pub_key));
+}
+
 static int ecc_hw_mock_generate_ecc_key_pair (const struct ecc_hw *ecc_hw, size_t key_length,
 	uint8_t *priv_key, struct ecc_point_public_key *pub_key)
 {
@@ -78,17 +91,6 @@ static int ecc_hw_mock_ecdh_compute (const struct ecc_hw *ecc_hw, const uint8_t 
 		MOCK_ARG_CALL (length));
 }
 
-static int ecc_hw_mock_is_free (const struct ecc_hw *ecc_hw)
-{
-	struct ecc_hw_mock *mock = (struct ecc_hw_mock*) ecc_hw;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN_NO_ARGS (&mock->mock, ecc_hw_mock_is_free, ecc_hw);
-}
-
 static int ecc_hw_mock_func_arg_count (void *func)
 {
 	if (func == ecc_hw_mock_ecdsa_sign) {
@@ -104,6 +106,9 @@ static int ecc_hw_mock_func_arg_count (void *func)
 		(func == ecc_hw_mock_generate_ecc_key_pair)) {
 		return 3;
 	}
+	else if (func == ecc_hw_mock_verify_ecc_public_key) {
+		return 1;
+	}
 	else {
 		return 0;
 	}
@@ -113,6 +118,9 @@ static const char* ecc_hw_mock_func_name_map (void *func)
 {
 	if (func == ecc_hw_mock_get_ecc_public_key) {
 		return "get_ecc_public_key";
+	}
+	else if (func == ecc_hw_mock_verify_ecc_public_key) {
+		return "verify_ecc_public_key";
 	}
 	else if (func == ecc_hw_mock_generate_ecc_key_pair) {
 		return "generate_ecc_key_pair";
@@ -125,9 +133,6 @@ static const char* ecc_hw_mock_func_name_map (void *func)
 	}
 	else if (func == ecc_hw_mock_ecdh_compute) {
 		return "ecdh_compute";
-	}
-	else if (func == ecc_hw_mock_is_free) {
-		return "is_free";
 	}
 	else {
 		return "unknown";
@@ -145,6 +150,12 @@ static const char* ecc_hw_mock_arg_name_map (void *func, int arg)
 				return "key_length";
 
 			case 2:
+				return "pub_key";
+		}
+	}
+	else if (func == ecc_hw_mock_verify_ecc_public_key) {
+		switch (arg) {
+			case 0:
 				return "pub_key";
 		}
 	}
@@ -243,11 +254,11 @@ int ecc_hw_mock_init (struct ecc_hw_mock *mock)
 	mock_set_name (&mock->mock, "ecc_hw");
 
 	mock->base.get_ecc_public_key = ecc_hw_mock_get_ecc_public_key;
+	mock->base.verify_ecc_public_key = ecc_hw_mock_verify_ecc_public_key;
 	mock->base.generate_ecc_key_pair = ecc_hw_mock_generate_ecc_key_pair;
 	mock->base.ecdsa_sign = ecc_hw_mock_ecdsa_sign;
 	mock->base.ecdsa_verify = ecc_hw_mock_ecdsa_verify;
 	mock->base.ecdh_compute = ecc_hw_mock_ecdh_compute;
-	mock->base.is_free = ecc_hw_mock_is_free;
 
 	mock->mock.func_arg_count = ecc_hw_mock_func_arg_count;
 	mock->mock.func_name_map = ecc_hw_mock_func_name_map;

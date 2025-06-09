@@ -191,6 +191,10 @@ int ecc_mbedtls_init_public_key (const struct ecc_engine *engine, const uint8_t 
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_PK_PARSE_PUB_EC, status, 0);
 
+		if (status == MBEDTLS_ERR_ECP_INVALID_KEY) {
+			status = ECC_ENGINE_INVALID_PUBLIC_KEY;
+		}
+
 		goto error;
 	}
 
