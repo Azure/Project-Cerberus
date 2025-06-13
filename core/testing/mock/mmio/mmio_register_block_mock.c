@@ -86,6 +86,91 @@ int mmio_register_block_mock_block_write32 (const struct mmio_register_block *re
 		MOCK_ARG_CALL (block_offset), MOCK_ARG_PTR_CALL (src), MOCK_ARG_CALL (dwords_count));
 }
 
+int mmio_register_block_mock_read32_by_addr (const struct mmio_register_block *register_block,
+	uint64_t physical_address, uint32_t *dest)
+{
+	struct mmio_register_block_mock *mock = TO_DERIVED_TYPE (register_block,
+		struct mmio_register_block_mock, base);
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, mmio_register_block_mock_read32_by_addr, register_block,
+		MOCK_ARG_CALL (physical_address), MOCK_ARG_PTR_CALL (dest));
+}
+
+int mmio_register_block_mock_write32_by_addr (const struct mmio_register_block *register_block,
+	uint64_t physical_address, uint32_t value)
+{
+	struct mmio_register_block_mock *mock = TO_DERIVED_TYPE (register_block,
+		struct mmio_register_block_mock, base);
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, mmio_register_block_mock_write32_by_addr, register_block,
+		MOCK_ARG_CALL (physical_address), MOCK_ARG_CALL (value));
+}
+
+int mmio_register_block_mock_block_read32_by_addr (const struct mmio_register_block *register_block,
+	uint64_t physical_address, uint32_t *dest, size_t dwords_count)
+{
+	struct mmio_register_block_mock *mock = TO_DERIVED_TYPE (register_block,
+		struct mmio_register_block_mock, base);
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, mmio_register_block_mock_block_read32_by_addr, register_block,
+		MOCK_ARG_CALL (physical_address), MOCK_ARG_PTR_CALL (dest), MOCK_ARG_CALL (dwords_count));
+}
+
+int mmio_register_block_mock_block_write32_by_addr (
+	const struct mmio_register_block *register_block, uint64_t physical_address,
+	const uint32_t *src, size_t dwords_count)
+{
+	struct mmio_register_block_mock *mock = TO_DERIVED_TYPE (register_block,
+		struct mmio_register_block_mock, base);
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, mmio_register_block_mock_block_write32_by_addr, register_block,
+		MOCK_ARG_CALL (physical_address), MOCK_ARG_PTR_CALL (src), MOCK_ARG_CALL (dwords_count));
+}
+
+int mmio_register_block_mock_get_physical_address (const struct mmio_register_block *register_block,
+	uintptr_t offset, uint64_t *address)
+{
+	struct mmio_register_block_mock *mock = TO_DERIVED_TYPE (register_block,
+		struct mmio_register_block_mock, base);
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, mmio_register_block_mock_get_physical_address, register_block,
+		MOCK_ARG_CALL (offset), MOCK_ARG_PTR_CALL (address));
+}
+
+int mmio_register_block_mock_get_address_offset (const struct mmio_register_block *register_block,
+	uint64_t address, uintptr_t *offset)
+{
+	struct mmio_register_block_mock *mock = TO_DERIVED_TYPE (register_block,
+		struct mmio_register_block_mock, base);
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, mmio_register_block_mock_get_address_offset, register_block,
+		MOCK_ARG_CALL (address), MOCK_ARG_PTR_CALL (offset));
+}
+
 static int mmio_register_block_mock_func_arg_count (void *func)
 {
 	if (func == mmio_register_block_mock_map) {
@@ -105,6 +190,24 @@ static int mmio_register_block_mock_func_arg_count (void *func)
 	}
 	else if (func == mmio_register_block_mock_block_write32) {
 		return 3;
+	}
+	else if (func == mmio_register_block_mock_read32_by_addr) {
+		return 2;
+	}
+	else if (func == mmio_register_block_mock_write32_by_addr) {
+		return 2;
+	}
+	else if (func == mmio_register_block_mock_block_read32_by_addr) {
+		return 3;
+	}
+	else if (func == mmio_register_block_mock_block_write32_by_addr) {
+		return 3;
+	}
+	else if (func == mmio_register_block_mock_get_physical_address) {
+		return 2;
+	}
+	else if (func == mmio_register_block_mock_get_address_offset) {
+		return 2;
 	}
 	else {
 		return 0;
@@ -155,6 +258,66 @@ static const char* mmio_register_block_mock_arg_name_map (void *func, int arg)
 				return "dwords_count";
 		}
 	}
+	else if (func == mmio_register_block_mock_read32_by_addr) {
+		switch (arg) {
+			case 0:
+				return "physical_address";
+
+			case 1:
+				return "dest";
+		}
+	}
+	else if (func == mmio_register_block_mock_write32_by_addr) {
+		switch (arg) {
+			case 0:
+				return "physical_address";
+
+			case 1:
+				return "value";
+		}
+	}
+	else if (func == mmio_register_block_mock_block_read32_by_addr) {
+		switch (arg) {
+			case 0:
+				return "physical_address";
+
+			case 1:
+				return "dest";
+
+			case 2:
+				return "dwords_count";
+		}
+	}
+	else if (func == mmio_register_block_mock_block_write32_by_addr) {
+		switch (arg) {
+			case 0:
+				return "physical_address";
+
+			case 1:
+				return "src";
+
+			case 2:
+				return "dwords_count";
+		}
+	}
+	else if (func == mmio_register_block_mock_get_physical_address) {
+		switch (arg) {
+			case 0:
+				return "offset";
+
+			case 1:
+				return "address";
+		}
+	}
+	else if (func == mmio_register_block_mock_get_address_offset) {
+		switch (arg) {
+			case 0:
+				return "address";
+
+			case 1:
+				return "offset";
+		}
+	}
 
 	return "unknown";
 }
@@ -178,6 +341,24 @@ static const char* mmio_register_block_mock_func_name_map (void *func)
 	}
 	else if (func == mmio_register_block_mock_block_write32) {
 		return "block_write32";
+	}
+	else if (func == mmio_register_block_mock_read32_by_addr) {
+		return "read32_by_addr";
+	}
+	else if (func == mmio_register_block_mock_write32_by_addr) {
+		return "write32_by_addr";
+	}
+	else if (func == mmio_register_block_mock_block_read32_by_addr) {
+		return "block_read32_by_addr";
+	}
+	else if (func == mmio_register_block_mock_block_write32_by_addr) {
+		return "block_write32_by_addr";
+	}
+	else if (func == mmio_register_block_mock_get_physical_address) {
+		return "get_physical_address";
+	}
+	else if (func == mmio_register_block_mock_get_address_offset) {
+		return "get_address_offset";
 	}
 	else {
 		return "unknown";
@@ -214,6 +395,12 @@ int mmio_register_block_mock_init (struct mmio_register_block_mock *mock)
 	mock->base.write32 = mmio_register_block_mock_write32;
 	mock->base.block_read32 = mmio_register_block_mock_block_read32;
 	mock->base.block_write32 = mmio_register_block_mock_block_write32;
+	mock->base.read32_by_addr = mmio_register_block_mock_read32_by_addr;
+	mock->base.write32_by_addr = mmio_register_block_mock_write32_by_addr;
+	mock->base.block_read32_by_addr = mmio_register_block_mock_block_read32_by_addr;
+	mock->base.block_write32_by_addr = mmio_register_block_mock_block_write32_by_addr;
+	mock->base.get_physical_address = mmio_register_block_mock_get_physical_address;
+	mock->base.get_address_offset = mmio_register_block_mock_get_address_offset;
 
 	mock->mock.func_arg_count = mmio_register_block_mock_func_arg_count;
 	mock->mock.func_name_map = mmio_register_block_mock_func_name_map;

@@ -181,3 +181,161 @@ int mmio_register_block_write_bits (const struct mmio_register_block *register_b
 
 	return register_block->write32 (register_block, register_offset, reg_value);
 }
+
+/**
+ * Read the value of a single bit in an MMIO register.
+ *
+ * The register must already be mapped.
+ *
+ * @param register_block The MMIO register block containing the target register.
+ * @param physical_address Physical address of the MMIO block for the register to read.
+ * @param bit_num The bit number to read.  This must be less than 32.
+ * @param value Output for the bit value.
+ *
+ * @return 0 if the bit was read successfully or an error code.
+ */
+int mmio_register_block_read_bit_by_addr (const struct mmio_register_block *register_block,
+	uint64_t physical_address, uint8_t bit_num, bool *value)
+{
+	uint32_t reg_value;
+	int status;
+
+	if (value == NULL) {
+		return MMIO_REGISTER_INVALID_ARGUMENT;
+	}
+
+	status = mmio_register_block_read_bits_by_addr (register_block, physical_address, bit_num, 1,
+		&reg_value);
+
+	if (status == 0) {
+		*value = (reg_value != 0);
+	}
+
+	return status;
+}
+
+/**
+ * Write a single bit in an MMIO register.  The rest of the register contents will remain
+ * unmodified.
+ *
+ * The register must already be mapped.
+ *
+ * @param register_block The MMIO register block containing the target register.
+ * @param physical_address Physical address of the MMIO block for the register to modify.
+ * @param bit_num The bit number to set.  This must be less than 32.
+ * @param value The bit vlaue to write.
+ *
+ * @return 0 if the bit was written in the register or an error code.
+ */
+int mmio_register_block_write_bit_by_addr (const struct mmio_register_block *register_block,
+	uint64_t physical_address, uint8_t bit_num, bool value)
+{
+	return mmio_register_block_write_bits_by_addr (register_block, physical_address, bit_num, 1,
+		(value) ? 1 : 0);
+}
+
+/**
+ * Set a single bit in an MMIO register.  The rest of the register contents will remain unmodified.
+ *
+ * The register must already be mapped.
+ *
+ * @param register_block The MMIO register block containing the target register.
+ * @param physical_address Physical address of the MMIO block for the register to modify.
+ * @param bit_num The bit number to set.  This must be less than 32.
+ *
+ * @return 0 if the bit was set in the register or an error code.
+ */
+int mmio_register_block_set_bit_by_addr (const struct mmio_register_block *register_block,
+	uint64_t physical_address, uint8_t bit_num)
+{
+	return mmio_register_block_write_bits_by_addr (register_block, physical_address, bit_num, 1, 1);
+}
+
+/**
+ * Clear a single bit in an MMIO register.  The rest of the register contents will remain
+ * unmodified.
+ *
+ * The register must already be mapped.
+ *
+ * @param register_block The MMIO register block containing the target register.
+ * @param physical_address Physical address of the register to modify.
+ * @param bit_num The bit number to clear.  This must be less than 32.
+ *
+ * @return 0 if the bit was cleared in the register or an error code.
+ */
+int mmio_register_block_clear_bit_by_addr (const struct mmio_register_block *register_block,
+	uint64_t physical_address, uint8_t bit_num)
+{
+	return mmio_register_block_write_bits_by_addr (register_block, physical_address, bit_num, 1, 0);
+}
+
+/**
+ * Read a contiguous set of bits from an MMIO register.
+ *
+ * The register must already be mapped.
+ *
+ * @param register_block The MMIO register block containing the target register.
+ * @param physical_address Physical address of the register to read.
+ * @param bit_offset The offset in the register of the bits to read.  This will be the lowest bit
+ * position read and must be less than 32.
+ * @param bit_count The number of bits to read.  This can be at most 32 bits, depending on the bit
+ * offset being read.
+ * @param value Output for the bit values.  The data will be stored in bit position 0 and masked
+ * based on the number of bits being read.
+ *
+ * @return 0 if the bits were read successfully or an error code.
+ */
+int mmio_register_block_read_bits_by_addr (const struct mmio_register_block *register_block,
+	uint64_t physical_address, uint8_t bit_offset, uint8_t bit_count, uint32_t *value)
+{
+	uint64_t physical_base_address;
+	int status;
+
+	if ((register_block == NULL) || (value == NULL)) {
+		return MMIO_REGISTER_INVALID_ARGUMENT;
+	}
+
+	status = register_block->get_physical_address (register_block, 0, &physical_base_address);
+	if (status != 0) {
+		return status;
+	}
+
+	return mmio_register_block_read_bits (register_block, physical_address - physical_base_address,
+		bit_offset, bit_count, value);
+}
+
+/**
+ * Write a contiguous set of bits to an MMIO register.  The rest of the register contents will
+ * remain unmodified.
+ *
+ * The register must already be mapped.
+ *
+ * @param register_block The MMIO register block containing the target register.
+ * @param physical_address Physical address of the MMIO block for the register to modify.
+ * @param bit_address The physical address of register of the bits to write.  This will be the lowest bit
+ * position written and must be less than 32.
+ * @param bit_count The number of bits to write.  This can be at most 32 bits, depending on the bit
+ * offset being written.
+ * @param value The value to write.  The data must be stored in bit position 0 of this argument.  It
+ * will be masked based on the number bits being written.
+ *
+ * @return 0 if the register was written successfully or an error code.
+ */
+int mmio_register_block_write_bits_by_addr (const struct mmio_register_block *register_block,
+	uint64_t physical_address, uint8_t bit_offset, uint8_t bit_count, uint32_t value)
+{
+	uint64_t physical_base_address;
+	int status;
+
+	if (register_block == NULL) {
+		return MMIO_REGISTER_INVALID_ARGUMENT;
+	}
+
+	status = register_block->get_physical_address (register_block, 0, &physical_base_address);
+	if (status != 0) {
+		return status;
+	}
+
+	return mmio_register_block_write_bits (register_block, physical_address - physical_base_address,
+		bit_offset, bit_count, value);
+}
