@@ -164,9 +164,12 @@ void firmware_update_handler_prepare_for_updates (const struct firmware_update_h
 
 	if (fw->state->recovery_boot) {
 		/* The system is running from the recovery image, so mark that image as good and restore the
-		 * active image to a functional state. */
+		 * active image to a functional state (unless this step is to be skipped). */
 		firmware_update_set_recovery_good (fw->updater, true);
-		firmware_update_restore_active_image (fw->updater);
+
+		if (!fw->state->skip_active_restore) {
+			firmware_update_restore_active_image (fw->updater);
+		}
 	}
 	else {
 		/* Check the current state of the recovery image. */
@@ -294,7 +297,56 @@ int firmware_update_handler_init (struct firmware_update_handler *handler,
 	struct firmware_update_handler_state *state, const struct firmware_update *updater,
 	const struct event_task *task, bool running_recovery)
 {
-	if ((handler == NULL) || (state == NULL) || (updater == NULL) || (task == NULL)) {
+	return firmware_update_handler_init_control_preparation (handler, state, updater, task, false,
+		running_recovery, false);
+}
+
+/**
+ * Initialize a handler for firmware update commands.  During initialization, the updater will
+ * ensure the recovery image will always match the current active image.
+ *
+ * @param handler The update handler to initialize.
+ * @param state Variable context for the handler.  This must be uninitialized.
+ * @param updater The firmware updater that will be used by the handler.
+ * @param task The task that will be used to execute firmware update operations.
+ * @param running_recovery Flag to indicate that the system has booted the image located in recovery
+ * flash.
+ *
+ * @return 0 if the update handler was successfully initialized or an error code.
+ */
+int firmware_update_handler_init_keep_recovery_updated (struct firmware_update_handler *handler,
+	struct firmware_update_handler_state *state, const struct firmware_update *updater,
+	const struct event_task *task, bool running_recovery)
+{
+	return firmware_update_handler_init_control_preparation (handler, state, updater, task, true,
+		running_recovery, false);
+}
+
+/**
+ * Initialize a handler for firmware update commands.  Activities taken by the handler during task
+ * preparation are parameterized to provide flexibility for different use cases.
+ * - The recovery image can optionally be forced to always match the current active image.
+ * - During recovery boot scenarios, restoring the active image can optionally be skipped.
+ *
+ * @param handler The update handler to initialize.
+ * @param state Variable context for the handler.  This must be uninitialized.
+ * @param updater The firmware updater that will be used by the handler.
+ * @param task The task that will be used to execute firmware update operations.
+ * @param keep_recovery_updated Flag to indicate the recovery image should always be updated to
+ * match the active image.
+ * @param running_recovery Flag to indicate that the system has booted the image located in recovery
+ * flash.
+ * @param skip_active_restore Flag to skip restoring the active boot partition when the device has
+ * booted from the recovery flash.  If running_recovery is false, this flag has no effect.
+ *
+ * @return 0 if the update handler was successfully initialized or an error code.
+ */
+int firmware_update_handler_init_control_preparation (
+	struct firmware_update_handler *handler, struct firmware_update_handler_state *state,
+	const struct firmware_update *updater, const struct event_task *task,
+	bool keep_recovery_updated, bool running_recovery, bool skip_active_restore)
+{
+	if (handler == NULL) {
 		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
 	}
 
@@ -315,36 +367,11 @@ int firmware_update_handler_init (struct firmware_update_handler *handler,
 	handler->state = state;
 	handler->updater = updater;
 	handler->task = task;
+	handler->force_recovery_update = keep_recovery_updated;
 	handler->run_update = firmware_update_run_update;
 
-	return firmware_update_handler_init_state (handler, running_recovery);
-}
-
-/**
- * Initialize a handler for firmware update commands.  During initialization, the updater will
- * ensure the recovery image will always match the current active image.
- *
- * @param handler The update handler to initialize.
- * @param state Variable context for the handler.  This must be uninitialized.
- * @param updater The firmware updater that will be used by the handler.
- * @param task The task that will be used to execute firmware update operations.
- * @param recovery_boot Flag to indicate that the system has booted the image located in recovery
- * flash.
- *
- * @return 0 if the update handler was successfully initialized or an error code.
- */
-int firmware_update_handler_init_keep_recovery_updated (struct firmware_update_handler *handler,
-	struct firmware_update_handler_state *state, const struct firmware_update *updater,
-	const struct event_task *task, bool running_recovery)
-{
-	int status;
-
-	status = firmware_update_handler_init (handler, state, updater, task, running_recovery);
-	if (status == 0) {
-		handler->force_recovery_update = true;
-	}
-
-	return status;
+	return firmware_update_handler_init_state_control_preparation (handler, running_recovery,
+		skip_active_restore);
 }
 
 /**
@@ -362,6 +389,30 @@ int firmware_update_handler_init_keep_recovery_updated (struct firmware_update_h
 int firmware_update_handler_init_state (const struct firmware_update_handler *handler,
 	bool running_recovery)
 {
+	return firmware_update_handler_init_state_control_preparation (handler, running_recovery,
+		false);
+}
+
+/**
+ * Initialize only the variable state for a firmware update handler.  The rest of the handler is
+ * assumed to have already been initialized.
+ *
+ * Active image restoration that is executed during task preparation is parameterized to allow
+ * different behavior during recovery boot scenarios based on some external information.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param handler The update handler that contains the state to initialize.
+ * @param running_recovery Flag to indicate that the system has booted the image located in recovery
+ * flash.
+ * @param skip_active_restore Flag to skip restoring the active boot partition when the device has
+ * booted from the recovery flash.  If running_recovery is false, this flag has no effect.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int firmware_update_handler_init_state_control_preparation (
+	const struct firmware_update_handler *handler, bool running_recovery, bool skip_active_restore)
+{
 	if ((handler == NULL) || (handler->state == NULL) || (handler->updater == NULL) ||
 		(handler->task == NULL)) {
 		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
@@ -371,6 +422,7 @@ int firmware_update_handler_init_state (const struct firmware_update_handler *ha
 
 	handler->state->update_status = UPDATE_STATUS_NONE_STARTED;
 	handler->state->recovery_boot = running_recovery;
+	handler->state->skip_active_restore = skip_active_restore;
 
 	return 0;
 }

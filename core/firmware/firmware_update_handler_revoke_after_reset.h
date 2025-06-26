@@ -25,6 +25,11 @@ int firmware_update_handler_revoke_after_reset_init_keep_recovery_updated (
 	struct firmware_update_handler_revoke_after_reset *handler,
 	struct firmware_update_handler_state *state, const struct firmware_update *updater,
 	const struct event_task *task, bool running_recovery);
+int firmware_update_handler_revoke_after_reset_init_control_preparation (
+	struct firmware_update_handler_revoke_after_reset *handler,
+	struct firmware_update_handler_state *state, const struct firmware_update *updater,
+	const struct event_task *task, bool keep_recovery_updated, bool running_recovery,
+	bool skip_active_restore);
 void firmware_update_handler_revoke_after_reset_release (
 	const struct firmware_update_handler_revoke_after_reset *handler);
 
