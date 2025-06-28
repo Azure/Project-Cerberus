@@ -658,7 +658,7 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_with_good_re
 
 	TEST_START;
 
-	firmware_update_handler_revoke_after_reset_testing_init (test, &handler, 0, 0, 0, false);
+	firmware_update_handler_revoke_after_reset_testing_init (test, &handler, 0, 0, -1, false);
 
 	firmware_update_set_recovery_good (&handler.updater, true);
 
@@ -743,7 +743,7 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_with_bad_rec
 
 	TEST_START;
 
-	firmware_update_handler_revoke_after_reset_testing_init (test, &handler, 0, 0, 0, false);
+	firmware_update_handler_revoke_after_reset_testing_init (test, &handler, 0, 0, -1, false);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -844,7 +844,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_with_bad_recovery_image_
 
 	TEST_START;
 
-	firmware_update_handler_revoke_after_reset_testing_init (test, &handler, 0, 0, 0, false);
+	firmware_update_handler_revoke_after_reset_testing_init (test, &handler, 0, 0, -1, false);
 
 	firmware_update_set_recovery_good (&handler.updater, true);
 
@@ -945,7 +945,7 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_after_recove
 
 	TEST_START;
 
-	firmware_update_handler_revoke_after_reset_testing_init (test, &handler, 0, 0, 0, true);
+	firmware_update_handler_revoke_after_reset_testing_init (test, &handler, 0, 0, -1, true);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -1010,7 +1010,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_after_recovery_boot_rest
 
 	TEST_START;
 
-	firmware_update_handler_revoke_after_reset_testing_init (test, &handler, 0, 0, 0, true);
+	firmware_update_handler_revoke_after_reset_testing_init (test, &handler, 0, 0, -1, true);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -1065,7 +1065,7 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_revocation_f
 
 	TEST_START;
 
-	firmware_update_handler_revoke_after_reset_testing_init (test, &handler, 0, 0, 0, false);
+	firmware_update_handler_revoke_after_reset_testing_init (test, &handler, 0, 0, -1, false);
 
 	firmware_update_set_recovery_good (&handler.updater, true);
 
@@ -1135,7 +1135,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_keep_recovery_updated_wi
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_keep_recovery_updated (test, &handler,
-		0, 0, 0, false);
+		0, 0, -1, false);
 
 	firmware_update_set_recovery_good (&handler.updater, true);
 
@@ -1143,6 +1143,8 @@ firmware_update_handler_revoke_after_reset_test_prepare_keep_recovery_updated_wi
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
+		MOCK_RETURN_PTR (&handler.header));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
@@ -1227,7 +1229,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_keep_recovery_updated_wi
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_keep_recovery_updated (test, &handler,
-		0, 0, 0, false);
+		0, 0, -1, false);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -1329,7 +1331,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_keep_recovery_updated_wi
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_keep_recovery_updated (test, &handler,
-		0, 0, 0, false);
+		0, 0, -1, false);
 
 	firmware_update_set_recovery_good (&handler.updater, true);
 
@@ -1337,6 +1339,8 @@ firmware_update_handler_revoke_after_reset_test_prepare_keep_recovery_updated_wi
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
+		MOCK_RETURN_PTR (&handler.header));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw,
 		FIRMWARE_IMAGE_LOAD_FAILED, MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
@@ -1435,7 +1439,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_keep_recovery_updated_af
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_keep_recovery_updated (test, &handler,
-		0, 0, 0, true);
+		0, 0, -1, true);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -1493,7 +1497,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_control_preparation_with
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_control_preparation (test, &handler, 0,
-		0, 0, false, false, false);
+		0, -1, false, false, false);
 
 	firmware_update_set_recovery_good (&handler.updater, true);
 
@@ -1580,7 +1584,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_control_preparation_with
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_control_preparation (test, &handler, 0,
-		0, 0, false, false, false);
+		0, -1, false, false, false);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -1682,7 +1686,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_control_preparation_with
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_control_preparation (test, &handler, 0,
-		0, 0, false, false, false);
+		0, -1, false, false, false);
 
 	firmware_update_set_recovery_good (&handler.updater, true);
 
@@ -1785,7 +1789,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_control_preparation_afte
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_control_preparation (test, &handler, 0,
-		0, 0, false, true, false);
+		0, -1, false, true, false);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -1845,7 +1849,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_control_preparation_keep
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_control_preparation (test, &handler, 0,
-		0, 0, true, false, false);
+		0, -1, true, false, false);
 
 	firmware_update_set_recovery_good (&handler.updater, true);
 
@@ -1853,6 +1857,8 @@ firmware_update_handler_revoke_after_reset_test_prepare_control_preparation_keep
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
+		MOCK_RETURN_PTR (&handler.header));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
@@ -1937,7 +1943,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_control_preparation_keep
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_control_preparation (test, &handler, 0,
-		0, 0, true, false, false);
+		0, -1, true, false, false);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -2039,7 +2045,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_control_preparation_keep
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_control_preparation (test, &handler, 0,
-		0, 0, true, false, false);
+		0, -1, true, false, false);
 
 	firmware_update_set_recovery_good (&handler.updater, true);
 
@@ -2047,6 +2053,8 @@ firmware_update_handler_revoke_after_reset_test_prepare_control_preparation_keep
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
+		MOCK_RETURN_PTR (&handler.header));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw,
 		FIRMWARE_IMAGE_LOAD_FAILED, MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
@@ -2145,7 +2153,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_control_preparation_keep
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_control_preparation (test, &handler, 0,
-		0, 0, true, true, false);
+		0, -1, true, true, false);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -2203,7 +2211,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_control_preparation_skip
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_control_preparation (test, &handler, 0,
-		0, 0, false, false, true);
+		0, -1, false, false, true);
 
 	firmware_update_set_recovery_good (&handler.updater, true);
 
@@ -2290,7 +2298,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_control_preparation_skip
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_control_preparation (test, &handler, 0,
-		0, 0, false, false, true);
+		0, -1, false, false, true);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -2392,7 +2400,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_control_preparation_skip
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_control_preparation (test, &handler, 0,
-		0, 0, false, false, true);
+		0, -1, false, false, true);
 
 	firmware_update_set_recovery_good (&handler.updater, true);
 
@@ -2478,7 +2486,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_control_preparation_skip
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_control_preparation (test, &handler, 0,
-		0, 0, false, true, true);
+		0, -1, false, true, true);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -2517,7 +2525,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_with_good_re
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_static (test, &handler, &test_static, 0,
-		0, 0, false);
+		0, -1, false);
 
 	firmware_update_set_recovery_good (&handler.updater, true);
 
@@ -2608,7 +2616,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_with_bad_rec
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_static (test, &handler, &test_static, 0,
-		0, 0, false);
+		0, -1, false);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -2706,7 +2714,7 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_static_init_
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_static (test, &handler, &test_static, 0,
-		0, 0, true);
+		0, -1, true);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -2768,7 +2776,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_control_prep
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_static_control_preparation (test,
-		&handler, &test_static, 0, 0, 0, false, false);
+		&handler, &test_static, 0, 0, -1, false, false);
 
 	firmware_update_set_recovery_good (&handler.updater, true);
 
@@ -2859,7 +2867,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_control_prep
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_static_control_preparation (test,
-		&handler, &test_static, 0, 0, 0, false, false);
+		&handler, &test_static, 0, 0, -1, false, false);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -2957,7 +2965,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_control_prep
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_static_control_preparation (test,
-		&handler, &test_static, 0, 0, 0, true, false);
+		&handler, &test_static, 0, 0, -1, true, false);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -3019,7 +3027,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_control_prep
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_static_control_preparation (test,
-		&handler, &test_static, 0, 0, 0, false, true);
+		&handler, &test_static, 0, 0, -1, false, true);
 
 	firmware_update_set_recovery_good (&handler.updater, true);
 
@@ -3110,7 +3118,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_control_prep
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_static_control_preparation (test,
-		&handler, &test_static, 0, 0, 0, false, true);
+		&handler, &test_static, 0, 0, -1, false, true);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -3191,7 +3199,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_control_prep
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_static_control_preparation (test,
-		&handler, &test_static, 0, 0, 0, true, true);
+		&handler, &test_static, 0, 0, -1, true, true);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -3233,7 +3241,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_keep_recover
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_static (test, &handler, &test_static, 0,
-		0, 0, false);
+		0, -1, false);
 
 	firmware_update_set_recovery_good (&handler.updater, true);
 
@@ -3241,6 +3249,8 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_keep_recover
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
+		MOCK_RETURN_PTR (&handler.header));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
@@ -3329,7 +3339,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_keep_recover
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_static (test, &handler, &test_static, 0,
-		0, 0, false);
+		0, -1, false);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -3427,7 +3437,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_keep_recover
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_static (test, &handler, &test_static, 0,
-		0, 0, true);
+		0, -1, true);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -3491,7 +3501,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_keep_recover
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_static_control_preparation (test,
-		&handler, &test_static, 0, 0, 0, false, false);
+		&handler, &test_static, 0, 0, -1, false, false);
 
 	firmware_update_set_recovery_good (&handler.updater, true);
 
@@ -3499,6 +3509,8 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_keep_recover
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
+		MOCK_RETURN_PTR (&handler.header));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
@@ -3587,7 +3599,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_keep_recover
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_static_control_preparation (test,
-		&handler, &test_static, 0, 0, 0, false, false);
+		&handler, &test_static, 0, 0, -1, false, false);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -3685,7 +3697,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_keep_recover
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_static_control_preparation (test,
-		&handler, &test_static, 0, 0, 0, true, false);
+		&handler, &test_static, 0, 0, -1, true, false);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -3749,7 +3761,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_keep_recover
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_static_control_preparation (test,
-		&handler, &test_static, 0, 0, 0, false, true);
+		&handler, &test_static, 0, 0, -1, false, true);
 
 	firmware_update_set_recovery_good (&handler.updater, true);
 
@@ -3757,6 +3769,8 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_keep_recover
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
+		MOCK_RETURN_PTR (&handler.header));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
@@ -3845,7 +3859,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_keep_recover
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_static_control_preparation (test,
-		&handler, &test_static, 0, 0, 0, false, true);
+		&handler, &test_static, 0, 0, -1, false, true);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 
@@ -3926,7 +3940,7 @@ firmware_update_handler_revoke_after_reset_test_prepare_static_init_keep_recover
 	TEST_START;
 
 	firmware_update_handler_revoke_after_reset_testing_init_static_control_preparation (test,
-		&handler, &test_static, 0, 0, 0, true, true);
+		&handler, &test_static, 0, 0, -1, true, true);
 
 	firmware_update_set_recovery_good (&handler.updater, false);
 

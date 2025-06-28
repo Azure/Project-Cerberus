@@ -593,6 +593,8 @@ static void restore_active_handler_test_execute_restore_active_different_images 
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
+		MOCK_RETURN_PTR (&handler.header));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
@@ -651,6 +653,8 @@ static void restore_active_handler_test_execute_restore_active_same_image (CuTes
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
+		MOCK_RETURN_PTR (&handler.header));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
@@ -705,6 +709,8 @@ static void restore_active_handler_test_execute_restore_active_static_init (CuTe
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
+		MOCK_RETURN_PTR (&handler.header));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
@@ -786,6 +792,8 @@ static void restore_active_handler_test_execute_restore_active_compare_error (Cu
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
+		MOCK_RETURN_PTR (&handler.header));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw,
 		FIRMWARE_IMAGE_LOAD_FAILED, MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
@@ -859,6 +867,8 @@ static void restore_active_handler_test_execute_restore_active_failure (CuTest *
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
+	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
+		MOCK_RETURN_PTR (&handler.header));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
 		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));

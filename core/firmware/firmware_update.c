@@ -841,14 +841,22 @@ done:
  * This does no verification of either image and only parses enough to make the comparison.  If the
  * updater is not configured to use a recovery image, the call reports a match.
  *
+ * If the recovery flash matches the active flash, the revision of the recovery image will be cached
+ * for use during updates.  There is no need to call firmware_update_set_recovery_revision.  The
+ * recovery image will also be treated as valid without calling firmware_update_set_recovery_good.
+ *
+ * If there is an error or comparison error, no internal state will be modified.
+ *
  * @param updater The firmware updater to use for the comparison.
  *
  * @return 0 if the images exactly match, 1 if they don't, or an error code.
  */
 int firmware_update_recovery_matches_active_image (const struct firmware_update *updater)
 {
+	const struct firmware_header *header = NULL;
 	int active_len;
 	int recovery_len;
+	int img_revision;
 	int status = 0;
 
 	if (updater == NULL) {
@@ -865,6 +873,16 @@ int firmware_update_recovery_matches_active_image (const struct firmware_update 
 		active_len = updater->fw->get_image_size (updater->fw);
 		if (ROT_IS_ERROR (active_len)) {
 			return active_len;
+		}
+
+		/* Get the revision of the active image.  Treat this as best-effort and don't fail if the
+		 * firmware header is not present. */
+		header = updater->fw->get_firmware_header (updater->fw);
+		if (header != NULL) {
+			status = firmware_header_get_recovery_revision (header, &img_revision);
+			if (status != 0) {
+				return status;
+			}
 		}
 
 		status = updater->fw->load (updater->fw, updater->flash->recovery_flash,
@@ -887,7 +905,16 @@ int firmware_update_recovery_matches_active_image (const struct firmware_update 
 			updater->flash->active_addr + updater->state->img_offset,
 			updater->flash->recovery_flash,
 			updater->flash->recovery_addr + updater->state->img_offset, active_len);
-		if ((status != 0) && (status != FLASH_UTIL_DATA_MISMATCH)) {
+		if (status == 0) {
+			/* The recovery image matches the active image, so update the recovery image state
+			 * tracking. */
+			updater->state->recovery_bad = false;
+
+			if (header != NULL) {
+				updater->state->recovery_rev = img_revision;
+			}
+		}
+		else if ((status != 0) && (status != FLASH_UTIL_DATA_MISMATCH)) {
 			return status;
 		}
 	}
