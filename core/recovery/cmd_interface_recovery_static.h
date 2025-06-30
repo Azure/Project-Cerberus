@@ -10,6 +10,7 @@
 /* Internal functions declared to allow for static initialization. */
 int cmd_interface_recovery_process_request (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request);
+
 int cmd_interface_recovery_process_response (const struct cmd_interface *intf,
 	struct cmd_interface_msg *response);
 
@@ -41,11 +42,22 @@ int cmd_interface_recovery_process_response (const struct cmd_interface *intf,
  * @param device_manager_ptr Manager for known devices.
  */
 #define	cmd_interface_recovery_static_init(device_manager_ptr, firmware_update_control_ptr, \
-	fw_version_ptr) { \
+	fw_version_ptr,	vendor_id_arg, device_id_arg, subsystem_vid_arg, subsystem_id_arg, \
+	attestation_ptr, riot_ptr, background_ptr, cmd_device_ptr) { \
 		.base = CMD_INTERFACE_RECOVERY_API_INIT, \
 		.device_manager = device_manager_ptr, \
 		.control = firmware_update_control_ptr, \
 		.fw_version = fw_version_ptr,\
+		.background = background_ptr,\
+		.riot = riot_ptr, \
+		.attestation = attestation_ptr, \
+		.cmd_device = cmd_device_ptr, \
+		.device_id = { \
+			.vendor_id = vendor_id_arg, \
+			.device_id = device_id_arg, \
+			.subsystem_vid = subsystem_vid_arg, \
+			.subsystem_id = subsystem_id_arg, \
+		}, \
 	}
 
 

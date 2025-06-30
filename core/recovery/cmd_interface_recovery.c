@@ -37,6 +37,31 @@ int cmd_interface_recovery_process_request (const struct cmd_interface *intf,
 			status = cerberus_protocol_get_fw_version (interface->fw_version, request);
 			break;
 
+		case CERBERUS_PROTOCOL_GET_CERTIFICATE:
+			status = cerberus_protocol_get_certificate (interface->attestation, request);
+			break;
+
+		case CERBERUS_PROTOCOL_EXPORT_CSR:
+			status = cerberus_protocol_export_csr (interface->riot, request);
+			break;
+
+		case CERBERUS_PROTOCOL_IMPORT_CA_SIGNED_CERT:
+			status = cerberus_protocol_import_ca_signed_cert (interface->riot,
+				interface->background, request);
+			break;
+
+		case CERBERUS_PROTOCOL_GET_SIGNED_CERT_STATE:
+			status = cerberus_protocol_get_signed_cert_state (interface->background, request);
+			break;
+
+		case CERBERUS_PROTOCOL_GET_DEVICE_INFO:
+			status = cerberus_protocol_get_device_info (interface->cmd_device, request);
+			break;
+
+		case CERBERUS_PROTOCOL_RESET_COUNTER:
+			status = cerberus_protocol_reset_counter (interface->cmd_device, request);
+			break;
+
 		case CERBERUS_PROTOCOL_GET_LOG_INFO:
 			status = cerberus_protocol_get_log_info (NULL, request);
 			break;
@@ -66,6 +91,16 @@ int cmd_interface_recovery_process_request (const struct cmd_interface *intf,
 			status = cerberus_protocol_get_device_capabilities (interface->device_manager, request);
 			break;
 
+		case CERBERUS_PROTOCOL_GET_DEVICE_ID:
+			status = cerberus_protocol_get_device_id (&interface->device_id, request);
+			break;
+
+#ifdef CMD_ENABLE_STACK_STATS
+		case CERBERUS_PROTOCOL_DIAG_STACK_USAGE:
+			status = cerberus_protocol_stack_stats (interface->cmd_device, request);
+			break;
+#endif
+
 		default:
 			return CMD_HANDLER_UNKNOWN_REQUEST;
 	}
@@ -93,19 +128,29 @@ int cmd_interface_recovery_process_response (const struct cmd_interface *intf,
  * Initialize Recovery command interface instance
  *
  * @param intf The Recovery command interface instance to initialize
- * @param control The FW update control instance to use
- * @param device_manager Device manager
- * @param store PCR storage
- * @param hash Hash engine to to use for PCR operations
- * @param fw_version The FW version strings
+ * @param attestation Handler for attestation requests.
+ * @param control The FW update control instance to use.
+ * @param device_manager Manager for known devices.
+ * @param background Context for executing long-running operations in the background.
+ * @param riot Manager for device identity keys.
+ * @param fw_version The FW version strings reported by the device.
+ * @param vendor_id Device vendor identifier for the platform.
+ * @param device_id Device identifier for the platform.
+ * @param subsystem_vid Subsystem vendor identifier for the platform.
+ * @param subsystem_id Subsystem identifier for the platform.
+ * @param cmd_device Handler for commands that depend on platform details.
  *
  * @return Initialization status, 0 if success or an error code.
  */
 int cmd_interface_recovery_init (struct cmd_interface_recovery *intf,
-	const struct firmware_update_control *control, struct device_manager *device_manager,
-	const struct cmd_interface_fw_version *fw_version)
+	struct attestation_responder *attestation, const struct firmware_update_control *control,
+	struct device_manager *device_manager, const struct cmd_background *background,
+	const struct riot_key_manager *riot, const struct cmd_interface_fw_version *fw_version,
+	uint16_t vendor_id, uint16_t device_id,	uint16_t subsystem_vid,	uint16_t subsystem_id,
+	const struct cmd_device *cmd_device)
 {
-	if ((intf == NULL) || (control == NULL) || (device_manager == NULL) || (fw_version == NULL)) {
+	if ((intf == NULL) || (control == NULL) || (device_manager == NULL) || (fw_version == NULL) ||
+		(attestation == NULL) || (riot == NULL) || (background == NULL) || (cmd_device == NULL)) {
 		return CMD_HANDLER_INVALID_ARGUMENT;
 	}
 
@@ -114,6 +159,15 @@ int cmd_interface_recovery_init (struct cmd_interface_recovery *intf,
 	intf->control = control;
 	intf->device_manager = device_manager;
 	intf->fw_version = fw_version;
+	intf->riot = riot;
+	intf->background = background;
+	intf->attestation = attestation;
+	intf->cmd_device = cmd_device;
+
+	intf->device_id.vendor_id = vendor_id;
+	intf->device_id.device_id = device_id;
+	intf->device_id.subsystem_vid = subsystem_vid;
+	intf->device_id.subsystem_id = subsystem_id;
 
 	intf->base.process_request = cmd_interface_recovery_process_request;
 #ifdef CMD_ENABLE_ISSUE_REQUEST
