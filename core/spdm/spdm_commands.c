@@ -1521,7 +1521,7 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct spdm_get_version_response *rsp;
 	const struct spdm_transcript_manager *transcript_manager;
 	struct spdm_state *state;
-	struct spdm_secure_session_manager *session_manager;
+	const struct spdm_secure_session_manager *session_manager;
 	uint16_t minor_ver_in_error_msg;
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
@@ -2445,7 +2445,7 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 	const struct riot_key_manager *key_manager;
 	const struct hash_engine *hash_engine;
 	enum hash_type hash_type;
-	struct spdm_secure_session_manager *session_manager;
+	const struct spdm_secure_session_manager *session_manager;
 	struct spdm_secure_session *session = NULL;
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
@@ -2670,7 +2670,7 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 	const struct hash_engine *hash_engine;
 	enum hash_type hash_type;
 	const struct riot_keys *keys = NULL;
-	struct spdm_secure_session_manager *session_manager;
+	const struct spdm_secure_session_manager *session_manager;
 	struct spdm_secure_session *session = NULL;
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
@@ -3260,7 +3260,7 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 	int measurement_length;
 	bool raw_bit_stream_requested;
 	bool signature_requested;
-	struct spdm_secure_session_manager *session_manager;
+	const struct spdm_secure_session_manager *session_manager;
 	struct spdm_secure_session *session = NULL;
 	uint8_t session_idx = SPDM_MAX_SESSION_COUNT;
 
@@ -3674,7 +3674,7 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 	const struct rng_engine *rng_engine;
 	bool release_session = false;
 	uint8_t cert_chain_hash[HASH_MAX_HASH_LEN];
-	struct spdm_secure_session_manager *session_manager;
+	const struct spdm_secure_session_manager *session_manager;
 	struct ecc_point_public_key peer_pub_key_point;
 	enum hash_type hash_type;
 	const struct spdm_measurements *measurements;
@@ -4054,7 +4054,7 @@ int spdm_finish (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct spdm_state *state;
 	const struct spdm_transcript_manager *transcript_manager;
 	const struct spdm_device_capability *local_capabilities;
-	struct spdm_secure_session_manager *session_manager;
+	const struct spdm_secure_session_manager *session_manager;
 	const uint8_t *hmac_ptr;
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
@@ -4247,7 +4247,7 @@ int spdm_end_session (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct spdm_secure_session *session;
 	struct spdm_state *state;
 	const struct spdm_transcript_manager *transcript_manager;
-	struct spdm_secure_session_manager *session_manager;
+	const struct spdm_secure_session_manager *session_manager;
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
 		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
@@ -4363,7 +4363,7 @@ int spdm_vendor_defined_request (const struct cmd_interface_spdm_responder *spdm
 	struct spdm_state *state;
 	uint32_t session_id;
 	struct spdm_secure_session *session;
-	struct spdm_secure_session_manager *session_manager;
+	const struct spdm_secure_session_manager *session_manager;
 	struct spdm_vendor_defined_request_response *spdm_req_resp;
 
 	if ((spdm_responder == NULL) || (request == NULL)) {

@@ -25,7 +25,7 @@ int cmd_interface_spdm_process_request (const struct cmd_interface *intf,
 		(const struct cmd_interface_spdm_responder*) intf;
 	uint8_t req_code;
 	int status = 0;
-	struct spdm_secure_session_manager *session_manager;
+	const struct spdm_secure_session_manager *session_manager;
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
@@ -181,7 +181,8 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	const struct spdm_local_device_algorithms *local_algorithms,
 	const struct riot_key_manager *key_manager, const struct spdm_measurements *measurements,
 	const struct ecc_engine *ecc_engine, const struct rng_engine *rng_engine,
-	struct spdm_secure_session_manager *session_manager, const struct cmd_interface *vdm_handler)
+	const struct spdm_secure_session_manager *session_manager,
+	const struct cmd_interface *vdm_handler)
 {
 	int status;
 
