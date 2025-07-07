@@ -16,7 +16,7 @@
 /**
  * Static array indicating the manifest contains no firmware identifiers.
  */
-static const char *NO_FW_IDS[] = {NULL};
+static const char *const NO_FW_IDS[] = {NULL};
 
 
 /**
@@ -289,7 +289,7 @@ static int pfm_flash_get_firmware_v1 (const struct pfm_flash *pfm, struct pfm_fi
 {
 	UNUSED (pfm);
 
-	fw->ids = NO_FW_IDS;
+	fw->ids = (const char**) NO_FW_IDS;
 	fw->count = 1;
 
 	return 0;
