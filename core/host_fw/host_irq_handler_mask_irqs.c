@@ -120,13 +120,13 @@ int host_irq_handler_mask_irqs_init_enable_exit_reset (struct host_irq_handler_m
  *
  * @return 0 if the host interrupts ware successfully configured or an error code.
  */
-int host_irq_handler_mask_irqs_config_interrupts (const struct host_irq_handler *handler)
+int host_irq_handler_mask_irqs_config_interrupts (const struct host_irq_handler_mask_irqs *handler)
 {
-	if ((handler == NULL) || (handler->control == NULL)) {
+	if ((handler == NULL) || (handler->base.control == NULL)) {
 		return HOST_IRQ_HANDLER_INVALID_ARGUMENT;
 	}
 
-	return host_irq_handler_config_interrupts (handler);
+	return host_irq_handler_config_interrupts (&handler->base);
 }
 
 /**

@@ -242,7 +242,7 @@ static void host_irq_handler_auth_check_test_static_init (CuTest *test)
 	CuAssertPtrNotNull (test, test_static.base.assert_cs1);
 	CuAssertPtrNotNull (test, test_static.base.force_recovery);
 
-	status = host_irq_handler_auth_check_config_interrupts (&test_static.base, test_static.control);
+	status = host_irq_handler_auth_check_config_interrupts (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&handler.common.irq.mock, handler.common.irq.base.enable_exit_reset,
@@ -270,7 +270,7 @@ static void host_irq_handler_auth_check_test_static_init_no_recovery (CuTest *te
 		&handler.common.irq, 0, MOCK_ARG (true));
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_irq_handler_auth_check_config_interrupts (&test_static.base, test_static.control);
+	status = host_irq_handler_auth_check_config_interrupts (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&handler.common.irq.mock, handler.common.irq.base.enable_exit_reset,
@@ -284,10 +284,6 @@ static void host_irq_handler_auth_check_test_static_init_no_recovery (CuTest *te
 static void host_irq_handler_auth_check_test_static_init_null (CuTest *test)
 {
 	struct host_irq_handler_auth_check_testing handler;
-	struct host_irq_handler_auth_check test_static =
-		host_irq_handler_auth_check_static_init (&handler.common.host.base,
-		&handler.common.hash.base, &handler.common.rsa.base, &handler.common.recovery.base,
-		&handler.control.base, &handler.common.irq.base);
 	struct host_irq_handler_auth_check test_static_null_host =
 		host_irq_handler_auth_check_static_init (NULL, &handler.common.hash.base,
 		&handler.common.rsa.base, &handler.common.recovery.base, &handler.control.base,
@@ -314,27 +310,22 @@ static void host_irq_handler_auth_check_test_static_init_null (CuTest *test)
 
 	host_irq_handler_auth_check_testing_init_dependencies (test, &handler);
 
-	status = host_irq_handler_auth_check_config_interrupts (NULL, test_static.control);
+	status = host_irq_handler_auth_check_config_interrupts (NULL);
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
 
-	status = host_irq_handler_auth_check_config_interrupts (&test_static_null_host.base,
-		test_static_null_host.control);
+	status = host_irq_handler_auth_check_config_interrupts (&test_static_null_host);
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
 
-	status = host_irq_handler_auth_check_config_interrupts (&test_static_null_hash.base,
-		test_static_null_hash.control);
+	status = host_irq_handler_auth_check_config_interrupts (&test_static_null_hash);
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
 
-	status = host_irq_handler_auth_check_config_interrupts (&test_static_null_rsa.base,
-		test_static_null_rsa.control);
+	status = host_irq_handler_auth_check_config_interrupts (&test_static_null_rsa);
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
 
-	status = host_irq_handler_auth_check_config_interrupts (&test_static_null_host_ctrl.base,
-		test_static_null_host_ctrl.control);
+	status = host_irq_handler_auth_check_config_interrupts (&test_static_null_host_ctrl);
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
 
-	status = host_irq_handler_auth_check_config_interrupts (&test_static_null_irq_ctrl.base,
-		test_static_null_irq_ctrl.control);
+	status = host_irq_handler_auth_check_config_interrupts (&test_static_null_irq_ctrl);
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
 
 	host_irq_handler_auth_check_testing_release_dependencies (test, &handler);
@@ -357,7 +348,7 @@ static void host_irq_handler_auth_check_test_static_init_error_irq (CuTest *test
 		&handler.common.irq, HOST_IRQ_HANDLER_EXIT_RESET_FAILED, MOCK_ARG (true));
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_irq_handler_auth_check_config_interrupts (&test_static.base, test_static.control);
+	status = host_irq_handler_auth_check_config_interrupts (&test_static);
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_EXIT_RESET_FAILED, status);
 
 	host_irq_handler_auth_check_testing_release_dependencies (test, &handler);
@@ -412,7 +403,7 @@ static void host_irq_handler_auth_check_test_release_error_irq_static_init (CuTe
 		&handler.common.irq, 0, MOCK_ARG (true));
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_irq_handler_auth_check_config_interrupts (&test_static.base, test_static.control);
+	status = host_irq_handler_auth_check_config_interrupts (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&handler.common.irq.mock, handler.common.irq.base.enable_exit_reset,
@@ -475,7 +466,7 @@ static void host_irq_handler_auth_check_test_exit_reset_no_pending_auth_static_i
 		&handler.common.irq, 0, MOCK_ARG (true));
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_irq_handler_auth_check_config_interrupts (&test_static.base, test_static.control);
+	status = host_irq_handler_auth_check_config_interrupts (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&handler.common.recovery.mock,
