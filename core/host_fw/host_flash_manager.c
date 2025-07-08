@@ -646,7 +646,7 @@ int host_flash_manager_configure_flash_for_rot_access (const struct spi_flash *f
  */
 int host_flash_manager_set_flash_for_rot_access (const struct host_control *control,
 	const struct spi_filter_interface *filter, const struct spi_flash *cs0,
-	const struct spi_flash *cs1, struct host_flash_initialization *flash_init)
+	const struct spi_flash *cs1, const struct host_flash_initialization *flash_init)
 {
 	const struct spi_flash *flash;
 	int i;

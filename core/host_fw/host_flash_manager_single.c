@@ -325,7 +325,7 @@ int host_flash_manager_single_init_with_managed_flash_initialization (
 	struct host_flash_manager_single *manager, const struct spi_flash *flash,
 	struct host_state_manager *host_state, const struct spi_filter_interface *filter,
 	const struct flash_mfg_filter_handler *mfg_handler,
-	struct host_flash_initialization *flash_init)
+	const struct host_flash_initialization *flash_init)
 {
 	int status;
 

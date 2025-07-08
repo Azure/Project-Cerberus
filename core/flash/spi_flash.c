@@ -445,7 +445,10 @@ int spi_flash_restore_device_state (const struct spi_flash *flash,
 }
 
 /**
- * Initialize the SPI flash interface API.
+ * Initialize only the constant portions of the SPI flash interface API.  This produces an instance
+ * initialized in the same way as if it were initialized statically.
+ *
+ * Instances that only have the API initialized should not be released.
  *
  * @param flash The flash interface to initialize.
  * @param state Variable context for the flash interface.  This must be uninitialized.
@@ -453,7 +456,7 @@ int spi_flash_restore_device_state (const struct spi_flash *flash,
  *
  * @return 0 if the flash API was initialized or an error code.
  */
-static int spi_flash_init_api (struct spi_flash *flash, struct spi_flash_state *state,
+int spi_flash_init_api (struct spi_flash *flash, struct spi_flash_state *state,
 	const struct flash_master *spi)
 {
 	if ((flash == NULL) || (state == NULL) || (spi == NULL)) {

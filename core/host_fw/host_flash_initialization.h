@@ -11,34 +11,40 @@
 
 
 /**
+ * Variable context for delayed host flash initialization.
+ */
+struct host_flash_initialization_state {
+	platform_mutex lock;	/**< Synchronization for flash initialization. */
+	bool is_init0;			/**< Flag indicating if CS0 has been initialized. */
+	bool is_init1;			/**< Flag indicating if CS1 has been initialized. */
+};
+
+/**
  * Handler for delayed host flash initialization.
  */
 struct host_flash_initialization {
-	struct spi_flash *flash_cs0;		/**< SPI interface for CS0 flash. */
-	struct spi_flash_state *state_cs0;	/**< Context for CS0 flash. */
-	const struct flash_master *spi_cs0;	/**< SPI master for CS0 flash. */
-	bool is_init0;						/**< Flag indicating if CS0 has been initialized. */
-	struct spi_flash *flash_cs1;		/**< SPI interface for CS1 flash. */
-	struct spi_flash_state *state_cs1;	/**< Context for CS1 flash. */
-	const struct flash_master *spi_cs1;	/**< SPI master for CS1 flash. */
-	bool is_init1;						/**< Flag indicating if CS1 has been initialized. */
-	bool fast_read;						/**< Fast read command flag for flash initialization. */
-	bool drive_strength;				/**< Drive strength flag for flash initialization. */
-	platform_mutex lock;				/**< Synchronization for flash initialization. */
+	struct host_flash_initialization_state *state;	/**< Variable context for flash initialization. */
+	const struct spi_flash *flash_cs0;				/**< SPI flash interface for CS0 flash. */
+	const struct spi_flash *flash_cs1;				/**< SPI flash interface for CS1 flash. */
+	bool dual_flash;								/**< Flag to indicate dual flash support. */
+	bool fast_read;									/**< Fast read command flag for flash initialization. */
+	bool drive_strength;							/**< Drive strength flag for flash initialization. */
 };
 
 
 int host_flash_initialization_init (struct host_flash_initialization *init,
-	struct spi_flash *flash_cs0, struct spi_flash_state *state_cs0,
-	const struct flash_master *spi_cs0, struct spi_flash *flash_cs1,
-	struct spi_flash_state *state_cs1, const struct flash_master *spi_cs1, bool fast_read,
-	bool drive_strength);
+	struct host_flash_initialization_state *state, struct spi_flash *flash_cs0,
+	struct spi_flash_state *state_cs0, const struct flash_master *spi_cs0,
+	struct spi_flash *flash_cs1, struct spi_flash_state *state_cs1,
+	const struct flash_master *spi_cs1, bool fast_read, bool drive_strength);
 int host_flash_initialization_init_single_flash (struct host_flash_initialization *init,
-	struct spi_flash *flash, struct spi_flash_state *state, const struct flash_master *spi,
-	bool fast_read, bool drive_strength);
-void host_flash_initialization_release (struct host_flash_initialization *init);
+	struct host_flash_initialization_state *state, struct spi_flash *flash,
+	struct spi_flash_state *state_flash, const struct flash_master *spi, bool fast_read,
+	bool drive_strength);
+int host_flash_initialization_init_state (const struct host_flash_initialization *init);
+void host_flash_initialization_release (const struct host_flash_initialization *init);
 
-int host_flash_initialization_initialize_flash (struct host_flash_initialization *init);
+int host_flash_initialization_initialize_flash (const struct host_flash_initialization *init);
 
 
 #define	HOST_FLASH_INIT_ERROR(code)		ROT_ERROR (ROT_MODULE_HOST_FLASH_INIT, code)
