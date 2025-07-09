@@ -144,9 +144,11 @@ int buffer_reverse_copy_dwords (uint32_t *dest, const uint32_t *src, size_t leng
 }
 
 /**
- * A constant time replacement for memcmp for use in secure contexts.  Unlike memcmp, this only
- * checks for matching buffers and provides no information about the relative values if they don't
- * match.
+ * A constant time replacement for memcmp for use in secure contexts.
+ *
+ * Unlike memcmp, this only checks for matching buffers and provides no information about the
+ * relative values if they don't match.  If both constant time execution and relative values are
+ * needed, use common_math_compare_array() instead.
  *
  * @param buf1 First input buffer for the comparison.
  * @param buf2 Second input buffer for the comparison.
@@ -178,9 +180,10 @@ int buffer_compare (const uint8_t *buf1, const uint8_t *buf2, size_t length)
 }
 
 /**
- * A constant time replacement for memcmp for use in secure contexts.  Unlike memcmp, this only
- * checks for matching buffers and provides no information about the relative values if they don't
- * match.
+ * A constant time replacement for memcmp for use in secure contexts.
+ *
+ * Unlike memcmp, this only checks for matching buffers and provides no information about the
+ * relative values if they don't match.
  *
  * This version operates only on buffers of 32-bit arrays, which is useful in scenarios where byte
  * access is not possible.
@@ -216,7 +219,8 @@ int buffer_compare_dwords (const uint32_t *buf1, const uint32_t *buf2, size_t dw
 
 /* Set up a pointer to abstract memset calls from the compiler.  This is not foolproof, but is the
  * default approach used by mbedTLS.  A better alternative is to use memset_s, but compiler support
- * for that seems to be poor.
+ * for that seems to be poor.  memset_explicit, defined in C23, is probably the most portable
+ * solution when using a newer compiler.
  *
  * Reference:  http://www.daemonology.net/blog/2014-09-04-how-to-zero-a-buffer.html */
 static void*(*const volatile memset_ptr) (void*, int, size_t) = memset;

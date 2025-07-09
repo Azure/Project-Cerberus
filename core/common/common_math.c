@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#include "buffer_util.h"
 #include "common_math.h"
 
 
@@ -168,38 +169,38 @@ int common_math_get_num_contiguous_bits_set_in_array (const uint8_t *bytes, size
 /**
  * Treat an arbitrary length byte array as a big endian integer and increment the value by 1.
  *
- * @param buf Input array to be incremented as if it was a big endian integer.
+ * @param bytes Input array to be incremented as if it was a big endian integer.
  * @param len Length of the array.
  * @param allow_rollover Allows the array value to roll over to 0 when the upper boundary is
  * reached.
  *
  * @return 0 if the input array is incremented successfully or an error code.
  */
-int common_math_increment_byte_array (uint8_t *buf, size_t length, bool allow_rollover)
+int common_math_increment_byte_array (uint8_t *bytes, size_t length, bool allow_rollover)
 {
 	size_t index;
 
-	if ((length == 0) || (buf == NULL)) {
+	if ((bytes == NULL) || (length == 0)) {
 		return COMMON_MATH_INVALID_ARGUMENT;
 	}
 
 	index = length - 1;
-	while ((index > 0) && (buf[index] == 0xff)) {
-		buf[index--] = 0;
+	while ((index > 0) && (bytes[index] == 0xff)) {
+		bytes[index--] = 0;
 	}
 
-	if ((index == 0) && (buf[0] == 0xff)) {
+	if ((index == 0) && (bytes[0] == 0xff)) {
 		if (allow_rollover) {
-			buf[0] = 0;
+			bytes[0] = 0;
 		}
 		else {
-			memset (buf, 0xff, length);
+			memset (bytes, 0xff, length);
 
 			return COMMON_MATH_BOUNDARY_REACHED;
 		}
 	}
 	else {
-		buf[index]++;
+		bytes[index]++;
 	}
 
 	return 0;
@@ -208,44 +209,103 @@ int common_math_increment_byte_array (uint8_t *buf, size_t length, bool allow_ro
 /**
  * Treat an arbitrary length byte array as a big endian integer and decrement the value by 1.
  *
- * @param buf Input array to be decremented as if it was a big endian integer.
+ * @param bytes Input array to be decremented as if it was a big endian integer.
  * @param len Length of the array.
  * @param allow_rollover Allows the array value to roll over to the maximum value when 0 is reached.
  *
  * @return 0 if the input array is decremented successfully or an error code.
  */
-int common_math_decrement_byte_array (uint8_t *buf, size_t length, bool allow_rollover)
+int common_math_decrement_byte_array (uint8_t *bytes, size_t length, bool allow_rollover)
 {
 	size_t index;
 
-	if ((buf == NULL) || (length == 0)) {
+	if ((bytes == NULL) || (length == 0)) {
 		return COMMON_MATH_INVALID_ARGUMENT;
 	}
 
 	index = length - 1;
-	while ((index > 0) && (buf[index] == 0)) {
-		buf[index--] = 0xff;
+	while ((index > 0) && (bytes[index] == 0)) {
+		bytes[index--] = 0xff;
 	}
 
-	if ((index == 0) && (buf[0] == 0)) {
+	if ((index == 0) && (bytes[0] == 0)) {
 		if (allow_rollover) {
-			buf[0] = 0xff;
+			bytes[0] = 0xff;
 		}
 		else {
-			memset (buf, 0, length);
+			memset (bytes, 0, length);
 
 			return COMMON_MATH_BOUNDARY_REACHED;
 		}
 	}
 	else {
-		buf[index]--;
+		bytes[index]--;
 	}
 
 	return 0;
 }
 
 /**
- * Check a byte array to see if it contains all zeros.
+ * Treat arbitrary length byte arrays an big endian integers and compare their values.  This
+ * provides the same functionality as memcmp, but operates in constant time when the input buffers
+ * are the same length.
+ *
+ * @param bytes1 The byte array that is being checked.
+ * @param length1 Length of the first byte array.
+ * @param bytes2 A reference byte array to compare against.
+ * @param length2 Length of the second byte array.
+ *
+ * @return 0 if both arrays are the same, a positive number if the checked array is larger than the
+ * reference array, or a negative number if the checked array is less than the reference array.
+ */
+int common_math_compare_array (const uint8_t *bytes1, size_t length1, const uint8_t *bytes2,
+	size_t length2)
+{
+	bool is_empty[2];
+	size_t i;
+	int result = 0;
+
+	is_empty[0] = ((bytes1 == NULL) || (length1 == 0));
+	is_empty[1] = ((bytes2 == NULL) || (length2 == 0));
+
+	if (is_empty[0] && is_empty[1]) {
+		/* Both are empty. */
+		return 0;
+	}
+	else if (is_empty[0]) {
+		/* Only the array being checked is empty.  The array is smaller then the reference. */
+		return -1;
+	}
+	else if (is_empty[1]) {
+		/* Only array being compared against is empty.  The array is larger than the reference. */
+		return 1;
+	}
+
+	/* Both arrays are not empty.  Compare the lengths. */
+	if (length1 > length2) {
+		/* The array being checked has more bytes, so is a larger value. */
+		return 1;
+	}
+	else if (length1 < length2) {
+		/* The array being checked has fewer bytes, so is a smaller value. */
+		return -1;
+	}
+
+	/* The arrays are the same length, so compare the contents, ensuring that every byte is checked
+	 * and with the same amount of processing. */
+	for (i = 0; i < length1; i++) {
+		int diff = (int) bytes1[i] - (int) bytes2[i];
+		int mask = (result == 0) ? -1 : 0;
+
+		result = (result & ~mask) | (diff & mask);
+	}
+
+	return result;
+}
+
+/**
+ * Check a byte array to see if it contains all zeros.  This operation will be performed in constant
+ * time.
  *
  * @param bytes The byte array to check.
  * @param length Length of the byte array.
@@ -254,13 +314,18 @@ int common_math_decrement_byte_array (uint8_t *buf, size_t length, bool allow_ro
  */
 bool common_math_is_array_zero (const uint8_t *bytes, size_t length)
 {
+	bool is_zero = true;
+	size_t i;
+
 	if ((bytes == NULL) || (length == 0)) {
 		return false;
 	}
 
-	/* memcmp is fine here since the comparison is against a constant value and timing attacks are
-	 * not a concern. */
-	return ((bytes[0] == 0) && (memcmp (bytes, &bytes[1], length - 1) == 0));
+	for (i = 0; i < length; i++) {
+		is_zero &= (bytes[i] == 0);
+	}
+
+	return is_zero;
 }
 
 /**

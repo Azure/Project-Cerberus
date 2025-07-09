@@ -1502,6 +1502,112 @@ static void common_math_test_swap_bytes_uint64 (CuTest *test)
 	CuAssertInt64Equals (test, swap, common_math_swap_bytes_uint64 (org));
 }
 
+static void common_math_test_compare_array (CuTest *test)
+{
+	uint8_t bytes[] = {0x55};
+	uint8_t match[] = {0x55};
+	uint8_t larger[] = {0x56};
+	uint8_t smaller[] = {0x54};
+	int status;
+
+	TEST_START;
+
+	status = common_math_compare_array (bytes, sizeof (bytes), match, sizeof (match));
+	CuAssertIntEquals (test, 0, status);
+
+	status = common_math_compare_array (bytes, sizeof (bytes), larger, sizeof (larger));
+	CuAssertTrue (test, (status < 0));
+
+	status = common_math_compare_array (bytes, sizeof (bytes), smaller, sizeof (smaller));
+	CuAssertTrue (test, (status > 0));
+}
+
+static void common_math_test_compare_array_multiple_bytes (CuTest *test)
+{
+	uint8_t bytes[] = {0x12, 0x34, 0x56, 0x78};
+	uint8_t match[] = {0x12, 0x34, 0x56, 0x78};
+	uint8_t larger[] = {0x12, 0x43, 0x56, 0x78};
+	uint8_t smaller[] = {0x12, 0x34, 0x56, 0x67};
+	int status;
+
+	TEST_START;
+
+	status = common_math_compare_array (bytes, sizeof (bytes), match, sizeof (match));
+	CuAssertIntEquals (test, 0, status);
+
+	status = common_math_compare_array (bytes, sizeof (bytes), larger, sizeof (larger));
+	CuAssertTrue (test, (status < 0));
+
+	status = common_math_compare_array (bytes, sizeof (bytes), smaller, sizeof (smaller));
+	CuAssertTrue (test, (status > 0));
+}
+
+static void common_math_test_compare_array_shorter_than_reference (CuTest *test)
+{
+	uint8_t bytes[] = {0x12, 0x34, 0x56, 0x78};
+	uint8_t compare[] = {0x12, 0x34, 0x56, 0x78};
+	int status;
+
+	TEST_START;
+
+	status = common_math_compare_array (bytes, sizeof (bytes) - 1, compare, sizeof (compare));
+	CuAssertTrue (test, (status < 0));
+}
+
+static void common_math_test_compare_array_longer_than_reference (CuTest *test)
+{
+	uint8_t bytes[] = {0x12, 0x34, 0x56, 0x78};
+	uint8_t compare[] = {0x12, 0x34, 0x56, 0x78};
+	int status;
+
+	TEST_START;
+
+	status = common_math_compare_array (bytes, sizeof (bytes), compare, sizeof (compare) - 1);
+	CuAssertTrue (test, (status > 0));
+}
+
+static void common_math_test_compare_array_empty_array (CuTest *test)
+{
+	uint8_t bytes[] = {0x12, 0x34, 0x56, 0x78};
+	uint8_t compare[] = {0x12, 0x34, 0x56, 0x78};
+	int status;
+
+	TEST_START;
+
+	/* Compare empty array against a non-empty array */
+	status = common_math_compare_array (NULL, sizeof (bytes), compare, sizeof (compare));
+	CuAssertTrue (test, (status < 0));
+
+	status = common_math_compare_array (bytes, 0, compare, sizeof (compare));
+	CuAssertTrue (test, (status < 0));
+
+	status = common_math_compare_array (NULL, 0, compare, sizeof (compare));
+	CuAssertTrue (test, (status < 0));
+
+	/* Compare a non-empty array against an empty array. */
+	status = common_math_compare_array (bytes, sizeof (bytes), NULL, sizeof (compare));
+	CuAssertTrue (test, (status > 0));
+
+	status = common_math_compare_array (bytes, sizeof (bytes), compare, 0);
+	CuAssertTrue (test, (status > 0));
+
+	status = common_math_compare_array (bytes, sizeof (bytes), NULL, 0);
+	CuAssertTrue (test, (status > 0));
+
+	/* Compare two empty arrays */
+	status = common_math_compare_array (NULL, sizeof (bytes), NULL, sizeof (compare));
+	CuAssertIntEquals (test, 0, status);
+
+	status = common_math_compare_array (bytes, 0, compare, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = common_math_compare_array (NULL, sizeof (bytes), compare, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = common_math_compare_array (bytes, 0, NULL, sizeof (compare));
+	CuAssertIntEquals (test, 0, status);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (common_math);
@@ -1608,6 +1714,11 @@ TEST (common_math_test_left_shift_array_no_shift);
 TEST (common_math_test_swap_bytes_uint16);
 TEST (common_math_test_swap_bytes_uint32);
 TEST (common_math_test_swap_bytes_uint64);
+TEST (common_math_test_compare_array);
+TEST (common_math_test_compare_array_multiple_bytes);
+TEST (common_math_test_compare_array_shorter_than_reference);
+TEST (common_math_test_compare_array_longer_than_reference);
+TEST (common_math_test_compare_array_empty_array);
 
 TEST_SUITE_END;
 // *INDENT-ON*
