@@ -148,8 +148,9 @@ pub_error:
 int ecc_ecc_hw_init_key_pair (const struct ecc_engine *engine, const uint8_t *key,
 	size_t key_length, struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
-	uint8_t priv[ECC_MAX_KEY_LENGTH];
+	uint8_t priv[ECC_MAX_KEY_LENGTH] = {0};
 	int priv_key_length;
+	int status;
 
 	if ((engine == NULL) || (key == NULL) || (key_length == 0)) {
 		return ECC_ENGINE_INVALID_ARGUMENT;
@@ -165,8 +166,12 @@ int ecc_ecc_hw_init_key_pair (const struct ecc_engine *engine, const uint8_t *ke
 		return priv_key_length;
 	}
 
-	return ecc_ecc_hw_init_key_contexts ((const struct ecc_engine_ecc_hw*) engine, priv,
+	status = ecc_ecc_hw_init_key_contexts ((const struct ecc_engine_ecc_hw*) engine, priv,
 		priv_key_length, NULL, priv_key, pub_key);
+
+	buffer_zeroize (priv, sizeof (priv));
+
+	return status;
 }
 
 int ecc_ecc_hw_init_public_key (const struct ecc_engine *engine, const uint8_t *key,
@@ -247,8 +252,8 @@ int ecc_ecc_hw_generate_key_pair (const struct ecc_engine *engine, size_t key_le
 	struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
 	const struct ecc_engine_ecc_hw *ecc = (const struct ecc_engine_ecc_hw*) engine;
-	uint8_t priv[ECC_MAX_KEY_LENGTH];
-	struct ecc_point_public_key pub;
+	uint8_t priv[ECC_MAX_KEY_LENGTH] = {0};
+	struct ecc_point_public_key pub = {0};
 	int status;
 
 	if (ecc == NULL) {
@@ -274,7 +279,12 @@ int ecc_ecc_hw_generate_key_pair (const struct ecc_engine *engine, size_t key_le
 		return status;
 	}
 
-	return ecc_ecc_hw_init_key_contexts (ecc, priv, key_length, &pub, priv_key, pub_key);
+	status = ecc_ecc_hw_init_key_contexts (ecc, priv, key_length, &pub, priv_key, pub_key);
+
+	buffer_zeroize (priv, sizeof (priv));
+	buffer_zeroize (&pub, sizeof (pub));
+
+	return status;
 }
 #endif
 
@@ -325,7 +335,7 @@ int ecc_ecc_hw_get_private_key_der (const struct ecc_engine *engine,
 	const struct ecc_private_key *key, uint8_t **der, size_t *length)
 {
 	const struct ecc_engine_ecc_hw *ecc = (const struct ecc_engine_ecc_hw*) engine;
-	struct ecc_point_public_key pub_key;
+	struct ecc_point_public_key pub_key = {0};
 	int status;
 
 	if (der == NULL) {
@@ -344,19 +354,23 @@ int ecc_ecc_hw_get_private_key_der (const struct ecc_engine *engine,
 	status = ecc->hw->get_ecc_public_key (ecc->hw, ecc_ecc_hw_private_key (key).d,
 		ecc_ecc_hw_private_key (key).key_length, &pub_key);
 	if (status != 0) {
-		return status;
+		goto exit;
 	}
 
 	*der = platform_malloc (ECC_DER_MAX_PRIVATE_LENGTH);
 	if (*der == NULL) {
-		return ECC_ENGINE_NO_MEMORY;
+		status = ECC_ENGINE_NO_MEMORY;
+		goto exit;
 	}
 
 	/* This call won't fail since we have a valid key and the buffer is large enough for any key. */
 	*length = ecc_der_encode_private_key (ecc_ecc_hw_private_key (key).d, pub_key.x, pub_key.y,
 		ecc_ecc_hw_private_key (key).key_length, *der, ECC_DER_MAX_PRIVATE_LENGTH);
 
-	return 0;
+exit:
+	buffer_zeroize (&pub_key, sizeof (pub_key));
+
+	return status;
 }
 
 int ecc_ecc_hw_get_public_key_der (const struct ecc_engine *engine,
@@ -394,7 +408,7 @@ int ecc_ecc_hw_sign (const struct ecc_engine *engine, const struct ecc_private_k
 	size_t sig_length)
 {
 	const struct ecc_engine_ecc_hw *ecc = (const struct ecc_engine_ecc_hw*) engine;
-	struct ecc_ecdsa_signature raw_signature;
+	struct ecc_ecdsa_signature raw_signature = {0};
 	int status;
 
 	if ((ecc == NULL) || (key == NULL) || (digest == NULL) || (signature == NULL) ||
@@ -425,7 +439,7 @@ int ecc_ecc_hw_sign (const struct ecc_engine *engine, const struct ecc_private_k
 	status = ecc->hw->ecdsa_sign (ecc->hw, ecc_ecc_hw_private_key (key).d,
 		ecc_ecc_hw_private_key (key).key_length, digest, length, rng, &raw_signature);
 	if (status != 0) {
-		return status;
+		goto exit;
 	}
 
 	status = ecc_der_encode_ecdsa_signature (raw_signature.r, raw_signature.s, raw_signature.length,
@@ -434,6 +448,9 @@ int ecc_ecc_hw_sign (const struct ecc_engine *engine, const struct ecc_private_k
 		status = ECC_ENGINE_SIG_BUFFER_TOO_SMALL;
 	}
 
+exit:
+	buffer_zeroize (&raw_signature, sizeof (raw_signature));
+
 	return status;
 }
 
@@ -441,7 +458,7 @@ int ecc_ecc_hw_verify (const struct ecc_engine *engine, const struct ecc_public_
 	const uint8_t *digest, size_t length, const uint8_t *signature, size_t sig_length)
 {
 	const struct ecc_engine_ecc_hw *ecc = (const struct ecc_engine_ecc_hw*) engine;
-	struct ecc_ecdsa_signature raw_signature;
+	struct ecc_ecdsa_signature raw_signature = {0};
 	int status;
 
 	if ((ecc == NULL) || (key == NULL) || (digest == NULL) || (signature == NULL) ||
@@ -457,7 +474,8 @@ int ecc_ecc_hw_verify (const struct ecc_engine *engine, const struct ecc_public_
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_PK_VERIFY_EC, status, 0);
 
-		return ECC_ENGINE_BAD_SIGNATURE;
+		status = ECC_ENGINE_BAD_SIGNATURE;
+		goto exit;
 	}
 
 	status = ecc->hw->ecdsa_verify (ecc->hw, &ecc_ecc_hw_public_key (key), &raw_signature, digest,
@@ -465,6 +483,9 @@ int ecc_ecc_hw_verify (const struct ecc_engine *engine, const struct ecc_public_
 	if (status == ECC_HW_ECDSA_BAD_SIGNATURE) {
 		status = ECC_ENGINE_BAD_SIGNATURE;
 	}
+
+exit:
+	buffer_zeroize (&raw_signature, sizeof (raw_signature));
 
 	return status;
 }

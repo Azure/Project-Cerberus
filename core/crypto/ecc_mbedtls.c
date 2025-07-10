@@ -8,6 +8,7 @@
 #include "ecc_mbedtls.h"
 #include "platform_api.h"
 #include "asn1/ecc_der_util.h"
+#include "common/buffer_util.h"
 #include "common/unused.h"
 #include "crypto/crypto_logging.h"
 #include "crypto/hash.h"
@@ -67,8 +68,8 @@ static void ecc_mbedtls_free_key_context (void *context)
 static mbedtls_pk_context* ecc_mbedtls_convert_private_to_public (mbedtls_pk_context *key, bool dup,
 	int *error)
 {
-	mbedtls_pk_context *pub;
-	uint8_t tmp_der[ECC_DER_MAX_PUBLIC_LENGTH];
+	mbedtls_pk_context *pub = NULL;
+	uint8_t tmp_der[ECC_DER_MAX_PUBLIC_LENGTH] = {0};
 	int der_length;
 	int status;
 
@@ -76,8 +77,7 @@ static mbedtls_pk_context* ecc_mbedtls_convert_private_to_public (mbedtls_pk_con
 	der_length = mbedtls_pk_write_pubkey_der (key, tmp_der, sizeof (tmp_der));
 	if (der_length < 0) {
 		*error = der_length;
-
-		return NULL;
+		goto exit;
 	}
 
 	if (!dup) {
@@ -87,17 +87,20 @@ static mbedtls_pk_context* ecc_mbedtls_convert_private_to_public (mbedtls_pk_con
 	pub = ecc_mbedtls_alloc_key_context ();
 	if (pub == NULL) {
 		*error = ECC_ENGINE_NO_MEMORY;
-
-		return NULL;
+		goto exit;
 	}
 
 	status = mbedtls_pk_parse_public_key (pub, &tmp_der[sizeof (tmp_der) - der_length], der_length);
 	if (status != 0) {
 		ecc_mbedtls_free_key_context (pub);
-		*error = status;
+		pub = NULL;
 
-		return NULL;
+		*error = status;
+		goto exit;
 	}
+
+exit:
+	buffer_zeroize (tmp_der, sizeof (tmp_der));
 
 	return pub;
 }
@@ -218,8 +221,9 @@ int ecc_mbedtls_generate_derived_key_pair (const struct ecc_engine *engine,	cons
 	size_t key_length, struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
 	const struct ecc_engine_mbedtls *mbedtls = (const struct ecc_engine_mbedtls*) engine;
-	uint8_t tmp_der[ECC_DER_MAX_PRIVATE_NO_PUB_LENGTH];
+	uint8_t tmp_der[ECC_DER_MAX_PRIVATE_NO_PUB_LENGTH] = {0};
 	int der_length;
+	int status;
 
 	if ((mbedtls == NULL) || (priv == NULL) || (key_length == 0)) {
 		return ECC_ENGINE_INVALID_ARGUMENT;
@@ -233,10 +237,16 @@ int ecc_mbedtls_generate_derived_key_pair (const struct ecc_engine *engine,	cons
 	der_length = ecc_der_encode_private_key (priv, NULL, NULL, key_length, tmp_der,
 		sizeof (tmp_der));
 	if (ROT_IS_ERROR (der_length)) {
-		return ECC_ENGINE_UNSUPPORTED_KEY_LENGTH;
+		status = ECC_ENGINE_UNSUPPORTED_KEY_LENGTH;
+		goto exit;
 	}
 
-	return ecc_mbedtls_init_key_pair (&mbedtls->base, tmp_der, der_length, priv_key, pub_key);
+	status = ecc_mbedtls_init_key_pair (&mbedtls->base, tmp_der, der_length, priv_key, pub_key);
+
+exit:
+	buffer_zeroize (tmp_der, sizeof (tmp_der));
+
+	return status;
 }
 
 int ecc_mbedtls_generate_key_pair (const struct ecc_engine *engine, size_t key_length,
@@ -361,7 +371,7 @@ int ecc_mbedtls_get_signature_max_length (const struct ecc_engine *engine,
 int ecc_mbedtls_get_private_key_der (const struct ecc_engine *engine,
 	const struct ecc_private_key *key, uint8_t **der, size_t *length)
 {
-	uint8_t tmp_der[ECC_DER_MAX_PRIVATE_LENGTH];
+	uint8_t tmp_der[ECC_DER_MAX_PRIVATE_LENGTH] = {0};
 	int status;
 
 	if (der == NULL) {
@@ -382,7 +392,8 @@ int ecc_mbedtls_get_private_key_der (const struct ecc_engine *engine,
 	if (status >= 0) {
 		*der = platform_malloc (status);
 		if (*der == NULL) {
-			return ECC_ENGINE_NO_MEMORY;
+			status = ECC_ENGINE_NO_MEMORY;
+			goto exit;
 		}
 
 		memcpy (*der, &tmp_der[sizeof (tmp_der) - status], status);
@@ -394,13 +405,16 @@ int ecc_mbedtls_get_private_key_der (const struct ecc_engine *engine,
 			CRYPTO_LOG_MSG_MBEDTLS_PK_WRITE_KEY_DER_EC, status, 0);
 	}
 
+exit:
+	buffer_zeroize (tmp_der, sizeof (tmp_der));
+
 	return status;
 }
 
 int ecc_mbedtls_get_public_key_der (const struct ecc_engine *engine,
 	const struct ecc_public_key *key, uint8_t **der, size_t *length)
 {
-	uint8_t tmp_der[ECC_DER_MAX_PUBLIC_LENGTH];
+	uint8_t tmp_der[ECC_DER_MAX_PUBLIC_LENGTH] = {0};
 	int status;
 
 	if (der == NULL) {
@@ -421,7 +435,8 @@ int ecc_mbedtls_get_public_key_der (const struct ecc_engine *engine,
 	if (status >= 0) {
 		*der = platform_malloc (status);
 		if (*der == NULL) {
-			return ECC_ENGINE_NO_MEMORY;
+			status = ECC_ENGINE_NO_MEMORY;
+			goto exit;
 		}
 
 		memcpy (*der, &tmp_der[sizeof (tmp_der) - status], status);
@@ -432,6 +447,9 @@ int ecc_mbedtls_get_public_key_der (const struct ecc_engine *engine,
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_PK_WRITE_PUBKEY_DER_EC, status, 0);
 	}
+
+exit:
+	buffer_zeroize (tmp_der, sizeof (tmp_der));
 
 	return status;
 }

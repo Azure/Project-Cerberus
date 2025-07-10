@@ -980,7 +980,7 @@ static void spdm_reset_transcript_via_request_code (struct spdm_state *state,
 }
 
 /**
- * Get the list of the cerficates in slot 0.
+ * Get the list of the certificates in slot 0.
  *
  * @param key_manager RIoT device key manager.
  * @param cert_count_out Number of certificates in the chain.
@@ -1040,7 +1040,7 @@ exit:
 }
 
 /**
- * Get the digest of the spdm certificate chain.
+ * Get the digest of the SPDM certificate chain.
  *
  * @param key_manager RIoT device key manager.
  * @param hash_engine Hash engine for hashing operations.
@@ -1326,7 +1326,7 @@ static int spdm_generate_measurement_signature (
 	uint8_t *signature, size_t sig_size)
 {
 	int status;
-	uint8_t l1l2_hash[HASH_MAX_HASH_LEN];
+	uint8_t l1l2_hash[HASH_MAX_HASH_LEN] = {0};
 	int l1l2_hash_size;
 	uint8_t session_idx = SPDM_MAX_SESSION_COUNT;
 
@@ -1362,6 +1362,7 @@ static int spdm_generate_measurement_signature (
 	}
 
 exit:
+	buffer_zeroize (l1l2_hash, sizeof (l1l2_hash));
 
 	return status;
 }
@@ -1387,7 +1388,7 @@ static int spdm_generate_key_exchange_rsp_signature (
 	uint32_t sig_size)
 {
 	int status;
-	uint8_t th_hash[HASH_MAX_HASH_LEN];
+	uint8_t th_hash[HASH_MAX_HASH_LEN] = {0};
 	int th_hash_size;
 
 	th_hash_size =
@@ -1409,6 +1410,7 @@ static int spdm_generate_key_exchange_rsp_signature (
 	}
 
 exit:
+	buffer_zeroize (th_hash, sizeof (th_hash));
 
 	return status;
 }
@@ -1431,7 +1433,7 @@ static int spdm_calculate_th_hmac_for_key_exchange_rsp (
 	struct spdm_secure_session *session, uint8_t *th_hmac_buffer)
 {
 	int status;
-	uint8_t th_hash[HASH_MAX_HASH_LEN];
+	uint8_t th_hash[HASH_MAX_HASH_LEN] = {0};
 	int hash_size;
 	enum hash_type hash_type;
 
@@ -1455,6 +1457,7 @@ static int spdm_calculate_th_hmac_for_key_exchange_rsp (
 	}
 
 exit:
+	buffer_zeroize (th_hash, sizeof (th_hash));
 
 	return status;
 }
@@ -1475,8 +1478,8 @@ static int spdm_verify_finish_req_hmac (const struct spdm_transcript_manager *tr
 	size_t hmac_size)
 {
 	int status;
-	uint8_t th_hash[HASH_MAX_HASH_LEN];
-	uint8_t hmac_computed[HASH_MAX_HASH_LEN];
+	uint8_t th_hash[HASH_MAX_HASH_LEN] = {0};
+	uint8_t hmac_computed[HASH_MAX_HASH_LEN] = {0};
 
 	/* Get the TH hash; do not complete the hash as it is needed later. */
 	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, false,
@@ -1500,6 +1503,8 @@ static int spdm_verify_finish_req_hmac (const struct spdm_transcript_manager *tr
 	}
 
 exit:
+	buffer_zeroize (th_hash, sizeof (th_hash));
+	buffer_zeroize (hmac_computed, sizeof (hmac_computed));
 
 	return status;
 }
@@ -2971,7 +2976,7 @@ int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
 	uint8_t measurement_summary_type;
 	uint32_t meas_summary_hash_size;
 	uint8_t slot_num;
-	uint8_t m1_hash[HASH_MAX_HASH_LEN];
+	uint8_t m1_hash[HASH_MAX_HASH_LEN] = {0};
 	uint8_t *response_ptr;
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
@@ -3167,6 +3172,8 @@ exit:
 		spdm_generate_error_response (request, state->connection_info.version.minor_version,
 			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_CHALLENGE, status);
 	}
+
+	buffer_zeroize (m1_hash, sizeof (m1_hash));
 
 	return 0;
 }

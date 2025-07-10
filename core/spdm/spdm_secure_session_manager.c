@@ -218,7 +218,7 @@ int spdm_secure_session_manager_generate_shared_secret (
 	const struct ecc_point_public_key *peer_pub_key_point, uint8_t *local_pub_key_point)
 {
 	int status;
-	uint8_t peer_pub_key_der[ECC_DER_MAX_PUBLIC_LENGTH];
+	uint8_t peer_pub_key_der[ECC_DER_MAX_PUBLIC_LENGTH] = {0};
 	int der_len;
 	const struct ecc_engine *ecc_engine;
 	struct ecc_public_key peer_pub_key;
@@ -321,7 +321,10 @@ exit:
 		ecc_engine->release_key_pair (ecc_engine, NULL, &peer_pub_key);
 	}
 
+	buffer_zeroize (local_pub_key_der, local_pub_key_der_len);
 	platform_free (local_pub_key_der);
+
+	buffer_zeroize (peer_pub_key_der, sizeof (peer_pub_key_der));
 
 	return status;
 }
@@ -461,7 +464,7 @@ int spdm_secure_session_manager_generate_session_handshake_keys (
 {
 	int status;
 	const struct spdm_transcript_manager *transcript_manager;
-	uint8_t th1_hash[HASH_MAX_HASH_LEN];
+	uint8_t th1_hash[HASH_MAX_HASH_LEN] = {0};
 	size_t hash_size;
 	uint8_t bin_str0[128];
 	size_t bin_str0_size;
@@ -574,6 +577,7 @@ int spdm_secure_session_manager_generate_session_handshake_keys (
 	buffer_zeroize (session->master_secret.dhe_secret, SPDM_MAX_DHE_SHARED_SECRET_SIZE);
 
 exit:
+	buffer_zeroize (th1_hash, sizeof (th1_hash));
 	session_manager->hkdf->clear_prk (session_manager->hkdf);
 
 	return status;
@@ -608,7 +612,7 @@ int spdm_secure_session_manager_generate_session_data_keys (
 	size_t bin_str4_size;
 	enum hash_type hash_type;
 	const struct spdm_transcript_manager *transcript_manager;
-	uint8_t th2_hash[HASH_MAX_HASH_LEN];
+	uint8_t th2_hash[HASH_MAX_HASH_LEN] = {0};
 	uint8_t zero_filled_buffer[HASH_MAX_HASH_LEN];
 
 	if ((session_manager == NULL) || (session == NULL)) {
@@ -684,6 +688,7 @@ int spdm_secure_session_manager_generate_session_data_keys (
 	 * so we could use it later to regenearate export secret */
 
 exit:
+	buffer_zeroize (th2_hash, sizeof (th2_hash));
 	session_manager->hkdf->clear_prk (session_manager->hkdf);
 
 	return status;
@@ -700,7 +705,7 @@ exit:
 static void spdm_secure_session_manager_generate_iv (uint64_t sequence_number, uint8_t *iv,
 	const uint8_t *salt, size_t aead_iv_size)
 {
-	uint8_t iv_temp[SPDM_MAX_AEAD_IV_SIZE];
+	uint8_t iv_temp[SPDM_MAX_AEAD_IV_SIZE] = {0};
 	size_t index;
 
 	/* Construct the AEAD IV from the salt and the sequence number. */
@@ -714,6 +719,8 @@ static void spdm_secure_session_manager_generate_iv (uint64_t sequence_number, u
 	for (index = 0; index < sizeof (sequence_number); index++) {
 		iv[index] = iv[index] ^ iv_temp[index];
 	}
+
+	buffer_zeroize (iv_temp, sizeof (iv_temp));
 }
 
 /**
@@ -833,7 +840,7 @@ int spdm_secure_session_manager_decode_secure_message (
 	uint8_t *salt;
 	uint64_t sequence_number;
 	uint8_t sequence_num_in_header_size;
-	uint8_t iv[SPDM_MAX_AEAD_IV_SIZE];
+	uint8_t iv[SPDM_MAX_AEAD_IV_SIZE] = {0};
 	struct spdm_secured_message_data_header_1 *secured_message_data_header_1;
 	struct spdm_secure_session_manager_state *session_manager_state;
 
@@ -919,6 +926,7 @@ int spdm_secure_session_manager_decode_secure_message (
 	session_manager_state->last_spdm_request_secure_session_id_valid = true;
 
 exit:
+	buffer_zeroize (iv, sizeof (iv));
 
 	return status;
 }
@@ -1026,7 +1034,7 @@ int spdm_secure_session_manager_encode_secure_message (
 	const uint8_t *key;
 	uint8_t *salt;
 	size_t aead_iv_size;
-	uint8_t iv[SPDM_MAX_AEAD_IV_SIZE];
+	uint8_t iv[SPDM_MAX_AEAD_IV_SIZE] = {0};
 	uint64_t sequence_number;
 	uint8_t sequence_num_in_header_size;
 	struct spdm_secure_session *session;
@@ -1118,6 +1126,7 @@ int spdm_secure_session_manager_encode_secure_message (
 	}
 
 exit:
+	buffer_zeroize (iv, sizeof (iv));
 
 	return status;
 }

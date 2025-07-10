@@ -26,8 +26,9 @@ static int session_manager_ecc_establish_session (struct session_manager *sessio
 	struct ecc_public_key session_pub_key;
 	struct ecc_public_key device_pub_key;
 	const struct riot_keys *keys;
-	uint8_t *session_pub_key_der;
-	uint8_t *shared_secret;
+	uint8_t *session_pub_key_der = NULL;
+	uint8_t *shared_secret = NULL;
+	size_t shared_secret_alloc;
 	uint16_t hash_len;
 	size_t session_pub_key_der_len;
 	int shared_secret_len;
@@ -138,6 +139,7 @@ static int session_manager_ecc_establish_session (struct session_manager *sessio
 		goto free_session_pub_der;
 	}
 
+	shared_secret_alloc = (size_t) status;
 	shared_secret_len = session_mgr->ecc->compute_shared_secret (session_mgr->ecc,
 		&session_priv_key, &device_pub_key, shared_secret, status);
 	if (ROT_IS_ERROR (shared_secret_len)) {
@@ -180,9 +182,11 @@ static int session_manager_ecc_establish_session (struct session_manager *sessio
 	request->crypto_timeout = true;
 
 free_shared_secret:
+	buffer_zeroize (shared_secret, shared_secret_alloc);
 	platform_free (shared_secret);
 
 free_session_pub_der:
+	buffer_zeroize (session_pub_key_der, session_pub_key_der_len);
 	platform_free (session_pub_key_der);
 
 free_session_keys:

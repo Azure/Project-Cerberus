@@ -11,7 +11,6 @@
 #include "common/common_math.h"
 #include "crypto/hash.h"
 #include "crypto/kdf.h"
-#include "riot/riot_core.h"
 #include "riot/riot_key_manager.h"
 
 
@@ -170,7 +169,7 @@ int session_manager_get_pairing_state (struct session_manager *session, uint8_t 
 		return status;
 	}
 
-	riot_core_clear (pairing_key_buf, pairing_key_len);
+	buffer_zeroize (pairing_key_buf, pairing_key_len);
 	platform_free (pairing_key_buf);
 
 	req_session = session_manager_get_session (session, eid);
@@ -348,7 +347,7 @@ static int session_manager_generate_and_compare_hmac (struct session_manager *se
 	enum hmac_hash hmac_hash_type, uint8_t *hmac_key, size_t hmac_key_len, uint8_t *data,
 	size_t data_len, uint8_t *hmac, size_t hmac_len)
 {
-	uint8_t computed_hmac[SHA256_HASH_LENGTH];
+	uint8_t computed_hmac[SHA256_HASH_LENGTH] = {0};
 	int status;
 
 	if (hmac_len != sizeof (computed_hmac)) {
@@ -358,14 +357,17 @@ static int session_manager_generate_and_compare_hmac (struct session_manager *se
 	status = hash_generate_hmac (session->hash, hmac_key, hmac_key_len, data, data_len,
 		hmac_hash_type, computed_hmac, sizeof (computed_hmac));
 	if (status != 0) {
-		return status;
+		goto exit;
 	}
 
 	if (buffer_compare (computed_hmac, hmac, sizeof (computed_hmac)) != 0) {
-		return SESSION_MANAGER_OPERATION_NOT_PERMITTED;
+		status = SESSION_MANAGER_OPERATION_NOT_PERMITTED;
 	}
 
-	return 0;
+exit:
+	buffer_zeroize (computed_hmac, sizeof (computed_hmac));
+
+	return status;
 }
 
 /**
@@ -468,8 +470,8 @@ int session_manager_setup_paired_session (struct session_manager *session, uint8
 	size_t pairing_key_len, uint8_t *pairing_key_hmac, size_t pairing_key_hmac_len)
 {
 	struct session_manager_entry *req_session;
-	uint8_t pairing_key[SHA256_HASH_LENGTH];
-	uint8_t label[AES_GCM_256_KEY_LENGTH];
+	uint8_t pairing_key[SHA256_HASH_LENGTH] = {0};
+	uint8_t label[AES_GCM_256_KEY_LENGTH] = {0};
 	uint8_t *pairing_key_buf;
 	bool pairing_key_generated = false;
 	char *label_str = "pairing";
@@ -515,7 +517,7 @@ int session_manager_setup_paired_session (struct session_manager *session, uint8
 	}
 	else {
 		memcpy (pairing_key, pairing_key_buf, pairing_key_len);
-		riot_core_clear (pairing_key_buf, pairing_key_len);
+		buffer_zeroize (pairing_key_buf, pairing_key_len);
 		platform_free (pairing_key_buf);
 	}
 
@@ -546,7 +548,8 @@ int session_manager_setup_paired_session (struct session_manager *session, uint8
 	req_session->session_state = SESSION_STATE_PAIRED;
 
 exit:
-	riot_core_clear (pairing_key, sizeof (pairing_key));
+	buffer_zeroize (pairing_key, sizeof (pairing_key));
+	buffer_zeroize (label, sizeof (label));
 
 	return status;
 }
