@@ -262,6 +262,7 @@ int common_math_compare_array (const uint8_t *bytes1, size_t length1, const uint
 	size_t length2)
 {
 	bool is_empty[2];
+	size_t length_diff;
 	size_t i;
 	int result = 0;
 
@@ -283,12 +284,32 @@ int common_math_compare_array (const uint8_t *bytes1, size_t length1, const uint
 
 	/* Both arrays are not empty.  Compare the lengths. */
 	if (length1 > length2) {
-		/* The array being checked has more bytes, so is a larger value. */
-		return 1;
+		length_diff = length1 - length2;
+
+		if (common_math_is_array_zero (bytes1, length_diff)) {
+			/* All the extra bytes in the array to check are zero.  Run a comparison against the
+			 * reference, skipping all the leading zeros. */
+			bytes1 += length_diff;
+			length1 -= length_diff;
+		}
+		else {
+			/* The array being checked has more non-zero bytes, so is a larger value. */
+			return 1;
+		}
 	}
 	else if (length1 < length2) {
-		/* The array being checked has fewer bytes, so is a smaller value. */
-		return -1;
+		length_diff = length2 - length1;
+
+		if (common_math_is_array_zero (bytes2, length_diff)) {
+			/* All the extra bytes in the reference array are zero.  Run a comparison with the array
+			 * being checked, skipping all the leading zeros. */
+			bytes2 += length_diff;
+			length2 -= length_diff;
+		}
+		else {
+			/* The array being checked has fewer non-zero bytes, so is a smaller value. */
+			return -1;
+		}
 	}
 
 	/* The arrays are the same length, so compare the contents, ensuring that every byte is checked

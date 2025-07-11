@@ -1542,6 +1542,62 @@ static void common_math_test_compare_array_multiple_bytes (CuTest *test)
 	CuAssertTrue (test, (status > 0));
 }
 
+static void common_math_test_compare_array_zero_padded_reference (CuTest *test)
+{
+	uint8_t bytes[] = {0x12, 0x34, 0x56, 0x78};
+	uint8_t match[] = {0x00, 0x00, 0x00, 0x12, 0x34, 0x56, 0x78};
+	uint8_t larger[] = {0x00, 0x12, 0x43, 0x56, 0x78};
+	uint8_t smaller[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56, 0x67};
+	int status;
+
+	TEST_START;
+
+	status = common_math_compare_array (bytes, sizeof (bytes), match, sizeof (match));
+	CuAssertIntEquals (test, 0, status);
+
+	status = common_math_compare_array (bytes, sizeof (bytes), larger, sizeof (larger));
+	CuAssertTrue (test, (status < 0));
+
+	status = common_math_compare_array (bytes, sizeof (bytes), smaller, sizeof (smaller));
+	CuAssertTrue (test, (status > 0));
+}
+
+static void common_math_test_compare_array_zero_padded_comparison (CuTest *test)
+{
+	uint8_t bytes[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc};
+	uint8_t match[] = {0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc};
+	uint8_t larger[] = {0x12, 0x43, 0x56, 0x78, 0x9a, 0xbc};
+	uint8_t smaller[] = {0x12, 0x34, 0x56, 0x78, 0x99, 0xbc};
+	int status;
+
+	TEST_START;
+
+	status = common_math_compare_array (bytes, sizeof (bytes), match, sizeof (match));
+	CuAssertIntEquals (test, 0, status);
+
+	status = common_math_compare_array (bytes, sizeof (bytes), larger, sizeof (larger));
+	CuAssertTrue (test, (status < 0));
+
+	status = common_math_compare_array (bytes, sizeof (bytes), smaller, sizeof (smaller));
+	CuAssertTrue (test, (status > 0));
+}
+
+static void common_math_test_compare_array_both_zero_padded (CuTest *test)
+{
+	uint8_t bytes[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56, 0x78, 0x9a};
+	uint8_t match[] = {0x00, 0x00, 0x12, 0x34, 0x56, 0x78, 0x9a};
+	uint8_t match2[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56, 0x78, 0x9a};
+	int status;
+
+	TEST_START;
+
+	status = common_math_compare_array (bytes, sizeof (bytes), match, sizeof (match));
+	CuAssertIntEquals (test, 0, status);
+
+	status = common_math_compare_array (bytes, sizeof (bytes), match2, sizeof (match2));
+	CuAssertIntEquals (test, 0, status);
+}
+
 static void common_math_test_compare_array_shorter_than_reference (CuTest *test)
 {
 	uint8_t bytes[] = {0x12, 0x34, 0x56, 0x78};
@@ -1554,9 +1610,57 @@ static void common_math_test_compare_array_shorter_than_reference (CuTest *test)
 	CuAssertTrue (test, (status < 0));
 }
 
+static void common_math_test_compare_array_shorter_than_reference_after_zero_padding (CuTest *test)
+{
+	uint8_t bytes[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56, 0x78};
+	uint8_t match[] = {0x12, 0x34, 0x56, 0x78, 0x9a};
+	int status;
+
+	TEST_START;
+
+	status = common_math_compare_array (bytes, sizeof (bytes), match, sizeof (match));
+	CuAssertTrue (test, (status < 0));
+}
+
+static void common_math_test_compare_array_shorter_than_reference_with_zero_padding (CuTest *test)
+{
+	uint8_t bytes[] = {0x12, 0x34};
+	uint8_t compare[] = {0x00, 0x12, 0x34, 0x56};
+	int status;
+
+	TEST_START;
+
+	status = common_math_compare_array (bytes, sizeof (bytes), compare, sizeof (compare));
+	CuAssertTrue (test, (status < 0));
+}
+
 static void common_math_test_compare_array_longer_than_reference (CuTest *test)
 {
 	uint8_t bytes[] = {0x12, 0x34, 0x56, 0x78};
+	uint8_t compare[] = {0x12, 0x34, 0x56, 0x78};
+	int status;
+
+	TEST_START;
+
+	status = common_math_compare_array (bytes, sizeof (bytes), compare, sizeof (compare) - 1);
+	CuAssertTrue (test, (status > 0));
+}
+
+static void common_math_test_compare_array_longer_than_reference_after_zero_padding (CuTest *test)
+{
+	uint8_t bytes[] = {0x12, 0x34, 0x56, 0x78};
+	uint8_t compare[] = {0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56};
+	int status;
+
+	TEST_START;
+
+	status = common_math_compare_array (bytes, sizeof (bytes), compare, sizeof (compare) - 1);
+	CuAssertTrue (test, (status > 0));
+}
+
+static void common_math_test_compare_array_longer_than_reference_with_zero_padding (CuTest *test)
+{
+	uint8_t bytes[] = {0x00, 0x00, 0x11, 0x12, 0x34, 0x56, 0x78};
 	uint8_t compare[] = {0x12, 0x34, 0x56, 0x78};
 	int status;
 
@@ -1716,8 +1820,15 @@ TEST (common_math_test_swap_bytes_uint32);
 TEST (common_math_test_swap_bytes_uint64);
 TEST (common_math_test_compare_array);
 TEST (common_math_test_compare_array_multiple_bytes);
+TEST (common_math_test_compare_array_zero_padded_reference);
+TEST (common_math_test_compare_array_zero_padded_comparison);
+TEST (common_math_test_compare_array_both_zero_padded);
 TEST (common_math_test_compare_array_shorter_than_reference);
+TEST (common_math_test_compare_array_shorter_than_reference_after_zero_padding);
+TEST (common_math_test_compare_array_shorter_than_reference_with_zero_padding);
 TEST (common_math_test_compare_array_longer_than_reference);
+TEST (common_math_test_compare_array_longer_than_reference_after_zero_padding);
+TEST (common_math_test_compare_array_longer_than_reference_with_zero_padding);
 TEST (common_math_test_compare_array_empty_array);
 
 TEST_SUITE_END;
