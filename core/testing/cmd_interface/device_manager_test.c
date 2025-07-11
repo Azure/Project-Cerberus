@@ -753,7 +753,7 @@ static void device_manager_test_update_mctp_bridge_device_entry (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_mctp_bridge_device_entry (&manager, 1, 0xBB,	0xAA, 0xCC, 0xDD, 2,
+	status = device_manager_update_mctp_bridge_device_entry (&manager, 1, 0xBB, 0xAA, 0xCC, 0xDD, 2,
 		component_id, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -806,11 +806,11 @@ static void device_manager_test_update_mctp_bridge_device_entry_invalid_arg (CuT
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_mctp_bridge_device_entry (NULL, 0, 0xBB,	0xAA, 0xCC, 0xDD, 2,
+	status = device_manager_update_mctp_bridge_device_entry (NULL, 0, 0xBB, 0xAA, 0xCC, 0xDD, 2,
 		component_id, 0);
 	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
 
-	status = device_manager_update_mctp_bridge_device_entry (&manager, 0, 0xBB,	0xAA, 0xCC, 0xDD, 0,
+	status = device_manager_update_mctp_bridge_device_entry (&manager, 0, 0xBB, 0xAA, 0xCC, 0xDD, 0,
 		component_id, 0);
 	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
 
@@ -829,8 +829,12 @@ static void device_manager_test_update_mctp_bridge_device_entry_invalid_device (
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_mctp_bridge_device_entry (&manager, 2, 0xBB,	0xAA, 0xCC, 0xDD, 1,
+	status = device_manager_update_mctp_bridge_device_entry (&manager, 2, 0xBB, 0xAA, 0xCC, 0xDD, 1,
 		component_id, 2);
+	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
+
+	status = device_manager_update_mctp_bridge_device_entry (&manager, -1, 0xBB, 0xAA, 0xCC, 0xDD,
+		2, component_id, 0);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
 	device_manager_release (&manager);
@@ -848,7 +852,7 @@ static void device_manager_test_update_mctp_bridge_device_entry_too_many_compone
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_mctp_bridge_device_entry (&manager, 1, 0xBB,	0xAA, 0xCC, 0xDD, 2,
+	status = device_manager_update_mctp_bridge_device_entry (&manager, 1, 0xBB, 0xAA, 0xCC, 0xDD, 2,
 		component_id, 1);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
@@ -2475,7 +2479,7 @@ static void device_manager_test_update_instance_id (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_and_instance_ids_by_device_num (&manager, 1, &pci_vid,
-		&pci_device_id,	&pci_subsystem_vid, &pci_subsystem_id, &instance_id);
+		&pci_device_id, &pci_subsystem_vid, &pci_subsystem_id, &instance_id);
 	CuAssertIntEquals (test, 0xAA, instance_id);
 
 	device_manager_release (&manager);
@@ -2500,7 +2504,7 @@ static void device_manager_test_update_instance_id_init_ac_rot (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_and_instance_ids_by_device_num (&manager, 0, &pci_vid,
-		&pci_device_id,	&pci_subsystem_vid, &pci_subsystem_id, &instance_id);
+		&pci_device_id, &pci_subsystem_vid, &pci_subsystem_id, &instance_id);
 	CuAssertIntEquals (test, 0xAA, instance_id);
 
 	device_manager_release (&manager);
@@ -2566,14 +2570,14 @@ static void device_manager_test_update_instance_id_by_eid (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_and_instance_ids_by_device_num (&manager, 1, &pci_vid,
-		&pci_device_id,	&pci_subsystem_vid, &pci_subsystem_id, &instance_id);
+		&pci_device_id, &pci_subsystem_vid, &pci_subsystem_id, &instance_id);
 	CuAssertIntEquals (test, 0xAA, instance_id);
 
 	status = device_manager_update_device_instance_id_by_eid (&manager, 0xA0, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_and_instance_ids_by_eid (&manager, 0xA0, &pci_vid,
-		&pci_device_id,	&pci_subsystem_vid, &pci_subsystem_id, &instance_id);
+		&pci_device_id, &pci_subsystem_vid, &pci_subsystem_id, &instance_id);
 	CuAssertIntEquals (test, 0xBB, instance_id);
 
 	device_manager_release (&manager);
@@ -2601,7 +2605,7 @@ static void device_manager_test_update_instance_id_by_eid_init_ac_rot (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_and_instance_ids_by_device_num (&manager, 0, &pci_vid,
-		&pci_device_id,	&pci_subsystem_vid, &pci_subsystem_id, &instance_id);
+		&pci_device_id, &pci_subsystem_vid, &pci_subsystem_id, &instance_id);
 	CuAssertIntEquals (test, 0xAA, instance_id);
 
 	device_manager_release (&manager);
@@ -2817,6 +2821,9 @@ static void device_manager_test_get_max_message_len_remote_device_unknown_device
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_message_len (&manager, 2);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128, length);
+
+	length = device_manager_get_max_message_len (&manager, -1);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128, length);
 
 	device_manager_release (&manager);
@@ -3223,6 +3230,9 @@ static void device_manager_test_get_max_transmission_unit_remote_device_unknown_
 	length = device_manager_get_max_transmission_unit (&manager, 2);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
 
+	length = device_manager_get_max_transmission_unit (&manager, -1);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
+
 	device_manager_release (&manager);
 }
 
@@ -3566,6 +3576,9 @@ static void device_manager_test_get_reponse_timeout_remote_device_unknown_device
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_reponse_timeout (&manager, 2);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS + 10, timeout);
+
+	timeout = device_manager_get_reponse_timeout (&manager, -1);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS + 10, timeout);
 
 	device_manager_release (&manager);
@@ -3989,6 +4002,9 @@ static void device_manager_test_get_crypto_timeout_remote_device_unknown_device 
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_crypto_timeout (&manager, 2);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS + 100, timeout);
+
+	timeout = device_manager_get_crypto_timeout (&manager, -1);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS + 100, timeout);
 
 	device_manager_release (&manager);

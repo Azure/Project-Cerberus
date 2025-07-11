@@ -60,8 +60,8 @@ enum device_manager_device_state {
 	DEVICE_MANAGER_ATTESTATION_FAILED,							/**< Previous attestation attempt failed due to other error */
 	DEVICE_MANAGER_NOT_ATTESTABLE,								/**< Not an attestable device */
 	DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS,					/**< Authenticated without certs */
-	DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT,					/**< Autenticated with timeout */
-	DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT,	/**< Autenticated without certs with timeout */
+	DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT,					/**< Authenticated with timeout */
+	DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT,	/**< Authenticated without certs with timeout */
 	DEVICE_MANAGER_ATTESTATION_INTERRUPTED,						/**< Communication with device is interrupted */
 	DEVICE_MANAGER_NOT_PRESENT,									/**< Device is not present in the system */
 

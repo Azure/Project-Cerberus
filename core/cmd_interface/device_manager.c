@@ -163,7 +163,7 @@ free_entries:
 }
 
 /**
- * Initialize a device manager for an AC-RoT Cerberus.  This will set Cerberus hierachy role to
+ * Initialize a device manager for an AC-RoT Cerberus.  This will set Cerberus hierarchy role to
  * DEVICE_MANAGER_AC_ROT_MODE, set the number of responder devices to zero, and set all the
  * component attestation defaults to zero.
  *
@@ -386,6 +386,10 @@ int device_manager_get_device_addr_by_eid (struct device_manager *mgr, uint8_t e
 			device_num = DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM;
 		}
 	}
+#else
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
+	}
 #endif
 
 	return device_manager_get_device_addr (mgr, device_num);
@@ -478,12 +482,14 @@ int device_manager_update_device_instance_id (struct device_manager *mgr, int de
 int device_manager_update_device_instance_id_by_eid (struct device_manager *mgr, uint8_t eid,
 	uint8_t instance_id)
 {
-	if (mgr == NULL) {
-		return DEVICE_MGR_INVALID_ARGUMENT;
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
 	}
 
-	return device_manager_update_device_instance_id (mgr, device_manager_get_device_num (mgr, eid),
-		instance_id);
+	return device_manager_update_device_instance_id (mgr, device_num, instance_id);
 }
 
 /**
@@ -548,7 +554,8 @@ int device_manager_update_mctp_bridge_device_entry (struct device_manager *mgr, 
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
-	if ((device_num + components_count) > mgr->num_devices) {
+	if ((device_num < 0) || (device_num >= mgr->num_devices) ||
+		((device_num + components_count) > mgr->num_devices)) {
 		return DEVICE_MGR_UNKNOWN_DEVICE;
 	}
 
@@ -696,7 +703,7 @@ size_t device_manager_get_max_message_len (struct device_manager *mgr, int devic
 		return MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	}
 
-	if (device_num < mgr->num_devices) {
+	if ((device_num >= 0) && (device_num < mgr->num_devices)) {
 		remote_len = mgr->entries[device_num].capabilities.request.max_message_size;
 	}
 	if (remote_len == 0) {
@@ -718,11 +725,14 @@ size_t device_manager_get_max_message_len (struct device_manager *mgr, int devic
  */
 size_t device_manager_get_max_message_len_by_eid (struct device_manager *mgr, uint8_t eid)
 {
-	if (mgr == NULL) {
-		return MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		device_num = 0;	// Use the local device if the requested device is not known.
 	}
 
-	return device_manager_get_max_message_len (mgr, device_manager_get_device_num (mgr, eid));
+	return device_manager_get_max_message_len (mgr, device_num);
 }
 
 /**
@@ -743,7 +753,7 @@ size_t device_manager_get_max_transmission_unit (struct device_manager *mgr, int
 		return MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	}
 
-	if (device_num < mgr->num_devices) {
+	if ((device_num >= 0) && (device_num < mgr->num_devices)) {
 		remote_len = mgr->entries[device_num].capabilities.request.max_packet_size;
 	}
 	if (remote_len == 0) {
@@ -765,11 +775,14 @@ size_t device_manager_get_max_transmission_unit (struct device_manager *mgr, int
  */
 size_t device_manager_get_max_transmission_unit_by_eid (struct device_manager *mgr, uint8_t eid)
 {
-	if (mgr == NULL) {
-		return MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		device_num = 0;	// Use the local device if the requested device is not known.
 	}
 
-	return device_manager_get_max_transmission_unit (mgr, device_manager_get_device_num (mgr, eid));
+	return device_manager_get_max_transmission_unit (mgr, device_num);
 }
 
 /**
@@ -787,11 +800,7 @@ uint32_t device_manager_get_reponse_timeout (struct device_manager *mgr, int dev
 		return MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS;
 	}
 
-	if (device_num < 0) {
-		return DEVICE_MGR_UNKNOWN_DEVICE;
-	}
-
-	if ((device_num >= mgr->num_devices) ||
+	if ((device_num < 0) || (device_num >= mgr->num_devices) ||
 		(mgr->entries[device_num].capabilities.max_timeout == 0)) {
 		return ((mgr->entries[0].capabilities.max_timeout * 10) +
 			mgr->mctp_bridge_additional_timeout_ms);
@@ -812,11 +821,14 @@ uint32_t device_manager_get_reponse_timeout (struct device_manager *mgr, int dev
  */
 uint32_t device_manager_get_reponse_timeout_by_eid (struct device_manager *mgr, uint8_t eid)
 {
-	if (mgr == NULL) {
-		return MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS;
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		device_num = 0;	// Use the local device if the requested device is not known.
 	}
 
-	return device_manager_get_reponse_timeout (mgr, device_manager_get_device_num (mgr, eid));
+	return device_manager_get_reponse_timeout (mgr, device_num);
 }
 
 /**
@@ -835,11 +847,7 @@ uint32_t device_manager_get_crypto_timeout (struct device_manager *mgr, int devi
 		return MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS;
 	}
 
-	if (device_num < 0) {
-		return DEVICE_MGR_UNKNOWN_DEVICE;
-	}
-
-	if ((device_num >= mgr->num_devices) ||
+	if ((device_num < 0) || (device_num >= mgr->num_devices) ||
 		(mgr->entries[device_num].capabilities.max_sig == 0)) {
 		return ((mgr->entries[0].capabilities.max_sig * 100) +
 			mgr->mctp_bridge_additional_timeout_ms);
@@ -861,11 +869,14 @@ uint32_t device_manager_get_crypto_timeout (struct device_manager *mgr, int devi
  */
 uint32_t device_manager_get_crypto_timeout_by_eid (struct device_manager *mgr, uint8_t eid)
 {
-	if (mgr == NULL) {
-		return MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS;
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		device_num = 0;	// Use the local device if the requested device is not known.
 	}
 
-	return device_manager_get_crypto_timeout (mgr, device_manager_get_device_num (mgr, eid));
+	return device_manager_get_crypto_timeout (mgr, device_num);
 }
 
 /**
@@ -1121,6 +1132,7 @@ int device_manager_get_device_state (struct device_manager *mgr, int device_num)
 	if (mgr == NULL) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
+
 	if (((device_num < 0) || (device_num >= mgr->num_devices))) {
 		return DEVICE_MGR_UNKNOWN_DEVICE;
 	}
@@ -1138,11 +1150,14 @@ int device_manager_get_device_state (struct device_manager *mgr, int device_num)
  */
 int device_manager_get_device_state_by_eid (struct device_manager *mgr, uint8_t eid)
 {
-	if (mgr == NULL) {
-		return DEVICE_MGR_INVALID_ARGUMENT;
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
 	}
 
-	return device_manager_get_device_state (mgr, device_manager_get_device_num (mgr, eid));
+	return device_manager_get_device_state (mgr, device_num);
 }
 
 /**
@@ -1205,12 +1220,14 @@ int device_manager_update_device_state (struct device_manager *mgr, int device_n
 int device_manager_update_device_state_by_eid (struct device_manager *mgr, uint8_t eid,
 	enum device_manager_device_state state)
 {
-	if (mgr == NULL) {
-		return DEVICE_MGR_INVALID_ARGUMENT;
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
 	}
 
-	return device_manager_update_device_state (mgr, device_manager_get_device_num (mgr, eid),
-		state);
+	return device_manager_update_device_state (mgr, device_num, state);
 }
 
 /**
@@ -1245,12 +1262,14 @@ int device_manager_get_attestation_summary_prev_state (struct device_manager *mg
 int device_manager_get_attestation_summary_prev_state_by_eid (struct device_manager *mgr,
 	uint8_t eid)
 {
-	if (mgr == NULL) {
-		return DEVICE_MGR_INVALID_ARGUMENT;
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
 	}
 
-	return device_manager_get_attestation_summary_prev_state (mgr,
-		device_manager_get_device_num (mgr, eid));
+	return device_manager_get_attestation_summary_prev_state (mgr, device_num);
 }
 
 /**
@@ -1289,12 +1308,14 @@ int device_manager_update_attestation_summary_prev_state (struct device_manager 
 int device_manager_update_attestation_summary_prev_state_by_eid (struct device_manager *mgr,
 	uint8_t eid)
 {
-	if (mgr == NULL) {
-		return DEVICE_MGR_INVALID_ARGUMENT;
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
 	}
 
-	return device_manager_update_attestation_summary_prev_state (mgr,
-		device_manager_get_device_num (mgr, eid));
+	return device_manager_update_attestation_summary_prev_state (mgr, device_num);
 }
 
 /**
@@ -1335,12 +1356,14 @@ int device_manager_get_attestation_summary_event_counters (struct device_manager
 int device_manager_get_attestation_summary_event_counters_by_eid (struct device_manager *mgr,
 	uint8_t eid, struct device_manager_attestation_summary_event_counters *event_counters)
 {
-	if (mgr == NULL) {
-		return DEVICE_MGR_INVALID_ARGUMENT;
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
 	}
 
-	return device_manager_get_attestation_summary_event_counters (mgr,
-		device_manager_get_device_num (mgr, eid), event_counters);
+	return device_manager_get_attestation_summary_event_counters (mgr, device_num, event_counters);
 }
 
 /**
@@ -1428,12 +1451,14 @@ int device_manager_update_attestation_summary_event_counters (struct device_mana
 int device_manager_update_attestation_summary_event_counters_by_eid (struct device_manager *mgr,
 	uint8_t eid)
 {
-	if (mgr == NULL) {
-		return DEVICE_MGR_INVALID_ARGUMENT;
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
 	}
 
-	return device_manager_update_attestation_summary_event_counters (mgr,
-		device_manager_get_device_num (mgr, eid));
+	return device_manager_update_attestation_summary_event_counters (mgr, device_num);
 }
 
 /**
@@ -1584,7 +1609,7 @@ int device_manager_reset_discovered_devices (struct device_manager *mgr)
 			continue;
 		}
 
-		status = device_manager_update_device_state (mgr, i_device,	DEVICE_MANAGER_UNIDENTIFIED);
+		status = device_manager_update_device_state (mgr, i_device, DEVICE_MANAGER_UNIDENTIFIED);
 		if (status != 0) {
 			return status;
 		}
@@ -1680,8 +1705,7 @@ int device_manager_get_device_and_instance_ids_by_device_num (struct device_mana
 	uint16_t *pci_subsystem_id, uint8_t *instance_id)
 {
 	if ((mgr == NULL) || (pci_vid == NULL) || (pci_device_id == NULL) ||
-		(pci_subsystem_vid == NULL) ||
-		(pci_subsystem_id == NULL) || (instance_id == NULL)) {
+		(pci_subsystem_vid == NULL) || (pci_subsystem_id == NULL) || (instance_id == NULL)) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
@@ -1715,15 +1739,21 @@ int device_manager_get_device_and_instance_ids_by_eid (struct device_manager *mg
 	uint16_t *pci_vid, uint16_t *pci_device_id, uint16_t *pci_subsystem_vid,
 	uint16_t *pci_subsystem_id, uint8_t *instance_id)
 {
+	int device_num;
+
 	if ((mgr == NULL) || (pci_vid == NULL) || (pci_device_id == NULL) ||
 		(pci_subsystem_vid == NULL) ||
 		(pci_subsystem_id == NULL) || (instance_id == NULL)) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
-	return device_manager_get_device_and_instance_ids_by_device_num (mgr,
-		device_manager_get_device_num (mgr, eid), pci_vid, pci_device_id, pci_subsystem_vid,
-		pci_subsystem_id, instance_id);
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
+	}
+
+	return device_manager_get_device_and_instance_ids_by_device_num (mgr, device_num, pci_vid,
+		pci_device_id, pci_subsystem_vid, pci_subsystem_id, instance_id);
 }
 
 /**
