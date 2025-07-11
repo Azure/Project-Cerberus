@@ -138,6 +138,7 @@ enum {
 	ECC_DER_UTIL_INVALID_ECPOINT = ECC_DER_UTIL_ERROR (0x0b),			/**< The public key is representation is not valid. */
 	ECC_DER_UTIL_COMPRESSED_ECPOINT = ECC_DER_UTIL_ERROR (0x0c),		/**< The public key is represented in compressed form. */
 	ECC_DER_UTIL_INFINITY_ECPOINT = ECC_DER_UTIL_ERROR (0x0d),			/**< The public key provided is the point at infinity. */
+	ECC_DER_UTIL_INVALID_SIGNATURE = ECC_DER_UTIL_ERROR (0x0e),			/**< The encoded signature is not valid. */
 };
 
 

@@ -971,12 +971,22 @@ int ecc_der_decode_ecdsa_signature (const uint8_t *der, size_t length, uint8_t *
 		return status;
 	}
 
-	status = ecc_der_decode_ecdsa_integer (&pos, &length, sig_r, key_length);
+	status = ecc_der_decode_ecdsa_integer (&pos, &type_len, sig_r, key_length);
 	if (status != 0) {
 		return status;
 	}
 
-	return ecc_der_decode_ecdsa_integer (&pos, &length, sig_s, key_length);
+	status = ecc_der_decode_ecdsa_integer (&pos, &type_len, sig_s, key_length);
+	if (status != 0) {
+		return status;
+	}
+
+	if (type_len != 0) {
+		/* There should not be any data left after the signature components. */
+		return ECC_DER_UTIL_INVALID_SIGNATURE;
+	}
+
+	return 0;
 }
 
 /**

@@ -3051,6 +3051,29 @@ static void ecc_der_decode_ecdsa_signature_test_minimum_length_p521 (CuTest *tes
 	CuAssertIntEquals (test, 0, status);
 }
 
+static void ecc_der_decode_ecdsa_signature_test_extra_bytes (CuTest *test)
+{
+	uint8_t der[ECC_SIG_TEST_LEN + 2];
+	uint8_t sig_r[ECC_KEY_LENGTH_256];
+	uint8_t sig_s[ECC_KEY_LENGTH_256];
+	int status;
+
+	TEST_START;
+
+	memset (der, 0x55, sizeof (der));
+	memcpy (der, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+
+	status = ecc_der_decode_ecdsa_signature (der, sizeof (der), sig_r, sig_s, ECC_KEY_LENGTH_256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (ECC_SIGNATURE_TEST_RAW, sig_r, ECC_KEY_LENGTH_256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (&ECC_SIGNATURE_TEST_RAW[ECC_KEY_LENGTH_256], sig_s,
+		ECC_KEY_LENGTH_256);
+	CuAssertIntEquals (test, 0, status);
+}
+
 static void ecc_der_decode_ecdsa_signature_test_null (CuTest *test)
 {
 	uint8_t sig_r[ECC_KEY_LENGTH_256];
@@ -3113,6 +3136,24 @@ static void ecc_der_decode_ecdsa_signature_test_unknown_sequence_too_long (CuTes
 
 	status = ecc_der_decode_ecdsa_signature (der, sizeof (der), sig_r, sig_s, ECC_KEY_LENGTH_256);
 	CuAssertIntEquals (test, ECC_DER_UTIL_UNKNOWN_SEQUENCE, status);
+}
+
+static void ecc_der_decode_ecdsa_signature_test_sequence_incorrect_length (CuTest *test)
+{
+	uint8_t sig_r[ECC_KEY_LENGTH_256];
+	uint8_t sig_s[ECC_KEY_LENGTH_256];
+	int status;
+	uint8_t der[ECC_SIG_TEST_LEN + 1];
+
+	TEST_START;
+
+	memcpy (der, ECC_SIGNATURE_TEST, sizeof (der));
+	/* Change the SEQUENCE length to exceed the amount of DER encoded data, but still fit in the
+	 * buffer limits. */
+	der[1] += 1;
+
+	status = ecc_der_decode_ecdsa_signature (der, sizeof (der), sig_r, sig_s, ECC_KEY_LENGTH_256);
+	CuAssertIntEquals (test, ECC_DER_UTIL_INVALID_SIGNATURE, status);
 }
 
 static void ecc_der_decode_ecdsa_signature_test_malformed_not_sequence (CuTest *test)
@@ -3264,6 +3305,7 @@ static void ecc_der_decode_ecdsa_signature_test_signature_too_long_s_integer (Cu
 	memcpy (der, ECC_SIGNATURE_TEST, sizeof (der));
 	/* Change the s INTEGER length to be longer than the key size. */
 	der[38] = ECC_KEY_LENGTH_256 + 2;
+	der[1] += 1;	// Adjust the SEQUENCE length to match the new s INTEGER length.
 
 	status = ecc_der_decode_ecdsa_signature (der, sizeof (der), sig_r, sig_s, ECC_KEY_LENGTH_256);
 	CuAssertIntEquals (test, ECC_DER_UTIL_SIG_TOO_LONG, status);
@@ -3999,10 +4041,12 @@ TEST (ecc_der_decode_ecdsa_signature_test_no_zero_padding);
 TEST (ecc_der_decode_ecdsa_signature_test_minimum_length_p256);
 TEST (ecc_der_decode_ecdsa_signature_test_minimum_length_p384);
 TEST (ecc_der_decode_ecdsa_signature_test_minimum_length_p521);
+TEST (ecc_der_decode_ecdsa_signature_test_extra_bytes);
 TEST (ecc_der_decode_ecdsa_signature_test_null);
 TEST (ecc_der_decode_ecdsa_signature_test_malformed_zero_data);
 TEST (ecc_der_decode_ecdsa_signature_test_malformed_sequence_header_short);
 TEST (ecc_der_decode_ecdsa_signature_test_unknown_sequence_too_long);
+TEST (ecc_der_decode_ecdsa_signature_test_sequence_incorrect_length);
 TEST (ecc_der_decode_ecdsa_signature_test_malformed_not_sequence);
 TEST (ecc_der_decode_ecdsa_signature_test_malformed_sequence_too_long);
 TEST (ecc_der_decode_ecdsa_signature_test_malformed_r_not_integer);
