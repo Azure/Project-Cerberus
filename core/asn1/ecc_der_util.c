@@ -1065,3 +1065,32 @@ size_t ecc_der_get_ecdsa_signature_length (const uint8_t *der, size_t max_length
 {
 	return asn1_get_der_encoded_length (der, max_length);
 }
+
+/**
+ * Get the maximum length of an ECDSA signature for a given key length.
+ *
+ * @param key_length Length of the ECC key.
+ *
+ * @return Maximum length of the ECDSA signature or ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH.  Only
+ * supported key lengths will return a valid signature length, even if the key length is valid.
+ */
+int ecc_der_get_ecdsa_max_signature_length (size_t key_length)
+{
+	switch (key_length) {
+		case ECC_KEY_LENGTH_256:
+			return ECC_DER_P256_ECDSA_MAX_LENGTH;
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+		case ECC_KEY_LENGTH_384:
+			return ECC_DER_P384_ECDSA_MAX_LENGTH;
+#endif
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+		case ECC_KEY_LENGTH_521:
+			return ECC_DER_P521_ECDSA_MAX_LENGTH;
+#endif
+
+		default:
+			return ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH;
+	}
+}

@@ -963,7 +963,7 @@ static void signature_verification_test_verify_hash_no_active_hash (CuTest *test
 
 	status = signature_verification_verify_hash (&sig_verify.ecdsa.base, &sig_verify.hash.base,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
-	CuAssertIntEquals (test, SIG_VERIFICATION_NO_ACTVE_HASH, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_NO_ACTIVE_HASH, status);
 
 	signature_verification_testing_release_dependencies (test, &sig_verify);
 }
@@ -1550,7 +1550,7 @@ static void signature_verification_test_verify_hash_and_finish_no_active_hash (C
 	status = signature_verification_verify_hash_and_finish (&sig_verify.ecdsa.base,
 		&sig_verify.hash.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST,
 		ECC_SIG_TEST_LEN);
-	CuAssertIntEquals (test, SIG_VERIFICATION_NO_ACTVE_HASH, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_NO_ACTIVE_HASH, status);
 
 	signature_verification_testing_release_dependencies (test, &sig_verify);
 }
@@ -2326,7 +2326,7 @@ static void signature_verification_test_verify_hash_and_finish_save_digest_no_ac
 	status = signature_verification_verify_hash_and_finish_save_digest (&sig_verify.ecdsa.base,
 		&sig_verify.hash.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST,
 		ECC_SIG_TEST_LEN, digest, sizeof (digest), &digest_valid);
-	CuAssertIntEquals (test, SIG_VERIFICATION_NO_ACTVE_HASH, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_NO_ACTIVE_HASH, status);
 	CuAssertIntEquals (test, false, digest_valid);
 
 	signature_verification_testing_release_dependencies (test, &sig_verify);

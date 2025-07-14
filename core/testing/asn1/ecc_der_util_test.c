@@ -3829,6 +3829,54 @@ static void ecc_der_get_public_key_length_test_null (CuTest *test)
 	CuAssertIntEquals (test, 0, (int) length);
 }
 
+static void ecc_der_get_ecdsa_max_signature_length_test_p256 (CuTest *test)
+{
+	int length;
+
+	TEST_START;
+
+	length = ecc_der_get_ecdsa_max_signature_length (ECC_KEY_LENGTH_256);
+	CuAssertIntEquals (test, ECC_DER_P256_ECDSA_MAX_LENGTH, length);
+}
+
+static void ecc_der_get_ecdsa_max_signature_length_test_p384 (CuTest *test)
+{
+	int length;
+
+	TEST_START;
+
+	length = ecc_der_get_ecdsa_max_signature_length (ECC_KEY_LENGTH_384);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+	CuAssertIntEquals (test, ECC_DER_P384_ECDSA_MAX_LENGTH, length);
+#else
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH, length);
+#endif
+}
+
+static void ecc_der_get_ecdsa_max_signature_length_test_p521 (CuTest *test)
+{
+	int length;
+
+	TEST_START;
+
+	length = ecc_der_get_ecdsa_max_signature_length (ECC_KEY_LENGTH_521);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+	CuAssertIntEquals (test, ECC_DER_P521_ECDSA_MAX_LENGTH, length);
+#else
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH, length);
+#endif
+}
+
+static void ecc_der_get_ecdsa_max_signature_length_test_unsupported_key_length (CuTest *test)
+{
+	int length;
+
+	TEST_START;
+
+	length = ecc_der_get_ecdsa_max_signature_length (192 / 8);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH, length);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (ecc_der_util);
@@ -4096,6 +4144,10 @@ TEST (ecc_der_get_public_key_length_test_extra_length);
 TEST (ecc_der_get_public_key_length_test_short_buffer);
 TEST (ecc_der_get_public_key_length_test_invalid_asn1);
 TEST (ecc_der_get_public_key_length_test_null);
+TEST (ecc_der_get_ecdsa_max_signature_length_test_p256);
+TEST (ecc_der_get_ecdsa_max_signature_length_test_p384);
+TEST (ecc_der_get_ecdsa_max_signature_length_test_p521);
+TEST (ecc_der_get_ecdsa_max_signature_length_test_unsupported_key_length);
 
 TEST_SUITE_END;
 // *INDENT-ON*

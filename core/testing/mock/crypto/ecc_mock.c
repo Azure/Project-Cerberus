@@ -86,6 +86,19 @@ static int ecc_mock_get_signature_max_length (const struct ecc_engine *engine,
 	MOCK_RETURN (&mock->mock, ecc_mock_get_signature_max_length, engine, MOCK_ARG_PTR_CALL (key));
 }
 
+static int ecc_mock_get_signature_max_verify_length (const struct ecc_engine *engine,
+	const struct ecc_public_key *key)
+{
+	struct ecc_engine_mock *mock = (struct ecc_engine_mock*) engine;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, ecc_mock_get_signature_max_verify_length, engine,
+		MOCK_ARG_PTR_CALL (key));
+}
+
 static int ecc_mock_get_private_key_der (const struct ecc_engine *engine,
 	const struct ecc_private_key *key, uint8_t **der, size_t *length)
 {
@@ -188,6 +201,7 @@ static int ecc_mock_func_arg_count (void *func)
 		return 2;
 	}
 	else if ((func == ecc_mock_get_signature_max_length) ||
+		(func == ecc_mock_get_signature_max_verify_length) ||
 		(func == ecc_mock_get_shared_secret_max_length)) {
 		return 1;
 	}
@@ -215,6 +229,9 @@ static const char* ecc_mock_func_name_map (void *func)
 	}
 	else if (func == ecc_mock_get_signature_max_length) {
 		return "get_signature_max_length";
+	}
+	else if (func == ecc_mock_get_signature_max_verify_length) {
+		return "get_signature_max_verify_length";
 	}
 	else if (func == ecc_mock_get_private_key_der) {
 		return "get_private_key_der";
@@ -305,6 +322,12 @@ static const char* ecc_mock_arg_name_map (void *func, int arg)
 		}
 	}
 	else if (func == ecc_mock_get_signature_max_length) {
+		switch (arg) {
+			case 0:
+				return "key";
+		}
+	}
+	else if (func == ecc_mock_get_signature_max_verify_length) {
 		switch (arg) {
 			case 0:
 				return "key";
@@ -428,6 +451,7 @@ int ecc_mock_init (struct ecc_engine_mock *mock)
 	mock->base.generate_key_pair = ecc_mock_generate_key_pair;
 	mock->base.release_key_pair = ecc_mock_release_key_pair;
 	mock->base.get_signature_max_length = ecc_mock_get_signature_max_length;
+	mock->base.get_signature_max_verify_length = ecc_mock_get_signature_max_verify_length;
 	mock->base.get_private_key_der = ecc_mock_get_private_key_der;
 	mock->base.get_public_key_der = ecc_mock_get_public_key_der;
 	mock->base.sign = ecc_mock_sign;

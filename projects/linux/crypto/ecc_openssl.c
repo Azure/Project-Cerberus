@@ -306,6 +306,16 @@ int ecc_openssl_get_signature_max_length (const struct ecc_engine *engine,
 	return EVP_PKEY_size ((EVP_PKEY*) key->context);
 }
 
+int ecc_openssl_get_signature_max_verify_length (const struct ecc_engine *engine,
+	const struct ecc_public_key *key)
+{
+	if ((engine == NULL) || (key == NULL)) {
+		return ECC_ENGINE_INVALID_ARGUMENT;
+	}
+
+	return EVP_PKEY_size ((EVP_PKEY*) key->context);
+}
+
 /**
  * Check an EC key context to see if contains a private key.
  *
@@ -630,6 +640,7 @@ int ecc_openssl_init (struct ecc_engine_openssl *engine)
 #endif
 	engine->base.release_key_pair = ecc_openssl_release_key_pair;
 	engine->base.get_signature_max_length = ecc_openssl_get_signature_max_length;
+	engine->base.get_signature_max_verify_length = ecc_openssl_get_signature_max_verify_length;
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
 	engine->base.get_private_key_der = ecc_openssl_get_private_key_der;
 	engine->base.get_public_key_der = ecc_openssl_get_public_key_der;

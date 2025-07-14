@@ -21,6 +21,8 @@ void ecc_mbedtls_release_key_pair (const struct ecc_engine *engine,
 	struct ecc_private_key *priv_key, struct ecc_public_key *pub_key);
 int ecc_mbedtls_get_signature_max_length (const struct ecc_engine *engine,
 	const struct ecc_private_key *key);
+int ecc_mbedtls_get_signature_max_verify_length (const struct ecc_engine *engine,
+	const struct ecc_public_key *key);
 int ecc_mbedtls_get_private_key_der (const struct ecc_engine *engine,
 	const struct ecc_private_key *key, uint8_t **der, size_t *length);
 int ecc_mbedtls_get_public_key_der (const struct ecc_engine *engine,
@@ -73,6 +75,7 @@ int ecc_mbedtls_compute_shared_secret (const struct ecc_engine *engine,
 		ECC_MBEDTLS_GENERATE_API \
 		.release_key_pair = ecc_mbedtls_release_key_pair, \
 		.get_signature_max_length = ecc_mbedtls_get_signature_max_length, \
+		.get_signature_max_verify_length = ecc_mbedtls_get_signature_max_verify_length, \
 		ECC_MBEDTLS_DER_API \
 		.sign = ecc_mbedtls_sign, \
 		.verify = ecc_mbedtls_verify, \

@@ -109,6 +109,23 @@ int ecc_thread_safe_get_signature_max_length (const struct ecc_engine *engine,
 	return status;
 }
 
+int ecc_thread_safe_get_signature_max_verify_length (const struct ecc_engine *engine,
+	const struct ecc_public_key *key)
+{
+	const struct ecc_engine_thread_safe *ecc = (const struct ecc_engine_thread_safe*) engine;
+	int status;
+
+	if (engine == NULL) {
+		return ECC_ENGINE_INVALID_ARGUMENT;
+	}
+
+	platform_mutex_lock (&ecc->state->lock);
+	status = ecc->engine->get_signature_max_verify_length (ecc->engine, key);
+	platform_mutex_unlock (&ecc->state->lock);
+
+	return status;
+}
+
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
 int ecc_thread_safe_get_private_key_der (const struct ecc_engine *engine,
 	const struct ecc_private_key *key, uint8_t **der, size_t *length)
@@ -243,6 +260,7 @@ int ecc_thread_safe_init (struct ecc_engine_thread_safe *engine,
 #endif
 	engine->base.release_key_pair = ecc_thread_safe_release_key_pair;
 	engine->base.get_signature_max_length = ecc_thread_safe_get_signature_max_length;
+	engine->base.get_signature_max_verify_length = ecc_thread_safe_get_signature_max_verify_length;
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
 	engine->base.get_private_key_der = ecc_thread_safe_get_private_key_der;
 	engine->base.get_public_key_der = ecc_thread_safe_get_public_key_der;

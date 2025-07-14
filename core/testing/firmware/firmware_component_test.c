@@ -3166,6 +3166,7 @@ static void firmware_component_test_verification (CuTest *test)
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	int offset = 0;
 
 	TEST_START;
@@ -3197,7 +3198,11 @@ static void firmware_component_test_verification (CuTest *test)
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -3244,6 +3249,7 @@ static void firmware_component_test_verification_with_hash_out (CuTest *test)
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	int offset = 0;
 
@@ -3276,7 +3282,11 @@ static void firmware_component_test_verification_with_hash_out (CuTest *test)
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -3326,6 +3336,7 @@ static void firmware_component_test_verification_with_hash_type_out (CuTest *tes
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	enum hash_type type;
 	int offset = 0;
 
@@ -3358,7 +3369,11 @@ static void firmware_component_test_verification_with_hash_type_out (CuTest *tes
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -3408,6 +3423,7 @@ static void firmware_component_test_verification_header_format1 (CuTest *test)
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 
 	TEST_START;
 
@@ -3439,7 +3455,11 @@ static void firmware_component_test_verification_header_format1 (CuTest *test)
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -3486,6 +3506,7 @@ static void firmware_component_test_verification_header_format1_with_expected_ve
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 
 	TEST_START;
 
@@ -3517,7 +3538,11 @@ static void firmware_component_test_verification_header_format1_with_expected_ve
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -3564,6 +3589,7 @@ static void firmware_component_test_verification_sha384 (CuTest *test)
 	uint8_t hash_actual[SHA384_HASH_LENGTH];
 	enum hash_type type;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC384;
 	int offset = 0;
 
 	TEST_START;
@@ -3596,7 +3622,11 @@ static void firmware_component_test_verification_sha384 (CuTest *test)
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SHA384_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC384));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA384_SIGNATURE,
@@ -3650,6 +3680,7 @@ static void firmware_component_test_verification_sha512 (CuTest *test)
 	uint8_t hash_actual[SHA512_HASH_LENGTH];
 	enum hash_type type;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC521;
 	int offset = 0;
 
 	TEST_START;
@@ -3682,7 +3713,11 @@ static void firmware_component_test_verification_sha512 (CuTest *test)
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SHA512_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC521));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA512_SIGNATURE,
@@ -3734,6 +3769,7 @@ static void firmware_component_test_verification_with_header (CuTest *test)
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	int offset = 0;
 
 	TEST_START;
@@ -3771,7 +3807,11 @@ static void firmware_component_test_verification_with_header (CuTest *test)
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_HEADER_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_HEADER_SIGNATURE,
@@ -3819,6 +3859,7 @@ static void firmware_component_test_verification_with_header_zero_length (CuTest
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	int offset = 0;
 
 	TEST_START;
@@ -3851,7 +3892,11 @@ static void firmware_component_test_verification_with_header_zero_length (CuTest
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -4168,7 +4213,7 @@ static void firmware_component_test_verification_small_hash_buffer_sha512 (CuTes
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
-static void firmware_component_test_verification_read_signature_error (CuTest *test)
+static void firmware_component_test_verification_max_signature_error (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
@@ -4205,7 +4250,128 @@ static void firmware_component_test_verification_read_signature_error (CuTest *t
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, SIG_VERIFICATION_SIG_LENGTH_FAILED, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_verification (&image, &hash.base, &verification.base, NULL, NULL, 0,
+		NULL);
+	CuAssertIntEquals (test, SIG_VERIFICATION_SIG_LENGTH_FAILED, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_component_release (&image);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void firmware_component_test_verification_signature_too_large (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_mock flash;
+	struct firmware_component image;
+	struct signature_verification_mock verification;
+	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH - 1;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (IMAGE_HEADER_BASE_LEN));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_DATA, FW_COMPONENT_DATA_LEN, 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
+		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (FW_COMPONENT_HDR_LENGTH));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_DATA + IMAGE_HEADER_BASE_LEN,
+		FW_COMPONENT_DATA_LEN - IMAGE_HEADER_BASE_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_init (&image, &flash.base, 0x10000, FW_COMPONENT_MARKER);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_verification (&image, &hash.base, &verification.base, NULL, NULL, 0,
+		NULL);
+	CuAssertIntEquals (test, FIRMWARE_COMPONENT_SIG_TOO_LARGE, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_component_release (&image);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void firmware_component_test_verification_read_signature_error (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_mock flash;
+	struct firmware_component image;
+	struct signature_verification_mock verification;
+	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (IMAGE_HEADER_BASE_LEN));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_DATA, FW_COMPONENT_DATA_LEN, 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
+		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (FW_COMPONENT_HDR_LENGTH));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_DATA + IMAGE_HEADER_BASE_LEN,
+		FW_COMPONENT_DATA_LEN - IMAGE_HEADER_BASE_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_init (&image, &flash.base, 0x10000, FW_COMPONENT_MARKER);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 
@@ -4233,6 +4399,7 @@ static void firmware_component_test_verification_read_data_error (CuTest *test)
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 
 	TEST_START;
 
@@ -4263,7 +4430,11 @@ static void firmware_component_test_verification_read_data_error (CuTest *test)
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -4296,6 +4467,7 @@ static void firmware_component_test_verification_verify_error (CuTest *test)
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	int offset = 0;
 
 	TEST_START;
@@ -4327,7 +4499,11 @@ static void firmware_component_test_verification_verify_error (CuTest *test)
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -5223,6 +5399,7 @@ static void firmware_component_test_load_and_verify (CuTest *test)
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -5257,7 +5434,11 @@ static void firmware_component_test_load_and_verify (CuTest *test)
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -5306,6 +5487,7 @@ static void firmware_component_test_load_and_verify_no_hash_out (CuTest *test)
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	enum hash_type type;
 	size_t app_len;
@@ -5339,7 +5521,11 @@ static void firmware_component_test_load_and_verify_no_hash_out (CuTest *test)
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -5385,6 +5571,7 @@ static void firmware_component_test_load_and_verify_no_hash_type_out (CuTest *te
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	size_t app_len;
@@ -5418,7 +5605,11 @@ static void firmware_component_test_load_and_verify_no_hash_type_out (CuTest *te
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -5466,6 +5657,7 @@ static void firmware_component_test_load_and_verify_no_length_out (CuTest *test)
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -5499,7 +5691,11 @@ static void firmware_component_test_load_and_verify_no_length_out (CuTest *test)
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -5547,6 +5743,7 @@ static void firmware_component_test_load_and_verify_header_format1 (CuTest *test
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_V1_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -5582,7 +5779,11 @@ static void firmware_component_test_load_and_verify_header_format1 (CuTest *test
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -5633,6 +5834,7 @@ static void firmware_component_test_load_and_verify_header_format1_no_expected_v
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_V1_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -5668,7 +5870,11 @@ static void firmware_component_test_load_and_verify_header_format1_no_expected_v
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -5717,6 +5923,7 @@ static void firmware_component_test_load_and_verify_sha384 (CuTest *test)
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC384;
 	uint8_t load_data[FW_COMPONENT_SHA384_DATA_LEN];
 	uint8_t hash_actual[SHA384_HASH_LENGTH];
 	enum hash_type type;
@@ -5752,7 +5959,11 @@ static void firmware_component_test_load_and_verify_sha384 (CuTest *test)
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SHA384_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC384));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA384_SIGNATURE,
@@ -5803,6 +6014,7 @@ static void firmware_component_test_load_and_verify_sha384_no_hash_out (CuTest *
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC384;
 	uint8_t load_data[FW_COMPONENT_SHA384_DATA_LEN];
 	enum hash_type type;
 	size_t app_len;
@@ -5837,7 +6049,11 @@ static void firmware_component_test_load_and_verify_sha384_no_hash_out (CuTest *
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SHA384_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC384));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA384_SIGNATURE,
@@ -5884,6 +6100,7 @@ static void firmware_component_test_load_and_verify_sha512 (CuTest *test)
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC521;
 	uint8_t load_data[FW_COMPONENT_SHA512_DATA_LEN];
 	uint8_t hash_actual[SHA512_HASH_LENGTH];
 	enum hash_type type;
@@ -5919,7 +6136,11 @@ static void firmware_component_test_load_and_verify_sha512 (CuTest *test)
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SHA512_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC521));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA512_SIGNATURE,
@@ -5970,6 +6191,7 @@ static void firmware_component_test_load_and_verify_sha512_no_hash_out (CuTest *
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC521;
 	uint8_t load_data[FW_COMPONENT_SHA512_DATA_LEN];
 	enum hash_type type;
 	size_t app_len;
@@ -6004,7 +6226,11 @@ static void firmware_component_test_load_and_verify_sha512_no_hash_out (CuTest *
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SHA512_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC521));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA512_SIGNATURE,
@@ -6051,6 +6277,7 @@ static void firmware_component_test_load_and_verify_extra_header (CuTest *test)
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -6091,7 +6318,11 @@ static void firmware_component_test_load_and_verify_extra_header (CuTest *test)
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_HEADER_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_HEADER_SIGNATURE,
@@ -6146,6 +6377,7 @@ static void firmware_component_test_load_and_verify_extra_header_zero_length (Cu
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -6181,7 +6413,11 @@ static void firmware_component_test_load_and_verify_extra_header_zero_length (Cu
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -6533,7 +6769,7 @@ static void firmware_component_test_load_and_verify_small_hash_buffer_sha512 (Cu
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
-static void firmware_component_test_load_and_verify_read_signature_error (CuTest *test)
+static void firmware_component_test_load_and_verify_max_signature_error (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
@@ -6574,7 +6810,136 @@ static void firmware_component_test_load_and_verify_read_signature_error (CuTest
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, SIG_VERIFICATION_SIG_LENGTH_FAILED, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_load_and_verify (&image, load_data, sizeof (load_data), &hash.base,
+		&verification.base, NULL, hash_actual, sizeof (hash_actual), &type, &app_len);
+	CuAssertIntEquals (test, SIG_VERIFICATION_SIG_LENGTH_FAILED, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_component_release (&image);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void firmware_component_test_load_and_verify_signature_too_large (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_mock flash;
+	struct firmware_component image;
+	struct signature_verification_mock verification;
+	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH - 1;
+	uint8_t load_data[FW_COMPONENT_DATA_LEN];
+	uint8_t hash_actual[SHA256_HASH_LENGTH];
+	enum hash_type type;
+	size_t app_len;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (IMAGE_HEADER_BASE_LEN));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_DATA, FW_COMPONENT_DATA_LEN, 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
+		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (FW_COMPONENT_HDR_LENGTH));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_DATA + IMAGE_HEADER_BASE_LEN,
+		FW_COMPONENT_DATA_LEN - IMAGE_HEADER_BASE_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_init (&image, &flash.base, 0x10000, FW_COMPONENT_MARKER);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_load_and_verify (&image, load_data, sizeof (load_data), &hash.base,
+		&verification.base, NULL, hash_actual, sizeof (hash_actual), &type, &app_len);
+	CuAssertIntEquals (test, FIRMWARE_COMPONENT_SIG_TOO_LARGE, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_component_release (&image);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void firmware_component_test_load_and_verify_read_signature_error (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_mock flash;
+	struct firmware_component image;
+	struct signature_verification_mock verification;
+	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
+	uint8_t load_data[FW_COMPONENT_DATA_LEN];
+	uint8_t hash_actual[SHA256_HASH_LENGTH];
+	enum hash_type type;
+	size_t app_len;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (IMAGE_HEADER_BASE_LEN));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_DATA, FW_COMPONENT_DATA_LEN, 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
+		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (FW_COMPONENT_HDR_LENGTH));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_DATA + IMAGE_HEADER_BASE_LEN,
+		FW_COMPONENT_DATA_LEN - IMAGE_HEADER_BASE_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_init (&image, &flash.base, 0x10000, FW_COMPONENT_MARKER);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 
@@ -6602,6 +6967,7 @@ static void firmware_component_test_load_and_verify_verify_error (CuTest *test)
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -6636,7 +7002,11 @@ static void firmware_component_test_load_and_verify_verify_error (CuTest *test)
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -6682,6 +7052,7 @@ static void firmware_component_test_load_and_verify_hash_start_error (CuTest *te
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -6716,7 +7087,11 @@ static void firmware_component_test_load_and_verify_hash_start_error (CuTest *te
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -6750,6 +7125,7 @@ static void firmware_component_test_load_and_verify_hash_header_info_error (CuTe
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -6784,7 +7160,11 @@ static void firmware_component_test_load_and_verify_hash_header_info_error (CuTe
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -6822,6 +7202,7 @@ static void firmware_component_test_load_and_verify_hash_header_data_error (CuTe
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -6856,7 +7237,11 @@ static void firmware_component_test_load_and_verify_hash_header_data_error (CuTe
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -6897,6 +7282,7 @@ static void firmware_component_test_load_and_verify_image_too_large (CuTest *tes
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_LENGTH - 1];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -6931,7 +7317,11 @@ static void firmware_component_test_load_and_verify_image_too_large (CuTest *tes
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -6956,7 +7346,11 @@ static void firmware_component_test_load_and_verify_image_too_large (CuTest *tes
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -6997,6 +7391,7 @@ static void firmware_component_test_load_and_verify_image_error (CuTest *test)
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -7031,7 +7426,11 @@ static void firmware_component_test_load_and_verify_image_error (CuTest *test)
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -7076,6 +7475,7 @@ static void firmware_component_test_load_and_verify_hash_image_error (CuTest *te
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -7110,7 +7510,11 @@ static void firmware_component_test_load_and_verify_hash_image_error (CuTest *te
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -7159,6 +7563,7 @@ static void firmware_component_test_load_and_verify_hash_finish_error (CuTest *t
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -7193,7 +7598,11 @@ static void firmware_component_test_load_and_verify_hash_finish_error (CuTest *t
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -7247,6 +7656,7 @@ static void firmware_component_test_load_and_verify_extra_header_read_error (CuT
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -7287,7 +7697,11 @@ static void firmware_component_test_load_and_verify_extra_header_read_error (CuT
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_HEADER_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_HEADER_SIGNATURE,
@@ -7325,6 +7739,7 @@ static void firmware_component_test_load_and_verify_extra_header_hash_error (CuT
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -7365,7 +7780,11 @@ static void firmware_component_test_load_and_verify_extra_header_hash_error (CuT
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_HEADER_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_HEADER_SIGNATURE,
@@ -7519,6 +7938,7 @@ static void firmware_component_test_load_and_verify_with_header (CuTest *test)
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -7557,7 +7977,11 @@ static void firmware_component_test_load_and_verify_with_header (CuTest *test)
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -7610,6 +8034,7 @@ static void firmware_component_test_load_and_verify_with_header_no_hash_out (CuT
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	enum hash_type type;
 	size_t app_len;
@@ -7647,7 +8072,11 @@ static void firmware_component_test_load_and_verify_with_header_no_hash_out (CuT
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -7695,6 +8124,7 @@ static void firmware_component_test_load_and_verify_with_header_no_hash_type_out
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	size_t app_len;
@@ -7732,7 +8162,11 @@ static void firmware_component_test_load_and_verify_with_header_no_hash_type_out
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -7784,6 +8218,7 @@ static void firmware_component_test_load_and_verify_with_header_no_length_out (C
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -7821,7 +8256,11 @@ static void firmware_component_test_load_and_verify_with_header_no_length_out (C
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -7873,6 +8312,7 @@ static void firmware_component_test_load_and_verify_with_header_header_format1 (
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_V1_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -7912,7 +8352,11 @@ static void firmware_component_test_load_and_verify_with_header_header_format1 (
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -7966,6 +8410,7 @@ static void firmware_component_test_load_and_verify_with_header_header_format1_n
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_V1_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -8005,7 +8450,11 @@ static void firmware_component_test_load_and_verify_with_header_header_format1_n
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -8058,6 +8507,7 @@ static void firmware_component_test_load_and_verify_with_header_sha384 (CuTest *
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC384;
 	uint8_t load_data[FW_COMPONENT_SHA384_DATA_LEN];
 	uint8_t hash_actual[SHA384_HASH_LENGTH];
 	enum hash_type type;
@@ -8097,7 +8547,11 @@ static void firmware_component_test_load_and_verify_with_header_sha384 (CuTest *
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SHA384_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC384));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA384_SIGNATURE,
@@ -8151,6 +8605,7 @@ static void firmware_component_test_load_and_verify_with_header_sha384_no_hash_o
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC384;
 	uint8_t load_data[FW_COMPONENT_SHA384_DATA_LEN];
 	enum hash_type type;
 	size_t app_len;
@@ -8189,7 +8644,11 @@ static void firmware_component_test_load_and_verify_with_header_sha384_no_hash_o
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SHA384_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC384));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA384_SIGNATURE,
@@ -8239,6 +8698,7 @@ static void firmware_component_test_load_and_verify_with_header_sha512 (CuTest *
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC521;
 	uint8_t load_data[FW_COMPONENT_SHA512_DATA_LEN];
 	uint8_t hash_actual[SHA512_HASH_LENGTH];
 	enum hash_type type;
@@ -8278,7 +8738,11 @@ static void firmware_component_test_load_and_verify_with_header_sha512 (CuTest *
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SHA512_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC521));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA512_SIGNATURE,
@@ -8332,6 +8796,7 @@ static void firmware_component_test_load_and_verify_with_header_sha512_no_hash_o
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC521;
 	uint8_t load_data[FW_COMPONENT_SHA512_DATA_LEN];
 	enum hash_type type;
 	size_t app_len;
@@ -8370,7 +8835,11 @@ static void firmware_component_test_load_and_verify_with_header_sha512_no_hash_o
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SHA512_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC521));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA512_SIGNATURE,
@@ -8419,6 +8888,7 @@ static void firmware_component_test_load_and_verify_with_header_read_from_flash 
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -8459,7 +8929,11 @@ static void firmware_component_test_load_and_verify_with_header_read_from_flash 
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_HEADER_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_HEADER_SIGNATURE,
@@ -8516,6 +8990,7 @@ static void firmware_component_test_load_and_verify_with_header_zero_length_read
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -8551,7 +9026,11 @@ static void firmware_component_test_load_and_verify_with_header_zero_length_read
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -8602,6 +9081,7 @@ static void firmware_component_test_load_and_verify_with_header_no_flash_header 
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -8639,7 +9119,11 @@ static void firmware_component_test_load_and_verify_with_header_no_flash_header 
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -9034,7 +9518,7 @@ static void firmware_component_test_load_and_verify_with_header_small_hash_buffe
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
-static void firmware_component_test_load_and_verify_with_header_read_signature_error (CuTest *test)
+static void firmware_component_test_load_and_verify_with_header_max_signature_error (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
@@ -9080,7 +9564,150 @@ static void firmware_component_test_load_and_verify_with_header_read_signature_e
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, SIG_VERIFICATION_SIG_LENGTH_FAILED, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_load_and_verify_with_header (&image, load_data, sizeof (load_data),
+		&header, &hash.base, &verification.base, NULL, hash_actual, sizeof (hash_actual), &type,
+		&app_len);
+	CuAssertIntEquals (test, SIG_VERIFICATION_SIG_LENGTH_FAILED, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_component_release (&image);
+	image_header_release (&header);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void firmware_component_test_load_and_verify_with_header_signature_too_large (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_mock flash;
+	struct firmware_component image;
+	struct signature_verification_mock verification;
+	struct image_header header;
+	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH - 1;
+	uint8_t load_data[FW_COMPONENT_DATA_LEN];
+	uint8_t hash_actual[SHA256_HASH_LENGTH];
+	enum hash_type type;
+	size_t app_len;
+	uint32_t base_addr = 0x10000 + IMAGE_HEADER_TEST_LEN;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (base_addr),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (IMAGE_HEADER_BASE_LEN));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_DATA, FW_COMPONENT_DATA_LEN, 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
+		MOCK_ARG (base_addr + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (FW_COMPONENT_HDR_LENGTH));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_DATA + IMAGE_HEADER_BASE_LEN,
+		FW_COMPONENT_DATA_LEN - IMAGE_HEADER_BASE_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_init_with_header (&image, &flash.base, 0x10000, FW_COMPONENT_MARKER,
+		IMAGE_HEADER_TEST_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_component_testing_init_image_header (test, &header, &flash);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_load_and_verify_with_header (&image, load_data, sizeof (load_data),
+		&header, &hash.base, &verification.base, NULL, hash_actual, sizeof (hash_actual), &type,
+		&app_len);
+	CuAssertIntEquals (test, FIRMWARE_COMPONENT_SIG_TOO_LARGE, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_component_release (&image);
+	image_header_release (&header);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void firmware_component_test_load_and_verify_with_header_read_signature_error (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_mock flash;
+	struct firmware_component image;
+	struct signature_verification_mock verification;
+	struct image_header header;
+	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
+	uint8_t load_data[FW_COMPONENT_DATA_LEN];
+	uint8_t hash_actual[SHA256_HASH_LENGTH];
+	enum hash_type type;
+	size_t app_len;
+	uint32_t base_addr = 0x10000 + IMAGE_HEADER_TEST_LEN;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (base_addr),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (IMAGE_HEADER_BASE_LEN));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_DATA, FW_COMPONENT_DATA_LEN, 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
+		MOCK_ARG (base_addr + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (FW_COMPONENT_HDR_LENGTH));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_DATA + IMAGE_HEADER_BASE_LEN,
+		FW_COMPONENT_DATA_LEN - IMAGE_HEADER_BASE_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_init_with_header (&image, &flash.base, 0x10000, FW_COMPONENT_MARKER,
+		IMAGE_HEADER_TEST_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_component_testing_init_image_header (test, &header, &flash);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
 		MOCK_ARG (base_addr + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 
@@ -9111,6 +9738,7 @@ static void firmware_component_test_load_and_verify_with_header_verify_error (Cu
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -9149,7 +9777,11 @@ static void firmware_component_test_load_and_verify_with_header_verify_error (Cu
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -9199,6 +9831,7 @@ static void firmware_component_test_load_and_verify_with_header_hash_start_error
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -9237,7 +9870,11 @@ static void firmware_component_test_load_and_verify_with_header_hash_start_error
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -9275,6 +9912,7 @@ static void firmware_component_test_load_and_verify_with_header_hash_memory_head
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -9313,7 +9951,11 @@ static void firmware_component_test_load_and_verify_with_header_hash_memory_head
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -9355,6 +9997,7 @@ static void firmware_component_test_load_and_verify_with_header_hash_header_info
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -9393,7 +10036,11 @@ static void firmware_component_test_load_and_verify_with_header_hash_header_info
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -9442,6 +10089,7 @@ static void firmware_component_test_load_and_verify_with_header_hash_header_data
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -9480,7 +10128,11 @@ static void firmware_component_test_load_and_verify_with_header_hash_header_data
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -9531,6 +10183,7 @@ static void firmware_component_test_load_and_verify_with_header_image_too_large 
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_LENGTH - 1];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -9569,7 +10222,11 @@ static void firmware_component_test_load_and_verify_with_header_image_too_large 
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -9602,7 +10259,11 @@ static void firmware_component_test_load_and_verify_with_header_image_too_large 
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -9652,6 +10313,7 @@ static void firmware_component_test_load_and_verify_with_header_image_error (CuT
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -9690,7 +10352,11 @@ static void firmware_component_test_load_and_verify_with_header_image_error (CuT
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -9745,6 +10411,7 @@ static void firmware_component_test_load_and_verify_with_header_hash_image_error
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -9783,7 +10450,11 @@ static void firmware_component_test_load_and_verify_with_header_hash_image_error
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -9842,6 +10513,7 @@ static void firmware_component_test_load_and_verify_with_header_hash_finish_erro
 	struct signature_verification_mock verification;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -9880,7 +10552,11 @@ static void firmware_component_test_load_and_verify_with_header_hash_finish_erro
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SIGNATURE, FW_COMPONENT_SIG_LENGTH,
@@ -9944,6 +10620,7 @@ static void firmware_component_test_load_and_verify_with_header_extra_header_rea
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -9984,7 +10661,11 @@ static void firmware_component_test_load_and_verify_with_header_extra_header_rea
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_HEADER_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_HEADER_SIGNATURE,
@@ -10024,6 +10705,7 @@ static void firmware_component_test_load_and_verify_with_header_extra_header_has
 	struct firmware_component image;
 	struct signature_verification_mock verification;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t load_data[FW_COMPONENT_DATA_LEN];
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
@@ -10064,7 +10746,11 @@ static void firmware_component_test_load_and_verify_with_header_extra_header_has
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_HEADER_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_HEADER_SIGNATURE,
@@ -12161,6 +12847,7 @@ static void firmware_component_test_load_to_memory_and_verify_header_format1 (Cu
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -12198,7 +12885,11 @@ static void firmware_component_test_load_to_memory_and_verify_header_format1 (Cu
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -12261,6 +12952,7 @@ static void firmware_component_test_load_to_memory_and_verify_no_hash_out (CuTes
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	enum hash_type type;
 	size_t app_len;
 
@@ -12297,7 +12989,11 @@ static void firmware_component_test_load_to_memory_and_verify_no_hash_out (CuTes
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -12356,6 +13052,7 @@ static void firmware_component_test_load_to_memory_and_verify_no_hash_type_out (
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	size_t app_len;
 
@@ -12392,7 +13089,11 @@ static void firmware_component_test_load_to_memory_and_verify_no_hash_type_out (
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -12454,6 +13155,7 @@ static void firmware_component_test_load_to_memory_and_verify_no_length_out (CuT
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 
@@ -12490,7 +13192,11 @@ static void firmware_component_test_load_to_memory_and_verify_no_length_out (CuT
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -12552,6 +13258,7 @@ static void firmware_component_test_load_to_memory_and_verify_no_expected_versio
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -12589,7 +13296,11 @@ static void firmware_component_test_load_to_memory_and_verify_no_expected_versio
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -12651,6 +13362,7 @@ static void firmware_component_test_load_to_memory_and_verify_encrypted_image (C
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -12688,7 +13400,11 @@ static void firmware_component_test_load_to_memory_and_verify_encrypted_image (C
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -12752,6 +13468,7 @@ static void firmware_component_test_load_to_memory_and_verify_sha384 (CuTest *te
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC384;
 	uint8_t hash_actual[SHA384_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -12789,7 +13506,11 @@ static void firmware_component_test_load_to_memory_and_verify_sha384 (CuTest *te
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SHA384_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC384));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA384_SIGNATURE,
@@ -12852,6 +13573,7 @@ static void firmware_component_test_load_to_memory_and_verify_sha384_no_hash_out
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC384;
 	enum hash_type type;
 	size_t app_len;
 
@@ -12888,7 +13610,11 @@ static void firmware_component_test_load_to_memory_and_verify_sha384_no_hash_out
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SHA384_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC384));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA384_SIGNATURE,
@@ -12948,6 +13674,7 @@ static void firmware_component_test_load_to_memory_and_verify_sha512 (CuTest *te
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC521;
 	uint8_t hash_actual[SHA512_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -12985,7 +13712,11 @@ static void firmware_component_test_load_to_memory_and_verify_sha512 (CuTest *te
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SHA512_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC521));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA512_SIGNATURE,
@@ -13048,6 +13779,7 @@ static void firmware_component_test_load_to_memory_and_verify_sha512_no_hash_out
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC521;
 	enum hash_type type;
 	size_t app_len;
 
@@ -13084,7 +13816,11 @@ static void firmware_component_test_load_to_memory_and_verify_sha512_no_hash_out
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SHA512_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC521));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA512_SIGNATURE,
@@ -13144,6 +13880,7 @@ static void firmware_component_test_load_to_memory_and_verify_extra_header (CuTe
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC384;
 	uint8_t hash_actual[SHA384_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -13183,7 +13920,11 @@ static void firmware_component_test_load_to_memory_and_verify_extra_header (CuTe
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_TEST_LEN + FW_COMPONENT_SHA384_SIG_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC384));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA384_SIGNATURE,
@@ -13253,6 +13994,7 @@ static void firmware_component_test_load_to_memory_and_verify_extra_header_zero_
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC521;
 	uint8_t hash_actual[SHA512_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -13290,7 +14032,11 @@ static void firmware_component_test_load_to_memory_and_verify_extra_header_zero_
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SHA512_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC521));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA512_SIGNATURE,
@@ -13764,7 +14510,7 @@ static void firmware_component_test_load_to_memory_and_verify_small_hash_buffer_
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
-static void firmware_component_test_load_to_memory_and_verify_read_signature_error (CuTest *test)
+static void firmware_component_test_load_to_memory_and_verify_max_signature_error (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
@@ -13809,7 +14555,152 @@ static void firmware_component_test_load_to_memory_and_verify_read_signature_err
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, SIG_VERIFICATION_SIG_LENGTH_FAILED, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_load_to_memory_and_verify (&image, &loader.base, NULL, 0,
+		&hash.base, &verification.base, FW_COMPONENT_V1_BUILD_VERSION, hash_actual,
+		sizeof (hash_actual), &type, &app_len);
+	CuAssertIntEquals (test, SIG_VERIFICATION_SIG_LENGTH_FAILED, status);
+
+	status = firmware_loader_mock_validate_and_release (&loader);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_component_release (&image);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void firmware_component_test_load_to_memory_and_verify_signature_too_large (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_mock flash;
+	struct firmware_component image;
+	struct signature_verification_mock verification;
+	struct firmware_loader_mock loader;
+	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH - 1;
+	uint8_t hash_actual[SHA256_HASH_LENGTH];
+	enum hash_type type;
+	size_t app_len;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_loader_mock_init (&loader);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (IMAGE_HEADER_BASE_LEN));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_DATA, FW_COMPONENT_V1_DATA_LEN,
+		2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
+		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (FW_COMPONENT_HDR_V1_LENGTH));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_DATA + IMAGE_HEADER_BASE_LEN,
+		FW_COMPONENT_V1_DATA_LEN - IMAGE_HEADER_BASE_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_init (&image, &flash.base, 0x10000, FW_COMPONENT_MARKER_V1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_load_to_memory_and_verify (&image, &loader.base, NULL, 0,
+		&hash.base, &verification.base, FW_COMPONENT_V1_BUILD_VERSION, hash_actual,
+		sizeof (hash_actual), &type, &app_len);
+	CuAssertIntEquals (test, FIRMWARE_COMPONENT_SIG_TOO_LARGE, status);
+
+	status = firmware_loader_mock_validate_and_release (&loader);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_component_release (&image);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void firmware_component_test_load_to_memory_and_verify_read_signature_error (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_mock flash;
+	struct firmware_component image;
+	struct signature_verification_mock verification;
+	struct firmware_loader_mock loader;
+	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
+	uint8_t hash_actual[SHA256_HASH_LENGTH];
+	enum hash_type type;
+	size_t app_len;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_loader_mock_init (&loader);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (IMAGE_HEADER_BASE_LEN));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_DATA, FW_COMPONENT_V1_DATA_LEN,
+		2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
+		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (FW_COMPONENT_HDR_V1_LENGTH));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_DATA + IMAGE_HEADER_BASE_LEN,
+		FW_COMPONENT_V1_DATA_LEN - IMAGE_HEADER_BASE_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_init (&image, &flash.base, 0x10000, FW_COMPONENT_MARKER_V1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
 		MOCK_ARG (0x10000 + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 
@@ -13842,6 +14733,7 @@ static void firmware_component_test_load_to_memory_and_verify_verify_error (CuTe
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -13879,7 +14771,11 @@ static void firmware_component_test_load_to_memory_and_verify_verify_error (CuTe
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -13942,6 +14838,7 @@ static void firmware_component_test_load_to_memory_and_verify_hash_start_error (
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -13979,7 +14876,11 @@ static void firmware_component_test_load_to_memory_and_verify_hash_start_error (
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -14018,6 +14919,7 @@ static void firmware_component_test_load_to_memory_and_verify_hash_header_info_e
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -14055,7 +14957,11 @@ static void firmware_component_test_load_to_memory_and_verify_hash_header_info_e
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -14098,6 +15004,7 @@ static void firmware_component_test_load_to_memory_and_verify_hash_header_data_e
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -14135,7 +15042,11 @@ static void firmware_component_test_load_to_memory_and_verify_hash_header_data_e
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -14182,6 +15093,7 @@ static void firmware_component_test_load_to_memory_and_verify_map_error (CuTest 
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -14219,7 +15131,11 @@ static void firmware_component_test_load_to_memory_and_verify_map_error (CuTest 
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -14270,6 +15186,7 @@ static void firmware_component_test_load_to_memory_and_verify_load_error (CuTest
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -14307,7 +15224,11 @@ static void firmware_component_test_load_to_memory_and_verify_load_error (CuTest
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -14369,6 +15290,7 @@ static void firmware_component_test_load_to_memory_and_verify_hash_finish_error 
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -14406,7 +15328,11 @@ static void firmware_component_test_load_to_memory_and_verify_hash_finish_error 
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -14472,6 +15398,7 @@ static void firmware_component_test_load_to_memory_and_verify_extra_header_read_
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC384;
 	uint8_t hash_actual[SHA384_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -14511,7 +15438,11 @@ static void firmware_component_test_load_to_memory_and_verify_extra_header_read_
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_EXTRA_HDR_LENGTH + FW_COMPONENT_SHA384_SIG_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC384));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA384_SIGNATURE,
@@ -14554,6 +15485,7 @@ static void firmware_component_test_load_to_memory_and_verify_extra_header_hash_
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC384;
 	uint8_t hash_actual[SHA384_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -14593,7 +15525,11 @@ static void firmware_component_test_load_to_memory_and_verify_extra_header_hash_
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_EXTRA_HDR_LENGTH + FW_COMPONENT_SHA384_SIG_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC384));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA384_SIGNATURE,
@@ -14714,6 +15650,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_header
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -14755,7 +15692,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_header
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -14821,6 +15762,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_no_has
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	enum hash_type type;
 	size_t app_len;
 	uint32_t base_addr = 0x10000 + IMAGE_HEADER_TEST_LEN;
@@ -14861,7 +15803,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_no_has
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -14924,6 +15870,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_no_has
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	size_t app_len;
 	uint32_t base_addr = 0x10000 + IMAGE_HEADER_TEST_LEN;
@@ -14964,7 +15911,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_no_has
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -15030,6 +15981,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_no_len
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	uint32_t base_addr = 0x10000 + IMAGE_HEADER_TEST_LEN;
@@ -15070,7 +16022,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_no_len
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -15136,6 +16092,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_no_exp
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -15177,7 +16134,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_no_exp
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -15244,6 +16205,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_encryp
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -15285,7 +16247,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_encryp
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -15353,6 +16319,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_sha384
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC384;
 	uint8_t hash_actual[SHA384_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -15394,7 +16361,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_sha384
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SHA384_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC384));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA384_SIGNATURE,
@@ -15461,6 +16432,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_sha384
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC384;
 	enum hash_type type;
 	size_t app_len;
 	uint32_t base_addr = 0x10000 + IMAGE_HEADER_TEST_LEN;
@@ -15501,7 +16473,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_sha384
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SHA384_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC384));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA384_SIGNATURE,
@@ -15563,6 +16539,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_sha512
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC521;
 	uint8_t hash_actual[SHA512_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -15604,7 +16581,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_sha512
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SHA512_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC521));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA512_SIGNATURE,
@@ -15671,6 +16652,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_sha512
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC521;
 	enum hash_type type;
 	size_t app_len;
 	uint32_t base_addr = 0x10000 + IMAGE_HEADER_TEST_LEN;
@@ -15711,7 +16693,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_sha512
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_SHA512_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC521));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA512_SIGNATURE,
@@ -15774,6 +16760,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_read_f
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC384;
 	uint8_t hash_actual[SHA384_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -15815,7 +16802,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_read_f
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_TEST_LEN + FW_COMPONENT_SHA384_SIG_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC384));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA384_SIGNATURE,
@@ -15887,6 +16878,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_zero_l
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC521;
 	uint8_t hash_actual[SHA512_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -15926,7 +16918,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_zero_l
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_SHA512_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC521));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA512_SIGNATURE,
@@ -15992,6 +16988,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_no_fla
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -16032,7 +17029,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_no_fla
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -16547,7 +17548,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_small_
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
-static void firmware_component_test_load_to_memory_and_verify_with_header_read_signature_error (
+static void firmware_component_test_load_to_memory_and_verify_with_header_max_signature_error (
 	CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
@@ -16598,7 +17599,166 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_read_s
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, SIG_VERIFICATION_SIG_LENGTH_FAILED, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_load_to_memory_and_verify_with_header (&image, &loader.base, NULL,
+		0, &header, &hash.base, &verification.base, FW_COMPONENT_V1_BUILD_VERSION, hash_actual,
+		sizeof (hash_actual), &type, &app_len);
+	CuAssertIntEquals (test, SIG_VERIFICATION_SIG_LENGTH_FAILED, status);
+
+	status = firmware_loader_mock_validate_and_release (&loader);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_component_release (&image);
+	image_header_release (&header);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void firmware_component_test_load_to_memory_and_verify_with_header_signature_too_large (
+	CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_mock flash;
+	struct firmware_component image;
+	struct signature_verification_mock verification;
+	struct firmware_loader_mock loader;
+	struct image_header header;
+	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH - 1;
+	uint8_t hash_actual[SHA256_HASH_LENGTH];
+	enum hash_type type;
+	size_t app_len;
+	uint32_t base_addr = 0x10000 + IMAGE_HEADER_TEST_LEN;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_loader_mock_init (&loader);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (base_addr),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (IMAGE_HEADER_BASE_LEN));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_DATA, FW_COMPONENT_V1_DATA_LEN,
+		2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
+		MOCK_ARG (base_addr + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (FW_COMPONENT_HDR_V1_LENGTH));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_DATA + IMAGE_HEADER_BASE_LEN,
+		FW_COMPONENT_V1_DATA_LEN - IMAGE_HEADER_BASE_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_init_with_header (&image, &flash.base, 0x10000,
+		FW_COMPONENT_MARKER_V1, IMAGE_HEADER_TEST_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_component_testing_init_image_header (test, &header, &flash);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_load_to_memory_and_verify_with_header (&image, &loader.base, NULL,
+		0, &header, &hash.base, &verification.base, FW_COMPONENT_V1_BUILD_VERSION, hash_actual,
+		sizeof (hash_actual), &type, &app_len);
+	CuAssertIntEquals (test, FIRMWARE_COMPONENT_SIG_TOO_LARGE, status);
+
+	status = firmware_loader_mock_validate_and_release (&loader);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_component_release (&image);
+	image_header_release (&header);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void firmware_component_test_load_to_memory_and_verify_with_header_read_signature_error (
+	CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_mock flash;
+	struct firmware_component image;
+	struct signature_verification_mock verification;
+	struct firmware_loader_mock loader;
+	struct image_header header;
+	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
+	uint8_t hash_actual[SHA256_HASH_LENGTH];
+	enum hash_type type;
+	size_t app_len;
+	uint32_t base_addr = 0x10000 + IMAGE_HEADER_TEST_LEN;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_loader_mock_init (&loader);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (base_addr),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (IMAGE_HEADER_BASE_LEN));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_DATA, FW_COMPONENT_V1_DATA_LEN,
+		2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
+		MOCK_ARG (base_addr + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (FW_COMPONENT_HDR_V1_LENGTH));
+	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_DATA + IMAGE_HEADER_BASE_LEN,
+		FW_COMPONENT_V1_DATA_LEN - IMAGE_HEADER_BASE_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_component_init_with_header (&image, &flash.base, 0x10000,
+		FW_COMPONENT_MARKER_V1, IMAGE_HEADER_TEST_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_component_testing_init_image_header (test, &header, &flash);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
 		MOCK_ARG (base_addr + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 
@@ -16634,6 +17794,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_verify
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -16675,7 +17836,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_verify
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -16742,6 +17907,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_hash_s
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -16783,7 +17949,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_hash_s
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -16825,6 +17995,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_hash_m
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -16866,7 +18037,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_hash_m
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -16912,6 +18087,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_hash_h
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -16953,7 +18129,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_hash_h
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -17006,6 +18186,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_hash_h
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -17047,7 +18228,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_hash_h
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -17103,6 +18288,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_map_er
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -17144,7 +18330,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_map_er
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -17204,6 +18394,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_load_e
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -17245,7 +18436,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_load_e
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -17317,6 +18512,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_hash_f
 	struct firmware_loader_mock loader;
 	struct image_header header;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -17358,7 +18554,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_hash_f
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (base_addr + FW_COMPONENT_V1_SIG_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (FW_COMPONENT_SIG_LENGTH));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_V1_SIGNATURE,
@@ -17433,6 +18633,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_extra_
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC384;
 	uint8_t hash_actual[SHA384_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -17472,7 +18673,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_extra_
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_EXTRA_HDR_LENGTH + FW_COMPONENT_SHA384_SIG_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC384));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA384_SIGNATURE,
@@ -17516,6 +18721,7 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_extra_
 	struct signature_verification_mock verification;
 	struct firmware_loader_mock loader;
 	int status;
+	const size_t sig_length = FW_COMPONENT_SIG_LENGTH_ECC384;
 	uint8_t hash_actual[SHA384_HASH_LENGTH];
 	enum hash_type type;
 	size_t app_len;
@@ -17555,7 +18761,11 @@ static void firmware_component_test_load_to_memory_and_verify_with_header_extra_
 	status = mock_validate (&flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0,
+	status = mock_expect (&verification.mock, verification.base.get_max_signature_length,
+		&verification, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&verification.mock, 0, &sig_length, sizeof (sig_length), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + FW_COMPONENT_EXTRA_HDR_LENGTH + FW_COMPONENT_SHA384_SIG_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (FW_COMPONENT_SIG_LENGTH_ECC384));
 	status |= mock_expect_output (&flash.mock, 1, FW_COMPONENT_SHA384_SIGNATURE,
@@ -17854,6 +19064,8 @@ TEST (firmware_component_test_verification_unknown_hash);
 TEST (firmware_component_test_verification_small_hash_buffer);
 TEST (firmware_component_test_verification_small_hash_buffer_sha384);
 TEST (firmware_component_test_verification_small_hash_buffer_sha512);
+TEST (firmware_component_test_verification_max_signature_error);
+TEST (firmware_component_test_verification_signature_too_large);
 TEST (firmware_component_test_verification_read_signature_error);
 TEST (firmware_component_test_verification_read_data_error);
 TEST (firmware_component_test_verification_verify_error);
@@ -17894,6 +19106,8 @@ TEST (firmware_component_test_load_and_verify_unknown_hash);
 TEST (firmware_component_test_load_and_verify_small_hash_buffer);
 TEST (firmware_component_test_load_and_verify_small_hash_buffer_sha384);
 TEST (firmware_component_test_load_and_verify_small_hash_buffer_sha512);
+TEST (firmware_component_test_load_and_verify_max_signature_error);
+TEST (firmware_component_test_load_and_verify_signature_too_large);
 TEST (firmware_component_test_load_and_verify_read_signature_error);
 TEST (firmware_component_test_load_and_verify_verify_error);
 TEST (firmware_component_test_load_and_verify_hash_start_error);
@@ -17925,6 +19139,8 @@ TEST (firmware_component_test_load_and_verify_with_header_unknown_hash);
 TEST (firmware_component_test_load_and_verify_with_header_small_hash_buffer);
 TEST (firmware_component_test_load_and_verify_with_header_small_hash_buffer_sha384);
 TEST (firmware_component_test_load_and_verify_with_header_small_hash_buffer_sha512);
+TEST (firmware_component_test_load_and_verify_with_header_max_signature_error);
+TEST (firmware_component_test_load_and_verify_with_header_signature_too_large);
 TEST (firmware_component_test_load_and_verify_with_header_read_signature_error);
 TEST (firmware_component_test_load_and_verify_with_header_verify_error);
 TEST (firmware_component_test_load_and_verify_with_header_hash_start_error);
@@ -17998,6 +19214,8 @@ TEST (firmware_component_test_load_to_memory_and_verify_unknown_hash);
 TEST (firmware_component_test_load_to_memory_and_verify_small_hash_buffer);
 TEST (firmware_component_test_load_to_memory_and_verify_small_hash_buffer_sha384);
 TEST (firmware_component_test_load_to_memory_and_verify_small_hash_buffer_sha512);
+TEST (firmware_component_test_load_to_memory_and_verify_max_signature_error);
+TEST (firmware_component_test_load_to_memory_and_verify_signature_too_large);
 TEST (firmware_component_test_load_to_memory_and_verify_read_signature_error);
 TEST (firmware_component_test_load_to_memory_and_verify_verify_error);
 TEST (firmware_component_test_load_to_memory_and_verify_hash_start_error);
@@ -18028,6 +19246,8 @@ TEST (firmware_component_test_load_to_memory_and_verify_with_header_unknown_hash
 TEST (firmware_component_test_load_to_memory_and_verify_with_header_small_hash_buffer);
 TEST (firmware_component_test_load_to_memory_and_verify_with_header_small_hash_buffer_sha384);
 TEST (firmware_component_test_load_to_memory_and_verify_with_header_small_hash_buffer_sha512);
+TEST (firmware_component_test_load_to_memory_and_verify_with_header_max_signature_error);
+TEST (firmware_component_test_load_to_memory_and_verify_with_header_signature_too_large);
 TEST (firmware_component_test_load_to_memory_and_verify_with_header_read_signature_error);
 TEST (firmware_component_test_load_to_memory_and_verify_with_header_verify_error);
 TEST (firmware_component_test_load_to_memory_and_verify_with_header_hash_start_error);

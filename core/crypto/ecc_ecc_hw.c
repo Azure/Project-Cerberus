@@ -311,23 +311,17 @@ int ecc_ecc_hw_get_signature_max_length (const struct ecc_engine *engine,
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	switch (ecc_ecc_hw_private_key (key).key_length) {
-		case ECC_KEY_LENGTH_256:
-			return ECC_DER_P256_ECDSA_MAX_LENGTH;
+	return ecc_der_get_ecdsa_max_signature_length (ecc_ecc_hw_private_key (key).key_length);
+}
 
-#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
-		case ECC_KEY_LENGTH_384:
-			return ECC_DER_P384_ECDSA_MAX_LENGTH;
-#endif
-
-#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
-		case ECC_KEY_LENGTH_521:
-			return ECC_DER_P521_ECDSA_MAX_LENGTH;
-#endif
-
-		default:
-			return ECC_ENGINE_UNSUPPORTED_KEY_LENGTH;
+int ecc_ecc_hw_get_signature_max_verify_length (const struct ecc_engine *engine,
+	const struct ecc_public_key *key)
+{
+	if ((engine == NULL) || (key == NULL)) {
+		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
+
+	return ecc_der_get_ecdsa_max_signature_length (ecc_ecc_hw_public_key (key).key_length);
 }
 
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
@@ -554,6 +548,7 @@ int ecc_ecc_hw_init (struct ecc_engine_ecc_hw *engine, const struct ecc_hw *hw,
 #endif
 	engine->base.release_key_pair = ecc_ecc_hw_release_key_pair;
 	engine->base.get_signature_max_length = ecc_ecc_hw_get_signature_max_length;
+	engine->base.get_signature_max_verify_length = ecc_ecc_hw_get_signature_max_verify_length;
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
 	engine->base.get_private_key_der = ecc_ecc_hw_get_private_key_der;
 	engine->base.get_public_key_der = ecc_ecc_hw_get_public_key_der;

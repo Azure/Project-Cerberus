@@ -182,20 +182,30 @@ static size_t firmware_component_get_image_length (const struct firmware_compone
  * Allocate a buffer and read the image signature from flash.
  *
  * @param image The image to query.
+ * @param verification Context to use for signature verification.
  * @param signature Output for the signature buffer.
  * @param sig_length The size of the signature.
  *
  * @return 0 if the signature was read or an error code.
  */
 static int firmware_component_read_signature_data (const struct firmware_component *image,
-	uint8_t **signature, size_t *sig_length)
+	const struct signature_verification *verification, uint8_t **signature, size_t *sig_length)
 {
+	size_t max_sig_length;
 	int status;
 
+	status = verification->get_max_signature_length (verification, &max_sig_length);
+	if (status != 0) {
+		return status;
+	}
+
 	*sig_length = FW_COMPONENT_HDR (image, 0).sig_length;
+	if (*sig_length > max_sig_length) {
+		return FIRMWARE_COMPONENT_SIG_TOO_LARGE;
+	}
 
 	*signature = platform_malloc (*sig_length);
-	if (signature == NULL) {
+	if (*signature == NULL) {
 		return FIRMWARE_COMPONENT_NO_MEMORY;
 	}
 
@@ -215,6 +225,7 @@ static int firmware_component_read_signature_data (const struct firmware_compone
  * Check the component version and get the signature information necessary to verify the component.
  *
  * @param image The image being verified.
+ * @param verification Context to use for signature verification.
  * @param expected_version The version to use for component verification.  This can be null.
  * @param hash_out Optional buffer that will be used to store the hash of the component.
  * @param hash_length Size of the buffer that will be used to store the image hash.
@@ -227,6 +238,7 @@ static int firmware_component_read_signature_data (const struct firmware_compone
  * @return 0 if validation can proceed on the component or an error code.
  */
 static int firmware_component_prepare_for_verification (const struct firmware_component *image,
+	const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *digest_type, uint8_t **signature, size_t *sig_length,
 	size_t *img_length)
@@ -253,7 +265,7 @@ static int firmware_component_prepare_for_verification (const struct firmware_co
 		*img_length = firmware_component_get_image_length (image);
 	}
 
-	return firmware_component_read_signature_data (image, signature, sig_length);
+	return firmware_component_read_signature_data (image, verification, signature, sig_length);
 }
 
 /**
@@ -349,6 +361,7 @@ static int firmware_component_finish_verification (const struct firmware_compone
 	}
 
 exit:
+	buffer_zeroize (signature, sig_length);
 	platform_free (signature);
 
 	return status;
@@ -386,8 +399,8 @@ int firmware_component_verification (const struct firmware_component *image,
 		return FIRMWARE_COMPONENT_INVALID_ARGUMENT;
 	}
 
-	status = firmware_component_prepare_for_verification (image, expected_version, hash_out,
-		hash_length, &digest_type, &signature, &sig_length, &img_length);
+	status = firmware_component_prepare_for_verification (image, verification, expected_version,
+		hash_out, hash_length, &digest_type, &signature, &sig_length, &img_length);
 	if (status != 0) {
 		return status;
 	}
@@ -399,6 +412,7 @@ int firmware_component_verification (const struct firmware_component *image,
 		*hash_type = digest_type;
 	}
 
+	buffer_zeroize (signature, sig_length);
 	platform_free (signature);
 
 	return status;
@@ -532,8 +546,8 @@ int firmware_component_load_and_verify_with_header (const struct firmware_compon
 		hash_length = sizeof (img_hash);
 	}
 
-	status = firmware_component_prepare_for_verification (image, expected_version, hash_out,
-		hash_length, &digest_type, &signature, &sig_length, NULL);
+	status = firmware_component_prepare_for_verification (image, verification, expected_version,
+		hash_out, hash_length, &digest_type, &signature, &sig_length, NULL);
 	if (status != 0) {
 		return status;
 	}
@@ -563,6 +577,7 @@ int firmware_component_load_and_verify_with_header (const struct firmware_compon
 hash_fail:
 	hash->cancel (hash);
 error_exit:
+	buffer_zeroize (signature, sig_length);
 	platform_free (signature);
 
 	return status;
@@ -730,8 +745,8 @@ int firmware_component_load_to_memory_and_verify_with_header (
 		hash_length = sizeof (img_hash);
 	}
 
-	status = firmware_component_prepare_for_verification (image, expected_version, hash_out,
-		hash_length, &digest_type, &signature, &sig_length, NULL);
+	status = firmware_component_prepare_for_verification (image, verification, expected_version,
+		hash_out, hash_length, &digest_type, &signature, &sig_length, NULL);
 	if (status != 0) {
 		return status;
 	}
@@ -765,6 +780,7 @@ int firmware_component_load_to_memory_and_verify_with_header (
 hash_fail:
 	hash->cancel (hash);
 error_exit:
+	buffer_zeroize (signature, sig_length);
 	platform_free (signature);
 
 	return status;

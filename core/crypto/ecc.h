@@ -163,16 +163,28 @@ struct ecc_engine {
 		struct ecc_public_key *pub_key);
 
 	/**
-	 * Get the maximum length for a ECDSA signature generated using a given key.
+	 * Get the maximum length for a ECDSA signature generated using a given private key.
 	 *
 	 * @param engine The ECC engine to query.
-	 * @param key The private key that would be used for the signature.
+	 * @param key The private key that would be used to generate the signature.
 	 *
 	 * @return The maximum number of signature bytes or an error code.  Use ROT_IS_ERROR to check
 	 * the return value.
 	 */
 	int (*get_signature_max_length) (const struct ecc_engine *engine,
 		const struct ecc_private_key *key);
+
+	/**
+	 * Get the maximum length for an ECDSA signature being verified using a given public key.
+	 *
+	 * @param engine The ECC engine to query.
+	 * @param key The public key that would be used to verify the signature.
+	 *
+	 * @return The maximum number of signature bytes or an error code.  Use ROT_IS_ERROR to check
+	 * the return value.
+	 */
+	int (*get_signature_max_verify_length) (const struct ecc_engine *engine,
+		const struct ecc_public_key *key);
 
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
 	/**
@@ -311,6 +323,7 @@ enum {
 	ECC_ENGINE_UNSUPPORTED_OPERATION = ECC_ENGINE_ERROR (0x17),		/**< The requested operation is not supported by the implementation. */
 	ECC_ENGINE_INCOMPATIBLE_DIGEST = ECC_ENGINE_ERROR (0x18),		/**< The specified digest cannot be used for a signing operation. */
 	ECC_ENGINE_INVALID_PUBLIC_KEY = ECC_ENGINE_ERROR (0x19),		/**> The public key is not valid for the curve. */
+	ECC_ENGINE_SIG_VERIFY_LENGTH_FAILED = ECC_ENGINE_ERROR (0x1a),	/**< Failed to get the maximum signature length for verification. */
 };
 
 

@@ -4917,7 +4917,7 @@ static void ecdsa_test_verify_hash_no_active_hash (CuTest *test)
 
 	status = ecdsa_verify_hash (&ecdsa.ecc.base, &ecdsa.hash.base, ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
-	CuAssertIntEquals (test, SIG_VERIFICATION_NO_ACTVE_HASH, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_NO_ACTIVE_HASH, status);
 
 	ecdsa_testing_release_dependencies (test, &ecdsa);
 }
@@ -5259,7 +5259,7 @@ static void ecdsa_test_verify_hash_and_finish_no_active_hash (CuTest *test)
 
 	status = ecdsa_verify_hash_and_finish (&ecdsa.ecc.base, &ecdsa.hash.base, ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
-	CuAssertIntEquals (test, SIG_VERIFICATION_NO_ACTVE_HASH, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_NO_ACTIVE_HASH, status);
 
 	ecdsa_testing_release_dependencies (test, &ecdsa);
 }
@@ -5849,7 +5849,7 @@ static void ecdsa_test_verify_hash_with_key_no_active_hash (CuTest *test)
 
 	status = ecdsa_verify_hash_with_key (&ecdsa.ecc.base, &ecdsa.hash.base, &pub_key,
 		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
-	CuAssertIntEquals (test, SIG_VERIFICATION_NO_ACTVE_HASH, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_NO_ACTIVE_HASH, status);
 
 	ecdsa.ecc.base.release_key_pair (&ecdsa.ecc.base, NULL, &pub_key);
 
@@ -6204,7 +6204,7 @@ static void ecdsa_test_verify_hash_and_finish_with_key_no_active_hash (CuTest *t
 
 	status = ecdsa_verify_hash_and_finish_with_key (&ecdsa.ecc.base, &ecdsa.hash.base, &pub_key,
 		ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
-	CuAssertIntEquals (test, SIG_VERIFICATION_NO_ACTVE_HASH, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_NO_ACTIVE_HASH, status);
 
 	ecdsa.ecc.base.release_key_pair (&ecdsa.ecc.base, NULL, &pub_key);
 

@@ -1255,15 +1255,11 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_2048_sha
 static void signature_verification_kat_test_run_self_test_verify_rsassa_2048_sha256_bad_signature (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -1295,7 +1291,6 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_2048_sha
 	status = signature_verification_mock_validate_and_release (&rsassa);
 	CuAssertIntEquals (test, 0, status);
 
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
@@ -1334,15 +1329,11 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_2048_sha
 static void signature_verification_kat_test_run_self_test_verify_rsassa_2048_sha256_error (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -1374,7 +1365,6 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_2048_sha
 	status = signature_verification_mock_validate_and_release (&rsassa);
 	CuAssertIntEquals (test, 0, status);
 
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
@@ -1414,15 +1404,11 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_2048_sha
 static void signature_verification_kat_test_run_self_test_verify_rsassa_2048_sha384_bad_signature (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -1454,7 +1440,6 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_2048_sha
 	status = signature_verification_mock_validate_and_release (&rsassa);
 	CuAssertIntEquals (test, 0, status);
 
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
@@ -1493,15 +1478,11 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_2048_sha
 static void signature_verification_kat_test_run_self_test_verify_rsassa_2048_sha384_error (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -1533,7 +1514,6 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_2048_sha
 	status = signature_verification_mock_validate_and_release (&rsassa);
 	CuAssertIntEquals (test, 0, status);
 
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 #endif
@@ -1574,15 +1554,11 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_2048_sha
 static void signature_verification_kat_test_run_self_test_verify_rsassa_2048_sha512_bad_signature (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -1614,7 +1590,6 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_2048_sha
 	status = signature_verification_mock_validate_and_release (&rsassa);
 	CuAssertIntEquals (test, 0, status);
 
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
@@ -1653,15 +1628,11 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_2048_sha
 static void signature_verification_kat_test_run_self_test_verify_rsassa_2048_sha512_error (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -1693,7 +1664,6 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_2048_sha
 	status = signature_verification_mock_validate_and_release (&rsassa);
 	CuAssertIntEquals (test, 0, status);
 
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 #endif
@@ -1734,15 +1704,11 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_3072_sha
 static void signature_verification_kat_test_run_self_test_verify_rsassa_3072_sha384_bad_signature (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -1774,7 +1740,6 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_3072_sha
 	status = signature_verification_mock_validate_and_release (&rsassa);
 	CuAssertIntEquals (test, 0, status);
 
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
@@ -1813,15 +1778,11 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_3072_sha
 static void signature_verification_kat_test_run_self_test_verify_rsassa_3072_sha384_error (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -1853,7 +1814,6 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_3072_sha
 	status = signature_verification_mock_validate_and_release (&rsassa);
 	CuAssertIntEquals (test, 0, status);
 
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 #endif
@@ -1894,15 +1854,11 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_4096_sha
 static void signature_verification_kat_test_run_self_test_verify_rsassa_4096_sha384_bad_signature (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -1934,7 +1890,6 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_4096_sha
 	status = signature_verification_mock_validate_and_release (&rsassa);
 	CuAssertIntEquals (test, 0, status);
 
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
@@ -1973,15 +1928,11 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_4096_sha
 static void signature_verification_kat_test_run_self_test_verify_rsassa_4096_sha384_error (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -2013,7 +1964,6 @@ static void signature_verification_kat_test_run_self_test_verify_rsassa_4096_sha
 	status = signature_verification_mock_validate_and_release (&rsassa);
 	CuAssertIntEquals (test, 0, status);
 
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 #endif
@@ -2056,15 +2006,11 @@ static void
 signature_verification_kat_test_run_self_test_verify_hash_rsassa_2048_sha256_bad_signature (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -2223,15 +2169,11 @@ static void
 signature_verification_kat_test_run_self_test_verify_hash_rsassa_2048_sha256_verify_error (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -2314,15 +2256,11 @@ static void
 signature_verification_kat_test_run_self_test_verify_hash_rsassa_2048_sha384_bad_signature (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -2481,15 +2419,11 @@ static void
 signature_verification_kat_test_run_self_test_verify_hash_rsassa_2048_sha384_verify_error (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -2573,15 +2507,11 @@ static void
 signature_verification_kat_test_run_self_test_verify_hash_rsassa_2048_sha512_bad_signature (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -2740,15 +2670,11 @@ static void
 signature_verification_kat_test_run_self_test_verify_hash_rsassa_2048_sha512_verify_error (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -2832,15 +2758,11 @@ static void
 signature_verification_kat_test_run_self_test_verify_hash_rsassa_3072_sha384_bad_signature (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -2999,15 +2921,11 @@ static void
 signature_verification_kat_test_run_self_test_verify_hash_rsassa_3072_sha384_verify_error (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -3091,15 +3009,11 @@ static void
 signature_verification_kat_test_run_self_test_verify_hash_rsassa_4096_sha384_bad_signature (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -3258,15 +3172,11 @@ static void
 signature_verification_kat_test_run_self_test_verify_hash_rsassa_4096_sha384_verify_error (
 	CuTest *test)
 {
-	RSA_TESTING_ENGINE (rsa);
 	HASH_TESTING_ENGINE (hash);
 	struct signature_verification_mock rsassa;
 	int status;
 
 	TEST_START;
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
 
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);

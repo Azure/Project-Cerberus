@@ -111,6 +111,7 @@ enum {
 	FIRMWARE_COMPONENT_VERIFY_FAILED = FIRMWARE_COMPONENT_ERROR (0x10),			/**< The component failed verification. */
 	FIRMWARE_COMPONENT_BAD_SIGNATURE = FIRMWARE_COMPONENT_ERROR (0x11),			/**< The component signature failed verification.*/
 	FIRMWARE_COMPONENT_INVALID_SIGNATURE = FIRMWARE_COMPONENT_ERROR (0x12),		/**< The component signature is either corrupted or missing. */
+	FIRMWARE_COMPONENT_SIG_TOO_LARGE = FIRMWARE_COMPONENT_ERROR (0x13),			/**< The component signature is larger than the maximum allowed size. */
 };
 
 

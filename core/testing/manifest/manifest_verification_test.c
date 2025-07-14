@@ -617,6 +617,7 @@ static void manifest_verification_test_init_no_key_stored (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, verification.test.base_verify.verify_signature);
+	CuAssertPtrNotNull (test, verification.test.base_verify.get_max_signature_length);
 	CuAssertPtrNotNull (test, verification.test.base_verify.set_verification_key);
 	CuAssertPtrNotNull (test, verification.test.base_verify.is_key_valid);
 
@@ -702,6 +703,7 @@ static void manifest_verification_test_init_key_stored (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, verification.test.base_verify.verify_signature);
+	CuAssertPtrNotNull (test, verification.test.base_verify.get_max_signature_length);
 	CuAssertPtrNotNull (test, verification.test.base_verify.set_verification_key);
 	CuAssertPtrNotNull (test, verification.test.base_verify.is_key_valid);
 
@@ -1608,6 +1610,7 @@ static void manifest_verification_test_static_init_no_key_stored (CuTest *test)
 	TEST_START;
 
 	CuAssertPtrNotNull (test, test_static.base_verify.verify_signature);
+	CuAssertPtrNotNull (test, test_static.base_verify.get_max_signature_length);
 	CuAssertPtrNotNull (test, test_static.base_verify.set_verification_key);
 	CuAssertPtrNotNull (test, test_static.base_verify.is_key_valid);
 
@@ -1704,6 +1707,7 @@ static void manifest_verification_test_static_init_key_stored (CuTest *test)
 	TEST_START;
 
 	CuAssertPtrNotNull (test, test_static.base_verify.verify_signature);
+	CuAssertPtrNotNull (test, test_static.base_verify.get_max_signature_length);
 	CuAssertPtrNotNull (test, test_static.base_verify.set_verification_key);
 	CuAssertPtrNotNull (test, test_static.base_verify.is_key_valid);
 
@@ -3535,6 +3539,147 @@ static void manifest_verification_test_verify_signature_key_stored_verify_error 
 	status = verification.test.base_verify.verify_signature (&verification.test.base_verify,
 		SIG_HASH_TEST, SIG_HASH_LEN, RSA_SIGNATURE3_TEST, RSA_ENCRYPT_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_VERIFY_SIG_FAILED, status);
+
+	manifest_verification_testing_release (test, &verification);
+}
+
+static void manifest_verification_test_get_max_signature_length (CuTest *test)
+{
+	struct manifest_verification_testing verification;
+	int status;
+	const size_t sig_length = RSA_KEY_LENGTH_2K;
+	size_t max_length;
+
+	TEST_START;
+
+	manifest_verification_testing_initialize_no_key (test, &verification, 1, HASH_TYPE_SHA256);
+
+	status = mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.get_max_signature_length, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (&max_length));
+	status |= mock_expect_output (&verification.verify_mock.mock, 0, &sig_length,
+		sizeof (sig_length), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = verification.test.base_verify.get_max_signature_length (&verification.test.base_verify,
+		&max_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, RSA_KEY_LENGTH_2K, max_length);
+
+	manifest_verification_testing_release (test, &verification);
+}
+
+static void manifest_verification_test_get_max_signature_length_static_init (CuTest *test)
+{
+	struct manifest_verification_testing verification;
+	struct manifest_verification test_static =
+		manifest_verification_static_init (&verification.state, &verification.hash.base,
+		&verification.verify_mock.base, &verification.manifest_key, &verification.keystore.base, 1);
+	int status;
+	const size_t sig_length = ECC_DER_P256_ECDSA_MAX_LENGTH;
+	size_t max_length;
+
+	TEST_START;
+
+	manifest_verification_testing_init_dependencies_no_key (test, &verification, 1,
+		HASH_TYPE_SHA256);
+
+	status = manifest_verification_init_state (&test_static, (const uint8_t*) &RSA_PUBLIC_KEY,
+		sizeof (RSA_PUBLIC_KEY));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.get_max_signature_length, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (&max_length));
+	status |= mock_expect_output (&verification.verify_mock.mock, 0, &sig_length,
+		sizeof (sig_length), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base_verify.get_max_signature_length (&test_static.base_verify,
+		&max_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ECC_DER_P256_ECDSA_MAX_LENGTH, max_length);
+
+	manifest_verification_release (&test_static);
+	manifest_verification_testing_release_dependencies (test, &verification);
+}
+
+static void manifest_verification_test_get_max_signature_length_null (CuTest *test)
+{
+	struct manifest_verification_testing verification;
+	int status;
+	size_t max_length;
+
+	TEST_START;
+
+	manifest_verification_testing_initialize_no_key (test, &verification, 1, HASH_TYPE_SHA256);
+
+	status = verification.test.base_verify.get_max_signature_length (NULL, &max_length);
+	CuAssertIntEquals (test, MANIFEST_VERIFICATION_INVALID_ARGUMENT, status);
+
+	status = verification.test.base_verify.get_max_signature_length (&verification.test.base_verify,
+		NULL);
+	CuAssertIntEquals (test, MANIFEST_VERIFICATION_INVALID_ARGUMENT, status);
+
+	manifest_verification_testing_release (test, &verification);
+}
+
+static void manifest_verification_test_get_max_signature_length_set_key_error (CuTest *test)
+{
+	struct manifest_verification_testing verification;
+	int status;
+	size_t max_length;
+
+	TEST_START;
+
+	manifest_verification_testing_initialize_no_key (test, &verification, 1, HASH_TYPE_SHA256);
+
+	status = mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock,
+		SIG_VERIFICATION_SET_KEY_FAILED, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = verification.test.base_verify.get_max_signature_length (&verification.test.base_verify,
+		&max_length);
+	CuAssertIntEquals (test, SIG_VERIFICATION_SET_KEY_FAILED, status);
+
+	manifest_verification_testing_release (test, &verification);
+}
+
+static void manifest_verification_test_get_max_signature_length_sig_max_error (CuTest *test)
+{
+	struct manifest_verification_testing verification;
+	int status;
+	size_t max_length;
+
+	TEST_START;
+
+	manifest_verification_testing_initialize_no_key (test, &verification, 1, HASH_TYPE_SHA256);
+
+	status = mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.set_verification_key, &verification.verify_mock, 0,
+		MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
+	status |= mock_expect (&verification.verify_mock.mock,
+		verification.verify_mock.base.get_max_signature_length, &verification.verify_mock,
+		SIG_VERIFICATION_SIG_LENGTH_FAILED, MOCK_ARG_PTR (&max_length));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = verification.test.base_verify.get_max_signature_length (&verification.test.base_verify,
+		&max_length);
+	CuAssertIntEquals (test, SIG_VERIFICATION_SIG_LENGTH_FAILED, status);
 
 	manifest_verification_testing_release (test, &verification);
 }
@@ -6386,6 +6531,11 @@ TEST (manifest_verification_test_verify_signature_no_key_stored_set_key_error);
 TEST (manifest_verification_test_verify_signature_no_key_stored_verify_error);
 TEST (manifest_verification_test_verify_signature_key_stored_set_key_error);
 TEST (manifest_verification_test_verify_signature_key_stored_verify_error);
+TEST (manifest_verification_test_get_max_signature_length);
+TEST (manifest_verification_test_get_max_signature_length_static_init);
+TEST (manifest_verification_test_get_max_signature_length_null);
+TEST (manifest_verification_test_get_max_signature_length_set_key_error);
+TEST (manifest_verification_test_get_max_signature_length_sig_max_error);
 TEST (manifest_verification_test_set_verification_key);
 TEST (manifest_verification_test_is_key_valid);
 TEST (manifest_verification_test_on_pfm_activated_no_key_stored);

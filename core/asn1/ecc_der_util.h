@@ -116,6 +116,7 @@ int ecc_der_decode_ecdsa_signature (const uint8_t *der, size_t length, uint8_t *
 int ecc_der_encode_ecdsa_signature (const uint8_t *sig_r, const uint8_t *sig_s, size_t key_length,
 	uint8_t *der, size_t length);
 size_t ecc_der_get_ecdsa_signature_length (const uint8_t *der, size_t max_length);
+int ecc_der_get_ecdsa_max_signature_length (size_t key_length);
 
 
 #define	ECC_DER_UTIL_ERROR(code)		ROT_ERROR (ROT_MODULE_ECC_DER_UTIL, code)

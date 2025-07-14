@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
+#include "asn1/ecc_der_util.h"
 #include "crypto/signature_verification_ecc.h"
 #include "crypto/signature_verification_ecc_static.h"
 #include "testing/crypto/ecc_testing.h"
@@ -37,6 +38,7 @@ static void signature_verification_ecc_test_init_api (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, verification.base.verify_signature);
+	CuAssertPtrNotNull (test, verification.base.get_max_signature_length);
 	CuAssertPtrNotNull (test, verification.base.set_verification_key);
 	CuAssertPtrNotNull (test, verification.base.is_key_valid);
 
@@ -86,6 +88,7 @@ static void signature_verification_ecc_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, verification.base.verify_signature);
+	CuAssertPtrNotNull (test, verification.base.get_max_signature_length);
 	CuAssertPtrNotNull (test, verification.base.set_verification_key);
 	CuAssertPtrNotNull (test, verification.base.is_key_valid);
 
@@ -110,10 +113,6 @@ static void signature_verification_ecc_test_init_private_key (CuTest *test)
 		ECC_PRIVKEY_DER_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrNotNull (test, verification.base.verify_signature);
-	CuAssertPtrNotNull (test, verification.base.set_verification_key);
-	CuAssertPtrNotNull (test, verification.base.is_key_valid);
-
 	signature_verification_ecc_release (&verification);
 
 	ECC_TESTING_ENGINE_RELEASE (&ecc);
@@ -133,10 +132,6 @@ static void signature_verification_ecc_test_init_no_key (CuTest *test)
 
 	status = signature_verification_ecc_init (&verification, &state, &ecc.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrNotNull (test, verification.base.verify_signature);
-	CuAssertPtrNotNull (test, verification.base.set_verification_key);
-	CuAssertPtrNotNull (test, verification.base.is_key_valid);
 
 	signature_verification_ecc_release (&verification);
 
@@ -247,6 +242,7 @@ static void signature_verification_ecc_test_static_init (CuTest *test)
 	TEST_START;
 
 	CuAssertPtrNotNull (test, verification.base.verify_signature);
+	CuAssertPtrNotNull (test, verification.base.get_max_signature_length);
 	CuAssertPtrNotNull (test, verification.base.set_verification_key);
 	CuAssertPtrNotNull (test, verification.base.is_key_valid);
 
@@ -272,10 +268,6 @@ static void signature_verification_ecc_test_static_init_private_key (CuTest *tes
 
 	TEST_START;
 
-	CuAssertPtrNotNull (test, verification.base.verify_signature);
-	CuAssertPtrNotNull (test, verification.base.set_verification_key);
-	CuAssertPtrNotNull (test, verification.base.is_key_valid);
-
 	status = ECC_TESTING_ENGINE_INIT (&ecc);
 	CuAssertIntEquals (test, 0, status);
 
@@ -297,10 +289,6 @@ static void signature_verification_ecc_test_static_init_no_key (CuTest *test)
 	int status;
 
 	TEST_START;
-
-	CuAssertPtrNotNull (test, verification.base.verify_signature);
-	CuAssertPtrNotNull (test, verification.base.set_verification_key);
-	CuAssertPtrNotNull (test, verification.base.is_key_valid);
 
 	status = ECC_TESTING_ENGINE_INIT (&ecc);
 	CuAssertIntEquals (test, 0, status);
@@ -662,6 +650,214 @@ static void signature_verification_ecc_test_verify_signature_no_key (CuTest *tes
 	signature_verification_ecc_release (&verification);
 
 	ECC_TESTING_ENGINE_RELEASE (&ecc);
+}
+
+static void signature_verification_ecc_test_get_max_signature_length (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	struct signature_verification_ecc_state state;
+	struct signature_verification_ecc verification;
+	int status;
+	size_t max_length;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_ecc_init (&verification, &state, &ecc.base, ECC_PUBKEY_DER,
+		ECC_PUBKEY_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = verification.base.get_max_signature_length (&verification.base, &max_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ECC_DER_P256_ECDSA_MAX_LENGTH, max_length);
+
+	signature_verification_ecc_release (&verification);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+}
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+static void signature_verification_ecc_test_get_max_signature_length_ecc384 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	struct signature_verification_ecc_state state;
+	struct signature_verification_ecc verification;
+	int status;
+	size_t max_length;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_ecc_init (&verification, &state, &ecc.base, ECC384_PUBKEY_DER,
+		ECC384_PUBKEY_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = verification.base.get_max_signature_length (&verification.base, &max_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ECC_DER_P384_ECDSA_MAX_LENGTH, max_length);
+
+	signature_verification_ecc_release (&verification);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+}
+#endif
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+static void signature_verification_ecc_test_get_max_signature_length_ecc521 (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	struct signature_verification_ecc_state state;
+	struct signature_verification_ecc verification;
+	int status;
+	size_t max_length;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_ecc_init (&verification, &state, &ecc.base, ECC521_PUBKEY_DER,
+		ECC521_PUBKEY_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = verification.base.get_max_signature_length (&verification.base, &max_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ECC_DER_P521_ECDSA_MAX_LENGTH, max_length);
+
+	signature_verification_ecc_release (&verification);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+}
+#endif
+
+static void signature_verification_ecc_test_get_max_signature_length_no_key (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	struct signature_verification_ecc_state state;
+	struct signature_verification_ecc verification;
+	int status;
+	size_t max_length;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_ecc_init (&verification, &state, &ecc.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = verification.base.get_max_signature_length (&verification.base, &max_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ECC_DER_ECDSA_MAX_LENGTH, max_length);
+
+	signature_verification_ecc_release (&verification);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+}
+
+static void signature_verification_ecc_test_get_max_signature_length_static_init (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	struct signature_verification_ecc_state state;
+	struct signature_verification_ecc verification = signature_verification_ecc_static_init (&state,
+		&ecc.base);
+	int status;
+	size_t max_length;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_ecc_init_state (&verification, ECC_PUBKEY_DER,
+		ECC_PUBKEY_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = verification.base.get_max_signature_length (&verification.base, &max_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ECC_DER_P256_ECDSA_MAX_LENGTH, max_length);
+
+	signature_verification_ecc_release (&verification);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+}
+
+static void signature_verification_ecc_test_get_max_signature_length_null (CuTest *test)
+{
+	ECC_TESTING_ENGINE (ecc);
+	struct signature_verification_ecc_state state;
+	struct signature_verification_ecc verification;
+	int status;
+	size_t max_length;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_ecc_init (&verification, &state, &ecc.base, ECC_PUBKEY_DER,
+		ECC_PUBKEY_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = verification.base.get_max_signature_length (NULL, &max_length);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
+
+	status = verification.base.get_max_signature_length (&verification.base, NULL);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
+
+	signature_verification_ecc_release (&verification);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+}
+
+static void signature_verification_ecc_test_get_max_signature_length_ecc_error (CuTest *test)
+{
+	struct ecc_engine_mock ecc;
+	struct signature_verification_ecc_state state;
+	struct signature_verification_ecc verification;
+	int status;
+	size_t max_length = 0x1234;
+
+	TEST_START;
+
+	status = ecc_mock_init (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecc.mock, ecc.base.init_public_key, &ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_ecc_init (&verification, &state, &ecc.base, ECC_PUBKEY_DER,
+		ECC_PUBKEY_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecc.mock, ecc.base.get_signature_max_verify_length, &ecc,
+		ECC_ENGINE_SIG_VERIFY_LENGTH_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = verification.base.get_max_signature_length (&verification.base, &max_length);
+	CuAssertIntEquals (test, ECC_ENGINE_SIG_VERIFY_LENGTH_FAILED, status);
+	CuAssertIntEquals (test, 0x1234, max_length);	// The value should not be changed by the call.
+
+	status = mock_validate (&ecc.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_PTR (NULL),
+		MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	signature_verification_ecc_release (&verification);
+
+	status = ecc_mock_validate_and_release (&ecc);
+	CuAssertIntEquals (test, 0, status);
 }
 
 static void signature_verification_ecc_test_set_verification_key (CuTest *test)
@@ -1231,6 +1427,17 @@ TEST (signature_verification_ecc_test_verify_signature_bad_signature);
 TEST (signature_verification_ecc_test_verify_signature_static_init);
 TEST (signature_verification_ecc_test_verify_signature_null);
 TEST (signature_verification_ecc_test_verify_signature_no_key);
+TEST (signature_verification_ecc_test_get_max_signature_length);
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+TEST (signature_verification_ecc_test_get_max_signature_length_ecc384);
+#endif
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+TEST (signature_verification_ecc_test_get_max_signature_length_ecc521);
+#endif
+TEST (signature_verification_ecc_test_get_max_signature_length_no_key);
+TEST (signature_verification_ecc_test_get_max_signature_length_static_init);
+TEST (signature_verification_ecc_test_get_max_signature_length_null);
+TEST (signature_verification_ecc_test_get_max_signature_length_ecc_error);
 TEST (signature_verification_ecc_test_set_verification_key);
 TEST (signature_verification_ecc_test_set_verification_key_private_key);
 TEST (signature_verification_ecc_test_set_verification_key_clear_key);

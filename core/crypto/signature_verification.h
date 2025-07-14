@@ -33,6 +33,23 @@ struct signature_verification {
 		const uint8_t *digest, size_t length, const uint8_t *signature, size_t sig_length);
 
 	/**
+	 * Get the maximum signature length expected by the verification context.
+	 *
+	 * Where there is an active verification key, this will return the maximum signature length
+	 * appropriate for that key.
+	 *
+	 * When there is no verification key set, this will return the maximum possible signature length
+	 * supported.
+	 *
+	 * @param verification The verification context to query.
+	 * @param max_length Output for the maximum signature length.
+	 *
+	 * @return 0 if the maximum signature length was determined successfully or an error code.
+	 */
+	int (*get_max_signature_length) (const struct signature_verification *verification,
+		size_t *max_length);
+
+	/**
 	 * Set the key to use for signature verification.
 	 *
 	 * It cannot be assumed that the verification context will copy the key data to internal
@@ -104,7 +121,8 @@ enum {
 	SIG_VERIFICATION_INVALID_KEY = SIG_VERIFICATION_ERROR (0x08),		/**< The key cannot be used for verification. */
 	SIG_VERIFICATION_UNKNOWN_HASH = SIG_VERIFICATION_ERROR (0x09),		/**< The hash to verify is an unknown type. */
 	SIG_VERIFICATION_INCONSISTENT_KEY = SIG_VERIFICATION_ERROR (0x0a),	/**< A null key of non-zero length or a non-null key of zero length. */
-	SIG_VERIFICATION_NO_ACTVE_HASH = SIG_VERIFICATION_ERROR (0x0b),		/**< There is no active hash context available to sign. */
+	SIG_VERIFICATION_NO_ACTIVE_HASH = SIG_VERIFICATION_ERROR (0x0b),	/**< There is no active hash context available to sign. */
+	SIG_VERIFICATION_SIG_LENGTH_FAILED = SIG_VERIFICATION_ERROR (0x0c),	/**< Failed to get the maximum signature length. */
 };
 
 

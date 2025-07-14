@@ -39,6 +39,26 @@ int signature_verification_rsa_verify_signature (const struct signature_verifica
 	}
 }
 
+int signature_verification_rsa_get_max_signature_length (
+	const struct signature_verification *verification, size_t *max_length)
+{
+	const struct signature_verification_rsa *rsa =
+		(const struct signature_verification_rsa*) verification;
+
+	if ((rsa == NULL) || (max_length == NULL)) {
+		return SIG_VERIFICATION_INVALID_ARGUMENT;
+	}
+
+	if (rsa->state->key != NULL) {
+		*max_length = rsa->state->key->mod_length;
+	}
+	else {
+		*max_length = RSA_MAX_KEY_LENGTH;
+	}
+
+	return 0;
+}
+
 int signature_verification_rsa_set_verification_key (
 	const struct signature_verification *verification, const uint8_t *key, size_t length)
 {
@@ -122,6 +142,8 @@ int signature_verification_rsa_init_api (struct signature_verification_rsa *veri
 	memset (verification, 0, sizeof (struct signature_verification_rsa));
 
 	verification->base.verify_signature = signature_verification_rsa_verify_signature;
+	verification->base.get_max_signature_length =
+		signature_verification_rsa_get_max_signature_length;
 	verification->base.set_verification_key = signature_verification_rsa_set_verification_key;
 	verification->base.is_key_valid = signature_verification_rsa_is_key_valid;
 

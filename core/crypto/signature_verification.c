@@ -128,7 +128,7 @@ int signature_verification_verify_hash (const struct signature_verification *sig
 
 	digest_length = hash_get_active_hash_length (hash);
 	if (digest_length == 0) {
-		return SIG_VERIFICATION_NO_ACTVE_HASH;
+		return SIG_VERIFICATION_NO_ACTIVE_HASH;
 	}
 
 	status = hash->get_hash (hash, digest, sizeof (digest));
@@ -226,7 +226,7 @@ int signature_verification_verify_hash_and_finish_save_digest (
 
 	active_length = hash_get_active_hash_length (hash);
 	if (active_length == 0) {
-		return SIG_VERIFICATION_NO_ACTVE_HASH;
+		return SIG_VERIFICATION_NO_ACTIVE_HASH;
 	}
 
 	if ((sig_verify == NULL) || (signature == NULL) || (sig_length == 0) || (digest == NULL)) {

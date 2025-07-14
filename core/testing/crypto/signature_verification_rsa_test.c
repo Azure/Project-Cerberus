@@ -35,6 +35,7 @@ static void signature_verification_rsa_test_init_api (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, verification.base.verify_signature);
+	CuAssertPtrNotNull (test, verification.base.get_max_signature_length);
 	CuAssertPtrNotNull (test, verification.base.set_verification_key);
 	CuAssertPtrNotNull (test, verification.base.is_key_valid);
 
@@ -83,6 +84,7 @@ static void signature_verification_rsa_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, verification.base.verify_signature);
+	CuAssertPtrNotNull (test, verification.base.get_max_signature_length);
 	CuAssertPtrNotNull (test, verification.base.set_verification_key);
 	CuAssertPtrNotNull (test, verification.base.is_key_valid);
 
@@ -105,10 +107,6 @@ static void signature_verification_rsa_test_init_no_key (CuTest *test)
 
 	status = signature_verification_rsa_init (&verification, &state, &rsa.base, NULL);
 	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrNotNull (test, verification.base.verify_signature);
-	CuAssertPtrNotNull (test, verification.base.set_verification_key);
-	CuAssertPtrNotNull (test, verification.base.is_key_valid);
 
 	signature_verification_rsa_release (&verification);
 
@@ -150,6 +148,7 @@ static void signature_verification_rsa_test_static_init (CuTest *test)
 	TEST_START;
 
 	CuAssertPtrNotNull (test, verification.base.verify_signature);
+	CuAssertPtrNotNull (test, verification.base.get_max_signature_length);
 	CuAssertPtrNotNull (test, verification.base.set_verification_key);
 	CuAssertPtrNotNull (test, verification.base.is_key_valid);
 
@@ -173,10 +172,6 @@ static void signature_verification_rsa_test_static_init_no_key (CuTest *test)
 	int status;
 
 	TEST_START;
-
-	CuAssertPtrNotNull (test, verification.base.verify_signature);
-	CuAssertPtrNotNull (test, verification.base.set_verification_key);
-	CuAssertPtrNotNull (test, verification.base.is_key_valid);
 
 	status = RSA_TESTING_ENGINE_INIT (&rsa);
 	CuAssertIntEquals (test, 0, status);
@@ -451,6 +446,163 @@ static void signature_verification_rsa_test_verify_signature_no_key (CuTest *tes
 	status = verification.base.verify_signature (&verification.base, SIG_HASH_TEST, SIG_HASH_LEN,
 		RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
 	CuAssertIntEquals (test, SIG_VERIFICATION_NO_KEY, status);
+
+	signature_verification_rsa_release (&verification);
+
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void signature_verification_rsa_test_get_max_signature_length (CuTest *test)
+{
+	RSA_TESTING_ENGINE (rsa);
+	struct signature_verification_rsa_state state;
+	struct signature_verification_rsa verification;
+	int status;
+	size_t max_length;
+
+	TEST_START;
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_rsa_init (&verification, &state, &rsa.base, &RSA_PUBLIC_KEY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = verification.base.get_max_signature_length (&verification.base, &max_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, RSA_KEY_LENGTH_2K, max_length);
+
+	signature_verification_rsa_release (&verification);
+
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+#if (RSA_MAX_KEY_LENGTH >= RSA_KEY_LENGTH_3K)
+static void signature_verification_rsa_test_get_max_signature_length_3k (CuTest *test)
+{
+	RSA_TESTING_ENGINE (rsa);
+	struct signature_verification_rsa_state state;
+	struct signature_verification_rsa verification;
+	int status;
+	size_t max_length;
+
+	TEST_START;
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_rsa_init (&verification, &state, &rsa.base, &RSA3K_PUBLIC_KEY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = verification.base.get_max_signature_length (&verification.base, &max_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, RSA_KEY_LENGTH_3K, max_length);
+
+	signature_verification_rsa_release (&verification);
+
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+#endif
+
+#if (RSA_MAX_KEY_LENGTH >= RSA_KEY_LENGTH_4K)
+static void signature_verification_rsa_test_get_max_signature_length_4k (CuTest *test)
+{
+	RSA_TESTING_ENGINE (rsa);
+	struct signature_verification_rsa_state state;
+	struct signature_verification_rsa verification;
+	int status;
+	size_t max_length;
+
+	TEST_START;
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_rsa_init (&verification, &state, &rsa.base, &RSA4K_PUBLIC_KEY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = verification.base.get_max_signature_length (&verification.base, &max_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, RSA_KEY_LENGTH_4K, max_length);
+
+	signature_verification_rsa_release (&verification);
+
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+#endif
+
+static void signature_verification_rsa_test_get_max_signature_length_no_key (CuTest *test)
+{
+	RSA_TESTING_ENGINE (rsa);
+	struct signature_verification_rsa_state state;
+	struct signature_verification_rsa verification;
+	int status;
+	size_t max_length;
+
+	TEST_START;
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_rsa_init (&verification, &state, &rsa.base, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = verification.base.get_max_signature_length (&verification.base, &max_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, RSA_MAX_KEY_LENGTH, max_length);
+
+	signature_verification_rsa_release (&verification);
+
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void signature_verification_rsa_test_get_max_signature_length_static_init (CuTest *test)
+{
+	RSA_TESTING_ENGINE (rsa);
+	struct signature_verification_rsa_state state;
+	struct signature_verification_rsa verification = signature_verification_rsa_static_init (&state,
+		&rsa.base);
+	int status;
+	size_t max_length;
+
+	TEST_START;
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_rsa_init_state (&verification, &RSA_PUBLIC_KEY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = verification.base.get_max_signature_length (&verification.base, &max_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, RSA_KEY_LENGTH_2K, max_length);
+
+	signature_verification_rsa_release (&verification);
+
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void signature_verification_rsa_test_get_max_signature_length_null (CuTest *test)
+{
+	RSA_TESTING_ENGINE (rsa);
+	struct signature_verification_rsa_state state;
+	struct signature_verification_rsa verification;
+	int status;
+	size_t max_length;
+
+	TEST_START;
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_rsa_init (&verification, &state, &rsa.base, &RSA_PUBLIC_KEY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = verification.base.get_max_signature_length (NULL, &max_length);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
+
+	status = verification.base.get_max_signature_length (&verification.base, NULL);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
 
 	signature_verification_rsa_release (&verification);
 
@@ -816,6 +968,16 @@ TEST (signature_verification_rsa_test_verify_signature_static_init);
 TEST (signature_verification_rsa_test_verify_signature_null);
 TEST (signature_verification_rsa_test_verify_signature_unknown_hash_algorithm);
 TEST (signature_verification_rsa_test_verify_signature_no_key);
+TEST (signature_verification_rsa_test_get_max_signature_length);
+#if (RSA_MAX_KEY_LENGTH >= RSA_KEY_LENGTH_3K)
+TEST (signature_verification_rsa_test_get_max_signature_length_3k);
+#endif
+#if (RSA_MAX_KEY_LENGTH >= RSA_KEY_LENGTH_4K)
+TEST (signature_verification_rsa_test_get_max_signature_length_4k);
+#endif
+TEST (signature_verification_rsa_test_get_max_signature_length_no_key);
+TEST (signature_verification_rsa_test_get_max_signature_length_static_init);
+TEST (signature_verification_rsa_test_get_max_signature_length_null);
 TEST (signature_verification_rsa_test_set_verification_key);
 TEST (signature_verification_rsa_test_set_verification_key_clear_key);
 TEST (signature_verification_rsa_test_set_verification_key_clear_key_no_key);

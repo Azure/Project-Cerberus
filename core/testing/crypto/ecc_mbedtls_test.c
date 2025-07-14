@@ -40,6 +40,7 @@ static void ecc_mbedtls_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, engine.base.generate_key_pair);
 	CuAssertPtrNotNull (test, engine.base.release_key_pair);
 	CuAssertPtrNotNull (test, engine.base.get_signature_max_length);
+	CuAssertPtrNotNull (test, engine.base.get_signature_max_verify_length);
 	CuAssertPtrNotNull (test, engine.base.get_private_key_der);
 	CuAssertPtrNotNull (test, engine.base.get_public_key_der);
 	CuAssertPtrNotNull (test, engine.base.sign);
@@ -85,6 +86,7 @@ static void ecc_mbedtls_test_init_with_external_rng (CuTest *test)
 	CuAssertPtrNotNull (test, engine.base.generate_key_pair);
 	CuAssertPtrNotNull (test, engine.base.release_key_pair);
 	CuAssertPtrNotNull (test, engine.base.get_signature_max_length);
+	CuAssertPtrNotNull (test, engine.base.get_signature_max_verify_length);
 	CuAssertPtrNotNull (test, engine.base.get_private_key_der);
 	CuAssertPtrNotNull (test, engine.base.get_public_key_der);
 	CuAssertPtrNotNull (test, engine.base.sign);
@@ -130,6 +132,7 @@ static void ecc_mbedtls_test_static_init (CuTest *test)
 	CuAssertPtrNotNull (test, engine.base.generate_key_pair);
 	CuAssertPtrNotNull (test, engine.base.release_key_pair);
 	CuAssertPtrNotNull (test, engine.base.get_signature_max_length);
+	CuAssertPtrNotNull (test, engine.base.get_signature_max_verify_length);
 	CuAssertPtrNotNull (test, engine.base.get_private_key_der);
 	CuAssertPtrNotNull (test, engine.base.get_public_key_der);
 	CuAssertPtrNotNull (test, engine.base.sign);
@@ -172,6 +175,7 @@ static void ecc_mbedtls_test_static_init_with_external_rng (CuTest *test)
 	CuAssertPtrNotNull (test, engine.base.generate_key_pair);
 	CuAssertPtrNotNull (test, engine.base.release_key_pair);
 	CuAssertPtrNotNull (test, engine.base.get_signature_max_length);
+	CuAssertPtrNotNull (test, engine.base.get_signature_max_verify_length);
 	CuAssertPtrNotNull (test, engine.base.get_private_key_der);
 	CuAssertPtrNotNull (test, engine.base.get_public_key_der);
 	CuAssertPtrNotNull (test, engine.base.sign);
@@ -1084,11 +1088,11 @@ static void ecc_mbedtls_test_init_key_pair_null (CuTest *test)
 	status = ecc_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_key_pair (NULL, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,	&priv_key,
+	status = engine.base.init_key_pair (NULL, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &priv_key,
 		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_key_pair (&engine.base, NULL,	ECC_PRIVKEY_DER_LEN, &priv_key,
+	status = engine.base.init_key_pair (&engine.base, NULL, ECC_PRIVKEY_DER_LEN, &priv_key,
 		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
@@ -1428,7 +1432,7 @@ static void ecc_mbedtls_test_init_public_key_null (CuTest *test)
 	status = ecc_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_public_key (NULL, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,	&pub_key);
+	status = engine.base.init_public_key (NULL, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, &pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.init_public_key (&engine.base, NULL, ECC_PUBKEY_DER_LEN, &pub_key);
@@ -1437,7 +1441,7 @@ static void ecc_mbedtls_test_init_public_key_null (CuTest *test)
 	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, 0, &pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,	NULL);
+	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, NULL);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	ecc_mbedtls_release (&engine);
@@ -2131,7 +2135,7 @@ static void ecc_mbedtls_test_generate_derived_key_pair_null (CuTest *test)
 	status = ecc_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_derived_key_pair (NULL, ECC_PRIVKEY, ECC_PRIVKEY_LEN,	&priv_key,
+	status = engine.base.generate_derived_key_pair (NULL, ECC_PRIVKEY, ECC_PRIVKEY_LEN, &priv_key,
 		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
@@ -2574,17 +2578,17 @@ static void ecc_mbedtls_test_sign_external_rng (CuTest *test)
 
 	/* Additional calls to the RNG for blinding.  Mimic the behavior that would be seen during KAT
 	 * execution and provide the same random data every time the function is called. */
-	status |= mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0,	MOCK_ARG_ANY,
+	status |= mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG_ANY,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&rng.mock, 1, ECC_KAT_VECTORS_P256_SHA256_ECDSA_K,
 		ECC_KEY_LENGTH_256, 0);
 
-	status |= mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0,	MOCK_ARG_ANY,
+	status |= mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG_ANY,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&rng.mock, 1, ECC_KAT_VECTORS_P256_SHA256_ECDSA_K,
 		ECC_KEY_LENGTH_256, 0);
 
-	status |= mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0,	MOCK_ARG_ANY,
+	status |= mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG_ANY,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&rng.mock, 1, ECC_KAT_VECTORS_P256_SHA256_ECDSA_K,
 		ECC_KEY_LENGTH_256, 0);
@@ -2647,17 +2651,17 @@ static void ecc_mbedtls_test_sign_external_rng_p384 (CuTest *test)
 
 	/* Additional calls to the RNG for blinding.  Mimic the behavior that would be seen during KAT
 	 * execution and provide the same random data every time the function is called. */
-	status |= mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0,	MOCK_ARG_ANY,
+	status |= mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG_ANY,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&rng.mock, 1, ECC_KAT_VECTORS_P384_SHA384_ECDSA_K,
 		ECC_KEY_LENGTH_384, 0);
 
-	status |= mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0,	MOCK_ARG_ANY,
+	status |= mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG_ANY,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&rng.mock, 1, ECC_KAT_VECTORS_P384_SHA384_ECDSA_K,
 		ECC_KEY_LENGTH_384, 0);
 
-	status |= mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0,	MOCK_ARG_ANY,
+	status |= mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG_ANY,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&rng.mock, 1, ECC_KAT_VECTORS_P384_SHA384_ECDSA_K,
 		ECC_KEY_LENGTH_384, 0);
@@ -2721,17 +2725,17 @@ static void ecc_mbedtls_test_sign_external_rng_p521 (CuTest *test)
 
 	/* Additional calls to the RNG for blinding.  Mimic the behavior that would be seen during KAT
 	 * execution and provide the same random data every time the function is called. */
-	status |= mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0,	MOCK_ARG_ANY,
+	status |= mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG_ANY,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&rng.mock, 1, ECC_KAT_VECTORS_P521_SHA512_ECDSA_K,
 		ECC_KEY_LENGTH_521, 0);
 
-	status |= mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0,	MOCK_ARG_ANY,
+	status |= mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG_ANY,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&rng.mock, 1, ECC_KAT_VECTORS_P521_SHA512_ECDSA_K,
 		ECC_KEY_LENGTH_521, 0);
 
-	status |= mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0,	MOCK_ARG_ANY,
+	status |= mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG_ANY,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&rng.mock, 1, ECC_KAT_VECTORS_P521_SHA512_ECDSA_K,
 		ECC_KEY_LENGTH_521, 0);
@@ -2964,7 +2968,7 @@ static void ecc_mbedtls_test_verify_corrupt_signature (CuTest *test)
 	status = ecc_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,	NULL,
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, NULL,
 		&pub_key);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, pub_key.context);
@@ -3202,6 +3206,234 @@ static void ecc_mbedtls_test_get_signature_max_length_null (CuTest *test)
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
+
+	ecc_mbedtls_release (&engine);
+}
+
+static void ecc_mbedtls_test_get_signature_max_verify_length (CuTest *test)
+{
+	struct ecc_engine_mbedtls_state state;
+	struct ecc_engine_mbedtls engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mbedtls_init (&engine, &state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, NULL,
+		&pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (&engine.base, &pub_key);
+	CuAssertIntEquals (test, ECC_TESTING_ECC256_DSA_MAX_LENGTH, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	ecc_mbedtls_release (&engine);
+}
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+static void ecc_mbedtls_test_get_signature_max_verify_length_p384 (CuTest *test)
+{
+	struct ecc_engine_mbedtls_state state;
+	struct ecc_engine_mbedtls engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mbedtls_init (&engine, &state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_key_pair (&engine.base, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (&engine.base, &pub_key);
+	CuAssertIntEquals (test, ECC_TESTING_ECC384_DSA_MAX_LENGTH, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	ecc_mbedtls_release (&engine);
+}
+#endif
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+static void ecc_mbedtls_test_get_signature_max_verify_length_p521 (CuTest *test)
+{
+	struct ecc_engine_mbedtls_state state;
+	struct ecc_engine_mbedtls engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mbedtls_init (&engine, &state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_key_pair (&engine.base, ECC521_PRIVKEY_DER, ECC521_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (&engine.base, &pub_key);
+	CuAssertIntEquals (test, ECC_TESTING_ECC521_DSA_MAX_LENGTH, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	ecc_mbedtls_release (&engine);
+}
+#endif
+
+static void ecc_mbedtls_test_get_signature_max_verify_length_derived_key (CuTest *test)
+{
+	struct ecc_engine_mbedtls_state state;
+	struct ecc_engine_mbedtls engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mbedtls_init (&engine, &state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.generate_derived_key_pair (&engine.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN,
+		NULL, &pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (&engine.base, &pub_key);
+	CuAssertIntEquals (test, ECC_TESTING_ECC256_DSA_MAX_LENGTH, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	ecc_mbedtls_release (&engine);
+}
+
+static void ecc_mbedtls_test_get_signature_max_verify_length_random_key (CuTest *test)
+{
+	struct ecc_engine_mbedtls_state state;
+	struct ecc_engine_mbedtls engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mbedtls_init (&engine, &state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, NULL, &pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (&engine.base, &pub_key);
+	CuAssertIntEquals (test, ECC_TESTING_ECC256_DSA_MAX_LENGTH, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	ecc_mbedtls_release (&engine);
+}
+
+static void ecc_mbedtls_test_get_signature_max_verify_length_with_external_rng (CuTest *test)
+{
+	RNG_TESTING_ENGINE (rng);
+	struct ecc_engine_mbedtls engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = RNG_TESTING_ENGINE_INIT (&rng);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mbedtls_init_with_external_rng (&engine, &rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, NULL,
+		&pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (&engine.base, &pub_key);
+	CuAssertIntEquals (test, ECC_TESTING_ECC256_DSA_MAX_LENGTH, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	ecc_mbedtls_release (&engine);
+	RNG_TESTING_ENGINE_RELEASE (&rng);
+}
+
+static void ecc_mbedtls_test_get_signature_max_verify_length_static_init (CuTest *test)
+{
+	struct ecc_engine_mbedtls_state state;
+	struct ecc_engine_mbedtls engine = ecc_mbedtls_static_init (&state);
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, NULL,
+		&pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (&engine.base, &pub_key);
+	CuAssertIntEquals (test, ECC_TESTING_ECC256_DSA_MAX_LENGTH, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	ecc_mbedtls_release (&engine);
+}
+
+static void ecc_mbedtls_test_get_signature_max_verify_length_static_init_with_external_rng (
+	CuTest *test)
+{
+	RNG_TESTING_ENGINE (rng);
+	struct ecc_engine_mbedtls engine = ecc_mbedtls_static_init_with_external_rng (&rng.base);
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = RNG_TESTING_ENGINE_INIT (&rng);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, NULL,
+		&pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (&engine.base, &pub_key);
+	CuAssertIntEquals (test, ECC_TESTING_ECC256_DSA_MAX_LENGTH, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	ecc_mbedtls_release (&engine);
+	RNG_TESTING_ENGINE_RELEASE (&rng);
+}
+
+static void ecc_mbedtls_test_get_signature_max_verify_length_null (CuTest *test)
+{
+	struct ecc_engine_mbedtls_state state;
+	struct ecc_engine_mbedtls engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mbedtls_init (&engine, &state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, NULL,
+		&pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (NULL, &pub_key);
+	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
+
+	status = engine.base.get_signature_max_verify_length (&engine.base, NULL);
+	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
 
 	ecc_mbedtls_release (&engine);
 }
@@ -3776,13 +4008,13 @@ static void ecc_mbedtls_test_compute_shared_secret_null (CuTest *test)
 		&priv_key, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.compute_shared_secret (NULL, &priv_key, &pub_key, out,	sizeof (out));
+	status = engine.base.compute_shared_secret (NULL, &priv_key, &pub_key, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.compute_shared_secret (&engine.base, NULL, &pub_key, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.compute_shared_secret (&engine.base, &priv_key, NULL, out,	sizeof (out));
+	status = engine.base.compute_shared_secret (&engine.base, &priv_key, NULL, out, sizeof (out));
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.compute_shared_secret (&engine.base, &priv_key, &pub_key, NULL,
@@ -4650,6 +4882,19 @@ TEST (ecc_mbedtls_test_get_signature_max_length_with_external_rng);
 TEST (ecc_mbedtls_test_get_signature_max_length_static_init);
 TEST (ecc_mbedtls_test_get_signature_max_length_static_init_with_external_rng);
 TEST (ecc_mbedtls_test_get_signature_max_length_null);
+TEST (ecc_mbedtls_test_get_signature_max_verify_length);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+TEST (ecc_mbedtls_test_get_signature_max_verify_length_p384);
+#endif
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+TEST (ecc_mbedtls_test_get_signature_max_verify_length_p521);
+#endif
+TEST (ecc_mbedtls_test_get_signature_max_verify_length_derived_key);
+TEST (ecc_mbedtls_test_get_signature_max_verify_length_random_key);
+TEST (ecc_mbedtls_test_get_signature_max_verify_length_with_external_rng);
+TEST (ecc_mbedtls_test_get_signature_max_verify_length_static_init);
+TEST (ecc_mbedtls_test_get_signature_max_verify_length_static_init_with_external_rng);
+TEST (ecc_mbedtls_test_get_signature_max_verify_length_null);
 TEST (ecc_mbedtls_test_get_shared_secret_max_length);
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 TEST (ecc_mbedtls_test_get_shared_secret_max_length_p384);

@@ -45,6 +45,7 @@ static void ecc_ecc_hw_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, engine.base.generate_key_pair);
 	CuAssertPtrNotNull (test, engine.base.release_key_pair);
 	CuAssertPtrNotNull (test, engine.base.get_signature_max_length);
+	CuAssertPtrNotNull (test, engine.base.get_signature_max_verify_length);
 	CuAssertPtrNotNull (test, engine.base.get_private_key_der);
 	CuAssertPtrNotNull (test, engine.base.get_public_key_der);
 	CuAssertPtrNotNull (test, engine.base.sign);
@@ -92,6 +93,7 @@ static void ecc_ecc_hw_test_static_init (CuTest *test)
 	CuAssertPtrNotNull (test, engine.base.generate_key_pair);
 	CuAssertPtrNotNull (test, engine.base.release_key_pair);
 	CuAssertPtrNotNull (test, engine.base.get_signature_max_length);
+	CuAssertPtrNotNull (test, engine.base.get_signature_max_verify_length);
 	CuAssertPtrNotNull (test, engine.base.get_private_key_der);
 	CuAssertPtrNotNull (test, engine.base.get_public_key_der);
 	CuAssertPtrNotNull (test, engine.base.sign);
@@ -4040,6 +4042,270 @@ static void ecc_ecc_hw_test_get_signature_max_length_null (CuTest *test)
 	ecc_ecc_hw_release (&engine);
 }
 
+static void ecc_ecc_hw_test_get_signature_max_verify_length (CuTest *test)
+{
+	struct ecc_hw_mock hw;
+	struct ecc_engine_ecc_hw engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_hw_mock_init (&hw);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 2, &ECC_PUBKEY_POINT, sizeof (ECC_PUBKEY_POINT), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,	NULL,
+		&pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (&engine.base, &pub_key);
+	CuAssertIntEquals (test, ECC_TESTING_ECC256_DSA_MAX_LENGTH, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	status = ecc_hw_mock_validate_and_release (&hw);
+	CuAssertIntEquals (test, 0, status);
+
+	ecc_ecc_hw_release (&engine);
+}
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+static void ecc_ecc_hw_test_get_signature_max_verify_length_p384 (CuTest *test)
+{
+	struct ecc_hw_mock hw;
+	struct ecc_engine_ecc_hw engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_hw_mock_init (&hw);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC384_PRIVKEY, ECC384_PRIVKEY_LEN), MOCK_ARG (ECC384_PRIVKEY_LEN),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 2, &ECC384_PUBKEY_POINT, sizeof (ECC384_PUBKEY_POINT),
+		-1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_key_pair (&engine.base, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (&engine.base, &pub_key);
+	CuAssertIntEquals (test, ECC_TESTING_ECC384_DSA_MAX_LENGTH, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	status = ecc_hw_mock_validate_and_release (&hw);
+	CuAssertIntEquals (test, 0, status);
+
+	ecc_ecc_hw_release (&engine);
+}
+#endif
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+static void ecc_ecc_hw_test_get_signature_max_verify_length_p521 (CuTest *test)
+{
+	struct ecc_hw_mock hw;
+	struct ecc_engine_ecc_hw engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_hw_mock_init (&hw);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC521_PRIVKEY, ECC521_PRIVKEY_LEN), MOCK_ARG (ECC521_PRIVKEY_LEN),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 2, &ECC521_PUBKEY_POINT, sizeof (ECC521_PUBKEY_POINT),
+		-1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_key_pair (&engine.base, ECC521_PRIVKEY_DER, ECC521_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (&engine.base, &pub_key);
+	CuAssertIntEquals (test, ECC_TESTING_ECC521_DSA_MAX_LENGTH, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	status = ecc_hw_mock_validate_and_release (&hw);
+	CuAssertIntEquals (test, 0, status);
+
+	ecc_ecc_hw_release (&engine);
+}
+#endif
+
+static void ecc_ecc_hw_test_get_signature_max_verify_length_derived_key (CuTest *test)
+{
+	struct ecc_hw_mock hw;
+	struct ecc_engine_ecc_hw engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_hw_mock_init (&hw);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 2, &ECC_PUBKEY_POINT, sizeof (ECC_PUBKEY_POINT), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.generate_derived_key_pair (&engine.base, ECC_PRIVKEY, ECC_PRIVKEY_LEN,
+		NULL, &pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (&engine.base, &pub_key);
+	CuAssertIntEquals (test, ECC_TESTING_ECC256_DSA_MAX_LENGTH, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	status = ecc_hw_mock_validate_and_release (&hw);
+	CuAssertIntEquals (test, 0, status);
+
+	ecc_ecc_hw_release (&engine);
+}
+
+static void ecc_ecc_hw_test_get_signature_max_verify_length_random_key (CuTest *test)
+{
+	struct ecc_hw_mock hw;
+	struct ecc_engine_ecc_hw engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_hw_mock_init (&hw);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hw.mock, hw.base.generate_ecc_key_pair, &hw, 0,
+		MOCK_ARG (ECC_KEY_LENGTH_256), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 1, ECC_PRIVKEY2, ECC_PRIVKEY2_LEN, -1);
+	status |= mock_expect_output (&hw.mock, 2, &ECC_PUBKEY2_POINT, sizeof (ECC_PUBKEY2_POINT), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, NULL, &pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (&engine.base, &pub_key);
+	CuAssertIntEquals (test, ECC_TESTING_ECC256_DSA_MAX_LENGTH, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	status = ecc_hw_mock_validate_and_release (&hw);
+	CuAssertIntEquals (test, 0, status);
+
+	ecc_ecc_hw_release (&engine);
+}
+
+static void ecc_ecc_hw_test_get_signature_max_verify_length_static_init (CuTest *test)
+{
+	struct ecc_hw_mock hw;
+	struct ecc_engine_ecc_hw engine = ecc_ecc_hw_static_init (&hw.base, NULL);
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_hw_mock_init (&hw);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 2, &ECC_PUBKEY_POINT, sizeof (ECC_PUBKEY_POINT), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,	NULL,
+		&pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (&engine.base, &pub_key);
+	CuAssertIntEquals (test, ECC_TESTING_ECC256_DSA_MAX_LENGTH, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	status = ecc_hw_mock_validate_and_release (&hw);
+	CuAssertIntEquals (test, 0, status);
+
+	ecc_ecc_hw_release (&engine);
+}
+
+static void ecc_ecc_hw_test_get_signature_max_verify_length_null (CuTest *test)
+{
+	struct ecc_hw_mock hw;
+	struct ecc_engine_ecc_hw engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_hw_mock_init (&hw);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_ecc_hw_init (&engine, &hw.base, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hw.mock, hw.base.get_ecc_public_key, &hw, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_PRIVKEY_LEN),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&hw.mock, 2, &ECC_PUBKEY_POINT, sizeof (ECC_PUBKEY_POINT), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,	NULL,
+		&pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (NULL, &pub_key);
+	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
+
+	status = engine.base.get_signature_max_verify_length (&engine.base, NULL);
+	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	status = ecc_hw_mock_validate_and_release (&hw);
+	CuAssertIntEquals (test, 0, status);
+
+	ecc_ecc_hw_release (&engine);
+}
+
 static void ecc_ecc_hw_test_get_shared_secret_max_length (CuTest *test)
 {
 	struct ecc_hw_mock hw;
@@ -5910,6 +6176,17 @@ TEST (ecc_ecc_hw_test_get_signature_max_length_derived_key);
 TEST (ecc_ecc_hw_test_get_signature_max_length_random_key);
 TEST (ecc_ecc_hw_test_get_signature_max_length_static_init);
 TEST (ecc_ecc_hw_test_get_signature_max_length_null);
+TEST (ecc_ecc_hw_test_get_signature_max_verify_length);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+TEST (ecc_ecc_hw_test_get_signature_max_verify_length_p384);
+#endif
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+TEST (ecc_ecc_hw_test_get_signature_max_verify_length_p521);
+#endif
+TEST (ecc_ecc_hw_test_get_signature_max_verify_length_derived_key);
+TEST (ecc_ecc_hw_test_get_signature_max_verify_length_random_key);
+TEST (ecc_ecc_hw_test_get_signature_max_verify_length_static_init);
+TEST (ecc_ecc_hw_test_get_signature_max_verify_length_null);
 TEST (ecc_ecc_hw_test_get_shared_secret_max_length);
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 TEST (ecc_ecc_hw_test_get_shared_secret_max_length_p384);

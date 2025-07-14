@@ -10,6 +10,8 @@
 /* Internal functions declared to allow for static initialization. */
 int manifest_verification_verify_signature (const struct signature_verification *verification,
 	const uint8_t *digest, size_t length, const uint8_t *signature, size_t sig_length);
+int manifest_verification_get_max_signature_length (
+	const struct signature_verification *verification, size_t *max_length);
 int manifest_verification_set_verification_key (
 	const struct signature_verification *verification, const uint8_t *key, size_t length);
 int manifest_verification_is_key_valid (const struct signature_verification *verification,
@@ -27,6 +29,7 @@ void manifest_verification_on_update_start (const struct firmware_update_observe
  */
 #define	MANIFEST_VERIFICATION_SIGNATURE_VERIFICATION_API_INIT  { \
 		.verify_signature = manifest_verification_verify_signature, \
+		.get_max_signature_length = manifest_verification_get_max_signature_length, \
 		.set_verification_key = manifest_verification_set_verification_key, \
 		.is_key_valid = manifest_verification_is_key_valid \
 	}

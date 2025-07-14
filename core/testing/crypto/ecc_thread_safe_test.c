@@ -43,6 +43,7 @@ static void ecc_thread_safe_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, engine.base.generate_key_pair);
 	CuAssertPtrNotNull (test, engine.base.release_key_pair);
 	CuAssertPtrNotNull (test, engine.base.get_signature_max_length);
+	CuAssertPtrNotNull (test, engine.base.get_signature_max_verify_length);
 	CuAssertPtrNotNull (test, engine.base.get_private_key_der);
 	CuAssertPtrNotNull (test, engine.base.get_public_key_der);
 	CuAssertPtrNotNull (test, engine.base.sign);
@@ -96,6 +97,7 @@ static void ecc_thread_safe_test_static_init (CuTest *test)
 	CuAssertPtrNotNull (test, engine.base.generate_key_pair);
 	CuAssertPtrNotNull (test, engine.base.release_key_pair);
 	CuAssertPtrNotNull (test, engine.base.get_signature_max_length);
+	CuAssertPtrNotNull (test, engine.base.get_signature_max_verify_length);
 	CuAssertPtrNotNull (test, engine.base.get_private_key_der);
 	CuAssertPtrNotNull (test, engine.base.get_public_key_der);
 	CuAssertPtrNotNull (test, engine.base.sign);
@@ -929,6 +931,138 @@ static void ecc_thread_safe_test_get_signature_max_length_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_signature_max_length (NULL, &priv_key);
+	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.init_key_pair (&engine.base, (const uint8_t*) ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+
+	ecc_mock_release (&mock);
+	ecc_thread_safe_release (&engine);
+}
+
+static void ecc_thread_safe_test_get_signature_max_verify_length (CuTest *test)
+{
+	struct ecc_engine_thread_safe_state state;
+	struct ecc_engine_thread_safe engine;
+	struct ecc_engine_mock mock;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.get_signature_max_verify_length, &mock, 72,
+		MOCK_ARG_PTR (&pub_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (&engine.base, &pub_key);
+	CuAssertIntEquals (test, 72, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.init_key_pair (&engine.base, (const uint8_t*) ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+
+	ecc_mock_release (&mock);
+	ecc_thread_safe_release (&engine);
+}
+
+static void ecc_thread_safe_test_get_signature_max_verify_length_static_init (CuTest *test)
+{
+	struct ecc_engine_mock mock;
+	struct ecc_engine_thread_safe_state state;
+	struct ecc_engine_thread_safe engine = ecc_thread_safe_static_init (&state, &mock.base);
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_thread_safe_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.get_signature_max_verify_length, &mock, 72,
+		MOCK_ARG_PTR (&pub_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (&engine.base, &pub_key);
+	CuAssertIntEquals (test, 72, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.init_key_pair (&engine.base, (const uint8_t*) ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+
+	ecc_mock_release (&mock);
+	ecc_thread_safe_release (&engine);
+}
+
+static void ecc_thread_safe_test_get_signature_max_verify_length_error (CuTest *test)
+{
+	struct ecc_engine_thread_safe_state state;
+	struct ecc_engine_thread_safe engine;
+	struct ecc_engine_mock mock;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.get_signature_max_verify_length, &mock,
+		ECC_ENGINE_SIG_LENGTH_FAILED, MOCK_ARG_PTR (&pub_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (&engine.base, &pub_key);
+	CuAssertIntEquals (test, ECC_ENGINE_SIG_LENGTH_FAILED, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.init_key_pair (&engine.base, (const uint8_t*) ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		NULL, &pub_key);
+
+	ecc_mock_release (&mock);
+	ecc_thread_safe_release (&engine);
+}
+
+static void ecc_thread_safe_test_get_signature_max_verify_length_null (CuTest *test)
+{
+	struct ecc_engine_thread_safe_state state;
+	struct ecc_engine_thread_safe engine;
+	struct ecc_engine_mock mock;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_thread_safe_init (&engine, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_signature_max_verify_length (NULL, &pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);
@@ -1874,6 +2008,10 @@ TEST (ecc_thread_safe_test_get_signature_max_length);
 TEST (ecc_thread_safe_test_get_signature_max_length_static_init);
 TEST (ecc_thread_safe_test_get_signature_max_length_error);
 TEST (ecc_thread_safe_test_get_signature_max_length_null);
+TEST (ecc_thread_safe_test_get_signature_max_verify_length);
+TEST (ecc_thread_safe_test_get_signature_max_verify_length_static_init);
+TEST (ecc_thread_safe_test_get_signature_max_verify_length_error);
+TEST (ecc_thread_safe_test_get_signature_max_verify_length_null);
 TEST (ecc_thread_safe_test_get_private_key_der);
 TEST (ecc_thread_safe_test_get_private_key_der_static_init);
 TEST (ecc_thread_safe_test_get_private_key_der_error);

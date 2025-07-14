@@ -59,6 +59,29 @@ exit:
 	return status;
 }
 
+int manifest_verification_get_max_signature_length (
+	const struct signature_verification *verification, size_t *max_length)
+{
+	const struct manifest_verification *manifest =
+		(const struct manifest_verification*) verification;
+	int status;
+
+	if ((verification == NULL) || (max_length == NULL)) {
+		return MANIFEST_VERIFICATION_INVALID_ARGUMENT;
+	}
+
+	/* Make sure there is no active key to ensure the maximum signature length is returned.  Keys
+	 * are set during verification, so no assumption is made about the presence of a key in the
+	 * verification context. */
+	status = manifest->manifest_verify->set_verification_key (manifest->manifest_verify, NULL, 0);
+	if (status != 0) {
+		return status;
+	}
+
+	return manifest->manifest_verify->get_max_signature_length (manifest->manifest_verify,
+		max_length);
+}
+
 int manifest_verification_set_verification_key (const struct signature_verification *verification,
 	const uint8_t *key, size_t length)
 {
@@ -237,6 +260,8 @@ int manifest_verification_init (struct manifest_verification *verification,
 	memset (verification, 0, sizeof (struct manifest_verification));
 
 	verification->base_verify.verify_signature = manifest_verification_verify_signature;
+	verification->base_verify.get_max_signature_length =
+		manifest_verification_get_max_signature_length;
 	verification->base_verify.set_verification_key = manifest_verification_set_verification_key;
 	verification->base_verify.is_key_valid = manifest_verification_is_key_valid;
 

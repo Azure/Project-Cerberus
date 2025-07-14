@@ -353,18 +353,38 @@ void ecc_mbedtls_release_key_pair (const struct ecc_engine *engine,
 	}
 }
 
+/**
+ * Get the maximum ECDSA signature length for an ECC key pair.
+ *
+ * @param context The key context to query.
+ *
+ * @return The maximum signature length.
+ */
+static int ecc_mbedtls_get_max_signature_length (const struct mbedtls_pk_context *context)
+{
+	size_t key_len = mbedtls_pk_get_len (context);
+
+	return (((key_len + 3) * 2) + ((key_len > 61) ? 1 : 2));
+}
+
 int ecc_mbedtls_get_signature_max_length (const struct ecc_engine *engine,
 	const struct ecc_private_key *key)
 {
-	size_t key_len;
-
 	if ((engine == NULL) || (key == NULL)) {
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	key_len = mbedtls_pk_get_len ((mbedtls_pk_context*) key->context);
+	return ecc_mbedtls_get_max_signature_length ((const mbedtls_pk_context*) key->context);
+}
 
-	return (((key_len + 3) * 2) + ((key_len > 61) ? 1 : 2));
+int ecc_mbedtls_get_signature_max_verify_length (const struct ecc_engine *engine,
+	const struct ecc_public_key *key)
+{
+	if ((engine == NULL) || (key == NULL)) {
+		return ECC_ENGINE_INVALID_ARGUMENT;
+	}
+
+	return ecc_mbedtls_get_max_signature_length ((const mbedtls_pk_context*) key->context);
 }
 
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
@@ -663,6 +683,7 @@ int ecc_mbedtls_init (struct ecc_engine_mbedtls *engine, struct ecc_engine_mbedt
 #endif
 	engine->base.release_key_pair = ecc_mbedtls_release_key_pair;
 	engine->base.get_signature_max_length = ecc_mbedtls_get_signature_max_length;
+	engine->base.get_signature_max_verify_length = ecc_mbedtls_get_signature_max_verify_length;
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
 	engine->base.get_private_key_der = ecc_mbedtls_get_private_key_der;
 	engine->base.get_public_key_der = ecc_mbedtls_get_public_key_der;
@@ -710,6 +731,7 @@ int ecc_mbedtls_init_with_external_rng (struct ecc_engine_mbedtls *engine,
 #endif
 	engine->base.release_key_pair = ecc_mbedtls_release_key_pair;
 	engine->base.get_signature_max_length = ecc_mbedtls_get_signature_max_length;
+	engine->base.get_signature_max_verify_length = ecc_mbedtls_get_signature_max_verify_length;
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
 	engine->base.get_private_key_der = ecc_mbedtls_get_private_key_der;
 	engine->base.get_public_key_der = ecc_mbedtls_get_public_key_der;
