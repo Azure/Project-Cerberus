@@ -12501,7 +12501,7 @@ static void mctp_interface_test_send_discovery_notify_no_response (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = mctp_interface_send_discovery_notify (&mctp.test, 0, NULL);
+	status = mctp_interface_send_discovery_notify (&mctp.test, true, 0, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	mctp_interface_testing_release (test, &mctp);
@@ -12600,7 +12600,7 @@ static void mctp_interface_test_send_discovery_notify_process_response (CuTest *
 	status = msg_transport_create_empty_response (data, sizeof (data), &response);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mctp_interface_send_discovery_notify (&mctp.test, 100, &response);
+	status = mctp_interface_send_discovery_notify (&mctp.test, true, 100, &response);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrEquals (test, data, response.data);
@@ -12673,7 +12673,7 @@ static void mctp_interface_test_send_discovery_notify_followed_by_another_rq (Cu
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = mctp_interface_send_discovery_notify (&mctp.test, 0, NULL);
+	status = mctp_interface_send_discovery_notify (&mctp.test, true, 0, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Build the request message to send. */
@@ -12877,7 +12877,7 @@ static void mctp_interface_test_send_discovery_notify_followed_discovery_notify_
 	status = msg_transport_create_empty_response (rx_message, sizeof (rx_message), &response);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mctp_interface_send_discovery_notify (&mctp.test, 100, &response);
+	status = mctp_interface_send_discovery_notify (&mctp.test, true, 100, &response);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrEquals (test, rx_message, response.data);
@@ -13005,6 +13005,64 @@ static void mctp_interface_test_send_discovery_notify_followed_discovery_notify_
 	mctp_interface_testing_release (test, &mctp);
 }
 
+static void mctp_interface_test_send_discovery_notify_dest_null_eid (CuTest *test)
+{
+	struct mctp_interface_testing mctp;
+	uint8_t buf[3] = {0};
+	struct cmd_packet tx_packet;
+	struct mctp_base_protocol_transport_header *header;
+	int status;
+
+	TEST_START;
+
+	mctp_interface_testing_init (test, &mctp);
+
+	/* Use a different address for the NULL EID entry. */
+	status = device_manager_update_not_attestable_device_entry (&mctp.device_mgr, 2,
+		MCTP_BASE_PROTOCOL_NULL_EID, 0x54, DEVICE_MANAGER_NOT_PCD_COMPONENT);
+	CuAssertIntEquals (test, 0, status);
+
+	buf[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	buf[1] = 0x80;
+	buf[2] = MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY;
+
+	memset (&tx_packet, 0, sizeof (tx_packet));
+
+	header = (struct mctp_base_protocol_transport_header*) tx_packet.data;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 8;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_BASE_PROTOCOL_NULL_EID;
+	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 1;
+	header->eom = 1;
+	header->tag_owner = MCTP_BASE_PROTOCOL_TO_REQUEST;
+	header->msg_tag = 0x00;
+	header->packet_seq = 0;
+
+	memcpy (&tx_packet.data[7], buf, sizeof (buf));
+
+	tx_packet.data[10] = checksum_crc8 (0xA8, tx_packet.data, 10);
+	tx_packet.pkt_size = 11;
+	tx_packet.state = CMD_VALID_PACKET;
+	tx_packet.dest_addr = 0x54;
+	tx_packet.timeout_valid = false;
+
+
+	status = mock_expect (&mctp.channel.mock, mctp.channel.base.send_packet, &mctp.channel, 0,
+		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp_interface_send_discovery_notify (&mctp.test, false, 0, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	mctp_interface_testing_release (test, &mctp);
+}
+
 static void mctp_interface_test_send_discovery_notify_static_init (CuTest *test)
 {
 	struct mctp_interface_testing mctp = {
@@ -13055,7 +13113,7 @@ static void mctp_interface_test_send_discovery_notify_static_init (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = mctp_interface_send_discovery_notify (&mctp.test, 0, NULL);
+	status = mctp_interface_send_discovery_notify (&mctp.test, true, 0, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	mctp_interface_testing_release (test, &mctp);
@@ -13071,10 +13129,10 @@ static void mctp_interface_test_send_discovery_notify_null (CuTest *test)
 
 	mctp_interface_testing_init (test, &mctp);
 
-	status = mctp_interface_send_discovery_notify (NULL, 100, &response);
+	status = mctp_interface_send_discovery_notify (NULL, true, 100, &response);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
 
-	status = mctp_interface_send_discovery_notify (&mctp.test, 100, NULL);
+	status = mctp_interface_send_discovery_notify (&mctp.test, true, 100, NULL);
 	CuAssertIntEquals (test, MSG_TRANSPORT_INVALID_ARGUMENT, status);
 
 	mctp_interface_testing_release (test, &mctp);
@@ -13100,7 +13158,7 @@ static void mctp_interface_test_send_discovery_notify_no_mctp_bridge (CuTest *te
 		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x5D, DEVICE_MANAGER_NOT_PCD_COMPONENT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mctp_interface_send_discovery_notify (&mctp.test, 0, NULL);
+	status = mctp_interface_send_discovery_notify (&mctp.test, true, 0, NULL);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
 	mctp_interface_testing_release (test, &mctp);
@@ -13153,7 +13211,7 @@ static void mctp_interface_test_send_discovery_notify_cmd_channel_fail (CuTest *
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = mctp_interface_send_discovery_notify (&mctp.test, 0, NULL);
+	status = mctp_interface_send_discovery_notify (&mctp.test, true, 0, NULL);
 	CuAssertIntEquals (test, CMD_CHANNEL_TX_FAILED, status);
 
 	mctp_interface_testing_release (test, &mctp);
@@ -15398,6 +15456,7 @@ TEST (mctp_interface_test_send_discovery_notify_no_response);
 TEST (mctp_interface_test_send_discovery_notify_process_response);
 TEST (mctp_interface_test_send_discovery_notify_followed_by_another_rq);
 TEST (mctp_interface_test_send_discovery_notify_followed_discovery_notify_rsp_then_another_rq);
+TEST (mctp_interface_test_send_discovery_notify_dest_null_eid);
 TEST (mctp_interface_test_send_discovery_notify_static_init);
 TEST (mctp_interface_test_send_discovery_notify_null);
 TEST (mctp_interface_test_send_discovery_notify_no_mctp_bridge);

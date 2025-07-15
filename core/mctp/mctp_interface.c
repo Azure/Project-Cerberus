@@ -1124,6 +1124,8 @@ unlock:
  * Generate and send an MCTP control protocol Discovery Notify request to the MCTP bridge.
  *
  * @param mctp MCTP instance that will be processing the request message.
+ * @param use_bridge_eid Flag indicating that the request should be sent to the MCTP bridge EID.  If
+ * this is false, the request will be sent to the NULL EID.
  * @param timeout_ms The amount of time, in milliseconds, to wait for a response from the bridge.
  * If this is 0, the response will be ignored and the function will return immediately after sending
  * the request.
@@ -1133,23 +1135,24 @@ unlock:
  *
  * @return 0 if the request was transmitted successfully or an error code.
  */
-int mctp_interface_send_discovery_notify (const struct mctp_interface *mctp, uint32_t timeout_ms,
-	struct cmd_interface_msg *response)
+int mctp_interface_send_discovery_notify (const struct mctp_interface *mctp, bool use_bridge_eid,
+	uint32_t timeout_ms, struct cmd_interface_msg *response)
 {
 	uint8_t request_data[MCTP_BASE_PROTOCOL_MIN_MESSAGE_LEN];
 	struct cmd_interface_msg request;
-	int bridge_eid;
+	int bridge_eid = MCTP_BASE_PROTOCOL_NULL_EID;
 	int status;
 
 	if (mctp == NULL) {
 		return MCTP_BASE_PROTOCOL_INVALID_ARGUMENT;
 	}
 
-	/* TODO:  This should probably use the NULL EID. */
-	bridge_eid = device_manager_get_device_eid (mctp->device_manager,
-		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
-	if (ROT_IS_ERROR (bridge_eid)) {
-		return bridge_eid;
+	if (use_bridge_eid) {
+		bridge_eid = device_manager_get_device_eid (mctp->device_manager,
+			DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
+		if (ROT_IS_ERROR (bridge_eid)) {
+			return bridge_eid;
+		}
 	}
 
 	msg_transport_create_empty_request (&mctp->base, request_data, sizeof (request_data),

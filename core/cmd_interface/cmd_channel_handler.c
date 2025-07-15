@@ -13,7 +13,7 @@ void cmd_channel_handler_prepare (const struct periodic_task_handler *handler)
 {
 	const struct cmd_channel_handler *cmd = (const struct cmd_channel_handler*) handler;
 
-	mctp_interface_send_discovery_notify (cmd->mctp, 0, NULL);
+	mctp_interface_send_discovery_notify (cmd->mctp, cmd->use_bridge_eid, 0, NULL);
 }
 #endif
 
@@ -37,14 +37,18 @@ void cmd_channel_handler_execute (const struct periodic_task_handler *handler)
 /**
  * Initialize a handler for receiving and processing commands from a command channel.
  *
+ * When sending MCTP requests is enabled, the MCTP bridge will be notified using the configured
+ * bridge EID.
+ *
  * @param handler The command handler to initialize.
  * @param channel The command channel for sending and receiving packets.
  * @param mctp The MCTP protocol handler to use for packet processing.
+ * @param use_bridge_eid Flag to indicate the bridge EID should be notified instead of the NULL EID.
  *
  * @return 0 if the handler was successfully initialized or an error code.
  */
-int cmd_channel_handler_init (struct cmd_channel_handler *handler,
-	const struct cmd_channel *channel, const struct mctp_interface *mctp)
+int cmd_channel_handler_init_common (struct cmd_channel_handler *handler,
+	const struct cmd_channel *channel, const struct mctp_interface *mctp, bool use_bridge_eid)
 {
 	if ((handler == NULL) || (channel == NULL) || (mctp == NULL)) {
 		return CMD_CHANNEL_INVALID_ARGUMENT;
@@ -60,8 +64,48 @@ int cmd_channel_handler_init (struct cmd_channel_handler *handler,
 
 	handler->channel = channel;
 	handler->mctp = mctp;
+#ifdef CMD_ENABLE_ISSUE_REQUEST
+	handler->use_bridge_eid = use_bridge_eid;
+#else
+	UNUSED (use_bridge_eid);
+#endif
 
 	return 0;
+}
+
+/**
+ * Initialize a handler for receiving and processing commands from a command channel.
+ *
+ * When sending MCTP requests is enabled, the MCTP bridge will be notified using the configured
+ * bridge EID.
+ *
+ * @param handler The command handler to initialize.
+ * @param channel The command channel for sending and receiving packets.
+ * @param mctp The MCTP protocol handler to use for packet processing.
+ *
+ * @return 0 if the handler was successfully initialized or an error code.
+ */
+int cmd_channel_handler_init (struct cmd_channel_handler *handler,
+	const struct cmd_channel *channel, const struct mctp_interface *mctp)
+{
+	return cmd_channel_handler_init_common (handler, channel, mctp, true);
+}
+
+/**
+ * Initialize a handler for receiving and processing commands from a command channel.
+ *
+ * When sending MCTP requests is enabled, the MCTP bridge will be notified using the NULL EID.
+ *
+ * @param handler The command handler to initialize.
+ * @param channel The command channel for sending and receiving packets.
+ * @param mctp The MCTP protocol handler to use for packet processing.
+ *
+ * @return 0 if the handler was successfully initialized or an error code.
+ */
+int cmd_channel_handler_init_notify_null_eid (struct cmd_channel_handler *handler,
+	const struct cmd_channel *channel, const struct mctp_interface *mctp)
+{
+	return cmd_channel_handler_init_common (handler, channel, mctp, false);
 }
 
 /**

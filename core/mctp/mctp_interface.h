@@ -91,8 +91,8 @@ int mctp_interface_issue_request (const struct mctp_interface *mctp,
 	const struct cmd_channel *channel, uint8_t dest_addr, uint8_t dest_eid, uint8_t *request,
 	size_t length, uint8_t *msg_buffer, size_t max_buffer, uint32_t timeout_ms);
 
-int mctp_interface_send_discovery_notify (const struct mctp_interface *mctp, uint32_t timeout_ms,
-	struct cmd_interface_msg *response);
+int mctp_interface_send_discovery_notify (const struct mctp_interface *mctp, bool use_bridge_eid,
+	uint32_t timeout_ms, struct cmd_interface_msg *response);
 #endif
 
 
