@@ -370,14 +370,6 @@ int x509_openssl_create_csr (const struct x509_engine *engine, const uint8_t *pr
 		goto err_ext;
 	}
 
-	if (type == X509_CERT_END_ENTITY) {
-		status = x509_openssl_add_standard_csr_extension (request, extensions, NID_ext_key_usage,
-			"critical,clientAuth");
-		if (status != 0) {
-			goto err_ext;
-		}
-	}
-
 	if (eku != NULL) {
 		ASN1_OBJECT *oid;
 		char oid_str[256];
@@ -682,14 +674,6 @@ static int x509_openssl_create_certificate (struct x509_certificate *cert, EVP_P
 	status = x509_openssl_add_standard_v3_extension (x509, ca_x509, NID_key_usage, key_usage);
 	if (status != 0) {
 		goto err_serial;
-	}
-
-	if (type == X509_CERT_END_ENTITY) {
-		status = x509_openssl_add_standard_v3_extension (x509, ca_x509, NID_ext_key_usage,
-			"critical,clientAuth");
-		if (status != 0) {
-			goto err_serial;
-		}
 	}
 
 	if (type) {

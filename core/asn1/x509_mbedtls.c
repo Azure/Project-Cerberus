@@ -583,17 +583,6 @@ int x509_mbedtls_create_csr (const struct x509_engine *engine, const uint8_t *pr
 		goto err_free_subject;
 	}
 
-	if (type == X509_CERT_END_ENTITY) {
-		status = x509_mbedtls_add_extended_key_usage_extension (&X509_MBEDTLS_EXT_CONTEXT (x509),
-			MBEDTLS_OID_CLIENT_AUTH, MBEDTLS_OID_SIZE (MBEDTLS_OID_CLIENT_AUTH), true);
-		if (status != 0) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-				CRYPTO_LOG_MSG_MBEDTLS_X509_ADD_EXT_KEY_USAGE_EC, status, 0);
-
-			goto err_free_subject;
-		}
-	}
-
 	if (eku != NULL) {
 		status = x509_mbedtls_add_extended_key_usage_extension (&X509_MBEDTLS_EXT_CONTEXT (x509),
 			(char*) eku, eku_length, false);
@@ -871,27 +860,6 @@ static int x509_mbedtls_create_certificate (const struct x509_engine_mbedtls *mb
 			CRYPTO_LOG_MSG_MBEDTLS_X509_ADD_KEY_USAGE_EC, status, 0);
 
 		goto err_free_subject;
-	}
-
-	if (type == X509_CERT_END_ENTITY) {
-#if MBEDTLS_IS_VERSION_3
-		struct mbedtls_asn1_sequence ext = {0};
-
-		ext.buf.p = (uint8_t*) MBEDTLS_OID_CLIENT_AUTH;
-		ext.buf.len = MBEDTLS_OID_SIZE (MBEDTLS_OID_CLIENT_AUTH);
-		ext.buf.tag = MBEDTLS_ASN1_OID;
-
-		status = mbedtls_x509write_crt_set_ext_key_usage (&x509_build, &ext);
-#else
-		status = x509_mbedtls_add_extended_key_usage_extension (&x509_build.extensions,
-			MBEDTLS_OID_CLIENT_AUTH, MBEDTLS_OID_SIZE (MBEDTLS_OID_CLIENT_AUTH), true);
-#endif
-		if (status != 0) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-				CRYPTO_LOG_MSG_MBEDTLS_X509_ADD_EXT_KEY_USAGE_EC, status, 0);
-
-			goto err_free_subject;
-		}
 	}
 
 	if (type) {
