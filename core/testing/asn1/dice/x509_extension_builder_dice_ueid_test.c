@@ -120,7 +120,7 @@ static void x509_extension_builder_dice_ueid_test_init_with_buffer_null (CuTest 
 		X509_RIOT_UEID_LEN, ext_buffer, sizeof (ext_buffer));
 	CuAssertIntEquals (test, DICE_UEID_EXTENSION_INVALID_ARGUMENT, status);
 
-	status = x509_extension_builder_dice_ueid_init_with_buffer (&builder, NULL,	X509_RIOT_UEID_LEN,
+	status = x509_extension_builder_dice_ueid_init_with_buffer (&builder, NULL, X509_RIOT_UEID_LEN,
 		ext_buffer, sizeof (ext_buffer));
 	CuAssertIntEquals (test, DICE_UEID_EXTENSION_INVALID_ARGUMENT, status);
 
@@ -174,6 +174,13 @@ static void x509_extension_builder_dice_ueid_test_static_init_with_buffer (CuTes
 	x509_extension_builder_dice_ueid_release (&builder);
 }
 
+static void x509_extension_builder_dice_ueid_test_release_null (CuTest *test)
+{
+	TEST_START;
+
+	x509_extension_builder_dice_ueid_release (NULL);
+}
+
 static void x509_extension_builder_dice_ueid_test_build (CuTest *test)
 {
 	struct x509_extension_builder_dice_ueid builder;
@@ -204,6 +211,8 @@ static void x509_extension_builder_dice_ueid_test_build (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	builder.base.free (&builder.base, &extension);
+	CuAssertPtrEquals (test, NULL, extension.data);
+	CuAssertIntEquals (test, 0, extension.data_length);
 
 	x509_extension_builder_dice_ueid_release (&builder);
 }
@@ -256,6 +265,44 @@ static void x509_extension_builder_dice_ueid_test_build_null (CuTest *test)
 
 	status = builder.base.build (&builder.base, NULL);
 	CuAssertIntEquals (test, DICE_UEID_EXTENSION_INVALID_ARGUMENT, status);
+
+	x509_extension_builder_dice_ueid_release (&builder);
+}
+
+static void x509_extension_builder_dice_ueid_test_build_static_init_null_ueid (CuTest *test)
+{
+	struct x509_extension_builder_dice_ueid null_ueid =
+		x509_extension_builder_dice_ueid_static_init (NULL, X509_RIOT_UEID_LEN);
+	struct x509_extension_builder_dice_ueid zero_ueid =
+		x509_extension_builder_dice_ueid_static_init (X509_RIOT_UEID, 0);
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	status = null_ueid.base.build (&null_ueid.base, &extension);
+	CuAssertIntEquals (test, DICE_UEID_EXTENSION_INVALID_ARGUMENT, status);
+
+	status = zero_ueid.base.build (&zero_ueid.base, &extension);
+	CuAssertIntEquals (test, DICE_UEID_EXTENSION_INVALID_ARGUMENT, status);
+
+	x509_extension_builder_dice_ueid_release (&null_ueid);
+	x509_extension_builder_dice_ueid_release (&zero_ueid);
+}
+
+static void x509_extension_builder_dice_ueid_test_free_null (CuTest *test)
+{
+	struct x509_extension_builder_dice_ueid builder;
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	status = x509_extension_builder_dice_ueid_init (&builder, X509_RIOT_UEID, X509_RIOT_UEID_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	builder.base.free (NULL, &extension);
+	builder.base.free (&builder.base, NULL);
 
 	x509_extension_builder_dice_ueid_release (&builder);
 }
@@ -405,6 +452,31 @@ static void x509_extension_builder_dice_ueid_test_build_with_buffer_static_init_
 	x509_extension_builder_dice_ueid_release (&builder);
 }
 
+static void x509_extension_builder_dice_ueid_test_build_with_buffer_static_init_null_ueid (
+	CuTest *test)
+{
+	uint8_t ext_buffer[X509_EXTENSION_BUILDER_DICE_UEID_TESTING_BUFFER_LENGTH];
+	struct x509_extension_builder_dice_ueid null_ueid =
+		x509_extension_builder_dice_ueid_static_init_with_buffer (NULL, X509_RIOT_UEID_LEN,
+		ext_buffer, sizeof (ext_buffer));
+	struct x509_extension_builder_dice_ueid zero_ueid =
+		x509_extension_builder_dice_ueid_static_init_with_buffer (X509_RIOT_UEID, 0, ext_buffer,
+		sizeof (ext_buffer));
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	status = null_ueid.base.build (&null_ueid.base, &extension);
+	CuAssertIntEquals (test, DICE_UEID_EXTENSION_INVALID_ARGUMENT, status);
+
+	status = zero_ueid.base.build (&zero_ueid.base, &extension);
+	CuAssertIntEquals (test, DICE_UEID_EXTENSION_INVALID_ARGUMENT, status);
+
+	x509_extension_builder_dice_ueid_release (&null_ueid);
+	x509_extension_builder_dice_ueid_release (&zero_ueid);
+}
+
 static void x509_extension_builder_dice_ueid_test_build_with_buffer_static_init_small_buffer (
 	CuTest *test)
 {
@@ -423,6 +495,25 @@ static void x509_extension_builder_dice_ueid_test_build_with_buffer_static_init_
 	x509_extension_builder_dice_ueid_release (&builder);
 }
 
+static void x509_extension_builder_dice_ueid_test_free_with_buffer_null (CuTest *test)
+{
+	struct x509_extension_builder_dice_ueid builder;
+	uint8_t ext_buffer[X509_EXTENSION_BUILDER_DICE_UEID_TESTING_BUFFER_LENGTH];
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	status = x509_extension_builder_dice_ueid_init_with_buffer (&builder, X509_RIOT_UEID,
+		X509_RIOT_UEID_LEN, ext_buffer, sizeof (ext_buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	builder.base.free (NULL, &extension);
+	builder.base.free (&builder.base, NULL);
+
+	x509_extension_builder_dice_ueid_release (&builder);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (x509_extension_builder_dice_ueid);
@@ -434,15 +525,20 @@ TEST (x509_extension_builder_dice_ueid_test_init_with_buffer_null);
 TEST (x509_extension_builder_dice_ueid_test_init_with_buffer_small_buffer);
 TEST (x509_extension_builder_dice_ueid_test_static_init);
 TEST (x509_extension_builder_dice_ueid_test_static_init_with_buffer);
+TEST (x509_extension_builder_dice_ueid_test_release_null);
 TEST (x509_extension_builder_dice_ueid_test_build);
 TEST (x509_extension_builder_dice_ueid_test_build_static_init);
 TEST (x509_extension_builder_dice_ueid_test_build_null);
+TEST (x509_extension_builder_dice_ueid_test_build_static_init_null_ueid);
+TEST (x509_extension_builder_dice_ueid_test_free_null);
 TEST (x509_extension_builder_dice_ueid_test_build_with_buffer);
 TEST (x509_extension_builder_dice_ueid_test_build_with_buffer_extra_space);
 TEST (x509_extension_builder_dice_ueid_test_build_with_buffer_static_init);
 TEST (x509_extension_builder_dice_ueid_test_build_with_buffer_null);
 TEST (x509_extension_builder_dice_ueid_test_build_with_buffer_static_init_null_buffer);
+TEST (x509_extension_builder_dice_ueid_test_build_with_buffer_static_init_null_ueid);
 TEST (x509_extension_builder_dice_ueid_test_build_with_buffer_static_init_small_buffer);
+TEST (x509_extension_builder_dice_ueid_test_free_with_buffer_null);
 
 TEST_SUITE_END;
 // *INDENT-ON*

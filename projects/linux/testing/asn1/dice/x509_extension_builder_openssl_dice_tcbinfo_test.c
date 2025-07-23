@@ -78,6 +78,13 @@ static void x509_extension_builder_openssl_dice_tcbinfo_test_static_init (CuTest
 	x509_extension_builder_openssl_dice_tcbinfo_release (&builder);
 }
 
+static void x509_extension_builder_openssl_dice_tcbinfo_test_release_null (CuTest *test)
+{
+	TEST_START;
+
+	x509_extension_builder_openssl_dice_tcbinfo_release (NULL);
+}
+
 static void x509_extension_builder_openssl_dice_tcbinfo_test_build (CuTest *test)
 {
 	struct x509_extension_builder_openssl_dice_tcbinfo builder;
@@ -115,6 +122,8 @@ static void x509_extension_builder_openssl_dice_tcbinfo_test_build (CuTest *test
 	CuAssertIntEquals (test, 0, status);
 
 	builder.base.free (&builder.base, &extension);
+	CuAssertPtrEquals (test, NULL, extension.data);
+	CuAssertIntEquals (test, 0, extension.data_length);
 
 	x509_extension_builder_openssl_dice_tcbinfo_release (&builder);
 }
@@ -471,12 +480,37 @@ static void x509_extension_builder_openssl_dice_tcbinfo_test_build_no_svn (CuTes
 	x509_extension_builder_openssl_dice_tcbinfo_release (&builder);
 }
 
+static void x509_extension_builder_openssl_dice_tcbinfo_test_free_null (CuTest *test)
+{
+	struct x509_extension_builder_openssl_dice_tcbinfo builder;
+	struct tcg_dice_tcbinfo tcb;
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
+	tcb.fwid = X509_RIOT_SHA256_FWID;
+	tcb.fwid_hash = HASH_TYPE_SHA256;
+
+	status = x509_extension_builder_openssl_dice_tcbinfo_init (&builder, &tcb);
+	CuAssertIntEquals (test, 0, status);
+
+	builder.base.free (NULL, &extension);
+	builder.base.free (&builder.base, NULL);
+
+	x509_extension_builder_openssl_dice_tcbinfo_release (&builder);
+}
+
 
 TEST_SUITE_START (x509_extension_builder_openssl_dice_tcbinfo);
 
 TEST (x509_extension_builder_openssl_dice_tcbinfo_test_init);
 TEST (x509_extension_builder_openssl_dice_tcbinfo_test_init_null);
 TEST (x509_extension_builder_openssl_dice_tcbinfo_test_static_init);
+TEST (x509_extension_builder_openssl_dice_tcbinfo_test_release_null);
 TEST (x509_extension_builder_openssl_dice_tcbinfo_test_build);
 TEST (x509_extension_builder_openssl_dice_tcbinfo_test_build_sha1);
 TEST (x509_extension_builder_openssl_dice_tcbinfo_test_build_sha384);
@@ -489,5 +523,6 @@ TEST (x509_extension_builder_openssl_dice_tcbinfo_test_build_unknown_fwid);
 TEST (x509_extension_builder_openssl_dice_tcbinfo_test_build_no_fwid);
 TEST (x509_extension_builder_openssl_dice_tcbinfo_test_build_no_version);
 TEST (x509_extension_builder_openssl_dice_tcbinfo_test_build_no_svn);
+TEST (x509_extension_builder_openssl_dice_tcbinfo_test_free_null);
 
 TEST_SUITE_END;

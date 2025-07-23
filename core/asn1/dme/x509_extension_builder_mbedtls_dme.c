@@ -22,7 +22,7 @@
  *
  * @return 0 if the extension was created successfully or an error code.
  */
-int x509_extension_builder_mbedtls_dme_create_extension (const struct dme_structure *dme,
+static int x509_extension_builder_mbedtls_dme_create_extension (const struct dme_structure *dme,
 	uint8_t *buffer, size_t length, struct x509_extension *extension)
 {
 	uint8_t *pos;
@@ -170,7 +170,7 @@ void x509_extension_builder_mbedtls_dme_free_dynamic (const struct x509_extensio
 {
 	UNUSED (builder);
 
-	platform_free ((void*) extension->data);
+	x509_extension_builder_free_extension_descriptor (extension);
 }
 
 void x509_extension_builder_mbedtls_dme_free_static (const struct x509_extension_builder *builder,

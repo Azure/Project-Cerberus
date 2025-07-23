@@ -181,7 +181,7 @@ void x509_extension_builder_openssl_dme_free (const struct x509_extension_builde
 {
 	UNUSED (builder);
 
-	platform_free ((void*) extension->data);
+	x509_extension_builder_free_extension_descriptor (extension);
 }
 
 /**

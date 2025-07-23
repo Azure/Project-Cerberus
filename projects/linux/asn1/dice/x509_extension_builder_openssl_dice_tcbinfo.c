@@ -1,15 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
 #include <openssl/asn1t.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/x509v3.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 #include "platform_api.h"
 #include "x509_extension_builder_openssl_dice_tcbinfo.h"
+#include "asn1/dice/tcg_dice_oid.h"
 #include "asn1/dice/x509_extension_builder_dice_tcbinfo.h"
 #include "common/unused.h"
 
@@ -18,9 +19,9 @@
  * Structure of the DICE FWID.
  */
 typedef struct dice_fwid_st {
-	ASN1_OBJECT *hash_alg;			/**< The algorithm used to generate the FWID. */
-	ASN1_OCTET_STRING *digest;		/**< The FWID hash data. */
-	ASN1_ENCODING enc;				/**< ASN1 encoding. */
+	ASN1_OBJECT *hash_alg;		/**< The algorithm used to generate the FWID. */
+	ASN1_OCTET_STRING *digest;	/**< The FWID hash data. */
+	ASN1_ENCODING enc;			/**< ASN1 encoding. */
 } DICE_FWID;
 
 DEFINE_STACK_OF (DICE_FWID)
@@ -30,14 +31,14 @@ typedef STACK_OF (DICE_FWID) DICE_FWIDS;
  * Structure of the DICE TcbInfo extension.
  */
 typedef struct dice_tcbinfo_st {
-	GENERAL_NAMES *vendor;			/**< Device vendor information. */
-	ASN1_IA5STRING *model;			/**< Model identifier. */
-	ASN1_IA5STRING *version;		/**< The firmware version. */
-	ASN1_INTEGER *svn;				/**< The security state. */
-	ASN1_INTEGER *layer;			/**< Firmware state information. */
-	ASN1_INTEGER *index;			/**< Firmware state information. */
-	DICE_FWIDS *digests;			/**< The FWID information. */
-	ASN1_ENCODING enc;				/**< ASN1 encoding. */
+	GENERAL_NAMES *vendor;		/**< Device vendor information. */
+	ASN1_IA5STRING *model;		/**< Model identifier. */
+	ASN1_IA5STRING *version;	/**< The firmware version. */
+	ASN1_INTEGER *svn;			/**< The security state. */
+	ASN1_INTEGER *layer;		/**< Firmware state information. */
+	ASN1_INTEGER *index;		/**< Firmware state information. */
+	DICE_FWIDS *digests;		/**< The FWID information. */
+	ASN1_ENCODING enc;			/**< ASN1 encoding. */
 } DICE_TCBINFO;
 
 ASN1_SEQUENCE_enc (DICE_FWID, enc, 0) = {
@@ -188,10 +189,11 @@ int x509_extension_builder_openssl_dice_tcbinfo_build (const struct x509_extensi
 	}
 
 	x509_extension_builder_init_extension_descriptor (extension, false,
-		X509_EXTENSION_BUILDER_DICE_TCBINFO_OID, X509_EXTENSION_BUILDER_DICE_TCBINFO_OID_LENGTH,
-		tcb_der, tcb_der_len);
+		TCG_DICE_OID_TCBINFO_EXTENSION, TCG_DICE_OID_TCBINFO_EXTENSION_LENGTH, tcb_der,
+		tcb_der_len);
 
 	DICE_TCBINFO_free (tcbinfo);
+
 	return 0;
 
 err_fwid:
@@ -199,6 +201,7 @@ err_fwid:
 err_build:
 	DICE_TCBINFO_free (tcbinfo);
 err_tcb:
+
 	return status;
 }
 
@@ -207,7 +210,7 @@ void x509_extension_builder_openssl_dice_tcbinfo_free (const struct x509_extensi
 {
 	UNUSED (builder);
 
-	platform_free ((void*) extension->data);
+	x509_extension_builder_free_extension_descriptor (extension);
 }
 
 /**

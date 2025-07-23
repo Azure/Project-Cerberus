@@ -66,6 +66,13 @@ static void x509_extension_builder_openssl_dme_test_static_init (CuTest *test)
 	x509_extension_builder_openssl_dme_release (&builder);
 }
 
+static void x509_extension_builder_openssl_dme_test_release_null (CuTest *test)
+{
+	TEST_START;
+
+	x509_extension_builder_openssl_dme_release (NULL);
+}
+
 static void x509_extension_builder_openssl_dme_test_build (CuTest *test)
 {
 	struct x509_extension_builder_openssl_dme builder;
@@ -98,6 +105,8 @@ static void x509_extension_builder_openssl_dme_test_build (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	builder.base.free (&builder.base, &extension);
+	CuAssertPtrEquals (test, NULL, extension.data);
+	CuAssertIntEquals (test, 0, extension.data_length);
 
 	x509_extension_builder_openssl_dme_release (&builder);
 }
@@ -386,12 +395,33 @@ static void x509_extension_builder_openssl_dme_test_build_no_dme_key (CuTest *te
 	x509_extension_builder_openssl_dme_release (&builder);
 }
 
+static void x509_extension_builder_openssl_dme_test_free_null (CuTest *test)
+{
+	struct x509_extension_builder_openssl_dme builder;
+	struct dme_structure dme;
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	dme_structure_testing_structure_ecc384_sha384 (&dme);
+
+	status = x509_extension_builder_openssl_dme_init (&builder, &dme);
+	CuAssertIntEquals (test, 0, status);
+
+	builder.base.free (NULL, &extension);
+	builder.base.free (&builder.base, NULL);
+
+	x509_extension_builder_openssl_dme_release (&builder);
+}
+
 
 TEST_SUITE_START (x509_extension_builder_openssl_dme);
 
 TEST (x509_extension_builder_openssl_dme_test_init);
 TEST (x509_extension_builder_openssl_dme_test_init_null);
 TEST (x509_extension_builder_openssl_dme_test_static_init);
+TEST (x509_extension_builder_openssl_dme_test_release_null);
 TEST (x509_extension_builder_openssl_dme_test_build);
 TEST (x509_extension_builder_openssl_dme_test_build_ecc256_sha256);
 TEST (x509_extension_builder_openssl_dme_test_build_no_device_oid);
@@ -404,5 +434,6 @@ TEST (x509_extension_builder_openssl_dme_test_build_no_structure_data);
 TEST (x509_extension_builder_openssl_dme_test_build_no_signature_type_oid);
 TEST (x509_extension_builder_openssl_dme_test_build_no_signature);
 TEST (x509_extension_builder_openssl_dme_test_build_no_dme_key);
+TEST (x509_extension_builder_openssl_dme_test_free_null);
 
 TEST_SUITE_END;

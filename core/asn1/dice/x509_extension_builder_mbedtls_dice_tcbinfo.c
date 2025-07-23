@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
+#include "tcg_dice_oid.h"
 #include "x509_extension_builder_dice_tcbinfo.h"
 #include "x509_extension_builder_mbedtls_dice_tcbinfo.h"
 #include "asn1/x509_mbedtls.h"
@@ -24,7 +25,7 @@
  *
  * @return 0 if the extension was created successfully or an error code.
  */
-int x509_extension_builder_mbedtls_dice_tcbinfo_create_extension (
+static int x509_extension_builder_mbedtls_dice_tcbinfo_create_extension (
 	const struct x509_extension_builder_mbedtls_dice_tcbinfo *dice, uint8_t *buffer, size_t length,
 	struct x509_extension *extension)
 {
@@ -149,8 +150,7 @@ int x509_extension_builder_mbedtls_dice_tcbinfo_create_extension (
 	}
 
 	x509_extension_builder_init_extension_descriptor (extension, false,
-		X509_EXTENSION_BUILDER_DICE_TCBINFO_OID, X509_EXTENSION_BUILDER_DICE_TCBINFO_OID_LENGTH,
-		buffer, enc_length);
+		TCG_DICE_OID_TCBINFO_EXTENSION, TCG_DICE_OID_TCBINFO_EXTENSION_LENGTH, buffer, enc_length);
 
 	return 0;
 }
@@ -208,7 +208,7 @@ void x509_extension_builder_mbedtls_dice_tcbinfo_free_dynamic (
 {
 	UNUSED (builder);
 
-	platform_free ((void*) extension->data);
+	x509_extension_builder_free_extension_descriptor (extension);
 }
 
 void x509_extension_builder_mbedtls_dice_tcbinfo_free_static (

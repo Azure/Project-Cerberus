@@ -77,6 +77,13 @@ static void x509_extension_builder_openssl_dice_ueid_test_static_init (CuTest *t
 	x509_extension_builder_openssl_dice_ueid_release (&builder);
 }
 
+static void x509_extension_builder_openssl_dice_ueid_test_release_null (CuTest *test)
+{
+	TEST_START;
+
+	x509_extension_builder_openssl_dice_ueid_release (NULL);
+}
+
 static void x509_extension_builder_openssl_dice_ueid_test_build (CuTest *test)
 {
 	struct x509_extension_builder_openssl_dice_ueid builder;
@@ -108,6 +115,8 @@ static void x509_extension_builder_openssl_dice_ueid_test_build (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	builder.base.free (&builder.base, &extension);
+	CuAssertPtrEquals (test, NULL, extension.data);
+	CuAssertIntEquals (test, 0, extension.data_length);
 
 	x509_extension_builder_openssl_dice_ueid_release (&builder);
 }
@@ -165,14 +174,56 @@ static void x509_extension_builder_openssl_dice_ueid_test_build_null (CuTest *te
 	x509_extension_builder_openssl_dice_ueid_release (&builder);
 }
 
+static void x509_extension_builder_openssl_dice_ueid_test_build_static_init_null_ueid (CuTest *test)
+{
+	struct x509_extension_builder_openssl_dice_ueid null_ueid =
+		x509_extension_builder_openssl_dice_ueid_static_init (NULL, X509_RIOT_UEID_LEN);
+	struct x509_extension_builder_openssl_dice_ueid zero_ueid =
+		x509_extension_builder_openssl_dice_ueid_static_init (X509_RIOT_UEID, 0);
+	int status;
+	struct x509_extension extension;
+
+	TEST_START;
+
+	status = null_ueid.base.build (&null_ueid.base, &extension);
+	CuAssertIntEquals (test, DICE_UEID_EXTENSION_INVALID_ARGUMENT, status);
+
+	status = zero_ueid.base.build (&zero_ueid.base, &extension);
+	CuAssertIntEquals (test, DICE_UEID_EXTENSION_INVALID_ARGUMENT, status);
+
+	x509_extension_builder_openssl_dice_ueid_release (&null_ueid);
+	x509_extension_builder_openssl_dice_ueid_release (&zero_ueid);
+}
+
+static void x509_extension_builder_openssl_dice_ueid_test_free_null (CuTest *test)
+{
+	struct x509_extension_builder_openssl_dice_ueid builder;
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	status = x509_extension_builder_openssl_dice_ueid_init (&builder, X509_RIOT_UEID,
+		X509_RIOT_UEID_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	builder.base.free (NULL, &extension);
+	builder.base.free (&builder.base, NULL);
+
+	x509_extension_builder_openssl_dice_ueid_release (&builder);
+}
+
 
 TEST_SUITE_START (x509_extension_builder_openssl_dice_ueid);
 
 TEST (x509_extension_builder_openssl_dice_ueid_test_init);
 TEST (x509_extension_builder_openssl_dice_ueid_test_init_null);
 TEST (x509_extension_builder_openssl_dice_ueid_test_static_init);
+TEST (x509_extension_builder_openssl_dice_ueid_test_release_null);
 TEST (x509_extension_builder_openssl_dice_ueid_test_build);
 TEST (x509_extension_builder_openssl_dice_ueid_test_build_static_init);
 TEST (x509_extension_builder_openssl_dice_ueid_test_build_null);
+TEST (x509_extension_builder_openssl_dice_ueid_test_build_static_init_null_ueid);
+TEST (x509_extension_builder_openssl_dice_ueid_test_free_null);
 
 TEST_SUITE_END;

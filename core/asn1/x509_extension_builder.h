@@ -59,6 +59,7 @@ struct x509_extension_builder {
 /* Internal functions for use by derived types. */
 void x509_extension_builder_init_extension_descriptor (struct x509_extension *extension,
 	bool critical, const uint8_t *oid, size_t oid_length, const uint8_t *data, size_t data_length);
+void x509_extension_builder_free_extension_descriptor (struct x509_extension *extension);
 
 
 #define	X509_EXTENSION_ERROR(code)		ROT_ERROR (ROT_MODULE_X509_EXTENSION, code)

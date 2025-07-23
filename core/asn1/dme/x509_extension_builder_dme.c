@@ -49,8 +49,8 @@ const size_t X509_EXTENSION_BUILDER_DME_OID_LENGTH = sizeof (X509_EXTENSION_BUIL
  *
  * @return 0 if the extension was created successfully or an error code.
  */
-int x509_extension_builder_dme_create_extension (const struct dme_structure *dme, uint8_t *buffer,
-	size_t length, struct x509_extension *extension)
+static int x509_extension_builder_dme_create_extension (const struct dme_structure *dme,
+	uint8_t *buffer, size_t length, struct x509_extension *extension)
 {
 	DERBuilderContext der;
 	size_t tag_pos;
@@ -82,29 +82,31 @@ int x509_extension_builder_dme_create_extension (const struct dme_structure *dme
 
 	DERInitContext (&der, buffer, length);
 
-	/* TODO:  Not each of these error checks is tested.  Add tests when refactoring DER encoding. */
+	// *INDENT-OFF*
+	/* TODO:  Each of these error checks is not tested.  Add tests when refactoring DER encoding. */
 	DER_CHK_ENCODE (DERStartSequenceOrSet (&der, true));
-	DER_CHK_ENCODE (DERAddPublicKey (&der, dme->dme_pub_key, dme->key_length));
-	DER_CHK_ENCODE (DERAddEncodedOID (&der, dme->data_oid, dme->data_oid_length));
-	DER_CHK_ENCODE (DERAddOctetString (&der, dme->data, dme->data_length));
-	DER_CHK_ENCODE (DERStartSequenceOrSet (&der, true));
-	DER_CHK_ENCODE (DERAddEncodedOID (&der, dme->sig_oid, dme->sig_oid_length));
-	DER_CHK_ENCODE (DERPopNesting (&der));
-	DER_CHK_ENCODE (DERAddBitString (&der, dme->signature, dme->signature_length));
+		DER_CHK_ENCODE (DERAddPublicKey (&der, dme->dme_pub_key, dme->key_length));
+		DER_CHK_ENCODE (DERAddEncodedOID (&der, dme->data_oid, dme->data_oid_length));
+		DER_CHK_ENCODE (DERAddOctetString (&der, dme->data, dme->data_length));
+		DER_CHK_ENCODE (DERStartSequenceOrSet (&der, true));
+			DER_CHK_ENCODE (DERAddEncodedOID (&der, dme->sig_oid, dme->sig_oid_length));
+		DER_CHK_ENCODE (DERPopNesting (&der));
+		DER_CHK_ENCODE (DERAddBitString (&der, dme->signature, dme->signature_length));
 
-	/* Optional fields need different tags. */
-	if (dme->device_oid) {
-		tag_pos = der.Position;
-		DER_CHK_ENCODE (DERAddEncodedOID (&der, dme->device_oid, dme->dev_oid_length));
-		der.Buffer[tag_pos] = 0x80;
-	}
+		/* Optional fields need different tags. */
+		if (dme->device_oid) {
+			tag_pos = der.Position;
+			DER_CHK_ENCODE (DERAddEncodedOID (&der, dme->device_oid, dme->dev_oid_length));
+			der.Buffer[tag_pos] = 0x80;
+		}
 
-	if (dme->renewal_counter) {
-		tag_pos = der.Position;
-		DER_CHK_ENCODE (DERAddBitString (&der, dme->renewal_counter, dme->counter_length));
-		der.Buffer[tag_pos] = 0x81;
-	}
+		if (dme->renewal_counter) {
+			tag_pos = der.Position;
+			DER_CHK_ENCODE (DERAddBitString (&der, dme->renewal_counter, dme->counter_length));
+			der.Buffer[tag_pos] = 0x81;
+		}
 	DER_CHK_ENCODE (DERPopNesting (&der));
+	// *INDENT-ON*
 
 	x509_extension_builder_init_extension_descriptor (extension, false,
 		X509_EXTENSION_BUILDER_DME_OID, X509_EXTENSION_BUILDER_DME_OID_LENGTH, buffer,
@@ -165,7 +167,7 @@ void x509_extension_builder_dme_free_dynamic (const struct x509_extension_builde
 {
 	UNUSED (builder);
 
-	platform_free ((void*) extension->data);
+	x509_extension_builder_free_extension_descriptor (extension);
 }
 
 void x509_extension_builder_dme_free_static (const struct x509_extension_builder *builder,

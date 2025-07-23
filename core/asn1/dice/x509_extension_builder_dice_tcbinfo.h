@@ -32,11 +32,6 @@ size_t x509_extension_builder_dice_tcbinfo_get_ext_buffer_length (
 	const struct tcg_dice_tcbinfo *tcb);
 
 
-/* Internal definitions for use by TcbInfo extension builders. */
-extern const uint8_t X509_EXTENSION_BUILDER_DICE_TCBINFO_OID[];
-extern const size_t X509_EXTENSION_BUILDER_DICE_TCBINFO_OID_LENGTH;
-
-
 #define	DICE_TCBINFO_EXTENSION_ERROR(code)		ROT_ERROR (ROT_MODULE_DICE_TCBINFO_EXTENSION, code)
 
 /**

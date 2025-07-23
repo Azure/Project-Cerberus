@@ -179,6 +179,7 @@ enum {
 	ROT_MODULE_ERROR_STATE_EXIT = 0x00a7,				/**< FIPS error state exit handler. */
 	ROT_MODULE_AUTH_DATA = 0x00a8,						/**< Authorized data handler for operation authentication. */
 	ROT_MODULE_AUTH_SIGNATURE = 0x00a9,					/**< Authorized data signature for operation authentication. */
+	ROT_MODULE_EKU_EXTENSION = 0x00aa,					/**< Extension handler for Extended Key Usage extensions. */
 };
 
 

@@ -46,11 +46,6 @@ void x509_extension_builder_dice_ueid_release (
 	const struct x509_extension_builder_dice_ueid *builder);
 
 
-/* Internal definitions for use by Ueid extension builders. */
-extern const uint8_t X509_EXTENSION_BUILDER_DICE_UEID_OID[];
-extern const size_t X509_EXTENSION_BUILDER_DICE_UEID_OID_LENGTH;
-
-
 #define	DICE_UEID_EXTENSION_ERROR(code)		ROT_ERROR (ROT_MODULE_DICE_UEID_EXTENSION, code)
 
 /**

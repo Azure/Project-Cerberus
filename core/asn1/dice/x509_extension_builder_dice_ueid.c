@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
+#include "tcg_dice_oid.h"
 #include "x509_extension_builder_dice_ueid.h"
 #include "common/unused.h"
 #include "riot/reference/include/RiotDerEnc.h"
@@ -19,20 +20,6 @@
 
 
 /**
- * The encoded OID for the TCG DICE Ueid extension:  2.23.133.5.4.4
- */
-const uint8_t X509_EXTENSION_BUILDER_DICE_UEID_OID[] = {
-	0x67, 0x81, 0x05, 0x05, 0x04, 0x04
-};
-
-/**
- * Length of the encoded TCG DICE Ueid extension OID.
- */
-const size_t X509_EXTENSION_BUILDER_DICE_UEID_OID_LENGTH =
-	sizeof (X509_EXTENSION_BUILDER_DICE_UEID_OID);
-
-
-/**
  * Create the TCG DICE Ueid extension.
  *
  * @param dice The extension builder.
@@ -42,23 +29,28 @@ const size_t X509_EXTENSION_BUILDER_DICE_UEID_OID_LENGTH =
  *
  * @return 0 if the extension was created successfully or an error code.
  */
-int x509_extension_builder_dice_ueid_create_extension (
+static int x509_extension_builder_dice_ueid_create_extension (
 	const struct x509_extension_builder_dice_ueid *dice, uint8_t *buffer, size_t length,
 	struct x509_extension *extension)
 {
 	DERBuilderContext der;
 	int status;
 
+	if ((dice->ueid == NULL) || (dice->ueid_length == 0)) {
+		return DICE_UEID_EXTENSION_INVALID_ARGUMENT;
+	}
+
 	DERInitContext (&der, buffer, length);
 
-	/* TODO:  Not each of these error checks is tested.  Add tests when refactoring DER encoding. */
+	// *INDENT-OFF*
+	/* TODO:  Each of these error checks is not tested.  Add tests when refactoring DER encoding. */
 	DER_CHK_ENCODE (DERStartSequenceOrSet (&der, true));
-	DER_CHK_ENCODE (DERAddOctetString (&der, dice->ueid, dice->ueid_length));
+		DER_CHK_ENCODE (DERAddOctetString (&der, dice->ueid, dice->ueid_length));
 	DER_CHK_ENCODE (DERPopNesting (&der));
+	// *INDENT-ON*
 
-	x509_extension_builder_init_extension_descriptor (extension, false,
-		X509_EXTENSION_BUILDER_DICE_UEID_OID, X509_EXTENSION_BUILDER_DICE_UEID_OID_LENGTH, buffer,
-		DERGetEncodedLength (&der));
+	x509_extension_builder_init_extension_descriptor (extension, false, TCG_DICE_OID_UEID_EXTENSION,
+		TCG_DICE_OID_UEID_EXTENSION_LENGTH, buffer, DERGetEncodedLength (&der));
 
 	return 0;
 
@@ -113,7 +105,7 @@ void x509_extension_builder_dice_ueid_free_dynamic (const struct x509_extension_
 {
 	UNUSED (builder);
 
-	platform_free ((void*) extension->data);
+	x509_extension_builder_free_extension_descriptor (extension);
 }
 
 void x509_extension_builder_dice_ueid_free_static (const struct x509_extension_builder *builder,

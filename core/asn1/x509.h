@@ -80,22 +80,14 @@ struct x509_ca_certs {
 };
 
 /**
- * A platform-independent API for handling certificates.  X509 engine instances are not guaranteed
+ * A platform-independent API for handling certificates.  X.509 engine instances are not guaranteed
  * to be thread-safe.
  */
 struct x509_engine {
 #ifdef X509_ENABLE_CREATE_CERTIFICATES
 	/**
-	 * Generate a Certificate Signing Request for the public key of an asymmetric encryption
-	 * key pair.
-	 *
-	 * Note:  There is currently no need to support EKU OIDs for end entity CSRs.  This situation is
-	 * complicated by the fact that per RFC5280 there can be only one instance of each extension
-	 * type in a certificate.  End entity certificates already have an EKU for client authentication
-	 * that is marked critical.  This OID would need to be added to the list of EKUs, but it really
-	 * should make the EKU not be critical, since the data would generally not be understood.  To
-	 * avoid the complexity around creating these types of certificates and the implications of the
-	 * non-standard OID, this type of CSR cannot be created.
+	 * Generate a Certificate Signing Request for the public key of an asymmetric encryption key
+	 * pair.
 	 *
 	 * @param engine The X.509 engine to use to generate the CSR.
 	 * @param priv_key The DER formatted private key to generate a CSR for.
@@ -103,9 +95,11 @@ struct x509_engine {
 	 * @param sig_hash The hash algorithm to use when generating the signature for the CSR.
 	 * @param name The subject common name to apply to the CSR.
 	 * @param type The type of certificate being requested for signing.
-	 * @param eku An optional Extended Key Usage OID that will be added to the CSR.  Set to null if
-	 * no EKU OID is necessary.  If provided, this must be the encoded value for the OID.
-	 * @param eku_length Length of the EKU OID.
+	 * @param eku Deprecated.  Provide any desired EKUs through the extra_extensions list instead.
+	 * An optional Extended Key Usage OID that will be added to the CSR.  Set to null if no EKU OID
+	 * is necessary.  If provided, this must be the encoded value for the OID.
+	 * @param eku_length Deprecated.
+	 * Length of the EKU OID.
 	 * @param extra_extensions Optional list of additional extensions to add to the CSR.  Each entry
 	 * in the list is a pointer to a builder for the extension that should be added.  Set to null if
 	 * no additional extensions should be added.

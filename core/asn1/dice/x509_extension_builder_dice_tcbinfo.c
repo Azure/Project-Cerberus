@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
+#include "tcg_dice_oid.h"
 #include "x509_extension_builder_dice_tcbinfo.h"
 #include "common/unused.h"
 #include "riot/reference/include/RiotDerEnc.h"
@@ -27,20 +28,6 @@
 
 
 /**
- * The encoded OID for the TCG DICE TcbInfo extension:  2.23.133.5.4.1
- */
-const uint8_t X509_EXTENSION_BUILDER_DICE_TCBINFO_OID[] = {
-	0x67, 0x81, 0x05, 0x05, 0x04, 0x01
-};
-
-/**
- * Length of the encoded TCG DICE TcbInfo extension OID.
- */
-const size_t X509_EXTENSION_BUILDER_DICE_TCBINFO_OID_LENGTH =
-	sizeof (X509_EXTENSION_BUILDER_DICE_TCBINFO_OID);
-
-
-/**
  * Create the TCG DICE TcbInfo extension.
  *
  * @param dice The extension builder.
@@ -50,7 +37,7 @@ const size_t X509_EXTENSION_BUILDER_DICE_TCBINFO_OID_LENGTH =
  *
  * @return 0 if the extension was created successfully or an error code.
  */
-int x509_extension_builder_dice_tcbinfo_create_extension (
+static int x509_extension_builder_dice_tcbinfo_create_extension (
 	const struct x509_extension_builder_dice_tcbinfo *dice, uint8_t *buffer, size_t length,
 	struct x509_extension *extension)
 {
@@ -102,22 +89,24 @@ int x509_extension_builder_dice_tcbinfo_create_extension (
 
 	DERInitContext (&der, buffer, length);
 
-	/* TODO:  Not each of these error checks is tested.  Add tests when refactoring DER encoding. */
+	// *INDENT-OFF*
+	/* TODO:  Each of these error checks is not tested.  Add tests when refactoring DER encoding. */
 	DER_CHK_ENCODE (DERStartSequenceOrSet (&der, true));
-	DER_CHK_ENCODE (DERAddString (&der, dice->tcb->version, 0x82));
-	DER_CHK_ENCODE (DERAddTaggedIntegerFromArray (&der, dice->tcb->svn, dice->tcb->svn_length,
-		0x83));
-	DER_CHK_ENCODE (DERStartConstructed (&der, 0xa6));
-	DER_CHK_ENCODE (DERStartSequenceOrSet (&der, true));
-	DER_CHK_ENCODE (DERAddOID (&der, fwid_oid));
-	DER_CHK_ENCODE (DERAddOctetString (&der, dice->tcb->fwid, fwid_length));
+		DER_CHK_ENCODE (DERAddString (&der, dice->tcb->version, 0x82));
+		DER_CHK_ENCODE (DERAddTaggedIntegerFromArray (&der, dice->tcb->svn, dice->tcb->svn_length,
+			0x83));
+		DER_CHK_ENCODE (DERStartConstructed (&der, 0xa6));
+			DER_CHK_ENCODE (DERStartSequenceOrSet (&der, true));
+				DER_CHK_ENCODE (DERAddOID (&der, fwid_oid));
+				DER_CHK_ENCODE (DERAddOctetString (&der, dice->tcb->fwid, fwid_length));
+			DER_CHK_ENCODE (DERPopNesting (&der));
+		DER_CHK_ENCODE (DERPopNesting (&der));
 	DER_CHK_ENCODE (DERPopNesting (&der));
-	DER_CHK_ENCODE (DERPopNesting (&der));
-	DER_CHK_ENCODE (DERPopNesting (&der));
+	// *INDENT-ON*
 
 	x509_extension_builder_init_extension_descriptor (extension, false,
-		X509_EXTENSION_BUILDER_DICE_TCBINFO_OID, X509_EXTENSION_BUILDER_DICE_TCBINFO_OID_LENGTH,
-		buffer, DERGetEncodedLength (&der));
+		TCG_DICE_OID_TCBINFO_EXTENSION, TCG_DICE_OID_TCBINFO_EXTENSION_LENGTH, buffer,
+		DERGetEncodedLength (&der));
 
 	return 0;
 
@@ -173,7 +162,7 @@ void x509_extension_builder_dice_tcbinfo_free_dynamic (const struct x509_extensi
 {
 	UNUSED (builder);
 
-	platform_free ((void*) extension->data);
+	x509_extension_builder_free_extension_descriptor (extension);
 }
 
 void x509_extension_builder_dice_tcbinfo_free_static (const struct x509_extension_builder *builder,

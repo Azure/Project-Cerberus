@@ -154,6 +154,13 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_static_init_with_bu
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
+static void x509_extension_builder_mbedtls_dice_tcbinfo_test_release_null (CuTest *test)
+{
+	TEST_START;
+
+	x509_extension_builder_mbedtls_dice_tcbinfo_release (NULL);
+}
+
 static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build (CuTest *test)
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
@@ -191,6 +198,8 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build (CuTest *test
 	CuAssertIntEquals (test, 0, status);
 
 	builder.base.free (&builder.base, &extension);
+	CuAssertPtrEquals (test, NULL, extension.data);
+	CuAssertIntEquals (test, 0, extension.data_length);
 
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
@@ -543,6 +552,30 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_svn (CuTes
 
 	status = builder.base.build (&builder.base, &extension);
 	CuAssertIntEquals (test, DICE_TCBINFO_EXTENSION_NO_SVN, status);
+
+	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
+}
+
+static void x509_extension_builder_mbedtls_dice_tcbinfo_test_free_null (CuTest *test)
+{
+	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
+	struct tcg_dice_tcbinfo tcb;
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
+	tcb.fwid = X509_RIOT_SHA256_FWID;
+	tcb.fwid_hash = HASH_TYPE_SHA256;
+
+	status = x509_extension_builder_mbedtls_dice_tcbinfo_init (&builder, &tcb);
+	CuAssertIntEquals (test, 0, status);
+
+	builder.base.free (NULL, &extension);
+	builder.base.free (&builder.base, NULL);
 
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
@@ -907,8 +940,7 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_static_init_n
 }
 
 static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_static_init_null_tcb
-(
-	CuTest *test)
+	(CuTest *test)
 {
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA256)];
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder =
@@ -953,8 +985,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 }
 
 static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_len
-(
-	CuTest *test)
+	(CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
 	uint8_t ext_buffer[SHA256_HASH_LENGTH];
@@ -981,8 +1012,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 }
 
 static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_tag
-(
-	CuTest *test)
+	(CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
 	uint8_t ext_buffer[SHA256_HASH_LENGTH + 1];
@@ -1009,8 +1039,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 }
 
 static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_oid
-(
-	CuTest *test)
+	(CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
 	uint8_t ext_buffer[SHA256_HASH_LENGTH + 2 +
@@ -1182,8 +1211,7 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 }
 
 static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_version
-(
-	CuTest *test)
+	(CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
 	uint8_t ext_buffer[SHA256_HASH_LENGTH + 2 +
@@ -1266,6 +1294,32 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
+static void x509_extension_builder_mbedtls_dice_tcbinfo_test_free_with_buffer_null (CuTest *test)
+{
+	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
+	struct tcg_dice_tcbinfo tcb;
+	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA256)];
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
+	tcb.fwid = X509_RIOT_SHA256_FWID;
+	tcb.fwid_hash = HASH_TYPE_SHA256;
+
+	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
+		ext_buffer, sizeof (ext_buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	builder.base.free (NULL, &extension);
+	builder.base.free (&builder.base, NULL);
+
+	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (x509_extension_builder_mbedtls_dice_tcbinfo);
@@ -1276,6 +1330,7 @@ TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_init_with_buffer);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_init_with_buffer_null);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_static_init);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_static_init_with_buffer);
+TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_release_null);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_sha1);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_sha384);
@@ -1288,6 +1343,7 @@ TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_unknown_fwid);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_fwid);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_version);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_svn);
+TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_free_null);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_sha1);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_sha384);
@@ -1310,6 +1366,7 @@ TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_b
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_version);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_ext_sequence_len);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_ext_sequence_tag);
+TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_free_with_buffer_null);
 
 TEST_SUITE_END;
 // *INDENT-ON*

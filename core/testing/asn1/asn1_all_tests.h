@@ -58,6 +58,18 @@ static void add_all_asn1_tests (CuSuite *suite)
 	!defined TESTING_SKIP_X509_CERT_BUILD_SUITE
 	TESTING_RUN_SUITE (x509_cert_build);
 #endif
+#if (defined TESTING_RUN_X509_EXTENSION_BUILDER_EKU_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_X509_EXTENSION_BUILDER_EKU_SUITE
+	TESTING_RUN_SUITE (x509_extension_builder_eku);
+#endif
+#if (defined TESTING_RUN_X509_EXTENSION_BUILDER_MBEDTLS_EKU_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_X509_EXTENSION_BUILDER_MBEDTLS_EKU_SUITE
+	TESTING_RUN_SUITE (x509_extension_builder_mbedtls_eku);
+#endif
 #if (defined TESTING_RUN_X509_MBEDTLS_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
