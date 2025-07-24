@@ -51,7 +51,7 @@ int cmd_interface_tdisp_responder_process_request (const struct cmd_interface *i
 	/* [TODO] If possible, consolidate error response generation in this function. */
 	switch (tdisp_request->message_type) {
 		case TDISP_REQUEST_GET_VERSION:
-			status = tdisp_get_version (tdisp_responder->state, tdisp_responder->version_num,
+			status = tdisp_get_version (tdisp_responder->tdisp_driver, tdisp_responder->version_num,
 				tdisp_responder->version_num_count, request);
 			break;
 
@@ -61,8 +61,8 @@ int cmd_interface_tdisp_responder_process_request (const struct cmd_interface *i
 			break;
 
 		case TDISP_REQUEST_LOCK_INTERFACE:
-			status = tdisp_lock_interface (tdisp_responder->state, tdisp_responder->tdisp_driver,
-				tdisp_responder->rng_engine, request);
+			status = tdisp_lock_interface (tdisp_responder->tdi_context_manager,
+				tdisp_responder->tdisp_driver, tdisp_responder->rng_engine, request);
 			break;
 
 		case TDISP_REQUEST_GET_DEVICE_INTERFACE_REPORT:
@@ -70,13 +70,12 @@ int cmd_interface_tdisp_responder_process_request (const struct cmd_interface *i
 			break;
 
 		case TDISP_REQUEST_GET_DEVICE_INTERFACE_STATE:
-			status = tdisp_get_device_interface_state (tdisp_responder->state,
-				tdisp_responder->tdisp_driver, request);
+			status = tdisp_get_device_interface_state (tdisp_responder->tdisp_driver, request);
 			break;
 
 		case TDISP_REQUEST_START_INTERFACE:
-			status = tdisp_start_interface (tdisp_responder->state, tdisp_responder->tdisp_driver,
-				request);
+			status = tdisp_start_interface (tdisp_responder->tdi_context_manager,
+				tdisp_responder->tdisp_driver, request);
 			break;
 
 		case TDISP_REQUEST_STOP_INTERFACE:
@@ -109,7 +108,7 @@ int cmd_interface_tdisp_responder_process_response (const struct cmd_interface *
  * Initialize the TDISP responder instance.
  *
  * @param tdisp_responder TDISP responder instance to initialize.
- * @param tdisp_state TDISP state to use for the responder instance.
+ * @param tdi_context_manager TDISP TDI context manager.
  * @param tdisp_driver TDISP driver to use for programming the TDISP registers.
  * @param version_num Supported TDISP version number array.
  * @param version_num_count Number of version number(s) in the array.
@@ -118,12 +117,14 @@ int cmd_interface_tdisp_responder_process_response (const struct cmd_interface *
  * @return 0 if the TDISP responder instance was initialized successfully or an error code.
  */
 int cmd_interface_tdisp_responder_init (struct cmd_interface_tdisp_responder *tdisp_responder,
-	struct tdisp_state *tdisp_state, struct tdisp_driver *tdisp_driver,	const uint8_t *version_num,
-	uint8_t version_num_count, const struct rng_engine *rng_engine)
+	const struct tdisp_tdi_context_manager *tdi_context_manager, struct tdisp_driver *tdisp_driver,
+	const uint8_t *version_num, uint8_t version_num_count, const struct rng_engine *rng_engine)
 {
 	int status = 0;
 
-	if (tdisp_responder == NULL) {
+	if ((tdisp_responder == NULL) || (tdi_context_manager == NULL) ||
+		(tdisp_driver == NULL) || (version_num == NULL) || (version_num_count == 0) ||
+		(rng_engine == NULL)) {
 		status = CMD_INTERFACE_TDISP_RESPONDER_INVALID_ARGUMENT;
 		goto exit;
 	}
@@ -131,47 +132,15 @@ int cmd_interface_tdisp_responder_init (struct cmd_interface_tdisp_responder *td
 	memset (tdisp_responder, 0, sizeof (struct cmd_interface_tdisp_responder));
 
 	tdisp_responder->tdisp_driver = tdisp_driver;
+	tdisp_responder->tdi_context_manager = tdi_context_manager;
 	tdisp_responder->version_num = version_num;
 	tdisp_responder->version_num_count = version_num_count;
-	tdisp_responder->state = tdisp_state;
 	tdisp_responder->rng_engine = rng_engine;
 
 	tdisp_responder->base.process_request = cmd_interface_tdisp_responder_process_request;
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 	tdisp_responder->base.process_response = cmd_interface_tdisp_responder_process_response;
 #endif
-
-	/* Initialize the state. */
-	status = cmd_interface_tdisp_responder_init_state (tdisp_responder);
-
-exit:
-
-	return status;
-}
-
-/**
- * Initialize the state of the TDISP responder instance.
- *
- * @param tdisp_responder TDISP responder instance to initialize.
- *
- * @return 0 if the TDISP responder state was initialized successfully or an error code.
- */
-int cmd_interface_tdisp_responder_init_state (
-	const struct cmd_interface_tdisp_responder *tdisp_responder)
-{
-	int status;
-
-	if ((tdisp_responder == NULL) || (tdisp_responder->tdisp_driver == NULL) ||
-		(tdisp_responder->version_num == NULL) || (tdisp_responder->version_num_count == 0) ||
-		(tdisp_responder->rng_engine == NULL)) {
-		status = CMD_INTERFACE_TDISP_RESPONDER_INVALID_ARGUMENT;
-		goto exit;
-	}
-
-	status = tdisp_init_state (tdisp_responder->state);
-	if (status != 0) {
-		goto exit;
-	}
 
 exit:
 

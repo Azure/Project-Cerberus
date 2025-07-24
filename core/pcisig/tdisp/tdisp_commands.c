@@ -13,29 +13,6 @@
 /* [TODO] Log the error code generated from internal functions in this file. */
 
 /**
- * Initialize the TDISP state.
- *
- * @param state The TDISP state to initialize.
- *
- * @return 0 if the state was initialized successfully or an error code.
- */
-int tdisp_init_state (struct tdisp_state *state)
-{
-	int interface_idx;
-
-	if (state == NULL) {
-		return CMD_INTERFACE_TDISP_RESPONDER_INVALID_ARGUMENT;
-	}
-
-	memset (state, 0, sizeof (struct tdisp_state));
-	for (interface_idx = 0; interface_idx < TDISP_INTERFACE_MAX_COUNT; interface_idx++) {
-		state->interface_context[interface_idx].interface_id.function_id = UINT32_MAX;
-	}
-
-	return 0;
-}
-
-/**
  * Generate a TDISP error response message.
  *
  * @param response The response message to generate.
@@ -52,74 +29,11 @@ void tdisp_generate_error_response (struct cmd_interface_msg *response, uint8_t 
 	memset (tdisp_response, 0, sizeof (struct tdisp_error_response));
 	tdisp_response->header.version = version;
 	tdisp_response->header.message_type = TDISP_ERROR;
-	tdisp_response->header.interface_id.function_id = function_id;
+	tdisp_response->header.interface_id.function_id.value = function_id;
 	tdisp_response->error_code = error_code;
 	tdisp_response->error_data = error_data;
 
 	cmd_interface_msg_set_message_payload_length (response, sizeof (struct tdisp_error_response));
-}
-
-/**
- * Retrieve the interface context for a TDISP interface.
- *
- * @param tdisp_state The TDISP state.
- * @param interface_id The Id of the interface to retrieve the context for.
- *
- * @return The interface context or null if the interface is not found.
- */
-static struct tdisp_interface_context* tdisp_get_interface_context (
-	struct tdisp_state *tdisp_state, const struct tdisp_interface_id *interface_id)
-{
-	uint8_t interface_idx;
-
-	for (interface_idx = 0; interface_idx < TDISP_INTERFACE_MAX_COUNT; interface_idx++) {
-		if (tdisp_state->interface_context[interface_idx].interface_id.function_id ==
-			interface_id->function_id) {
-			return &tdisp_state->interface_context[interface_idx];
-		}
-	}
-
-	return NULL;
-}
-
-/**
- * Initialize a new or an existing interface context for a TDISP interface.
- *
- * @param tdisp_state The TDISP state.
- * @param interface_id The Id of the interface to initialize the context for.
- *
- * @return The initialized interface context or null no interface context is available.
- */
-static struct tdisp_interface_context* tdisp_initialize_interface_context (
-	struct tdisp_state *tdisp_state, const struct tdisp_interface_id *interface_id)
-{
-	uint8_t interface_idx;
-	struct tdisp_interface_context *interface_context;
-
-	/* Check if an interface context for the interface Id already exists. */
-	interface_context = tdisp_get_interface_context (tdisp_state, interface_id);
-	if (interface_context == NULL) {
-		/* Check if we are out of interface contexts. */
-		if (tdisp_state->interface_context_count >= TDISP_INTERFACE_MAX_COUNT) {
-			return NULL;
-		}
-
-		/* Find an unintialized interface context. */
-		for (interface_idx = 0; interface_idx < TDISP_INTERFACE_MAX_COUNT; interface_idx++) {
-			if (tdisp_state->interface_context[interface_idx].interface_id.function_id ==
-				UINT32_MAX) {
-				interface_context = &tdisp_state->interface_context[interface_idx];
-				tdisp_state->interface_context_count++;
-				break;
-			}
-		}
-	}
-
-	/* Initialize the interface context. */
-	memset (interface_context, 0, sizeof (struct tdisp_interface_context));
-	interface_context->interface_id = *interface_id;
-
-	return interface_context;
 }
 
 /**
@@ -132,19 +46,19 @@ static struct tdisp_interface_context* tdisp_initialize_interface_context (
  *
  * @return 0 if request processed successfully (including TDISP error msg) or an error code.
  */
-int tdisp_get_version (struct tdisp_state *tdisp_state,	const uint8_t *version_num,
+int tdisp_get_version (const struct tdisp_driver *tdisp_driver,	const uint8_t *version_num,
 	uint8_t version_num_count, struct cmd_interface_msg *request)
 {
 	uint32_t status = 0;
 	const struct tdisp_get_version_request *tdisp_request;
 	struct tdisp_version_response *tdisp_response;
-	uint32_t function_id = 0;
+	union tdisp_function_id function_id = {0};
 	size_t version_array_length;
 	size_t response_length;
-	struct tdisp_interface_context *interface_context;
 	size_t available_payload_length;
+	uint32_t function_index;
 
-	if ((tdisp_state == NULL) || (version_num == NULL) || (version_num_count == 0) ||
+	if ((tdisp_driver == NULL) || (version_num == NULL) || (version_num_count == 0) ||
 		(request == NULL)) {
 		return CMD_INTERFACE_TDISP_RESPONDER_INVALID_ARGUMENT;
 	}
@@ -172,10 +86,8 @@ int tdisp_get_version (struct tdisp_state *tdisp_state,	const uint8_t *version_n
 		goto exit;
 	}
 
-	/* Initialize the interface context for the TDISP interface. */
-	interface_context = tdisp_initialize_interface_context (tdisp_state,
-		&tdisp_request->header.interface_id);
-	if (interface_context == NULL) {
+	status = tdisp_driver->get_function_index (tdisp_driver, function_id.bdf, &function_index);
+	if (status != 0) {
 		status = TDISP_ERROR_CODE_INVALID_INTERFACE;
 		goto exit;
 	}
@@ -194,7 +106,7 @@ int tdisp_get_version (struct tdisp_state *tdisp_state,	const uint8_t *version_n
 
 exit:
 	if (status != 0) {
-		tdisp_generate_error_response (request, TDISP_VERSION_1_0, function_id, status, 0);
+		tdisp_generate_error_response (request, TDISP_VERSION_1_0, function_id.value, status, 0);
 	}
 
 	return 0;
@@ -216,7 +128,7 @@ int tdisp_get_capabilities (const struct tdisp_driver *tdisp_driver, const uint8
 	int status = 0;
 	const struct tdisp_get_capabilities_request *tdisp_request;
 	struct tdisp_capabilities_response *tdisp_response;
-	uint32_t function_id = 0;
+	union tdisp_function_id function_id = {0};
 	struct tdisp_responder_capabilities rsp_caps = {0};
 	size_t available_payload_length;
 	uint32_t bit_index;
@@ -272,7 +184,7 @@ int tdisp_get_capabilities (const struct tdisp_driver *tdisp_driver, const uint8
 
 exit:
 	if (status != 0) {
-		tdisp_generate_error_response (request, TDISP_VERSION_1_0, function_id, status, 0);
+		tdisp_generate_error_response (request, TDISP_VERSION_1_0, function_id.value, status, 0);
 	}
 
 	return 0;
@@ -281,24 +193,26 @@ exit:
 /**
  * Process the TDISP LOCK_INTERFACE request and return the response.
  *
- * @param tdisp_state The TDISP responder state.
+ * @param tdi_context_manager TDI context manager.
  * @param tdisp_driver The TDISP driver to use for processing the request.
  * @param rng_engine The random number generator to use for generating nonces.
  * @param request The LOCK_INTERFACE request to process.
  *
  * @return 0 if request processed successfully (including TDISP error msg) or an error code.
  */
-int tdisp_lock_interface (struct tdisp_state *tdisp_state, const struct tdisp_driver *tdisp_driver,
-	const struct rng_engine *rng_engine, struct cmd_interface_msg *request)
+int tdisp_lock_interface (const struct tdisp_tdi_context_manager *tdi_context_manager,
+	const struct tdisp_driver *tdisp_driver, const struct rng_engine *rng_engine,
+	struct cmd_interface_msg *request)
 {
 	int status = 0;
 	const struct tdisp_lock_interface_request *tdisp_request;
 	struct tdisp_lock_interface_response *tdisp_response;
-	uint32_t function_id = 0;
-	struct tdisp_interface_context *interface_context;
+	union tdisp_function_id function_id = {0};
+	uint32_t function_index;
 	size_t available_payload_length;
+	struct tdisp_tdi_context tdi_context = {};
 
-	if ((tdisp_state == NULL) || (tdisp_driver == NULL) || (rng_engine == NULL) ||
+	if ((tdi_context_manager == NULL) || (tdisp_driver == NULL) || (rng_engine == NULL) ||
 		(request == NULL)) {
 		return CMD_INTERFACE_TDISP_RESPONDER_INVALID_ARGUMENT;
 	}
@@ -323,25 +237,51 @@ int tdisp_lock_interface (struct tdisp_state *tdisp_state, const struct tdisp_dr
 		goto exit;
 	}
 
-	interface_context = tdisp_get_interface_context (tdisp_state,
-		&tdisp_request->header.interface_id);
-	if (interface_context == NULL) {
+	status = tdisp_driver->get_function_index (tdisp_driver, function_id.bdf, &function_index);
+	if (status != 0) {
 		status = TDISP_ERROR_CODE_INVALID_INTERFACE;
+		goto exit;
+	}
+
+	/* TODO: check HW for the interface state */
+	status = tdi_context_manager->get_tdi_context (tdi_context_manager, function_index, 0,
+		&tdi_context);
+	if (status != 0) {
+		status = TDISP_ERROR_CODE_INVALID_INTERFACE;
+		goto exit;
+	}
+
+	if ((tdi_context.tdi_context_mask & TDISP_TDI_CONTEXT_MASK_NONCE) != 0) {
+		/* This means that this TDI was locked before and hasn't been reset since. */
+		status = TDISP_ERROR_CODE_INVALID_INTERFACE_STATE;
 		goto exit;
 	}
 
 	/* Generate the start interface nonce. */
 	status = rng_engine->generate_random_buffer (rng_engine,
-		sizeof (interface_context->start_interface_nonce),
-		interface_context->start_interface_nonce);
+		sizeof (tdi_context.start_interface_nonce),	tdi_context.start_interface_nonce);
 	if (status != 0) {
 		status = TDISP_ERROR_CODE_UNSPECIFIED;
 		goto exit;
 	}
 
 	/* Call the TDISP driver to lock the interface. */
-	status = tdisp_driver->lock_interface_request (tdisp_driver, function_id,
+	status = tdisp_driver->lock_interface_request (tdisp_driver, function_index,
 		&tdisp_request->lock_interface_param);
+	if (status != 0) {
+		switch (status) {
+			case TDISP_DRIVER_IDE_NOT_SECURE:
+				status = TDISP_ERROR_CODE_INVALID_REQUEST;
+				break;
+
+			default:
+				status = TDISP_ERROR_CODE_UNSPECIFIED;
+		}
+		goto exit;
+	}
+
+	status = tdi_context_manager->set_start_nonce (tdi_context_manager, function_index,
+		tdi_context.start_interface_nonce, sizeof (tdi_context.start_interface_nonce));
 	if (status != 0) {
 		status = TDISP_ERROR_CODE_UNSPECIFIED;
 		goto exit;
@@ -352,7 +292,7 @@ int tdisp_lock_interface (struct tdisp_state *tdisp_state, const struct tdisp_dr
 	tdisp_response->header.version = TDISP_VERSION_1_0;
 	tdisp_response->header.message_type = TDISP_RESPONSE_LOCK_INTERFACE;
 	tdisp_response->header.interface_id.function_id = function_id;
-	memcpy (tdisp_response->start_interface_nonce, interface_context->start_interface_nonce,
+	memcpy (tdisp_response->start_interface_nonce, tdi_context.start_interface_nonce,
 		sizeof (tdisp_response->start_interface_nonce));
 
 	cmd_interface_msg_set_message_payload_length (request,
@@ -360,7 +300,7 @@ int tdisp_lock_interface (struct tdisp_state *tdisp_state, const struct tdisp_dr
 
 exit:
 	if (status != 0) {
-		tdisp_generate_error_response (request, TDISP_VERSION_1_0, function_id, status, 0);
+		tdisp_generate_error_response (request, TDISP_VERSION_1_0, function_id.value, status, 0);
 	}
 
 	return 0;
@@ -380,7 +320,8 @@ int tdisp_get_device_interface_report (const struct tdisp_driver *tdisp_driver,
 	uint32_t status;
 	const struct tdisp_get_device_interface_report_request *tdisp_request;
 	struct tdisp_device_interface_report_response *tdisp_response;
-	uint32_t function_id = 0;
+	union tdisp_function_id function_id = {0};
+	uint32_t function_index;
 	uint16_t report_length;
 	uint16_t remainder_length;
 	size_t available_payload_length;
@@ -409,6 +350,12 @@ int tdisp_get_device_interface_report (const struct tdisp_driver *tdisp_driver,
 		goto exit;
 	}
 
+	status = tdisp_driver->get_function_index (tdisp_driver, function_id.bdf, &function_index);
+	if (status != 0) {
+		status = TDISP_ERROR_CODE_INVALID_INTERFACE;
+		goto exit;
+	}
+
 	/* Account for the response header size.*/
 	available_payload_length -= sizeof (struct tdisp_device_interface_report_response);
 
@@ -417,11 +364,26 @@ int tdisp_get_device_interface_report (const struct tdisp_driver *tdisp_driver,
 			UINT16_MAX : (uint16_t) available_payload_length;
 
 	/* Call the TDISP driver to get the device interface report. */
-	status = tdisp_driver->get_device_interface_report (tdisp_driver, function_id,
+	status = tdisp_driver->get_device_interface_report (tdisp_driver, function_index,
 		tdisp_request->offset, tdisp_request->length, &report_length,
 		tdisp_device_interface_report_resp_report_ptr (tdisp_response), &remainder_length);
 	if (status != 0) {
-		status = TDISP_ERROR_CODE_UNSPECIFIED;
+		switch (status) {
+			case TDISP_DRIVER_INVALID_ARGUMENT:
+				status = TDISP_ERROR_CODE_INVALID_REQUEST;
+				break;
+
+			case TDISP_DRIVER_INVALID_INTERFACE:
+				status = TDISP_ERROR_CODE_INVALID_INTERFACE;
+				break;
+
+			case TDISP_DRIVER_INTERFACE_INVALID_STATE:
+				status = TDISP_ERROR_CODE_INVALID_INTERFACE_STATE;
+				break;
+
+			default:
+				status = TDISP_ERROR_CODE_UNSPECIFIED;
+		}
 		goto exit;
 	}
 
@@ -438,7 +400,7 @@ int tdisp_get_device_interface_report (const struct tdisp_driver *tdisp_driver,
 
 exit:
 	if (status != 0) {
-		tdisp_generate_error_response (request, TDISP_VERSION_1_0, function_id, status, 0);
+		tdisp_generate_error_response (request, TDISP_VERSION_1_0, function_id.value, status, 0);
 	}
 
 	return 0;
@@ -447,22 +409,22 @@ exit:
 /**
  * Process the TDISP GET_DEVICE_INTERFACE_STATE request and return the response.
  *
- * @param tdisp_state The TDISP responder state.
  * @param tdisp_driver The TDISP driver to use for processing the request.
  * @param request The GET_DEVICE_INTERFACE_STATE request to process.
  *
  * @return 0 if request processed successfully (including TDISP error msg) or an error code.
  */
-int tdisp_get_device_interface_state (struct tdisp_state *tdisp_state,
-	const struct tdisp_driver *tdisp_driver, struct cmd_interface_msg *request)
+int tdisp_get_device_interface_state (const struct tdisp_driver *tdisp_driver,
+	struct cmd_interface_msg *request)
 {
 	uint32_t status = 0;
 	const struct tdisp_get_device_interface_state_request *tdisp_request;
 	struct tdisp_device_interface_state_response *tdisp_response;
-	uint32_t function_id = 0;
+	union tdisp_function_id function_id = {0};
+	uint32_t function_index;
 	uint8_t tdi_state;
 
-	if ((tdisp_state == NULL) || (tdisp_driver == NULL) || (request == NULL)) {
+	if ((tdisp_driver == NULL) || (request == NULL)) {
 		return CMD_INTERFACE_TDISP_RESPONDER_INVALID_ARGUMENT;
 	}
 
@@ -486,8 +448,14 @@ int tdisp_get_device_interface_state (struct tdisp_state *tdisp_state,
 		goto exit;
 	}
 
+	status = tdisp_driver->get_function_index (tdisp_driver, function_id.bdf, &function_index);
+	if (status != 0) {
+		status = TDISP_ERROR_CODE_INVALID_INTERFACE;
+		goto exit;
+	}
+
 	/* Query the driver for the the TDI state. */
-	status = tdisp_driver->get_device_interface_state (tdisp_driver, function_id, &tdi_state);
+	status = tdisp_driver->get_device_interface_state (tdisp_driver, function_index, &tdi_state);
 	if (status != 0) {
 		status = TDISP_ERROR_CODE_INVALID_INTERFACE;
 		goto exit;
@@ -505,7 +473,7 @@ int tdisp_get_device_interface_state (struct tdisp_state *tdisp_state,
 
 exit:
 	if (status != 0) {
-		tdisp_generate_error_response (request, TDISP_VERSION_1_0, function_id, status, 0);
+		tdisp_generate_error_response (request, TDISP_VERSION_1_0, function_id.value, status, 0);
 	}
 
 	return 0;
@@ -514,22 +482,23 @@ exit:
 /**
  * Process the TDISP START_INTERFACE request and return the response.
  *
- * @param tdisp_state The TDISP responder state.
+ * @param tdi_context_manager The TDISP TDI context manager.
  * @param tdisp_driver The TDISP driver to use for processing the request.
  * @param request The START_INTERFACE request to process.
  *
  * @return 0 if request processed successfully (including TDISP error msg) or an error code.
  */
-int tdisp_start_interface (struct tdisp_state *tdisp_state,	const struct tdisp_driver *tdisp_driver,
-	struct cmd_interface_msg *request)
+int tdisp_start_interface (const struct tdisp_tdi_context_manager *tdi_context_manager,
+	const struct tdisp_driver *tdisp_driver, struct cmd_interface_msg *request)
 {
 	uint32_t status = 0;
 	const struct tdisp_start_interface_request *tdisp_request;
 	struct tdisp_start_interface_response *tdisp_response;
-	uint32_t function_id = 0;
-	struct tdisp_interface_context *interface_context;
+	union tdisp_function_id function_id = {0};
+	struct tdisp_tdi_context tdi_context = {};
+	uint32_t function_index;
 
-	if ((tdisp_state == NULL) || (tdisp_driver == NULL) || (request == NULL)) {
+	if ((tdi_context_manager == NULL) || (tdisp_driver == NULL) || (request == NULL)) {
 		return CMD_INTERFACE_TDISP_RESPONDER_INVALID_ARGUMENT;
 	}
 
@@ -546,23 +515,42 @@ int tdisp_start_interface (struct tdisp_state *tdisp_state,	const struct tdisp_d
 		goto exit;
 	}
 
-	/* Check the nonce received against the one that was sent in the LOCK_INTERFACE response. */
-	interface_context = tdisp_get_interface_context (tdisp_state,
-		&tdisp_request->header.interface_id);
-	if (interface_context == NULL) {
+	status = tdisp_driver->get_function_index (tdisp_driver, function_id.bdf, &function_index);
+	if (status != 0) {
 		status = TDISP_ERROR_CODE_INVALID_INTERFACE;
 		goto exit;
 	}
-	if (buffer_compare (tdisp_request->start_interface_nonce,
-		interface_context->start_interface_nonce, TDISP_START_INTERFACE_NONCE_SIZE) != 0) {
+
+	/* Check the nonce received against the one that was sent in the LOCK_INTERFACE response. */
+	status = tdi_context_manager->get_tdi_context (tdi_context_manager, function_index,
+		TDISP_TDI_CONTEXT_MASK_NONCE, &tdi_context);
+	if (status != 0) {
+		status = TDISP_ERROR_CODE_UNSPECIFIED;
+		goto exit;
+	}
+
+	if ((tdi_context.tdi_context_mask & TDISP_TDI_CONTEXT_MASK_NONCE) == 0) {
+		status = TDISP_ERROR_CODE_INVALID_INTERFACE_STATE;
+		goto exit;
+	}
+
+	if (buffer_compare (tdisp_request->start_interface_nonce, tdi_context.start_interface_nonce,
+		TDISP_START_INTERFACE_NONCE_SIZE) != 0) {
 		status = TDISP_ERROR_CODE_INVALID_NONCE;
 		goto exit;
 	}
 
 	/* Call the TDISP driver to start the interface. */
-	status = tdisp_driver->start_interface_request (tdisp_driver, function_id);
+	status = tdisp_driver->start_interface_request (tdisp_driver, function_index);
 	if (status != 0) {
-		status = TDISP_ERROR_CODE_UNSPECIFIED;
+		switch (status) {
+			case TDISP_DRIVER_INTERFACE_INVALID_STATE:
+				status = TDISP_ERROR_CODE_INVALID_INTERFACE_STATE;
+				break;
+
+			default:
+				status = TDISP_ERROR_CODE_UNSPECIFIED;
+		}
 		goto exit;
 	}
 
@@ -575,7 +563,7 @@ int tdisp_start_interface (struct tdisp_state *tdisp_state,	const struct tdisp_d
 
 exit:
 	if (status != 0) {
-		tdisp_generate_error_response (request, TDISP_VERSION_1_0, function_id, status, 0);
+		tdisp_generate_error_response (request, TDISP_VERSION_1_0, function_id.value, status, 0);
 	}
 
 	return 0;
@@ -595,7 +583,8 @@ int tdisp_stop_interface (const struct tdisp_driver *tdisp_driver,
 	uint32_t status;
 	const struct tdisp_stop_interface_request *tdisp_request;
 	struct tdisp_stop_interface_response *tdisp_response;
-	uint32_t function_id = 0;
+	union tdisp_function_id function_id = {0};
+	uint32_t function_index;
 
 	if ((tdisp_driver == NULL) || (request == NULL)) {
 		return CMD_INTERFACE_TDISP_RESPONDER_INVALID_ARGUMENT;
@@ -614,8 +603,14 @@ int tdisp_stop_interface (const struct tdisp_driver *tdisp_driver,
 		goto exit;
 	}
 
+	status = tdisp_driver->get_function_index (tdisp_driver, function_id.bdf, &function_index);
+	if (status != 0) {
+		status = TDISP_ERROR_CODE_INVALID_INTERFACE;
+		goto exit;
+	}
+
 	/* Call the TDISP driver to stop the interface. */
-	status = tdisp_driver->stop_interface_request (tdisp_driver, function_id);
+	status = tdisp_driver->stop_interface_request (tdisp_driver, function_index);
 	if (status != 0) {
 		status = TDISP_ERROR_CODE_UNSPECIFIED;
 		goto exit;
@@ -630,7 +625,7 @@ int tdisp_stop_interface (const struct tdisp_driver *tdisp_driver,
 
 exit:
 	if (status != 0) {
-		tdisp_generate_error_response (request, TDISP_VERSION_1_0, function_id, status, 0);
+		tdisp_generate_error_response (request, TDISP_VERSION_1_0, function_id.value, status, 0);
 	}
 
 	return 0;

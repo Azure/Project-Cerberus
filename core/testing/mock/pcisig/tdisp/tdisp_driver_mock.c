@@ -8,6 +8,18 @@
 #include "pcisig/tdisp/tdisp_driver.h"
 #include "status/rot_status.h"
 
+static int tdisp_driver_mock_get_function_index (const struct tdisp_driver *tdisp_driver,
+	uint32_t bdf, uint32_t *function_index)
+{
+	struct tdisp_driver_interface_mock *mock = (struct tdisp_driver_interface_mock*) tdisp_driver;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, tdisp_driver_mock_get_function_index, tdisp_driver,
+		MOCK_ARG_CALL (bdf), MOCK_ARG_PTR_CALL (function_index));
+}
 
 static int tdisp_driver_mock_get_tdisp_capabilities (const struct tdisp_driver *tdisp_driver,
 	const struct tdisp_requester_capabilities *req_caps,
@@ -107,7 +119,10 @@ static int tdisp_driver_mock_get_mmio_ranges (const struct tdisp_driver *tdisp_d
 
 static int tdisp_driver_mock_func_arg_count (void *func)
 {
-	if (func == tdisp_driver_mock_get_tdisp_capabilities) {
+	if (func == tdisp_driver_mock_get_function_index) {
+		return 2;
+	}
+	else if (func == tdisp_driver_mock_get_tdisp_capabilities) {
 		return 2;
 	}
 	else if (func == tdisp_driver_mock_lock_interface_request) {
@@ -135,7 +150,16 @@ static int tdisp_driver_mock_func_arg_count (void *func)
 
 static const char* tdisp_driver_mock_arg_name_map (void *func, int arg)
 {
-	if (func == tdisp_driver_mock_get_tdisp_capabilities) {
+	if (func == tdisp_driver_mock_get_function_index) {
+		switch (arg) {
+			case 0:
+				return "bdf";
+
+			case 1:
+				return "function_index";
+		}
+	}
+	else if (func == tdisp_driver_mock_get_tdisp_capabilities) {
 		switch (arg) {
 			case 0:
 				return "req_caps";
@@ -213,7 +237,10 @@ static const char* tdisp_driver_mock_arg_name_map (void *func, int arg)
 
 static const char* tdisp_driver_mock_func_name_map (void *func)
 {
-	if (func == tdisp_driver_mock_get_tdisp_capabilities) {
+	if (func == tdisp_driver_mock_get_function_index) {
+		return "get_function_index";
+	}
+	else if (func == tdisp_driver_mock_get_tdisp_capabilities) {
 		return "get_tdisp_capabilities";
 	}
 	else if (func == tdisp_driver_mock_lock_interface_request) {
@@ -263,6 +290,7 @@ int tdisp_driver_interface_mock_init (struct tdisp_driver_interface_mock *mock)
 
 	mock_set_name (&mock->mock, "tdisp_driver");
 
+	mock->base.get_function_index = tdisp_driver_mock_get_function_index;
 	mock->base.get_tdisp_capabilities = tdisp_driver_mock_get_tdisp_capabilities;
 	mock->base.lock_interface_request = tdisp_driver_mock_lock_interface_request;
 	mock->base.get_device_interface_report = tdisp_driver_mock_get_device_interface_report;

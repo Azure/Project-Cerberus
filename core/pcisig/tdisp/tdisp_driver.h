@@ -14,6 +14,19 @@
  */
 struct tdisp_driver {
 	/**
+	 * Driver function which allows to translate BDF into function index. 0 - is PF, 1-N
+	 * corresponds to VFs 0-(N-1), where N is number of VF functions.
+	 *
+	 * @param tdisp_driver The TDISP driver interface to query.
+	 * @param bdf Bus/Device/Function to be translated
+	 * @param function_index Output parameter, which holds function index on success
+	 *
+	 * @return 0 if successful, error code otherwise.
+	 */
+	int (*get_function_index) (const struct tdisp_driver *tdisp_driver, uint32_t bdf,
+		uint32_t *function_index);
+
+	/**
 	 * Get the TDISP device capabilities.
 	 *
 	 * @param tdisp_driver The TDISP driver interface to query.
@@ -30,19 +43,21 @@ struct tdisp_driver {
 	 * Lock the device interface.
 	 *
 	 * @param tdisp_driver The TDISP driver interface to query.
-	 * @param function_id The device interface function Id.
+	 * @param function_index The device interface function index, 0-PF, 1-N for VFs, where N is
+	 * 	number of VFs.
 	 * @param lock_interface_param Parameters from lock interface request.
 	 *
 	 * @return 0 if the interface was locked successfully or an error code.
 	 */
-	int (*lock_interface_request) (const struct tdisp_driver *tdisp_driver, uint32_t function_id,
+	int (*lock_interface_request) (const struct tdisp_driver *tdisp_driver, uint32_t function_index,
 		const struct tdisp_lock_interface_param *lock_interface_param);
 
 	/**
 	 * Get the device interface report.
 	 *
 	 * @param tdisp_driver The TDISP driver interface to query.
-	 * @param function_id The device interface function Id.
+	 * @param function_index The device interface function index, 0-PF, 1-N for VFs, where N is
+	 * 	number of VFs.
 	 * @param request_offset The requested offset of the report.
 	 * @param request_length The requested length of the report.
 	 * @param report_length On input, length of the interface_report buffer.
@@ -53,52 +68,58 @@ struct tdisp_driver {
 	 * @return 0 if device interface report was returned successfully or an error code.
 	 */
 	int (*get_device_interface_report) (const struct tdisp_driver *tdisp_driver,
-		uint32_t function_id, uint16_t request_offset, uint16_t request_length,
+		uint32_t function_index, uint16_t request_offset, uint16_t request_length,
 		uint16_t *report_length, uint8_t *interface_report, uint16_t *remainder_length);
 
 	/**
 	 * Get the device interface state.
 	 *
 	 * @param tdisp_driver The TDISP driver interface to query.
-	 * @param function_id The device interface function Id.
+	 * @param function_index The device interface function index, 0-PF, 1-N for VFs, where N is
+	 * 	number of VFs.
 	 * @param tdi_state Device interface state.
 	 *
 	 * @return 0 if the state was returned successfully or an error code.
 	 */
 	int (*get_device_interface_state) (const struct tdisp_driver *tdisp_driver,
-		uint32_t function_id, uint8_t *tdi_state);
+		uint32_t function_index, uint8_t *tdi_state);
 
 	/**
 	 * Start the requested device interface.
 	 *
 	 * @param tdisp_driver The TDISP driver interface to query.
-	 * @param function_id The function Id of the device interface to start.
+	 * @param function_index The device interface function index, 0-PF, 1-N for VFs, where N is
+	 * 	number of VFs.
 	 *
 	 * @return 0 if the device interface was started successfully or an error code.
 	 */
-	int (*start_interface_request) (const struct tdisp_driver *tdisp_driver, uint32_t function_id);
+	int (*start_interface_request) (const struct tdisp_driver *tdisp_driver,
+		uint32_t function_index);
 
 	/**
 	 * Stop the requested device interface.
 	 *
 	 * @param tdisp_driver The TDISP driver interface to query.
-	 * @param function_id The function Id of the device interface to stop.
+	 * @param function_index The device interface function index, 0-PF, 1-N for VFs, where N is
+	 * 	number of VFs.
 	 *
 	 * @return 0 if the device interface was stopped successfully or an error code.
 	 */
-	int (*stop_interface_request) (const struct tdisp_driver *tdisp_driver, uint32_t function_id);
+	int (*stop_interface_request) (const struct tdisp_driver *tdisp_driver,
+		uint32_t function_index);
 
 	/**
 	 * Get the MMIO ranges for the device interface.
 	 *
 	 * @param tdisp_driver The TDISP driver interface to query.
-	 * @param function_id The device interface function Id.
+	 * @param function_index The device interface function index, 0-PF, 1-N for VFs, where N is
+	 * 	number of VFs.
 	 * @param mmio_range_count The count of mmio ranges to return.
 	 * @param mmio_ranges Returned mmio ranges.
 	 *
 	 * @return 0 if the mmio ranges were returned successfully or an error code.
 	 */
-	int (*get_mmio_ranges) (const struct tdisp_driver *tdisp_driver, uint32_t function_id,
+	int (*get_mmio_ranges) (const struct tdisp_driver *tdisp_driver, uint32_t function_index,
 		uint32_t mmio_range_count, struct tdisp_mmio_range *mmio_ranges);
 };
 
@@ -118,7 +139,11 @@ enum {
 	TDISP_DRIVER_STOP_INTERFACE_REQUEST_FAILED = TDISP_DRIVER_ERROR (0x06),			/**< The driver failed to stop the device interface. */
 	TDISP_DRIVER_GET_DEVICE_INTERFACE_REPORT_FAILED = TDISP_DRIVER_ERROR (0x07),	/**< The driver failed to get the device interface report. */
 	TDISP_DRIVER_GET_MMIO_RANGES_FAILED = TDISP_DRIVER_ERROR (0x08),				/**< The driver failed to get the mmio ranges. */
-	TDISP_DRIVER_NOT_IMPLEMENTED = TDISP_DRIVER_ERROR (0x09),						/**< The driver function is not implemented. */
+	TDISP_DRIVER_GET_FUNCTION_INDEX_FAILED = TDISP_DRIVER_ERROR (0x09),				/**< The driver failed to get the function index. */
+	TDISP_DRIVER_NOT_IMPLEMENTED = TDISP_DRIVER_ERROR (0x0A),						/**< The driver function is not implemented. */
+	TDISP_DRIVER_INTERFACE_INVALID_STATE = TDISP_DRIVER_ERROR (0x0B),				/**< Interface invalid state */
+	TDISP_DRIVER_INVALID_INTERFACE = TDISP_DRIVER_ERROR (0x0C),						/**< Invalid interface ID */
+	TDISP_DRIVER_IDE_NOT_SECURE = TDISP_DRIVER_ERROR (0x0D),						/**< IDE stream is not in secure state */
 };
 
 

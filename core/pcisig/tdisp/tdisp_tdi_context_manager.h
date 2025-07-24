@@ -22,6 +22,15 @@ enum {
 	TDISP_TDI_CONTEXT_MASK_RESERVED_1 = 0x0040,				/**< TDI reserved[1] field */
 	TDISP_TDI_CONTEXT_MASK_RESERVED_2 = 0x0080,				/**< TDI reserved[2] field */
 	TDISP_TDI_CONTEXT_MASK_RESERVED_3 = 0x0100,				/**< TDI reserved[3] field */
+	/**
+	 * All available fields as a single bit mask
+	 */
+	TDISP_TDI_CONTEXT_MASK_ALL = TDISP_TDI_CONTEXT_MASK_NONCE | TDISP_TDI_CONTEXT_MASK_LOCK_FLAGS |
+		TDISP_TDI_CONTEXT_MASK_DEFAULT_IDE_STREAM_ID |
+		TDISP_TDI_CONTEXT_MASK_MMIO_REPORTING_OFFSET |
+		TDISP_TDI_CONTEXT_MASK_BIND_P2P_ADDRESS_MASK | TDISP_TDI_CONTEXT_MASK_RESERVED_0 |
+		TDISP_TDI_CONTEXT_MASK_RESERVED_1 | TDISP_TDI_CONTEXT_MASK_RESERVED_2 |
+		TDISP_TDI_CONTEXT_MASK_RESERVED_3,
 };
 
 /**
@@ -48,11 +57,11 @@ struct tdisp_tdi_context_manager {
 	 * Clears context for specific TDI
 	 *
 	 * @param mgr TDI context manager
-	 * @param tdi_id TDI interface id
+	 * @param tdi_index TDI interface index (0 for PF, 1-N for VFs, where N is the number of VFs)
 	 *
 	 * @return 0 on success, error code otherwise
 	 */
-	int (*clear_tdi_context) (const struct tdisp_tdi_context_manager *mgr, uint32_t tdi_id);
+	int (*clear_tdi_context) (const struct tdisp_tdi_context_manager *mgr, uint32_t tdi_index);
 
 	/**
 	 * Clears all TDI contexts
@@ -67,88 +76,88 @@ struct tdisp_tdi_context_manager {
 	 * Gets context for specific TDI
 	 *
 	 * @param mgr TDI context manager
-	 * @param tdi_id TDI interface id
+	 * @param tdi_index TDI interface index (0 for PF, 1-N for VFs, where N is the number of VFs)
 	 * @param context_mask - Specifies context mask which indicates which fields should be
 	 * populated in the context struct
 	 * @param context - Output struct to receive context information
 	 *
 	 * @return 0 on success, error code otherwise
 	 */
-	int (*get_tdi_context) (const struct tdisp_tdi_context_manager *mgr, uint32_t tdi_id,
+	int (*get_tdi_context) (const struct tdisp_tdi_context_manager *mgr, uint32_t tdi_index,
 		uint32_t context_mask, struct tdisp_tdi_context *context);
 
 	/**
 	 * Sets TDI start nonce
 	 *
 	 * @param mgr TDI context manager
-	 * @param tdi_id TDI interface id
+	 * @param tdi_index TDI interface index (0 for PF, 1-N for VFs, where N is the number of VFs)
 	 * @param nonce - array representing TDI start nonce
 	 * @param nonce_size - nonce size
 	 *
 	 * @return 0 on success, error code otherwise
 	 */
-	int (*set_start_nonce) (const struct tdisp_tdi_context_manager *mgr, uint32_t tdi_id,
+	int (*set_start_nonce) (const struct tdisp_tdi_context_manager *mgr, uint32_t tdi_index,
 		const uint8_t *nonce, size_t nonce_size);
 
 	/**
 	 * Sets TDI lock flags
 	 *
 	 * @param mgr TDI context manager
-	 * @param tdi_id TDI interface id
+	 * @param tdi_index TDI interface index (0 for PF, 1-N for VFs, where N is the number of VFs)
 	 * @param lock_flags - TDI lock flags
 	 *
 	 * @return 0 on success, error code otherwise
 	 */
-	int (*set_lock_flags) (const struct tdisp_tdi_context_manager *mgr, uint32_t tdi_id,
+	int (*set_lock_flags) (const struct tdisp_tdi_context_manager *mgr, uint32_t tdi_index,
 		uint16_t lock_flags);
 
 	/**
 	 * Sets TDI default IDE stream ID
 	 *
 	 * @param mgr TDI context manager
-	 * @param tdi_id TDI interface id
+	 * @param tdi_index TDI interface index (0 for PF, 1-N for VFs, where N is the number of VFs)
 	 * @param ide_stream_id Default IDE stream ID
 	 *
 	 * @return 0 on success, error code otherwise
 	 */
-	int (*set_default_ide_stream) (const struct tdisp_tdi_context_manager *mgr, uint32_t tdi_id,
+	int (*set_default_ide_stream) (const struct tdisp_tdi_context_manager *mgr, uint32_t tdi_index,
 		uint8_t ide_stream_id);
 
 	/**
 	 * Sets TDI MMIO reporting offset
 	 *
 	 * @param mgr TDI context manager
-	 * @param tdi_id TDI interface id
+	 * @param tdi_index TDI interface index (0 for PF, 1-N for VFs, where N is the number of VFs)
 	 * @param mmio_reporting_offset - MMIO reporting offset for this TDI
 	 *
 	 * @return 0 on success, error code otherwise
 	 */
-	int (*set_mmio_reporting_offset) (const struct tdisp_tdi_context_manager *mgr, uint32_t tdi_id,
-		uint64_t mmio_reporting_offset);
+	int (*set_mmio_reporting_offset) (const struct tdisp_tdi_context_manager *mgr,
+		uint32_t tdi_index, uint64_t mmio_reporting_offset);
 
 	/**
 	 * Sets TDI bind P2P address mask
 	 *
 	 * @param mgr TDI context manager
-	 * @param tdi_id TDI interface id
+	 * @param tdi_index TDI interface index (0 for PF, 1-N for VFs, where N is the number of VFs)
 	 * @param bind_p2p_address_mask - Bind P2P address mask
 	 *
 	 * @return 0 on success, error code otherwise
 	 */
-	int (*set_bind_p2p_address_mask) (const struct tdisp_tdi_context_manager *mgr, uint32_t tdi_id,
-		uint64_t bind_p2p_address_mask);
+	int (*set_bind_p2p_address_mask) (const struct tdisp_tdi_context_manager *mgr,
+		uint32_t tdi_index, uint64_t bind_p2p_address_mask);
 
 	/**
 	 * Sets reserved field
 	 *
 	 * @param mgr TDI context manager
-	 * @param tdi_id TDI interface id
+	 * @param tdi_index TDI interface index (0 for PF, 1-N for VFs, where N is the number of VFs)
 	 * @param index - reserved value index
 	 * @param value - reserved value
 	 *
 	 * @return 0 on success, error code otherwise
 	 */
-	int (*set_reserved) (const struct tdisp_tdi_context_manager *mgr, uint32_t tdi_id,
+	int (*set_reserved) (const struct tdisp_tdi_context_manager *mgr, uint32_t tdi_index,
 		uint8_t index, uint32_t value);
 };
 
@@ -186,6 +195,8 @@ enum {
 		TDISP_TDI_CONTEXT_MANAGER_ERROR (0x08),															/**< Failure to set TDI MMIO reporting offset */
 	TDISP_TDI_CONTEXT_MANAGER_SET_BIND_P2P_ADDRESS_MAKS_FAILED =
 		TDISP_TDI_CONTEXT_MANAGER_ERROR (0x09),															/**< Failure to set TDI bind P2P address mask */
+	TDISP_TDI_CONTEXT_MANAGER_INVALID_INTERFACE = TDISP_TDI_CONTEXT_MANAGER_ERROR (0x0A),				/**< Invalid TDISP interface  */
+	TDISP_TDI_CONTEXT_MANAGER_INVALID_MASK = TDISP_TDI_CONTEXT_MANAGER_ERROR (0x0B),					/**< Invalid context mask  */
 };
 
 
