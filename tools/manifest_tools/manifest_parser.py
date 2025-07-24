@@ -563,15 +563,8 @@ def process_cfm (root, xml_file, selection_list):
 
                 data_text = binascii.a2b_hex (data_text)
 
-                if "data_len" in component["measurement_data"][pmr_id][measurement_id]:
-                    data_len = component["measurement_data"][pmr_id][measurement_id]["data_len"]
-                    if len (data_text) != data_len:
-                        raise ValueError (
-                            "Data {0} has different length than other data for component {1} in manifest {2}: {3} vs {4}".format (
-                                data_text, component_type, xml_file, len (data_text), data_len))
-                else:
-                    component["measurement_data"][pmr_id][measurement_id]["data_len"] = \
-                        len (data_text)
+                component["measurement_data"][pmr_id][measurement_id]["data_len"] = \
+                    len (data_text)
 
                 if "bitmask" in data_dict and len (data_text) > len (data_dict["bitmask"]):
                     raise ValueError (

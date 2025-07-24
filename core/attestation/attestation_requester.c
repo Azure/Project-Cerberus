@@ -2600,7 +2600,8 @@ static int attestation_requester_get_and_verify_spdm_measurement_block (
  * @return 0 if data matches or 1 otherwise
  */
 static int attestation_requester_compare_data (enum cfm_check check, const uint8_t *actual,
-	const uint8_t *expected, size_t length, const uint8_t *bitmask, bool big_endian)
+	size_t actual_length, const uint8_t *expected, size_t expected_length, const uint8_t *bitmask,
+	bool big_endian)
 {
 	uint8_t actual_value;
 	uint8_t expected_value;
@@ -2609,17 +2610,21 @@ static int attestation_requester_compare_data (enum cfm_check check, const uint8
 	int direction;
 	int result;
 
+	if (expected_length != actual_length) {
+		return 1;
+	}
+
 	if (big_endian) {
 		i_data = 0;
 		direction = 1;
 	}
 	else {
 		// If data is in little endian, reverse loop traversal.
-		i_data = length - 1;
+		i_data = actual_length - 1;
 		direction = -1;
 	}
 
-	for (i_comp = 0; i_comp < length; ++i_comp, i_data += direction) {
+	for (i_comp = 0; i_comp < actual_length; ++i_comp, i_data += direction) {
 		actual_value = actual[i_data];
 		expected_value = expected[i_data];
 
@@ -2702,11 +2707,6 @@ static int attestation_requester_verify_data_in_allowable_list (
 				return ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID;
 			}
 
-			if ((check->allowable_data[i_data].data_len !=
-				attestation->state->txn.msg_buffer_len)) {
-				return ATTESTATION_CFM_INVALID_ATTESTATION;
-			}
-
 			/* For a single version set, only a single allowable data entry is permitted unless a
 			 * "equal" or "not equal" check. */
 			if ((i_checks_in_version_set != 0) && (check->check != CFM_CHECK_EQUAL) &&
@@ -2716,9 +2716,15 @@ static int attestation_requester_verify_data_in_allowable_list (
 
 			++i_checks_in_version_set;
 
+			if ((check->bitmask != NULL) &&
+				(check->bitmask_length < attestation->state->txn.msg_buffer_len)) {
+				return ATTESTATION_BITMASK_TOO_SMALL;
+			}
+
 			status = attestation_requester_compare_data (check->check,
-				attestation->state->txn.msg_buffer, check->allowable_data[i_data].data,
-				check->allowable_data[i_data].data_len, check->bitmask, check->big_endian);
+				attestation->state->txn.msg_buffer, attestation->state->txn.msg_buffer_len,
+				check->allowable_data[i_data].data, check->allowable_data[i_data].data_len,
+				check->bitmask, check->big_endian);
 			if (status == 0) {
 				// If device version set still not selected, then set it
 				if (!attestation_requester_is_version_set_selected (attestation)) {
