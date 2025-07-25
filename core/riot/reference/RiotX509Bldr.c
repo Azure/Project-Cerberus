@@ -183,7 +183,7 @@ static int X509AddTcbInfoExtension (
 		CHK (DERStartConstructed (Tbs, 0xA6));
 		CHK (DERStartSequenceOrSet (Tbs, true));
 		CHK (DERAddOID (Tbs, shaOID));
-		CHK (DERAddOctetString (Tbs, Tcb->fwid, FwidLen));
+		CHK (DERAddOctetString (Tbs, Tcb->fwid_list->digest, FwidLen));
 		CHK (DERPopNesting (Tbs));
 		CHK (DERPopNesting (Tbs));
 		CHK (DERPopNesting (Tbs));

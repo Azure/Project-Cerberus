@@ -9,6 +9,7 @@
 #include "asn1/dice/x509_extension_builder_dice_tcbinfo.h"
 #include "asn1/dice/x509_extension_builder_mbedtls_dice_tcbinfo.h"
 #include "asn1/dice/x509_extension_builder_mbedtls_dice_tcbinfo_static.h"
+#include "common/array_size.h"
 #include "testing/asn1/dice/x509_extension_builder_dice_tcbinfo_testing.h"
 #include "testing/asn1/x509_testing.h"
 
@@ -31,15 +32,22 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_init (CuTest *test)
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	int status;
 
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init (&builder, &tcb);
 	CuAssertIntEquals (test, 0, status);
@@ -54,15 +62,22 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_init_null (CuTest *
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	int status;
 
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init (NULL, &tcb);
 	CuAssertIntEquals (test, DICE_TCBINFO_EXTENSION_INVALID_ARGUMENT, status);
@@ -75,16 +90,23 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_init_with_buffer (C
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA256)];
 	int status;
 
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -100,16 +122,23 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_init_with_buffer_nu
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA256)];
 	int status;
 
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (NULL, &tcb, ext_buffer,
 		sizeof (ext_buffer));
@@ -165,16 +194,23 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build (CuTest *test
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	int status;
 	struct x509_extension extension = {0};
 
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init (&builder, &tcb);
 	CuAssertIntEquals (test, 0, status);
@@ -208,16 +244,23 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_sha1 (CuTest 
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA1_FWID,
+			.hash_alg = HASH_TYPE_SHA1
+		}
+	};
 	int status;
 	struct x509_extension extension = {0};
 
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA1_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA1;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init (&builder, &tcb);
 	CuAssertIntEquals (test, 0, status);
@@ -249,16 +292,23 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_sha384 (CuTes
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA384_FWID,
+			.hash_alg = HASH_TYPE_SHA384
+		}
+	};
 	int status;
 	struct x509_extension extension = {0};
 
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA384_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA384;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init (&builder, &tcb);
 	CuAssertIntEquals (test, 0, status);
@@ -290,16 +340,23 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_sha512 (CuTes
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA512_FWID,
+			.hash_alg = HASH_TYPE_SHA512
+		}
+	};
 	int status;
 	struct x509_extension extension = {0};
 
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA512_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA512;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init (&builder, &tcb);
 	CuAssertIntEquals (test, 0, status);
@@ -327,10 +384,79 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_sha512 (CuTes
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
+static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_multiple_fwids (CuTest *test)
+{
+	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
+	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		},
+		{
+			.digest = X509_RIOT_SHA1_FWID,
+			.hash_alg = HASH_TYPE_SHA1
+		},
+		{
+			.digest = X509_RIOT_SHA512_FWID,
+			.hash_alg = HASH_TYPE_SHA512
+		},
+		{
+			.digest = X509_RIOT_SHA384_FWID,
+			.hash_alg = HASH_TYPE_SHA384
+		}
+	};
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
+
+	status = x509_extension_builder_mbedtls_dice_tcbinfo_init (&builder, &tcb);
+	CuAssertIntEquals (test, 0, status);
+
+	status = builder.base.build (&builder.base, &extension);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, extension.critical);
+	CuAssertPtrNotNull (test, extension.oid);
+	CuAssertPtrNotNull (test, extension.data);
+	CuAssertIntEquals (test, X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_OID_LEN,
+		extension.oid_length);
+	CuAssertIntEquals (test, X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_MULTIPLE_FWIDS_LEN,
+		extension.data_length);
+
+	status = testing_validate_array (X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_OID, extension.oid,
+		extension.oid_length);
+	CuAssertIntEquals (test, 0, status);
+
+	status =
+		testing_validate_array (X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_MULTIPLE_FWIDS,
+		extension.data, extension.data_length);
+	CuAssertIntEquals (test, 0, status);
+
+	builder.base.free (&builder.base, &extension);
+	CuAssertPtrEquals (test, NULL, extension.data);
+	CuAssertIntEquals (test, 0, extension.data_length);
+
+	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
+}
+
 static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_svn_zero (CuTest *test)
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t zero = 0;
 	int status;
 	struct x509_extension extension = {0};
@@ -338,10 +464,11 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_svn_zero (CuT
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = &zero;
 	tcb.svn_length = 1;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init (&builder, &tcb);
 	CuAssertIntEquals (test, 0, status);
@@ -369,9 +496,115 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_svn_zero (CuT
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
+static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_layer_1 (CuTest *test)
+{
+	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
+	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 1;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
+
+	status = x509_extension_builder_mbedtls_dice_tcbinfo_init (&builder, &tcb);
+	CuAssertIntEquals (test, 0, status);
+
+	status = builder.base.build (&builder.base, &extension);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, extension.critical);
+	CuAssertPtrNotNull (test, extension.oid);
+	CuAssertPtrNotNull (test, extension.data);
+	CuAssertIntEquals (test, X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_OID_LEN,
+		extension.oid_length);
+	CuAssertIntEquals (test, X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_LAYER_1_LEN,
+		extension.data_length);
+
+	status = testing_validate_array (X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_OID, extension.oid,
+		extension.oid_length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_LAYER_1,
+		extension.data, extension.data_length);
+	CuAssertIntEquals (test, 0, status);
+
+	builder.base.free (&builder.base, &extension);
+	CuAssertPtrEquals (test, NULL, extension.data);
+	CuAssertIntEquals (test, 0, extension.data_length);
+
+	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
+}
+
+static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_layer_1000 (CuTest *test)
+{
+	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
+	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 1000;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
+
+	status = x509_extension_builder_mbedtls_dice_tcbinfo_init (&builder, &tcb);
+	CuAssertIntEquals (test, 0, status);
+
+	status = builder.base.build (&builder.base, &extension);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, extension.critical);
+	CuAssertPtrNotNull (test, extension.oid);
+	CuAssertPtrNotNull (test, extension.data);
+	CuAssertIntEquals (test, X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_OID_LEN,
+		extension.oid_length);
+	CuAssertIntEquals (test, X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_LAYER_1000_LEN,
+		extension.data_length);
+
+	status = testing_validate_array (X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_OID, extension.oid,
+		extension.oid_length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_LAYER_1000,
+		extension.data, extension.data_length);
+	CuAssertIntEquals (test, 0, status);
+
+	builder.base.free (&builder.base, &extension);
+	CuAssertPtrEquals (test, NULL, extension.data);
+	CuAssertIntEquals (test, 0, extension.data_length);
+
+	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
+}
+
 static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_static_init (CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder =
 		x509_extension_builder_mbedtls_dice_tcbinfo_static_init (&tcb);
 	int status;
@@ -380,10 +613,11 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_static_init (
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = builder.base.build (&builder.base, &extension);
 	CuAssertIntEquals (test, 0, status);
@@ -412,6 +646,12 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_null (CuTest 
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	int status;
 	struct x509_extension extension = {0};
 
@@ -421,10 +661,11 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_null (CuTest 
 	CuAssertIntEquals (test, 0, status);
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = builder.base.build (NULL, &extension);
 	CuAssertIntEquals (test, DICE_TCBINFO_EXTENSION_INVALID_ARGUMENT, status);
@@ -455,16 +696,27 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_unknown_fwid 
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		},
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = (enum hash_type) 10
+		}
+	};
 	int status;
 	struct x509_extension extension = {0};
 
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = (enum hash_type) 10;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init (&builder, &tcb);
 	CuAssertIntEquals (test, 0, status);
@@ -475,20 +727,31 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_unknown_fwid 
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
-static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_fwid (CuTest *test)
+static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_fwid_digest (CuTest *test)
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		},
+		{
+			.digest = NULL,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	int status;
 	struct x509_extension extension = {0};
 
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = NULL;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init (&builder, &tcb);
 	CuAssertIntEquals (test, 0, status);
@@ -499,20 +762,67 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_fwid (CuTe
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
+static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_fwid_list (CuTest *test)
+{
+	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
+	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
+	tcb.fwid_list = NULL;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
+
+	status = x509_extension_builder_mbedtls_dice_tcbinfo_init (&builder, &tcb);
+	CuAssertIntEquals (test, 0, status);
+
+	status = builder.base.build (&builder.base, &extension);
+	CuAssertIntEquals (test, DICE_TCBINFO_EXTENSION_NO_FWID_LIST, status);
+
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = 0;
+
+	status = x509_extension_builder_mbedtls_dice_tcbinfo_init (&builder, &tcb);
+	CuAssertIntEquals (test, 0, status);
+
+	status = builder.base.build (&builder.base, &extension);
+	CuAssertIntEquals (test, DICE_TCBINFO_EXTENSION_NO_FWID_LIST, status);
+
+	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
+}
+
 static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_version (CuTest *test)
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	int status;
 	struct x509_extension extension = {0};
 
 	TEST_START;
 
 	tcb.version = NULL;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init (&builder, &tcb);
 	CuAssertIntEquals (test, 0, status);
@@ -527,14 +837,21 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_svn (CuTes
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	int status;
 	struct x509_extension extension = {0};
 
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.layer = 0;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init (&builder, &tcb);
 	CuAssertIntEquals (test, 0, status);
@@ -560,16 +877,23 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_free_null (CuTest *
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	int status;
 	struct x509_extension extension = {0};
 
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init (&builder, &tcb);
 	CuAssertIntEquals (test, 0, status);
@@ -584,6 +908,12 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer (
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA256)];
 	int status;
 	struct x509_extension extension = {0};
@@ -591,10 +921,11 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer (
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -627,6 +958,12 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA1_FWID,
+			.hash_alg = HASH_TYPE_SHA1
+		}
+	};
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA1)];
 	int status;
 	struct x509_extension extension = {0};
@@ -634,10 +971,11 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA1_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA1;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -670,6 +1008,12 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA384_FWID,
+			.hash_alg = HASH_TYPE_SHA384
+		}
+	};
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA384)];
 	int status;
 	struct x509_extension extension = {0};
@@ -677,10 +1021,11 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA384_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA384;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -713,6 +1058,12 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA512_FWID,
+			.hash_alg = HASH_TYPE_SHA512
+		}
+	};
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA512)];
 	int status;
 	struct x509_extension extension = {0};
@@ -720,10 +1071,11 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA512_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA512;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -752,11 +1104,82 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
+static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_multiple_fwids (
+	CuTest *test)
+{
+	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
+	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		},
+		{
+			.digest = X509_RIOT_SHA1_FWID,
+			.hash_alg = HASH_TYPE_SHA1
+		},
+		{
+			.digest = X509_RIOT_SHA512_FWID,
+			.hash_alg = HASH_TYPE_SHA512
+		},
+		{
+			.digest = X509_RIOT_SHA384_FWID,
+			.hash_alg = HASH_TYPE_SHA384
+		}
+	};
+	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (
+		MULTIPLE_FWIDS)];
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
+
+	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
+		ext_buffer, sizeof (ext_buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = builder.base.build (&builder.base, &extension);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, extension.critical);
+	CuAssertPtrNotNull (test, extension.oid);
+	CuAssertPtrEquals (test, ext_buffer, (void*) extension.data);
+	CuAssertIntEquals (test, X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_OID_LEN,
+		extension.oid_length);
+	CuAssertIntEquals (test, X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_MULTIPLE_FWIDS_LEN,
+		extension.data_length);
+
+	status = testing_validate_array (X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_OID, extension.oid,
+		extension.oid_length);
+	CuAssertIntEquals (test, 0, status);
+
+	status =
+		testing_validate_array (X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_MULTIPLE_FWIDS,
+		extension.data, extension.data_length);
+	CuAssertIntEquals (test, 0, status);
+
+	builder.base.free (&builder.base, &extension);
+
+	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
+}
+
 static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_svn_zero (
 	CuTest *test)
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t zero = 0;
 	uint8_t ext_buffer[
 		X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SVN_ZERO)];
@@ -766,10 +1189,11 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = &zero;
 	tcb.svn_length = 1;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -798,11 +1222,120 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
 }
 
+static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_layer_1 (
+	CuTest *test)
+{
+	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
+	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
+	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (LAYER_1)];
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 1;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
+
+	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
+		ext_buffer, sizeof (ext_buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = builder.base.build (&builder.base, &extension);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, extension.critical);
+	CuAssertPtrNotNull (test, extension.oid);
+	CuAssertPtrEquals (test, ext_buffer, (void*) extension.data);
+	CuAssertIntEquals (test, X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_OID_LEN,
+		extension.oid_length);
+	CuAssertIntEquals (test, X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_LAYER_1_LEN,
+		extension.data_length);
+
+	status = testing_validate_array (X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_OID, extension.oid,
+		extension.oid_length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_LAYER_1,
+		extension.data, extension.data_length);
+	CuAssertIntEquals (test, 0, status);
+
+	builder.base.free (&builder.base, &extension);
+
+	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
+}
+
+static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_layer_1000 (
+	CuTest *test)
+{
+	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
+	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
+	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (
+		LAYER_1000)];
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 1000;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
+
+	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
+		ext_buffer, sizeof (ext_buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = builder.base.build (&builder.base, &extension);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, extension.critical);
+	CuAssertPtrNotNull (test, extension.oid);
+	CuAssertPtrEquals (test, ext_buffer, (void*) extension.data);
+	CuAssertIntEquals (test, X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_OID_LEN,
+		extension.oid_length);
+	CuAssertIntEquals (test, X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_LAYER_1000_LEN,
+		extension.data_length);
+
+	status = testing_validate_array (X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_OID, extension.oid,
+		extension.oid_length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_LAYER_1000,
+		extension.data, extension.data_length);
+	CuAssertIntEquals (test, 0, status);
+
+	builder.base.free (&builder.base, &extension);
+
+	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
+}
+
 static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_extra_space (
 	CuTest *test)
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t ext_buffer[
 		X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA256) + 32];
 	int status;
@@ -811,10 +1344,11 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_e
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -847,6 +1381,12 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA256)];
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder =
 		x509_extension_builder_mbedtls_dice_tcbinfo_static_init_with_buffer (&tcb, ext_buffer,
@@ -857,10 +1397,11 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = builder.base.build (&builder.base, &extension);
 	CuAssertIntEquals (test, 0, status);
@@ -889,6 +1430,12 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_n
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA256)];
 	int status;
 	struct x509_extension extension = {0};
@@ -900,10 +1447,11 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_n
 	CuAssertIntEquals (test, 0, status);
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = builder.base.build (NULL, &extension);
 	CuAssertIntEquals (test, DICE_TCBINFO_EXTENSION_INVALID_ARGUMENT, status);
@@ -919,6 +1467,12 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_static_init_n
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder =
 		x509_extension_builder_mbedtls_dice_tcbinfo_static_init_with_buffer (&tcb, NULL,
 		X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA256));
@@ -928,10 +1482,11 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_static_init_n
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = builder.base.build (&builder.base, &extension);
 	CuAssertIntEquals (test, DICE_TCBINFO_EXTENSION_INVALID_ARGUMENT, status);
@@ -961,6 +1516,12 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t ext_buffer[SHA256_HASH_LENGTH - 1];
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	int status;
@@ -969,10 +1530,11 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -988,6 +1550,12 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	(CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t ext_buffer[SHA256_HASH_LENGTH];
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	int status;
@@ -996,10 +1564,11 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -1015,6 +1584,12 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	(CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t ext_buffer[SHA256_HASH_LENGTH + 1];
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	int status;
@@ -1023,10 +1598,11 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -1042,6 +1618,12 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	(CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t ext_buffer[SHA256_HASH_LENGTH + 2 +
 		X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_FWID_OID_LEN - 1];
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
@@ -1051,10 +1633,11 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -1071,6 +1654,12 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t ext_buffer[SHA256_HASH_LENGTH + 2 +
 		X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_FWID_OID_LEN + 2 - 2];
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
@@ -1080,10 +1669,11 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -1100,6 +1690,12 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t ext_buffer[SHA256_HASH_LENGTH + 2 +
 		X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_FWID_OID_LEN + 2 - 1];
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
@@ -1109,10 +1705,11 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -1129,6 +1726,12 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t ext_buffer[SHA256_HASH_LENGTH + 2 +
 		X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_FWID_OID_LEN + 2 + 2 - 2];
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
@@ -1138,10 +1741,11 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -1158,6 +1762,12 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t ext_buffer[SHA256_HASH_LENGTH + 2 +
 		X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_FWID_OID_LEN + 2 + 2 - 1];
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
@@ -1167,10 +1777,46 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
+
+	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
+		ext_buffer, sizeof (ext_buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = builder.base.build (&builder.base, &extension);
+	CuAssertIntEquals (test, DICE_TCBINFO_EXTENSION_SMALL_EXT_BUFFER, status);
+
+	x509_extension_builder_mbedtls_dice_tcbinfo_release (&builder);
+}
+
+static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_layer (
+	CuTest *test)
+{
+	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
+	uint8_t ext_buffer[SHA256_HASH_LENGTH + 2 +
+		X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_FWID_OID_LEN + 2 + 2 + 3 - 1];
+	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.svn_length = X509_RIOT_SVN_LEN;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -1186,8 +1832,14 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t ext_buffer[SHA256_HASH_LENGTH + 2 +
-		X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_FWID_OID_LEN + 2 + 2 + 6 - 1];
+		X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_FWID_OID_LEN + 2 + 2 + 3 + 6 - 1];
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	int status;
 	struct x509_extension extension = {0};
@@ -1195,10 +1847,11 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -1214,8 +1867,14 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	(CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t ext_buffer[SHA256_HASH_LENGTH + 2 +
-		X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_FWID_OID_LEN + 2 + 2 + 6 + 7 + 2 - 1];
+		X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_FWID_OID_LEN + 2 + 2 + 3 + 6 + 7 + 2 - 1];
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	int status;
 	struct x509_extension extension = {0};
@@ -1223,10 +1882,11 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_s
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -1243,6 +1903,12 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_SHA256_LEN - 2];
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	int status;
@@ -1251,10 +1917,11 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -1271,6 +1938,12 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_
 	CuTest *test)
 {
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_SHA256_LEN - 1];
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	int status;
@@ -1279,10 +1952,11 @@ x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -1298,6 +1972,12 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_free_with_buffer_nu
 {
 	struct x509_extension_builder_mbedtls_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
+	struct tcg_dice_fwid fwid_list[] = {
+		{
+			.digest = X509_RIOT_SHA256_FWID,
+			.hash_alg = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA256)];
 	int status;
 	struct x509_extension extension = {0};
@@ -1305,10 +1985,11 @@ static void x509_extension_builder_mbedtls_dice_tcbinfo_test_free_with_buffer_nu
 	TEST_START;
 
 	tcb.version = X509_RIOT_VERSION;
+	tcb.layer = 0;
 	tcb.svn = X509_RIOT_SVN;
 	tcb.svn_length = X509_RIOT_SVN_LEN;
-	tcb.fwid = X509_RIOT_SHA256_FWID;
-	tcb.fwid_hash = HASH_TYPE_SHA256;
+	tcb.fwid_list = fwid_list;
+	tcb.fwid_count = ARRAY_SIZE (fwid_list);
 
 	status = x509_extension_builder_mbedtls_dice_tcbinfo_init_with_buffer (&builder, &tcb,
 		ext_buffer, sizeof (ext_buffer));
@@ -1335,12 +2016,16 @@ TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_sha1);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_sha384);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_sha512);
+TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_multiple_fwids);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_svn_zero);
+TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_layer_1);
+TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_layer_1000);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_static_init);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_null);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_static_init_null_tcb);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_unknown_fwid);
-TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_fwid);
+TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_fwid_digest);
+TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_fwid_list);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_version);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_no_svn);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_free_null);
@@ -1348,7 +2033,10 @@ TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_sha1);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_sha384);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_sha512);
+TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_multiple_fwids);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_svn_zero);
+TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_layer_1);
+TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_layer_1000);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_extra_space);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_static_init);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_null);
@@ -1362,6 +2050,7 @@ TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_b
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_sequence_tag);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_list_len);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_fwid_list_tag);
+TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_layer);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_svn);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_version);
 TEST (x509_extension_builder_mbedtls_dice_tcbinfo_test_build_with_buffer_small_buffer_ext_sequence_len);

@@ -35,6 +35,7 @@ static int x509_extension_builder_mbedtls_dice_tcbinfo_create_extension (
 	int fwid_length;
 	char *fwid_oid;
 	size_t fwid_oid_length;
+	int i;
 	int ret;
 
 	if (dice->tcb == NULL) {
@@ -49,70 +50,93 @@ static int x509_extension_builder_mbedtls_dice_tcbinfo_create_extension (
 		return DICE_TCBINFO_EXTENSION_NO_SVN;
 	}
 
-	if (dice->tcb->fwid == NULL) {
-		return DICE_TCBINFO_EXTENSION_NO_FWID;
-	}
-
-	switch (dice->tcb->fwid_hash) {
-		case HASH_TYPE_SHA1:
-			fwid_length = SHA1_HASH_LENGTH;
-			fwid_oid = MBEDTLS_OID_DIGEST_ALG_SHA1;
-			fwid_oid_length = MBEDTLS_OID_SIZE (MBEDTLS_OID_DIGEST_ALG_SHA1);
-			break;
-
-		case HASH_TYPE_SHA256:
-			fwid_length = SHA256_HASH_LENGTH;
-			fwid_oid = MBEDTLS_OID_DIGEST_ALG_SHA256;
-			fwid_oid_length = MBEDTLS_OID_SIZE (MBEDTLS_OID_DIGEST_ALG_SHA256);
-			break;
-
-		case HASH_TYPE_SHA384:
-			fwid_length = SHA384_HASH_LENGTH;
-			fwid_oid = MBEDTLS_OID_DIGEST_ALG_SHA384;
-			fwid_oid_length = MBEDTLS_OID_SIZE (MBEDTLS_OID_DIGEST_ALG_SHA384);
-			break;
-
-		case HASH_TYPE_SHA512:
-			fwid_length = SHA512_HASH_LENGTH;
-			fwid_oid = MBEDTLS_OID_DIGEST_ALG_SHA512;
-			fwid_oid_length = MBEDTLS_OID_SIZE (MBEDTLS_OID_DIGEST_ALG_SHA512);
-			break;
-
-		default:
-			return DICE_TCBINFO_EXTENSION_UNKNOWN_FWID;
+	if ((dice->tcb->fwid_list == NULL) || (dice->tcb->fwid_count == 0)) {
+		return DICE_TCBINFO_EXTENSION_NO_FWID_LIST;
 	}
 
 	pos = buffer + length;
 
 	/* fwids		Fwids		OPTIONAL */
+	for (i = dice->tcb->fwid_count - 1; i >= 0; i--) {
+		/* Generate a list of FWID SEQUENCEs.  ASN.1 is built in reverse, so the FWID list needs to
+		 * be processed from the end.  Each FWID digest can use a different hash algorithm, so each
+		 * must be individually checked. */
+		int fwid_enc_length = 0;
 
-	/* fwid				OCTET_STRING */
-	MBEDTLS_ASN1_CHK_ADD (enc_length,
-		mbedtls_asn1_write_raw_buffer (&pos, buffer, dice->tcb->fwid, fwid_length));
-	ret = x509_mbedtls_close_asn1_object (&pos, buffer, MBEDTLS_ASN1_OCTET_STRING, &enc_length);
-	if (ret != 0) {
-		return ret;
+		if (dice->tcb->fwid_list[i].digest == NULL) {
+			return DICE_TCBINFO_EXTENSION_NO_FWID;
+		}
+
+		switch (dice->tcb->fwid_list[i].hash_alg) {
+			case HASH_TYPE_SHA1:
+				fwid_length = SHA1_HASH_LENGTH;
+				fwid_oid = MBEDTLS_OID_DIGEST_ALG_SHA1;
+				fwid_oid_length = MBEDTLS_OID_SIZE (MBEDTLS_OID_DIGEST_ALG_SHA1);
+				break;
+
+			case HASH_TYPE_SHA256:
+				fwid_length = SHA256_HASH_LENGTH;
+				fwid_oid = MBEDTLS_OID_DIGEST_ALG_SHA256;
+				fwid_oid_length = MBEDTLS_OID_SIZE (MBEDTLS_OID_DIGEST_ALG_SHA256);
+				break;
+
+			case HASH_TYPE_SHA384:
+				fwid_length = SHA384_HASH_LENGTH;
+				fwid_oid = MBEDTLS_OID_DIGEST_ALG_SHA384;
+				fwid_oid_length = MBEDTLS_OID_SIZE (MBEDTLS_OID_DIGEST_ALG_SHA384);
+				break;
+
+			case HASH_TYPE_SHA512:
+				fwid_length = SHA512_HASH_LENGTH;
+				fwid_oid = MBEDTLS_OID_DIGEST_ALG_SHA512;
+				fwid_oid_length = MBEDTLS_OID_SIZE (MBEDTLS_OID_DIGEST_ALG_SHA512);
+				break;
+
+			default:
+				return DICE_TCBINFO_EXTENSION_UNKNOWN_FWID;
+		}
+
+		/* digest			OCTET_STRING */
+		MBEDTLS_ASN1_CHK_ADD (fwid_enc_length,
+			mbedtls_asn1_write_raw_buffer (&pos, buffer, dice->tcb->fwid_list[i].digest,
+			fwid_length));
+		ret = x509_mbedtls_close_asn1_object (&pos, buffer, MBEDTLS_ASN1_OCTET_STRING,
+			&fwid_enc_length);
+		if (ret != 0) {
+			return ret;
+		}
+
+		/* hashAlg			OBJECT IDENTIFIER */
+		MBEDTLS_ASN1_CHK_ADD (fwid_enc_length,
+			mbedtls_asn1_write_oid (&pos, buffer, fwid_oid, fwid_oid_length));
+
+		/* fwid SEQUENCE */
+		ret = x509_mbedtls_close_asn1_object (&pos, buffer,
+			(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE), &fwid_enc_length);
+		if (ret != 0) {
+			return ret;
+		}
+
+		enc_length += fwid_enc_length;
 	}
 
-	/* hashAlg			OBJECT IDENTIFIER */
-	MBEDTLS_ASN1_CHK_ADD (enc_length,
-		mbedtls_asn1_write_oid (&pos, buffer, fwid_oid, fwid_oid_length));
-
-	/* fwid SEQUENCE */
-	ret = x509_mbedtls_close_asn1_object (&pos, buffer,
-		(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE), &enc_length);
-	if (ret != 0) {
-		return ret;
-	}
-
+	/* fwids SEQUENCE*/
 	ret = x509_mbedtls_close_asn1_object (&pos, buffer,
 		(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_CONTEXT_SPECIFIC | 6), &enc_length);
 	if (ret != 0) {
 		return ret;
 	}
 
+	/* layer		INTEGER		OPTIONAL */
+	ret = mbedtls_asn1_write_int (&pos, buffer, dice->tcb->layer);
+	if (ret < 0) {
+		return ret;
+	}
+
+	enc_length += ret;
+	*pos = (MBEDTLS_ASN1_CONTEXT_SPECIFIC | 4);
+
 	/* svn			INTEGER		OPTIONAL */
-	/* mbedtls_asn1_write_int only writes 1 byte integers.  MPI is needed for larger ones. */
 	mbedtls_mpi_init (&svn);
 	ret = mbedtls_mpi_read_binary (&svn, dice->tcb->svn, dice->tcb->svn_length);
 	if (ret != 0) {
@@ -132,9 +156,9 @@ static int x509_extension_builder_mbedtls_dice_tcbinfo_create_extension (
 	enc_length += ret;
 	*pos = (MBEDTLS_ASN1_CONTEXT_SPECIFIC | 3);
 
-	/* version		IA5String	OPTIONAL */
+	/* version		UTF8String	OPTIONAL */
 	MBEDTLS_ASN1_CHK_ADD (enc_length,
-		mbedtls_asn1_write_ia5_string (&pos, buffer, dice->tcb->version,
+		mbedtls_asn1_write_utf8_string (&pos, buffer, dice->tcb->version,
 		strlen (dice->tcb->version)));
 	*pos = (MBEDTLS_ASN1_CONTEXT_SPECIFIC | 2);
 

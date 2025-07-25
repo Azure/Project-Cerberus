@@ -16,29 +16,46 @@
 
 
 /**
- * Structure of the DICE FWID.
+ * Structure of a DICE FWID.
  */
 typedef struct dice_fwid_st {
 	ASN1_OBJECT *hash_alg;		/**< The algorithm used to generate the FWID. */
-	ASN1_OCTET_STRING *digest;	/**< The FWID hash data. */
+	ASN1_OCTET_STRING *digest;	/**< The FWID digest. */
 	ASN1_ENCODING enc;			/**< ASN1 encoding. */
 } DICE_FWID;
 
 DEFINE_STACK_OF (DICE_FWID)
-typedef STACK_OF (DICE_FWID) DICE_FWIDS;
+typedef STACK_OF (DICE_FWID) DICE_FWID_LIST;
+
+/**
+ * Structure of a DICE Integrity Register.
+ */
+typedef struct dice_integrity_register_st {
+	ASN1_IA5STRING *register_name;	/**< Name associated with the register. */
+	ASN1_INTEGER *register_num;		/**< Number assigned to the register. */
+	DICE_FWID_LIST *digests;		/**< A list of digests for the register. */
+	ASN1_ENCODING enc;				/**< ASN1 encoding. */
+} DICE_INTEGRITY_REGISTER;
+
+DEFINE_STACK_OF (DICE_INTEGRITY_REGISTER)
+typedef STACK_OF (DICE_INTEGRITY_REGISTER) DICE_IR_LIST;
 
 /**
  * Structure of the DICE TcbInfo extension.
  */
 typedef struct dice_tcbinfo_st {
-	GENERAL_NAMES *vendor;		/**< Device vendor information. */
-	ASN1_IA5STRING *model;		/**< Model identifier. */
-	ASN1_IA5STRING *version;	/**< The firmware version. */
-	ASN1_INTEGER *svn;			/**< The security state. */
-	ASN1_INTEGER *layer;		/**< Firmware state information. */
-	ASN1_INTEGER *index;		/**< Firmware state information. */
-	DICE_FWIDS *digests;		/**< The FWID information. */
-	ASN1_ENCODING enc;			/**< ASN1 encoding. */
+	ASN1_UTF8STRING *vendor;			/**< The entity that created the measurement of the Target Environment (e.g., a TCI value). */
+	ASN1_UTF8STRING *model;				/**< The product name associated with the measurement of the Target Environment. */
+	ASN1_UTF8STRING *version;			/**< The revision string associated with the Target Environment. */
+	ASN1_INTEGER *svn;					/**< The security version number associated with the Target Environment. */
+	ASN1_INTEGER *layer;				/**< The DICE layer associated with this measurement of the Target Environment. */
+	ASN1_INTEGER *index;				/**< A value that distinguishes different instances of the same type of Target Environment. */
+	DICE_FWID_LIST *fwids;				/**< A list of FWID values. */
+	ASN1_BIT_STRING *flags;				/**< A list of flags that enumerate potentially simultaneous operational states of the Target Environment. */
+	ASN1_OCTET_STRING *vendor_info;		/**< Vendor supplied values that encode vendor, model, or device specific state. */
+	ASN1_OCTET_STRING *type;			/**< A machine readable description of the measurement. */
+	DICE_IR_LIST *integrity_registers;	/**< A list of named digests. */
+	ASN1_ENCODING enc;					/**< ASN1 encoding. */
 } DICE_TCBINFO;
 
 ASN1_SEQUENCE_enc (DICE_FWID, enc, 0) = {
@@ -48,14 +65,26 @@ ASN1_SEQUENCE_enc (DICE_FWID, enc, 0) = {
 
 IMPLEMENT_ASN1_FUNCTIONS (DICE_FWID)
 
+ASN1_SEQUENCE_enc (DICE_INTEGRITY_REGISTER, enc, 0) = {
+	ASN1_SIMPLE (DICE_INTEGRITY_REGISTER, register_name, ASN1_IA5STRING),
+	ASN1_SIMPLE (DICE_INTEGRITY_REGISTER, register_num, ASN1_INTEGER),
+	ASN1_SEQUENCE_OF (DICE_INTEGRITY_REGISTER, digests, DICE_FWID)
+} ASN1_SEQUENCE_END_enc (DICE_INTEGRITY_REGISTER, DICE_INTEGRITY_REGISTER)
+
+IMPLEMENT_ASN1_FUNCTIONS (DICE_INTEGRITY_REGISTER)
+
 ASN1_SEQUENCE_enc (DICE_TCBINFO, enc, 0) = {
-	ASN1_IMP_SEQUENCE_OF_OPT (DICE_TCBINFO, vendor, GENERAL_NAME, 0),
-	ASN1_IMP_OPT (DICE_TCBINFO, model, ASN1_IA5STRING, 1),
-	ASN1_IMP_OPT (DICE_TCBINFO, version, ASN1_IA5STRING, 2),
+	ASN1_IMP_OPT (DICE_TCBINFO, vendor, ASN1_UTF8STRING, 0),
+	ASN1_IMP_OPT (DICE_TCBINFO, model, ASN1_UTF8STRING, 1),
+	ASN1_IMP_OPT (DICE_TCBINFO, version, ASN1_UTF8STRING, 2),
 	ASN1_IMP_OPT (DICE_TCBINFO, svn, ASN1_INTEGER, 3),
 	ASN1_IMP_OPT (DICE_TCBINFO, layer, ASN1_INTEGER, 4),
 	ASN1_IMP_OPT (DICE_TCBINFO, index, ASN1_INTEGER, 5),
-	ASN1_IMP_SEQUENCE_OF_OPT (DICE_TCBINFO, digests, DICE_FWID, 6)
+	ASN1_IMP_SEQUENCE_OF_OPT (DICE_TCBINFO, fwids, DICE_FWID, 6),
+	ASN1_IMP_OPT (DICE_TCBINFO, flags, ASN1_BIT_STRING, 7),
+	ASN1_IMP_OPT (DICE_TCBINFO, vendor_info, ASN1_OCTET_STRING, 8),
+	ASN1_IMP_OPT (DICE_TCBINFO, type, ASN1_OCTET_STRING, 9),
+	ASN1_IMP_SEQUENCE_OF_OPT (DICE_TCBINFO, integrity_registers, DICE_INTEGRITY_REGISTER, 10),
 } ASN1_SEQUENCE_END_enc (DICE_TCBINFO, DICE_TCBINFO)
 
 IMPLEMENT_ASN1_FUNCTIONS (DICE_TCBINFO)
@@ -71,6 +100,7 @@ int x509_extension_builder_openssl_dice_tcbinfo_build (const struct x509_extensi
 	DICE_FWID *fwid;
 	ASN1_OBJECT *fwid_oid;
 	int fwid_len;
+	size_t i;
 	int status;
 	uint8_t *tcb_der = NULL;
 	int tcb_der_len;
@@ -91,37 +121,8 @@ int x509_extension_builder_openssl_dice_tcbinfo_build (const struct x509_extensi
 		return DICE_TCBINFO_EXTENSION_NO_SVN;
 	}
 
-	if (dice->tcb->fwid == NULL) {
-		return DICE_TCBINFO_EXTENSION_NO_FWID;
-	}
-
-	switch (dice->tcb->fwid_hash) {
-		case HASH_TYPE_SHA1:
-			fwid_len = SHA1_HASH_LENGTH;
-			fwid_oid = OBJ_nid2obj (EVP_MD_type (EVP_sha1 ()));
-			break;
-
-		case HASH_TYPE_SHA256:
-			fwid_len = SHA256_HASH_LENGTH;
-			fwid_oid = OBJ_nid2obj (EVP_MD_type (EVP_sha256 ()));
-			break;
-
-		case HASH_TYPE_SHA384:
-			fwid_len = SHA384_HASH_LENGTH;
-			fwid_oid = OBJ_nid2obj (EVP_MD_type (EVP_sha384 ()));
-			break;
-
-		case HASH_TYPE_SHA512:
-			fwid_len = SHA512_HASH_LENGTH;
-			fwid_oid = OBJ_nid2obj (EVP_MD_type (EVP_sha512 ()));
-			break;
-
-		default:
-			return DICE_TCBINFO_EXTENSION_UNKNOWN_FWID;
-	}
-
-	if (fwid_oid == NULL) {
-		return -ERR_get_error ();
+	if ((dice->tcb->fwid_list == NULL) || (dice->tcb->fwid_count == 0)) {
+		return DICE_TCBINFO_EXTENSION_NO_FWID_LIST;
 	}
 
 	tcbinfo = DICE_TCBINFO_new ();
@@ -130,7 +131,7 @@ int x509_extension_builder_openssl_dice_tcbinfo_build (const struct x509_extensi
 		goto err_tcb;
 	}
 
-	tcbinfo->version = ASN1_IA5STRING_new ();
+	tcbinfo->version = ASN1_UTF8STRING_new ();
 	if (tcbinfo->version == NULL) {
 		status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
 		goto err_build;
@@ -156,30 +157,80 @@ int x509_extension_builder_openssl_dice_tcbinfo_build (const struct x509_extensi
 		goto err_build;
 	}
 
-	tcbinfo->digests = sk_DICE_FWID_new_null ();
-	if (tcbinfo->digests == NULL) {
+	tcbinfo->layer = ASN1_INTEGER_new ();
+	if (tcbinfo->layer == NULL) {
 		status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
 		goto err_build;
 	}
 
-	fwid = DICE_FWID_new ();
-	if (fwid == NULL) {
-		status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
-		goto err_build;
-	}
-
-	ASN1_OBJECT_free (fwid->hash_alg);
-	fwid->hash_alg = fwid_oid;
-
-	if (ASN1_OCTET_STRING_set (fwid->digest, dice->tcb->fwid, fwid_len) == 0) {
-		status = -ERR_get_error ();
-		goto err_fwid;
-	}
-
-	status = sk_DICE_FWID_push (tcbinfo->digests, fwid);
+	status = ASN1_INTEGER_set_uint64 (tcbinfo->layer, dice->tcb->layer);
 	if (status == 0) {
 		status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
-		goto err_fwid;
+		goto err_build;
+	}
+
+	tcbinfo->fwids = sk_DICE_FWID_new_null ();
+	if (tcbinfo->fwids == NULL) {
+		status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
+		goto err_build;
+	}
+
+	for (i = 0; i < dice->tcb->fwid_count; i++) {
+		if (dice->tcb->fwid_list[i].digest == NULL) {
+			status = DICE_TCBINFO_EXTENSION_NO_FWID;
+			goto err_build;
+		}
+
+		switch (dice->tcb->fwid_list[i].hash_alg) {
+			case HASH_TYPE_SHA1:
+				fwid_len = SHA1_HASH_LENGTH;
+				fwid_oid = OBJ_nid2obj (EVP_MD_type (EVP_sha1 ()));
+				break;
+
+			case HASH_TYPE_SHA256:
+				fwid_len = SHA256_HASH_LENGTH;
+				fwid_oid = OBJ_nid2obj (EVP_MD_type (EVP_sha256 ()));
+				break;
+
+			case HASH_TYPE_SHA384:
+				fwid_len = SHA384_HASH_LENGTH;
+				fwid_oid = OBJ_nid2obj (EVP_MD_type (EVP_sha384 ()));
+				break;
+
+			case HASH_TYPE_SHA512:
+				fwid_len = SHA512_HASH_LENGTH;
+				fwid_oid = OBJ_nid2obj (EVP_MD_type (EVP_sha512 ()));
+				break;
+
+			default:
+				status = DICE_TCBINFO_EXTENSION_UNKNOWN_FWID;
+				goto err_build;
+		}
+
+		if (fwid_oid == NULL) {
+			status = -ERR_get_error ();
+			goto err_build;
+		}
+
+		fwid = DICE_FWID_new ();
+		if (fwid == NULL) {
+			status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
+			goto err_build;
+		}
+
+		ASN1_OBJECT_free (fwid->hash_alg);
+		fwid->hash_alg = fwid_oid;
+
+		if (ASN1_OCTET_STRING_set (fwid->digest, dice->tcb->fwid_list[i].digest, fwid_len) == 0) {
+			status = -ERR_get_error ();
+			goto err_fwid;
+		}
+
+		status = sk_DICE_FWID_push (tcbinfo->fwids, fwid);
+		if (status == 0) {
+			status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
+			goto err_fwid;
+		}
 	}
 
 	tcb_der_len = i2d_DICE_TCBINFO (tcbinfo, &tcb_der);

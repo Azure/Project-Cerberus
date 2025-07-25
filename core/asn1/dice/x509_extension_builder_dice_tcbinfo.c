@@ -44,6 +44,7 @@ static int x509_extension_builder_dice_tcbinfo_create_extension (
 	DERBuilderContext der;
 	size_t fwid_length;
 	const int *fwid_oid;
+	size_t i;
 	int status;
 
 	if (dice->tcb == NULL) {
@@ -58,33 +59,8 @@ static int x509_extension_builder_dice_tcbinfo_create_extension (
 		return DICE_TCBINFO_EXTENSION_NO_SVN;
 	}
 
-	if (dice->tcb->fwid == NULL) {
-		return DICE_TCBINFO_EXTENSION_NO_FWID;
-	}
-
-	switch (dice->tcb->fwid_hash) {
-		case HASH_TYPE_SHA1:
-			fwid_length = SHA1_HASH_LENGTH;
-			fwid_oid = sha1OID;
-			break;
-
-		case HASH_TYPE_SHA256:
-			fwid_length = SHA256_HASH_LENGTH;
-			fwid_oid = sha256OID;
-			break;
-
-		case HASH_TYPE_SHA384:
-			fwid_length = SHA384_HASH_LENGTH;
-			fwid_oid = sha384OID;
-			break;
-
-		case HASH_TYPE_SHA512:
-			fwid_length = SHA512_HASH_LENGTH;
-			fwid_oid = sha512OID;
-			break;
-
-		default:
-			return DICE_TCBINFO_EXTENSION_UNKNOWN_FWID;
+	if ((dice->tcb->fwid_list == NULL) || (dice->tcb->fwid_count == 0)) {
+		return DICE_TCBINFO_EXTENSION_NO_FWID_LIST;
 	}
 
 	DERInitContext (&der, buffer, length);
@@ -95,11 +71,46 @@ static int x509_extension_builder_dice_tcbinfo_create_extension (
 		DER_CHK_ENCODE (DERAddString (&der, dice->tcb->version, 0x82));
 		DER_CHK_ENCODE (DERAddTaggedIntegerFromArray (&der, dice->tcb->svn, dice->tcb->svn_length,
 			0x83));
+		DER_CHK_ENCODE (DERAddTaggedInteger (&der, dice->tcb->layer, 0x84));
 		DER_CHK_ENCODE (DERStartConstructed (&der, 0xa6));
-			DER_CHK_ENCODE (DERStartSequenceOrSet (&der, true));
-				DER_CHK_ENCODE (DERAddOID (&der, fwid_oid));
-				DER_CHK_ENCODE (DERAddOctetString (&der, dice->tcb->fwid, fwid_length));
-			DER_CHK_ENCODE (DERPopNesting (&der));
+			/* Encode each digest in the list as a FWID sequence.  Each digest can be a different
+			 * algorithm, so each has to be checked. */
+			for (i = 0; i < dice->tcb->fwid_count; i++) {
+				if (dice->tcb->fwid_list[i].digest == NULL) {
+					return DICE_TCBINFO_EXTENSION_NO_FWID;
+				}
+
+				switch (dice->tcb->fwid_list[i].hash_alg) {
+					case HASH_TYPE_SHA1:
+						fwid_length = SHA1_HASH_LENGTH;
+						fwid_oid = sha1OID;
+						break;
+
+					case HASH_TYPE_SHA256:
+						fwid_length = SHA256_HASH_LENGTH;
+						fwid_oid = sha256OID;
+						break;
+
+					case HASH_TYPE_SHA384:
+						fwid_length = SHA384_HASH_LENGTH;
+						fwid_oid = sha384OID;
+						break;
+
+					case HASH_TYPE_SHA512:
+						fwid_length = SHA512_HASH_LENGTH;
+						fwid_oid = sha512OID;
+						break;
+
+					default:
+						return DICE_TCBINFO_EXTENSION_UNKNOWN_FWID;
+				}
+
+				DER_CHK_ENCODE (DERStartSequenceOrSet (&der, true));
+					DER_CHK_ENCODE (DERAddOID (&der, fwid_oid));
+					DER_CHK_ENCODE (DERAddOctetString (&der, dice->tcb->fwid_list[i].digest,
+						fwid_length));
+				DER_CHK_ENCODE (DERPopNesting (&der));
+			}
 		DER_CHK_ENCODE (DERPopNesting (&der));
 	DER_CHK_ENCODE (DERPopNesting (&der));
 	// *INDENT-ON*
@@ -257,18 +268,25 @@ size_t x509_extension_builder_dice_tcbinfo_get_ext_buffer_length (
 	const struct tcg_dice_tcbinfo *tcb)
 {
 	size_t length = 4;	/* Space for the top-level sequence header. */
+	size_t i;
 
 	if (tcb != NULL) {
 		if (tcb->version != NULL) {
 			length += strlen (tcb->version);
+			length += 3;
 		}
 
-		length += tcb->svn_length + 1;	/* Worst-case SVN length, including a leading zero. */
-		length += 9;					/* Worst-case FWID OID length. */
-		length += SHA512_HASH_LENGTH;	/* Worst-case FWID length. */
+		length += tcb->svn_length + 1;		/* Worst-case SVN length, including a leading zero. */
+		length += 4 + 1;					/* Worst-case layer length, including a leading zero. */
+		length += (2 * 3);					/* ASN.1 headers. */
 
-		/* Extra space for headers and sequence tags. */
-		length += (4 * 4) + (4 * 2);
+		for (i = 0; i < tcb->fwid_count; i++) {
+			length += 9;					/* Worst-case FWID OID length. */
+			length += SHA512_HASH_LENGTH;	/* Worst-case FWID length. */
+			length += 3 + (2 * 2);			/* Sequence and other ASN.1 headers */
+		}
+
+		length += 4;						/* FWID list sequence header. */
 	}
 
 	return length;

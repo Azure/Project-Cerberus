@@ -45,6 +45,7 @@ enum {
 	DICE_TCBINFO_EXTENSION_NO_FWID = DICE_TCBINFO_EXTENSION_ERROR (0x04),			/**< No FWID digest was provided in the TCB info. */
 	DICE_TCBINFO_EXTENSION_NO_VERSION = DICE_TCBINFO_EXTENSION_ERROR (0x05),		/**< No version was provided in the TCB info. */
 	DICE_TCBINFO_EXTENSION_NO_SVN = DICE_TCBINFO_EXTENSION_ERROR (0x06),			/**< No SVN was provided in the TCB info. */
+	DICE_TCBINFO_EXTENSION_NO_FWID_LIST = DICE_TCBINFO_EXTENSION_ERROR (0x07),		/**< No FWID list was provided in the TCB info. */
 };
 
 
