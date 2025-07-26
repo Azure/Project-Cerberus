@@ -131,6 +131,36 @@ int x509_extension_builder_openssl_dice_tcbinfo_build (const struct x509_extensi
 		goto err_tcb;
 	}
 
+	if (dice->tcb->vendor != NULL) {
+		tcbinfo->vendor = ASN1_UTF8STRING_new ();
+		if (tcbinfo->vendor == NULL) {
+			status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
+			goto err_build;
+		}
+
+		tcbinfo->vendor->length = strlen (dice->tcb->vendor);
+		tcbinfo->vendor->data = (unsigned char*) strdup (dice->tcb->vendor);
+		if (tcbinfo->vendor->data == NULL) {
+			status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
+			goto err_build;
+		}
+	}
+
+	if (dice->tcb->model != NULL) {
+		tcbinfo->model = ASN1_UTF8STRING_new ();
+		if (tcbinfo->model == NULL) {
+			status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
+			goto err_build;
+		}
+
+		tcbinfo->model->length = strlen (dice->tcb->model);
+		tcbinfo->model->data = (unsigned char*) strdup (dice->tcb->model);
+		if (tcbinfo->model->data == NULL) {
+			status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
+			goto err_build;
+		}
+	}
+
 	tcbinfo->version = ASN1_UTF8STRING_new ();
 	if (tcbinfo->version == NULL) {
 		status = DICE_TCBINFO_EXTENSION_NO_MEMORY;

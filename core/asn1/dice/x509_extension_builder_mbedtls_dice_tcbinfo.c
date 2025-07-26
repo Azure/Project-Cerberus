@@ -162,6 +162,22 @@ static int x509_extension_builder_mbedtls_dice_tcbinfo_create_extension (
 		strlen (dice->tcb->version)));
 	*pos = (MBEDTLS_ASN1_CONTEXT_SPECIFIC | 2);
 
+	/* model		UTF8String	OPTIONAL */
+	if (dice->tcb->model != NULL) {
+		MBEDTLS_ASN1_CHK_ADD (enc_length,
+			mbedtls_asn1_write_utf8_string (&pos, buffer, dice->tcb->model,
+			strlen (dice->tcb->model)));
+		*pos = (MBEDTLS_ASN1_CONTEXT_SPECIFIC | 1);
+	}
+
+	/* vendor		UTF8String	OPTIONAL */
+	if (dice->tcb->vendor != NULL) {
+		MBEDTLS_ASN1_CHK_ADD (enc_length,
+			mbedtls_asn1_write_utf8_string (&pos, buffer, dice->tcb->vendor,
+			strlen (dice->tcb->vendor)));
+		*pos = (MBEDTLS_ASN1_CONTEXT_SPECIFIC | 0);
+	}
+
 	/* DiceTcbInfo ::= SEQUENCE */
 	ret = x509_mbedtls_close_asn1_object (&pos, buffer,
 		(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE), &enc_length);

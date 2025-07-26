@@ -33,6 +33,22 @@ struct tcg_dice_fwid {
  */
 struct tcg_dice_tcbinfo {
 	/**
+	 * The entity that created the measurement of the Target Environment.
+	 *
+	 * This is optional and can be set to null if no vendor information should be included in the
+	 * TcbInfo extension.
+	 */
+	const char *vendor;
+
+	/**
+	 * The product name associated with the measurement of the Target Environment.
+	 *
+	 * This is optional and can be set to null if no model information should be included in the
+	 * TcbInfo extension.
+	 */
+	const char *model;
+
+	/**
 	 * The revision string associated with the Target Environment.
 	 *
 	 * This generally be the firmware version string.

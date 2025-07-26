@@ -68,6 +68,12 @@ static int x509_extension_builder_dice_tcbinfo_create_extension (
 	// *INDENT-OFF*
 	/* TODO:  Each of these error checks is not tested.  Add tests when refactoring DER encoding. */
 	DER_CHK_ENCODE (DERStartSequenceOrSet (&der, true));
+		if (dice->tcb->vendor != NULL) {
+			DER_CHK_ENCODE (DERAddString (&der, dice->tcb->vendor, 0x80));
+		}
+		if (dice->tcb->model != NULL) {
+			DER_CHK_ENCODE (DERAddString (&der, dice->tcb->model, 0x81));
+		}
 		DER_CHK_ENCODE (DERAddString (&der, dice->tcb->version, 0x82));
 		DER_CHK_ENCODE (DERAddTaggedIntegerFromArray (&der, dice->tcb->svn, dice->tcb->svn_length,
 			0x83));
@@ -271,6 +277,16 @@ size_t x509_extension_builder_dice_tcbinfo_get_ext_buffer_length (
 	size_t i;
 
 	if (tcb != NULL) {
+		if (tcb->vendor != NULL) {
+			length += strlen (tcb->vendor);
+			length += 3;
+		}
+
+		if (tcb->model != NULL) {
+			length += strlen (tcb->model);
+			length += 3;
+		}
+
 		if (tcb->version != NULL) {
 			length += strlen (tcb->version);
 			length += 3;
