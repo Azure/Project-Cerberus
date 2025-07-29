@@ -61,19 +61,19 @@ static const uint16_t cmd_interface_recovery_test_subsystem_id = 0x0003;
  * Dependencies for testing the recovery command interface.
  */
 struct cmd_interface_recovery_testing {
-	struct cmd_interface_recovery handler;						/**< Command handler instance. */
-	struct firmware_update_control_mock update;					/**< The firmware update mock. */
-	struct logging_mock debug;									/**< The debug logger mock. */
-	struct device_manager device_manager;						/**< Device manager. */
-	struct cmd_interface_fw_version fw_version;					/**< The firmware version data. */
-	struct cmd_interface_device_id device_id;					/**< Device ID information */
-	struct riot_key_manager riot;								/**< RIoT keys manager. */
-	struct riot_key_manager_state riot_state;					/**< Context for RIoT key manager. */
-	X509_TESTING_ENGINE (x509);									/**< X.509 engine for the RIoT keys. */
-	struct keystore_mock keystore;								/**< Keystore mock */
-	struct cmd_background_mock background;						/**< The background command interface mock. */
-	struct attestation_responder_mock attestation_responder;	/**< The attestation responder mock. */
-	struct cmd_device_mock cmd_device;							/**< The device command handler mock instance. */
+	struct cmd_interface_recovery handler;			/**< Command handler instance. */
+	struct firmware_update_control_mock update;		/**< The firmware update mock. */
+	struct logging_mock debug;						/**< The debug logger mock. */
+	struct device_manager device_manager;			/**< Device manager. */
+	struct cmd_interface_fw_version fw_version;		/**< The firmware version data. */
+	struct cmd_interface_device_id device_id;		/**< Device ID information */
+	struct riot_key_manager riot;					/**< RIoT keys manager. */
+	struct riot_key_manager_state riot_state;		/**< Context for RIoT key manager. */
+	X509_TESTING_ENGINE (x509);						/**< X.509 engine for the RIoT keys. */
+	struct keystore_mock keystore;					/**< Keystore mock */
+	struct cmd_background_mock background;			/**< The background command interface mock. */
+	struct attestation_responder_mock attestation;	/**< The attestation responder mock. */
+	struct cmd_device_mock cmd_device;				/**< The device command handler mock instance. */
 };
 
 
@@ -127,7 +127,7 @@ static void setup_cmd_interface_recovery_mock_test_init (CuTest *test,
 	status = cmd_device_mock_init (&cmd->cmd_device);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_responder_mock_init (&cmd->attestation_responder);
+	status = attestation_responder_mock_init (&cmd->attestation);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_background_mock_init (&cmd->background);
@@ -162,7 +162,7 @@ static void setup_cmd_interface_recovery_mock_test_init (CuTest *test,
  * @param count The number of firmware versions.
  */
 static void setup_cmd_interface_recovery_mock_test_init_fw_version (
-	struct cmd_interface_recovery_testing *cmd, const char *fw_version,	size_t count)
+	struct cmd_interface_recovery_testing *cmd, const char *fw_version, size_t count)
 {
 	cmd_interface_recovery_testing_fw_version_list[0] = fw_version;
 	cmd->fw_version.count = count;
@@ -200,10 +200,10 @@ static void setup_cmd_interface_recovery_mock_test (CuTest *test,
 	setup_cmd_interface_recovery_mock_test_init_fw_version (cmd, RECOVERY_FW_VERSION,
 		FW_VERSION_COUNT);
 
-	status = cmd_interface_recovery_init (&cmd->handler, &cmd->attestation_responder.base,
-		&cmd->update.base, &cmd->device_manager, &cmd->background.base, &cmd->riot,
-		&cmd->fw_version, CERBERUS_PROTOCOL_MSFT_PCI_VID, cmd_interface_recovery_test_device_id,
-		CERBERUS_PROTOCOL_MSFT_PCI_VID,	cmd_interface_recovery_test_subsystem_id,
+	status = cmd_interface_recovery_init (&cmd->handler, &cmd->attestation.base, &cmd->update.base,
+		&cmd->device_manager, &cmd->background.base, &cmd->riot, &cmd->fw_version,
+		CERBERUS_PROTOCOL_MSFT_PCI_VID, cmd_interface_recovery_test_device_id,
+		CERBERUS_PROTOCOL_MSFT_PCI_VID, cmd_interface_recovery_test_subsystem_id,
 		&cmd->cmd_device.base);
 
 	CuAssertIntEquals (test, 0, status);
@@ -225,7 +225,7 @@ static void complete_cmd_interface_recovery_mock_test (CuTest *test,
 	status = firmware_update_control_mock_validate_and_release (&cmd->update);
 	status |= logging_mock_validate_and_release (&cmd->debug);
 	status |= cmd_device_mock_validate_and_release (&cmd->cmd_device);
-	status |= attestation_responder_mock_validate_and_release (&cmd->attestation_responder);
+	status |= attestation_responder_mock_validate_and_release (&cmd->attestation);
 	status |= cmd_background_mock_validate_and_release (&cmd->background);
 	status |= keystore_mock_validate_and_release (&cmd->keystore);
 	CuAssertIntEquals (test, 0, status);
@@ -264,10 +264,10 @@ static void cmd_interface_recovery_test_init (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_recovery_mock_test (test, &cmd);
-	status = cmd_interface_recovery_init (&cmd.handler, &cmd.attestation_responder.base,
-		&cmd.update.base, &cmd.device_manager, &cmd.background.base, &cmd.riot,	&fw_version,
+	status = cmd_interface_recovery_init (&cmd.handler, &cmd.attestation.base, &cmd.update.base,
+		&cmd.device_manager, &cmd.background.base, &cmd.riot, &fw_version,
 		CERBERUS_PROTOCOL_MSFT_PCI_VID, cmd_interface_recovery_test_device_id,
-		CERBERUS_PROTOCOL_MSFT_PCI_VID,	cmd_interface_recovery_test_subsystem_id,
+		CERBERUS_PROTOCOL_MSFT_PCI_VID, cmd_interface_recovery_test_subsystem_id,
 		&cmd.cmd_device.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -308,10 +308,10 @@ static void cmd_interface_recovery_test_init_null (CuTest *test)
 
 	debug_log = &debug.base;
 
-	status = cmd_interface_recovery_init (NULL, &cmd.attestation_responder.base, &cmd.update.base,
+	status = cmd_interface_recovery_init (NULL, &cmd.attestation.base, &cmd.update.base,
 		&cmd.device_manager, &cmd.background.base, &cmd.riot, &fw_version,
 		CERBERUS_PROTOCOL_MSFT_PCI_VID, cmd_interface_recovery_test_device_id,
-		CERBERUS_PROTOCOL_MSFT_PCI_VID,	cmd_interface_recovery_test_subsystem_id,
+		CERBERUS_PROTOCOL_MSFT_PCI_VID, cmd_interface_recovery_test_subsystem_id,
 		&cmd.cmd_device.base);
 
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
@@ -323,41 +323,38 @@ static void cmd_interface_recovery_test_init_null (CuTest *test)
 
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	status = cmd_interface_recovery_init (&cmd.handler, &cmd.attestation_responder.base, NULL,
+	status = cmd_interface_recovery_init (&cmd.handler, &cmd.attestation.base, NULL,
 		&cmd.device_manager, &cmd.background.base, &cmd.riot, &fw_version,
 		CERBERUS_PROTOCOL_MSFT_PCI_VID, cmd_interface_recovery_test_device_id,
-		CERBERUS_PROTOCOL_MSFT_PCI_VID,	cmd_interface_recovery_test_subsystem_id,
+		CERBERUS_PROTOCOL_MSFT_PCI_VID, cmd_interface_recovery_test_subsystem_id,
 		&cmd.cmd_device.base);
 
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	status = cmd_interface_recovery_init (&cmd.handler, &cmd.attestation_responder.base,
-		&cmd.update.base, NULL, &cmd.background.base, &cmd.riot, &fw_version,
-		CERBERUS_PROTOCOL_MSFT_PCI_VID, cmd_interface_recovery_test_device_id,
-		CERBERUS_PROTOCOL_MSFT_PCI_VID,	cmd_interface_recovery_test_subsystem_id,
-		&cmd.cmd_device.base);
+	status = cmd_interface_recovery_init (&cmd.handler, &cmd.attestation.base, &cmd.update.base,
+		NULL, &cmd.background.base, &cmd.riot, &fw_version, CERBERUS_PROTOCOL_MSFT_PCI_VID,
+		cmd_interface_recovery_test_device_id, CERBERUS_PROTOCOL_MSFT_PCI_VID,
+		cmd_interface_recovery_test_subsystem_id, &cmd.cmd_device.base);
 
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	status = cmd_interface_recovery_init (&cmd.handler, &cmd.attestation_responder.base,
-		&cmd.update.base, &cmd.device_manager, NULL, &cmd.riot,	&fw_version,
-		CERBERUS_PROTOCOL_MSFT_PCI_VID, cmd_interface_recovery_test_device_id,
-		CERBERUS_PROTOCOL_MSFT_PCI_VID,	cmd_interface_recovery_test_subsystem_id,
-		&cmd.cmd_device.base);
+	status = cmd_interface_recovery_init (&cmd.handler, &cmd.attestation.base, &cmd.update.base,
+		&cmd.device_manager, NULL, &cmd.riot, &fw_version, CERBERUS_PROTOCOL_MSFT_PCI_VID,
+		cmd_interface_recovery_test_device_id, CERBERUS_PROTOCOL_MSFT_PCI_VID,
+		cmd_interface_recovery_test_subsystem_id, &cmd.cmd_device.base);
 
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-	status = cmd_interface_recovery_init (&cmd.handler, &cmd.attestation_responder.base,
-		&cmd.update.base, &cmd.device_manager, &cmd.background.base, NULL, &fw_version,
+	status = cmd_interface_recovery_init (&cmd.handler, &cmd.attestation.base, &cmd.update.base,
+		&cmd.device_manager, &cmd.background.base, NULL, &fw_version,
 		CERBERUS_PROTOCOL_MSFT_PCI_VID, cmd_interface_recovery_test_device_id,
-		CERBERUS_PROTOCOL_MSFT_PCI_VID,	cmd_interface_recovery_test_subsystem_id,
+		CERBERUS_PROTOCOL_MSFT_PCI_VID, cmd_interface_recovery_test_subsystem_id,
 		&cmd.cmd_device.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	status = cmd_interface_recovery_init (&cmd.handler, &cmd.attestation_responder.base,
-		&cmd.update.base, &cmd.device_manager, &cmd.background.base, &cmd.riot, NULL,
-		CERBERUS_PROTOCOL_MSFT_PCI_VID, cmd_interface_recovery_test_device_id,
-		CERBERUS_PROTOCOL_MSFT_PCI_VID,	cmd_interface_recovery_test_subsystem_id,
-		&cmd.cmd_device.base);
+	status = cmd_interface_recovery_init (&cmd.handler, &cmd.attestation.base, &cmd.update.base,
+		&cmd.device_manager, &cmd.background.base, &cmd.riot, NULL, CERBERUS_PROTOCOL_MSFT_PCI_VID,
+		cmd_interface_recovery_test_device_id, CERBERUS_PROTOCOL_MSFT_PCI_VID,
+		cmd_interface_recovery_test_subsystem_id, &cmd.cmd_device.base);
 
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
@@ -404,16 +401,20 @@ static void cmd_interface_recovery_test_process_null (CuTest *test)
 static void cmd_interface_recovery_test_static_init (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager, &cmd.update.base,
 			&cmd.fw_version, cmd_interface_recovery_test_vendor_id,
 			cmd_interface_recovery_test_device_id, cmd_interface_recovery_test_subsystem_vid,
-			cmd_interface_recovery_test_subsystem_id, cmd.handler.attestation, cmd.handler.riot,
-			cmd.handler.background, &cmd.cmd_device.base)
+			cmd_interface_recovery_test_subsystem_id, &cmd.attestation.base, &cmd.riot,
+			&cmd.background.base, &cmd.cmd_device.base)
 	};
 
 	TEST_START;
 
-	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init_device_id (&cmd);
+
+	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, RECOVERY_FW_VERSION,
+		FW_VERSION_COUNT);
 
 	CuAssertPtrNotNull (test, cmd.handler.base.process_request);
 	CuAssertPtrNotNull (test, cmd.handler.base.process_response);
@@ -424,18 +425,22 @@ static void cmd_interface_recovery_test_static_init (CuTest *test)
 static void cmd_interface_recovery_test_process_null_static_init (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager, &cmd.update.base,
 			&cmd.fw_version, cmd_interface_recovery_test_vendor_id,
 			cmd_interface_recovery_test_device_id, cmd_interface_recovery_test_subsystem_vid,
-			cmd_interface_recovery_test_subsystem_id, cmd.handler.attestation, cmd.handler.riot,
-			cmd.handler.background, &cmd.cmd_device.base)
+			cmd_interface_recovery_test_subsystem_id, &cmd.attestation.base, &cmd.riot,
+			&cmd.background.base, &cmd.cmd_device.base)
 	};
 	struct cmd_interface_msg request;
 	int status;
 
 	TEST_START;
 
-	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init_device_id (&cmd);
+
+	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, RECOVERY_FW_VERSION,
+		FW_VERSION_COUNT);
 
 	request.crypto_timeout = true;
 	status = cmd.handler.base.process_request (NULL, &request);
@@ -640,18 +645,24 @@ static void cmd_interface_recovery_test_process_fw_update (CuTest *test)
 static void cmd_interface_recovery_test_process_fw_update_static_init (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager, &cmd.update.base,
 			&cmd.fw_version, cmd_interface_recovery_test_vendor_id,
 			cmd_interface_recovery_test_device_id, cmd_interface_recovery_test_subsystem_vid,
-			cmd_interface_recovery_test_subsystem_id, cmd.handler.attestation, cmd.handler.riot,
-			cmd.handler.background, &cmd.cmd_device.base)
+			cmd_interface_recovery_test_subsystem_id, &cmd.attestation.base, &cmd.riot,
+			&cmd.background.base, &cmd.cmd_device.base)
 	};
 
 	TEST_START;
 
-	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init_device_id (&cmd);
+
+	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, RECOVERY_FW_VERSION,
+		FW_VERSION_COUNT);
+
 	cerberus_protocol_optional_commands_testing_process_fw_update (test, &cmd.handler.base,
 		&cmd.update);
+
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
 }
 
@@ -693,16 +704,21 @@ static void cmd_interface_recovery_test_process_complete_fw_update (CuTest *test
 static void cmd_interface_recovery_test_process_complete_fw_update_static_init (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager, &cmd.update.base,
 			&cmd.fw_version, cmd_interface_recovery_test_vendor_id,
 			cmd_interface_recovery_test_device_id, cmd_interface_recovery_test_subsystem_vid,
-			cmd_interface_recovery_test_subsystem_id, cmd.handler.attestation, cmd.handler.riot,
-			cmd.handler.background, &cmd.cmd_device.base)
+			cmd_interface_recovery_test_subsystem_id, &cmd.attestation.base, &cmd.riot,
+			&cmd.background.base, &cmd.cmd_device.base)
 	};
 
 	TEST_START;
 
-	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init_device_id (&cmd);
+
+	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, RECOVERY_FW_VERSION,
+		FW_VERSION_COUNT);
+
 	cerberus_protocol_optional_commands_testing_process_complete_fw_update (test, &cmd.handler.base,
 		&cmd.update);
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
@@ -770,15 +786,21 @@ static void cmd_interface_recovery_test_process_get_fw_version (CuTest *test)
 static void cmd_interface_recovery_test_process_get_fw_version_static_init (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager, &cmd.update.base,
 			&cmd.fw_version, cmd_interface_recovery_test_vendor_id,
 			cmd_interface_recovery_test_device_id, cmd_interface_recovery_test_subsystem_vid,
-			cmd_interface_recovery_test_subsystem_id, cmd.handler.attestation, cmd.handler.riot,
-			cmd.handler.background, &cmd.cmd_device.base)
+			cmd_interface_recovery_test_subsystem_id, &cmd.attestation.base, &cmd.riot,
+			&cmd.background.base, &cmd.cmd_device.base)
 	};
 
 	TEST_START;
-	setup_cmd_interface_recovery_mock_test (test, &cmd);
+
+	setup_cmd_interface_recovery_mock_test_init (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init_device_id (&cmd);
+
+	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, RECOVERY_FW_VERSION,
+		FW_VERSION_COUNT);
+
 	cerberus_protocol_required_commands_testing_process_get_fw_version (test, &cmd.handler.base,
 		RECOVERY_FW_VERSION);
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
@@ -793,12 +815,12 @@ static void cmd_interface_recovery_test_process_get_fw_version_unset_version (Cu
 
 	setup_cmd_interface_recovery_mock_test_init (test, &cmd);
 	setup_cmd_interface_recovery_mock_test_init_device_id (&cmd);
-	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, NULL,	FW_VERSION_COUNT);
+	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, NULL, FW_VERSION_COUNT);
 
-	status = cmd_interface_recovery_init (&cmd.handler, &cmd.attestation_responder.base,
-		&cmd.update.base, &cmd.device_manager, &cmd.background.base, &cmd.riot,	&cmd.fw_version,
+	status = cmd_interface_recovery_init (&cmd.handler, &cmd.attestation.base, &cmd.update.base,
+		&cmd.device_manager, &cmd.background.base, &cmd.riot, &cmd.fw_version,
 		CERBERUS_PROTOCOL_MSFT_PCI_VID, cmd_interface_recovery_test_device_id,
-		CERBERUS_PROTOCOL_MSFT_PCI_VID,	cmd_interface_recovery_test_subsystem_id,
+		CERBERUS_PROTOCOL_MSFT_PCI_VID, cmd_interface_recovery_test_subsystem_id,
 		&cmd.cmd_device.base);
 
 	CuAssertIntEquals (test, 0, status);
@@ -844,10 +866,10 @@ static void cmd_interface_recovery_test_process_get_fw_version_bad_count (CuTest
 	setup_cmd_interface_recovery_mock_test_init_device_id (&cmd);
 	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, NULL, 0);
 
-	status = cmd_interface_recovery_init (&cmd.handler, &cmd.attestation_responder.base,
-		&cmd.update.base, &cmd.device_manager, &cmd.background.base, &cmd.riot,	&cmd.fw_version,
+	status = cmd_interface_recovery_init (&cmd.handler, &cmd.attestation.base, &cmd.update.base,
+		&cmd.device_manager, &cmd.background.base, &cmd.riot, &cmd.fw_version,
 		CERBERUS_PROTOCOL_MSFT_PCI_VID, cmd_interface_recovery_test_device_id,
-		CERBERUS_PROTOCOL_MSFT_PCI_VID,	cmd_interface_recovery_test_subsystem_id,
+		CERBERUS_PROTOCOL_MSFT_PCI_VID, cmd_interface_recovery_test_subsystem_id,
 		&cmd.cmd_device.base);
 
 	CuAssertIntEquals (test, 0, status);
@@ -855,6 +877,142 @@ static void cmd_interface_recovery_test_process_get_fw_version_bad_count (CuTest
 	cerberus_protocol_required_commands_testing_process_get_fw_version_bad_count (test,
 		&cmd.handler.base);
 
+	complete_cmd_interface_recovery_mock_test (test, &cmd);
+}
+
+static void cmd_interface_recovery_test_process_get_certificate_digest (CuTest *test)
+{
+	struct cmd_interface_recovery_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_certificate_digest_no_key_exchange (
+		test, &cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_recovery_mock_test (test, &cmd);
+}
+
+static void cmd_interface_recovery_test_process_get_certificate_digest_aux_slot (CuTest *test)
+{
+	struct cmd_interface_recovery_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_certificate_digest_aux_slot (test,
+		&cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_recovery_mock_test (test, &cmd);
+}
+
+static void cmd_interface_recovery_test_process_get_certificate_digest_limited_response (
+	CuTest *test)
+{
+	struct cmd_interface_recovery_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_certificate_digest_limited_response (
+		test, &cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_recovery_mock_test (test, &cmd);
+}
+
+static void cmd_interface_recovery_test_process_get_certificate_digest_static_init (CuTest *test)
+{
+	struct cmd_interface_recovery_testing cmd = {
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager, &cmd.update.base,
+			&cmd.fw_version, cmd_interface_recovery_test_vendor_id,
+			cmd_interface_recovery_test_device_id, cmd_interface_recovery_test_subsystem_vid,
+			cmd_interface_recovery_test_subsystem_id, &cmd.attestation.base, &cmd.riot,
+			&cmd.background.base, &cmd.cmd_device.base)
+	};
+
+	TEST_START;
+
+	setup_cmd_interface_recovery_mock_test_init (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init_device_id (&cmd);
+
+	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, RECOVERY_FW_VERSION,
+		FW_VERSION_COUNT);
+
+	cerberus_protocol_required_commands_testing_process_get_certificate_digest_aux_slot (test,
+		&cmd.handler.base, &cmd.attestation);
+
+	complete_cmd_interface_recovery_mock_test (test, &cmd);
+}
+
+static void cmd_interface_recovery_test_process_get_certificate_digest_unsupported_slot (
+	CuTest *test)
+{
+	struct cmd_interface_recovery_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_certificate_digest_unsupported_slot (
+		test, &cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_recovery_mock_test (test, &cmd);
+}
+
+static void cmd_interface_recovery_test_process_get_certificate_digest_unavailable_cert (
+	CuTest *test)
+{
+	struct cmd_interface_recovery_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_certificate_digest_unavailable_cert (
+		test, &cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_recovery_mock_test (test, &cmd);
+}
+
+static void cmd_interface_recovery_test_process_get_certificate_digest_invalid_len (CuTest *test)
+{
+	struct cmd_interface_recovery_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_certificate_digest_invalid_len (test,
+		&cmd.handler.base);
+	complete_cmd_interface_recovery_mock_test (test, &cmd);
+}
+
+static void cmd_interface_recovery_test_process_get_certificate_digest_unsupported_algo (
+	CuTest *test)
+{
+	struct cmd_interface_recovery_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_certificate_digest_unsupported_algo (
+		test, &cmd.handler.base);
+	complete_cmd_interface_recovery_mock_test (test, &cmd);
+}
+
+static void cmd_interface_recovery_test_process_get_certificate_digest_invalid_slot (CuTest *test)
+{
+	struct cmd_interface_recovery_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_certificate_digest_invalid_slot (test,
+		&cmd.handler.base);
+	complete_cmd_interface_recovery_mock_test (test, &cmd);
+}
+
+static void cmd_interface_recovery_test_process_get_certificate_digest_fail (CuTest *test)
+{
+	struct cmd_interface_recovery_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_certificate_digest_fail (test,
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
 }
 
@@ -866,7 +1024,7 @@ static void cmd_interface_recovery_test_process_get_certificate (CuTest *test)
 
 	setup_cmd_interface_recovery_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate (test, &cmd.handler.base,
-		&cmd.attestation_responder);
+		&cmd.attestation);
 
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
 }
@@ -879,7 +1037,7 @@ static void cmd_interface_recovery_test_process_get_certificate_length_0 (CuTest
 
 	setup_cmd_interface_recovery_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_length_0 (test,
-		&cmd.handler.base, &cmd.attestation_responder);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
 }
 
@@ -891,7 +1049,7 @@ static void cmd_interface_recovery_test_process_get_certificate_aux_slot (CuTest
 
 	setup_cmd_interface_recovery_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_aux_slot (test,
-		&cmd.handler.base, &cmd.attestation_responder);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
 }
 
@@ -903,7 +1061,7 @@ static void cmd_interface_recovery_test_process_get_certificate_limited_response
 
 	setup_cmd_interface_recovery_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_limited_response (test,
-		&cmd.handler.base, &cmd.attestation_responder);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
 }
 
@@ -915,7 +1073,7 @@ static void cmd_interface_recovery_test_process_get_certificate_invalid_offset (
 
 	setup_cmd_interface_recovery_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_invalid_offset (test,
-		&cmd.handler.base, &cmd.attestation_responder);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
 }
 
@@ -929,7 +1087,7 @@ cmd_interface_recovery_test_process_get_certificate_valid_offset_and_length_beyo
 
 	setup_cmd_interface_recovery_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_valid_offset_and_length_beyond_cert_len
-		(test, &cmd.handler.base, &cmd.attestation_responder);
+		(test, &cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
 }
 
@@ -941,7 +1099,7 @@ static void cmd_interface_recovery_test_process_get_certificate_length_too_big (
 
 	setup_cmd_interface_recovery_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_length_too_big (test,
-		&cmd.handler.base, &cmd.attestation_responder);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
 }
 
@@ -953,7 +1111,7 @@ static void cmd_interface_recovery_test_process_get_certificate_unsupported_slot
 
 	setup_cmd_interface_recovery_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_unsupported_slot (test,
-		&cmd.handler.base, &cmd.attestation_responder);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
 }
 
@@ -965,7 +1123,7 @@ static void cmd_interface_recovery_test_process_get_certificate_unsupported_cert
 
 	setup_cmd_interface_recovery_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_unsupported_cert (test,
-		&cmd.handler.base, &cmd.attestation_responder);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
 }
 
@@ -977,7 +1135,7 @@ static void cmd_interface_recovery_test_process_get_certificate_unavailable_cert
 
 	setup_cmd_interface_recovery_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_unavailable_cert (test,
-		&cmd.handler.base, &cmd.attestation_responder);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
 }
 
@@ -1013,7 +1171,7 @@ static void cmd_interface_recovery_test_process_get_certificate_fail (CuTest *te
 
 	setup_cmd_interface_recovery_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_fail (test,
-		&cmd.handler.base, &cmd.attestation_responder);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
 }
 
@@ -1035,14 +1193,15 @@ static void cmd_interface_recovery_test_process_export_csr_static_init (CuTest *
 	struct cmd_interface_recovery_testing cmd;
 	struct cmd_interface_recovery test_static =
 		cmd_interface_recovery_static_init (&cmd.device_manager, &cmd.update.base, &cmd.fw_version,
-		0x1234, 20, 0x5678, 40,	&cmd.attestation_responder.base, &cmd.riot, &cmd.background.base,
+		0x1234, 20, 0x5678, 40, &cmd.attestation.base, &cmd.riot, &cmd.background.base,
 		&cmd.cmd_device.base);
 
 	TEST_START;
 
-	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init_device_id (&cmd);
 
-	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, CERBERUS_FW_VERSION,
+	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, RECOVERY_FW_VERSION,
 		FW_VERSION_COUNT);
 
 	cerberus_protocol_required_commands_testing_process_get_devid_csr (test, &test_static.base,
@@ -1335,16 +1494,21 @@ static void cmd_interface_recovery_test_process_get_log_info (CuTest *test)
 static void cmd_interface_recovery_test_process_get_log_info_static_init (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager, &cmd.update.base,
 			&cmd.fw_version, cmd_interface_recovery_test_vendor_id,
 			cmd_interface_recovery_test_device_id, cmd_interface_recovery_test_subsystem_vid,
-			cmd_interface_recovery_test_subsystem_id, cmd.handler.attestation, cmd.handler.riot,
-			cmd.handler.background, &cmd.cmd_device.base)
+			cmd_interface_recovery_test_subsystem_id, &cmd.attestation.base, &cmd.riot,
+			&cmd.background.base, &cmd.cmd_device.base)
 	};
 
 	TEST_START;
 
-	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init_device_id (&cmd);
+
+	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, RECOVERY_FW_VERSION,
+		FW_VERSION_COUNT);
+
 	cerberus_protocol_optional_commands_testing_process_get_log_info (test, &cmd.handler.base,
 		&cmd.debug, 0);
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
@@ -1389,16 +1553,21 @@ static void cmd_interface_recovery_test_process_log_read_debug (CuTest *test)
 static void cmd_interface_recovery_test_process_log_read_debug_static_init (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager, &cmd.update.base,
 			&cmd.fw_version, cmd_interface_recovery_test_vendor_id,
 			cmd_interface_recovery_test_device_id, cmd_interface_recovery_test_subsystem_vid,
-			cmd_interface_recovery_test_subsystem_id, cmd.handler.attestation, cmd.handler.riot,
-			cmd.handler.background, &cmd.cmd_device.base)
+			cmd_interface_recovery_test_subsystem_id, &cmd.attestation.base, &cmd.riot,
+			&cmd.background.base, &cmd.cmd_device.base)
 	};
 
 	TEST_START;
 
-	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init_device_id (&cmd);
+
+	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, RECOVERY_FW_VERSION,
+		FW_VERSION_COUNT);
+
 	cerberus_protocol_optional_commands_testing_process_log_read_debug (test, &cmd.handler.base,
 		&cmd.debug);
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
@@ -1428,6 +1597,85 @@ static void cmd_interface_recovery_test_process_log_read_debug_fail (CuTest *tes
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
 }
 
+static void cmd_interface_recovery_test_process_get_challenge_response_no_session_mgr (
+	CuTest *test)
+{
+	struct cmd_interface_recovery_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_challenge_response_no_session_mgr (test,
+		&cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_recovery_mock_test (test, &cmd);
+}
+
+static void cmd_interface_recovery_test_process_get_challenge_response_key_exchange_not_requested (
+	CuTest *test)
+{
+	struct cmd_interface_recovery_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_challenge_response_key_exchange_not_requested
+		(test, &cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_recovery_mock_test (test, &cmd);
+}
+
+static void
+cmd_interface_recovery_test_process_get_challenge_response_limited_response_no_session_mgr (
+	CuTest *test)
+{
+	struct cmd_interface_recovery_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response_no_session_mgr
+		(test, &cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_recovery_mock_test (test, &cmd);
+}
+
+static void
+cmd_interface_recovery_test_process_get_challenge_response_limited_response_key_exchange_not_requested
+(
+	CuTest *test)
+{
+	struct cmd_interface_recovery_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response_key_exchange_not_requested
+		(test, &cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_recovery_mock_test (test, &cmd);
+}
+
+static void cmd_interface_recovery_test_process_get_challenge_response_fail (CuTest *test)
+{
+	struct cmd_interface_recovery_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_challenge_response_fail (test,
+		&cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_recovery_mock_test (test, &cmd);
+}
+
+static void cmd_interface_recovery_test_process_get_challenge_response_invalid_len (CuTest *test)
+{
+	struct cmd_interface_recovery_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_challenge_response_invalid_len (test,
+		&cmd.handler.base);
+	complete_cmd_interface_recovery_mock_test (test, &cmd);
+}
+
 static void cmd_interface_recovery_test_process_get_capabilities (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd;
@@ -1443,16 +1691,21 @@ static void cmd_interface_recovery_test_process_get_capabilities (CuTest *test)
 static void cmd_interface_recovery_test_process_get_capabilities_static_init (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager, &cmd.update.base,
 			&cmd.fw_version, cmd_interface_recovery_test_vendor_id,
 			cmd_interface_recovery_test_device_id, cmd_interface_recovery_test_subsystem_vid,
-			cmd_interface_recovery_test_subsystem_id, cmd.handler.attestation, cmd.handler.riot,
-			cmd.handler.background, &cmd.cmd_device.base)
+			cmd_interface_recovery_test_subsystem_id, &cmd.attestation.base, &cmd.riot,
+			&cmd.background.base, &cmd.cmd_device.base)
 	};
 
 	TEST_START;
 
-	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init_device_id (&cmd);
+
+	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, RECOVERY_FW_VERSION,
+		FW_VERSION_COUNT);
+
 	cerberus_protocol_required_commands_testing_process_get_capabilities (test, &cmd.handler.base,
 		&cmd.device_manager);
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
@@ -1536,14 +1789,15 @@ static void cmd_interface_recovery_test_process_get_device_id_static_init (CuTes
 	struct cmd_interface_recovery_testing cmd;
 	struct cmd_interface_recovery test_static =
 		cmd_interface_recovery_static_init (&cmd.device_manager, &cmd.update.base, &cmd.fw_version,
-		0x1234, 20, 0x5678, 40,	&cmd.attestation_responder.base, &cmd.riot, &cmd.background.base,
+		0x1234, 20, 0x5678, 40, &cmd.attestation.base, &cmd.riot, &cmd.background.base,
 		&cmd.cmd_device.base);
 
 	TEST_START;
 
-	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init_device_id (&cmd);
 
-	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, CERBERUS_FW_VERSION,
+	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, RECOVERY_FW_VERSION,
 		FW_VERSION_COUNT);
 
 	cerberus_protocol_required_commands_testing_process_get_device_id (test, &test_static.base,
@@ -1620,6 +1874,22 @@ static void cmd_interface_recovery_test_process_stack_stats_fail (CuTest *test)
 }
 #endif
 
+static void cmd_interface_recovery_test_supports_all_required_commands (CuTest *test)
+{
+	struct cmd_interface_recovery_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_supports_all_required_commands (test,
+		&cmd.handler.base, RECOVERY_FW_VERSION, &cmd.attestation, &cmd.device_manager,
+		&cmd.background, &cmd.keystore, &cmd.cmd_device, RIOT_CORE_DEVID_CSR,
+		RIOT_CORE_DEVID_CSR_LEN, CERBERUS_PROTOCOL_MSFT_PCI_VID,
+		cmd_interface_recovery_test_device_id, CERBERUS_PROTOCOL_MSFT_PCI_VID,
+		cmd_interface_recovery_test_subsystem_id, NULL);
+	complete_cmd_interface_recovery_mock_test (test, &cmd);
+}
+
 static void cmd_interface_recovery_test_process_response (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd;
@@ -1639,18 +1909,22 @@ static void cmd_interface_recovery_test_process_response (CuTest *test)
 static void cmd_interface_recovery_test_process_response_static_init (CuTest *test)
 {
 	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager,	&cmd.update.base,
+		.handler = cmd_interface_recovery_static_init (&cmd.device_manager, &cmd.update.base,
 			&cmd.fw_version, cmd_interface_recovery_test_vendor_id,
 			cmd_interface_recovery_test_device_id, cmd_interface_recovery_test_subsystem_vid,
-			cmd_interface_recovery_test_subsystem_id, cmd.handler.attestation, cmd.handler.riot,
-			cmd.handler.background, &cmd.cmd_device.base)
+			cmd_interface_recovery_test_subsystem_id, &cmd.attestation.base, &cmd.riot,
+			&cmd.background.base, &cmd.cmd_device.base)
 	};
 	struct cmd_interface_msg response;
 	int status;
 
 	TEST_START;
 
-	setup_cmd_interface_recovery_mock_test (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init (test, &cmd);
+	setup_cmd_interface_recovery_mock_test_init_device_id (&cmd);
+
+	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, RECOVERY_FW_VERSION,
+		FW_VERSION_COUNT);
 
 	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
 	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_OPERATION, status);
@@ -1716,6 +1990,16 @@ TEST (cmd_interface_recovery_test_process_get_fw_version_unset_version);
 TEST (cmd_interface_recovery_test_process_get_fw_version_unsupported_area);
 TEST (cmd_interface_recovery_test_process_get_fw_version_invalid_len);
 TEST (cmd_interface_recovery_test_process_get_fw_version_bad_count);
+TEST (cmd_interface_recovery_test_process_get_certificate_digest);
+TEST (cmd_interface_recovery_test_process_get_certificate_digest_aux_slot);
+TEST (cmd_interface_recovery_test_process_get_certificate_digest_unsupported_slot);
+TEST (cmd_interface_recovery_test_process_get_certificate_digest_unavailable_cert);
+TEST (cmd_interface_recovery_test_process_get_certificate_digest_limited_response);
+TEST (cmd_interface_recovery_test_process_get_certificate_digest_static_init);
+TEST (cmd_interface_recovery_test_process_get_certificate_digest_invalid_len);
+TEST (cmd_interface_recovery_test_process_get_certificate_digest_unsupported_algo);
+TEST (cmd_interface_recovery_test_process_get_certificate_digest_invalid_slot);
+TEST (cmd_interface_recovery_test_process_get_certificate_digest_fail);
 TEST (cmd_interface_recovery_test_process_get_certificate);
 TEST (cmd_interface_recovery_test_process_get_certificate_length_0);
 TEST (cmd_interface_recovery_test_process_get_certificate_aux_slot);
@@ -1761,6 +2045,12 @@ TEST (cmd_interface_recovery_test_process_log_read_debug);
 TEST (cmd_interface_recovery_test_process_log_read_debug_static_init);
 TEST (cmd_interface_recovery_test_process_log_read_debug_limited_response);
 TEST (cmd_interface_recovery_test_process_log_read_debug_fail);
+TEST (cmd_interface_recovery_test_process_get_challenge_response_no_session_mgr);
+TEST (cmd_interface_recovery_test_process_get_challenge_response_key_exchange_not_requested);
+TEST (cmd_interface_recovery_test_process_get_challenge_response_limited_response_no_session_mgr);
+TEST (cmd_interface_recovery_test_process_get_challenge_response_limited_response_key_exchange_not_requested);
+TEST (cmd_interface_recovery_test_process_get_challenge_response_fail);
+TEST (cmd_interface_recovery_test_process_get_challenge_response_invalid_len);
 TEST (cmd_interface_recovery_test_process_get_capabilities);
 TEST (cmd_interface_recovery_test_process_get_capabilities_static_init);
 TEST (cmd_interface_recovery_test_process_get_capabilities_invalid_device);
@@ -1774,6 +2064,7 @@ TEST (cmd_interface_recovery_test_process_stack_stats_non_zero_offset);
 TEST (cmd_interface_recovery_test_process_stack_stats_invalid_len);
 TEST (cmd_interface_recovery_test_process_stack_stats_fail);
 #endif
+TEST (cmd_interface_recovery_test_supports_all_required_commands);
 TEST (cmd_interface_recovery_test_process_response);
 TEST (cmd_interface_recovery_test_process_response_static_init);
 TEST (cmd_interface_recovery_test_process_response_null);

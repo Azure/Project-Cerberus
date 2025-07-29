@@ -37,8 +37,18 @@ int cmd_interface_recovery_process_request (const struct cmd_interface *intf,
 			status = cerberus_protocol_get_fw_version (interface->fw_version, request);
 			break;
 
+		case CERBERUS_PROTOCOL_GET_DIGEST:
+			status = cerberus_protocol_get_certificate_digest (interface->attestation, NULL,
+				request);
+			break;
+
 		case CERBERUS_PROTOCOL_GET_CERTIFICATE:
 			status = cerberus_protocol_get_certificate (interface->attestation, request);
+			break;
+
+		case CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE:
+			status = cerberus_protocol_get_challenge_response (interface->attestation, NULL,
+				request);
 			break;
 
 		case CERBERUS_PROTOCOL_EXPORT_CSR:
