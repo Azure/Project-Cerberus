@@ -232,6 +232,7 @@ enum {
 	FLASH_MASTER_XFER_IN_PROGRESS = FLASH_MASTER_ERROR (0x0c),		/**< The operation is not possible because there is an active transfer. */
 	FLASH_MASTER_RX_FIFO_OVERFLOW = FLASH_MASTER_ERROR (0x0d),		/**< The SPI HW receive FIFO overflowed and data was lost. */
 	FLASH_MASTER_TX_FIFO_UNDERFLOW = FLASH_MASTER_ERROR (0x0e),		/**< The SPI HW transmit FIFO underflowed, corrupting the transfer. */
+	FLASH_MASTER_XFER_LEN_TOO_LARGE = FLASH_MASTER_ERROR (0x0f),	/**< The SPI transfer exceeds allowed size. */
 };
 
 
