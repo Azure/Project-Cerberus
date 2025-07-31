@@ -174,6 +174,7 @@ void spdm_secure_session_manager_reset (const struct spdm_secure_session_manager
 {
 	struct spdm_secure_session *sessions;
 	size_t session_index;
+	uint32_t session_id;
 
 	if (session_manager == NULL) {
 		return;
@@ -183,14 +184,19 @@ void spdm_secure_session_manager_reset (const struct spdm_secure_session_manager
 
 	/* Release all sessions. */
 	for (session_index = 0; session_index < SPDM_MAX_SESSION_COUNT; session_index++) {
-		if (sessions[session_index].session_id != SPDM_INVALID_SESSION_ID) {
-			spdm_secure_session_manager_release_session (session_manager,
-				sessions[session_index].session_id);
+		session_id = sessions[session_index].session_id;
+
+		if (session_id != SPDM_INVALID_SESSION_ID) {
+			spdm_secure_session_manager_release_session (session_manager, session_id);
+
+			observable_notify_observers_with_ptr (&session_manager->state->observable,
+				offsetof (struct spdm_protocol_session_observer, on_close_session), &session_id);
 		}
 	}
 
-	/* Reset the state. */
-	memset (session_manager->state, 0, sizeof (struct spdm_secure_session_manager_state));
+	/* Reset the state, maintaining the observer manager. */
+	memset (session_manager->state, 0,
+		offsetof (struct spdm_secure_session_manager_state, observable));
 }
 
 struct spdm_secure_session* spdm_secure_session_manager_get_session (
@@ -1039,6 +1045,7 @@ int spdm_secure_session_manager_encode_secure_message (
 	uint8_t sequence_num_in_header_size;
 	struct spdm_secure_session *session;
 	uint8_t req_rsp_code;
+	uint32_t session_id;
 
 	if ((session_manager == NULL) || (request == NULL)) {
 		status = SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
@@ -1112,15 +1119,24 @@ int spdm_secure_session_manager_encode_secure_message (
 	}
 
 	if (status == 0) {
+		session_id = session->session_id;
+
 		switch (req_rsp_code) {
 			case SPDM_RESPONSE_FINISH:
 				/* Change session state regardless of handshake type (in clear vs not)*/
-				spdm_secure_session_manager_set_session_state (session_manager, session->session_id,
+				spdm_secure_session_manager_set_session_state (session_manager, session_id,
 					SPDM_SESSION_STATE_ESTABLISHED);
+
+				observable_notify_observers_with_ptr (&session_manager->state->observable,
+					offsetof (struct spdm_protocol_session_observer, on_new_session), &session_id);
 				break;
 
 			case SPDM_RESPONSE_END_SESSION:
-				session_manager->release_session (session_manager, session->session_id);
+				session_manager->release_session (session_manager, session_id);
+
+				observable_notify_observers_with_ptr (&session_manager->state->observable,
+					offsetof (struct spdm_protocol_session_observer, on_close_session),
+					&session_id);
 				break;
 		}
 	}
@@ -1212,7 +1228,9 @@ exit:
  */
 void spdm_secure_session_manager_release (const struct spdm_secure_session_manager *session_manager)
 {
-	UNUSED (session_manager);
+	if ((session_manager != NULL) && (session_manager->state != NULL)) {
+		observable_release (&session_manager->state->observable);
+	}
 }
 
 /**
@@ -1247,7 +1265,47 @@ int spdm_secure_session_manager_init_state (
 	state->last_spdm_request_secure_session_id = SPDM_INVALID_SESSION_ID;
 	state->last_spdm_request_secure_session_id_valid = false;
 
+	status = observable_init (&state->observable);
+
 exit:
 
 	return status;
+}
+
+/**
+ * Add an observer for session management notifications.
+ *
+ * @param session_manager The session manager to register with.
+ * @param observer The observer to add.
+ *
+ * @return 0 if the observer was successfully added or an error code.
+ */
+int spdm_secure_session_manager_add_spdm_protocol_session_observer (
+	struct spdm_secure_session_manager *session_manager,
+	const struct spdm_protocol_session_observer *observer)
+{
+	if ((session_manager == NULL) || (session_manager->state == NULL)) {
+		return SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
+	}
+
+	return observable_add_observer (&session_manager->state->observable, (void*) observer);
+}
+
+/**
+ * Remove an observer from session management notifications.
+ *
+ * @param session_manager The session manager to deregister from.
+ * @param observer The observer to remove.
+ *
+ * @return 0 if the observer was successfully removed or an error code.
+ */
+int spdm_secure_session_manager_remove_spdm_protocol_session_observer (
+	struct spdm_secure_session_manager *session_manager,
+	const struct spdm_protocol_session_observer *observer)
+{
+	if ((session_manager == NULL) || (session_manager->state == NULL)) {
+		return SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
+	}
+
+	return observable_remove_observer (&session_manager->state->observable, (void*) observer);
 }

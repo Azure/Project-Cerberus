@@ -180,6 +180,7 @@ enum {
 	ROT_MODULE_AUTH_DATA = 0x00a8,						/**< Authorized data handler for operation authentication. */
 	ROT_MODULE_AUTH_SIGNATURE = 0x00a9,					/**< Authorized data signature for operation authentication. */
 	ROT_MODULE_EKU_EXTENSION = 0x00aa,					/**< Extension handler for Extended Key Usage extensions. */
+	ROT_MODULE_SPDM_PROTOCOL_SESSION_OBSERVER = 0x00ab,	/**< SPDM protocol session observer. */
 };
 
 

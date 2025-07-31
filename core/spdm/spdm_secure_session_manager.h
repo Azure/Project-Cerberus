@@ -6,6 +6,8 @@
 
 #include "platform_config.h"
 #include "spdm_commands.h"
+#include "spdm_protocol_session_observer.h"
+#include "common/observable.h"
 #include "crypto/hkdf.h"
 #include "fips/error_state_entry_interface.h"
 
@@ -263,6 +265,7 @@ struct spdm_secure_session_manager_state {
 	uint32_t current_session_count;									/**< Current number of active sessions. */
 	uint32_t last_spdm_request_secure_session_id;					/**< Secure session Id of last secure message. */
 	bool last_spdm_request_secure_session_id_valid;					/**< Secure session Id validity. */
+	struct observable observable;									/**< Observer manager for the SPDM session manager. */
 };
 
 struct spdm_secure_session_manager {
@@ -431,6 +434,13 @@ void spdm_secure_session_manager_release (
 
 int spdm_secure_session_manager_init_state (
 	const struct spdm_secure_session_manager *session_manager);
+
+int spdm_secure_session_manager_add_spdm_protocol_session_observer (
+	struct spdm_secure_session_manager *session_manager,
+	const struct spdm_protocol_session_observer *observer);
+int spdm_secure_session_manager_remove_spdm_protocol_session_observer (
+	struct spdm_secure_session_manager *session_manager,
+	const struct spdm_protocol_session_observer *observer);
 
 
 #define	SPDM_SECURE_SESSION_MANAGER_ERROR(\
