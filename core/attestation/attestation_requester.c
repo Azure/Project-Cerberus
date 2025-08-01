@@ -18,6 +18,7 @@
 #include "common/unused.h"
 #include "logging/debug_log.h"
 #include "manifest/cfm/cfm_manager.h"
+#include "mctp/cmd_interface_protocol_mctp.h"
 #include "mctp/mctp_control_protocol.h"
 #include "mctp/mctp_control_protocol_commands.h"
 #include "mctp/mctp_interface.h"
@@ -3556,10 +3557,12 @@ static int attestation_requester_discover_device_spdm_protocol (
 int attestation_requester_discover_device (const struct attestation_requester *attestation,
 	uint8_t eid)
 {
+	struct mctp_base_protocol_message_header *header;
 	struct mctp_control_get_message_type_response *msg_type_rsp;
 	uint8_t *msg_type;
 	uint8_t i_type;
 	int device_addr;
+	int request_len;
 	int status;
 
 	if (attestation == NULL) {
@@ -3580,15 +3583,23 @@ int attestation_requester_discover_device (const struct attestation_requester *a
 
 	attestation->state->txn.device_discovery = true;
 
+	/* TODO: Populating MCTP base header would be removed after the transition to msg_transport. */
+	header = (struct mctp_base_protocol_message_header*) attestation->state->txn.msg_buffer;
+	header->msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	header->integrity_check = 0;
+	request_len = sizeof (struct mctp_base_protocol_message_header);
+
 	status =
 		mctp_control_protocol_generate_get_message_type_support_request (
-		attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer));
+		&attestation->state->txn.msg_buffer[request_len],
+		sizeof (attestation->state->txn.msg_buffer) - request_len);
 	if (ROT_IS_ERROR (status)) {
 		return status;
 	}
+	request_len += status;
 
-	status = attestation_requester_send_request_and_get_response (attestation, status, device_addr,
-		eid, false, true, MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE);
+	status = attestation_requester_send_request_and_get_response (attestation, request_len,
+		device_addr, eid, false, true, MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE);
 	if (status != 0) {
 		goto done;
 	}
@@ -3638,6 +3649,7 @@ done:
  */
 int attestation_requester_get_mctp_routing_table (const struct attestation_requester *attestation)
 {
+	struct mctp_base_protocol_message_header *header;
 	struct mctp_control_get_routing_table_entries_response *routing_table_rsp;
 	struct mctp_control_routing_table_entry *entry;
 	uint8_t entry_handle = 0;
@@ -3645,6 +3657,7 @@ int attestation_requester_get_mctp_routing_table (const struct attestation_reque
 	uint8_t i_eid;
 	int bridge_addr;
 	int bridge_eid;
+	int request_len;
 	int status;
 
 	if (attestation == NULL) {
@@ -3670,13 +3683,21 @@ int attestation_requester_get_mctp_routing_table (const struct attestation_reque
 	}
 
 	while (entry_handle != 0xFF) {
+		/* TODO: Populating MCTP base header would be removed after the transition to msg_transport. */
+		header = (struct mctp_base_protocol_message_header*) attestation->state->txn.msg_buffer;
+		header->msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+		header->integrity_check = 0;
+		request_len = sizeof (struct mctp_base_protocol_message_header);
+
 		status = mctp_control_protocol_generate_get_routing_table_entries_request (entry_handle,
-			attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer));
+			&attestation->state->txn.msg_buffer[request_len],
+			(sizeof (attestation->state->txn.msg_buffer) - request_len));
 		if (ROT_IS_ERROR (status)) {
 			return status;
 		}
+		request_len += status;
 
-		status = attestation_requester_send_request_and_get_response (attestation, status,
+		status = attestation_requester_send_request_and_get_response (attestation, request_len,
 			bridge_addr, bridge_eid, false, true, MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES);
 		if (status != 0) {
 			return status;

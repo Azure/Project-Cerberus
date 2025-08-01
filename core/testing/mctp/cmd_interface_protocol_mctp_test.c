@@ -325,12 +325,11 @@ static void cmd_interface_protocol_mctp_test_parse_message_mctp_control (CuTest 
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG, message_type);
 
-	/* TODO:  This should be updated to strip the message header. */
 	CuAssertPtrEquals (test, data, message.data);
 	CuAssertIntEquals (test, sizeof (data), message.length);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT, message.max_response);
-	CuAssertPtrEquals (test, message.data, message.payload);
-	CuAssertIntEquals (test, message.length, message.payload_length);
+	CuAssertPtrEquals (test, &message.data[1], message.payload);
+	CuAssertIntEquals (test, message.length - 1, message.payload_length);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_BMC_EID, message.source_eid);
 	CuAssertIntEquals (test, 0x55, message.source_addr);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, message.target_eid);
@@ -376,13 +375,12 @@ static void cmd_interface_protocol_mctp_test_parse_message_mctp_control_payload_
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG, message_type);
 
-	/* TODO:  This should be updated to strip the message header. */
 	CuAssertPtrEquals (test, data, message.data);
 	CuAssertIntEquals (test, sizeof (data), message.length);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT + payload_offset,
 		message.max_response);
-	CuAssertPtrEquals (test, &message.data[payload_offset], message.payload);
-	CuAssertIntEquals (test, message.length - payload_offset, message.payload_length);
+	CuAssertPtrEquals (test, &message.data[payload_offset + 1], message.payload);
+	CuAssertIntEquals (test, message.length - payload_offset - 1, message.payload_length);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_BMC_EID, message.source_eid);
 	CuAssertIntEquals (test, 0x55, message.source_addr);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, message.target_eid);
@@ -1022,7 +1020,7 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_mctp_control 
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
-		(struct mctp_base_protocol_message_header*) &data[1];
+		(struct mctp_base_protocol_message_header*) data;
 	int status;
 	uint32_t message_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 
@@ -1047,12 +1045,11 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_mctp_control 
 	status = mctp.test.base.handle_request_result (&mctp.test.base, 0, message_type, &message);
 	CuAssertIntEquals (test, 0, status);
 
-	/* TODO:  This should be updated to add the message header. */
 	CuAssertPtrEquals (test, data, message.data);
 	CuAssertIntEquals (test, sizeof (data), message.length);
 	CuAssertIntEquals (test, sizeof (data), message.max_response);
-	CuAssertPtrEquals (test, &message.data[1], message.payload);
-	CuAssertIntEquals (test, message.length - 1, message.payload_length);
+	CuAssertPtrEquals (test, message.data, message.payload);
+	CuAssertIntEquals (test, message.length, message.payload_length);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_BMC_EID, message.source_eid);
 	CuAssertIntEquals (test, 0x55, message.source_addr);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, message.target_eid);
@@ -1073,7 +1070,7 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_mctp_control_
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
-		(struct mctp_base_protocol_message_header*) &data[1];
+		(struct mctp_base_protocol_message_header*) data;
 	int status;
 	uint32_t message_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	struct debug_log_entry_info entry1 = {
@@ -1112,12 +1109,11 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_mctp_control_
 		message_type, &message);
 	CuAssertIntEquals (test, CMD_HANDLER_PROCESS_FAILED, status);
 
-	/* TODO:  This should be updated to add the message header. */
 	CuAssertPtrEquals (test, data, message.data);
 	CuAssertIntEquals (test, sizeof (data), message.length);
 	CuAssertIntEquals (test, sizeof (data), message.max_response);
-	CuAssertPtrEquals (test, &message.data[1], message.payload);
-	CuAssertIntEquals (test, message.length - 1, message.payload_length);
+	CuAssertPtrEquals (test, message.data, message.payload);
+	CuAssertIntEquals (test, message.length, message.payload_length);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_BMC_EID, message.source_eid);
 	CuAssertIntEquals (test, 0x55, message.source_addr);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, message.target_eid);

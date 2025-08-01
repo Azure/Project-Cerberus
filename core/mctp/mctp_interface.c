@@ -196,6 +196,9 @@ static int mctp_interface_deprecated_handle_response_message (const struct mctp_
 	 * it would have failed earlier in packet processing. */
 	if (MCTP_BASE_PROTOCOL_IS_CONTROL_MSG (mctp->state->msg_type)) {
 		if (mctp->cmd_mctp) {
+			/* Remove the MCTP Base protocol before processing the response. */
+			cmd_interface_msg_remove_protocol_header (&mctp->state->req_buffer,
+				sizeof (struct mctp_base_protocol_message_header));
 			status = mctp->cmd_mctp->process_response (mctp->cmd_mctp, &mctp->state->req_buffer);
 			if (status == CMD_HANDLER_ERROR_MESSAGE) {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
@@ -1138,9 +1141,11 @@ unlock:
 int mctp_interface_send_discovery_notify (const struct mctp_interface *mctp, bool use_bridge_eid,
 	uint32_t timeout_ms, struct cmd_interface_msg *response)
 {
+	struct mctp_base_protocol_message_header *header;
 	uint8_t request_data[MCTP_BASE_PROTOCOL_MIN_MESSAGE_LEN];
 	struct cmd_interface_msg request;
 	int bridge_eid = MCTP_BASE_PROTOCOL_NULL_EID;
+	int request_len = 0;
 	int status;
 
 	if (mctp == NULL) {
@@ -1155,12 +1160,27 @@ int mctp_interface_send_discovery_notify (const struct mctp_interface *mctp, boo
 		}
 	}
 
+	/* TODO: The following MCTP header manipulation and base header population
+	 * will be removed once the transition to msg_transport is complete.
+	 */
 	msg_transport_create_empty_request (&mctp->base, request_data, sizeof (request_data),
 		bridge_eid, &request);
+	cmd_interface_msg_remove_protocol_header (&request,
+		sizeof (struct mctp_base_protocol_message_header));
 
-	cmd_interface_msg_set_message_payload_length (&request,
-		mctp_control_protocol_generate_discovery_notify_request (request.payload,
-		request.payload_length));
+	request_len = mctp_control_protocol_generate_discovery_notify_request (request.payload,
+		request.payload_length);
+	if (ROT_IS_ERROR (request_len)) {
+		return request_len;
+	}
+
+	cmd_interface_msg_set_message_payload_length (&request, request_len);
+	cmd_interface_msg_add_protocol_header (&request,
+		sizeof (struct mctp_base_protocol_message_header));
+
+	header = (struct mctp_base_protocol_message_header*) request.payload;
+	header->msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	header->integrity_check = 0;
 
 	status = mctp_interface_send_request_message (&mctp->base, &request, timeout_ms, response);
 	if (status == MSG_TRANSPORT_NO_WAIT_RESPONSE) {

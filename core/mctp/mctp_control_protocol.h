@@ -69,13 +69,11 @@ enum {
  * Control message portion of packet header
  */
 struct PLATFORM_LITTLE_ENDIAN_STORAGE mctp_control_protocol_header {
-	uint8_t msg_type:7;			/**< MCTP message type */
-	uint8_t integrity_check:1;	/**< MCTP message integrity check, always 0 */
-	uint8_t instance_id:5;		/**< Instance ID */
-	uint8_t rsvd:1;				/**< Reserved */
-	uint8_t d_bit:1;			/**< D-bit */
-	uint8_t rq:1;				/**< Request bit */
-	uint8_t command_code;		/**< Command code */
+	uint8_t instance_id:5;	/**< Instance ID */
+	uint8_t rsvd:1;			/**< Reserved */
+	uint8_t d_bit:1;		/**< D-bit */
+	uint8_t rq:1;			/**< Request bit */
+	uint8_t command_code;	/**< Command code */
 };
 
 /**

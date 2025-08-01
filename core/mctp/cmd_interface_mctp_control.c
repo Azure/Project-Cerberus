@@ -11,7 +11,6 @@
 #include "cmd_interface/cmd_interface.h"
 #include "common/unused.h"
 
-
 /**
  * Pre-process received MCTP control protocol message.
  *
@@ -32,14 +31,13 @@ static int cmd_interface_mctp_control_process_mctp_protocol_message (
 
 	message->crypto_timeout = false;
 
-	if (message->length < MCTP_CONTROL_PROTOCOL_MIN_MSG_LEN) {
+	if (message->payload_length < MCTP_CONTROL_PROTOCOL_MIN_MSG_LEN) {
 		return CMD_HANDLER_MCTP_CTRL_PAYLOAD_TOO_SHORT;
 	}
 
-	header = (struct mctp_control_protocol_header*) message->data;
+	header = (struct mctp_control_protocol_header*) message->payload;
 
-	if ((header->msg_type != MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG) ||
-		(header->integrity_check != 0) || (header->d_bit != 0)) {
+	if (header->d_bit != 0) {
 		return CMD_HANDLER_MCTP_CTRL_UNSUPPORTED_MSG;
 	}
 
@@ -50,7 +48,7 @@ static int cmd_interface_mctp_control_process_mctp_protocol_message (
 	*command_id = header->command_code;
 
 	if (header->rq == 0) {
-		rsp_header = (struct mctp_control_protocol_resp_header*) message->data;
+		rsp_header = (struct mctp_control_protocol_resp_header*) message->payload;
 
 		if (rsp_header->completion_code != MCTP_CONTROL_PROTOCOL_SUCCESS) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,

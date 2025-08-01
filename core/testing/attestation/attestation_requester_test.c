@@ -2943,6 +2943,7 @@ static int64_t attestation_requester_testing_mctp_get_message_type_rsp_callback 
 {
 	struct attestation_requester_testing *testing = expected->context;
 	struct mctp_base_protocol_transport_header *header;
+	struct mctp_base_protocol_message_header *mctp_header;
 	struct mctp_control_get_message_type_response *response;
 	struct cmd_packet rx_packet;
 	struct cmd_message *tx;
@@ -2971,10 +2972,12 @@ static int64_t attestation_requester_testing_mctp_get_message_type_rsp_callback 
 
 	offset = sizeof (struct mctp_base_protocol_transport_header);
 
-	response = (struct mctp_control_get_message_type_response*) &rx_packet.data[offset];
-	response->header.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
-	response->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
+	mctp_header = (struct mctp_base_protocol_message_header*) &rx_packet.data[offset];
+	mctp_header->msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	offset += sizeof (struct mctp_base_protocol_message_header);
 
+	response = (struct mctp_control_get_message_type_response*) &rx_packet.data[offset];
+	response->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
 	response->header.completion_code = testing->rsp_fail;
 	response->message_type_count = 1 + testing->cerberus_discovery + testing->spdm_discovery;
 
@@ -3017,6 +3020,7 @@ static int64_t attestation_requester_testing_mctp_get_routing_table_entries_rsp_
 	const struct mock_call *expected, const struct mock_call *called)
 {
 	struct attestation_requester_testing *testing = expected->context;
+	struct mctp_base_protocol_message_header *mctp_header;
 	struct mctp_base_protocol_transport_header *header;
 	struct mctp_control_get_routing_table_entries_response *response;
 	struct mctp_control_routing_table_entry *entry;
@@ -3047,12 +3051,14 @@ static int64_t attestation_requester_testing_mctp_get_routing_table_entries_rsp_
 
 	offset = sizeof (struct mctp_base_protocol_transport_header);
 
+	mctp_header = (struct mctp_base_protocol_message_header*) &rx_packet.data[offset];
+	mctp_header->msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	offset += sizeof (struct mctp_base_protocol_message_header);
+
 	response = (struct mctp_control_get_routing_table_entries_response*) &rx_packet.data[offset];
 	entry = mctp_control_get_routing_table_entries_response_get_entries (response);
 
-	response->header.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	response->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES;
-
 	response->header.completion_code = testing->rsp_fail;
 	response->num_entries = 2;
 	response->next_entry_handle = testing->second_response[0] ? 0xFF : 1;
@@ -3111,6 +3117,7 @@ static int64_t attestation_requester_testing_mctp_get_routing_table_entries_rsp_
 static void attestation_requester_testing_receive_mctp_set_eid_request (CuTest *test,
 	struct attestation_requester_testing *testing)
 {
+	struct mctp_base_protocol_message_header *mctp_header;
 	struct mctp_base_protocol_transport_header *header;
 	struct mctp_control_set_eid *rq;
 	struct cmd_packet rx_packet;
@@ -3137,12 +3144,14 @@ static void attestation_requester_testing_receive_mctp_set_eid_request (CuTest *
 
 	offset = sizeof (struct mctp_base_protocol_transport_header);
 
-	rq = (struct mctp_control_set_eid*) &rx_packet.data[offset];
+	mctp_header = (struct mctp_base_protocol_message_header*) &rx_packet.data[offset];
+	mctp_header->msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	mctp_header->integrity_check = 0;
+	offset += sizeof (struct mctp_base_protocol_message_header);
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	rq = (struct mctp_control_set_eid*) &rx_packet.data[offset];
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_SET_EID;
 	rq->header.rq = 1;
-
 	rq->operation = MCTP_CONTROL_SET_EID_OPERATION_SET_ID;
 	rq->reserved = 0;
 	rq->eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -4972,8 +4981,9 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 static void attestation_requester_testing_send_and_receive_mctp_get_msg_type (CuTest *test,
 	bool get_rsp, bool unexpected_rsp, struct attestation_requester_testing *testing)
 {
-	struct mctp_base_protocol_transport_header *header;
 	struct cmd_packet tx_packet;
+	struct mctp_base_protocol_message_header *mctp_header;
+	struct mctp_base_protocol_transport_header *header;
 	struct mctp_control_get_message_type *request;
 	int status = 0;
 	size_t offset;
@@ -4997,8 +5007,12 @@ static void attestation_requester_testing_send_and_receive_mctp_get_msg_type (Cu
 
 	offset = sizeof (struct mctp_base_protocol_transport_header);
 
+	mctp_header = (struct mctp_base_protocol_message_header*) &tx_packet.data[offset];
+	mctp_header->msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	mctp_header->integrity_check = 0;
+	offset += sizeof (struct mctp_base_protocol_message_header);
+
 	request = (struct mctp_control_get_message_type*) &tx_packet.data[offset];
-	request->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	request->header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
 	request->header.rq = 1;
 
@@ -5045,6 +5059,7 @@ static void attestation_requester_testing_send_and_receive_mctp_get_routing_tabl
 	bool get_rsp, bool unexpected_rsp, uint8_t entry_handle,
 	struct attestation_requester_testing *testing)
 {
+	struct mctp_base_protocol_message_header *mctp_header;
 	struct mctp_base_protocol_transport_header *header;
 	struct cmd_packet tx_packet;
 	struct mctp_control_get_routing_table_entries *request;
@@ -5070,11 +5085,13 @@ static void attestation_requester_testing_send_and_receive_mctp_get_routing_tabl
 
 	offset = sizeof (struct mctp_base_protocol_transport_header);
 
+	mctp_header = (struct mctp_base_protocol_message_header*) &tx_packet.data[offset];
+	mctp_header->msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	offset += sizeof (struct mctp_base_protocol_message_header);
+
 	request = (struct mctp_control_get_routing_table_entries*) &tx_packet.data[offset];
-	request->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	request->header.command_code = MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES;
 	request->header.rq = 1;
-
 	request->entry_handle = entry_handle;
 
 	offset += sizeof (struct mctp_control_get_routing_table_entries);

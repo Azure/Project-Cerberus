@@ -14458,8 +14458,8 @@ static void mctp_interface_test_issue_request_mctp_control_then_process_packet_r
 	response.data = data;
 	response.length = sizeof (data);
 	memcpy (response.data, &rx.data[7], response.length);
-	response.payload = data;
-	response.payload_length = sizeof (data);
+	response.payload = &data[1];
+	response.payload_length = sizeof (data) - 1;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -14538,8 +14538,8 @@ static void mctp_interface_test_issue_request_mctp_control_then_process_packet_r
 	response.data = data;
 	response.length = sizeof (data);
 	memcpy (response.data, &rx.data[7], response.length);
-	response.payload = data;
-	response.payload_length = sizeof (data);
+	response.payload = &data[1];
+	response.payload_length = sizeof (data) - 1;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -14860,8 +14860,8 @@ static void mctp_interface_test_issue_request_static_init_mctp_control_then_proc
 	response.data = data;
 	response.length = sizeof (data);
 	memcpy (response.data, &rx.data[7], response.length);
-	response.payload = data;
-	response.payload_length = sizeof (data);
+	response.payload = &data[1];
+	response.payload_length = sizeof (data) - 1;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
