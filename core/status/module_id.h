@@ -181,6 +181,8 @@ enum {
 	ROT_MODULE_AUTH_SIGNATURE = 0x00a9,					/**< Authorized data signature for operation authentication. */
 	ROT_MODULE_EKU_EXTENSION = 0x00aa,					/**< Extension handler for Extended Key Usage extensions. */
 	ROT_MODULE_SPDM_PROTOCOL_SESSION_OBSERVER = 0x00ab,	/**< SPDM protocol session observer. */
+	ROT_MODULE_IDE_DRIVER_OBSERVER = 0x00ac,			/**< IDE driver observer interface. */
+	ROT_MODULE_TDISP_DRIVER_OBSERVER = 0x00ad,			/**< TDISP driver observer interface. */
 };
 
 
