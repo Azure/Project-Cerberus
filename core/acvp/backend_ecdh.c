@@ -359,6 +359,8 @@ exit:
 		platform_free (pubkey_der);
 	}
 
+	buffer_zeroize (privkey_hw, sizeof (privkey_hw));
+
 	if (ROT_IS_ERROR (status)) {
 		// On failure, set status to -1 to trigger test failure handling in Acvpparser library. Log
 		// error to give more information about the failure.
