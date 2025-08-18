@@ -2593,8 +2593,9 @@ static int attestation_requester_get_and_verify_spdm_measurement_block (
  *
  * @param check Checking method requested.
  * @param actual Actual data to utilize.
+ * @param actual_length Length of actual data.
  * @param expected Expected data to utilize.
- * @param length Length of both actual and expected data.
+ * @param expected_length Length of expected data.
  * @param bitmask Buffer with bitmask to use during comparison. Can be set to NULL if not needed.
  * @param big_endian Bool flag indicating if multi-byte data values are in big endian.
  *
