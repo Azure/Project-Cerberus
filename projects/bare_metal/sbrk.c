@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdint.h>
+
+
 /**
  * Version of _sbrk() to make sure it take into the account the end of allowable
  * heap space
@@ -12,18 +15,18 @@ void* _sbrk (int incr)
 {
 	extern char end;			/* Set by linker. */
 	extern char __heap_limit;	/* Set by linker. */
-	static char *heap_end = 0;
-	char *prev_heap_end;
+	static uintptr_t heap_end = 0;
+	uintptr_t prev_heap_end;
 
 	if (heap_end == 0) {
-		heap_end = &end;
+		heap_end = (uintptr_t) &end;
 	}
 
 	if ((incr < 0) || (heap_end > (heap_end + incr))) {
 		return (void*) -1;
 	}
 
-	if ((heap_end + incr) > &__heap_limit) {
+	if ((heap_end + incr) > (uintptr_t) &__heap_limit) {
 		return (void*) -1;
 	}
 
