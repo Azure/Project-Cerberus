@@ -4387,6 +4387,141 @@ static void device_manager_test_get_component_id_null (CuTest *test)
 	device_manager_release (&manager);
 }
 
+static void device_manager_test_get_instance_info_by_component_id (CuTest *test)
+{
+	struct device_manager manager;
+	uint32_t component_id = 50;
+	struct device_manager_instance_info instance_info[20];
+	struct device_manager_instance_info min_instance_info[2];
+	int status;
+	uint8_t exp_instance_info[] = {
+		0x00, 0x0A, 0x01, 0x0B,	0x02, 0x0C
+	};
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 1, 4, 4, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_mctp_bridge_device_entry (&manager, 1, 0xAA, 0xBB, 0xCC, 0xDD, 3,
+		component_id, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_mctp_bridge_device_entry (&manager, 4, 0xAA, 0xBB, 0xCC, 0xEE, 1,
+		component_id + 1, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_eid (&manager, 1, 0x0A);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_eid (&manager, 2, 0x0B);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_eid (&manager, 3, 0x0C);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_eid (&manager, 4, 0x0D);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_instance_info_by_component_id (&manager, component_id,
+		instance_info, 20 * sizeof (struct device_manager_instance_info));
+	CuAssertIntEquals (test, 3, status);
+	status = testing_validate_array ((uint8_t*) exp_instance_info, (uint8_t*) instance_info, 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_instance_info_by_component_id (&manager, component_id + 1,
+		min_instance_info, 2 * sizeof (struct device_manager_instance_info));
+	CuAssertIntEquals (test, 1, status);
+	CuAssertIntEquals (test, min_instance_info[0].eid, 0x0D);
+	CuAssertIntEquals (test, min_instance_info[0].instance_id, 0);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_get_instance_info_by_component_id_buffer_too_small (CuTest *test)
+{
+	struct device_manager manager;
+	uint32_t component_id = 50;
+	struct device_manager_instance_info min_instance_info[2];
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 1, 4, 4, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_mctp_bridge_device_entry (&manager, 1, 0xAA, 0xBB, 0xCC, 0xDD, 3,
+		component_id, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_instance_info_by_component_id (&manager, component_id,
+		min_instance_info, 2 * sizeof (struct device_manager_instance_info));
+	CuAssertIntEquals (test, DEVICE_MGR_BUF_TOO_SMALL, status);
+
+	status = device_manager_get_instance_info_by_component_id (&manager, component_id,
+		min_instance_info, 5);
+	CuAssertIntEquals (test, DEVICE_MGR_BUF_TOO_SMALL, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_get_instance_info_by_component_id_unknown_component_id (
+	CuTest *test)
+{
+	struct device_manager manager;
+	uint32_t component_id = 50;
+	struct device_manager_instance_info instance_info[2];
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 1, 1, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_mctp_bridge_device_entry (&manager, 1, 0xAA, 0xBB, 0xCC, 0xDD, 1,
+		component_id, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_instance_info_by_component_id (&manager, component_id,
+		instance_info, 2 * sizeof (struct device_manager_instance_info));
+	CuAssertIntEquals (test, 1, status);
+
+	status = device_manager_get_instance_info_by_component_id (&manager, component_id + 1,
+		instance_info, 2 * sizeof (struct device_manager_instance_info));
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_get_instance_info_by_component_id_invalid_args (CuTest *test)
+{
+	struct device_manager manager;
+	uint32_t component_id = 50;
+	struct device_manager_instance_info instance_info;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 1, 1, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_instance_info_by_component_id (NULL, component_id, &instance_info,
+		2);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	status = device_manager_get_instance_info_by_component_id (&manager, component_id, NULL, 2);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	status = device_manager_get_instance_info_by_component_id (&manager, component_id, NULL, 0);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	device_manager_release (&manager);
+}
+
 static void device_manager_test_update_cert_chain_digest (CuTest *test)
 {
 	struct device_manager manager;
@@ -8923,6 +9058,10 @@ TEST (device_manager_test_get_crypto_timeout_by_eid_null);
 TEST (device_manager_test_get_component_id);
 TEST (device_manager_test_get_component_id_unknown_eid);
 TEST (device_manager_test_get_component_id_null);
+TEST (device_manager_test_get_instance_info_by_component_id);
+TEST (device_manager_test_get_instance_info_by_component_id_buffer_too_small);
+TEST (device_manager_test_get_instance_info_by_component_id_unknown_component_id);
+TEST (device_manager_test_get_instance_info_by_component_id_invalid_args);
 TEST (device_manager_test_update_cert_chain_digest);
 TEST (device_manager_test_update_cert_chain_digest_invalid_arg);
 TEST (device_manager_test_update_cert_chain_digest_unknown_device);

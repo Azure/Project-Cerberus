@@ -219,7 +219,7 @@ static void setup_cmd_interface_system_mock_test_init (CuTest *test,
 
 	debug_log = NULL;
 
-	status = device_manager_init (&cmd->device_manager, 2, 1, 1, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&cmd->device_manager, 2, 6, 6, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5642,8 +5642,8 @@ static void cmd_interface_system_test_process_get_pcd_component_ids_limited_resp
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
-	cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_limited_response (test,
-		&cmd.handler.base, &cmd.cfm_manager);
+	cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_limited_response (test,
+		&cmd.handler.base, &cmd.pcd_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -5722,6 +5722,88 @@ static void cmd_interface_system_test_process_get_pcd_component_ids_invalid_offs
 		true, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_invalid_offset (test,
 		&cmd.handler.base, &cmd.pcd_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_component_instance_info (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_component_instance_info (test,
+		&cmd.handler.base, &cmd.device_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_component_instance_info_bad_component_id (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_component_instance_info_bad_component_id (
+		test, &cmd.handler.base, &cmd.device_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_component_instance_info_limited_response (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_component_instance_info_limited_response (
+		test, &cmd.handler.base, &cmd.device_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_component_instance_info_no_dev_manager (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_component_instance_info_null (test,
+		&cmd.handler.base, &cmd.device_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_component_instance_info_dev_manager_not_init (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_component_instance_info_dev_manager_not_init
+		(test, &cmd.handler.base, &cmd.device_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_component_instance_info_invalid_len (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_component_instance_info_invalid_len (test,
+		&cmd.handler.base, &cmd.device_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -8880,6 +8962,12 @@ TEST (cmd_interface_system_test_process_get_pcd_component_ids_fail_id);
 TEST (cmd_interface_system_test_process_get_pcd_component_ids_fail);
 TEST (cmd_interface_system_test_process_get_pcd_component_ids_invalid_len);
 TEST (cmd_interface_system_test_process_get_pcd_component_ids_invalid_offset);
+TEST (cmd_interface_system_test_process_get_component_instance_info);
+TEST (cmd_interface_system_test_process_get_component_instance_info_bad_component_id);
+TEST (cmd_interface_system_test_process_get_component_instance_info_limited_response);
+TEST (cmd_interface_system_test_process_get_component_instance_info_no_dev_manager);
+TEST (cmd_interface_system_test_process_get_component_instance_info_dev_manager_not_init);
+TEST (cmd_interface_system_test_process_get_component_instance_info_invalid_len);
 TEST (cmd_interface_system_test_process_pcd_update_init);
 TEST (cmd_interface_system_test_process_pcd_update_init_no_pcd_manager);
 TEST (cmd_interface_system_test_process_pcd_update_init_invalid_len);

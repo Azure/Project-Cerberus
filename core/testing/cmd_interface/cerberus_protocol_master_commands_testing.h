@@ -176,6 +176,22 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_inv
 void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_invalid_offset (
 	CuTest *test, struct cmd_interface *cmd, struct pcd_manager_mock *pcd_manager);
 
+void cerberus_protocol_master_commands_testing_process_get_component_instance_info (CuTest *test,
+	struct cmd_interface *cmd, struct device_manager *device_manager);
+void cerberus_protocol_master_commands_testing_process_get_component_instance_info_bad_component_id
+(
+	CuTest *test, struct cmd_interface *cmd, struct device_manager *device_manager);
+void cerberus_protocol_master_commands_testing_process_get_component_instance_info_limited_response
+(
+	CuTest *test, struct cmd_interface *cmd, struct device_manager *device_manager);
+void cerberus_protocol_master_commands_testing_process_get_component_instance_info_null (
+	CuTest *test, struct cmd_interface *cmd, struct device_manager *device_manager);
+void
+cerberus_protocol_master_commands_testing_process_get_component_instance_info_dev_manager_not_init (
+	CuTest *test, struct cmd_interface *cmd, struct device_manager *device_manager);
+void cerberus_protocol_master_commands_testing_process_get_component_instance_info_invalid_len (
+	CuTest *test, struct cmd_interface *cmd, struct device_manager *device_manager);
+
 void cerberus_protocol_master_commands_testing_process_pcd_update_init (CuTest *test,
 	struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pcd);
 void cerberus_protocol_master_commands_testing_process_pcd_update_init_no_pcd_manager (CuTest *test,

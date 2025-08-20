@@ -92,6 +92,7 @@ enum {
 	CERBERUS_PROTOCOL_GET_PCD_SUPPORTED_COMPONENT_IDS = 0x8C,	/**< Get PCD supported component IDs */
 	CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS,			/**< Get CFM supported component IDs */
 	CERBERUS_PROTOCOL_GET_EXT_UPDATE_STATUS,					/**< Get extended update status */
+	CERBERUS_PROTOCOL_GET_PCD_COMPONENT_INSTANCE_INFO,			/**< Get PCD supported component Instance info */
 
 	/* Special diagnostic commands to query for device health or other debug information. */
 	CERBERUS_PROTOCOL_DIAG_HEAP_USAGE = 0xD0,					/**< Diagnostic command to get heap usage */

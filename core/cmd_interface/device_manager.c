@@ -1757,6 +1757,45 @@ int device_manager_get_device_and_instance_ids_by_eid (struct device_manager *mg
 }
 
 /**
+ * Get instance info for all instances of indicated component type
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param component_id Component ID to query.
+ * @param instance_info Output buffer for instance info, expects an array of `buf_size` bytes.
+ * @param buf_size Size of `instance_info` buffer in bytes, must be large enough to include all
+ * instance info entries.
+ *
+ * @return Number of instances in the instance info array or an error code.
+ */
+int device_manager_get_instance_info_by_component_id (struct device_manager *mgr,
+	uint32_t component_id, struct device_manager_instance_info *instance_info, size_t buf_size)
+{
+	int i_device;
+	int count = 0;
+	int max_count;
+
+	if ((mgr == NULL) || (instance_info == NULL) || (buf_size <
+		sizeof (struct device_manager_instance_info))) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	max_count = buf_size / sizeof (struct device_manager_instance_info);
+
+	for (i_device = 0; i_device < mgr->num_devices; ++i_device) {
+		if (mgr->entries[i_device].component_id == component_id) {
+			if (count >= max_count) {
+				return DEVICE_MGR_BUF_TOO_SMALL;
+			}
+			instance_info[count].instance_id = mgr->entries[i_device].instance_id;
+			instance_info[count].eid = mgr->entries[i_device].eid;
+			count++;
+		}
+	}
+
+	return count;
+}
+
+/**
  * Update device manager device table entry device IDs
  *
  * @param mgr Device manager instance to utilize.

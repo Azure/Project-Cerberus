@@ -9,6 +9,7 @@
 #include "cmd_interface/cerberus_protocol.h"
 #include "cmd_interface/cerberus_protocol_master_commands.h"
 #include "cmd_interface/cerberus_protocol_required_commands.h"
+#include "cmd_interface/cmd_interface_system.h"
 #include "flash/flash_updater.h"
 #include "manifest/pcd/pcd_flash.h"
 #include "testing/cmd_interface/cerberus_protocol_master_commands_testing.h"
@@ -2888,10 +2889,8 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_lim
 	struct pcd_supported_component supported_component[2] = {{1, 2}, {2, 1}};
 	uint32_t pcd_id = 0xAABBCCDD;
 	uint32_t offset = 0;
-	size_t length = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
-		sizeof (struct cerberus_protocol_get_pcd_component_ids_response);
-	size_t resp_length = sizeof (supported_component) - 10 -
-		sizeof (struct cerberus_protocol_get_pcd_component_ids_response);
+	size_t length;
+	size_t resp_length = sizeof (supported_component) - 5;
 	int status;
 
 	offset = 0;
@@ -2905,9 +2904,13 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_lim
 
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pcd_component_ids);
-	request.max_response = sizeof (supported_component) - 10;
+	request.max_response = sizeof (supported_component) - 5 +
+		sizeof (struct cerberus_protocol_get_pcd_component_ids_response);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	length = request.max_response -
+		sizeof (struct cerberus_protocol_get_pcd_component_ids_response);
 
 	status = pcd_mock_init (&pcd_mock);
 	CuAssertIntEquals (test, 0, status);
@@ -3258,6 +3261,321 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_inv
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	status = pcd_mock_validate_and_release (&pcd_mock);
+	CuAssertIntEquals (test, 0, status);
+}
+
+void cerberus_protocol_master_commands_testing_process_get_component_instance_info (
+	CuTest *test, struct cmd_interface *cmd, struct device_manager *device_manager)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	int status;
+	struct cerberus_protocol_get_pcd_component_instance_info *req =
+		(struct cerberus_protocol_get_pcd_component_instance_info*) data;
+	struct cerberus_protocol_get_pcd_component_instance_info_response *resp =
+		(struct cerberus_protocol_get_pcd_component_instance_info_response*) data;
+	struct device_manager_instance_info inst_info[] = {{0, 10}, {1, 11}, {2, 12}};
+	size_t resp_length;
+
+	resp_length = sizeof (inst_info);
+
+	status = device_manager_update_mctp_bridge_device_entry (device_manager, 2, 0xAA, 0xBB, 0xCC,
+		0xDD, 3, 50, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_eid (device_manager, 2, 0x0A);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_eid (device_manager, 3, 0x0B);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_eid (device_manager, 4, 0x0C);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_eid (device_manager, 5, 0x0D);
+	CuAssertIntEquals (test, 0, status);
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_GET_PCD_COMPONENT_INSTANCE_INFO;
+
+	req->component_id = 50;
+	request.length = sizeof (struct cerberus_protocol_get_pcd_component_instance_info);
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = true;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 12, request.length);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PCD_COMPONENT_INSTANCE_INFO,
+		resp->header.command);
+	CuAssertIntEquals (test, resp->count, 3);
+
+	status = testing_validate_array ((uint8_t*) inst_info,
+		(uint8_t*) cerberus_protocol_pcd_component_instance_info (resp), resp_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+}
+
+void cerberus_protocol_master_commands_testing_process_get_component_instance_info_bad_component_id
+(
+	CuTest *test, struct cmd_interface *cmd, struct device_manager *device_manager)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	int status;
+	struct cerberus_protocol_get_pcd_component_instance_info *req =
+		(struct cerberus_protocol_get_pcd_component_instance_info*) data;
+	struct cerberus_protocol_get_pcd_component_instance_info_response *resp =
+		(struct cerberus_protocol_get_pcd_component_instance_info_response*) data;
+
+	status = device_manager_update_mctp_bridge_device_entry (device_manager, 2, 0xAA, 0xBB, 0xCC,
+		0xDD, 3, 50, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_GET_PCD_COMPONENT_INSTANCE_INFO;
+
+	req->component_id = 51;
+	request.length = sizeof (struct cerberus_protocol_get_pcd_component_instance_info);
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = true;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 6, request.length);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PCD_COMPONENT_INSTANCE_INFO,
+		resp->header.command);
+	CuAssertIntEquals (test, resp->count, 0);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+}
+
+void cerberus_protocol_master_commands_testing_process_get_component_instance_info_limited_response
+(
+	CuTest *test, struct cmd_interface *cmd, struct device_manager *device_manager)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	int status;
+	struct cerberus_protocol_get_pcd_component_instance_info *req =
+		(struct cerberus_protocol_get_pcd_component_instance_info*) data;
+	struct device_manager_instance_info inst_info[] = {{0, 10}, {1, 11}, {2, 12}};
+
+	status = device_manager_update_mctp_bridge_device_entry (device_manager, 2, 0xAA, 0xBB, 0xCC,
+		0xDD, 3, 50, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_mctp_bridge_device_entry (device_manager, 5, 0xAA, 0xBB, 0xCC,
+		0xEE, 1, 51, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_eid (device_manager, 2, 0x0A);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_eid (device_manager, 3, 0x0B);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_eid (device_manager, 4, 0x0C);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_eid (device_manager, 5, 0x0D);
+	CuAssertIntEquals (test, 0, status);
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_GET_PCD_COMPONENT_INSTANCE_INFO;
+
+	req->component_id = 50;
+	request.length = sizeof (struct cerberus_protocol_get_pcd_component_instance_info);
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.max_response = sizeof (inst_info) +
+		sizeof (struct cerberus_protocol_get_pcd_component_instance_info_response) - 2;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = true;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, DEVICE_MGR_BUF_TOO_SMALL, status);
+}
+
+void cerberus_protocol_master_commands_testing_process_get_component_instance_info_null (
+	CuTest *test, struct cmd_interface *cmd, struct device_manager *device_manager)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg *null_request = NULL;
+	int status;
+	struct cerberus_protocol_get_pcd_component_instance_info *req =
+		(struct cerberus_protocol_get_pcd_component_instance_info*) data;
+	struct device_manager *devmgr_temp;
+
+	struct cmd_interface_system *interface = (struct cmd_interface_system*) cmd;
+
+	devmgr_temp = interface->device_manager;
+	interface->device_manager = NULL;
+
+	status = cmd->process_request (cmd, null_request);
+	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_GET_PCD_COMPONENT_INSTANCE_INFO;
+
+	req->component_id = 50;
+	request.length = sizeof (struct cerberus_protocol_get_pcd_component_instance_info);
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = true;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
+	interface->device_manager = devmgr_temp;
+}
+
+void
+cerberus_protocol_master_commands_testing_process_get_component_instance_info_dev_manager_not_init (
+	CuTest *test, struct cmd_interface *cmd, struct device_manager *device_manager)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	int status;
+	struct cerberus_protocol_get_pcd_component_instance_info *req =
+		(struct cerberus_protocol_get_pcd_component_instance_info*) data;
+	struct device_manager *devmgr_temp;
+	struct device_manager devmgr_empty;
+
+	struct cmd_interface_system *interface = (struct cmd_interface_system*) cmd;
+
+	memset (&devmgr_empty, 0, sizeof (devmgr_empty));
+	devmgr_temp = interface->device_manager;
+	interface->device_manager = &devmgr_empty;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_GET_PCD_COMPONENT_INSTANCE_INFO;
+
+	req->component_id = 50;
+	request.length = sizeof (struct cerberus_protocol_get_pcd_component_instance_info);
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = true;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, 0, status);
+	interface->device_manager = devmgr_temp;
+}
+
+void cerberus_protocol_master_commands_testing_process_get_component_instance_info_invalid_len (
+	CuTest *test, struct cmd_interface *cmd, struct device_manager *device_manager)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	int status;
+	struct cerberus_protocol_get_pcd_component_instance_info *req =
+		(struct cerberus_protocol_get_pcd_component_instance_info*) data;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_GET_PCD_COMPONENT_INSTANCE_INFO;
+
+	req->component_id = 50;
+	request.length = sizeof (struct cerberus_protocol_get_pcd_component_instance_info) + 1;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = true;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+}
+
+static void cerberus_protocol_master_commands_test_get_component_instance_info_format (CuTest *test)
+{
+	int status;
+	uint8_t raw_buffer_req[] = {
+		0x7e, 0x14, 0x13, 0x03, 0x8f,
+		0x02, 0x03, 0x04, 0x05
+	};
+	uint8_t raw_buffer_resp[] = {
+		0x7e, 0x14, 0x13, 0x03, 0x8f,
+		0x05, 0x04, 0x05, 0x06, 0x07,
+		0x30, 0x31, 0x32, 0x33, 0x34, 0x35
+	};
+	uint8_t raw_buffer_instance_ids[] = {
+		0x04, 0x05, 0x06, 0x07,
+		0x30, 0x31, 0x32, 0x33, 0x34, 0x35
+	};
+
+	struct cerberus_protocol_get_pcd_component_instance_info *req;
+	struct cerberus_protocol_get_pcd_component_instance_info_response *resp;
+
+	TEST_START;
+
+	CuAssertIntEquals (test, sizeof (raw_buffer_req),
+		sizeof (struct cerberus_protocol_get_pcd_component_instance_info));
+
+	req = (struct cerberus_protocol_get_pcd_component_instance_info*) raw_buffer_req;
+	CuAssertIntEquals (test, 0, req->header.integrity_check);
+	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
+	CuAssertIntEquals (test, 0x1314, req->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, req->header.rq);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
+	CuAssertIntEquals (test, 0, req->header.crypt);
+	CuAssertIntEquals (test, 0x03, req->header.reserved1);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PCD_COMPONENT_INSTANCE_INFO,
+		req->header.command);
+
+	CuAssertIntEquals (test, 0x05040302, req->component_id);
+
+	resp = (struct cerberus_protocol_get_pcd_component_instance_info_response*) raw_buffer_resp;
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0x7e, resp->header.msg_type);
+	CuAssertIntEquals (test, 0x1314, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0x03, resp->header.reserved1);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PCD_COMPONENT_INSTANCE_INFO,
+		resp->header.command);
+
+	CuAssertIntEquals (test, 0x05, resp->count);
+	status = testing_validate_array ((uint8_t*) raw_buffer_instance_ids,
+		(uint8_t*) cerberus_protocol_pcd_component_instance_info (resp), resp->count * 2);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -6131,6 +6449,7 @@ TEST (cerberus_protocol_master_commands_test_get_pcd_id_format);
 TEST (cerberus_protocol_master_commands_test_prepare_pcd_update_format);
 TEST (cerberus_protocol_master_commands_test_pcd_update_format);
 TEST (cerberus_protocol_master_commands_test_get_pcd_component_ids_format);
+TEST (cerberus_protocol_master_commands_test_get_component_instance_info_format);
 TEST (cerberus_protocol_master_commands_test_complete_pcd_update_format);
 TEST (cerberus_protocol_master_commands_test_update_status_format);
 TEST (cerberus_protocol_master_commands_test_extended_update_status_format);

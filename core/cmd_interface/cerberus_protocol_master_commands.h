@@ -299,6 +299,45 @@ struct cerberus_protocol_get_pcd_component_ids_response {
 #define	CERBERUS_PROTOCOL_MAX_PCD_COMPONENT_IDS(req)    \
 	((req)->max_response - sizeof (struct cerberus_protocol_get_pcd_component_ids_response))
 
+/**
+ * Cerberus protocol get platform configuration data component instance info request format
+ */
+struct cerberus_protocol_get_pcd_component_instance_info {
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint32_t component_id;					/**< Component ID for instances requested */
+};
+
+/**
+ * Cerberus protocol get platform configuration data component instance info response format
+ */
+struct cerberus_protocol_get_pcd_component_instance_info_response {
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t count;							/**< Number of Instance info insatances returned */
+};
+
+/**
+ * Get the buffer containing the retrieved component instance info
+ *
+ * @param resp The commmand response structure containing the message.
+ */
+#define	cerberus_protocol_pcd_component_instance_info(resp)	(((uint8_t*) resp) + sizeof (*resp))
+
+/**
+ * Get the total message length for a get PCD component instance info response message.
+ *
+ * @param len Length of the instance info data.
+ */
+#define	cerberus_protocol_get_pcd_component_instance_info_response_length(len)    \
+	(len + sizeof (struct cerberus_protocol_get_pcd_component_instance_info_response))
+
+/**
+ * Maximum amount of component instance info data that can be returned in a single request
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	cerberus_protocol_max_pcd_component_instance_info(req)    \
+	((req)->max_response - \
+	sizeof (struct cerberus_protocol_get_pcd_component_instance_info_response))
 
 /**
  * Cerberus protocol get extended update status request format
@@ -378,6 +417,8 @@ int cerberus_protocol_pcd_update_complete (const struct manifest_cmd_interface *
 int cerberus_protocol_get_pcd_id (const struct pcd_manager *pcd_mgr,
 	struct cmd_interface_msg *request);
 int cerberus_protocol_get_pcd_component_ids (const struct pcd_manager *pcd_mgr,
+	struct cmd_interface_msg *request);
+int cerberus_protocol_get_pcd_component_instance_info (struct device_manager *dev_mgr,
 	struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_fw_update_status (const struct firmware_update_control *control,

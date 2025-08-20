@@ -272,6 +272,14 @@ struct device_manager {
 	struct observable observable;							/**< Observer manager for the interface. */
 };
 
+/**
+ * Device instance information
+ */
+struct device_manager_instance_info {
+	uint8_t instance_id;	/**< Instance ID */
+	uint8_t eid;			/**< Endpoint ID */
+};
+
 
 int device_manager_init (struct device_manager *mgr, int num_requester_devices,
 	int num_unique_responder_devices, int num_responder_devices, uint8_t hierarchy,
@@ -392,6 +400,8 @@ int device_manager_get_device_and_instance_ids_by_device_num (struct device_mana
 int device_manager_get_device_and_instance_ids_by_eid (struct device_manager *mgr, uint8_t eid,
 	uint16_t *pci_vid, uint16_t *pci_device_id, uint16_t *pci_subsystem_vid,
 	uint16_t *pci_subsystem_id, uint8_t *instance_id);
+int device_manager_get_instance_info_by_component_id (struct device_manager *mgr,
+	uint32_t component_id, struct device_manager_instance_info *instance_info, size_t buf_size);
 int device_manager_update_device_ids (struct device_manager *mgr, int device_num, uint16_t pci_vid,
 	uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id);
 

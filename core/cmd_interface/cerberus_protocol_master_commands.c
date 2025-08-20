@@ -803,6 +803,53 @@ exit:
 }
 
 /**
+ * Process PCD component instance info request
+ *
+ * @param pcd_mgr Device manager instance to utilize
+ * @param request PCD component instance info request to process
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+int cerberus_protocol_get_pcd_component_instance_info (struct device_manager *dev_mgr,
+	struct cmd_interface_msg *request)
+{
+	struct cerberus_protocol_get_pcd_component_instance_info *rq =
+		(struct cerberus_protocol_get_pcd_component_instance_info*) request->data;
+	struct cerberus_protocol_get_pcd_component_instance_info_response *rsp =
+		(struct cerberus_protocol_get_pcd_component_instance_info_response*) request->data;
+	struct device_manager_instance_info *instance_info;
+	uint32_t component_id;
+	size_t length;
+	int count;
+
+	if ((dev_mgr == NULL) || (request == NULL)) {
+		return CMD_HANDLER_INVALID_ARGUMENT;
+	}
+
+	if (request->length != sizeof (struct cerberus_protocol_get_pcd_component_instance_info)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	component_id = rq->component_id;
+	length = cerberus_protocol_max_pcd_component_instance_info (request);
+	instance_info = (struct device_manager_instance_info*)
+		cerberus_protocol_pcd_component_instance_info (rsp);
+	count = device_manager_get_instance_info_by_component_id (dev_mgr, component_id, instance_info,
+		length);
+
+	if (ROT_IS_ERROR (count)) {
+		return count;
+	}
+
+	rsp->count = count;
+	cmd_interface_msg_set_message_payload_length (request,
+		cerberus_protocol_get_pcd_component_instance_info_response_length ((rsp->count) *
+		(sizeof (struct device_manager_instance_info))));
+
+	return 0;
+}
+
+/**
  * Process a FW update status request
  *
  * @param control Firmware update control instance to query

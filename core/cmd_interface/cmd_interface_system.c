@@ -138,6 +138,11 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 			status = cerberus_protocol_get_pcd_component_ids (interface->pcd_manager, request);
 			break;
 
+		case CERBERUS_PROTOCOL_GET_PCD_COMPONENT_INSTANCE_INFO:
+			status = cerberus_protocol_get_pcd_component_instance_info (interface->device_manager,
+				request);
+			break;
+
 		case CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS:
 			status = cerberus_protocol_get_cfm_component_ids (interface->cfm_manager, request);
 			break;
