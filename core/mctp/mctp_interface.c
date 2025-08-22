@@ -827,7 +827,7 @@ int mctp_interface_process_packet (const struct mctp_interface *mctp, struct cmd
 	uint8_t crc = 0;
 	uint8_t response_addr = 0;
 	uint8_t tag_owner;
-	uint8_t msg_type;
+	uint8_t msg_type = 0;
 	size_t payload_len;
 	bool som;
 	bool eom;
