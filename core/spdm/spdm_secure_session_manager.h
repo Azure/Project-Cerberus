@@ -436,10 +436,10 @@ int spdm_secure_session_manager_init_state (
 	const struct spdm_secure_session_manager *session_manager);
 
 int spdm_secure_session_manager_add_spdm_protocol_session_observer (
-	struct spdm_secure_session_manager *session_manager,
+	const struct spdm_secure_session_manager *session_manager,
 	const struct spdm_protocol_session_observer *observer);
 int spdm_secure_session_manager_remove_spdm_protocol_session_observer (
-	struct spdm_secure_session_manager *session_manager,
+	const struct spdm_secure_session_manager *session_manager,
 	const struct spdm_protocol_session_observer *observer);
 
 

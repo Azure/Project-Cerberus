@@ -1281,7 +1281,7 @@ exit:
  * @return 0 if the observer was successfully added or an error code.
  */
 int spdm_secure_session_manager_add_spdm_protocol_session_observer (
-	struct spdm_secure_session_manager *session_manager,
+	const struct spdm_secure_session_manager *session_manager,
 	const struct spdm_protocol_session_observer *observer)
 {
 	if ((session_manager == NULL) || (session_manager->state == NULL)) {
@@ -1300,7 +1300,7 @@ int spdm_secure_session_manager_add_spdm_protocol_session_observer (
  * @return 0 if the observer was successfully removed or an error code.
  */
 int spdm_secure_session_manager_remove_spdm_protocol_session_observer (
-	struct spdm_secure_session_manager *session_manager,
+	const struct spdm_secure_session_manager *session_manager,
 	const struct spdm_protocol_session_observer *observer)
 {
 	if ((session_manager == NULL) || (session_manager->state == NULL)) {
