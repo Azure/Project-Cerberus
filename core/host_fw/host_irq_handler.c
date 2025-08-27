@@ -41,7 +41,8 @@ int host_irq_handler_power_on (const struct host_irq_handler *handler, bool allo
 
 	retries = 2;
 	while ((status != 0) && (status != HOST_PROCESSOR_RECOVERY_UNSUPPORTED) &&
-		(status != HOST_PROCESSOR_NO_RECOVERY_IMAGE) && (retries--)) {
+		(status != HOST_PROCESSOR_NO_RECOVERY_IMAGE) &&
+		(status != HOST_PROCESSOR_FLASH_NOT_SUPPORTED) && (retries--)) {
 		status = handler->host->apply_recovery_image (handler->host, true);
 		/* Errors logged in the handler. */
 	}
@@ -49,7 +50,8 @@ int host_irq_handler_power_on (const struct host_irq_handler *handler, bool allo
 	retries = 2;
 	while (allow_unsecure && (status != 0) && (retries--)) {
 		if (!flash_switched && (status != HOST_PROCESSOR_RECOVERY_UNSUPPORTED) &&
-			(status != HOST_PROCESSOR_NO_RECOVERY_IMAGE)) {
+			(status != HOST_PROCESSOR_NO_RECOVERY_IMAGE) &&
+			(status != HOST_PROCESSOR_FLASH_NOT_SUPPORTED)) {
 			/* Since we attempted to put on the recovery image but failed, the RO flash is assumed
 			 * to be trashed.  If we have any chance of booting, it will be with the RW flash.  Only
 			 * switch the flash once. */

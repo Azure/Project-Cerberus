@@ -1621,6 +1621,38 @@ static void host_irq_handler_test_power_on_apply_recovery_image_no_image (CuTest
 	host_irq_handler_testing_validate_and_release (test, &handler);
 }
 
+static void host_irq_handler_test_power_on_apply_recovery_image_flash_not_supported (CuTest *test)
+{
+	struct host_irq_handler_testing handler;
+	int status;
+
+	TEST_START;
+
+	host_irq_handler_testing_init (test, &handler);
+
+	status = mock_expect (&handler.host.mock, handler.host.base.power_on_reset, &handler.host,
+		HOST_PROCESSOR_POR_FAILED, MOCK_ARG_PTR (&handler.hash), MOCK_ARG_PTR (&handler.rsa));
+	status |= mock_expect (&handler.host.mock, handler.host.base.power_on_reset, &handler.host,
+		HOST_PROCESSOR_POR_FAILED, MOCK_ARG_PTR (&handler.hash), MOCK_ARG_PTR (&handler.rsa));
+
+	status |= mock_expect (&handler.host.mock, handler.host.base.flash_rollback, &handler.host,
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&handler.hash), MOCK_ARG_PTR (&handler.rsa),
+		MOCK_ARG (true), MOCK_ARG (true));
+	status |= mock_expect (&handler.host.mock, handler.host.base.flash_rollback, &handler.host,
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&handler.hash), MOCK_ARG_PTR (&handler.rsa),
+		MOCK_ARG (true), MOCK_ARG (true));
+
+	status |= mock_expect (&handler.host.mock, handler.host.base.apply_recovery_image,
+		&handler.host, HOST_PROCESSOR_FLASH_NOT_SUPPORTED, MOCK_ARG (true));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.power_on (&handler.test, false, NULL);
+	CuAssertIntEquals (test, HOST_PROCESSOR_FLASH_NOT_SUPPORTED, status);
+
+	host_irq_handler_testing_validate_and_release (test, &handler);
+}
+
 static void host_irq_handler_test_power_on_apply_recovery_image_unsupported_allow_unsecure (
 	CuTest *test)
 {
@@ -1681,6 +1713,42 @@ static void host_irq_handler_test_power_on_apply_recovery_image_no_image_allow_u
 
 	status |= mock_expect (&handler.host.mock, handler.host.base.apply_recovery_image,
 		&handler.host, HOST_PROCESSOR_NO_RECOVERY_IMAGE, MOCK_ARG (true));
+
+	status |= mock_expect (&handler.host.mock, handler.host.base.bypass_mode, &handler.host, 0,
+		MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.power_on (&handler.test, true, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	host_irq_handler_testing_validate_and_release (test, &handler);
+}
+
+static void host_irq_handler_test_power_on_apply_recovery_image_flash_not_supported_allow_unsecure (
+	CuTest *test)
+{
+	struct host_irq_handler_testing handler;
+	int status;
+
+	TEST_START;
+
+	host_irq_handler_testing_init (test, &handler);
+
+	status = mock_expect (&handler.host.mock, handler.host.base.power_on_reset, &handler.host,
+		HOST_PROCESSOR_POR_FAILED, MOCK_ARG_PTR (&handler.hash), MOCK_ARG_PTR (&handler.rsa));
+	status |= mock_expect (&handler.host.mock, handler.host.base.power_on_reset, &handler.host,
+		HOST_PROCESSOR_POR_FAILED, MOCK_ARG_PTR (&handler.hash), MOCK_ARG_PTR (&handler.rsa));
+
+	status |= mock_expect (&handler.host.mock, handler.host.base.flash_rollback, &handler.host,
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&handler.hash), MOCK_ARG_PTR (&handler.rsa),
+		MOCK_ARG (true), MOCK_ARG (true));
+	status |= mock_expect (&handler.host.mock, handler.host.base.flash_rollback, &handler.host,
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&handler.hash), MOCK_ARG_PTR (&handler.rsa),
+		MOCK_ARG (true), MOCK_ARG (true));
+
+	status |= mock_expect (&handler.host.mock, handler.host.base.apply_recovery_image,
+		&handler.host, HOST_PROCESSOR_FLASH_NOT_SUPPORTED, MOCK_ARG (true));
 
 	status |= mock_expect (&handler.host.mock, handler.host.base.bypass_mode, &handler.host, 0,
 		MOCK_ARG (false));
@@ -2149,8 +2217,10 @@ TEST (host_irq_handler_test_power_on_apply_recovery_image_error);
 TEST (host_irq_handler_test_power_on_apply_recovery_image_retry_error);
 TEST (host_irq_handler_test_power_on_apply_recovery_image_unsupported);
 TEST (host_irq_handler_test_power_on_apply_recovery_image_no_image);
+TEST (host_irq_handler_test_power_on_apply_recovery_image_flash_not_supported);
 TEST (host_irq_handler_test_power_on_apply_recovery_image_unsupported_allow_unsecure);
 TEST (host_irq_handler_test_power_on_apply_recovery_image_no_image_allow_unsecure);
+TEST (host_irq_handler_test_power_on_apply_recovery_image_flash_not_supported_allow_unsecure);
 TEST (host_irq_handler_test_power_on_bypass_mode);
 TEST (host_irq_handler_test_power_on_bypass_mode_error);
 TEST (host_irq_handler_test_power_on_bypass_mode_retry_error);
