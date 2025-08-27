@@ -78,8 +78,9 @@ void host_processor_filtered_release (struct host_processor_filtered *host)
 
 /**
  * Take the SPI flash from the host for the first time and configure the SPI filter for the devices.
- * This function will spin indefinitely until this operation is successful or a known error is
- * encountered indicating that it will never be successful.
+ * If the flash cannot be successfully initialized after several retries, this function will mark
+ * the flash an unsupported and return an error.  Marking the flash as unsupported will prevent
+ * other workflows that use host flash to fail.
  *
  * @param host The host processor instance.
  *
@@ -109,9 +110,15 @@ static int host_processor_filtered_initial_rot_flash_access (struct host_process
 				HOST_LOGGING_ROT_FLASH_ACCESS_ERROR, host->base.port, status);
 			log_status = status;
 		}
-	} while (status != 0);
+	} while ((status != 0) && (retries < 5));
 
-	if (log_status != 0) {
+	if (status != 0) {
+		/* The flash could not be initialized.  Treat it as unsupported. */
+		host_state_manager_set_unsupported_flash (host->state, true);
+
+		return status;
+	}
+	else if (log_status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
 			HOST_LOGGING_ROT_FLASH_ACCESS_RETRIES, host->base.port, retries);
 	}
@@ -137,9 +144,15 @@ static int host_processor_filtered_initial_rot_flash_access (struct host_process
 				HOST_LOGGING_FILTER_FLASH_TYPE_ERROR, host->base.port, status);
 			log_status = status;
 		}
-	} while (status != 0);
+	} while ((status != 0) && (retries < 5));
 
-	if (log_status != 0) {
+	if (status != 0) {
+		/* The filter could not be configured.  Treat the flash as unsupported. */
+		host_state_manager_set_unsupported_flash (host->state, true);
+
+		return status;
+	}
+	else if (log_status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
 			HOST_LOGGING_FILTER_FLASH_TYPE_RETRIES, host->base.port, retries);
 	}

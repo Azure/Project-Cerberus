@@ -11374,6 +11374,53 @@ static void host_processor_dual_test_power_on_reset_rot_access_error (CuTest *te
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
+static void host_processor_dual_test_power_on_reset_rot_access_rot_access_error_too_many_retries (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
+		&host.flash_mgr, HOST_FLASH_MGR_ROT_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
+		&host.flash_mgr, HOST_FLASH_MGR_ROT_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
+		&host.flash_mgr, HOST_FLASH_MGR_ROT_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
+		&host.flash_mgr, HOST_FLASH_MGR_ROT_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
+		&host.flash_mgr, HOST_FLASH_MGR_ROT_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.power_on_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_ROT_ACCESS_FAILED, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_flash_supported (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
 static void host_processor_dual_test_power_on_reset_rot_access_unsupported_device (CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -11707,6 +11754,60 @@ static void host_processor_dual_test_power_on_reset_flash_type_error (CuTest *te
 
 	status = host_state_manager_is_flash_supported (&host.host_state);
 	CuAssertIntEquals (test, true, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_power_on_reset_flash_type_error_too_many_retries (CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.base.config_spi_filter_flash_type, &host.flash_mgr,
+		HOST_FLASH_MGR_CONFIG_TYPE_FAILED);
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.base.config_spi_filter_flash_type, &host.flash_mgr,
+		HOST_FLASH_MGR_CONFIG_TYPE_FAILED);
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.base.config_spi_filter_flash_type, &host.flash_mgr,
+		HOST_FLASH_MGR_CONFIG_TYPE_FAILED);
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.base.config_spi_filter_flash_type, &host.flash_mgr,
+		HOST_FLASH_MGR_CONFIG_TYPE_FAILED);
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.base.config_spi_filter_flash_type, &host.flash_mgr,
+		HOST_FLASH_MGR_CONFIG_TYPE_FAILED);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.power_on_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_CONFIG_TYPE_FAILED, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_flash_supported (&host.host_state);
+	CuAssertIntEquals (test, false, status);
 
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
@@ -17888,6 +17989,7 @@ TEST (host_processor_dual_test_power_on_reset_pending_pfm_with_active_dirty_acti
 TEST (host_processor_dual_test_power_on_reset_unsupported_flash);
 TEST (host_processor_dual_test_power_on_reset_null);
 TEST (host_processor_dual_test_power_on_reset_rot_access_error);
+TEST (host_processor_dual_test_power_on_reset_rot_access_rot_access_error_too_many_retries);
 TEST (host_processor_dual_test_power_on_reset_rot_access_unsupported_device);
 TEST (host_processor_dual_test_power_on_reset_rot_access_incompatible_spi_master);
 TEST (host_processor_dual_test_power_on_reset_rot_access_no_device);
@@ -17896,6 +17998,7 @@ TEST (host_processor_dual_test_power_on_reset_rot_access_4byte_addr_incompatible
 TEST (host_processor_dual_test_power_on_reset_rot_access_unknown_quad_enable);
 TEST (host_processor_dual_test_power_on_reset_rot_access_large_device);
 TEST (host_processor_dual_test_power_on_reset_flash_type_error);
+TEST (host_processor_dual_test_power_on_reset_flash_type_error_too_many_retries);
 TEST (host_processor_dual_test_power_on_reset_flash_type_unsupported_vendor);
 TEST (host_processor_dual_test_power_on_reset_flash_type_unsupported_device);
 TEST (host_processor_dual_test_power_on_reset_flash_type_mismatched_vendor);
