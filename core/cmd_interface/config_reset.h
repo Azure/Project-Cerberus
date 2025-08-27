@@ -73,6 +73,7 @@ int config_reset_restore_bypass (const struct config_reset *reset);
 int config_reset_restore_defaults (const struct config_reset *reset);
 int config_reset_restore_platform_config (const struct config_reset *reset);
 int config_reset_clear_component_manifests (const struct config_reset *reset);
+int config_reset_clear_provisioned_certificates (const struct config_reset *reset);
 
 
 #define	CONFIG_RESET_ERROR(code)		ROT_ERROR (ROT_MODULE_CONFIG_RESET, code)
@@ -84,6 +85,7 @@ enum {
 	CONFIG_RESET_INVALID_ARGUMENT = CONFIG_RESET_ERROR (0x00),	/**< Input parameter is null or not valid. */
 	CONFIG_RESET_NO_MEMORY = CONFIG_RESET_ERROR (0x01),			/**< Memory allocation failed. */
 	CONFIG_RESET_NO_MANIFESTS = CONFIG_RESET_ERROR (0x02),		/**< No manifest are available. */
+	CONFIG_RESET_NO_CERTS = CONFIG_RESET_ERROR (0x03),			/**< Certificate clearing is not supported. */
 };
 
 

@@ -10,8 +10,6 @@
 /* Internal functions declared to allow for static initialization. */
 int authorized_execution_reset_intrusion_execute (const struct authorized_execution *execution,
 	const uint8_t *data, size_t length, bool *reset_req);
-int authorized_execution_reset_intrusion_validate_data (
-	const struct authorized_execution *execution, const uint8_t *data, size_t length);
 void authorized_execution_reset_intrusion_get_status_identifiers (
 	const struct authorized_execution *execution, uint8_t *start, uint8_t *error);
 
@@ -21,7 +19,7 @@ void authorized_execution_reset_intrusion_get_status_identifiers (
  */
 #define	AUTHORIZED_EXECUTION_RESET_INTRUSION_API_INIT	{ \
 		.execute = authorized_execution_reset_intrusion_execute, \
-		.validate_data = authorized_execution_reset_intrusion_validate_data, \
+		.validate_data = authorized_execution_validate_data, \
 		.get_status_identifiers = authorized_execution_reset_intrusion_get_status_identifiers, \
 	}
 

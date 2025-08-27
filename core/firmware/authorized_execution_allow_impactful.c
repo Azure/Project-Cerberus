@@ -38,20 +38,6 @@ int authorized_execution_allow_impactful_execute (const struct authorized_execut
 	return status;
 }
 
-int authorized_execution_allow_impactful_validate_data (
-	const struct authorized_execution *execution, const uint8_t *data, size_t length)
-{
-	if (execution == NULL) {
-		return AUTHORIZED_EXECUTION_INVALID_ARGUMENT;
-	}
-
-	/* The command consumes no data, so anything is considered valid. */
-	UNUSED (data);
-	UNUSED (length);
-
-	return 0;
-}
-
 /**
  * Initialize an authorized execution context to allow impactful firmware updates.
  *
@@ -73,7 +59,7 @@ int authorized_execution_allow_impactful_init (
 	memset (execution, 0, sizeof (*execution));
 
 	execution->base.execute = authorized_execution_allow_impactful_execute;
-	execution->base.validate_data = authorized_execution_allow_impactful_validate_data;
+	execution->base.validate_data = authorized_execution_validate_data;
 	execution->base.get_status_identifiers = authorized_execution_get_status_identifiers;
 
 	execution->impactful = impactful;

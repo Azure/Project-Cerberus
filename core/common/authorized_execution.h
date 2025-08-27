@@ -61,6 +61,8 @@ struct authorized_execution {
 
 
 /* Internal functions for use by derived types. */
+int authorized_execution_validate_data (const struct authorized_execution *execution,
+	const uint8_t *data, size_t length);
 void authorized_execution_get_status_identifiers (const struct authorized_execution *execution,
 	uint8_t *start, uint8_t *error);
 

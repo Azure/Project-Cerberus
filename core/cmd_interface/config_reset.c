@@ -184,9 +184,9 @@ int config_reset_restore_defaults (const struct config_reset *reset)
 /**
  * Erase all managed configuration for platform-specific properties.
  *
- * @param reset The configuration that should be reset.
+ * @param reset The configuration that should be erased.
  *
- * @return 0 if defaults were restored or an error code.
+ * @return 0 if the configuration was erased or an error code.
  */
 int config_reset_restore_platform_config (const struct config_reset *reset)
 {
@@ -214,9 +214,9 @@ int config_reset_restore_platform_config (const struct config_reset *reset)
 /**
  * Erase all component manifests.
  *
- * @param reset The configuration that should be reset.
+ * @param reset The configuration that should be erased.
  *
- * @return 0 if defaults were restored or an error code.
+ * @return 0 if the configuration was erased or an error code.
  */
 int config_reset_clear_component_manifests (const struct config_reset *reset)
 {
@@ -240,4 +240,24 @@ int config_reset_clear_component_manifests (const struct config_reset *reset)
 	}
 
 	return 0;
+}
+
+/**
+ * Erase any provisioned DICE identity certificates.
+ *
+ * @param reset The configuration that should be erased.
+ *
+ * @return 0 if the certificates were erased or an error code.
+ */
+int config_reset_clear_provisioned_certificates (const struct config_reset *reset)
+{
+	if (reset == NULL) {
+		return CONFIG_RESET_INVALID_ARGUMENT;
+	}
+
+	if (!reset->riot) {
+		return CONFIG_RESET_NO_CERTS;
+	}
+
+	return riot_key_manager_erase_all_certificates (reset->riot);
 }

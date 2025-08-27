@@ -10,8 +10,6 @@
 /* Internal functions declared to allow for static initialization. */
 int authorized_execution_allow_impactful_execute (const struct authorized_execution *execution,
 	const uint8_t *data, size_t length, bool *reset_req);
-int authorized_execution_allow_impactful_validate_data (
-	const struct authorized_execution *execution, const uint8_t *data, size_t length);
 
 
 /**
@@ -19,7 +17,7 @@ int authorized_execution_allow_impactful_validate_data (
  */
 #define	AUTHORIZED_EXECUTION_ALLOW_IMPACTFUL_API_INIT	{ \
 		.execute = authorized_execution_allow_impactful_execute, \
-		.validate_data = authorized_execution_allow_impactful_validate_data, \
+		.validate_data = authorized_execution_validate_data, \
 		.get_status_identifiers = authorized_execution_get_status_identifiers, \
 	}
 

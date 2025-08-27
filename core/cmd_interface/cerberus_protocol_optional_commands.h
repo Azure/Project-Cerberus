@@ -68,14 +68,17 @@ enum {
  * Identifier for the type of configuration reset to execute.
  */
 enum {
-	CERBERUS_PROTOCOL_REVERT_BYPASS = 0,	/**< Reset device to the unprotected state */
-	CERBERUS_PROTOCOL_FACTORY_RESET = 1,	/**< Restore factory default configuration */
+	CERBERUS_PROTOCOL_REVERT_BYPASS = 0,	/**< Reset device to the unprotected state. */
+	CERBERUS_PROTOCOL_FACTORY_RESET = 1,	/**< Restore factory default configuration. */
 	CERBERUS_PROTOCOL_CLEAR_PCD = 2,		/**< Remove any PCD used by the device. */
 	CERBERUS_PROTOCOL_CLEAR_CFM = 3,		/**< Remove any CFM used for component attestation. */
 	CERBERUS_PROTOCOL_RESET_INTRUSION = 4,	/**< Clear the device intrusion state. */
 	CERBERUS_PROTOCOL_ALLOW_IMPACTFUL = 5,	/**< Allow an impactful firmware update to be accepted. */
 	CERBERUS_PROTOCOL_FIRMWARE_UPDATE = 6,	/**< Provide authorization to execute a firmware update. */
 	CERBERUS_PROTOCOL_RMA = 7,				/**< Transition the device to the RMA state. */
+	CERBERUS_PROTOCOL_CLEAR_CERTS = 8,		/**< Erase device identity certificates stored in flash. */
+	CERBERUS_PROTOCOL_REVOKE_DICE = 9,		/**< Revoke the current DICE identity key. */
+	CERBERUS_PROTOCOL_REVOKE_DME = 10,		/**< Revoke the current DME key. */
 };
 
 /**

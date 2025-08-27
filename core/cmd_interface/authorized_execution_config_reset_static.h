@@ -11,8 +11,6 @@
 /* Internal functions declared to allow for static initialization. */
 int authorized_execution_config_reset_execute (const struct authorized_execution *execution,
 	const uint8_t *data, size_t length, bool *reset_req);
-int authorized_execution_config_reset_validate_data (const struct authorized_execution *execution,
-	const uint8_t *data, size_t length);
 void authorized_execution_config_reset_get_status_identifiers (
 	const struct authorized_execution *execution, uint8_t *start, uint8_t *error);
 
@@ -22,7 +20,7 @@ void authorized_execution_config_reset_get_status_identifiers (
  */
 #define	AUTHORIZED_EXECUTION_CONFIG_RESET_API_INIT	{ \
 		.execute = authorized_execution_config_reset_execute, \
-		.validate_data = authorized_execution_config_reset_validate_data, \
+		.validate_data = authorized_execution_validate_data, \
 		.get_status_identifiers = authorized_execution_config_reset_get_status_identifiers, \
 	}
 
@@ -61,7 +59,8 @@ void authorized_execution_config_reset_get_status_identifiers (
  *
  * There is no validation done on the arguments.
  *
- * @param reset_ptr The configuration reset manager that will be used to execute the execution.
+ * @param reset_ptr The configuration reset manager that will be used to execute the reset
+ * operation.
  */
 #define	authorized_execution_config_reset_static_init_restore_bypass(reset_ptr) \
 	authorized_execution_config_reset_static_init (reset_ptr, CMD_LOGGING_BYPASS_RESTORED, \
@@ -74,7 +73,8 @@ void authorized_execution_config_reset_get_status_identifiers (
  *
  * There is no validation done on the arguments.
  *
- * @param reset_ptr The configuration reset manager that will be used to execute the execution.
+ * @param reset_ptr The configuration reset manager that will be used to execute the reset
+ * operation.
  */
 #define	authorized_execution_config_reset_static_init_restore_defaults(reset_ptr) \
 	authorized_execution_config_reset_static_init (reset_ptr, CMD_LOGGING_DEFAULTS_RESTORED, \
@@ -87,7 +87,8 @@ void authorized_execution_config_reset_get_status_identifiers (
  *
  * There is no validation done on the arguments.
  *
- * @param reset_ptr The configuration reset manager that will be used to execute the execution.
+ * @param reset_ptr The configuration reset manager that will be used to execute the reset
+ * operation.
  */
 #define	authorized_execution_config_reset_static_init_restore_platform_config(reset_ptr) \
 	authorized_execution_config_reset_static_init (reset_ptr, CMD_LOGGING_CLEAR_PLATFORM_CONFIG, \
@@ -100,13 +101,29 @@ void authorized_execution_config_reset_get_status_identifiers (
  *
  * There is no validation done on the arguments.
  *
- * @param reset_ptr The configuration reset manager that will be used to execute the execution.
+ * @param reset_ptr The configuration reset manager that will be used to execute the reset
+ * operation.
  */
 #define	authorized_execution_config_reset_static_init_clear_component_manifests(reset_ptr) \
 	authorized_execution_config_reset_static_init (reset_ptr, CMD_LOGGING_CLEAR_CFM, \
 		CMD_LOGGING_CLEAR_CFM_FAIL, CONFIG_RESET_STATUS_CLEAR_COMPONENT_MANIFESTS, \
 		CONFIG_RESET_STATUS_COMPONENT_MANIFESTS_FAILED, false, \
 		config_reset_clear_component_manifests)
+
+/**
+ * Initialize a static authorized execution context remove any provisioned certificates using a
+ * configuration reset manager.
+ *
+ * There is no validation done on the arguments.
+ *
+ * @param reset_ptr The configuration reset manager that will be used to execute the reset
+ * operation.
+ */
+#define	authorized_execution_config_reset_static_init_clear_provisioned_certificates(reset_ptr) \
+	authorized_execution_config_reset_static_init (reset_ptr, CMD_LOGGING_CLEAR_CERTIFICATES, \
+		CMD_LOGGING_CLEAR_CERTIFICATES_FAIL, CONFIG_RESET_STATUS_AUTHORIZED_OPERATION, \
+		CONFIG_RESET_STATUS_AUTHORIZED_OP_FAILED, false, \
+		config_reset_clear_provisioned_certificates)
 
 
 #endif	/* AUTHORIZED_EXECUTION_CONFIG_RESET_STATIC_H_ */
