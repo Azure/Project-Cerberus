@@ -146,6 +146,7 @@ enum {
 	ECC_HW_PRIV_KEY_GEN_FAILED = ECC_HW_ERROR (0x1d),		/**< Failed to generate a valid private key for the curve. */
 	ECC_HW_VERIFY_PUBLIC_FAILED = ECC_HW_ERROR (0x1e),		/**< Failed to verify an ECC public key. */
 	ECC_HW_INVALID_PUBLIC_KEY = ECC_HW_ERROR (0x1f),		/**< The ECC public key is not valid. */
+	ECC_HW_CMD_EXE_TIMEOUT = ECC_HW_ERROR (0x20),			/**< ECC command execution timeout. */
 
 	/* Error codes >0x80 are reserved for reporting HW status bits. */
 };
