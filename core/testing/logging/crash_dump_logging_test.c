@@ -76,7 +76,7 @@ static void crash_dump_logging_testing_suite_tear_down (CuTest *test)
  * Test cases
  *******************/
 
-static void crash_dump_logging_save_opaque_data_test_length_multiple_8byte (CuTest *test)
+static void crash_dump_logging_test_save_opaque_data_length_multiple_8byte (CuTest *test)
 {
 	int status;
 	struct crash_dump_logging_testing handler;
@@ -122,103 +122,7 @@ static void crash_dump_logging_save_opaque_data_test_length_multiple_8byte (CuTe
 	crash_dump_logging_testing_validate_and_release_dependencies (test, &handler);
 }
 
-static void crash_dump_logging_save_opaque_data_test_length_multiple_8byte_wrong_log_entry (
-	CuTest *test)
-{
-	int status;
-	struct crash_dump_logging_testing handler;
-	struct debug_log_entry_info log_entry0 = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_ERROR,
-		.component = DEBUG_LOG_COMPONENT_CRASH_DUMP,
-		.msg_index = CRASH_DUMP_LOGGING_HEADER,
-		.arg1 = 1,
-		.arg2 = 2
-	};
-	struct debug_log_entry_info log_entry1 = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_ERROR,
-		.component = DEBUG_LOG_COMPONENT_CRASH_DUMP,
-		.msg_index = CRASH_DUMP_LOGGING_HEADER,
-		.arg1 = 3,
-		.arg2 = 4
-	};
-
-	TEST_START;
-
-	crash_dump_logging_testing_init_dependencies (test, &handler);
-
-	status = mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
-		MOCK_ARG_PTR_CONTAINS (&log_entry0, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (log_entry0)));
-
-	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
-		MOCK_ARG_PTR_CONTAINS (&log_entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (log_entry1)));
-
-	CuAssertIntEquals (test, 0, status);
-
-	handler.data[0] = 1;
-	handler.data[1] = 2;
-	handler.data[2] = 3;
-	handler.data[3] = 4;
-	handler.data_length = 16;
-
-	crash_dump_logging_save_opaque_data (handler.data, handler.data_length);
-
-	status = logging_mock_validate_and_release (&handler.log);
-	CuAssertIntEquals (test, 1, status);
-}
-
-static void crash_dump_logging_save_opaque_data_test_length_multiple_8byte_data_corrupted (
-	CuTest *test)
-{
-	int status;
-	struct crash_dump_logging_testing handler;
-	struct debug_log_entry_info log_entry0 = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_ERROR,
-		.component = DEBUG_LOG_COMPONENT_CRASH_DUMP,
-		.msg_index = CRASH_DUMP_LOGGING_OPAQUE_DATA,
-		.arg1 = 1,
-		.arg2 = 2
-	};
-	struct debug_log_entry_info log_entry1 = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_ERROR,
-		.component = DEBUG_LOG_COMPONENT_CRASH_DUMP,
-		.msg_index = CRASH_DUMP_LOGGING_OPAQUE_DATA,
-		.arg1 = 3,
-		.arg2 = 4
-	};
-
-	TEST_START;
-
-	crash_dump_logging_testing_init_dependencies (test, &handler);
-
-	status = mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
-		MOCK_ARG_PTR_CONTAINS (&log_entry0, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (log_entry0)));
-
-	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
-		MOCK_ARG_PTR_CONTAINS (&log_entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (log_entry1)));
-
-	CuAssertIntEquals (test, 0, status);
-
-	handler.data[0] = 1;
-	handler.data[1] = 2;
-	handler.data[2] = 3;
-	handler.data[3] = 0x44;
-	handler.data_length = 16;
-
-	crash_dump_logging_save_opaque_data (handler.data, handler.data_length);
-
-	status = logging_mock_validate_and_release (&handler.log);
-	CuAssertIntEquals (test, 1, status);
-}
-
-static void crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remaining_1byte (
+static void crash_dump_logging_test_save_opaque_data_length_multiple_8byte_remaining_1byte (
 	CuTest *test)
 {
 	int status;
@@ -280,7 +184,7 @@ static void crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remai
 	crash_dump_logging_testing_validate_and_release_dependencies (test, &handler);
 }
 
-static void crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remaining_2byte (
+static void crash_dump_logging_test_save_opaque_data_length_multiple_8byte_remaining_2byte (
 	CuTest *test)
 {
 	int status;
@@ -342,7 +246,7 @@ static void crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remai
 	crash_dump_logging_testing_validate_and_release_dependencies (test, &handler);
 }
 
-static void crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remaining_3byte (
+static void crash_dump_logging_test_save_opaque_data_length_multiple_8byte_remaining_3byte (
 	CuTest *test)
 {
 	int status;
@@ -404,7 +308,7 @@ static void crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remai
 	crash_dump_logging_testing_validate_and_release_dependencies (test, &handler);
 }
 
-static void crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remaining_4byte (
+static void crash_dump_logging_test_save_opaque_data_length_multiple_8byte_remaining_4byte (
 	CuTest *test)
 {
 	int status;
@@ -466,7 +370,7 @@ static void crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remai
 	crash_dump_logging_testing_validate_and_release_dependencies (test, &handler);
 }
 
-static void crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remaining_5byte (
+static void crash_dump_logging_test_save_opaque_data_length_multiple_8byte_remaining_5byte (
 	CuTest *test)
 {
 	int status;
@@ -529,7 +433,7 @@ static void crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remai
 	crash_dump_logging_testing_validate_and_release_dependencies (test, &handler);
 }
 
-static void crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remaining_6byte (
+static void crash_dump_logging_test_save_opaque_data_length_multiple_8byte_remaining_6byte (
 	CuTest *test)
 {
 	int status;
@@ -592,7 +496,7 @@ static void crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remai
 	crash_dump_logging_testing_validate_and_release_dependencies (test, &handler);
 }
 
-static void crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remaining_7byte (
+static void crash_dump_logging_test_save_opaque_data_length_multiple_8byte_remaining_7byte (
 	CuTest *test)
 {
 	int status;
@@ -655,19 +559,54 @@ static void crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remai
 	crash_dump_logging_testing_validate_and_release_dependencies (test, &handler);
 }
 
+static void crash_dump_logging_test_save_stack_overflow (CuTest *test)
+{
+	int status;
+	struct crash_dump_logging_testing handler;
+	void *stack = &status;
+
+#if (UINTPTR_WIDTH <= 32)
+	uint32_t stack_msb = 0;
+#else
+	uint32_t stack_msb = ((uintptr_t) stack >> 32);
+#endif
+	struct debug_log_entry_info log_entry0 = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_CRASH_DUMP,
+		.msg_index = CRASH_DUMP_LOGGING_STACK_OVERFLOW,
+		.arg1 = stack_msb,
+		.arg2 = (uintptr_t) stack
+	};
+
+	TEST_START;
+
+	crash_dump_logging_testing_init_dependencies (test, &handler);
+
+	status = mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
+		MOCK_ARG_PTR_CONTAINS (&log_entry0, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (log_entry0)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	crash_dump_logging_save_stack_overflow (stack);
+
+	crash_dump_logging_testing_validate_and_release_dependencies (test, &handler);
+}
+
+
 // *INDENT-OFF*
 TEST_SUITE_START (crash_dump_logging);
 
-TEST (crash_dump_logging_save_opaque_data_test_length_multiple_8byte);
-TEST (crash_dump_logging_save_opaque_data_test_length_multiple_8byte_wrong_log_entry);
-TEST (crash_dump_logging_save_opaque_data_test_length_multiple_8byte_data_corrupted);
-TEST (crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remaining_1byte);
-TEST (crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remaining_2byte);
-TEST (crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remaining_3byte);
-TEST (crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remaining_4byte);
-TEST (crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remaining_5byte);
-TEST (crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remaining_6byte);
-TEST (crash_dump_logging_save_opaque_data_test_length_multiple_8byte_remaining_7byte);
+TEST (crash_dump_logging_test_save_opaque_data_length_multiple_8byte);
+TEST (crash_dump_logging_test_save_opaque_data_length_multiple_8byte_remaining_1byte);
+TEST (crash_dump_logging_test_save_opaque_data_length_multiple_8byte_remaining_2byte);
+TEST (crash_dump_logging_test_save_opaque_data_length_multiple_8byte_remaining_3byte);
+TEST (crash_dump_logging_test_save_opaque_data_length_multiple_8byte_remaining_4byte);
+TEST (crash_dump_logging_test_save_opaque_data_length_multiple_8byte_remaining_5byte);
+TEST (crash_dump_logging_test_save_opaque_data_length_multiple_8byte_remaining_6byte);
+TEST (crash_dump_logging_test_save_opaque_data_length_multiple_8byte_remaining_7byte);
+TEST (crash_dump_logging_test_save_stack_overflow);
 
 /* Tear down after the tests in this suite have run. */
 TEST (crash_dump_logging_testing_suite_tear_down);

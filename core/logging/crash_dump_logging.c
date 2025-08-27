@@ -83,3 +83,21 @@ void crash_dump_logging_save_opaque_data (uint32_t *buffer, size_t length)
 			break;
 	}
 }
+
+/**
+ * Generate a log message indicating that a stack overflow was detected for a system task.
+ *
+ * @param stack The task stack pointer.  This must be a valid pointer within the task stack, not the
+ * overflowed pointer.  The stack base pointer is a typical value to use here.
+ */
+void crash_dump_logging_save_stack_overflow (void *stack)
+{
+#if (UINTPTR_WIDTH <= 32)
+	uint32_t stack_msb = 0;
+#else
+	uint32_t stack_msb = (uintptr_t) stack >> 32;
+#endif
+
+	debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CRASH_DUMP,
+		CRASH_DUMP_LOGGING_STACK_OVERFLOW, stack_msb, (uintptr_t) stack);
+}

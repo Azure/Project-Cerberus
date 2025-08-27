@@ -15,6 +15,7 @@ enum {
 	CRASH_DUMP_LOGGING_EXCEPTION_DETAIL,	/**< Details for a device exception. */
 	CRASH_DUMP_LOGGING_HEADER,				/**< Log crash dump header information, including fault code and core ID. */
 	CRASH_DUMP_LOGGING_OPAQUE_DATA,			/**< Log crash dump raw data. */
+	CRASH_DUMP_LOGGING_STACK_OVERFLOW,		/**< Stack overflow was detected in a system task. */
 };
 
 
@@ -55,6 +56,7 @@ enum {
 
 
 void crash_dump_logging_save_opaque_data (uint32_t *buffer, size_t length);
+void crash_dump_logging_save_stack_overflow (void *stack);
 
 
 #endif	/* CRASH_DUMP_LOGGING_H_ */
