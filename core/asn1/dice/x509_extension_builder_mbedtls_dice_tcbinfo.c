@@ -16,58 +16,38 @@
 
 
 /**
- * Create the TCG DICE TcbInfo extension.
+ * Add a list of FWID digests to the extension.
  *
- * @param dice The extension builder.
- * @param buffer The buffer to use for the extension data.
- * @param length Length of the extension data buffer.
- * @param extension Output for extension information.
+ * @param pos The position in the buffer to add the FWID list.  This will be updated upon return to
+ * point to the next position to add data.
+ * @param buffer The start of the extension buffer.
+ * @param fwid_list List of FWID digests to add to the extension.
+ * @param fwid_count Number of FWIDs in the list.
+ * @param enc_length Output to be updated with the total encoded length of the FWID list.
  *
- * @return 0 if the extension was created successfully or an error code.
+ * @return 0 if the extension was updated successfully or an error code.
  */
-static int x509_extension_builder_mbedtls_dice_tcbinfo_create_extension (
-	const struct x509_extension_builder_mbedtls_dice_tcbinfo *dice, uint8_t *buffer, size_t length,
-	struct x509_extension *extension)
+static int x509_extension_builder_mbedtls_dice_tcbinfo_add_fwid_list (uint8_t **pos,
+	uint8_t *buffer, const struct tcg_dice_fwid *const fwid_list, size_t fwid_count,
+	int *enc_length)
 {
-	uint8_t *pos;
-	int enc_length = 0;
-	mbedtls_mpi svn;
 	int fwid_length;
 	char *fwid_oid;
 	size_t fwid_oid_length;
 	int i;
 	int ret;
 
-	if (dice->tcb == NULL) {
-		return DICE_TCBINFO_EXTENSION_INVALID_ARGUMENT;
-	}
-
-	if (dice->tcb->version == NULL) {
-		return DICE_TCBINFO_EXTENSION_NO_VERSION;
-	}
-
-	if ((dice->tcb->svn == NULL) || (dice->tcb->svn_length == 0)) {
-		return DICE_TCBINFO_EXTENSION_NO_SVN;
-	}
-
-	if ((dice->tcb->fwid_list == NULL) || (dice->tcb->fwid_count == 0)) {
-		return DICE_TCBINFO_EXTENSION_NO_FWID_LIST;
-	}
-
-	pos = buffer + length;
-
-	/* fwids		Fwids		OPTIONAL */
-	for (i = dice->tcb->fwid_count - 1; i >= 0; i--) {
+	for (i = fwid_count - 1; i >= 0; i--) {
 		/* Generate a list of FWID SEQUENCEs.  ASN.1 is built in reverse, so the FWID list needs to
 		 * be processed from the end.  Each FWID digest can use a different hash algorithm, so each
 		 * must be individually checked. */
 		int fwid_enc_length = 0;
 
-		if (dice->tcb->fwid_list[i].digest == NULL) {
+		if (fwid_list[i].digest == NULL) {
 			return DICE_TCBINFO_EXTENSION_NO_FWID;
 		}
 
-		switch (dice->tcb->fwid_list[i].hash_alg) {
+		switch (fwid_list[i].hash_alg) {
 			case HASH_TYPE_SHA1:
 				fwid_length = SHA1_HASH_LENGTH;
 				fwid_oid = MBEDTLS_OID_DIGEST_ALG_SHA1;
@@ -98,9 +78,8 @@ static int x509_extension_builder_mbedtls_dice_tcbinfo_create_extension (
 
 		/* digest			OCTET_STRING */
 		MBEDTLS_ASN1_CHK_ADD (fwid_enc_length,
-			mbedtls_asn1_write_raw_buffer (&pos, buffer, dice->tcb->fwid_list[i].digest,
-			fwid_length));
-		ret = x509_mbedtls_close_asn1_object (&pos, buffer, MBEDTLS_ASN1_OCTET_STRING,
+			mbedtls_asn1_write_raw_buffer (pos, buffer, fwid_list[i].digest, fwid_length));
+		ret = x509_mbedtls_close_asn1_object (pos, buffer, MBEDTLS_ASN1_OCTET_STRING,
 			&fwid_enc_length);
 		if (ret != 0) {
 			return ret;
@@ -108,24 +87,152 @@ static int x509_extension_builder_mbedtls_dice_tcbinfo_create_extension (
 
 		/* hashAlg			OBJECT IDENTIFIER */
 		MBEDTLS_ASN1_CHK_ADD (fwid_enc_length,
-			mbedtls_asn1_write_oid (&pos, buffer, fwid_oid, fwid_oid_length));
+			mbedtls_asn1_write_oid (pos, buffer, fwid_oid, fwid_oid_length));
 
 		/* fwid SEQUENCE */
-		ret = x509_mbedtls_close_asn1_object (&pos, buffer,
+		ret = x509_mbedtls_close_asn1_object (pos, buffer,
 			(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE), &fwid_enc_length);
 		if (ret != 0) {
 			return ret;
 		}
 
-		enc_length += fwid_enc_length;
+		*enc_length += fwid_enc_length;
 	}
 
-	/* fwids SEQUENCE*/
-	ret = x509_mbedtls_close_asn1_object (&pos, buffer,
-		(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_CONTEXT_SPECIFIC | 6), &enc_length);
+	return 0;
+}
+
+/**
+ * Create the TCG DICE TcbInfo extension.
+ *
+ * @param dice The extension builder.
+ * @param buffer The buffer to use for the extension data.
+ * @param length Length of the extension data buffer.
+ * @param extension Output for extension information.
+ *
+ * @return 0 if the extension was created successfully or an error code.
+ */
+static int x509_extension_builder_mbedtls_dice_tcbinfo_create_extension (
+	const struct x509_extension_builder_mbedtls_dice_tcbinfo *dice, uint8_t *buffer, size_t length,
+	struct x509_extension *extension)
+{
+	uint8_t *pos;
+	int enc_length = 0;
+	int fwid_enc_length = 0;
+	mbedtls_mpi svn;
+	int i;
+	int ret;
+
+	if (dice->tcb == NULL) {
+		return DICE_TCBINFO_EXTENSION_INVALID_ARGUMENT;
+	}
+
+	if (dice->tcb->version == NULL) {
+		return DICE_TCBINFO_EXTENSION_NO_VERSION;
+	}
+
+	if ((dice->tcb->svn == NULL) || (dice->tcb->svn_length == 0)) {
+		return DICE_TCBINFO_EXTENSION_NO_SVN;
+	}
+
+	if ((dice->tcb->fwid_list == NULL) || (dice->tcb->fwid_count == 0)) {
+		return DICE_TCBINFO_EXTENSION_NO_FWID_LIST;
+	}
+
+	pos = buffer + length;
+
+	/* integrityRegisters		IrList		OPTIONAL */
+	if ((dice->tcb->ir_list != NULL) && (dice->tcb->ir_count > 0)) {
+		/* Generate a list of name digests.  ASN.1 is built in reverse, so the digest list needs to
+		 * be processed from the end. */
+		for (i = dice->tcb->ir_count - 1; i >= 0; i--) {
+			int ir_enc_length = 0;
+
+			if ((dice->tcb->ir_list[i].name == NULL) && (dice->tcb->ir_list[i].number < 0)) {
+				return DICE_TCBINFO_EXTENSION_NO_IR_ID;
+			}
+
+			if ((dice->tcb->ir_list[i].digests == NULL) ||
+				(dice->tcb->ir_list[i].digest_count == 0)) {
+				return DICE_TCBINFO_EXTENSION_NO_IR_DIGEST_LIST;
+			}
+
+			/* registerDigests		FWIDLIST */
+			ret = x509_extension_builder_mbedtls_dice_tcbinfo_add_fwid_list (&pos, buffer,
+				dice->tcb->ir_list[i].digests, dice->tcb->ir_list[i].digest_count, &ir_enc_length);
+			if (ret != 0) {
+				switch (ret) {
+					case DICE_TCBINFO_EXTENSION_NO_FWID:
+						ret = DICE_TCBINFO_EXTENSION_NO_IR_DIGEST;
+						break;
+
+					case DICE_TCBINFO_EXTENSION_UNKNOWN_FWID:
+						ret = DICE_TCBINFO_EXTENSION_UNKNOWN_IR_DIGEST;
+						break;
+				}
+
+				return ret;
+			}
+
+			/* registerDigests SEQUENCE */
+			ret = x509_mbedtls_close_asn1_object (&pos, buffer,
+				(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_CONTEXT_SPECIFIC | 2), &ir_enc_length);
+			if (ret != 0) {
+				return ret;
+			}
+
+			/* registerNum		INTEGER		OPTIONAL */
+			if (dice->tcb->ir_list[i].number >= 0) {
+				ret = mbedtls_asn1_write_int (&pos, buffer, dice->tcb->ir_list[i].number);
+				if (ret < 0) {
+					return ret;
+				}
+
+				ir_enc_length += ret;
+				*pos = (MBEDTLS_ASN1_CONTEXT_SPECIFIC | 1);
+			}
+
+			/* registerName		IA5String		OPTIONAL */
+			if (dice->tcb->ir_list[i].name != NULL) {
+				MBEDTLS_ASN1_CHK_ADD (ir_enc_length,
+					mbedtls_asn1_write_ia5_string (&pos, buffer, dice->tcb->ir_list[i].name,
+					strlen (dice->tcb->ir_list[i].name)));
+				*pos = (MBEDTLS_ASN1_CONTEXT_SPECIFIC | 0);
+			}
+
+			/* IntegrityRegister SEQUENCE */
+			ret = x509_mbedtls_close_asn1_object (&pos, buffer,
+				(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE), &ir_enc_length);
+			if (ret != 0) {
+				return ret;
+			}
+
+			enc_length += ir_enc_length;
+		}
+
+		/* integrityRegisters SEQUENCE */
+		ret = x509_mbedtls_close_asn1_object (&pos, buffer,
+			(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_CONTEXT_SPECIFIC | 10), &enc_length);
+		if (ret != 0) {
+			return ret;
+		}
+	}
+
+	/* fwids		FWIDLIST		OPTIONAL */
+	ret = x509_extension_builder_mbedtls_dice_tcbinfo_add_fwid_list (&pos, buffer,
+		dice->tcb->fwid_list, dice->tcb->fwid_count, &fwid_enc_length);
 	if (ret != 0) {
 		return ret;
 	}
+
+	/* fwids SEQUENCE */
+	ret = x509_mbedtls_close_asn1_object (&pos, buffer,
+		(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_CONTEXT_SPECIFIC | 6), &fwid_enc_length);
+	if (ret != 0) {
+		return ret;
+	}
+
+	enc_length += fwid_enc_length;
 
 	/* layer		INTEGER		OPTIONAL */
 	ret = mbedtls_asn1_write_int (&pos, buffer, dice->tcb->layer);

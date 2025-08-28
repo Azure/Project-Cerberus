@@ -66,9 +66,9 @@ ASN1_SEQUENCE_enc (DICE_FWID, enc, 0) = {
 IMPLEMENT_ASN1_FUNCTIONS (DICE_FWID)
 
 ASN1_SEQUENCE_enc (DICE_INTEGRITY_REGISTER, enc, 0) = {
-	ASN1_SIMPLE (DICE_INTEGRITY_REGISTER, register_name, ASN1_IA5STRING),
-	ASN1_SIMPLE (DICE_INTEGRITY_REGISTER, register_num, ASN1_INTEGER),
-	ASN1_SEQUENCE_OF (DICE_INTEGRITY_REGISTER, digests, DICE_FWID)
+	ASN1_IMP_OPT (DICE_INTEGRITY_REGISTER, register_name, ASN1_IA5STRING, 0),
+	ASN1_IMP_OPT (DICE_INTEGRITY_REGISTER, register_num, ASN1_INTEGER, 1),
+	ASN1_IMP_SEQUENCE_OF (DICE_INTEGRITY_REGISTER, digests, DICE_FWID, 2)
 } ASN1_SEQUENCE_END_enc (DICE_INTEGRITY_REGISTER, DICE_INTEGRITY_REGISTER)
 
 IMPLEMENT_ASN1_FUNCTIONS (DICE_INTEGRITY_REGISTER)
@@ -90,6 +90,91 @@ ASN1_SEQUENCE_enc (DICE_TCBINFO, enc, 0) = {
 IMPLEMENT_ASN1_FUNCTIONS (DICE_TCBINFO)
 
 
+/**
+ * Generate an ASN.1 list of DICE FWIDs.
+ *
+ * @param fwid_list List of FWIDs to populate in the list.
+ * @param fwid_count The number of FWIDs in the list.
+ * @param fwids Output for the ASN.1 FWID list.
+ *
+ * @return 0 if the FWIDs were added successfully or an error code.
+ */
+static int x509_extension_builder_openssl_dice_tcbinfo_add_fwids (
+	const struct tcg_dice_fwid *const fwid_list, size_t fwid_count, DICE_FWID_LIST **fwids)
+{
+	DICE_FWID *fwid;
+	ASN1_OBJECT *fwid_oid;
+	int fwid_len;
+	size_t i;
+	int status;
+
+	for (i = 0; i < fwid_count; i++) {
+		if (fwid_list[i].digest == NULL) {
+			status = DICE_TCBINFO_EXTENSION_NO_FWID;
+			goto err_build;
+		}
+
+		switch (fwid_list[i].hash_alg) {
+			case HASH_TYPE_SHA1:
+				fwid_len = SHA1_HASH_LENGTH;
+				fwid_oid = OBJ_nid2obj (EVP_MD_type (EVP_sha1 ()));
+				break;
+
+			case HASH_TYPE_SHA256:
+				fwid_len = SHA256_HASH_LENGTH;
+				fwid_oid = OBJ_nid2obj (EVP_MD_type (EVP_sha256 ()));
+				break;
+
+			case HASH_TYPE_SHA384:
+				fwid_len = SHA384_HASH_LENGTH;
+				fwid_oid = OBJ_nid2obj (EVP_MD_type (EVP_sha384 ()));
+				break;
+
+			case HASH_TYPE_SHA512:
+				fwid_len = SHA512_HASH_LENGTH;
+				fwid_oid = OBJ_nid2obj (EVP_MD_type (EVP_sha512 ()));
+				break;
+
+			default:
+				status = DICE_TCBINFO_EXTENSION_UNKNOWN_FWID;
+				goto err_build;
+		}
+
+		if (fwid_oid == NULL) {
+			status = -ERR_get_error ();
+			goto err_build;
+		}
+
+		fwid = DICE_FWID_new ();
+		if (fwid == NULL) {
+			status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
+			goto err_build;
+		}
+
+		ASN1_OBJECT_free (fwid->hash_alg);
+		fwid->hash_alg = fwid_oid;
+
+		if (ASN1_OCTET_STRING_set (fwid->digest, fwid_list[i].digest, fwid_len) == 0) {
+			status = -ERR_get_error ();
+			goto err_fwid;
+		}
+
+		status = sk_DICE_FWID_push (*fwids, fwid);
+		if (status == 0) {
+			status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
+			goto err_fwid;
+		}
+	}
+
+	return 0;
+
+err_fwid:
+	DICE_FWID_free (fwid);
+err_build:
+
+	return status;
+}
+
 int x509_extension_builder_openssl_dice_tcbinfo_build (const struct x509_extension_builder *builder,
 	struct x509_extension *extension)
 {
@@ -97,9 +182,7 @@ int x509_extension_builder_openssl_dice_tcbinfo_build (const struct x509_extensi
 		(const struct x509_extension_builder_openssl_dice_tcbinfo*) builder;
 	DICE_TCBINFO *tcbinfo;
 	BIGNUM *svn;
-	DICE_FWID *fwid;
-	ASN1_OBJECT *fwid_oid;
-	int fwid_len;
+	DICE_INTEGRITY_REGISTER *ir;
 	size_t i;
 	int status;
 	uint8_t *tcb_der = NULL;
@@ -205,61 +288,87 @@ int x509_extension_builder_openssl_dice_tcbinfo_build (const struct x509_extensi
 		goto err_build;
 	}
 
-	for (i = 0; i < dice->tcb->fwid_count; i++) {
-		if (dice->tcb->fwid_list[i].digest == NULL) {
-			status = DICE_TCBINFO_EXTENSION_NO_FWID;
+	status = x509_extension_builder_openssl_dice_tcbinfo_add_fwids (dice->tcb->fwid_list,
+		dice->tcb->fwid_count, &tcbinfo->fwids);
+	if (status != 0) {
+		goto err_build;
+	}
+
+	if ((dice->tcb->ir_list != NULL) && (dice->tcb->ir_count > 0)) {
+		tcbinfo->integrity_registers = sk_DICE_INTEGRITY_REGISTER_new_null ();
+		if (tcbinfo->integrity_registers == NULL) {
+			status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
 			goto err_build;
 		}
 
-		switch (dice->tcb->fwid_list[i].hash_alg) {
-			case HASH_TYPE_SHA1:
-				fwid_len = SHA1_HASH_LENGTH;
-				fwid_oid = OBJ_nid2obj (EVP_MD_type (EVP_sha1 ()));
-				break;
-
-			case HASH_TYPE_SHA256:
-				fwid_len = SHA256_HASH_LENGTH;
-				fwid_oid = OBJ_nid2obj (EVP_MD_type (EVP_sha256 ()));
-				break;
-
-			case HASH_TYPE_SHA384:
-				fwid_len = SHA384_HASH_LENGTH;
-				fwid_oid = OBJ_nid2obj (EVP_MD_type (EVP_sha384 ()));
-				break;
-
-			case HASH_TYPE_SHA512:
-				fwid_len = SHA512_HASH_LENGTH;
-				fwid_oid = OBJ_nid2obj (EVP_MD_type (EVP_sha512 ()));
-				break;
-
-			default:
-				status = DICE_TCBINFO_EXTENSION_UNKNOWN_FWID;
+		for (i = 0; i < dice->tcb->ir_count; i++) {
+			if ((dice->tcb->ir_list[i].name == NULL) && (dice->tcb->ir_list[i].number < 0)) {
+				status = DICE_TCBINFO_EXTENSION_NO_IR_ID;
 				goto err_build;
-		}
+			}
 
-		if (fwid_oid == NULL) {
-			status = -ERR_get_error ();
-			goto err_build;
-		}
+			if ((dice->tcb->ir_list[i].digests == NULL) ||
+				(dice->tcb->ir_list[i].digest_count == 0)) {
+				status = DICE_TCBINFO_EXTENSION_NO_IR_DIGEST_LIST;
+				goto err_build;
+			}
 
-		fwid = DICE_FWID_new ();
-		if (fwid == NULL) {
-			status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
-			goto err_build;
-		}
+			ir = DICE_INTEGRITY_REGISTER_new ();
+			if (ir == NULL) {
+				status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
+				goto err_build;
+			}
 
-		ASN1_OBJECT_free (fwid->hash_alg);
-		fwid->hash_alg = fwid_oid;
+			if (dice->tcb->ir_list[i].name != NULL) {
+				ir->register_name = ASN1_IA5STRING_new ();
+				if (ir->register_name == NULL) {
+					status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
+					goto err_ir;
+				}
 
-		if (ASN1_OCTET_STRING_set (fwid->digest, dice->tcb->fwid_list[i].digest, fwid_len) == 0) {
-			status = -ERR_get_error ();
-			goto err_fwid;
-		}
+				ir->register_name->length = strlen (dice->tcb->ir_list[i].name);
+				ir->register_name->data = (unsigned char*) strdup (dice->tcb->ir_list[i].name);
+				if (ir->register_name->data == NULL) {
+					status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
+					goto err_ir;
+				}
+			}
 
-		status = sk_DICE_FWID_push (tcbinfo->fwids, fwid);
-		if (status == 0) {
-			status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
-			goto err_fwid;
+			if (dice->tcb->ir_list[i].number >= 0) {
+				ir->register_num = ASN1_INTEGER_new ();
+				if (ir->register_num == NULL) {
+					status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
+					goto err_ir;
+				}
+
+				status = ASN1_INTEGER_set_uint64 (ir->register_num, dice->tcb->ir_list[i].number);
+				if (status == 0) {
+					status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
+					goto err_ir;
+				}
+			}
+
+			status = x509_extension_builder_openssl_dice_tcbinfo_add_fwids (
+				dice->tcb->ir_list[i].digests, dice->tcb->ir_list[i].digest_count, &ir->digests);
+			if (status != 0) {
+				switch (status) {
+					case DICE_TCBINFO_EXTENSION_NO_FWID:
+						status = DICE_TCBINFO_EXTENSION_NO_IR_DIGEST;
+						break;
+
+					case DICE_TCBINFO_EXTENSION_UNKNOWN_FWID:
+						status = DICE_TCBINFO_EXTENSION_UNKNOWN_IR_DIGEST;
+						break;
+				}
+
+				goto err_ir;
+			}
+
+			status = sk_DICE_INTEGRITY_REGISTER_push (tcbinfo->integrity_registers, ir);
+			if (status == 0) {
+				status = DICE_TCBINFO_EXTENSION_NO_MEMORY;
+				goto err_ir;
+			}
 		}
 	}
 
@@ -277,8 +386,8 @@ int x509_extension_builder_openssl_dice_tcbinfo_build (const struct x509_extensi
 
 	return 0;
 
-err_fwid:
-	DICE_FWID_free (fwid);
+err_ir:
+	DICE_INTEGRITY_REGISTER_free (ir);
 err_build:
 	DICE_TCBINFO_free (tcbinfo);
 err_tcb:

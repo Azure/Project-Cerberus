@@ -26,6 +26,33 @@ struct tcg_dice_fwid {
 };
 
 /**
+ * A single named measurement that will be reported as part of the DICE TCB.  Each measurement must
+ * provide either a string or integer identifier.
+ */
+struct tcg_dice_integrity_register {
+	/**
+	 * Identifying string for the measurement
+	 *
+	 * This is optional and can be null if only an integer identifier should be used.
+	 */
+	const char *name;
+
+	/**
+	 * Integer ID for the measurement.
+	 *
+	 * This is optional and can be -1 if only a string identifier should be used.
+	 */
+	int number;
+
+	/**
+	 * A list of digests for the measurement.  There should be only one digest for each hash
+	 * algorithm.
+	 */
+	const struct tcg_dice_fwid *digests;
+	size_t digest_count;	/**< The number of digests in the list. */
+};
+
+/**
  * Information about the TCB for a single layer of firmware in the TCG DICE architecture.
  *
  * This extension defines attestation Evidence about a Target Environment that is measured by an
@@ -76,6 +103,14 @@ struct tcg_dice_tcbinfo {
 	 */
 	const struct tcg_dice_fwid *fwid_list;
 	size_t fwid_count;	/**< The number of FWIDs in the list. */
+
+	/**
+	 * A list of named digests.
+	 *
+	 * This is optional and can be set to null if there are no named measurements to report.
+	 */
+	const struct tcg_dice_integrity_register *ir_list;
+	size_t ir_count;	/**< The number of named digests in the list. */
 };
 
 
