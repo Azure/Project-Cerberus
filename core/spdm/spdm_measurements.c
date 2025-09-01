@@ -86,7 +86,7 @@ static int spdm_measurements_build_measurement_block (const struct spdm_measurem
 		(struct spdm_measurements_measurement_block*) buffer;
 	uint8_t *value = &buffer[sizeof (*block)];
 	size_t max_length;
-	enum pcr_dmtf_value_type value_type;
+	enum pcr_dmtf_value_type value_type = PCR_DMTF_VALUE_TYPE_RESERVED;
 	int value_size;
 
 	/* There needs to at least be enough room for the measurement block headers. */
