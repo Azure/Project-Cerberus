@@ -58,7 +58,7 @@ void log_flush_handler_execute (const struct periodic_task_handler *handler)
  * @return 0 if the handler was successfully initialized or an error code.
  */
 int log_flush_handler_init (struct log_flush_handler *handler,
-	struct log_flush_handler_state *state, const struct logging **logs, size_t log_count,
+	struct log_flush_handler_state *state, const struct logging *const *logs, size_t log_count,
 	uint32_t period_ms)
 {
 	if ((handler == NULL) || (state == NULL) || (logs == NULL) || (log_count == 0)) {

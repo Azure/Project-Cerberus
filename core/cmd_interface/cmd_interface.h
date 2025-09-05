@@ -100,8 +100,8 @@ struct cmd_interface_msg {
  * A list of firmware versions.
  */
 struct cmd_interface_fw_version {
-	size_t count;		/**< The number of firmware identifiers. */
-	const char **id;	/**< The list of firmware identifiers. */
+	size_t count;			/**< The number of firmware identifiers. */
+	const char *const *id;	/**< The list of firmware identifiers. */
 };
 
 /**

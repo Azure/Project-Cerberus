@@ -123,9 +123,9 @@ struct event_task_handler {
 };
 
 
-void event_task_prepare_handlers (const struct event_task_handler **handlers, size_t count);
+void event_task_prepare_handlers (const struct event_task_handler *const *handlers, size_t count);
 int event_task_find_handler (const struct event_task_handler *handler,
-	const struct event_task_handler **list, size_t count);
+	const struct event_task_handler *const *list, size_t count);
 
 int event_task_submit_event (const struct event_task *task,
 	const struct event_task_handler *handler, uint32_t action, const uint8_t *data, size_t length,

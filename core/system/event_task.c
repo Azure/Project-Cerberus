@@ -12,7 +12,7 @@
  * handler.
  * @param count The number of event handlers in the list.
  */
-void event_task_prepare_handlers (const struct event_task_handler **handlers, size_t count)
+void event_task_prepare_handlers (const struct event_task_handler *const *handlers, size_t count)
 {
 	if (handlers) {
 		size_t i;
@@ -37,7 +37,7 @@ void event_task_prepare_handlers (const struct event_task_handler **handlers, si
  * check the return value.
  */
 int event_task_find_handler (const struct event_task_handler *handler,
-	const struct event_task_handler **list, size_t count)
+	const struct event_task_handler *const *list, size_t count)
 {
 	size_t i;
 

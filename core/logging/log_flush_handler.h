@@ -26,14 +26,14 @@ struct log_flush_handler_state {
 struct log_flush_handler {
 	struct periodic_task_handler base;		/**< Base interface for task integration. */
 	struct log_flush_handler_state *state;	/**< Variable context for the handler. */
-	const struct logging **logs;			/**< List of logs to flush. */
+	const struct logging *const *logs;		/**< List of logs to flush. */
 	size_t log_count;						/**< Number of logs in the list. */
 	uint32_t period;						/**< Required time between log flush requests. */
 };
 
 
 int log_flush_handler_init (struct log_flush_handler *handler,
-	struct log_flush_handler_state *state, const struct logging **logs, size_t log_count,
+	struct log_flush_handler_state *state, const struct logging *const *logs, size_t log_count,
 	uint32_t period_ms);
 int log_flush_handler_init_state (const struct log_flush_handler *handler);
 void log_flush_handler_release (const struct log_flush_handler *handler);
