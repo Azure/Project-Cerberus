@@ -2277,6 +2277,58 @@ static void ecc_openssl_test_sign_unknown_hash (CuTest *test)
 	ecc_openssl_release (&engine);
 }
 
+static void ecc_openssl_test_verify_sha384 (CuTest *test)
+{
+	struct ecc_engine_openssl engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		&pub_key);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, pub_key.context);
+
+	status = engine.base.verify (&engine.base, &pub_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH,
+		ECC_SIGNATURE_SHA384_TEST, ECC_SIG_SHA384_TEST_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	ecc_openssl_release (&engine);
+}
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+static void ecc_openssl_test_verify_p384_sha512 (CuTest *test)
+{
+	struct ecc_engine_openssl engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_public_key (&engine.base, ECC384_PUBKEY_DER, ECC384_PUBKEY_DER_LEN,
+		&pub_key);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, pub_key.context);
+
+	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH,
+		ECC384_SIGNATURE_SHA512_TEST, ECC384_SIG_SHA512_TEST_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	ecc_openssl_release (&engine);
+}
+#endif
+
 static void ecc_openssl_test_verify_null (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -3797,6 +3849,10 @@ TEST (ecc_openssl_test_sign_external_rng_p521);
 TEST (ecc_openssl_test_sign_null);
 TEST (ecc_openssl_test_sign_small_buffer);
 TEST (ecc_openssl_test_sign_unknown_hash);
+TEST (ecc_openssl_test_verify_sha384);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+TEST (ecc_openssl_test_verify_p384_sha512);
+#endif
 TEST (ecc_openssl_test_verify_null);
 TEST (ecc_openssl_test_verify_corrupt_signature);
 TEST (ecc_openssl_test_get_signature_max_length);

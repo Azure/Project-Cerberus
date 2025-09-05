@@ -2547,6 +2547,9 @@ static void ecc_mbedtls_test_generate_key_pair_unsupported_key_length (CuTest *t
 	ecc_mbedtls_release (&engine);
 }
 
+/* External RNG usage cannot be reliable tested when an external ECDSA implementation is used.  Skip
+ * these tests in this scenario. */
+#ifndef MBEDTLS_ECDSA_SIGN_ALT
 static void ecc_mbedtls_test_sign_external_rng (CuTest *test)
 {
 	struct ecc_engine_mbedtls_state state;
@@ -2766,6 +2769,7 @@ static void ecc_mbedtls_test_sign_external_rng_p521 (CuTest *test)
 	ecc_mbedtls_release (&engine);
 }
 #endif
+#endif	/* MBEDTLS_ECDSA_SIGN_ALT */
 
 static void ecc_mbedtls_test_sign_null (CuTest *test)
 {
@@ -2863,7 +2867,7 @@ static void ecc_mbedtls_test_sign_unknown_hash (CuTest *test)
 	ecc_mbedtls_release (&engine);
 }
 
-#ifndef MBEDTLS_ECDSA_DETERMINISTIC
+#if !defined MBEDTLS_ECDSA_DETERMINISTIC && !defined MBEDTLS_ECDSA_SIGN_ALT
 static void ecc_mbedtls_test_sign_external_rng_error (CuTest *test)
 {
 	struct ecc_engine_mbedtls_state state;
@@ -2901,6 +2905,60 @@ static void ecc_mbedtls_test_sign_external_rng_error (CuTest *test)
 
 	status = rng_mock_validate_and_release (&rng);
 	CuAssertIntEquals (test, 0, status);
+
+	ecc_mbedtls_release (&engine);
+}
+#endif
+
+static void ecc_mbedtls_test_verify_sha384 (CuTest *test)
+{
+	struct ecc_engine_mbedtls_state state;
+	struct ecc_engine_mbedtls engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mbedtls_init (&engine, &state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		&pub_key);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, pub_key.context);
+
+	status = engine.base.verify (&engine.base, &pub_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH,
+		ECC_SIGNATURE_SHA384_TEST, ECC_SIG_SHA384_TEST_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
+
+	ecc_mbedtls_release (&engine);
+}
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+static void ecc_mbedtls_test_verify_p384_sha512 (CuTest *test)
+{
+	struct ecc_engine_mbedtls_state state;
+	struct ecc_engine_mbedtls engine;
+	struct ecc_public_key pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_mbedtls_init (&engine, &state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_public_key (&engine.base, ECC384_PUBKEY_DER, ECC384_PUBKEY_DER_LEN,
+		&pub_key);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, pub_key.context);
+
+	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH,
+		ECC384_SIGNATURE_SHA512_TEST, ECC384_SIG_SHA512_TEST_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.release_key_pair (&engine.base, NULL, &pub_key);
 
 	ecc_mbedtls_release (&engine);
 }
@@ -4854,6 +4912,7 @@ TEST (ecc_mbedtls_test_generate_key_pair_and_sign_and_verify_static_init);
 TEST (ecc_mbedtls_test_generate_key_pair_and_sign_and_verify_static_init_with_external_rng);
 TEST (ecc_mbedtls_test_generate_key_pair_null);
 TEST (ecc_mbedtls_test_generate_key_pair_unsupported_key_length);
+#ifndef MBEDTLS_ECDSA_SIGN_ALT
 TEST (ecc_mbedtls_test_sign_external_rng);
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 TEST (ecc_mbedtls_test_sign_external_rng_p384);
@@ -4861,11 +4920,16 @@ TEST (ecc_mbedtls_test_sign_external_rng_p384);
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 TEST (ecc_mbedtls_test_sign_external_rng_p521);
 #endif
+#endif
 TEST (ecc_mbedtls_test_sign_null);
 TEST (ecc_mbedtls_test_sign_small_buffer);
 TEST (ecc_mbedtls_test_sign_unknown_hash);
-#ifndef MBEDTLS_ECDSA_DETERMINISTIC
+#if !defined MBEDTLS_ECDSA_DETERMINISTIC && !defined MBEDTLS_ECDSA_SIGN_ALT
 TEST (ecc_mbedtls_test_sign_external_rng_error);
+#endif
+TEST (ecc_mbedtls_test_verify_sha384);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+TEST (ecc_mbedtls_test_verify_p384_sha512);
 #endif
 TEST (ecc_mbedtls_test_verify_null);
 TEST (ecc_mbedtls_test_verify_corrupt_signature);

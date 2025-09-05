@@ -71,6 +71,14 @@ extern const struct ecc_ecdsa_signature ECC_SIGNATURE_TEST_STRUCT;
 extern const uint8_t ECC_SIGNATURE_TEST_RAW[];
 extern const size_t ECC_SIG_TEST_RAW_LEN;
 
+extern const uint8_t ECC_SIGNATURE_SHA384_TEST[];
+extern const size_t ECC_SIG_SHA384_TEST_LEN;
+
+extern const struct ecc_ecdsa_signature ECC_SIGNATURE_SHA384_TEST_STRUCT;
+
+extern const uint8_t ECC_SIGNATURE_SHA384_TEST_RAW[];
+extern const size_t ECC_SIG_SHA384_TEST_RAW_LEN;
+
 extern const uint8_t ECC_SIGNATURE_TEST2[];
 extern const size_t ECC_SIG_TEST2_LEN;
 
@@ -460,6 +468,16 @@ extern const struct ecc_ecdsa_signature ECC384_SIGNATURE_TEST_STRUCT;
 
 extern const uint8_t ECC384_SIGNATURE_TEST_RAW[];
 extern const size_t ECC384_SIG_TEST_RAW_LEN;
+
+extern const uint8_t ECC384_SIGNATURE_SHA512_TEST[];
+extern const size_t ECC384_SIG_SHA512_TEST_LEN;
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+extern const struct ecc_ecdsa_signature ECC384_SIGNATURE_SHA512_TEST_STRUCT;
+#endif
+
+extern const uint8_t ECC384_SIGNATURE_SHA512_TEST_RAW[];
+extern const size_t ECC384_SIG_SHA512_TEST_RAW_LEN;
 
 extern const uint8_t ECC384_SIGNATURE_TEST2[];
 extern const size_t ECC384_SIG_TEST2_LEN;
