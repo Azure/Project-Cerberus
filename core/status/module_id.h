@@ -183,6 +183,7 @@ enum {
 	ROT_MODULE_SPDM_PROTOCOL_SESSION_OBSERVER = 0x00ab,	/**< SPDM protocol session observer. */
 	ROT_MODULE_IDE_DRIVER_OBSERVER = 0x00ac,			/**< IDE driver observer interface. */
 	ROT_MODULE_TDISP_DRIVER_OBSERVER = 0x00ad,			/**< TDISP driver observer interface. */
+	ROT_MODULE_FATAL_ERROR_HANDLER = 0x00ae,			/**< Handler for fatal firmware errors. */
 };
 
 

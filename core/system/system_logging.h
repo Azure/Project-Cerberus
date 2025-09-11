@@ -22,6 +22,7 @@ enum {
 	SYSTEM_LOGGING_TOKEN_INVALIDATE_FAIL,	/**< Failed to invalidate a consumed unlock token. */
 	SYSTEM_LOGGING_REFRESH_WATCHDOG_FAIL,	/**< Failed to refresh the hardware watchdog timer. */
 	SYSTEM_LOGGING_START_WATCHDOG_FAIL,		/**< Failed to start the hardware watchdog timer. */
+	SYSTEM_LOGGING_FATAL_ERROR,				/**< The device encountered a fatal error. */
 };
 
 /**
