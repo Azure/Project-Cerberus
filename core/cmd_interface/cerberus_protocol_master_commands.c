@@ -1207,8 +1207,8 @@ int cerberus_protocol_get_extended_update_status (const struct firmware_update_c
 	struct cerberus_protocol_extended_update_status_response *rsp =
 		(struct cerberus_protocol_extended_update_status_response*) request->data;
 	int status;
-	uint32_t update_status;
-	uint32_t remaining_len;
+	uint32_t update_status = 0;
+	uint32_t remaining_len = 0;
 
 	if (request->length != sizeof (struct cerberus_protocol_extended_update_status)) {
 		return CMD_HANDLER_BAD_LENGTH;
