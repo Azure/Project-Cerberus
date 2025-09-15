@@ -2587,7 +2587,7 @@ static void flash_copy_test_page_size_unsupported (CuTest *test)
 	status |= mock_expect_output (&flash.mock, 1, blank, sizeof (blank), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.get_page_size, &flash, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&flash.mock, 0, &page, sizeof (&page), -1);
+	status |= mock_expect_output (&flash.mock, 0, &page, sizeof (page), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3821,7 +3821,7 @@ static void flash_copy_and_verify_test_page_size_unsupported (CuTest *test)
 	status |= mock_expect_output (&flash.mock, 1, blank, sizeof (blank), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.get_page_size, &flash, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&flash.mock, 0, &page, sizeof (&page), -1);
+	status |= mock_expect_output (&flash.mock, 0, &page, sizeof (page), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4935,7 +4935,7 @@ static void flash_copy_ext_test_page_size_unsupported (CuTest *test)
 	status |= mock_expect_output (&flash2.mock, 1, blank, sizeof (blank), 2);
 
 	status |= mock_expect (&flash2.mock, flash2.base.get_page_size, &flash2, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&flash2.mock, 0, &page, sizeof (&page), -1);
+	status |= mock_expect_output (&flash2.mock, 0, &page, sizeof (page), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -6390,7 +6390,7 @@ static void flash_copy_ext_and_verify_test_page_size_unsupported (CuTest *test)
 	status |= mock_expect_output (&flash2.mock, 1, blank, sizeof (blank), 2);
 
 	status |= mock_expect (&flash2.mock, flash2.base.get_page_size, &flash2, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&flash2.mock, 0, &page, sizeof (&page), -1);
+	status |= mock_expect_output (&flash2.mock, 0, &page, sizeof (page), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -9690,7 +9690,7 @@ static void flash_sector_copy_test_page_size_unsupported (CuTest *test)
 	status |= mock_expect_output (&flash.mock, 1, blank, sizeof (blank), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.get_page_size, &flash, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&flash.mock, 0, &page, sizeof (&page), -1);
+	status |= mock_expect_output (&flash.mock, 0, &page, sizeof (page), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -10681,7 +10681,7 @@ static void flash_sector_copy_and_verify_test_page_size_unsupported (CuTest *tes
 	status |= mock_expect_output (&flash.mock, 1, blank, sizeof (blank), 2);
 
 	status |= mock_expect (&flash.mock, flash.base.get_page_size, &flash, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&flash.mock, 0, &page, sizeof (&page), -1);
+	status |= mock_expect_output (&flash.mock, 0, &page, sizeof (page), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -11793,7 +11793,7 @@ static void flash_sector_copy_ext_test_page_size_unsupported (CuTest *test)
 	status |= mock_expect_output (&flash2.mock, 1, blank, sizeof (blank), 2);
 
 	status |= mock_expect (&flash2.mock, flash2.base.get_page_size, &flash2, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&flash2.mock, 0, &page, sizeof (&page), -1);
+	status |= mock_expect_output (&flash2.mock, 0, &page, sizeof (page), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -12990,7 +12990,7 @@ static void flash_sector_copy_ext_and_verify_test_page_size_unsupported (CuTest 
 	status |= mock_expect_output (&flash2.mock, 1, blank, sizeof (blank), 2);
 
 	status |= mock_expect (&flash2.mock, flash2.base.get_page_size, &flash2, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&flash2.mock, 0, &page, sizeof (&page), -1);
+	status |= mock_expect_output (&flash2.mock, 0, &page, sizeof (page), -1);
 
 	CuAssertIntEquals (test, 0, status);
 

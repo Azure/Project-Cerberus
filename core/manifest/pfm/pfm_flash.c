@@ -1540,14 +1540,15 @@ static int pfm_flash_get_firmware_images_v2 (const struct pfm_flash *pfm, const 
 	element_len -= (sizeof (buffer.ver_element) - sizeof (buffer.ver_element.version));
 
 	for (i = 0; i < img_list->count; i++) {
-		img = (struct pfm_fw_version_element_image*) &buffer.ver_element.version[buf_offset];
+		img = NULL;
 
-		if (buf_offset >= sizeof (buffer.ver_element.version)) {
-			img = NULL;
-		}
-		else if ((buf_offset + pfm_flash_get_image_length_v2 (img)) >
-			sizeof (buffer.ver_element.version)) {
-			img = NULL;
+		if (buf_offset < sizeof (buffer.ver_element.version)) {
+			img = (struct pfm_fw_version_element_image*) &buffer.ver_element.version[buf_offset];
+
+			if ((buf_offset + pfm_flash_get_image_length_v2 (img)) >
+				sizeof (buffer.ver_element.version)) {
+				img = NULL;
+			}
 		}
 
 		if (img == NULL) {

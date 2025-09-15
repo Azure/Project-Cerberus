@@ -86,7 +86,7 @@ const char CERBERUS_FW_VERSION[CERBERUS_PROTOCOL_FW_VERSION_LEN] = "AB.CD.EF.01"
 /**
  * Cerberus firmware version string.
  */
-const char CERBERUS_FW_VERSION_MAXLEN[CERBERUS_PROTOCOL_FW_VERSION_LEN] =
+const char CERBERUS_FW_VERSION_MAXLEN[] =
 	"AA.BB.CC.DD.XX.YY.ZZ.01.02.03.04";
 
 /**
@@ -8148,7 +8148,7 @@ static void cmd_interface_system_test_process_response_encrypted_message (CuTest
 	rsp->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	rsp->header.command = CERBERUS_PROTOCOL_GET_DIGEST;
 	rsp->header.crypt = 1;
-	rsp->num_digests = 0xAA;
+	rsp->num_digests = 16;
 
 	data[offset] = 0xBB;
 	data[offset + SHA256_HASH_LENGTH - 1] = 0xCC;

@@ -1207,6 +1207,8 @@ int cerberus_protocol_get_extended_update_status (const struct firmware_update_c
 	struct cerberus_protocol_extended_update_status_response *rsp =
 		(struct cerberus_protocol_extended_update_status_response*) request->data;
 	int status;
+	uint32_t update_status;
+	uint32_t remaining_len;
 
 	if (request->length != sizeof (struct cerberus_protocol_extended_update_status)) {
 		return CMD_HANDLER_BAD_LENGTH;
@@ -1220,8 +1222,13 @@ int cerberus_protocol_get_extended_update_status (const struct firmware_update_c
 		case CERBERUS_PROTOCOL_RECOVERY_IMAGE_UPDATE_STATUS:
 			status =
 				cerberus_protocol_get_extended_recovery_image_update_status (recovery_manager_0,
-				recovery_manager_1, recovery_cmd_0, recovery_cmd_1, rq->port_id,
-				&rsp->update_status, &rsp->remaining_len);
+				recovery_manager_1, recovery_cmd_0, recovery_cmd_1, rq->port_id, &update_status,
+				&remaining_len);
+
+			// these bounce variables are needed because rsp is packed structure, and referencing
+			// it's members directly may produce unaligned pointers
+			rsp->update_status = update_status;
+			rsp->remaining_len = remaining_len;
 			break;
 
 		default:

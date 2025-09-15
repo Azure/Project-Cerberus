@@ -938,7 +938,8 @@ int pcr_store_get_attestation_log (struct pcr_store *store, const struct hash_en
 			log_entry.base.info.event_type = measurements[i].event_type;
 			log_entry.base.info.measurement_type = PCR_MEASUREMENT (pcr, i);
 
-			*measurement_size = digest_length;
+			buffer_unaligned_write32 (measurement_size, (uint32_t) digest_length);
+
 			memcpy (digest, measurements[i].digest, digest_length);
 			memcpy (measurement, measurements[i].measurement, digest_length);
 

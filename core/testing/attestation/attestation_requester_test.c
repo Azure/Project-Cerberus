@@ -9190,8 +9190,9 @@ static void attestation_requester_test_attest_device_spdm_different_measurement_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -9371,8 +9372,9 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_challenge 
 		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -9586,8 +9588,9 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_challenge 
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -9803,8 +9806,9 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_challenge 
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA512, HASH_TYPE_SHA512, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -10023,8 +10027,9 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0 (CuTe
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -10160,8 +10165,9 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -10271,8 +10277,9 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -10389,8 +10396,9 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -10956,8 +10964,9 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_pmr0 (CuTe
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -11213,8 +11222,9 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_pmr0 (CuTe
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA512, HASH_TYPE_SHA512, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -11545,11 +11555,11 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
+		0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 70),
 		MOCK_ARG (70));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
-		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
@@ -11702,11 +11712,11 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
+		0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 70),
 		MOCK_ARG (70));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
-		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
@@ -11774,8 +11784,9 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -11884,8 +11895,9 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_multiple_pmr
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -12026,8 +12038,9 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_measuremen
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -12291,8 +12304,9 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_measuremen
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -12556,8 +12570,9 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_measuremen
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA512, HASH_TYPE_SHA512, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -12822,8 +12837,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_multi
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -12991,8 +13007,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -13206,8 +13223,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_versi
 		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -13422,8 +13440,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_skip_
 		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -13644,8 +13663,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -13859,8 +13879,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -14051,8 +14072,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -14202,8 +14224,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -14357,8 +14380,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -14509,8 +14533,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -14663,8 +14688,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -14816,8 +14842,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -14971,8 +14998,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -15128,8 +15156,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -15280,8 +15309,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -15432,8 +15462,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -15584,8 +15615,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -15736,8 +15768,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -15889,8 +15922,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -16045,8 +16079,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -16197,8 +16232,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -16349,8 +16385,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -16500,8 +16537,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -16653,8 +16691,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -16804,8 +16843,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -16961,8 +17001,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -17118,8 +17159,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -17272,8 +17314,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -17426,8 +17469,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -17577,8 +17621,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -17730,8 +17775,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -17887,8 +17933,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -18039,8 +18086,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -18191,8 +18239,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -18342,8 +18391,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -18494,8 +18544,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -18635,8 +18686,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -18792,8 +18844,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -18949,8 +19002,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -19103,8 +19157,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -19257,8 +19312,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -19409,8 +19465,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -19562,8 +19619,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -19717,8 +19775,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -19869,8 +19928,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -20024,8 +20084,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -20176,8 +20237,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -20328,8 +20390,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -20480,8 +20543,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -20632,8 +20696,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -20798,8 +20863,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -20952,8 +21018,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*)combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*)&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -21234,8 +21301,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -21385,8 +21453,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA512, HASH_TYPE_SHA512, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -21568,8 +21637,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -21798,8 +21868,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -22028,8 +22099,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -22263,8 +22335,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -22493,8 +22566,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -22673,8 +22747,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -22846,8 +22921,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_then_measu
 		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -23069,8 +23145,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_then_
 		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -23257,8 +23334,9 @@ static void attestation_requester_test_attest_device_spdm_sha256_no_cert_retriev
 	pmr_digest.digests.digest_count = 1;
 	pmr_digest.digests.digests = digest3;
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -23384,8 +23462,9 @@ static void attestation_requester_test_attest_device_spdm_sha384_no_cert_retriev
 		cert_chain_digest[i] = i;
 	}
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -23512,8 +23591,9 @@ static void attestation_requester_test_attest_device_spdm_sha512_no_cert_retriev
 		cert_chain_digest[i] = i;
 	}
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA512, HASH_TYPE_SHA512, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -23640,8 +23720,9 @@ static void attestation_requester_test_attest_device_spdm_sha256_update_cert_cha
 	pmr_digest.digests.digest_count = 1;
 	pmr_digest.digests.digests = digest3;
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -23765,8 +23846,9 @@ static void attestation_requester_test_attest_device_spdm_sha384_update_cert_cha
 	pmr_digest.digests.digest_count = 1;
 	pmr_digest.digests.digests = digest3;
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -23890,8 +23972,9 @@ static void attestation_requester_test_attest_device_spdm_sha512_update_cert_cha
 	pmr_digest.digests.digest_count = 1;
 	pmr_digest.digests.digests = digest3;
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA512, HASH_TYPE_SHA512, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -24011,8 +24094,9 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca (CuTest
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -24127,8 +24211,9 @@ static void attestation_requester_test_attest_device_spdm_riot_root_ca (CuTest *
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -24243,8 +24328,9 @@ static void attestation_requester_test_attest_device_spdm_mbedtls_x509 (CuTest *
 	pmr_digest.digests.digest_count = 1;
 	pmr_digest.digests.digests = digest3;
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, false,
 		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -24359,8 +24445,9 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated 
 	pmr_digest.digests.digest_count = 1;
 	pmr_digest.digests.digests = digest3;
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -24483,8 +24570,9 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated_
 	pmr_digest.digests.digest_count = 1;
 	pmr_digest.digests.digests = digest3;
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -24609,8 +24697,9 @@ static void attestation_requester_test_attest_device_spdm_cert_retrieval_more_th
 	pmr_digest.digests.digest_count = 1;
 	pmr_digest.digests.digests = digest3;
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -24756,8 +24845,9 @@ static void attestation_requester_test_attest_device_spdm_multiple_pmr0_digest_o
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -28089,8 +28179,9 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	memset (&req, 0, sizeof (struct spdm_get_digests_request));
 
@@ -29225,8 +29316,9 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_AUX_SLOT_NUM,
@@ -29369,8 +29461,9 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_AUX_SLOT_NUM,
@@ -32849,8 +32942,9 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	int status;
 	size_t i;
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -32919,8 +33013,9 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	int status;
 	size_t i;
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -32992,8 +33087,9 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	int status;
 	size_t i;
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -33069,8 +33165,9 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_init_pub
 	int status;
 	size_t i;
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -33153,8 +33250,9 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_verify_f
 	int status;
 	size_t i;
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -33268,8 +33366,9 @@ static void attestation_requester_test_attest_device_spdm_challenge_get_componen
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -33380,8 +33479,9 @@ static void attestation_requester_test_attest_device_spdm_challenge_pmr0_digest_
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -33470,7 +33570,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_pmr0_dige
 	uint32_t component_id = 50;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
-	uint8_t digest3[SHA256_HASH_LENGTH] = {0};
+	uint8_t digest3[SHA256_HASH_LENGTH * 2] = {0};
 	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
 	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
 	int status;
@@ -33496,8 +33596,9 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_pmr0_dige
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -35519,8 +35620,9 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 		digest3[i] = i * 4;
 	}
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	TEST_START;
 
@@ -35619,8 +35721,9 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 		digest3[i] = i * 4;
 	}
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	TEST_START;
 
@@ -35722,8 +35825,9 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 		digest3[i] = i * 4;
 	}
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	TEST_START;
 
@@ -36439,8 +36543,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -36577,8 +36682,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -36810,8 +36916,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_raw_r
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -36964,8 +37071,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_num_b
 		measurement2[i] = 51 + i;
 	}
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	TEST_START;
 
@@ -37099,8 +37207,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_unexp
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -37248,8 +37357,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -38898,8 +39008,9 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	status = logging_mock_init (&logger);
 	CuAssertIntEquals (test, 0, status);
@@ -39086,8 +39197,9 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -39287,8 +39399,9 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	component_device.attestation_protocol = CFM_ATTESTATION_DMTF_SPDM;
 	component_device.cert_slot = ATTESTATION_RIOT_SLOT_NUM;
@@ -39642,7 +39755,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
 		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
 		MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
@@ -39871,8 +39984,9 @@ static void attestation_requester_test_mctp_bridge_was_reset (CuTest *test)
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,

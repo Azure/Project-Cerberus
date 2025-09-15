@@ -1169,6 +1169,16 @@ struct spdm_vendor_defined_request_response {
 	uint8_t vendor_id_len;				/**< Length of the Vendor ID. */
 };
 
+/**
+ * SPDM version info.
+ */
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_version_number {
+	uint16_t alpha:4;					/**< Pre-release version nubmer. */
+	uint16_t update_version_number:4;	/**< Update version number. */
+	uint16_t minor_version:4;			/**< Major version number. */
+	uint16_t major_version:4;			/**< Minor version number. */
+};
+
 
 /**
  * Get the requester's DHE public key ptr.
@@ -1216,15 +1226,6 @@ enum spdm_connection_state {
 	SPDM_CONNECTION_STATE_MAX,					/**< MAX */
 };
 
-/**
- * SPDM version info.
- */
-struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_version_number {
-	uint16_t alpha:4;					/**< Pre-release version nubmer. */
-	uint16_t update_version_number:4;	/**< Update version number. */
-	uint16_t minor_version:4;			/**< Major version number. */
-	uint16_t major_version:4;			/**< Minor version number. */
-};
 
 /**
  * SPDM device capabilities.

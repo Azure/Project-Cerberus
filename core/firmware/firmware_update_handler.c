@@ -275,7 +275,7 @@ void firmware_update_handler_execute (const struct event_task_handler *handler,
 #endif
 		}
 		else {
-			fw->state->update_status |= (status << 8);
+			fw->state->update_status |= ((status & 0xffffff) << 8);
 		}
 		fw->task->unlock (fw->task);
 	}
@@ -456,6 +456,6 @@ void firmware_update_handler_set_update_status_with_error (
 	}
 
 	handler->task->lock (handler->task);
-	handler->state->update_status = (error_code << 8) | status;
+	handler->state->update_status = ((error_code & 0xffffff) << 8) | status;
 	handler->task->unlock (handler->task);
 }

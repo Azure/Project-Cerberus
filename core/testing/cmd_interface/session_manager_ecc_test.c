@@ -3073,7 +3073,6 @@ static void session_manager_ecc_test_encrypt_message_generate_iv_fail (CuTest *t
 	uint8_t data[] = {
 		0xA, 0xB, 0xC, 0xD, 0xE
 	};
-	struct cerberus_protocol_header header;
 	uint8_t aes_key[] = {
 		0xf1, 0x3b, 0x43, 0x16, 0x2c, 0xe4, 0x05, 0x75,
 		0x73, 0xc5, 0x54, 0x10, 0xad, 0xd5, 0xc5, 0xc6,
@@ -3086,9 +3085,6 @@ static void session_manager_ecc_test_encrypt_message_generate_iv_fail (CuTest *t
 
 	rq.data = rq_data;
 	memcpy (rq.data, data, sizeof (data));
-	memcpy (&header, data, sizeof (struct cerberus_protocol_header));
-
-	header.crypt = 1;
 
 	rq.length = sizeof (data);
 	rq.source_eid = 0x10;
@@ -3113,6 +3109,7 @@ static void session_manager_ecc_test_encrypt_message_generate_iv_fail (CuTest *t
 static void session_manager_ecc_test_encrypt_message_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	uint8_t rq_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg rq;
 	uint8_t data[] = {
 		0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF
@@ -3127,7 +3124,9 @@ static void session_manager_ecc_test_encrypt_message_fail (CuTest *test)
 
 	TEST_START;
 
-	rq.data = data;
+	rq.data = rq_data;
+	memcpy (rq.data, data, sizeof (data));
+
 	rq.length = sizeof (data);
 	rq.source_eid = 0x10;
 	rq.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;

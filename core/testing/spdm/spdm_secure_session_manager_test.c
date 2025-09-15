@@ -4905,7 +4905,9 @@ static void spdm_secure_session_manager_test_encode_secure_message_max_response_
 	request.max_response = (sizeof (struct spdm_secured_message_data_header_1) +
 		sizeof (struct spdm_secured_message_data_header_2) + aead_tag_size +
 		plaintext_payload_length + sizeof (struct spdm_secured_message_cipher_header)) - 1;
-	request.payload = buf;
+	request.payload = buf + sizeof (struct spdm_secured_message_data_header_1) +
+		sizeof (struct spdm_secured_message_data_header_2) +
+		sizeof (struct spdm_secured_message_cipher_header);
 
 	status = session_manager->encode_secure_message (session_manager, &request);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_BUFFER_TOO_SMALL, status);
@@ -4969,7 +4971,9 @@ static void spdm_secure_session_manager_test_encode_secure_message_set_key_fail 
 	request.max_response = (sizeof (struct spdm_secured_message_data_header_1) +
 		sizeof (struct spdm_secured_message_data_header_2) + aead_tag_size +
 		plaintext_payload_length + sizeof (struct spdm_secured_message_cipher_header));
-	request.payload = buf;
+	request.payload = buf + sizeof (struct spdm_secured_message_data_header_1) +
+		sizeof (struct spdm_secured_message_data_header_2) +
+		sizeof (struct spdm_secured_message_cipher_header);
 
 	status = mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.set_key, &testing.aes_mock,
 		AES_GCM_ENGINE_SET_KEY_FAILED, MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)),
@@ -5040,7 +5044,9 @@ static void spdm_secure_session_manager_test_encode_secure_message_encrypt_with_
 	request.max_response = (sizeof (struct spdm_secured_message_data_header_1) +
 		sizeof (struct spdm_secured_message_data_header_2) + aead_tag_size +
 		plaintext_payload_length + sizeof (struct spdm_secured_message_cipher_header));
-	request.payload = buf;
+	request.payload = buf + sizeof (struct spdm_secured_message_data_header_1) +
+		sizeof (struct spdm_secured_message_data_header_2) +
+		sizeof (struct spdm_secured_message_cipher_header);
 
 	status = mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.set_key, &testing.aes_mock,
 		0, MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));

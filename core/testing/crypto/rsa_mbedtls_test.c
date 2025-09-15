@@ -527,14 +527,17 @@ static void rsa_mbedtls_test_sig_verify_bad_signature_wrong_hash (CuTest *test)
 	struct rsa_engine_mbedtls_state state;
 	struct rsa_engine_mbedtls engine;
 	int status;
+	uint8_t sha_256_test_hash_sha384_sized[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
 	status = rsa_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
+	memcpy (sha_256_test_hash_sha384_sized, SIG_HASH_TEST, SIG_HASH_LEN);
+
 	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_BAD,
-		RSA_ENCRYPT_LEN, HASH_TYPE_SHA384, SIG_HASH_TEST, SIG_HASH_LEN);
+		RSA_ENCRYPT_LEN, HASH_TYPE_SHA384, sha_256_test_hash_sha384_sized, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
 	rsa_mbedtls_release (&engine);

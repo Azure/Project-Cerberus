@@ -302,7 +302,6 @@ int DERAddTaggedIntegerFromArray (
 		numLeadingZeros++;
 	}
 
-	negative = Val[numLeadingZeros] >= 128;
 	Context->Buffer[Context->Position++] = Tag;
 
 	if (NumBytes == numLeadingZeros) {	//integer is zero
@@ -310,6 +309,8 @@ int DERAddTaggedIntegerFromArray (
 		Context->Buffer[Context->Position++] = 0;
 	}
 	else {
+		negative = Val[numLeadingZeros] >= 128;
+
 		if (negative) {
 			Context->Buffer[Context->Position++] = (uint8_t) (NumBytes - numLeadingZeros + 1);
 			Context->Buffer[Context->Position++] = 0;

@@ -30,7 +30,7 @@ uint16_t common_math_swap_bytes_uint16 (uint16_t data)
 uint32_t common_math_swap_bytes_uint32 (uint32_t data)
 {
 	return common_math_swap_bytes_uint16 ((data >> 16) & 0xffff) |
-		(common_math_swap_bytes_uint16 (data & 0xffff) << 16);
+		((uint32_t) common_math_swap_bytes_uint16 (data & 0xffff) << 16);
 }
 
 /**

@@ -6,6 +6,7 @@
 #include <string.h>
 #include "pcr.h"
 #include "platform_api.h"
+#include "common/buffer_util.h"
 #include "common/common_math.h"
 #include "flash/flash.h"
 #include "flash/flash_util.h"
@@ -1291,7 +1292,7 @@ int pcr_get_tcg_log (struct pcr_bank *pcr, uint32_t pcr_num, size_t offset, uint
 			goto exit;
 		}
 
-		*entry_event_size = event_size;
+		buffer_unaligned_write32 (entry_event_size, event_size);
 
 		if (entry_ptr != NULL) {
 			memcpy (entry_ptr, ((uint8_t*) &entry) + entry_offset, entry_len);

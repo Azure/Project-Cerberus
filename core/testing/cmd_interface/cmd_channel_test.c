@@ -627,7 +627,8 @@ static void cmd_channel_test_receive_and_process_max_response (CuTest *test)
 		header->msg_tag = 0x00;
 		header->packet_seq = i % 4;
 
-		memcpy (&tx_packet[i].data[7], &payload[i * MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT], len);
+		memcpy (&tx_packet[i].data[7], &payload[i * MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT],
+			len - 8);
 		tx_packet[i].data[len - 1] = checksum_crc8 (0xAA, tx_packet[i].data, len - 1);
 		tx_packet[i].pkt_size = len;
 		tx_packet[i].state = CMD_VALID_PACKET;
@@ -798,7 +799,7 @@ static void cmd_channel_test_receive_and_process_multi_packet_message (CuTest *t
 	request.data[1] = 0;
 	request.data[2] = 0;
 	request.data[3] = 0;
-	memcpy (&request.data[4], payload, request.length);
+	memcpy (&request.data[4], payload, request.length - 4);
 	request.payload = data;
 	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
@@ -1469,7 +1470,7 @@ static void cmd_channel_test_receive_and_process_null (CuTest *test)
 	request.data[1] = 0;
 	request.data[2] = 0;
 	request.data[3] = 0;
-	memcpy (&request.data[4], payload, request.length);
+	memcpy (&request.data[4], payload, request.length - 4);
 	request.payload = data;
 	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
@@ -1916,7 +1917,7 @@ static void cmd_channel_test_receive_and_process_receive_failure (CuTest *test)
 	request.data[1] = 0;
 	request.data[2] = 0;
 	request.data[3] = 0;
-	memcpy (&request.data[4], payload, request.length);
+	memcpy (&request.data[4], payload, request.length - 4);
 	request.payload = data;
 	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
@@ -2120,7 +2121,7 @@ static void cmd_channel_test_receive_and_process_receive_timeout (CuTest *test)
 	request.data[1] = 0;
 	request.data[2] = 0;
 	request.data[3] = 0;
-	memcpy (&request.data[4], payload, request.length);
+	memcpy (&request.data[4], payload, request.length - 4);
 	request.payload = data;
 	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
@@ -2810,7 +2811,8 @@ static void cmd_channel_test_send_message_max_message (CuTest *test)
 		header->msg_tag = 0x00;
 		header->packet_seq = i % 4;
 
-		memcpy (&tx_packet[i].data[7], &payload[i * MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT], len);
+		memcpy (&tx_packet[i].data[7], &payload[i * MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT],
+			len - 8);
 		tx_packet[i].data[len - 1] = checksum_crc8 (0xAA, tx_packet[i].data, len - 1);
 		tx_packet[i].pkt_size = len;
 		tx_packet[i].state = CMD_VALID_PACKET;

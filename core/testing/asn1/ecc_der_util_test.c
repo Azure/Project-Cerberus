@@ -288,7 +288,7 @@ static void ecc_der_decode_private_key_test_unknown_sequence_too_long (CuTest *t
 
 	TEST_START;
 
-	memcpy (der, ECC384_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN);
 	/* Change the length indicator of the SEQUENCE to indicate two length bytes (0x81 -> 0x82). */
 	der[1] = 0x82;
 
@@ -304,7 +304,7 @@ static void ecc_der_decode_private_key_test_malformed_not_sequence (CuTest *test
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the type indicator at the beginning of the buffer. */
 	der[0] = 0x03;
 
@@ -320,7 +320,7 @@ static void ecc_der_decode_private_key_test_malformed_sequence_too_long (CuTest 
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the SEQUENCE length to exceed the buffer size. */
 	der[1] += 1;
 
@@ -336,7 +336,7 @@ static void ecc_der_decode_private_key_test_malformed_not_integer (CuTest *test)
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the type indicator for the version INTEGER. */
 	der[2] = 0x03;
 
@@ -352,7 +352,7 @@ static void ecc_der_decode_private_key_test_malformed_integer_too_long (CuTest *
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the INTEGER length to exceed the buffer size. */
 	der[3] = (sizeof (der) - 2 - 2) + 1;
 
@@ -368,7 +368,7 @@ static void ecc_der_decode_private_key_test_unknown_sequence_version_too_long (C
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the INTEGER length to be more than one byte. */
 	der[3] = 2;
 
@@ -384,7 +384,7 @@ static void ecc_der_decode_private_key_test_unknown_sequence_not_version_1 (CuTe
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the version value. */
 	der[4] = 2;
 
@@ -400,7 +400,7 @@ static void ecc_der_decode_private_key_test_malformed_not_octet_string (CuTest *
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the type indicator for the private key OCTET STRING. */
 	der[5] = 0x03;
 
@@ -416,7 +416,7 @@ static void ecc_der_decode_private_key_test_malformed_octet_string_too_long (CuT
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the OCTET STRING length to exceed the buffer size. */
 	der[6] = (sizeof (der) - 2 - 2 - 1 - 2) + 1;
 
@@ -432,7 +432,7 @@ static void ecc_der_decode_private_key_test_unsupported_key_length (CuTest *test
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the OCTET STRING length to an unsupported length. */
 	der[6] = (192 / 8);
 
@@ -448,7 +448,7 @@ static void ecc_der_decode_private_key_test_p256_extra_nonzero (CuTest *test)
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY2_ZERO_PAD_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY2_ZERO_PAD_DER, ECC_PRIVKEY2_ZERO_PAD_DER_LEN);
 	/* Change the first OCTET STRING byte to a non-zero value. */
 	der[7] = 0x55;
 
@@ -464,7 +464,7 @@ static void ecc_der_decode_private_key_test_p384_extra_nonzero (CuTest *test)
 
 	TEST_START;
 
-	memcpy (der, ECC384_PRIVKEY3_ZERO_PAD_DER, sizeof (der));
+	memcpy (der, ECC384_PRIVKEY3_ZERO_PAD_DER, ECC384_PRIVKEY3_ZERO_PAD_DER_LEN);
 	/* Change the first OCTET STRING byte to a non-zero value. */
 	der[8] = 0x55;
 
@@ -480,7 +480,7 @@ static void ecc_der_decode_private_key_test_malformed_not_explicit_parameters (C
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the type indicator for the EXPLICIT ECDomainParameters. */
 	der[39] = 0x03;
 
@@ -496,7 +496,7 @@ static void ecc_der_decode_private_key_test_malformed_explicit_parameters_too_lo
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the OCTET STRING length to exceed the buffer size. */
 	der[40] = (sizeof (der) - 2 - 2 - 1 - 2 - 32 - 2) + 1;
 
@@ -512,7 +512,7 @@ static void ecc_der_decode_private_key_test_malformed_not_oid (CuTest *test)
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the type indicator for the OBJECT IDENTIFIER SECGCurveNames. */
 	der[41] = 0x03;
 
@@ -528,7 +528,7 @@ static void ecc_der_decode_private_key_test_malformed_oid_too_long (CuTest *test
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the OBJECT IDENTIFIER length to exceed the buffer size. */
 	der[42] = (sizeof (der) - 2 - 2 - 1 - 2 - 32 - 2 - 2) + 1;
 
@@ -544,7 +544,7 @@ static void ecc_der_decode_private_key_test_unsupported_curve_incorrect_length_p
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the OBJECT IDENTIFIER length to an unexpected size. */
 	der[42] += 1;
 
@@ -560,7 +560,7 @@ static void ecc_der_decode_private_key_test_unsupported_curve_mismatch_oid_p256 
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the OBJECT IDENTIFIER to an unexpected value. */
 	der[43] += 1;
 
@@ -589,7 +589,7 @@ static void ecc_der_decode_private_key_test_unsupported_curve_incorrect_length_p
 
 	TEST_START;
 
-	memcpy (der, ECC384_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN);
 	/* Change the OBJECT IDENTIFIER length to an unexpected size. */
 	der[59] += 1;
 
@@ -605,7 +605,7 @@ static void ecc_der_decode_private_key_test_unsupported_curve_mismatch_oid_p384 
 
 	TEST_START;
 
-	memcpy (der, ECC384_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN);
 	/* Change the OBJECT IDENTIFIER to an unexpected value. */
 	der[62] += 1;
 
@@ -635,7 +635,7 @@ static void ecc_der_decode_private_key_test_unsupported_curve_incorrect_length_p
 
 	TEST_START;
 
-	memcpy (der, ECC521_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC521_PRIVKEY_DER, ECC521_PRIVKEY_DER_LEN);
 	/* Change the OBJECT IDENTIFIER length to an unexpected size. */
 	der[77] += 1;
 
@@ -651,7 +651,7 @@ static void ecc_der_decode_private_key_test_unsupported_curve_mismatch_oid_p521 
 
 	TEST_START;
 
-	memcpy (der, ECC521_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC521_PRIVKEY_DER, ECC521_PRIVKEY_DER_LEN);
 	/* Change the OBJECT IDENTIFIER to an unexpected value. */
 	der[82] += 1;
 
@@ -886,7 +886,7 @@ static void ecc_der_decode_private_key_no_copy_test_unknown_sequence_too_long (C
 
 	TEST_START;
 
-	memcpy (der, ECC384_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN);
 	/* Change the length indicator of the SEQUENCE to indicate two length bytes (0x81 -> 0x82). */
 	der[1] = 0x82;
 
@@ -902,7 +902,7 @@ static void ecc_der_decode_private_key_no_copy_test_malformed_not_sequence (CuTe
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the type indicator at the beginning of the buffer. */
 	der[0] = 0x03;
 
@@ -918,7 +918,7 @@ static void ecc_der_decode_private_key_no_copy_test_malformed_sequence_too_long 
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the SEQUENCE length to exceed the buffer size. */
 	der[1] += 1;
 
@@ -934,7 +934,7 @@ static void ecc_der_decode_private_key_no_copy_test_malformed_not_integer (CuTes
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the type indicator for the version INTEGER. */
 	der[2] = 0x03;
 
@@ -950,7 +950,7 @@ static void ecc_der_decode_private_key_no_copy_test_malformed_integer_too_long (
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the INTEGER length to exceed the buffer size. */
 	der[3] = (sizeof (der) - 2 - 2) + 1;
 
@@ -966,7 +966,7 @@ static void ecc_der_decode_private_key_no_copy_test_unknown_sequence_version_too
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the INTEGER length to be more than one byte. */
 	der[3] = 2;
 
@@ -982,7 +982,7 @@ static void ecc_der_decode_private_key_no_copy_test_unknown_sequence_not_version
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the version value. */
 	der[4] = 2;
 
@@ -998,7 +998,7 @@ static void ecc_der_decode_private_key_no_copy_test_malformed_not_octet_string (
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the type indicator for the private key OCTET STRING. */
 	der[5] = 0x03;
 
@@ -1014,7 +1014,7 @@ static void ecc_der_decode_private_key_no_copy_test_malformed_octet_string_too_l
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the OCTET STRING length to exceed the buffer size. */
 	der[6] = (sizeof (der) - 2 - 2 - 1 - 2) + 1;
 
@@ -1030,7 +1030,7 @@ static void ecc_der_decode_private_key_no_copy_test_unsupported_key_length (CuTe
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the OCTET STRING length to an unsupported length. */
 	der[6] = (192 / 8);
 
@@ -1046,7 +1046,7 @@ static void ecc_der_decode_private_key_no_copy_test_p256_extra_nonzero (CuTest *
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY2_ZERO_PAD_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY2_ZERO_PAD_DER, ECC_PRIVKEY2_ZERO_PAD_DER_LEN);
 	/* Change the first OCTET STRING byte to a non-zero value. */
 	der[7] = 0x55;
 
@@ -1062,7 +1062,7 @@ static void ecc_der_decode_private_key_no_copy_test_p384_extra_nonzero (CuTest *
 
 	TEST_START;
 
-	memcpy (der, ECC384_PRIVKEY3_ZERO_PAD_DER, sizeof (der));
+	memcpy (der, ECC384_PRIVKEY3_ZERO_PAD_DER, ECC384_PRIVKEY3_ZERO_PAD_DER_LEN);
 	/* Change the first OCTET STRING byte to a non-zero value. */
 	der[8] = 0x55;
 
@@ -1078,7 +1078,7 @@ static void ecc_der_decode_private_key_no_copy_test_malformed_not_explicit_param
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the type indicator for the EXPLICIT ECDomainParameters. */
 	der[39] = 0x03;
 
@@ -1095,7 +1095,7 @@ static void ecc_der_decode_private_key_no_copy_test_malformed_explicit_parameter
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the OCTET STRING length to exceed the buffer size. */
 	der[40] = (sizeof (der) - 2 - 2 - 1 - 2 - 32 - 2) + 1;
 
@@ -1111,7 +1111,7 @@ static void ecc_der_decode_private_key_no_copy_test_malformed_not_oid (CuTest *t
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the type indicator for the OBJECT IDENTIFIER SECGCurveNames. */
 	der[41] = 0x03;
 
@@ -1127,7 +1127,7 @@ static void ecc_der_decode_private_key_no_copy_test_malformed_oid_too_long (CuTe
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the OBJECT IDENTIFIER length to exceed the buffer size. */
 	der[42] = (sizeof (der) - 2 - 2 - 1 - 2 - 32 - 2 - 2) + 1;
 
@@ -1144,7 +1144,7 @@ static void ecc_der_decode_private_key_no_copy_test_unsupported_curve_incorrect_
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the OBJECT IDENTIFIER length to an unexpected size. */
 	der[42] += 1;
 
@@ -1161,7 +1161,7 @@ static void ecc_der_decode_private_key_no_copy_test_unsupported_curve_mismatch_o
 
 	TEST_START;
 
-	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
 	/* Change the OBJECT IDENTIFIER to an unexpected value. */
 	der[43] += 1;
 
@@ -1179,7 +1179,7 @@ static void ecc_der_decode_private_key_no_copy_test_unsupported_curve_incorrect_
 
 	TEST_START;
 
-	memcpy (der, ECC384_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN);
 	/* Change the OBJECT IDENTIFIER length to an unexpected size. */
 	der[59] += 1;
 
@@ -1196,7 +1196,7 @@ static void ecc_der_decode_private_key_no_copy_test_unsupported_curve_mismatch_o
 
 	TEST_START;
 
-	memcpy (der, ECC384_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN);
 	/* Change the OBJECT IDENTIFIER to an unexpected value. */
 	der[62] += 1;
 
@@ -1215,7 +1215,7 @@ static void ecc_der_decode_private_key_no_copy_test_unsupported_curve_incorrect_
 
 	TEST_START;
 
-	memcpy (der, ECC521_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC521_PRIVKEY_DER, ECC521_PRIVKEY_DER_LEN);
 	/* Change the OBJECT IDENTIFIER length to an unexpected size. */
 	der[77] += 1;
 
@@ -1232,7 +1232,7 @@ static void ecc_der_decode_private_key_no_copy_test_unsupported_curve_mismatch_o
 
 	TEST_START;
 
-	memcpy (der, ECC521_PRIVKEY_DER, sizeof (der));
+	memcpy (der, ECC521_PRIVKEY_DER, ECC521_PRIVKEY_DER_LEN);
 	/* Change the OBJECT IDENTIFIER to an unexpected value. */
 	der[82] += 1;
 
@@ -1710,7 +1710,7 @@ static void ecc_der_decode_public_key_test_unknown_sequence_too_long (CuTest *te
 
 	TEST_START;
 
-	memcpy (der, ECC521_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC521_PUBKEY_DER, ECC521_PUBKEY_DER_LEN);
 	/* Change the length indicator of the SEQUENCE to indicate two length bytes (0x81 -> 0x82). */
 	der[1] = 0x82;
 
@@ -1728,7 +1728,7 @@ static void ecc_der_decode_public_key_test_malformed_not_sequence (CuTest *test)
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the type indicator at the beginning of the buffer. */
 	der[0] = 0x03;
 
@@ -1746,7 +1746,7 @@ static void ecc_der_decode_public_key_test_malformed_sequence_too_long (CuTest *
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the SEQUENCE length to exceed the buffer size. */
 	der[1] += 1;
 
@@ -1764,7 +1764,7 @@ static void ecc_der_decode_public_key_test_malformed_algo_not_sequence (CuTest *
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the type indicator for the AlgorithmIdentifier. */
 	der[2] = 0x03;
 
@@ -1782,7 +1782,7 @@ static void ecc_der_decode_public_key_test_malformed_algo_sequence_too_long (CuT
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the AlgorithmIdentifier length to exceed the buffer size. */
 	der[3] = (sizeof (der) - 2 - 2) + 1;
 
@@ -1800,7 +1800,7 @@ static void ecc_der_decode_public_key_test_malformed_algo_not_oid (CuTest *test)
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the type indicator for the algorithm OID. */
 	der[4] = 0x03;
 
@@ -1818,7 +1818,7 @@ static void ecc_der_decode_public_key_test_malformed_algo_oid_too_long (CuTest *
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the AlgorithmIdentifier length to exceed the buffer size. */
 	der[5] = (sizeof (der) - 2 - 2 - 2) + 1;
 
@@ -1836,7 +1836,7 @@ static void ecc_der_decode_public_key_test_unsupported_algorithm_incorrect_lengt
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the algorithm OID to an unexpected length. */
 	der[5] += 1;
 
@@ -1854,7 +1854,7 @@ static void ecc_der_decode_public_key_test_unsupported_algorithm_mismatch_oid (C
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the algorithm OID to an unexpected value. */
 	der[9] += 1;
 
@@ -1872,7 +1872,7 @@ static void ecc_der_decode_public_key_test_malformed_curve_not_oid (CuTest *test
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the type indicator for the algorithm OID. */
 	der[13] = 0x03;
 
@@ -1890,7 +1890,7 @@ static void ecc_der_decode_public_key_test_malformed_curve_oid_too_long (CuTest 
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the AlgorithmIdentifier length to exceed the buffer size. */
 	der[14] = (sizeof (der) - 2 - 2 - 2 - 7 - 2) + 1;
 
@@ -1909,7 +1909,7 @@ static void ecc_der_decode_public_key_test_unsupported_algorithm_incorrect_lengt
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the algorithm OID to an unexpected length. */
 	der[14] += 1;
 	memmove (&der[24], &der[23], sizeof (der) - 24);
@@ -1928,7 +1928,7 @@ static void ecc_der_decode_public_key_test_unsupported_algorithm_mismatch_oid_p2
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the algorithm OID to an unexpected value. */
 	der[22] += 1;
 
@@ -1948,7 +1948,7 @@ static void ecc_der_decode_public_key_test_unsupported_algorithm_incorrect_lengt
 
 	TEST_START;
 
-	memcpy (der, ECC384_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC384_PUBKEY_DER, ECC384_PUBKEY_DER_LEN);
 	/* Change the algorithm OID to an unexpected length. */
 	der[14] += 1;
 	memmove (&der[21], &der[20], sizeof (der) - 21);
@@ -1967,7 +1967,7 @@ static void ecc_der_decode_public_key_test_unsupported_algorithm_mismatch_oid_p3
 
 	TEST_START;
 
-	memcpy (der, ECC384_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC384_PUBKEY_DER, ECC384_PUBKEY_DER_LEN);
 	/* Change the algorithm OID to an unexpected value. */
 	der[19] += 1;
 
@@ -1988,7 +1988,7 @@ static void ecc_der_decode_public_key_test_unsupported_algorithm_incorrect_lengt
 
 	TEST_START;
 
-	memcpy (der, ECC521_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC521_PUBKEY_DER, ECC521_PUBKEY_DER_LEN);
 	/* Change the algorithm OID to an unexpected length. */
 	der[15] += 1;
 	memmove (&der[22], &der[21], sizeof (der) - 22);
@@ -2007,7 +2007,7 @@ static void ecc_der_decode_public_key_test_unsupported_algorithm_mismatch_oid_p5
 
 	TEST_START;
 
-	memcpy (der, ECC521_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC521_PUBKEY_DER, ECC521_PUBKEY_DER_LEN);
 	/* Change the algorithm OID to an unexpected value. */
 	der[20] += 1;
 
@@ -2026,7 +2026,7 @@ static void ecc_der_decode_public_key_test_malformed_not_bit_string (CuTest *tes
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the type indicator for the BIT STRING. */
 	der[23] = 0x04;
 
@@ -2044,7 +2044,7 @@ static void ecc_der_decode_public_key_test_malformed_bit_string_too_long (CuTest
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the BIT STRING length to exceed the buffer size. */
 	der[24] += 3;
 
@@ -2062,7 +2062,7 @@ static void ecc_der_decode_public_key_test_malformed_bit_string_too_short (CuTes
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* The BIT STRING needs to be at least two bytes long. */
 	der[24] = 1;
 
@@ -2080,7 +2080,7 @@ static void ecc_der_decode_public_key_test_unsupported_key_length (CuTest *test)
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the BIT STRING length to an unsupported size. */
 	der[24] = ((192 / 8) * 2) + 2;
 
@@ -2098,7 +2098,7 @@ static void ecc_der_decode_public_key_test_invalid_ecpoint_format (CuTest *test)
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the type indicator for the BIT STRING. */
 	der[26] = 0x05;
 
@@ -2129,7 +2129,7 @@ static void ecc_der_decode_public_key_test_compressed_ecpoint_02 (CuTest *test)
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the format indicator for the ECPoint OCTET STRING to a compressed ECPoint.  This is
 	 * only to trigger appropriate checks for testing.  It doesn't actually change the format of the
 	 * key. */
@@ -2149,7 +2149,7 @@ static void ecc_der_decode_public_key_test_compressed_ecpoint_03 (CuTest *test)
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the format indicator for the ECPoint OCTET STRING to a compressed ECPoint.  This is
 	 * only to trigger appropriate checks for testing.  It doesn't actually change the format of the
 	 * key. */
@@ -2262,7 +2262,7 @@ static void ecc_der_decode_public_key_no_copy_test_compressed_ecpoint_02 (CuTest
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the format indicator for the ECPoint OCTET STRING to a compressed ECPoint.  This is
 	 * only to trigger appropriate checks for testing.  It doesn't actually change the format of the
 	 * key. */
@@ -2284,7 +2284,7 @@ static void ecc_der_decode_public_key_no_copy_test_compressed_ecpoint_03 (CuTest
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the format indicator for the ECPoint OCTET STRING to a compressed ECPoint.  This is
 	 * only to trigger appropriate checks for testing.  It doesn't actually change the format of the
 	 * key. */
@@ -2342,7 +2342,7 @@ static void ecc_der_decode_public_key_no_copy_test_unknown_sequence_too_long (Cu
 
 	TEST_START;
 
-	memcpy (der, ECC521_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC521_PUBKEY_DER, ECC521_PUBKEY_DER_LEN);
 	/* Change the length indicator of the SEQUENCE to indicate two length bytes (0x81 -> 0x82). */
 	der[1] = 0x82;
 
@@ -2358,7 +2358,7 @@ static void ecc_der_decode_public_key_no_copy_test_malformed_not_sequence (CuTes
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the type indicator at the beginning of the buffer. */
 	der[0] = 0x03;
 
@@ -2374,7 +2374,7 @@ static void ecc_der_decode_public_key_no_copy_test_malformed_sequence_too_long (
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the SEQUENCE length to exceed the buffer size. */
 	der[1] += 1;
 
@@ -2390,7 +2390,7 @@ static void ecc_der_decode_public_key_no_copy_test_malformed_algo_not_sequence (
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the type indicator for the AlgorithmIdentifier. */
 	der[2] = 0x03;
 
@@ -2406,7 +2406,7 @@ static void ecc_der_decode_public_key_no_copy_test_malformed_algo_sequence_too_l
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the AlgorithmIdentifier length to exceed the buffer size. */
 	der[3] = (sizeof (der) - 2 - 2) + 1;
 
@@ -2422,7 +2422,7 @@ static void ecc_der_decode_public_key_no_copy_test_malformed_algo_not_oid (CuTes
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the type indicator for the algorithm OID. */
 	der[4] = 0x03;
 
@@ -2438,7 +2438,7 @@ static void ecc_der_decode_public_key_no_copy_test_malformed_algo_oid_too_long (
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the AlgorithmIdentifier length to exceed the buffer size. */
 	der[5] = (sizeof (der) - 2 - 2 - 2) + 1;
 
@@ -2455,7 +2455,7 @@ static void ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_incorre
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the algorithm OID to an unexpected length. */
 	der[5] += 1;
 
@@ -2471,7 +2471,7 @@ static void ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_mismatc
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the algorithm OID to an unexpected value. */
 	der[9] += 1;
 
@@ -2487,7 +2487,7 @@ static void ecc_der_decode_public_key_no_copy_test_malformed_curve_not_oid (CuTe
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the type indicator for the algorithm OID. */
 	der[13] = 0x03;
 
@@ -2503,7 +2503,7 @@ static void ecc_der_decode_public_key_no_copy_test_malformed_curve_oid_too_long 
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the AlgorithmIdentifier length to exceed the buffer size. */
 	der[14] = (sizeof (der) - 2 - 2 - 2 - 7 - 2) + 1;
 
@@ -2520,7 +2520,7 @@ static void ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_incorre
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the algorithm OID to an unexpected length. */
 	der[14] += 1;
 	memmove (&der[24], &der[23], sizeof (der) - 24);
@@ -2538,7 +2538,7 @@ static void ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_mismatc
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the algorithm OID to an unexpected value. */
 	der[22] += 1;
 
@@ -2556,7 +2556,7 @@ static void ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_incorre
 
 	TEST_START;
 
-	memcpy (der, ECC384_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC384_PUBKEY_DER, ECC384_PUBKEY_DER_LEN);
 	/* Change the algorithm OID to an unexpected length. */
 	der[14] += 1;
 	memmove (&der[21], &der[20], sizeof (der) - 21);
@@ -2574,7 +2574,7 @@ static void ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_mismatc
 
 	TEST_START;
 
-	memcpy (der, ECC384_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC384_PUBKEY_DER, ECC384_PUBKEY_DER_LEN);
 	/* Change the algorithm OID to an unexpected value. */
 	der[19] += 1;
 
@@ -2593,7 +2593,7 @@ static void ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_incorre
 
 	TEST_START;
 
-	memcpy (der, ECC521_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC521_PUBKEY_DER, ECC521_PUBKEY_DER_LEN);
 	/* Change the algorithm OID to an unexpected length. */
 	der[15] += 1;
 	memmove (&der[22], &der[21], sizeof (der) - 22);
@@ -2611,7 +2611,7 @@ static void ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_mismatc
 
 	TEST_START;
 
-	memcpy (der, ECC521_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC521_PUBKEY_DER, ECC521_PUBKEY_DER_LEN);
 	/* Change the algorithm OID to an unexpected value. */
 	der[20] += 1;
 
@@ -2628,7 +2628,7 @@ static void ecc_der_decode_public_key_no_copy_test_malformed_not_bit_string (CuT
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the type indicator for the BIT STRING. */
 	der[23] = 0x04;
 
@@ -2644,7 +2644,7 @@ static void ecc_der_decode_public_key_no_copy_test_malformed_bit_string_too_long
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the BIT STRING length to exceed the buffer size. */
 	der[24] += 3;
 
@@ -2660,7 +2660,7 @@ static void ecc_der_decode_public_key_no_copy_test_malformed_bit_string_too_shor
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* The BIT STRING needs to be at least two bytes long. */
 	der[24] = 1;
 
@@ -2676,7 +2676,7 @@ static void ecc_der_decode_public_key_no_copy_test_unsupported_key_length (CuTes
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the BIT STRING length to an unsupported size. */
 	der[24] = ((192 / 8) * 2) + 2;
 
@@ -2692,7 +2692,7 @@ static void ecc_der_decode_public_key_no_copy_test_invalid_ecpoint_format (CuTes
 
 	TEST_START;
 
-	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	memcpy (der, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 	/* Change the format indicator for the ECPoint OCTET STRING. */
 	der[26] = 0x05;
 
@@ -3147,7 +3147,7 @@ static void ecc_der_decode_ecdsa_signature_test_sequence_incorrect_length (CuTes
 
 	TEST_START;
 
-	memcpy (der, ECC_SIGNATURE_TEST, sizeof (der));
+	memcpy (der, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	/* Change the SEQUENCE length to exceed the amount of DER encoded data, but still fit in the
 	 * buffer limits. */
 	der[1] += 1;
@@ -3165,7 +3165,7 @@ static void ecc_der_decode_ecdsa_signature_test_malformed_not_sequence (CuTest *
 
 	TEST_START;
 
-	memcpy (der, ECC_SIGNATURE_TEST, sizeof (der));
+	memcpy (der, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	/* Change the type indicator at the beginning of the buffer. */
 	der[0] = 0x03;
 
@@ -3182,7 +3182,7 @@ static void ecc_der_decode_ecdsa_signature_test_malformed_sequence_too_long (CuT
 
 	TEST_START;
 
-	memcpy (der, ECC_SIGNATURE_TEST, sizeof (der));
+	memcpy (der, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	/* Change the SEQUENCE length to exceed the buffer size. */
 	der[1] += 1;
 
@@ -3199,7 +3199,7 @@ static void ecc_der_decode_ecdsa_signature_test_malformed_r_not_integer (CuTest 
 
 	TEST_START;
 
-	memcpy (der, ECC_SIGNATURE_TEST, sizeof (der));
+	memcpy (der, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	/* Change the type indicator for the r value. */
 	der[2] = 0x03;
 
@@ -3216,7 +3216,7 @@ static void ecc_der_decode_ecdsa_signature_test_malformed_r_integer_too_long (Cu
 
 	TEST_START;
 
-	memcpy (der, ECC_SIGNATURE_TEST, sizeof (der));
+	memcpy (der, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	/* Change the r INTEGER length to exceed the buffer size. */
 	der[3] = (sizeof (der) - 2 - 2) + 1;
 
@@ -3233,7 +3233,7 @@ static void ecc_der_decode_ecdsa_signature_test_signature_too_long_r_integer (Cu
 
 	TEST_START;
 
-	memcpy (der, ECC_SIGNATURE_TEST, sizeof (der));
+	memcpy (der, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	/* Change the r INTEGER length to be longer than the key size. */
 	der[3] = ECC_KEY_LENGTH_256 + 2;
 
@@ -3251,7 +3251,7 @@ static void ecc_der_decode_ecdsa_signature_test_signature_too_long_r_integer_non
 
 	TEST_START;
 
-	memcpy (der, ECC_SIGNATURE_TEST, sizeof (der));
+	memcpy (der, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	/* Change the r INTEGER padding to be non-zero. */
 	der[4] = 1;
 
@@ -3268,7 +3268,7 @@ static void ecc_der_decode_ecdsa_signature_test_malformed_s_not_integer (CuTest 
 
 	TEST_START;
 
-	memcpy (der, ECC_SIGNATURE_TEST, sizeof (der));
+	memcpy (der, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	/* Change the type indicator for the s value. */
 	der[37] = 0x03;
 
@@ -3285,7 +3285,7 @@ static void ecc_der_decode_ecdsa_signature_test_malformed_s_integer_too_long (Cu
 
 	TEST_START;
 
-	memcpy (der, ECC_SIGNATURE_TEST, sizeof (der));
+	memcpy (der, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	/* Change the s INTEGER length to exceed the buffer size. */
 	der[38] = (sizeof (der) - 2 - 2 - 1 - ECC_KEY_LENGTH_256 - 2) + 1;
 
@@ -3302,7 +3302,7 @@ static void ecc_der_decode_ecdsa_signature_test_signature_too_long_s_integer (Cu
 
 	TEST_START;
 
-	memcpy (der, ECC_SIGNATURE_TEST, sizeof (der));
+	memcpy (der, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	/* Change the s INTEGER length to be longer than the key size. */
 	der[38] = ECC_KEY_LENGTH_256 + 2;
 	der[1] += 1;	// Adjust the SEQUENCE length to match the new s INTEGER length.
@@ -3321,7 +3321,7 @@ static void ecc_der_decode_ecdsa_signature_test_signature_too_long_s_integer_non
 
 	TEST_START;
 
-	memcpy (der, ECC_SIGNATURE_TEST, sizeof (der));
+	memcpy (der, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
 	/* Change the s INTEGER padding to be non-zero. */
 	der[39] = 1;
 

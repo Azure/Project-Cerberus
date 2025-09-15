@@ -54,6 +54,7 @@ enum {
 	CMD_HANDLER_SPDM_UNSUPPORTED_HASH_ALGO = CMD_HANDLER_SPDM_ERROR (0x0b),	/**< Requested hashing algorithm unsupported  */
 	CMD_HANDLER_SPDM_UNSUPPORTED_SLOT_ID = CMD_HANDLER_SPDM_ERROR (0x0c),	/**< Requested slot id unsupported  */
 	CMD_HANDLER_SPDM_BAD_RESPONSE = CMD_HANDLER_SPDM_ERROR (0x0d),			/**< Received bad response to request */
+	CMD_HANDLER_SPDM_SIG_CONTEXT_TOO_LONG = CMD_HANDLER_SPDM_ERROR (0x0e),	/**< SPDM signature context too long */
 };
 
 

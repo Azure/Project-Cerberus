@@ -186,7 +186,7 @@ int flash_store_contiguous_blocks_write_common (const struct flash_store_contigu
 					sizeof (header.length));
 			}
 			memcpy (&flash->state->page_buffer[header_len], data, first);
-			if (extra_first) {
+			if (extra_first && (write_extra != 0)) {
 				memcpy (&flash->state->page_buffer[header_len + first], extra_data, write_extra);
 				header_len += write_extra;
 			}

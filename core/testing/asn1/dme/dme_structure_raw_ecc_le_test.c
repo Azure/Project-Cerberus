@@ -2048,6 +2048,9 @@ static void dme_structure_raw_ecc_le_test_init_chained_ecc384_sha384_unsupported
 	struct dme_structure_raw_ecc_le dme;
 	int status;
 
+	uint8_t dme_type8_sig_ecc384_sha512_raw_r_le[ECC_KEY_LENGTH_521];
+	uint8_t dme_type8_sig_ecc384_sha512_raw_s_le[ECC_KEY_LENGTH_521];
+
 	TEST_START;
 
 	status = dme_structure_raw_ecc_le_init_chained_ecc384_sha384 (&dme,
@@ -2057,11 +2060,17 @@ static void dme_structure_raw_ecc_le_test_init_chained_ecc384_sha384_unsupported
 		DME_STRUCTURE_TESTING_TYPE8_SIG_ECC384_SHA256_RAW_S_LE, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, DME_STRUCTURE_UNSUPPORTED_KEY_LENGTH, status);
 
+	memcpy (dme_type8_sig_ecc384_sha512_raw_r_le,
+		DME_STRUCTURE_TESTING_TYPE8_SIG_ECC384_SHA512_RAW_R_LE,	ECC_KEY_LENGTH_384);
+
+	memcpy (dme_type8_sig_ecc384_sha512_raw_s_le,
+		DME_STRUCTURE_TESTING_TYPE8_SIG_ECC384_SHA512_RAW_S_LE, ECC_KEY_LENGTH_384);
+
 	status = dme_structure_raw_ecc_le_init_chained_ecc384_sha384 (&dme,
 		DME_STRUCTURE_TESTING_TYPE8_DATA, DME_STRUCTURE_TESTING_TYPE8_DATA_LEN, ECC521_PUBKEY2_LE,
 		&ECC521_PUBKEY2_LE[ECC_KEY_LENGTH_521], ECC_KEY_LENGTH_521,
-		DME_STRUCTURE_TESTING_TYPE8_SIG_ECC384_SHA512_RAW_R_LE,
-		DME_STRUCTURE_TESTING_TYPE8_SIG_ECC384_SHA512_RAW_S_LE, HASH_TYPE_SHA512);
+		dme_type8_sig_ecc384_sha512_raw_r_le, dme_type8_sig_ecc384_sha512_raw_s_le,
+		HASH_TYPE_SHA512);
 	CuAssertIntEquals (test, DME_STRUCTURE_UNSUPPORTED_KEY_LENGTH, status);
 }
 

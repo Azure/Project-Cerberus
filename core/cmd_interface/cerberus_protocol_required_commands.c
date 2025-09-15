@@ -57,7 +57,7 @@ void cerberus_protocol_build_error_response (struct cmd_interface_msg *message, 
 	if (error_code != CERBERUS_PROTOCOL_NO_ERROR) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
 			CMD_LOGGING_CERBERUS_REQUEST_FAIL,
-			((error_code << 24) | (command_code << 16) | (message->source_eid << 8) |
+			(((uint32_t) error_code << 24) | (command_code << 16) | (message->source_eid << 8) |
 					message->channel_id), error_data);
 	}
 }

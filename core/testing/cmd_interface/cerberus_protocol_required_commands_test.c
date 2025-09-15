@@ -190,7 +190,7 @@ void cerberus_protocol_required_commands_testing_process_get_fw_version_maxlen_v
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	CuAssertTrue (test, strlen (version) >= CERBERUS_PROTOCOL_FW_VERSION_LEN);
+	CuAssertTrue (test,	strlen (version) >= CERBERUS_PROTOCOL_FW_VERSION_LEN);
 	strncpy (expected_version, version, CERBERUS_PROTOCOL_FW_VERSION_LEN);
 	expected_version[CERBERUS_PROTOCOL_FW_VERSION_LEN - 1] = '\0';
 	request.data = data;

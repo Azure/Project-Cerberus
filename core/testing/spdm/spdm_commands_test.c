@@ -27769,11 +27769,12 @@ static void spdm_test_format_signature_digest (CuTest *test)
 
 	spdm_prefix[13] = '2';
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len * 2], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len * 3], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len * 2], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len * 3], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -27821,11 +27822,12 @@ static void spdm_test_format_signature_digest_sha384 (CuTest *test)
 
 	spdm_prefix[13] = '2';
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len * 2], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len * 3], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len * 2], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len * 3], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -27873,11 +27875,12 @@ static void spdm_test_format_signature_digest_sha512 (CuTest *test)
 
 	spdm_prefix[13] = '2';
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len * 2], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len * 3], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len * 2], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len * 3], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -27996,11 +27999,12 @@ static void spdm_test_format_signature_digest_update_hash_prefix_fail (CuTest *t
 
 	spdm_prefix[13] = '2';
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len * 2], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len * 3], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len * 2], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len * 3], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -28037,11 +28041,12 @@ static void spdm_test_format_signature_digest_update_hash_context_fail (CuTest *
 
 	spdm_prefix[13] = '2';
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len * 2], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len * 3], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len * 2], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len * 3], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -28080,11 +28085,12 @@ static void spdm_test_format_signature_digest_finish_hash_fail (CuTest *test)
 
 	spdm_prefix[13] = '2';
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len * 2], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len * 3], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len * 2], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len * 3], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
 
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -28102,6 +28108,63 @@ static void spdm_test_format_signature_digest_finish_hash_fail (CuTest *test)
 
 	status = spdm_format_signature_digest (&hash.base, HASH_TYPE_SHA384, 2, spdm_context, digest);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void spdm_test_format_signature_digest_null (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	uint8_t digest[SHA256_HASH_LENGTH] = {0};
+	char spdm_context[] = "responder-challenge_auth signing";
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_format_signature_digest (NULL, HASH_TYPE_SHA256, 2, spdm_context, digest);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_INVALID_ARGUMENT, status);
+
+	status = spdm_format_signature_digest (&hash.base, HASH_TYPE_SHA256, 2, NULL, digest);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_INVALID_ARGUMENT, status);
+
+	status = spdm_format_signature_digest (&hash.base, HASH_TYPE_SHA256, 2, spdm_context, NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_INVALID_ARGUMENT, status);
+
+	status = spdm_format_signature_digest (NULL, HASH_TYPE_SHA256, 2, NULL, digest);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_INVALID_ARGUMENT, status);
+
+	status = spdm_format_signature_digest (NULL, HASH_TYPE_SHA256, 2, spdm_context, NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_INVALID_ARGUMENT, status);
+
+	status = spdm_format_signature_digest (&hash.base, HASH_TYPE_SHA256, 2, NULL, NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_INVALID_ARGUMENT, status);
+
+	status = spdm_format_signature_digest (NULL, HASH_TYPE_SHA256, 2, NULL, NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_INVALID_ARGUMENT, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+
+static void spdm_test_format_signature_digest_context_too_long (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	uint8_t digest[SHA256_HASH_LENGTH] = {0};
+	char spdm_context[] = "responder-challenge_auth signing xxxxxx";
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_format_signature_digest (&hash.base, HASH_TYPE_SHA256, 2, spdm_context, digest);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_SIG_CONTEXT_TOO_LONG, status);
 
 	status = hash_mock_validate_and_release (&hash);
 	CuAssertIntEquals (test, 0, status);
@@ -28895,6 +28958,8 @@ TEST (spdm_test_format_signature_digest_start_hash_sha512_fail);
 TEST (spdm_test_format_signature_digest_update_hash_prefix_fail);
 TEST (spdm_test_format_signature_digest_update_hash_context_fail);
 TEST (spdm_test_format_signature_digest_finish_hash_fail);
+TEST (spdm_test_format_signature_digest_null);
+TEST (spdm_test_format_signature_digest_context_too_long);
 TEST (spdm_test_generate_challenge_request);
 TEST (spdm_test_generate_challenge_request_null);
 TEST (spdm_test_generate_challenge_request_buf_too_small);

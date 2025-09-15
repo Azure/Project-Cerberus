@@ -6578,6 +6578,20 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
 	CuAssertIntEquals (test, true, request.crypto_timeout);
+
+	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
+		KEY_SEED_ENCRYPT_OAEP_LEN + 1;
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+
+	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
+		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 1;
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
 }
 
 void cerberus_protocol_optional_commands_testing_process_request_unseal_result (CuTest *test,

@@ -112,7 +112,7 @@ void spdm_generate_error_response (struct cmd_interface_msg *response, uint8_t s
 
 	debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_SPDM,
 		SPDM_LOGGING_ERR_MSG,
-		(req_code << 24 | response->source_eid << 16 | error_code << 8 | error_data),
+		((uint32_t) req_code << 24 | response->source_eid << 16 | error_code << 8 | error_data),
 		internal_error_code);
 }
 
@@ -4491,15 +4491,29 @@ int spdm_format_signature_digest (const struct hash_engine *hash, enum hash_type
 	char spdm_prefix[] = "dmtf-spdm-v1.x.*";
 	size_t spdm_prefix_len = strlen (spdm_prefix);
 	size_t hash_len = hash_get_hash_length (hash_type);
+	size_t spdm_context_len;
 	int status;
+
+	if ((hash == NULL) || (spdm_context == NULL) || (digest == NULL)) {
+		return CMD_HANDLER_SPDM_INVALID_ARGUMENT;
+	}
+
+	spdm_context_len = strlen (spdm_context);
+
+	// SPDM prefix repeated 4 times, one zero byte after.
+	// Effectively means that spdm_context cannot be longer than 35 bytes
+	if (spdm_context_len > SPDM_COMBINED_PREFIX_LEN - (spdm_prefix_len * 4 + 1)) {
+		return CMD_HANDLER_SPDM_SIG_CONTEXT_TOO_LONG;
+	}
 
 	spdm_prefix[13] = spdm_minor_version + '0';
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len * 2], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len * 3], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len * 2], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len * 3], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN - spdm_context_len], spdm_context,
+		spdm_context_len);
 
 	status = hash_start_new_hash (hash, hash_type);
 	if (status != 0) {

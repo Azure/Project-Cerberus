@@ -843,7 +843,23 @@ struct cerberus_protocol_message_unseal {
 		uint8_t raw;						/**< Raw seed parameter value */
 	} seed_params;							/**< Additional parameters for the seed */
 	uint16_t seed_length;					/**< Length of the unsealing seed */
-	uint8_t seed;							/**< First byte of the unsealing seed */
+	uint8_t seed[1];						/**< First byte of the unsealing seed */
+};
+
+/**
+ * Ciphertext used for unsealing message
+ */
+struct cerberus_protocol_unseal_ciphertext {
+	uint16_t ciphertext_length;	/**< Length of the unsealing ciphertext */
+	uint8_t ciphertext[1];		/**< First byte of the unsealing ciphertext */
+};
+
+/**
+ * HMAC used for unsealing message
+ */
+struct cerberus_protocol_unseal_hmac {
+	uint16_t hmac_length;	/**< Length of the unsealing HMAC */
+	uint8_t hmac[1];		/**< First byte of the unsealing HMAC */
 };
 
 /**
@@ -855,41 +871,42 @@ struct cerberus_protocol_unseal_pmrs {
 
 
 /**
- * Get the pointer to the ciphertext length entry
+ * Get the pointer to the ciphertext entry
  */
-#define	cerberus_protocol_unseal_ciphertext_length_ptr(req) \
-	(((uint8_t*) req) + sizeof (*req) + buffer_unaligned_read16 (&req->seed_length) - \
-		sizeof (req->seed))
+#define	cerberus_protocol_unseal_ciphertext_ptr(req) \
+	((struct cerberus_protocol_unseal_ciphertext*) (((uint8_t*) req) + \
+		sizeof (*req) + req->seed_length - sizeof (req->seed)))
 
 /**
  * Get the ciphertext length in an unseal request message
  */
 #define	cerberus_protocol_unseal_ciphertext_length(req) \
-	*((uint16_t*) cerberus_protocol_unseal_ciphertext_length_ptr (req))
+	(cerberus_protocol_unseal_ciphertext_ptr (req)->ciphertext_length)
 
 /**
  * Get the buffer containing the ciphertext from an unseal request message
  */
 #define	cerberus_protocol_unseal_ciphertext(req) \
-	(cerberus_protocol_unseal_ciphertext_length_ptr (req) + sizeof (uint16_t))
+	(cerberus_protocol_unseal_ciphertext_ptr (req)->ciphertext)
 
 /**
- * Get the pointer to the HMAC length entry
+ * Get the pointer to the HMAC entry
  */
-#define	cerberus_protocol_unseal_hmac_length_ptr(req) (cerberus_protocol_unseal_ciphertext (req) + \
-	buffer_unaligned_read16 ((uint16_t*) cerberus_protocol_unseal_ciphertext_length_ptr (req)))
+#define	cerberus_protocol_unseal_hmac_ptr(req) \
+	((struct cerberus_protocol_unseal_hmac*) (cerberus_protocol_unseal_ciphertext (req) + \
+		cerberus_protocol_unseal_ciphertext_length (req)))
 
 /**
  * Get the HMAC length in an unseal request message
  */
 #define	cerberus_protocol_unseal_hmac_length(req)   \
-	*((uint16_t*) cerberus_protocol_unseal_hmac_length_ptr (req))
+	(cerberus_protocol_unseal_hmac_ptr (req)->hmac_length)
 
 /**
  * Get the buffer containing the HMAC from an unseal request message
  */
 #define	cerberus_protocol_unseal_hmac(req) \
-	(cerberus_protocol_unseal_hmac_length_ptr (req) + sizeof (uint16_t))
+	(cerberus_protocol_unseal_hmac_ptr (req)->hmac)
 
 /**
  * Get the list of PMRs to use for unsealing.  This will returned as a pointer to

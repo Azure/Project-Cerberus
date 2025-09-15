@@ -23,9 +23,15 @@ struct event_task_handler;
  */
 struct event_task_context {
 	uint32_t action;										/**< An opaque identifier for the action to be performed. */
+	size_t buffer_length;									/**< The amount of data contained in the event data buffer. */
 	uint8_t event_buffer[EVENT_TASK_CONTEXT_BUFFER_LENGTH];	/**< Buffer for data that will processed by the event handler. */
-	size_t buffer_length;									/**< The amount of data contained in the event data buffer.. */
 };
+
+
+/* event_buffer must be properly aligned in order to be able to cast it to specific type.
+ * A better alternative is to use alignas(void*), but compiler support for that is unclear. */
+_Static_assert (offsetof (struct event_task_context, event_buffer) % sizeof (void*) == 0,
+	"event_task_context::event_buffer must be properly aligned");
 
 /**
  * Interface to a task that executes operations based on external events.
