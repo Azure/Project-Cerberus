@@ -11,11 +11,12 @@
 #include "crypto/hkdf.h"
 #include "fips/error_state_entry_interface.h"
 
-/* TODO:  This fila has many dependencies but is missing headers for them. */
+/* TODO:  This file has many dependencies but is missing headers for them. */
 
 
 /* Configurable parameters. Defaults can be overridden in platform_config.h. */
 
+/* TODO:  Replace this macro with an init-time array of session structures. */
 /**
  * Maximum number of SPDM sessions supported.
  */
@@ -405,6 +406,13 @@ struct spdm_secure_session_manager {
 	int (*encode_secure_message) (const struct spdm_secure_session_manager *session_manager,
 		struct cmd_interface_msg *request);
 
+	/**
+	 * Check if all established sessions have termination policy set.
+	 *
+	 * @return 0 if all established sessions have termination policy set, error code otherwise.
+	 */
+	int (*is_termination_policy_set) (const struct spdm_secure_session_manager *session_manager);
+
 	const struct spdm_device_capability *local_capabilities;	/**< Local capabilities. */
 	const struct spdm_device_algorithms *local_algorithms;		/**< Local algorithms. */
 	const struct aes_gcm_engine *aes_engine;					/**< AES engine. */
@@ -465,6 +473,10 @@ enum {
 	SPDM_SECURE_SESSION_MANAGER_INTERNAL_ERROR = SPDM_SECURE_SESSION_MANAGER_ERROR (0x09),				/**< Internal error. */
 	SPDM_SECURE_SESSION_MANAGER_GENERATE_DATA_KEYS_FAILED =
 		SPDM_SECURE_SESSION_MANAGER_ERROR (0x0A),														/**< Generate data keys failed. */
+	SPDM_SECURE_SESSION_MANAGER_TERMINATION_POLICY_NOT_SET =
+		SPDM_SECURE_SESSION_MANAGER_ERROR (0x0B),														/**< Termination policy is not set for an active session. */
+	SPDM_SECURE_SESSION_MANAGER_IS_TERMINATION_POLICY_SET_FAILED =
+		SPDM_SECURE_SESSION_MANAGER_ERROR (0x0C),														/**< Check for termination policy set failed. */
 };
 
 

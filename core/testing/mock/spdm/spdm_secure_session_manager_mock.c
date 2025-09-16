@@ -192,6 +192,20 @@ static int spdm_secure_session_manager_mock_encode_secure_message (
 		session_manager, MOCK_ARG_PTR_CALL (request));
 }
 
+static int spdm_secure_session_manager_mock_is_termination_policy_set (
+	const struct spdm_secure_session_manager *session_manager)
+{
+	struct spdm_secure_session_manager_mock *mock =
+		(struct spdm_secure_session_manager_mock*) session_manager;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, spdm_secure_session_manager_mock_is_termination_policy_set,
+		session_manager);
+}
+
 static int spdm_secure_session_manager_mock_func_arg_count (void *func)
 {
 	if (func == spdm_secure_session_manager_mock_create_session) {
@@ -278,6 +292,9 @@ static const char* spdm_secure_session_manager_mock_func_name_map (void *func)
 	}
 	else if (func == spdm_secure_session_manager_mock_encode_secure_message) {
 		return "encode_secure_message";
+	}
+	else if (func == spdm_secure_session_manager_mock_is_termination_policy_set) {
+		return "is_termination_policy_set";
 	}
 	else {
 		return "unknown";
@@ -379,6 +396,12 @@ static const char* spdm_secure_session_manager_mock_arg_name_map (void *func, in
 				return "request";
 		}
 	}
+	else if (func == spdm_secure_session_manager_mock_is_termination_policy_set) {
+		switch (arg) {
+			case 0:
+				return "session_manager";
+		}
+	}
 
 	return "unknown";
 }
@@ -423,6 +446,8 @@ int spdm_secure_session_manager_mock_init (struct spdm_secure_session_manager_mo
 		spdm_secure_session_manager_mock_reset_last_session_id_validity;
 	mock->base.decode_secure_message = spdm_secure_session_manager_mock_decode_secure_message;
 	mock->base.encode_secure_message = spdm_secure_session_manager_mock_encode_secure_message;
+	mock->base.is_termination_policy_set =
+		spdm_secure_session_manager_mock_is_termination_policy_set;
 
 	mock->mock.func_arg_count = spdm_secure_session_manager_mock_func_arg_count;
 	mock->mock.func_name_map = spdm_secure_session_manager_mock_func_name_map;

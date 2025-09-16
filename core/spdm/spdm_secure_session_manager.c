@@ -3,10 +3,12 @@
 
 #include <string.h>
 #include "spdm_secure_session_manager.h"
+#include "common/type_cast.h"
 #include "common/unused.h"
 #include "crypto/ecdh.h"
 #include "crypto/kdf.h"
 #include "fips/fips_logging.h"
+#include "firmware/impactful_check.h"
 
 /**
  * Initialize a secure session's state.
@@ -1147,6 +1149,33 @@ exit:
 	return status;
 }
 
+int spdm_secure_session_manager_is_termination_policy_set (
+	const struct spdm_secure_session_manager *session_manager)
+{
+	struct spdm_secure_session *session;
+	uint8_t index;
+
+	if (session_manager == NULL) {
+		return SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
+	}
+
+	for (index = 0; index < SPDM_MAX_SESSION_COUNT; index++) {
+		session = &session_manager->state->sessions[index];
+
+		/* The termination policy value is only valid for established sessions. */
+		if ((session->session_id == SPDM_INVALID_SESSION_ID) ||
+			(session->session_state != SPDM_SESSION_STATE_ESTABLISHED)) {
+			continue;
+		}
+
+		if (session->session_policy == 0) {
+			return SPDM_SECURE_SESSION_MANAGER_TERMINATION_POLICY_NOT_SET;
+		}
+	}
+
+	return 0;
+}
+
 /**
  * Initialize the Session Manager.
  *
@@ -1213,6 +1242,8 @@ int spdm_secure_session_manager_init (struct spdm_secure_session_manager *sessio
 		spdm_secure_session_manager_reset_last_session_id_validity;
 	session_manager->decode_secure_message = spdm_secure_session_manager_decode_secure_message;
 	session_manager->encode_secure_message = spdm_secure_session_manager_encode_secure_message;
+	session_manager->is_termination_policy_set =
+		spdm_secure_session_manager_is_termination_policy_set;
 
 	status = spdm_secure_session_manager_init_state (session_manager);
 

@@ -52,6 +52,9 @@ int spdm_secure_session_manager_decode_secure_message (
 int spdm_secure_session_manager_encode_secure_message (
 	const struct spdm_secure_session_manager *session_manager, struct cmd_interface_msg *request);
 
+int spdm_secure_session_manager_is_termination_policy_set (
+	const struct spdm_secure_session_manager *session_manager);
+
 
 /**
  * Constant initializer for the Secure Session Manager API.
@@ -69,7 +72,8 @@ int spdm_secure_session_manager_encode_secure_message (
 	.get_last_session_id = spdm_secure_session_manager_get_last_session_id, \
 	.reset_last_session_id_validity = spdm_secure_session_manager_reset_last_session_id_validity, \
 	.decode_secure_message = spdm_secure_session_manager_decode_secure_message, \
-	.encode_secure_message = spdm_secure_session_manager_encode_secure_message \
+	.encode_secure_message = spdm_secure_session_manager_encode_secure_message, \
+	.is_termination_policy_set = spdm_secure_session_manager_is_termination_policy_set \
 
 /**
  * SPDM Secure Session Manager Static Initialization.

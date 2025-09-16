@@ -238,6 +238,7 @@ static void spdm_secure_session_manager_test_static_init (CuTest *test)
 	CuAssertPtrNotNull (test, session_manager.is_last_session_id_valid);
 	CuAssertPtrNotNull (test, session_manager.get_last_session_id);
 	CuAssertPtrNotNull (test, session_manager.reset_last_session_id_validity);
+	CuAssertPtrNotNull (test, session_manager.is_termination_policy_set);
 
 	spdm_secure_session_manager_release (&session_manager);
 
@@ -399,6 +400,7 @@ static void spdm_secure_session_manager_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, testing.session_manager.is_last_session_id_valid);
 	CuAssertPtrNotNull (test, testing.session_manager.get_last_session_id);
 	CuAssertPtrNotNull (test, testing.session_manager.reset_last_session_id_validity);
+	CuAssertPtrNotNull (test, testing.session_manager.is_termination_policy_set);
 
 	spdm_secure_session_manager_testing_release (test, &testing);
 }
@@ -5066,6 +5068,198 @@ static void spdm_secure_session_manager_test_encode_secure_message_encrypt_with_
 	spdm_secure_session_manager_testing_release (test, &testing);
 }
 
+static void spdm_secure_session_manager_test_is_termination_policy_set (CuTest *test)
+{
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+	int status;
+
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+	session_manager->state->last_spdm_request_secure_session_id_valid = true;
+	session_manager->state->last_spdm_request_secure_session_id = session_id;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	session->session_state = SPDM_SESSION_STATE_ESTABLISHED;
+	session->session_policy = 1;
+
+	status = session_manager->is_termination_policy_set (session_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_is_termination_policy_set_not_set (CuTest *test)
+{
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+	int status;
+
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+	session_manager->state->last_spdm_request_secure_session_id_valid = true;
+	session_manager->state->last_spdm_request_secure_session_id = session_id;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	session->session_state = SPDM_SESSION_STATE_ESTABLISHED;
+	session->session_policy = 0;
+
+	status = session_manager->is_termination_policy_set (session_manager);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_TERMINATION_POLICY_NOT_SET, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_is_termination_policy_set_invalid_session_id (
+	CuTest *test)
+{
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+	int status;
+
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+	session_manager->state->last_spdm_request_secure_session_id_valid = true;
+	session_manager->state->last_spdm_request_secure_session_id = session_id;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	session->session_state = SPDM_SESSION_STATE_ESTABLISHED;
+	session->session_policy = 0;
+	session->session_id = 0;
+
+	status = session_manager->is_termination_policy_set (session_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_is_termination_policy_set_no_established_session (
+	CuTest *test)
+{
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info = {0};
+	int status;
+
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+	session_manager->state->last_spdm_request_secure_session_id_valid = true;
+	session_manager->state->last_spdm_request_secure_session_id = session_id;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false,
+		&connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	session->session_state = SPDM_SESSION_STATE_NOT_STARTED;
+	session->session_policy = 0;
+	session->session_id = session_id;
+
+	status = session_manager->is_termination_policy_set (session_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	session->session_state = SPDM_SESSION_STATE_HANDSHAKING;
+
+	status = session_manager->is_termination_policy_set (session_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_is_termination_policy_set_invalid_param (CuTest *test)
+{
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager *session_manager;
+	int status;
+
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = session_manager->is_termination_policy_set (NULL);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
 static void spdm_secure_session_manager_test_add_spdm_protocol_session_observer_invalid_arg (
 	CuTest *test)
 {
@@ -5217,6 +5411,7 @@ static void spdm_secure_session_manager_test_remove_spdm_protocol_session_observ
 // *INDENT-OFF*
 TEST_SUITE_START (spdm_secure_session_manager);
 
+/* TODO:  Add additional test coverage for multi-session handling where applicable. */
 TEST (spdm_secure_session_manager_test_static_init);
 TEST (spdm_secure_session_manager_test_static_init_invalid_params);
 TEST (spdm_secure_session_manager_test_init);
@@ -5294,6 +5489,11 @@ TEST (spdm_secure_session_manager_test_encode_secure_message_sequence_number_ove
 TEST (spdm_secure_session_manager_test_encode_secure_message_max_response_size_lt_required);
 TEST (spdm_secure_session_manager_test_encode_secure_message_set_key_fail);
 TEST (spdm_secure_session_manager_test_encode_secure_message_encrypt_with_add_data_fail);
+TEST (spdm_secure_session_manager_test_is_termination_policy_set);
+TEST (spdm_secure_session_manager_test_is_termination_policy_set_not_set);
+TEST (spdm_secure_session_manager_test_is_termination_policy_set_invalid_session_id);
+TEST (spdm_secure_session_manager_test_is_termination_policy_set_no_established_session);
+TEST (spdm_secure_session_manager_test_is_termination_policy_set_invalid_param);
 TEST (spdm_secure_session_manager_test_add_spdm_protocol_session_observer_invalid_arg);
 TEST (spdm_secure_session_manager_test_remove_spdm_protocol_session_observer);
 TEST (spdm_secure_session_manager_test_remove_spdm_protocol_session_observer_invalid_arg);
