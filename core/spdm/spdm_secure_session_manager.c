@@ -8,7 +8,6 @@
 #include "crypto/ecdh.h"
 #include "crypto/kdf.h"
 #include "fips/fips_logging.h"
-#include "firmware/impactful_check.h"
 
 /**
  * Initialize a secure session's state.
@@ -19,7 +18,7 @@
  * @param is_requester true if the local host is the SPDM requester.
  * @param connection_info Peer Connection info.
  */
-static void spdm_secure_session_manager_init_session_state (
+static int spdm_secure_session_manager_init_session_state (
 	const struct spdm_secure_session_manager *session_manager, uint32_t session_index,
 	uint32_t session_id, bool is_requester, const struct spdm_connection_info *connection_info)
 {
@@ -28,8 +27,18 @@ static void spdm_secure_session_manager_init_session_state (
 	struct spdm_get_capabilities_flags_format resp_capability;
 	struct spdm_secure_session *session;
 	const struct spdm_transcript_manager *transcript_manager;
+	struct spdm_secure_session_manager_persistent_state *state;
+	int status;
 
-	session = &session_manager->state->sessions[session_index];
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+
+	if (status != 0) {
+		return status;
+	}
+
+	session = &state->sessions[session_index];
 	transcript_manager = session_manager->transcript_manager;
 
 	/* Determine the session type. */
@@ -69,6 +78,10 @@ static void spdm_secure_session_manager_init_session_state (
 	session->aead_iv_size = spdm_get_aead_iv_size (session->aead_cipher_suite);
 	session->aead_tag_size = spdm_get_aead_tag_size (session->aead_cipher_suite);
 	session->peer_capabilities = connection_info->peer_capabilities;
+
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
+
+	return 0;
 }
 
 struct spdm_secure_session* spdm_secure_session_manager_create_session (
@@ -77,19 +90,32 @@ struct spdm_secure_session* spdm_secure_session_manager_create_session (
 {
 	struct spdm_secure_session *sessions;
 	uint8_t index;
+	struct spdm_secure_session_manager_persistent_state *state;
+	int status;
+	struct spdm_secure_session *session = NULL;
 
 	if ((session_manager == NULL) || (session_id == SPDM_INVALID_SESSION_ID) ||
-		(connection_info == NULL) ||
-		(session_manager->state->current_session_count >= SPDM_MAX_SESSION_COUNT)) {
+		(connection_info == NULL)) {
 		return NULL;
 	}
 
-	sessions = session_manager->state->sessions;
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+	if (status != 0) {
+		return NULL;
+	}
+
+	if (state->current_session_count >= SPDM_MAX_SESSION_COUNT) {
+		goto exit;
+	}
+
+	sessions = state->sessions;
 
 	/* Check if the session exists. */
 	for (index = 0; index < SPDM_MAX_SESSION_COUNT; index++) {
 		if (sessions[index].session_id == session_id) {
-			return NULL;
+			goto exit;
 		}
 	}
 
@@ -99,13 +125,20 @@ struct spdm_secure_session* spdm_secure_session_manager_create_session (
 			spdm_secure_session_manager_init_session_state (session_manager, index, session_id,
 				is_requester, connection_info);
 
-			session_manager->state->current_session_count++;
+			state->current_session_count++;
 
-			return &sessions[index];
+			session = &sessions[index];
+			break;
 		}
 	}
 
-	return NULL;
+exit:
+	if (session == NULL) {
+		/* Client is expected to call unlock_session() in case session was created successfully*/
+		session_manager->spdm_context->unlock (session_manager->spdm_context);
+	}
+
+	return session;
 }
 
 void spdm_secure_session_manager_release_session (
@@ -114,23 +147,34 @@ void spdm_secure_session_manager_release_session (
 	struct spdm_secure_session *sessions;
 	const struct spdm_transcript_manager *transcript_manager;
 	size_t session_index;
+	struct spdm_secure_session_manager_persistent_state *state;
+	int status;
 
 	if ((session_manager == NULL) || (session_id == SPDM_INVALID_SESSION_ID)) {
 		return;
 	}
 
-	sessions = session_manager->state->sessions;
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+	if (status != 0) {
+		return;
+	}
+
+	sessions = state->sessions;
 	transcript_manager = session_manager->transcript_manager;
 
 	for (session_index = 0; session_index < SPDM_MAX_SESSION_COUNT; session_index++) {
 		if (sessions[session_index].session_id == session_id) {
 			memset (&sessions[session_index], 0, sizeof (struct spdm_secure_session));
 			transcript_manager->reset_session_transcript (transcript_manager, session_index);
-			session_manager->state->current_session_count--;
+			state->current_session_count--;
 
-			return;
+			break;
 		}
 	}
+
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
 }
 
 /**
@@ -170,6 +214,8 @@ void spdm_secure_session_manager_set_session_state (
 			spdm_secure_session_clear_handshake_secret (session);
 		}
 	}
+
+	session_manager->unlock_session (session_manager, session);
 }
 
 void spdm_secure_session_manager_reset (const struct spdm_secure_session_manager *session_manager)
@@ -177,12 +223,21 @@ void spdm_secure_session_manager_reset (const struct spdm_secure_session_manager
 	struct spdm_secure_session *sessions;
 	size_t session_index;
 	uint32_t session_id;
+	struct spdm_secure_session_manager_persistent_state *state;
+	int status;
 
 	if (session_manager == NULL) {
 		return;
 	}
 
-	sessions = session_manager->state->sessions;
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+	if (status != 0) {
+		return;
+	}
+
+	sessions = state->sessions;
 
 	/* Release all sessions. */
 	for (session_index = 0; session_index < SPDM_MAX_SESSION_COUNT; session_index++) {
@@ -199,6 +254,9 @@ void spdm_secure_session_manager_reset (const struct spdm_secure_session_manager
 	/* Reset the state, maintaining the observer manager. */
 	memset (session_manager->state, 0,
 		offsetof (struct spdm_secure_session_manager_state, observable));
+	memset (state, 0, sizeof (struct spdm_secure_session_manager_persistent_state));
+
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
 }
 
 struct spdm_secure_session* spdm_secure_session_manager_get_session (
@@ -206,19 +264,41 @@ struct spdm_secure_session* spdm_secure_session_manager_get_session (
 {
 	struct spdm_secure_session *sessions;
 	size_t index;
+	struct spdm_secure_session_manager_persistent_state *state;
+	int status;
 
 	if ((session_manager == NULL) || (session_id == SPDM_INVALID_SESSION_ID)) {
 		return NULL;
 	}
 
-	sessions = (struct spdm_secure_session*) session_manager->state->sessions;
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+	if (status != 0) {
+		return NULL;
+	}
+
+	sessions = (struct spdm_secure_session*) state->sessions;
 	for (index = 0; index < SPDM_MAX_SESSION_COUNT; index++) {
 		if (sessions[index].session_id == session_id) {
+			/* keep it locked, caller is supposed to call unlock_session() */
 			return &sessions[index];
 		}
 	}
 
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
+
 	return NULL;
+}
+
+void spdm_secure_session_manager_unlock_session (
+	const struct spdm_secure_session_manager *session_manager, struct spdm_secure_session *session)
+{
+	if ((session_manager == NULL) || (session == NULL)) {
+		return;
+	}
+
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
 }
 
 int spdm_secure_session_manager_generate_shared_secret (
@@ -594,19 +674,63 @@ exit:
 bool spdm_secure_session_manager_is_last_session_id_valid (
 	const struct spdm_secure_session_manager *session_manager)
 {
-	return session_manager->state->last_spdm_request_secure_session_id_valid;
+	struct spdm_secure_session_manager_persistent_state *state;
+	int status;
+	bool ret = false;
+
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+	if (status != 0) {
+		return false;
+	}
+
+	ret = state->last_spdm_request_secure_session_id_valid;
+
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
+
+	return ret;
 }
 
 uint32_t spdm_secure_session_manager_get_last_session_id (
 	const struct spdm_secure_session_manager *session_manager)
 {
-	return session_manager->state->last_spdm_request_secure_session_id;
+	struct spdm_secure_session_manager_persistent_state *state;
+	int status;
+	uint32_t ret = SPDM_INVALID_SESSION_ID;
+
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+
+	if (status != 0) {
+		return SPDM_INVALID_SESSION_ID;
+	}
+
+	ret = state->last_spdm_request_secure_session_id;
+
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
+
+	return ret;
 }
 
 void spdm_secure_session_manager_reset_last_session_id_validity (
 	const struct spdm_secure_session_manager *session_manager)
 {
-	session_manager->state->last_spdm_request_secure_session_id_valid = false;
+	struct spdm_secure_session_manager_persistent_state *state;
+	int status;
+
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+
+	if (status != 0) {
+		return;
+	}
+
+	state->last_spdm_request_secure_session_id_valid = false;
+
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
 }
 
 int spdm_secure_session_manager_generate_session_data_keys (
@@ -840,7 +964,7 @@ int spdm_secure_session_manager_decode_secure_message (
 	const struct spdm_secure_session_manager *session_manager, struct cmd_interface_msg *request)
 {
 	int status;
-	struct spdm_secure_session *session;
+	struct spdm_secure_session *session = NULL;
 	enum spdm_secure_session_state session_state;
 	enum spdm_secure_session_type session_type;
 	size_t aead_iv_size;
@@ -850,18 +974,23 @@ int spdm_secure_session_manager_decode_secure_message (
 	uint8_t sequence_num_in_header_size;
 	uint8_t iv[SPDM_MAX_AEAD_IV_SIZE] = {0};
 	struct spdm_secured_message_data_header_1 *secured_message_data_header_1;
-	struct spdm_secure_session_manager_state *session_manager_state;
+	struct spdm_secure_session_manager_persistent_state *state;
 
 	if ((session_manager == NULL) || (request == NULL)) {
-		status = SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
-		goto exit;
+		return SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
 	}
 
-	session_manager_state = session_manager->state;
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+
+	if (status != 0) {
+		return status;
+	}
 
 	/* Reset the last secure session id processed. */
-	session_manager_state->last_spdm_request_secure_session_id = SPDM_INVALID_SESSION_ID;
-	session_manager_state->last_spdm_request_secure_session_id_valid = false;
+	state->last_spdm_request_secure_session_id = SPDM_INVALID_SESSION_ID;
+	state->last_spdm_request_secure_session_id_valid = false;
 
 	/* Get the session Id from the secure message. */
 	if (request->payload_length < sizeof (struct spdm_secured_message_data_header_1)) {
@@ -930,11 +1059,15 @@ int spdm_secure_session_manager_decode_secure_message (
 			goto exit;
 	}
 
-	session_manager_state->last_spdm_request_secure_session_id = session->session_id;
-	session_manager_state->last_spdm_request_secure_session_id_valid = true;
+	state->last_spdm_request_secure_session_id = session->session_id;
+	state->last_spdm_request_secure_session_id_valid = true;
 
 exit:
 	buffer_zeroize (iv, sizeof (iv));
+	if (session != NULL) {
+		session_manager->unlock_session (session_manager, session);
+	}
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
 
 	return status;
 }
@@ -1045,22 +1178,29 @@ int spdm_secure_session_manager_encode_secure_message (
 	uint8_t iv[SPDM_MAX_AEAD_IV_SIZE] = {0};
 	uint64_t sequence_number;
 	uint8_t sequence_num_in_header_size;
-	struct spdm_secure_session *session;
+	struct spdm_secure_session *session = NULL;
 	uint8_t req_rsp_code;
 	uint32_t session_id;
+	struct spdm_secure_session_manager_persistent_state *state;
 
 	if ((session_manager == NULL) || (request == NULL)) {
-		status = SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
-		goto exit;
+		return SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
 	}
 
-	if (session_manager->state->last_spdm_request_secure_session_id_valid == false) {
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+	if (status != 0) {
+		return status;
+	}
+
+	if (state->last_spdm_request_secure_session_id_valid == false) {
 		status = SPDM_SECURE_SESSION_MANAGER_INTERNAL_ERROR;
 		goto exit;
 	}
 
 	session = session_manager->get_session (session_manager,
-		session_manager->state->last_spdm_request_secure_session_id);
+		state->last_spdm_request_secure_session_id);
 	if (session == NULL) {
 		status = SPDM_SECURE_SESSION_MANAGER_INTERNAL_ERROR;
 		goto exit;
@@ -1145,6 +1285,10 @@ int spdm_secure_session_manager_encode_secure_message (
 
 exit:
 	buffer_zeroize (iv, sizeof (iv));
+	if (session != NULL) {
+		session_manager->unlock_session (session_manager, session);
+	}
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
 
 	return status;
 }
@@ -1154,13 +1298,23 @@ int spdm_secure_session_manager_is_termination_policy_set (
 {
 	struct spdm_secure_session *session;
 	uint8_t index;
+	struct spdm_secure_session_manager_persistent_state *state;
+	int status;
 
 	if (session_manager == NULL) {
 		return SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
 	}
 
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+
+	if (status != 0) {
+		return status;
+	}
+
 	for (index = 0; index < SPDM_MAX_SESSION_COUNT; index++) {
-		session = &session_manager->state->sessions[index];
+		session = &state->sessions[index];
 
 		/* The termination policy value is only valid for established sessions. */
 		if ((session->session_id == SPDM_INVALID_SESSION_ID) ||
@@ -1169,11 +1323,15 @@ int spdm_secure_session_manager_is_termination_policy_set (
 		}
 
 		if (session->session_policy == 0) {
-			return SPDM_SECURE_SESSION_MANAGER_TERMINATION_POLICY_NOT_SET;
+			status = SPDM_SECURE_SESSION_MANAGER_TERMINATION_POLICY_NOT_SET;
+			goto exit;
 		}
 	}
 
-	return 0;
+exit:
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
+
+	return status;
 }
 
 /**
@@ -1191,6 +1349,7 @@ int spdm_secure_session_manager_is_termination_policy_set (
  * @param hkdf HKDF implementation
  * @param error Error state management interface.
  * @param algo_info Metadata for provided algorithms
+ * @param spdm_context SPDM context for retrieving persistent state.
  *
  * @return 0 if the session manager is initialized successfully, error code otherwise.
  */
@@ -1201,7 +1360,8 @@ int spdm_secure_session_manager_init (struct spdm_secure_session_manager *sessio
 	const struct hash_engine *hash_engine, const struct rng_engine *rng_engine,
 	const struct ecc_engine *ecc_engine, const struct spdm_transcript_manager *transcript_manager,
 	const struct hkdf_interface *hkdf, const struct error_state_entry_interface *error,
-	struct spdm_secure_session_manager_algo_info algo_info)
+	struct spdm_secure_session_manager_algo_info algo_info,
+	const struct spdm_persistent_context_interface *spdm_context)
 {
 	int status;
 
@@ -1224,6 +1384,7 @@ int spdm_secure_session_manager_init (struct spdm_secure_session_manager *sessio
 	session_manager->hkdf = hkdf;
 	session_manager->error = error;
 	session_manager->algo_info = algo_info;
+	session_manager->spdm_context = spdm_context;
 
 	session_manager->create_session = spdm_secure_session_manager_create_session;
 	session_manager->release_session = spdm_secure_session_manager_release_session;
@@ -1244,6 +1405,7 @@ int spdm_secure_session_manager_init (struct spdm_secure_session_manager *sessio
 	session_manager->encode_secure_message = spdm_secure_session_manager_encode_secure_message;
 	session_manager->is_termination_policy_set =
 		spdm_secure_session_manager_is_termination_policy_set;
+	session_manager->unlock_session = spdm_secure_session_manager_unlock_session;
 
 	status = spdm_secure_session_manager_init_state (session_manager);
 
@@ -1265,7 +1427,9 @@ void spdm_secure_session_manager_release (const struct spdm_secure_session_manag
 }
 
 /**
- * Initialize the Session Manager state.
+ * Initialize the Session Manager runtime state. This function does not touch persistent state
+ * of secure session manager. Consumer should call spdm_secure_session_manager_init_persistent_state ()
+ * for persistent state initialization if it is required.
  *
  * @param session_manager Session manager whose state is to be initialized.
  *
@@ -1284,7 +1448,7 @@ int spdm_secure_session_manager_init_state (
 		(session_manager->rng_engine == NULL) || (session_manager->ecc_engine == NULL) ||
 		(session_manager->transcript_manager == NULL) ||
 		(session_manager->max_spdm_session_sequence_number == 0) ||
-		(session_manager->hkdf == NULL)) {
+		(session_manager->hkdf == NULL) || (session_manager->spdm_context == NULL)) {
 		status = SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
 		goto exit;
 	}
@@ -1292,15 +1456,46 @@ int spdm_secure_session_manager_init_state (
 	state = session_manager->state;
 	memset (state, 0, sizeof (struct spdm_secure_session_manager_state));
 
-	/* Initialize the state. */
-	state->last_spdm_request_secure_session_id = SPDM_INVALID_SESSION_ID;
-	state->last_spdm_request_secure_session_id_valid = false;
-
 	status = observable_init (&state->observable);
 
 exit:
 
 	return status;
+}
+
+/**
+ * Initialize the Session Manager persistent state (the one which could survive warm reset).
+ *
+ * @param session_manager Session manager whose state is to be initialized.
+ *
+ * @return 0 if a session manager state was initialize successfully or an error code.
+ */
+int spdm_secure_session_manager_init_persistent_state (
+	const struct spdm_secure_session_manager *session_manager)
+{
+	int status = 0;
+	struct spdm_secure_session_manager_persistent_state *persistent_state;
+
+	if ((session_manager == NULL) || (session_manager->spdm_context == NULL)) {
+		return SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
+	}
+
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &persistent_state);
+	if (status != 0) {
+		return status;
+	}
+
+	memset (persistent_state, 0, sizeof (struct spdm_secure_session_manager_persistent_state));
+
+	/* Initialize the state. */
+	persistent_state->last_spdm_request_secure_session_id = SPDM_INVALID_SESSION_ID;
+	persistent_state->last_spdm_request_secure_session_id_valid = false;
+
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
+
+	return 0;
 }
 
 /**

@@ -38,7 +38,6 @@ int cmd_interface_spdm_process_response (const struct cmd_interface *intf,
  *
  * There is no validation done on the arguments.
  *
- * @param state_ptr SPDM Responder state pointer.
  * @param transcript_manager_ptr Transcript Manager instance pointer.
  * @param hash_engine_ptr Hash Engine instances array.
  * @param hash_engine_count_arg Number of Hash Engine instances.
@@ -53,14 +52,15 @@ int cmd_interface_spdm_process_response (const struct cmd_interface *intf,
  * @param ecc_engine_ptr ECC Engine instance pointer.
  * @param rng_engine_ptr RNG Engine instance pointer.
  * @param session_manager_ptr Secure Session Manager instance pointer.
+ * @param vdm_handler_ptr VDM command handler instance pointer.
+ * @param spdm_context_ptr Persistent context for SPDM.
  */
-#define	cmd_interface_spdm_responder_static_init(state_ptr, transcript_manager_ptr, \
+#define	cmd_interface_spdm_responder_static_init(transcript_manager_ptr, \
 	hash_engine_ptr, hash_engine_count_arg, version_num_ptr, version_num_count_arg, \
 	secured_message_version_num_ptr, secured_message_version_num_count_arg, \
 	local_capabilities_ptr, local_algorithms_ptr, key_manager_ptr, measurements_ptr, \
-	ecc_engine_ptr, rng_engine_ptr, session_manager_ptr, vdm_handler_ptr)	{ \
+	ecc_engine_ptr, rng_engine_ptr, session_manager_ptr, vdm_handler_ptr, spdm_context_ptr)	{ \
 		.base = CMD_INTERFACE_SPDM_RESPONDER_API_INIT, \
-		.state = state_ptr, \
 		.transcript_manager = transcript_manager_ptr, \
 		.hash_engine = hash_engine_ptr, \
 		.hash_engine_count = hash_engine_count_arg, \
@@ -75,7 +75,8 @@ int cmd_interface_spdm_process_response (const struct cmd_interface *intf,
 		.ecc_engine = ecc_engine_ptr, \
 		.rng_engine = rng_engine_ptr, \
 		.session_manager = session_manager_ptr, \
-		.vdm_handler = vdm_handler_ptr \
+		.vdm_handler = vdm_handler_ptr, \
+		.spdm_context = spdm_context_ptr \
 	}
 
 

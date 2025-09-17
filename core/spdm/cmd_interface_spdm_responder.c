@@ -6,9 +6,15 @@
 #include <string.h>
 #include "cmd_interface_spdm_responder.h"
 #include "spdm_commands.h"
+#include "spdm_persistent_context.h"
 #include "spdm_secure_session_manager.h"
 #include "common/unused.h"
 
+//#define SPDM_RESPONDER_DEBUG_SPEW
+
+#ifdef SPDM_RESPONDER_DEBUG_SPEW
+#include "platform_io_api.h"
+#endif
 
 /**
  * Process an SPDM protocol message.
@@ -61,52 +67,92 @@ int cmd_interface_spdm_process_request (const struct cmd_interface *intf,
 		goto exit;
 	}
 
+#ifdef SPDM_RESPONDER_DEBUG_SPEW
+	platform_printf ("SPDM: Request code 0x%x\n", req_code);
+#endif
+
 	switch (req_code) {
 		case SPDM_REQUEST_GET_VERSION:
+#ifdef SPDM_RESPONDER_DEBUG_SPEW
+			platform_printf ("SPDM_REQUEST_GET_VERSION\n");
+#endif
 			status = spdm_get_version (spdm_responder, request);
 			break;
 
 		case SPDM_REQUEST_GET_CAPABILITIES:
+#ifdef SPDM_RESPONDER_DEBUG_SPEW
+			platform_printf ("SPDM_REQUEST_GET_CAPABILITIES\n");
+#endif
 			status = spdm_get_capabilities (spdm_responder, request);
 			break;
 
 		case SPDM_REQUEST_NEGOTIATE_ALGORITHMS:
+#ifdef SPDM_RESPONDER_DEBUG_SPEW
+			platform_printf ("SPDM_REQUEST_NEGOTIATE_ALGORITHMS\n");
+#endif
 			status = spdm_negotiate_algorithms (spdm_responder, request);
 			break;
 
 		case SPDM_REQUEST_GET_DIGESTS:
+#ifdef SPDM_RESPONDER_DEBUG_SPEW
+			platform_printf ("SPDM_REQUEST_GET_DIGESTS\n");
+#endif
 			status = spdm_get_digests (spdm_responder, request);
 			break;
 
 		case SPDM_REQUEST_GET_CERTIFICATE:
+#ifdef SPDM_RESPONDER_DEBUG_SPEW
+			platform_printf ("SPDM_REQUEST_GET_CERTIFICATE\n");
+#endif
 			status = spdm_get_certificate (spdm_responder, request);
 			break;
 
 		case SPDM_REQUEST_CHALLENGE:
+#ifdef SPDM_RESPONDER_DEBUG_SPEW
+			platform_printf ("SPDM_REQUEST_CHALLENGE\n");
+#endif
 			status = spdm_challenge (spdm_responder, request);
 			break;
 
 		case SPDM_REQUEST_GET_MEASUREMENTS:
+#ifdef SPDM_RESPONDER_DEBUG_SPEW
+			platform_printf ("SPDM_REQUEST_GET_MEASUREMENTS\n");
+#endif
 			status = spdm_get_measurements (spdm_responder, request);
 			break;
 
 		case SPDM_REQUEST_KEY_EXCHANGE:
+#ifdef SPDM_RESPONDER_DEBUG_SPEW
+			platform_printf ("SPDM_REQUEST_KEY_EXCHANGE\n");
+#endif
 			status = spdm_key_exchange (spdm_responder, request);
 			break;
 
 		case SPDM_REQUEST_FINISH:
+#ifdef SPDM_RESPONDER_DEBUG_SPEW
+			platform_printf ("SPDM_REQUEST_FINISH\n");
+#endif
 			status = spdm_finish (spdm_responder, request);
 			break;
 
 		case SPDM_REQUEST_END_SESSION:
+#ifdef SPDM_RESPONDER_DEBUG_SPEW
+			platform_printf ("SPDM_REQUEST_END_SESSION\n");
+#endif
 			status = spdm_end_session (spdm_responder, request);
 			break;
 
 		case SPDM_REQUEST_VENDOR_DEFINED_REQUEST:
+#ifdef SPDM_RESPONDER_DEBUG_SPEW
+			platform_printf ("SPDM_REQUEST_VENDOR_DEFINED_REQUEST\n");
+#endif
 			status = spdm_vendor_defined_request (spdm_responder, request);
 			break;
 
 		default:
+#ifdef SPDM_RESPONDER_DEBUG_SPEW
+			platform_printf ("SPDM: UNKNOWN\n");
+#endif
 			spdm_generate_error_response (request, 0, SPDM_ERROR_UNSUPPORTED_REQUEST, 0x00, NULL, 0,
 				req_code, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_OPERATION);
 			break;
@@ -172,7 +218,7 @@ int cmd_interface_spdm_process_response (const struct cmd_interface *intf,
  * @return 0 if the SPDM responder instance was initialized successfully or an error code.
  */
 int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm_responder,
-	struct spdm_state *state, const struct spdm_transcript_manager *transcript_manager,
+	const struct spdm_transcript_manager *transcript_manager,
 	const struct hash_engine *const *hash_engine, uint8_t hash_engine_count,
 	const struct spdm_version_num_entry *version_num, uint8_t version_num_count,
 	const struct spdm_version_num_entry *secure_message_version_num,
@@ -182,7 +228,8 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	const struct riot_key_manager *key_manager, const struct spdm_measurements *measurements,
 	const struct ecc_engine *ecc_engine, const struct rng_engine *rng_engine,
 	const struct spdm_secure_session_manager *session_manager,
-	const struct cmd_interface *vdm_handler)
+	const struct cmd_interface *vdm_handler,
+	const struct spdm_persistent_context_interface *spdm_context)
 {
 	int status;
 
@@ -193,7 +240,6 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 
 	memset (spdm_responder, 0, sizeof (struct cmd_interface_spdm_responder));
 
-	spdm_responder->state = state;
 	spdm_responder->hash_engine = hash_engine;
 	spdm_responder->hash_engine_count = hash_engine_count;
 	spdm_responder->transcript_manager = transcript_manager;
@@ -209,6 +255,7 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	spdm_responder->rng_engine = rng_engine;
 	spdm_responder->session_manager = session_manager;
 	spdm_responder->vdm_handler = vdm_handler;
+	spdm_responder->spdm_context = spdm_context;
 
 	spdm_responder->base.process_request = cmd_interface_spdm_process_request;
 #ifdef CMD_ENABLE_ISSUE_REQUEST
@@ -289,7 +336,8 @@ exit:
 }
 
 /**
- * Initialize the SPDM responder state.
+ * Initialize the SPDM responder runtime state, however it doesn;t touch persistent state. Caller
+ * must user designated function to initialize persistent state if it is required.
  *
  * @param spdm_responder SPDM responder instance.
  *
@@ -313,7 +361,7 @@ int cmd_interface_spdm_responder_init_state (
 		(spdm_responder->local_capabilities == NULL) ||
 		(spdm_responder->local_algorithms == NULL) || (spdm_responder->key_manager == NULL) ||
 		(spdm_responder->measurements == NULL) || (spdm_responder->ecc_engine == NULL) ||
-		(spdm_responder->rng_engine == NULL)) {
+		(spdm_responder->rng_engine == NULL) || (spdm_responder->spdm_context == NULL)) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 		goto exit;
 	}
@@ -354,13 +402,38 @@ int cmd_interface_spdm_responder_init_state (
 		goto exit;
 	}
 
-	/* Initialize the SPDM state. */
-	status = spdm_init_state (spdm_responder->state);
-	if (status != 0) {
-		goto exit;
+exit:
+
+	return status;
+}
+
+/**
+ * Initialize the SPDM responder persistent state (the one which could survive warm reset).
+ *
+ * @param spdm_responder SPDM responder instance.
+ *
+ * @return 0 if the SPDM responder persistent state was initialized successfully or an error code.
+ */
+int cmd_interface_spdm_responder_init_persistent_state (
+	const struct cmd_interface_spdm_responder *spdm_responder)
+{
+	int status;
+	struct spdm_responder_state *state = NULL;
+
+	if (spdm_responder == NULL) {
+		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 	}
 
-exit:
+	status = spdm_responder->spdm_context->get_responder_state (spdm_responder->spdm_context,
+		&state);
+	if (status != 0) {
+		return status;
+	}
+
+	/* Initialize the SPDM state. */
+	status = spdm_responder_init_state (state);
+
+	spdm_responder->spdm_context->unlock (spdm_responder->spdm_context);
 
 	return status;
 }

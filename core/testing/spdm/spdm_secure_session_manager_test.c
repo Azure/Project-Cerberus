@@ -22,6 +22,7 @@
 #include "testing/mock/crypto/hkdf_mock.h"
 #include "testing/mock/crypto/rng_mock.h"
 #include "testing/mock/fips/error_state_entry_mock.h"
+#include "testing/mock/spdm/spdm_persistent_context_interface_mock.h"
 #include "testing/mock/spdm/spdm_protocol_session_observer_mock.h"
 #include "testing/mock/spdm/spdm_transcript_manager_mock.h"
 
@@ -32,20 +33,23 @@ TEST_SUITE_LABEL ("spdm_secure_session_manager");
  * Dependencies for testing.
  */
 struct spdm_secure_session_manager_testing {
-	struct spdm_secure_session_manager session_manager;					/**< The session manager being tested. */
-	struct spdm_secure_session_manager_state state;						/**< The session manager state. */
-	struct spdm_transcript_manager_mock transcript_manager_mock;		/**< The transcript manager. */
-	struct spdm_secure_session_manager_state transcript_manager_state;	/**< The transcript manager state. */
-	struct hash_engine_mock hash_engine_mock;							/**< Mock hash engine for the responder. */
-	struct spdm_device_capability local_capabilities;					/**< Local capabilities. */
-	struct spdm_local_device_algorithms local_algorithms;				/**< Local algorithms. */
-	struct ecc_engine_mock ecc_mock;									/**< Mock ECC engine. */
-	struct rng_engine_mock rng_mock;									/**< Mock RNG engine. */
-	struct aes_gcm_engine_mock aes_mock;								/**< Mock AES engine. */
-	struct hkdf_mock hkdf_mock;											/**< Mock for HKDF implementation */
-	struct error_state_entry_mock error_state_mock;						/**< Mock for error state entry interface */
-	struct spdm_secure_session_manager_algo_info algo_info;				/**< Metadata for crypto algorithms */
-	struct spdm_protocol_session_observer_mock observer;				/**< Mock observer for SPDM secure session events. */
+	struct spdm_secure_session_manager session_manager;						/**< The session manager being tested. */
+	struct spdm_secure_session_manager_state state;							/**< The session manager state. */
+	struct spdm_transcript_manager_mock transcript_manager_mock;			/**< The transcript manager. */
+	struct spdm_secure_session_manager_state transcript_manager_state;		/**< The transcript manager state. */
+	struct hash_engine_mock hash_engine_mock;								/**< Mock hash engine for the responder. */
+	struct spdm_device_capability local_capabilities;						/**< Local capabilities. */
+	struct spdm_local_device_algorithms local_algorithms;					/**< Local algorithms. */
+	struct ecc_engine_mock ecc_mock;										/**< Mock ECC engine. */
+	struct rng_engine_mock rng_mock;										/**< Mock RNG engine. */
+	struct aes_gcm_engine_mock aes_mock;									/**< Mock AES engine. */
+	struct hkdf_mock hkdf_mock;												/**< Mock for HKDF implementation */
+	struct error_state_entry_mock error_state_mock;							/**< Mock for error state entry interface */
+	struct spdm_secure_session_manager_algo_info algo_info;					/**< Metadata for crypto algorithms */
+	struct spdm_protocol_session_observer_mock observer;					/**< Mock observer for SPDM secure session events. */
+	struct spdm_persistent_context_interface_mock persistent_context_mock;	/**< Mock for SPDM persistent context */
+	struct spdm_secure_session_manager_persistent_state ssm_state;			/**< Secure session manager state */
+	struct spdm_secure_session_manager_persistent_state *ssm_state_ptr;		/**< Secure session manager state pointer */
 };
 
 
@@ -128,6 +132,11 @@ static void spdm_secure_session_manager_testing_init_dependencies (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	testing->algo_info.ecdh_instance_id = 0;
+
+	status = spdm_persistent_context_interface_mock_init (&testing->persistent_context_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	testing->ssm_state_ptr = &testing->ssm_state;
 }
 
 /**
@@ -165,6 +174,11 @@ static void spdm_secure_session_manager_testing_release_dependencies (CuTest *te
 
 	status = spdm_protocol_session_observer_mock_validate_and_release (&testing->observer);
 	CuAssertIntEquals (test, 0, status);
+
+	status =
+		spdm_persistent_context_interface_mock_validate_and_release (
+		&testing->persistent_context_mock);
+	CuAssertIntEquals (test, 0, status);
 }
 
 /**
@@ -186,7 +200,20 @@ static void spdm_secure_session_manager_testing_init (CuTest *test,
 		(const struct spdm_device_algorithms*) &testing->local_algorithms, &testing->aes_mock.base,
 		&testing->hash_engine_mock.base, &testing->rng_mock.base, &testing->ecc_mock.base,
 		&testing->transcript_manager_mock.base, &testing->hkdf_mock.base,
-		&testing->error_state_mock.base, testing->algo_info);
+		&testing->error_state_mock.base, testing->algo_info,
+		&testing->persistent_context_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing->persistent_context_mock.mock,
+		testing->persistent_context_mock.base.get_secure_session_manager_state,
+		&testing->persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing->persistent_context_mock.mock, 0,
+		&testing->ssm_state_ptr, sizeof (testing->ssm_state_ptr), -1);
+	status |= mock_expect (&testing->persistent_context_mock.mock,
+		testing->persistent_context_mock.base.unlock, &testing->persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_secure_session_manager_init_persistent_state (&testing->session_manager);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -222,7 +249,8 @@ static void spdm_secure_session_manager_test_static_init (CuTest *test)
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info,
+		&testing.persistent_context_mock.base);
 
 
 	status = spdm_secure_session_manager_init_state (&session_manager);
@@ -239,6 +267,7 @@ static void spdm_secure_session_manager_test_static_init (CuTest *test)
 	CuAssertPtrNotNull (test, session_manager.get_last_session_id);
 	CuAssertPtrNotNull (test, session_manager.reset_last_session_id_validity);
 	CuAssertPtrNotNull (test, session_manager.is_termination_policy_set);
+	CuAssertPtrNotNull (test, session_manager.unlock_session);
 
 	spdm_secure_session_manager_release (&session_manager);
 
@@ -264,7 +293,8 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (NULL, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info,
+		&testing.persistent_context_mock.base);
 
 
 	status = spdm_secure_session_manager_init_state (&session_manager);
@@ -275,7 +305,8 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, NULL,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info,
+		&testing.persistent_context_mock.base);
 
 
 	status = spdm_secure_session_manager_init_state (&session_manager2);
@@ -286,7 +317,7 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities, NULL,
 		&testing.aes_mock.base, &testing.hash_engine_mock.base, &testing.rng_mock.base,
 		&testing.ecc_mock.base, &testing.transcript_manager_mock.base, &testing.hkdf_mock.base,
-		NULL, testing.algo_info);
+		NULL, testing.algo_info, &testing.persistent_context_mock.base);
 
 
 	status = spdm_secure_session_manager_init_state (&session_manager3);
@@ -297,7 +328,8 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, NULL,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info,
+		&testing.persistent_context_mock.base);
 
 
 	status = spdm_secure_session_manager_init_state (&session_manager4);
@@ -308,7 +340,7 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		NULL, &testing.rng_mock.base, &testing.ecc_mock.base, &testing.transcript_manager_mock.base,
-		&testing.hkdf_mock.base, NULL, testing.algo_info);
+		&testing.hkdf_mock.base, NULL, testing.algo_info, &testing.persistent_context_mock.base);
 
 
 	status = spdm_secure_session_manager_init_state (&session_manager5);
@@ -319,7 +351,8 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info,
+		&testing.persistent_context_mock.base);
 
 
 	status = spdm_secure_session_manager_init_state (&session_manager6);
@@ -330,7 +363,8 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, NULL,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info,
+		&testing.persistent_context_mock.base);
 
 
 	status = spdm_secure_session_manager_init_state (&session_manager7);
@@ -341,7 +375,7 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,	NULL,
-		&testing.hkdf_mock.base, NULL, testing.algo_info);
+		&testing.hkdf_mock.base, NULL, testing.algo_info, &testing.persistent_context_mock.base);
 
 
 	status = spdm_secure_session_manager_init_state (&session_manager8);
@@ -351,7 +385,8 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info,
+		&testing.persistent_context_mock.base);
 
 
 	session_manager9.max_spdm_session_sequence_number = 0;
@@ -364,10 +399,23 @@ static void spdm_secure_session_manager_test_static_init_invalid_params (CuTest 
 		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, NULL, NULL, testing.algo_info);
+		&testing.transcript_manager_mock.base, NULL, NULL, testing.algo_info,
+		&testing.persistent_context_mock.base);
 
 
 	status = spdm_secure_session_manager_init_state (&session_manager10);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
+
+	/* persistent_context = NULL */
+	const struct spdm_secure_session_manager session_manager11 =
+		spdm_secure_session_manager_static_init (&testing.state, &testing.local_capabilities,
+		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
+		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info,
+		NULL);
+
+
+	status = spdm_secure_session_manager_init_state (&session_manager11);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	spdm_secure_session_manager_testing_release_dependencies (test, &testing);
@@ -387,7 +435,8 @@ static void spdm_secure_session_manager_test_init (CuTest *test)
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info,
+		&testing.persistent_context_mock.base);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, testing.session_manager.create_session);
 	CuAssertPtrNotNull (test, testing.session_manager.release_session);
@@ -401,6 +450,7 @@ static void spdm_secure_session_manager_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, testing.session_manager.get_last_session_id);
 	CuAssertPtrNotNull (test, testing.session_manager.reset_last_session_id_validity);
 	CuAssertPtrNotNull (test, testing.session_manager.is_termination_policy_set);
+	CuAssertPtrNotNull (test, testing.session_manager.unlock_session);
 
 	spdm_secure_session_manager_testing_release (test, &testing);
 }
@@ -419,7 +469,8 @@ static void spdm_secure_session_manager_test_init_invalid_params (CuTest *test)
 	status = spdm_secure_session_manager_init (NULL, &testing.state, &testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info,
+		&testing.persistent_context_mock.base);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* state = NULL */
@@ -427,21 +478,23 @@ static void spdm_secure_session_manager_test_init_invalid_params (CuTest *test)
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info,
+		&testing.persistent_context_mock.base);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* local_capabilities = NULL */
 	status = spdm_secure_session_manager_init (&testing.session_manager, &testing.state, NULL,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info,
+		&testing.persistent_context_mock.base);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* local_algorithms = NULL */
 	status = spdm_secure_session_manager_init (&testing.session_manager, &testing.state,
 		&testing.local_capabilities, NULL, &testing.aes_mock.base, &testing.hash_engine_mock.base,
 		NULL, &testing.ecc_mock.base, &testing.transcript_manager_mock.base,
-		&testing.hkdf_mock.base, NULL, testing.algo_info);
+		&testing.hkdf_mock.base, NULL, testing.algo_info, &testing.persistent_context_mock.base);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* aes_engine = NULL */
@@ -449,7 +502,8 @@ static void spdm_secure_session_manager_test_init_invalid_params (CuTest *test)
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, NULL,
 		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info,
+		&testing.persistent_context_mock.base);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* hash_engine = NULL */
@@ -457,7 +511,7 @@ static void spdm_secure_session_manager_test_init_invalid_params (CuTest *test)
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		NULL, NULL, &testing.ecc_mock.base, &testing.transcript_manager_mock.base,
-		&testing.hkdf_mock.base, NULL, testing.algo_info);
+		&testing.hkdf_mock.base, NULL, testing.algo_info, &testing.persistent_context_mock.base);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* ecc_engine = NULL */
@@ -465,7 +519,7 @@ static void spdm_secure_session_manager_test_init_invalid_params (CuTest *test)
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, NULL, NULL, &testing.transcript_manager_mock.base,
-		&testing.hkdf_mock.base, NULL, testing.algo_info);
+		&testing.hkdf_mock.base, NULL, testing.algo_info, &testing.persistent_context_mock.base);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* transcript_manager = NULL */
@@ -473,7 +527,7 @@ static void spdm_secure_session_manager_test_init_invalid_params (CuTest *test)
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base, NULL,	&testing.hkdf_mock.base,
-		NULL, testing.algo_info);
+		NULL, testing.algo_info, &testing.persistent_context_mock.base);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	/* hkdf = NULL */
@@ -481,7 +535,17 @@ static void spdm_secure_session_manager_test_init_invalid_params (CuTest *test)
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, NULL, NULL, testing.algo_info);
+		&testing.transcript_manager_mock.base, NULL, NULL, testing.algo_info,
+		&testing.persistent_context_mock.base);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
+
+	/* spdm_contex = NULL */
+	status = spdm_secure_session_manager_init (&testing.session_manager, &testing.state,
+		&testing.local_capabilities,
+		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
+		&testing.hash_engine_mock.base, NULL, &testing.ecc_mock.base,
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info,
+		NULL);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	spdm_secure_session_manager_testing_release_dependencies (test, &testing);
@@ -515,6 +579,30 @@ static void spdm_secure_session_manager_test_create_session (CuTest *test)
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -582,6 +670,28 @@ static void spdm_secure_session_manager_test_create_session_enc_mac (CuTest *tes
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
 
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	connection_info.peer_capabilities = testing.local_capabilities;
@@ -623,6 +733,30 @@ static void spdm_secure_session_manager_test_create_session_mac_only (CuTest *te
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -678,14 +812,26 @@ static void spdm_secure_session_manager_test_create_session_count_gt_max (CuTest
 	struct spdm_connection_info connection_info = {0};
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
+	int status;
 
 
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
 	session_manager = &testing.session_manager;
+	testing.ssm_state.current_session_count = SPDM_MAX_SESSION_COUNT;
 
-	session_manager->state->current_session_count = SPDM_MAX_SESSION_COUNT;
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
 	session = session_manager->create_session (session_manager, session_id, false,
 		&connection_info);
 	CuAssertPtrEquals (test, NULL, session);
@@ -712,13 +858,36 @@ static void spdm_secure_session_manager_test_create_session_duplicate_session (C
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
 		&connection_info);
 	CuAssertPtrNotNull (test, session);
 
-	session_manager->state->current_session_count = 0;
+	testing.ssm_state.current_session_count = 0;
 	session = session_manager->create_session (session_manager, session_id, false,
 		&connection_info);
 	CuAssertPtrEquals (test, NULL, session);
@@ -749,6 +918,30 @@ static void spdm_secure_session_manager_test_release_session (CuTest *test)
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -806,6 +999,34 @@ static void spdm_secure_session_manager_test_get_session (CuTest *test)
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -852,12 +1073,23 @@ static void spdm_secure_session_manager_test_get_session_no_session (CuTest *tes
 	struct spdm_secure_session_manager *session_manager;
 	uint32_t session_id = 0xDEADBEEF;
 	struct spdm_secure_session *session;
+	int status;
 
 
 	TEST_START;
 
 	spdm_secure_session_manager_testing_init (test, &testing);
 	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->get_session (session_manager, session_id);
 	CuAssertPtrEquals (test, NULL, session);
@@ -889,6 +1121,43 @@ static void spdm_secure_session_manager_test_set_session_state (CuTest *test)
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
 
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -932,6 +1201,28 @@ static void spdm_secure_session_manager_test_set_session_state_invalid_param (Cu
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -988,15 +1279,47 @@ static void spdm_secure_session_manager_test_reset (CuTest *test)
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
 
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
 		&connection_info);
 	CuAssertPtrNotNull (test, session);
-	CuAssertIntEquals (test, 1, session_manager->state->current_session_count);
+	CuAssertIntEquals (test, 1, testing.ssm_state.current_session_count);
 
 	session_manager->reset (session_manager);
-	CuAssertIntEquals (test, 0, session_manager->state->current_session_count);
+	CuAssertIntEquals (test, 0, testing.ssm_state.current_session_count);
 
 	spdm_secure_session_manager_testing_release (test, &testing);
 }
@@ -1021,15 +1344,29 @@ static void spdm_secure_session_manager_test_reset_invalid_param (CuTest *test)
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
 
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
 		&connection_info);
 	CuAssertPtrNotNull (test, session);
-	CuAssertIntEquals (test, 1, session_manager->state->current_session_count);
+	CuAssertIntEquals (test, 1, testing.ssm_state.current_session_count);
 
 	session_manager->reset (NULL);
-	CuAssertIntEquals (test, 1, session_manager->state->current_session_count);
+	CuAssertIntEquals (test, 1, testing.ssm_state.current_session_count);
 
 	spdm_secure_session_manager_testing_release (test, &testing);
 }
@@ -1070,7 +1407,19 @@ static void spdm_secure_session_manager_test_generate_shared_secret (CuTest *tes
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base,	&ecc_engine_real.base,
 		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base,
-		&testing.error_state_mock.base, testing.algo_info);
+		&testing.error_state_mock.base, testing.algo_info, &testing.persistent_context_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_secure_session_manager_init_persistent_state (&testing.session_manager);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Generate a random key pair. */
@@ -1096,6 +1445,28 @@ static void spdm_secure_session_manager_test_generate_shared_secret (CuTest *tes
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1164,6 +1535,28 @@ static void spdm_secure_session_manager_test_generate_shared_secret_invalid_para
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
 
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -1221,6 +1614,28 @@ static void spdm_secure_session_manager_test_generate_shared_secret_ecc_der_enco
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
 
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -1267,6 +1682,28 @@ static void spdm_secure_session_manager_test_generate_shared_secret_init_public_
 		&testing.ecc_mock, ECC_ENGINE_PUBLIC_KEY_FAILED,
 		MOCK_ARG_PTR_CONTAINS (ECC384_PUBKEY_DER, ECC384_PUBKEY_DER_LEN),
 		MOCK_ARG (ECC384_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1332,6 +1769,28 @@ static void spdm_secure_session_manager_test_generate_shared_secret_generate_key
 	status |= mock_expect (&testing.error_state_mock.mock,
 		testing.error_state_mock.base.enter_error_state, &testing.error_state_mock.base, 0,
 		MOCK_ARG_PTR_CONTAINS (&pct_error, sizeof (pct_error)));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1424,6 +1883,29 @@ static void spdm_secure_session_manager_test_generate_shared_secret_pct_fail (
 	status |= mock_expect (&testing.error_state_mock.mock,
 		testing.error_state_mock.base.enter_error_state, &testing.error_state_mock.base, 0,
 		MOCK_ARG_PTR_CONTAINS (&pct_error, sizeof (pct_error)));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -1469,7 +1951,20 @@ static void spdm_secure_session_manager_test_generate_shared_secret_pct_fail_alg
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
 		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base,
 		&testing.error_state_mock.base,
-		(struct spdm_secure_session_manager_algo_info) {.ecdh_instance_id = 123, });
+		(struct spdm_secure_session_manager_algo_info) {.ecdh_instance_id = 123, },
+		&testing.persistent_context_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_secure_session_manager_init_persistent_state (&testing.session_manager);
 	CuAssertIntEquals (test, 0, status);
 
 	session_manager = &testing.session_manager;
@@ -1525,6 +2020,29 @@ static void spdm_secure_session_manager_test_generate_shared_secret_pct_fail_alg
 	status |= mock_expect (&testing.error_state_mock.mock,
 		testing.error_state_mock.base.enter_error_state, &testing.error_state_mock.base, 0,
 		MOCK_ARG_PTR_CONTAINS (&pct_error, sizeof (pct_error)));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -1606,6 +2124,29 @@ static void spdm_secure_session_manager_test_generate_shared_secret_get_public_k
 
 	status = mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock, 0, MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -1646,6 +2187,28 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_inv
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
 
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -1685,6 +2248,29 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_get
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -1734,6 +2320,29 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys (Cu
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -1917,7 +2526,19 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys2 (C
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&hash_engine.base, &testing.rng_mock.base, &testing.ecc_mock.base,
 		&testing.transcript_manager_mock.base, &hkdf_engine.base, &testing.error_state_mock.base,
-		testing.algo_info);
+		testing.algo_info, &testing.persistent_context_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_secure_session_manager_init_persistent_state (&testing.session_manager);
 	CuAssertIntEquals (test, 0, status);
 
 	session_manager = &testing.session_manager;
@@ -1926,6 +2547,29 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys2 (C
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -2010,6 +2654,29 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -2065,6 +2732,29 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -2158,6 +2848,29 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -2222,6 +2935,29 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -2319,6 +3055,29 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -2384,6 +3143,29 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -2459,6 +3241,29 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -2540,6 +3345,29 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -2627,6 +3455,29 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -2730,6 +3581,29 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -2839,6 +3713,29 @@ static void spdm_secure_session_manager_test_generate_session_handshake_keys_hkd
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -2955,6 +3852,29 @@ static void spdm_secure_session_manager_test_generate_session_data_keys (CuTest 
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -3093,7 +4013,19 @@ static void spdm_secure_session_manager_test_generate_session_data_keys2 (CuTest
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&hash_engine.base, &testing.rng_mock.base, &testing.ecc_mock.base,
 		&testing.transcript_manager_mock.base, &hkdf_engine.base, &testing.error_state_mock.base,
-		testing.algo_info);
+		testing.algo_info, &testing.persistent_context_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_secure_session_manager_init_persistent_state (&testing.session_manager);
 	CuAssertIntEquals (test, 0, status);
 
 	session_manager = &testing.session_manager;
@@ -3102,6 +4034,29 @@ static void spdm_secure_session_manager_test_generate_session_data_keys2 (CuTest
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -3178,6 +4133,28 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_invalid_
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
 
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -3222,6 +4199,29 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_ext
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -3269,6 +4269,29 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_ext
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -3349,6 +4372,29 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_upd
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -3410,6 +4456,29 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_upd
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -3494,6 +4563,29 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_exp
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -3562,6 +4654,29 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_exp
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -3637,6 +4752,29 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_exp
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -3727,6 +4865,29 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_hkdf_exp
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -3823,6 +4984,29 @@ static void spdm_secure_session_manager_test_generate_session_data_keys_get_hash
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -3896,6 +5080,46 @@ static void spdm_secure_session_manager_test_decode_secure_message (CuTest *test
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3982,6 +5206,15 @@ static void spdm_secure_session_manager_test_decode_secure_message_payload_lt_mi
 
 	request.payload_length = sizeof (struct spdm_secured_message_data_header_1) - 1;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = session_manager->decode_secure_message (session_manager, &request);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST, status);
 
@@ -4006,6 +5239,25 @@ static void spdm_secure_session_manager_test_decode_secure_message_no_session (C
 	secured_message_data_header_1->session_id = 0xDEADBEEF;
 	request.payload_length = sizeof (struct spdm_secured_message_data_header_1);
 	request.payload = buf;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager->decode_secure_message (session_manager, &request);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST, status);
@@ -4041,6 +5293,46 @@ spdm_secure_session_manager_test_decode_secure_message_sequence_number_overflow_
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4093,6 +5385,46 @@ spdm_secure_session_manager_test_decode_secure_message_sequence_number_overflow_
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -4141,6 +5473,46 @@ static void spdm_secure_session_manager_test_decode_secure_message_payload_incor
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4196,6 +5568,46 @@ static void spdm_secure_session_manager_test_decode_secure_message_payload_incor
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4257,6 +5669,46 @@ static void spdm_secure_session_manager_test_decode_secure_message_payload_incor
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4323,6 +5775,46 @@ static void spdm_secure_session_manager_test_decode_secure_message_set_key_fail 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4397,6 +5889,46 @@ static void spdm_secure_session_manager_test_decode_secure_message_decrypt_with_
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4479,6 +6011,46 @@ static void spdm_secure_session_manager_test_decode_secure_message_plaintext_siz
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -4548,8 +6120,8 @@ static void spdm_secure_session_manager_test_encode_secure_message_finish_respon
 
 	spdm_secure_session_manager_testing_init (test, &testing);
 	session_manager = &testing.session_manager;
-	session_manager->state->last_spdm_request_secure_session_id_valid = true;
-	session_manager->state->last_spdm_request_secure_session_id = session_id;
+	testing.ssm_state.last_spdm_request_secure_session_id_valid = true;
+	testing.ssm_state.last_spdm_request_secure_session_id = session_id;
 
 	status =
 		spdm_secure_session_manager_add_spdm_protocol_session_observer (&testing.session_manager,
@@ -4568,6 +6140,55 @@ static void spdm_secure_session_manager_test_encode_secure_message_finish_respon
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4637,8 +6258,8 @@ static void spdm_secure_session_manager_test_encode_secure_message_end_session_r
 
 	spdm_secure_session_manager_testing_init (test, &testing);
 	session_manager = &testing.session_manager;
-	session_manager->state->last_spdm_request_secure_session_id_valid = true;
-	session_manager->state->last_spdm_request_secure_session_id = session_id;
+	testing.ssm_state.last_spdm_request_secure_session_id_valid = true;
+	testing.ssm_state.last_spdm_request_secure_session_id = session_id;
 
 	status =
 		spdm_secure_session_manager_add_spdm_protocol_session_observer (&testing.session_manager,
@@ -4657,6 +6278,47 @@ static void spdm_secure_session_manager_test_encode_secure_message_end_session_r
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4737,7 +6399,17 @@ spdm_secure_session_manager_test_encode_secure_message_last_spdm_request_secure_
 	spdm_secure_session_manager_testing_init (test, &testing);
 	session_manager = &testing.session_manager;
 
-	session_manager->state->last_spdm_request_secure_session_id_valid = false;
+	testing.ssm_state.last_spdm_request_secure_session_id_valid = false;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager->encode_secure_message (session_manager, &request);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INTERNAL_ERROR, status);
@@ -4757,8 +6429,26 @@ static void spdm_secure_session_manager_test_encode_secure_message_no_session (C
 
 	spdm_secure_session_manager_testing_init (test, &testing);
 	session_manager = &testing.session_manager;
-	session_manager->state->last_spdm_request_secure_session_id_valid = true;
-	session_manager->state->last_spdm_request_secure_session_id = 0xDEADBEEF;
+	testing.ssm_state.last_spdm_request_secure_session_id_valid = true;
+	testing.ssm_state.last_spdm_request_secure_session_id = 0xDEADBEEF;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager->encode_secure_message (session_manager, &request);
 	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INTERNAL_ERROR, status);
@@ -4783,8 +6473,8 @@ spdm_secure_session_manager_test_encode_secure_message_sequence_number_overflow_
 
 	spdm_secure_session_manager_testing_init (test, &testing);
 	session_manager = &testing.session_manager;
-	session_manager->state->last_spdm_request_secure_session_id_valid = true;
-	session_manager->state->last_spdm_request_secure_session_id = session_id;
+	testing.ssm_state.last_spdm_request_secure_session_id_valid = true;
+	testing.ssm_state.last_spdm_request_secure_session_id = session_id;
 
 	status = mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
@@ -4794,6 +6484,44 @@ spdm_secure_session_manager_test_encode_secure_message_sequence_number_overflow_
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4830,8 +6558,8 @@ spdm_secure_session_manager_test_encode_secure_message_sequence_number_overflow_
 
 	spdm_secure_session_manager_testing_init (test, &testing);
 	session_manager = &testing.session_manager;
-	session_manager->state->last_spdm_request_secure_session_id_valid = true;
-	session_manager->state->last_spdm_request_secure_session_id = session_id;
+	testing.ssm_state.last_spdm_request_secure_session_id_valid = true;
+	testing.ssm_state.last_spdm_request_secure_session_id = session_id;
 
 	status = mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
@@ -4841,6 +6569,46 @@ spdm_secure_session_manager_test_encode_secure_message_sequence_number_overflow_
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4879,8 +6647,8 @@ static void spdm_secure_session_manager_test_encode_secure_message_max_response_
 
 	spdm_secure_session_manager_testing_init (test, &testing);
 	session_manager = &testing.session_manager;
-	session_manager->state->last_spdm_request_secure_session_id_valid = true;
-	session_manager->state->last_spdm_request_secure_session_id = session_id;
+	testing.ssm_state.last_spdm_request_secure_session_id_valid = true;
+	testing.ssm_state.last_spdm_request_secure_session_id = session_id;
 
 	status = mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
@@ -4890,6 +6658,46 @@ static void spdm_secure_session_manager_test_encode_secure_message_max_response_
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4943,8 +6751,8 @@ static void spdm_secure_session_manager_test_encode_secure_message_set_key_fail 
 
 	spdm_secure_session_manager_testing_init (test, &testing);
 	session_manager = &testing.session_manager;
-	session_manager->state->last_spdm_request_secure_session_id_valid = true;
-	session_manager->state->last_spdm_request_secure_session_id = session_id;
+	testing.ssm_state.last_spdm_request_secure_session_id_valid = true;
+	testing.ssm_state.last_spdm_request_secure_session_id = session_id;
 
 	status = mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
@@ -4954,6 +6762,46 @@ static void spdm_secure_session_manager_test_encode_secure_message_set_key_fail 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5015,8 +6863,8 @@ static void spdm_secure_session_manager_test_encode_secure_message_encrypt_with_
 
 	spdm_secure_session_manager_testing_init (test, &testing);
 	session_manager = &testing.session_manager;
-	session_manager->state->last_spdm_request_secure_session_id_valid = true;
-	session_manager->state->last_spdm_request_secure_session_id = session_id;
+	testing.ssm_state.last_spdm_request_secure_session_id_valid = true;
+	testing.ssm_state.last_spdm_request_secure_session_id = session_id;
 
 	status = mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
@@ -5026,6 +6874,46 @@ static void spdm_secure_session_manager_test_encode_secure_message_encrypt_with_
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5082,8 +6970,8 @@ static void spdm_secure_session_manager_test_is_termination_policy_set (CuTest *
 
 	spdm_secure_session_manager_testing_init (test, &testing);
 	session_manager = &testing.session_manager;
-	session_manager->state->last_spdm_request_secure_session_id_valid = true;
-	session_manager->state->last_spdm_request_secure_session_id = session_id;
+	testing.ssm_state.last_spdm_request_secure_session_id_valid = true;
+	testing.ssm_state.last_spdm_request_secure_session_id = session_id;
 
 	status = mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
@@ -5093,6 +6981,40 @@ static void spdm_secure_session_manager_test_is_termination_policy_set (CuTest *
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	// create_session
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	// is_termination_policy_set
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	// release_session
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5125,8 +7047,8 @@ static void spdm_secure_session_manager_test_is_termination_policy_set_not_set (
 
 	spdm_secure_session_manager_testing_init (test, &testing);
 	session_manager = &testing.session_manager;
-	session_manager->state->last_spdm_request_secure_session_id_valid = true;
-	session_manager->state->last_spdm_request_secure_session_id = session_id;
+	testing.ssm_state.last_spdm_request_secure_session_id_valid = true;
+	testing.ssm_state.last_spdm_request_secure_session_id = session_id;
 
 	status = mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
@@ -5136,6 +7058,40 @@ static void spdm_secure_session_manager_test_is_termination_policy_set_not_set (
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	// create_session
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	// is_termination_policy_set
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	// release_session
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5169,13 +7125,39 @@ static void spdm_secure_session_manager_test_is_termination_policy_set_invalid_s
 
 	spdm_secure_session_manager_testing_init (test, &testing);
 	session_manager = &testing.session_manager;
-	session_manager->state->last_spdm_request_secure_session_id_valid = true;
-	session_manager->state->last_spdm_request_secure_session_id = session_id;
+	testing.ssm_state.last_spdm_request_secure_session_id_valid = true;
+	testing.ssm_state.last_spdm_request_secure_session_id = session_id;
 
 	status = mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
 		MOCK_ARG (true), MOCK_ARG (0));
+
+	// create_session
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	// is_termination_policy_set
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	session = session_manager->create_session (session_manager, session_id, false,
@@ -5207,8 +7189,8 @@ static void spdm_secure_session_manager_test_is_termination_policy_set_no_establ
 
 	spdm_secure_session_manager_testing_init (test, &testing);
 	session_manager = &testing.session_manager;
-	session_manager->state->last_spdm_request_secure_session_id_valid = true;
-	session_manager->state->last_spdm_request_secure_session_id = session_id;
+	testing.ssm_state.last_spdm_request_secure_session_id_valid = true;
+	testing.ssm_state.last_spdm_request_secure_session_id = session_id;
 
 	status = mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
@@ -5218,6 +7200,49 @@ static void spdm_secure_session_manager_test_is_termination_policy_set_no_establ
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	// create_session
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	// is_termination_policy_set
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	// is_termination_policy_set
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	// release_session
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5275,7 +7300,8 @@ static void spdm_secure_session_manager_test_add_spdm_protocol_session_observer_
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info,
+		&testing.persistent_context_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_secure_session_manager_add_spdm_protocol_session_observer (NULL,
@@ -5315,8 +7341,8 @@ static void spdm_secure_session_manager_test_remove_spdm_protocol_session_observ
 
 	spdm_secure_session_manager_testing_init (test, &testing);
 	session_manager = &testing.session_manager;
-	session_manager->state->last_spdm_request_secure_session_id_valid = true;
-	session_manager->state->last_spdm_request_secure_session_id = session_id;
+	testing.ssm_state.last_spdm_request_secure_session_id_valid = true;
+	testing.ssm_state.last_spdm_request_secure_session_id = session_id;
 
 	status =
 		spdm_secure_session_manager_add_spdm_protocol_session_observer (&testing.session_manager,
@@ -5336,6 +7362,46 @@ static void spdm_secure_session_manager_test_remove_spdm_protocol_session_observ
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_session_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_secure_session_manager_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,	&testing.ssm_state_ptr,
+		sizeof (testing.ssm_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5393,7 +7459,8 @@ static void spdm_secure_session_manager_test_remove_spdm_protocol_session_observ
 		&testing.local_capabilities,
 		(const struct spdm_device_algorithms*) &testing.local_algorithms, &testing.aes_mock.base,
 		&testing.hash_engine_mock.base, &testing.rng_mock.base, &testing.ecc_mock.base,
-		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info);
+		&testing.transcript_manager_mock.base, &testing.hkdf_mock.base, NULL, testing.algo_info,
+		&testing.persistent_context_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_secure_session_manager_remove_spdm_protocol_session_observer (NULL,

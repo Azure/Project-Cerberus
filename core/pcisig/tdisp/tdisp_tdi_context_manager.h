@@ -46,6 +46,28 @@ struct tdisp_tdi_context {
 	uint32_t reserved[4];												/**< Reserved */
 };
 
+
+/**
+ * NOTE: It is important to keep these structs as is to make sure binary compatibility
+ * with previous versions
+ */
+_Static_assert ((offsetof (struct tdisp_tdi_context, tdi_context_mask) == 0),
+	"Unexpected struct member offset");
+_Static_assert ((offsetof (struct tdisp_tdi_context, start_interface_nonce) == 4),
+	"Unexpected struct member offset");
+_Static_assert ((offsetof (struct tdisp_tdi_context, lock_flags) == 36),
+	"Unexpected struct member offset");
+_Static_assert ((offsetof (struct tdisp_tdi_context, default_ide_stream_id) == 38),
+	"Unexpected struct member offset");
+_Static_assert ((offsetof (struct tdisp_tdi_context, mmio_reporting_offset) == 40),
+	"Unexpected struct member offset");
+_Static_assert ((offsetof (struct tdisp_tdi_context, bind_p2p_address_mask) == 48),
+	"Unexpected struct member offset");
+_Static_assert ((offsetof (struct tdisp_tdi_context, reserved) == 56),
+	"Unexpected struct member offset");
+_Static_assert ((sizeof (struct tdisp_tdi_context) == 72),
+	"Unexpected size of struct tdisp_tdi_context");
+
 /**
  * Abstract interface for managing TDI contexts. This interface will be shared between
  * TDISP responder and TDISP driver and any other entities which would require access

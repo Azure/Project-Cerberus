@@ -30,6 +30,7 @@
 #include "testing/mock/keystore/keystore_mock.h"
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/spdm/spdm_measurements_mock.h"
+#include "testing/mock/spdm/spdm_persistent_context_interface_mock.h"
 #include "testing/mock/spdm/spdm_secure_session_manager_mock.h"
 #include "testing/mock/spdm/spdm_transcript_manager_mock.h"
 #include "testing/riot/riot_core_testing.h"
@@ -85,7 +86,6 @@ uint32_t spdm_command_testing_other_params_support_priority_table[] = {
 struct spdm_command_testing {
 	/* [TODO] Replace this with the connection object later. */
 	struct cmd_interface_spdm_responder spdm_responder;											/**< The SPDM responder being tested. */
-	struct spdm_state spdm_responder_state;														/**< The SPDM responder state. */
 	struct spdm_transcript_manager_state state;													/**< The transcript manager state. */
 	struct spdm_transcript_manager_mock transcript_manager_mock;								/**< The transcript manager. */
 	struct spdm_transcript_manager_state transcript_manager_state;								/**< The transcript manager state. */
@@ -106,6 +106,11 @@ struct spdm_command_testing {
 	struct ecc_engine_mock ecc_mock;															/**< Mock ECC engine. */
 	struct rng_engine_mock rng_mock;															/**< Mock RNG engine. */
 	struct cmd_interface_mock vdm_mock;															/**< Mock for VDM command handler */
+	struct spdm_persistent_context_interface_mock persistent_context_mock;						/**< Mock for SPDM persistent context */
+	struct spdm_responder_state spdm_responder_state;											/**< State for the SPDM responder. */
+	struct spdm_secure_session_manager_persistent_state ssm_state;								/**< Persistent state for the SPDM session manager. */
+	struct spdm_responder_state *spdm_responder_state_ptr;										/**< State for the SPDM responder. */
+	struct spdm_secure_session_manager_persistent_state *ssm_state_ptr;							/**< Persistent state for the SPDM session manager. */
 };
 
 
@@ -301,8 +306,20 @@ static void spdm_command_testing_init_dependencies (CuTest *test,
 	int status;
 	struct spdm_version_num_entry version_num[1] =
 	{{0, 0, 2, 1}};
-	struct spdm_version_number secured_message_version_num[SECURED_MESSAGE_VERSION_COUNT] =
-	{{0, 0, 0, 1}, {0, 0, 1, 1}};
+	struct spdm_version_number secured_message_version_num[SECURED_MESSAGE_VERSION_COUNT] =	{
+		{
+			.alpha = 0,
+			.update_version_number = 0,
+			.minor_version = 0,
+			.major_version = 1,
+		},
+		{
+			.alpha = 0,
+			.update_version_number = 0,
+			.minor_version = 1,
+			.major_version = 1,
+		},
+	};
 	uint8_t idx;
 
 	memcpy (testing->version_num, version_num, sizeof (version_num));
@@ -477,15 +494,24 @@ static void spdm_command_testing_init_dependencies (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_interface_spdm_responder_init (&testing->spdm_responder,
-		&testing->spdm_responder_state, &testing->transcript_manager_mock.base,
-		testing->hash_engine, ARRAY_SIZE (testing->hash_engine), testing->version_num,
-		ARRAY_SIZE (testing->version_num), testing->secured_message_version_num,
-		ARRAY_SIZE (testing->secured_message_version_num), &testing->local_capabilities,
-		&testing->local_algorithms, &testing->key_manager, &testing->measurements_mock.base,
-		&testing->ecc_mock.base, &testing->rng_mock.base, &testing->session_manager_mock.base,
-		&testing->vdm_mock.base);
+		&testing->transcript_manager_mock.base,	testing->hash_engine,
+		ARRAY_SIZE (testing->hash_engine), testing->version_num, ARRAY_SIZE (testing->version_num),
+		testing->secured_message_version_num, ARRAY_SIZE (testing->secured_message_version_num),
+		&testing->local_capabilities, &testing->local_algorithms, &testing->key_manager,
+		&testing->measurements_mock.base, &testing->ecc_mock.base, &testing->rng_mock.base,
+		&testing->session_manager_mock.base, &testing->vdm_mock.base,
+		&testing->persistent_context_mock.base);
 
 	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_persistent_context_interface_mock_init (&testing->persistent_context_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_responder_init_state (&testing->spdm_responder_state);
+	CuAssertIntEquals (test, 0, status);
+
+	testing->spdm_responder_state_ptr = &testing->spdm_responder_state;
+	testing->ssm_state_ptr = &testing->ssm_state;
 }
 
 /**
@@ -519,6 +545,11 @@ static void spdm_command_testing_release_dependencies (CuTest *test,
 
 	riot_key_manager_release (&testing->key_manager);
 	X509_TESTING_ENGINE_RELEASE (&testing->x509);
+
+	status =
+		spdm_persistent_context_interface_mock_validate_and_release (
+		&testing->persistent_context_mock);
+	CuAssertIntEquals (test, 0, status);
 }
 
 /*******************
@@ -1337,6 +1368,14 @@ static void spdm_test_get_version (CuTest *test)
 		version_length), MOCK_ARG (sizeof (struct spdm_get_version_response) + version_length),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	memset (&msg, 0, sizeof (msg));
@@ -1430,6 +1469,14 @@ static void spdm_test_get_version_no_session_manager (CuTest *test)
 		version_length), MOCK_ARG (sizeof (struct spdm_get_version_response) + version_length),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	memset (&msg, 0, sizeof (msg));
@@ -1494,7 +1541,7 @@ static void spdm_test_get_version_response_state_need_resync (CuTest *test)
 		spdm_get_version_resp_version_table (expected_rsp);
 	int status;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -1503,7 +1550,7 @@ static void spdm_test_get_version_response_state_need_resync (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	version_count = ARRAY_SIZE (testing.version_num);
 	version_length = version_count * sizeof (struct spdm_version_num_entry);
 
@@ -1526,6 +1573,15 @@ static void spdm_test_get_version_response_state_need_resync (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (expected_rsp, sizeof (struct spdm_get_version_response) +
 		version_length), MOCK_ARG (sizeof (struct spdm_get_version_response) + version_length),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -1590,7 +1646,7 @@ static void spdm_test_get_version_response_state_processing_encap (CuTest *test)
 		spdm_get_version_resp_version_table (expected_rsp);
 	int status;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -1599,7 +1655,7 @@ static void spdm_test_get_version_response_state_processing_encap (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	version_count = ARRAY_SIZE (testing.version_num);
 	version_length = version_count * sizeof (struct spdm_version_num_entry);
 
@@ -1622,6 +1678,15 @@ static void spdm_test_get_version_response_state_processing_encap (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (expected_rsp, sizeof (struct spdm_get_version_response) +
 		version_length), MOCK_ARG (sizeof (struct spdm_get_version_response) + version_length),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -1710,6 +1775,15 @@ static void spdm_test_get_version_bad_length (CuTest *test)
 	rq->reserved = 0;
 	rq->reserved2 = 0;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_version (&testing.spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1749,6 +1823,15 @@ static void spdm_test_get_version_incorrect_version (CuTest *test)
 	rq->header.spdm_minor_version = 0;
 	rq->header.spdm_major_version = 0;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_version (&testing.spdm_responder, &msg);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, SPDM_ERROR_VERSION_MISMATCH, error_response->error_code);
@@ -1770,6 +1853,15 @@ static void spdm_test_get_version_incorrect_version (CuTest *test)
 	rq->header.spdm_minor_version = 1;
 	rq->header.spdm_major_version = 1;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_version (&testing.spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1787,7 +1879,7 @@ static void spdm_test_get_version_response_state_not_normal (CuTest *test)
 	struct cmd_interface_msg msg;
 	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) buf;
 	int status;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct spdm_command_testing testing;
 
@@ -1796,7 +1888,7 @@ static void spdm_test_get_version_response_state_not_normal (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
-	spdm_state = testing.spdm_responder.state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* response_state = SPDM_RESPONSE_STATE_BUSY. */
 	memset (&msg, 0, sizeof (msg));
@@ -1813,6 +1905,15 @@ static void spdm_test_get_version_response_state_not_normal (CuTest *test)
 	rq->reserved2 = 0;
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_BUSY;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_version (&testing.spdm_responder, &msg);
 
@@ -1839,6 +1940,15 @@ static void spdm_test_get_version_response_state_not_normal (CuTest *test)
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NOT_READY;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_version (&testing.spdm_responder, &msg);
 	CuAssertIntEquals (test, 0, status);
 	/* [TODO] Check SPDM error message when SPDM_RESPONSE_STATE_NOT_READY is implemented. */
@@ -1858,6 +1968,15 @@ static void spdm_test_get_version_response_state_not_normal (CuTest *test)
 	rq->reserved2 = 0;
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_MAX;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_version (&testing.spdm_responder, &msg);
 	CuAssertIntEquals (test, 0, status);
@@ -1891,6 +2010,15 @@ static void spdm_test_get_version_transcript_manager_add_request_fail (CuTest *t
 		SPDM_TRANSCRIPT_MANAGER_UPDATE_FAILED, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (struct spdm_get_version_request)), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1951,6 +2079,14 @@ static void spdm_test_get_version_transcript_manager_add_response_fail (CuTest *
 		SPDM_TRANSCRIPT_MANAGER_UPDATE_FAILED, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (sizeof (struct spdm_get_version_response)),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2124,7 +2260,7 @@ static void spdm_test_get_capabilities_1_2 (CuTest *test)
 	struct spdm_get_capabilities *resp = (struct spdm_get_capabilities*) buf;
 	int status;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_device_capability *local_capabilities;
 
@@ -2134,7 +2270,7 @@ static void spdm_test_get_capabilities_1_2 (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_capabilities = &testing.local_capabilities;
 
 	memset (&msg, 0, sizeof (msg));
@@ -2179,6 +2315,14 @@ static void spdm_test_get_capabilities_1_2 (CuTest *test)
 		MOCK_ARG (sizeof (struct spdm_get_capabilities)), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
@@ -2214,7 +2358,7 @@ static void spdm_test_get_capabilities_1_1 (CuTest *test)
 	struct spdm_get_capabilities_1_1 rq = {0};
 	int status;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_device_capability *local_capabilities;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
@@ -2225,7 +2369,7 @@ static void spdm_test_get_capabilities_1_1 (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_capabilities = &testing.local_capabilities;
 
 	memset (&msg, 0, sizeof (msg));
@@ -2243,6 +2387,15 @@ static void spdm_test_get_capabilities_1_1 (CuTest *test)
 	memcpy (msg.payload, &rq, sizeof (struct spdm_get_capabilities_1_1));
 
 	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -2278,7 +2431,7 @@ static void spdm_test_get_capabilities_response_state_busy (CuTest *test)
 	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -2286,7 +2439,7 @@ static void spdm_test_get_capabilities_response_state_busy (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	msg.data = buf;
 	msg.payload = (uint8_t*) buf;
@@ -2298,6 +2451,15 @@ static void spdm_test_get_capabilities_response_state_busy (CuTest *test)
 
 	rq->base_capabilities.header.spdm_major_version = 1;
 	rq->base_capabilities.header.spdm_minor_version = 2;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -2318,7 +2480,7 @@ static void spdm_test_get_capabilities_response_state_need_resync (CuTest *test)
 	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -2326,7 +2488,7 @@ static void spdm_test_get_capabilities_response_state_need_resync (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	msg.data = buf;
 	msg.payload = (uint8_t*) buf;
@@ -2338,6 +2500,15 @@ static void spdm_test_get_capabilities_response_state_need_resync (CuTest *test)
 
 	rq->base_capabilities.header.spdm_major_version = 1;
 	rq->base_capabilities.header.spdm_minor_version = 2;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -2358,7 +2529,7 @@ static void spdm_test_get_capabilities_response_state_processing_encap (CuTest *
 	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -2366,7 +2537,7 @@ static void spdm_test_get_capabilities_response_state_processing_encap (CuTest *
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	msg.data = buf;
 	msg.payload = (uint8_t*) buf;
@@ -2377,6 +2548,15 @@ static void spdm_test_get_capabilities_response_state_processing_encap (CuTest *
 
 	rq->base_capabilities.header.spdm_major_version = 1;
 	rq->base_capabilities.header.spdm_minor_version = 2;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -2397,7 +2577,7 @@ static void spdm_test_get_capabilities_incorrect_connection_state (CuTest *test)
 	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -2406,7 +2586,7 @@ static void spdm_test_get_capabilities_incorrect_connection_state (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	msg.data = buf;
 	msg.payload = (uint8_t*) buf;
@@ -2418,6 +2598,15 @@ static void spdm_test_get_capabilities_incorrect_connection_state (CuTest *test)
 
 	rq->base_capabilities.header.spdm_major_version = 1;
 	rq->base_capabilities.header.spdm_minor_version = 2;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -2438,7 +2627,7 @@ static void spdm_test_get_capabilities_version_lt_min (CuTest *test)
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_device_capability *local_capabilities;
 
@@ -2448,7 +2637,7 @@ static void spdm_test_get_capabilities_version_lt_min (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_capabilities = &testing.local_capabilities;
 
 	memset (&msg, 0, sizeof (msg));
@@ -2467,6 +2656,15 @@ static void spdm_test_get_capabilities_version_lt_min (CuTest *test)
 	rq->base_capabilities.flags = local_capabilities->flags;
 	rq->data_transfer_size = local_capabilities->data_transfer_size;
 	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -2487,7 +2685,7 @@ static void spdm_test_get_capabilities_version_gt_max (CuTest *test)
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_device_capability *local_capabilities;
 
@@ -2497,7 +2695,7 @@ static void spdm_test_get_capabilities_version_gt_max (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_capabilities = &testing.local_capabilities;
 
 	memset (&msg, 0, sizeof (msg));
@@ -2516,6 +2714,15 @@ static void spdm_test_get_capabilities_version_gt_max (CuTest *test)
 	rq->base_capabilities.flags = local_capabilities->flags;
 	rq->data_transfer_size = local_capabilities->data_transfer_size;
 	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -2536,7 +2743,7 @@ static void spdm_test_get_capabilities_incorrect_request_size_v_1_2 (CuTest *tes
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_device_capability *local_capabilities;
 
@@ -2546,7 +2753,7 @@ static void spdm_test_get_capabilities_incorrect_request_size_v_1_2 (CuTest *tes
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_capabilities = &testing.local_capabilities;
 
 	memset (&msg, 0, sizeof (msg));
@@ -2565,6 +2772,15 @@ static void spdm_test_get_capabilities_incorrect_request_size_v_1_2 (CuTest *tes
 	rq->base_capabilities.flags = local_capabilities->flags;
 	rq->data_transfer_size = local_capabilities->data_transfer_size;
 	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -2586,7 +2802,7 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTe
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_device_capability *local_capabilities;
 
@@ -2596,7 +2812,7 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTe
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_capabilities = &testing.local_capabilities;
 
 	memset (&msg, 0, sizeof (msg));
@@ -2619,6 +2835,15 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTe
 
 	memset (&rq->base_capabilities.flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
 	rq->base_capabilities.flags.psk_cap = SPDM_PSK_RESERVED;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -2644,6 +2869,15 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTe
 	rq->base_capabilities.flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
 	rq->base_capabilities.flags.mac_cap = 0;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2667,6 +2901,15 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTe
 	rq->base_capabilities.flags.key_ex_cap = 0;
 	rq->base_capabilities.flags.psk_cap = SPDM_PSK_SUPPORTED_NO_CONTEXT;
 	rq->base_capabilities.flags.mac_cap = 0;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -2698,6 +2941,15 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTe
 	rq->base_capabilities.flags.hbeat_cap = 0;
 	rq->base_capabilities.flags.key_upd_cap = 0;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2727,6 +2979,15 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTe
 	rq->base_capabilities.flags.handshake_in_the_clear_cap = 0;
 	rq->base_capabilities.flags.hbeat_cap = 0;
 	rq->base_capabilities.flags.key_upd_cap = 0;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -2758,6 +3019,15 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTe
 	rq->base_capabilities.flags.hbeat_cap = 0;
 	rq->base_capabilities.flags.key_upd_cap = 0;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2787,6 +3057,15 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTe
 	rq->base_capabilities.flags.handshake_in_the_clear_cap = 0;
 	rq->base_capabilities.flags.hbeat_cap = 1;
 	rq->base_capabilities.flags.key_upd_cap = 0;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -2818,6 +3097,15 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTe
 	rq->base_capabilities.flags.hbeat_cap = 0;
 	rq->base_capabilities.flags.key_upd_cap = 1;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2843,6 +3131,15 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTe
 	rq->base_capabilities.flags.mac_cap = 1;
 	rq->base_capabilities.flags.handshake_in_the_clear_cap = 1;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2865,6 +3162,15 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTe
 	memset (&rq->base_capabilities.flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
 	rq->base_capabilities.flags.cert_cap = 1;
 	rq->base_capabilities.flags.pub_key_id_cap = 1;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -2891,6 +3197,15 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTe
 	rq->base_capabilities.flags.chal_cap = 0;
 	rq->base_capabilities.flags.key_ex_cap = 0;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2915,6 +3230,15 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTe
 	rq->base_capabilities.flags.pub_key_id_cap = 1;
 	rq->base_capabilities.flags.chal_cap = 0;
 	rq->base_capabilities.flags.key_ex_cap = 0;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -2941,6 +3265,15 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTe
 	rq->base_capabilities.flags.chal_cap = 1;
 	rq->base_capabilities.flags.mut_auth_cap = 0;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2966,6 +3299,15 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTe
 	rq->base_capabilities.flags.chal_cap = 0;
 	rq->base_capabilities.flags.mut_auth_cap = 1;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2985,7 +3327,7 @@ static void spdm_test_get_capabilities_request_data_transfer_size_lt_min_size (C
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_device_capability *local_capabilities;
 
@@ -2995,7 +3337,7 @@ static void spdm_test_get_capabilities_request_data_transfer_size_lt_min_size (C
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_capabilities = &testing.local_capabilities;
 
 	memset (&msg, 0, sizeof (msg));
@@ -3016,6 +3358,15 @@ static void spdm_test_get_capabilities_request_data_transfer_size_lt_min_size (C
 
 	rq->data_transfer_size = SPDM_MIN_DATA_TRANSFER_SIZE_VERSION_1_2 - 1;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -3035,7 +3386,7 @@ static void spdm_test_get_capabilities_request_data_transfer_size_gt_max_size (C
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_device_capability *local_capabilities;
 
@@ -3045,7 +3396,7 @@ static void spdm_test_get_capabilities_request_data_transfer_size_gt_max_size (C
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_capabilities = &testing.local_capabilities;
 
 	memset (&msg, 0, sizeof (msg));
@@ -3066,6 +3417,15 @@ static void spdm_test_get_capabilities_request_data_transfer_size_gt_max_size (C
 	rq->max_spdm_msg_size = SPDM_MIN_DATA_TRANSFER_SIZE_VERSION_1_2;
 	rq->data_transfer_size = rq->max_spdm_msg_size + 1;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -3085,7 +3445,7 @@ static void spdm_test_get_capabilities_request_data_transfer_size_ne_max_size (C
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_device_capability *local_capabilities;
 
@@ -3095,7 +3455,7 @@ static void spdm_test_get_capabilities_request_data_transfer_size_ne_max_size (C
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_capabilities = &testing.local_capabilities;
 
 	memset (&msg, 0, sizeof (msg));
@@ -3117,6 +3477,15 @@ static void spdm_test_get_capabilities_request_data_transfer_size_ne_max_size (C
 	rq->data_transfer_size = SPDM_MIN_DATA_TRANSFER_SIZE_VERSION_1_2;
 	rq->max_spdm_msg_size = rq->data_transfer_size + 1;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -3136,7 +3505,7 @@ static void spdm_test_get_capabilities_request_large_ct_exponent (CuTest *test)
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_device_capability *local_capabilities;
 
@@ -3146,7 +3515,7 @@ static void spdm_test_get_capabilities_request_large_ct_exponent (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_capabilities = &testing.local_capabilities;
 
 	memset (&msg, 0, sizeof (msg));
@@ -3167,6 +3536,15 @@ static void spdm_test_get_capabilities_request_large_ct_exponent (CuTest *test)
 
 	rq->base_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT + 1;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -3186,7 +3564,7 @@ static void spdm_test_get_capabilities_append_request_fail (CuTest *test)
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_device_capability *local_capabilities;
 
@@ -3196,7 +3574,7 @@ static void spdm_test_get_capabilities_append_request_fail (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_capabilities = &testing.local_capabilities;
 
 	memset (&msg, 0, sizeof (msg));
@@ -3237,6 +3615,15 @@ static void spdm_test_get_capabilities_append_request_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -3256,7 +3643,7 @@ static void spdm_test_get_capabilities_append_response_fail (CuTest *test)
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_device_capability *local_capabilities;
 
@@ -3265,7 +3652,7 @@ static void spdm_test_get_capabilities_append_response_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_capabilities = &testing.local_capabilities;
 
 	memset (&msg, 0, sizeof (msg));
@@ -3309,6 +3696,15 @@ static void spdm_test_get_capabilities_append_response_fail (CuTest *test)
 		SPDM_TRANSCRIPT_MANAGER_UPDATE_FAILED, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (struct spdm_get_capabilities)), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (spdm_responder, &msg);
 
@@ -3756,7 +4152,7 @@ static void spdm_test_negotiate_algorithms (CuTest *test)
 	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -3765,7 +4161,7 @@ static void spdm_test_negotiate_algorithms (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -3840,6 +4236,15 @@ static void spdm_test_negotiate_algorithms (CuTest *test)
 		testing.transcript_manager_mock.base.set_hash_algo, &testing.transcript_manager_mock.base,
 		0, MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
@@ -3940,7 +4345,7 @@ static void spdm_test_negotiate_algorithms_highest_pri_hash_algo (CuTest *test)
 	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -3949,7 +4354,7 @@ static void spdm_test_negotiate_algorithms_highest_pri_hash_algo (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 	local_algorithms->device_algorithms.base_hash_algo =
 		local_algorithms->device_algorithms.base_hash_algo | SPDM_TPM_ALG_SHA_512;
@@ -4026,6 +4431,15 @@ static void spdm_test_negotiate_algorithms_highest_pri_hash_algo (CuTest *test)
 		testing.transcript_manager_mock.base.set_hash_algo, &testing.transcript_manager_mock.base,
 		0, MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
@@ -4125,7 +4539,7 @@ static void spdm_test_negotiate_algorithms_lowest_pri_hash_algo (CuTest *test)
 	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -4134,7 +4548,7 @@ static void spdm_test_negotiate_algorithms_lowest_pri_hash_algo (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 	local_algorithms->device_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_256;
 
@@ -4210,6 +4624,15 @@ static void spdm_test_negotiate_algorithms_lowest_pri_hash_algo (CuTest *test)
 		testing.transcript_manager_mock.base.set_hash_algo, &testing.transcript_manager_mock.base,
 		0, MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
@@ -4310,7 +4733,7 @@ static void spdm_test_negotiate_algorithms_opaque_data_format (CuTest *test)
 	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -4319,7 +4742,7 @@ static void spdm_test_negotiate_algorithms_opaque_data_format (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -4394,6 +4817,15 @@ static void spdm_test_negotiate_algorithms_opaque_data_format (CuTest *test)
 		testing.transcript_manager_mock.base.set_hash_algo, &testing.transcript_manager_mock.base,
 		0, MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
@@ -4494,7 +4926,7 @@ static void spdm_test_negotiate_algorithms_no_priority_table (CuTest *test)
 	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -4506,7 +4938,7 @@ static void spdm_test_negotiate_algorithms_no_priority_table (CuTest *test)
 	/* Remove the algorithm prioty info. */
 	memset ((void*) &spdm_responder->local_algorithms->algorithms_priority_table, 0,
 		sizeof (struct spdm_local_device_algorithms_priority_table));
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -4581,6 +5013,15 @@ static void spdm_test_negotiate_algorithms_no_priority_table (CuTest *test)
 		testing.transcript_manager_mock.base.set_hash_algo, &testing.transcript_manager_mock.base,
 		0, MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
@@ -4682,7 +5123,7 @@ static void spdm_test_negotiate_algorithms_no_priority_table_first_common_leftmo
 	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -4694,7 +5135,7 @@ static void spdm_test_negotiate_algorithms_no_priority_table_first_common_leftmo
 	/* Remove the algorithm prioty info. */
 	memset ((void*) &spdm_responder->local_algorithms->algorithms_priority_table, 0,
 		sizeof (struct spdm_local_device_algorithms_priority_table));
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 	local_algorithms->device_algorithms.base_hash_algo =
 		SPDM_TPM_ALG_SHA_512 | SPDM_TPM_ALG_SHA_384 | SPDM_TPM_ALG_SHA_256;
@@ -4771,6 +5212,15 @@ static void spdm_test_negotiate_algorithms_no_priority_table_first_common_leftmo
 		testing.transcript_manager_mock.base.set_hash_algo, &testing.transcript_manager_mock.base,
 		0, MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
@@ -4871,7 +5321,7 @@ static void spdm_test_negotiate_algorithms_no_priority_table_first_common_rightm
 	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -4883,7 +5333,7 @@ static void spdm_test_negotiate_algorithms_no_priority_table_first_common_rightm
 	/* Remove the algorithm prioty info. */
 	memset ((void*) &spdm_responder->local_algorithms->algorithms_priority_table, 0,
 		sizeof (struct spdm_local_device_algorithms_priority_table));
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 	local_algorithms->device_algorithms.base_hash_algo =
 		SPDM_TPM_ALG_SHA_512 | SPDM_TPM_ALG_SHA_384 | SPDM_TPM_ALG_SHA_256;
@@ -4960,6 +5410,15 @@ static void spdm_test_negotiate_algorithms_no_priority_table_first_common_rightm
 		testing.transcript_manager_mock.base.set_hash_algo, &testing.transcript_manager_mock.base,
 		0, MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
@@ -5059,7 +5518,7 @@ static void spdm_test_negotiate_algorithms_measurement_with_sig_caps (CuTest *te
 	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -5072,7 +5531,7 @@ static void spdm_test_negotiate_algorithms_measurement_with_sig_caps (CuTest *te
 	/* Remove the algorithm prioty info. */
 	memset ((void*) &spdm_responder->local_algorithms->algorithms_priority_table, 0,
 		sizeof (struct spdm_local_device_algorithms_priority_table));
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -5147,6 +5606,15 @@ static void spdm_test_negotiate_algorithms_measurement_with_sig_caps (CuTest *te
 		testing.transcript_manager_mock.base.set_hash_algo, &testing.transcript_manager_mock.base,
 		0, MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
@@ -5253,7 +5721,7 @@ static void spdm_test_negotiate_algorithms_incorrect_negotiated_version (CuTest 
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -5262,7 +5730,7 @@ static void spdm_test_negotiate_algorithms_incorrect_negotiated_version (CuTest 
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -5278,6 +5746,15 @@ static void spdm_test_negotiate_algorithms_incorrect_negotiated_version (CuTest 
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 1;
 	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
@@ -5302,6 +5779,15 @@ static void spdm_test_negotiate_algorithms_incorrect_negotiated_version (CuTest 
 	rq->header.spdm_minor_version = 2;
 	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -5322,7 +5808,7 @@ static void spdm_test_negotiate_algorithms_incorrect_response_state (CuTest *tes
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -5331,7 +5817,7 @@ static void spdm_test_negotiate_algorithms_incorrect_response_state (CuTest *tes
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
 	spdm_state->connection_info.version.minor_version = 2;
 
@@ -5350,6 +5836,15 @@ static void spdm_test_negotiate_algorithms_incorrect_response_state (CuTest *tes
 	msg.payload = (uint8_t*) rq;
 	msg.max_response = sizeof (buf);
 	spdm_state->response_state = SPDM_RESPONSE_STATE_BUSY;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
@@ -5371,6 +5866,15 @@ static void spdm_test_negotiate_algorithms_incorrect_response_state (CuTest *tes
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NEED_RESYNC;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -5390,6 +5894,15 @@ static void spdm_test_negotiate_algorithms_incorrect_response_state (CuTest *tes
 	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_PROCESSING_ENCAP;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
@@ -5411,7 +5924,7 @@ static void spdm_test_negotiate_algorithms_incorrect_connection_state (CuTest *t
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -5420,7 +5933,7 @@ static void spdm_test_negotiate_algorithms_incorrect_connection_state (CuTest *t
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -5437,6 +5950,15 @@ static void spdm_test_negotiate_algorithms_incorrect_connection_state (CuTest *t
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 2;
 	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
@@ -5460,7 +5982,7 @@ static void spdm_test_negotiate_algorithms_request_length_lt_min (CuTest *test)
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -5469,7 +5991,7 @@ static void spdm_test_negotiate_algorithms_request_length_lt_min (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -5494,6 +6016,15 @@ static void spdm_test_negotiate_algorithms_request_length_lt_min (CuTest *test)
 	spdm_state->connection_info.version.minor_version = 2;
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -5516,7 +6047,7 @@ static void spdm_test_negotiate_algorithms_invalid_request_length (CuTest *test)
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -5525,7 +6056,7 @@ static void spdm_test_negotiate_algorithms_invalid_request_length (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -5550,6 +6081,15 @@ static void spdm_test_negotiate_algorithms_invalid_request_length (CuTest *test)
 	spdm_state->connection_info.version.minor_version = 2;
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -5571,7 +6111,7 @@ static void spdm_test_negotiate_algorithms_request_length_gt_max (CuTest *test)
 	size_t req_length = SPDM_NEGOTIATE_ALGORITHMS_REQUEST_MAX_LENGTH + 1;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -5580,7 +6120,7 @@ static void spdm_test_negotiate_algorithms_request_length_gt_max (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -5606,6 +6146,15 @@ static void spdm_test_negotiate_algorithms_request_length_gt_max (CuTest *test)
 	spdm_state->connection_info.version.minor_version = 2;
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -5629,7 +6178,7 @@ static void spdm_test_negotiate_algorithms_invalid_req_alg_type (CuTest *test)
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -5638,7 +6187,7 @@ static void spdm_test_negotiate_algorithms_invalid_req_alg_type (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -5670,6 +6219,15 @@ static void spdm_test_negotiate_algorithms_invalid_req_alg_type (CuTest *test)
 	spdm_state->connection_info.version.minor_version = 2;
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -5693,7 +6251,7 @@ static void spdm_test_negotiate_algorithms_req_alg_not_monotonic (CuTest *test)
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -5702,7 +6260,7 @@ static void spdm_test_negotiate_algorithms_req_alg_not_monotonic (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -5739,6 +6297,15 @@ static void spdm_test_negotiate_algorithms_req_alg_not_monotonic (CuTest *test)
 	spdm_state->connection_info.version.minor_version = 2;
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -5762,7 +6329,7 @@ static void spdm_test_negotiate_algorithms_unsupported_fixed_algo_count (CuTest 
 		(sizeof (struct spdm_algorithm_request) * 1);
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -5771,7 +6338,7 @@ static void spdm_test_negotiate_algorithms_unsupported_fixed_algo_count (CuTest 
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -5803,6 +6370,15 @@ static void spdm_test_negotiate_algorithms_unsupported_fixed_algo_count (CuTest 
 	spdm_state->connection_info.version.minor_version = 2;
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -5826,7 +6402,7 @@ static void spdm_test_negotiate_algorithms_ext_algo_count_gt_max_supported (CuTe
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -5836,7 +6412,7 @@ static void spdm_test_negotiate_algorithms_ext_algo_count_gt_max_supported (CuTe
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -5904,6 +6480,15 @@ static void spdm_test_negotiate_algorithms_ext_algo_count_gt_max_supported (CuTe
 
 	rq->other_params_support.opaque_data_format = SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -5927,7 +6512,7 @@ static void spdm_test_negotiate_algorithms_invalid_ext_algo_count (CuTest *test)
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -5937,7 +6522,7 @@ static void spdm_test_negotiate_algorithms_invalid_ext_algo_count (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -5988,6 +6573,15 @@ static void spdm_test_negotiate_algorithms_invalid_ext_algo_count (CuTest *test)
 
 	rq->other_params_support.opaque_data_format = SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -6011,7 +6605,7 @@ static void spdm_test_negotiate_algorithms_invalid_opaque_data_format (CuTest *t
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -6021,7 +6615,7 @@ static void spdm_test_negotiate_algorithms_invalid_opaque_data_format (CuTest *t
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -6071,6 +6665,15 @@ static void spdm_test_negotiate_algorithms_invalid_opaque_data_format (CuTest *t
 
 	rq->other_params_support.opaque_data_format = SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1 + 2;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -6094,7 +6697,7 @@ static void spdm_test_negotiate_algorithms_payload_length_ne_request_length (CuT
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -6104,7 +6707,7 @@ static void spdm_test_negotiate_algorithms_payload_length_ne_request_length (CuT
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -6152,6 +6755,15 @@ static void spdm_test_negotiate_algorithms_payload_length_ne_request_length (CuT
 	spdm_state->connection_info.version.minor_version = 2;
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -6175,7 +6787,7 @@ static void spdm_test_negotiate_algorithms_illegal_dhe_algo (CuTest *test)
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -6185,7 +6797,7 @@ static void spdm_test_negotiate_algorithms_illegal_dhe_algo (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -6233,6 +6845,15 @@ static void spdm_test_negotiate_algorithms_illegal_dhe_algo (CuTest *test)
 	spdm_state->connection_info.version.minor_version = 2;
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -6260,7 +6881,7 @@ static void spdm_test_negotiate_algorithms_no_common_dhe_algo (CuTest *test)
 	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg =
 		(struct spdm_negotiate_algorithms_response_no_ext_alg*) rsp;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -6270,7 +6891,7 @@ static void spdm_test_negotiate_algorithms_no_common_dhe_algo (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -6343,6 +6964,15 @@ static void spdm_test_negotiate_algorithms_no_common_dhe_algo (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -6384,7 +7014,7 @@ static void spdm_test_negotiate_algorithms_no_local_dhe_algo (CuTest *test)
 	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg =
 		(struct spdm_negotiate_algorithms_response_no_ext_alg*) rsp;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -6394,7 +7024,7 @@ static void spdm_test_negotiate_algorithms_no_local_dhe_algo (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 	local_algorithms->algorithms_priority_table.dhe_priority_table_count = 0;
 
@@ -6467,6 +7097,15 @@ static void spdm_test_negotiate_algorithms_no_local_dhe_algo (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -6504,7 +7143,7 @@ static void spdm_test_negotiate_algorithms_illegal_aead_algo (CuTest *test)
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -6514,7 +7153,7 @@ static void spdm_test_negotiate_algorithms_illegal_aead_algo (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -6562,6 +7201,15 @@ static void spdm_test_negotiate_algorithms_illegal_aead_algo (CuTest *test)
 	spdm_state->connection_info.version.minor_version = 2;
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -6589,7 +7237,7 @@ static void spdm_test_negotiate_algorithms_no_common_aead_algo (CuTest *test)
 	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg =
 		(struct spdm_negotiate_algorithms_response_no_ext_alg*) rsp;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -6599,7 +7247,7 @@ static void spdm_test_negotiate_algorithms_no_common_aead_algo (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -6673,6 +7321,15 @@ static void spdm_test_negotiate_algorithms_no_common_aead_algo (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -6709,7 +7366,7 @@ static void spdm_test_negotiate_algorithms_illegal_req_asym_algo (CuTest *test)
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -6719,7 +7376,7 @@ static void spdm_test_negotiate_algorithms_illegal_req_asym_algo (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -6767,6 +7424,15 @@ static void spdm_test_negotiate_algorithms_illegal_req_asym_algo (CuTest *test)
 	spdm_state->connection_info.version.minor_version = 2;
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -6794,7 +7460,7 @@ static void spdm_test_negotiate_algorithms_no_common_req_asym_algo (CuTest *test
 	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg =
 		(struct spdm_negotiate_algorithms_response_no_ext_alg*) rsp;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -6804,7 +7470,7 @@ static void spdm_test_negotiate_algorithms_no_common_req_asym_algo (CuTest *test
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -6877,6 +7543,15 @@ static void spdm_test_negotiate_algorithms_no_common_req_asym_algo (CuTest *test
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -6914,7 +7589,7 @@ static void spdm_test_negotiate_algorithms_illegal_key_schedule_algo (CuTest *te
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -6924,7 +7599,7 @@ static void spdm_test_negotiate_algorithms_illegal_key_schedule_algo (CuTest *te
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -6972,6 +7647,15 @@ static void spdm_test_negotiate_algorithms_illegal_key_schedule_algo (CuTest *te
 	spdm_state->connection_info.version.minor_version = 2;
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -6999,7 +7683,7 @@ static void spdm_test_negotiate_algorithms_no_common_key_schedule_algo (CuTest *
 	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg =
 		(struct spdm_negotiate_algorithms_response_no_ext_alg*) rsp;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -7009,7 +7693,7 @@ static void spdm_test_negotiate_algorithms_no_common_key_schedule_algo (CuTest *
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -7081,6 +7765,15 @@ static void spdm_test_negotiate_algorithms_no_common_key_schedule_algo (CuTest *
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -7120,7 +7813,7 @@ static void spdm_test_negotiate_algorithms_unsupported_measurement_spec (CuTest 
 	struct spdm_negotiate_algorithms_response *rsp =
 		(struct spdm_negotiate_algorithms_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -7130,7 +7823,7 @@ static void spdm_test_negotiate_algorithms_unsupported_measurement_spec (CuTest 
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -7203,6 +7896,15 @@ static void spdm_test_negotiate_algorithms_unsupported_measurement_spec (CuTest 
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -7238,7 +7940,7 @@ static void spdm_test_negotiate_algorithms_unsupported_measurement_spec_hash_alg
 	struct spdm_negotiate_algorithms_response *rsp =
 		(struct spdm_negotiate_algorithms_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -7248,7 +7950,7 @@ static void spdm_test_negotiate_algorithms_unsupported_measurement_spec_hash_alg
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 	local_algorithms->device_algorithms.measurement_hash_algo = 0;	/* None supported */
 
@@ -7322,6 +8024,15 @@ static void spdm_test_negotiate_algorithms_unsupported_measurement_spec_hash_alg
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -7357,7 +8068,7 @@ static void spdm_test_negotiate_algorithms_no_local_measurement_capability (CuTe
 	struct spdm_negotiate_algorithms_response *rsp =
 		(struct spdm_negotiate_algorithms_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -7367,7 +8078,7 @@ static void spdm_test_negotiate_algorithms_no_local_measurement_capability (CuTe
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 	testing.local_capabilities.flags.meas_cap = 0;	/* No local measurement capability */
 
@@ -7441,6 +8152,15 @@ static void spdm_test_negotiate_algorithms_no_local_measurement_capability (CuTe
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -7477,7 +8197,7 @@ static void spdm_test_negotiate_algorithms_unsupported_base_hash_algo (CuTest *t
 	struct spdm_negotiate_algorithms_response *rsp =
 		(struct spdm_negotiate_algorithms_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -7487,7 +8207,7 @@ static void spdm_test_negotiate_algorithms_unsupported_base_hash_algo (CuTest *t
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -7555,6 +8275,15 @@ static void spdm_test_negotiate_algorithms_unsupported_base_hash_algo (CuTest *t
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -7590,7 +8319,7 @@ static void spdm_test_negotiate_algorithms_unsupported_base_asym_algo (CuTest *t
 	struct spdm_negotiate_algorithms_response *rsp =
 		(struct spdm_negotiate_algorithms_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -7600,7 +8329,7 @@ static void spdm_test_negotiate_algorithms_unsupported_base_asym_algo (CuTest *t
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -7673,6 +8402,15 @@ static void spdm_test_negotiate_algorithms_unsupported_base_asym_algo (CuTest *t
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -7706,7 +8444,7 @@ static void spdm_test_negotiate_algorithms_append_request_fail (CuTest *test)
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -7716,7 +8454,7 @@ static void spdm_test_negotiate_algorithms_append_request_fail (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -7780,6 +8518,15 @@ static void spdm_test_negotiate_algorithms_append_request_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -7803,7 +8550,7 @@ static void spdm_test_negotiate_algorithms_append_response_fail (CuTest *test)
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -7813,7 +8560,7 @@ static void spdm_test_negotiate_algorithms_append_response_fail (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -7882,6 +8629,15 @@ static void spdm_test_negotiate_algorithms_append_response_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -7905,7 +8661,7 @@ static void spdm_test_negotiate_algorithms_set_hash_algo_fail (CuTest *test)
 		(sizeof (struct spdm_algorithm_request) * 4);
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_local_device_algorithms *local_algorithms;
 
@@ -7915,7 +8671,7 @@ static void spdm_test_negotiate_algorithms_set_hash_algo_fail (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
@@ -7985,6 +8741,15 @@ static void spdm_test_negotiate_algorithms_set_hash_algo_fail (CuTest *test)
 		testing.transcript_manager_mock.base.set_hash_algo, &testing.transcript_manager_mock.base,
 		SPDM_TRANSCRIPT_MANAGER_SET_HASH_ALGO_FAILED, MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_negotiate_algorithms (spdm_responder, &msg);
@@ -8229,7 +8994,7 @@ static void spdm_test_get_digests_sha256 (CuTest *test)
 	struct spdm_get_digests_request rq = {0};
 	struct spdm_get_digests_response *rsp = (struct spdm_get_digests_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -8237,7 +9002,7 @@ static void spdm_test_get_digests_sha256 (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -8315,6 +9080,15 @@ static void spdm_test_get_digests_sha256 (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -8344,7 +9118,7 @@ static void spdm_test_get_digests_sha384 (CuTest *test)
 	struct spdm_get_digests_request rq = {0};
 	struct spdm_get_digests_response *rsp = (struct spdm_get_digests_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -8352,7 +9126,7 @@ static void spdm_test_get_digests_sha384 (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -8430,6 +9204,15 @@ static void spdm_test_get_digests_sha384 (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -8459,7 +9242,7 @@ static void spdm_test_get_digests_sha512 (CuTest *test)
 	struct spdm_get_digests_request rq = {0};
 	struct spdm_get_digests_response *rsp = (struct spdm_get_digests_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -8467,7 +9250,7 @@ static void spdm_test_get_digests_sha512 (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -8545,6 +9328,15 @@ static void spdm_test_get_digests_sha512 (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -8574,7 +9366,7 @@ static void spdm_test_get_digests_no_root_and_intermediate_certs (CuTest *test)
 	struct spdm_get_digests_request rq = {0};
 	struct spdm_get_digests_response *rsp = (struct spdm_get_digests_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	uint8_t expected_digest[SHA384_HASH_LENGTH] = {
 		0xe0, 0xd3, 0x9f, 0x09, 0xd2, 0xea, 0x3c, 0x9b,
@@ -8588,7 +9380,7 @@ static void spdm_test_get_digests_no_root_and_intermediate_certs (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Get rid of provisioned certs. */
 	riot_key_manager_release (&testing.key_manager);
@@ -8670,6 +9462,15 @@ static void spdm_test_get_digests_no_root_and_intermediate_certs (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -8699,7 +9500,7 @@ static void spdm_test_get_digests_no_intermediate_cert (CuTest *test)
 	struct spdm_get_digests_request rq = {0};
 	struct spdm_get_digests_response *rsp = (struct spdm_get_digests_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	uint8_t expected_digest[SHA384_HASH_LENGTH] = {
 		0xe0, 0xd3, 0x9f, 0x09, 0xd2, 0xea, 0x3c, 0x9b,
@@ -8713,7 +9514,7 @@ static void spdm_test_get_digests_no_intermediate_cert (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Get rid of intermediate CA cert. */
 	riot_key_manager_release (&testing.key_manager);
@@ -8796,6 +9597,15 @@ static void spdm_test_get_digests_no_intermediate_cert (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -8855,6 +9665,15 @@ static void spdm_test_get_digests_request_size_invalid (CuTest *test)
 
 	TEST_START;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -8874,7 +9693,7 @@ static void spdm_test_get_digests_incorrect_negotiated_version (CuTest *test)
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -8882,7 +9701,7 @@ static void spdm_test_get_digests_incorrect_negotiated_version (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -8894,6 +9713,15 @@ static void spdm_test_get_digests_incorrect_negotiated_version (CuTest *test)
 	spdm_state->connection_info.version.minor_version = 2;
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 1;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_digests (spdm_responder, &msg);
 
@@ -8914,6 +9742,15 @@ static void spdm_test_get_digests_incorrect_negotiated_version (CuTest *test)
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 2;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -8933,7 +9770,7 @@ static void spdm_test_get_digests_incorrect_response_state (CuTest *test)
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -8941,7 +9778,7 @@ static void spdm_test_get_digests_incorrect_response_state (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* response_state = SPDM_RESPONSE_STATE_BUSY */
 	memset (&msg, 0, sizeof (msg));
@@ -8957,6 +9794,15 @@ static void spdm_test_get_digests_incorrect_response_state (CuTest *test)
 	rq->header.spdm_minor_version = 2;
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_BUSY;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_digests (spdm_responder, &msg);
 
@@ -8982,6 +9828,15 @@ static void spdm_test_get_digests_incorrect_response_state (CuTest *test)
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NEED_RESYNC;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -9006,6 +9861,15 @@ static void spdm_test_get_digests_incorrect_response_state (CuTest *test)
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_PROCESSING_ENCAP;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -9025,7 +9889,7 @@ static void spdm_test_get_digests_incorrect_connection_state (CuTest *test)
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -9033,7 +9897,7 @@ static void spdm_test_get_digests_incorrect_connection_state (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -9050,6 +9914,15 @@ static void spdm_test_get_digests_incorrect_connection_state (CuTest *test)
 	rq->header.spdm_minor_version = 2;
 
 	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NOT_STARTED;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_digests (spdm_responder, &msg);
 
@@ -9070,7 +9943,7 @@ static void spdm_test_get_digests_no_cert_capability (CuTest *test)
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_device_capability *local_capabilities;
 
@@ -9079,7 +9952,7 @@ static void spdm_test_get_digests_no_cert_capability (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	local_capabilities = &testing.local_capabilities;
 	local_capabilities->flags.cert_cap = 0;
 
@@ -9098,6 +9971,15 @@ static void spdm_test_get_digests_no_cert_capability (CuTest *test)
 	rq->header.spdm_minor_version = 2;
 
 	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_digests (spdm_responder, &msg);
 
@@ -9118,7 +10000,7 @@ static void spdm_test_get_digests_device_cert_null (CuTest *test)
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -9126,7 +10008,7 @@ static void spdm_test_get_digests_device_cert_null (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Corrupt the devid cert. */
 	riot_key_manager_release (&testing.key_manager);
@@ -9171,6 +10053,15 @@ static void spdm_test_get_digests_device_cert_null (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -9190,7 +10081,7 @@ static void spdm_test_get_digests_device_cert_zero_length (CuTest *test)
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -9198,7 +10089,7 @@ static void spdm_test_get_digests_device_cert_zero_length (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Corrupt the devid cert. */
 	riot_key_manager_release (&testing.key_manager);
@@ -9243,6 +10134,15 @@ static void spdm_test_get_digests_device_cert_zero_length (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -9262,7 +10162,7 @@ static void spdm_test_get_digests_alias_cert_null (CuTest *test)
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -9270,7 +10170,7 @@ static void spdm_test_get_digests_alias_cert_null (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Corrupt the alias cert. */
 	riot_key_manager_release (&testing.key_manager);
@@ -9315,6 +10215,15 @@ static void spdm_test_get_digests_alias_cert_null (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -9334,7 +10243,7 @@ static void spdm_test_get_digests_alias_cert_zero_length (CuTest *test)
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -9342,7 +10251,7 @@ static void spdm_test_get_digests_alias_cert_zero_length (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Corrupt the alias cert. */
 	riot_key_manager_release (&testing.key_manager);
@@ -9387,6 +10296,15 @@ static void spdm_test_get_digests_alias_cert_zero_length (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -9406,7 +10324,7 @@ static void spdm_test_get_digests_unsuported_hash_algo (CuTest *test)
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -9414,7 +10332,7 @@ static void spdm_test_get_digests_unsuported_hash_algo (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -9455,6 +10373,15 @@ static void spdm_test_get_digests_unsuported_hash_algo (CuTest *test)
 
 	spdm_state->connection_info.peer_algorithms.base_hash_algo = UINT32_MAX;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -9474,7 +10401,7 @@ static void spdm_test_get_digests_add_request_to_transcript_hash_fail (CuTest *t
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -9482,7 +10409,7 @@ static void spdm_test_get_digests_add_request_to_transcript_hash_fail (CuTest *t
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -9522,6 +10449,15 @@ static void spdm_test_get_digests_add_request_to_transcript_hash_fail (CuTest *t
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -9541,7 +10477,7 @@ static void spdm_test_get_digests_response_gt_max_response_size (CuTest *test)
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -9549,7 +10485,7 @@ static void spdm_test_get_digests_response_gt_max_response_size (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -9590,6 +10526,15 @@ static void spdm_test_get_digests_response_gt_max_response_size (CuTest *test)
 
 	msg.max_response = sizeof (struct spdm_get_digests_response) + SHA384_HASH_LENGTH - 1;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -9609,7 +10554,7 @@ static void spdm_test_get_digests_generate_root_cert_hash_fail (CuTest *test)
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -9617,7 +10562,7 @@ static void spdm_test_get_digests_generate_root_cert_hash_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -9664,6 +10609,15 @@ static void spdm_test_get_digests_generate_root_cert_hash_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -9683,7 +10637,7 @@ static void spdm_test_get_digests_cert_chain_start_hash_fail (CuTest *test)
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -9691,7 +10645,7 @@ static void spdm_test_get_digests_cert_chain_start_hash_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -9740,6 +10694,15 @@ static void spdm_test_get_digests_cert_chain_start_hash_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -9759,7 +10722,7 @@ static void spdm_test_get_digests_cert_chain_update_header_hash_fail (CuTest *te
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -9767,7 +10730,7 @@ static void spdm_test_get_digests_cert_chain_update_header_hash_fail (CuTest *te
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -9822,6 +10785,15 @@ static void spdm_test_get_digests_cert_chain_update_header_hash_fail (CuTest *te
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -9841,7 +10813,7 @@ static void spdm_test_get_digests_cert_chain_update_cert_hash_fail (CuTest *test
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -9849,7 +10821,7 @@ static void spdm_test_get_digests_cert_chain_update_cert_hash_fail (CuTest *test
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -9908,6 +10880,15 @@ static void spdm_test_get_digests_cert_chain_update_cert_hash_fail (CuTest *test
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -9927,7 +10908,7 @@ static void spdm_test_get_digests_cert_chain_finish_hash_fail (CuTest *test)
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -9935,7 +10916,7 @@ static void spdm_test_get_digests_cert_chain_finish_hash_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -10001,6 +10982,15 @@ static void spdm_test_get_digests_cert_chain_finish_hash_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_digests (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -10020,7 +11010,7 @@ static void spdm_test_get_digests_add_response_to_transcript_hash_fail (CuTest *
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -10028,7 +11018,7 @@ static void spdm_test_get_digests_add_response_to_transcript_hash_fail (CuTest *
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -10096,6 +11086,15 @@ static void spdm_test_get_digests_add_response_to_transcript_hash_fail (CuTest *
 		MOCK_ARG (sizeof (struct spdm_get_digests_response) + SHA384_HASH_LENGTH), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_digests (spdm_responder, &msg);
@@ -10226,7 +11225,7 @@ static void spdm_test_get_certificate_sha256 (CuTest *test)
 	uint32_t cert_chain_length;
 	struct spdm_cert_chain_header *cert_chain_header;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	uint8_t *cert_chain;
 
@@ -10235,7 +11234,7 @@ static void spdm_test_get_certificate_sha256 (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -10296,6 +11295,15 @@ static void spdm_test_get_certificate_sha256 (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -10353,7 +11361,7 @@ static void spdm_test_get_certificate_sha384 (CuTest *test)
 	uint32_t cert_chain_length;
 	struct spdm_cert_chain_header *cert_chain_header;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	uint8_t *cert_chain;
 
@@ -10362,7 +11370,7 @@ static void spdm_test_get_certificate_sha384 (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -10423,6 +11431,15 @@ static void spdm_test_get_certificate_sha384 (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -10480,7 +11497,7 @@ static void spdm_test_get_certificate_sha512 (CuTest *test)
 	uint32_t cert_chain_length;
 	struct spdm_cert_chain_header *cert_chain_header;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	uint8_t *cert_chain;
 
@@ -10489,7 +11506,7 @@ static void spdm_test_get_certificate_sha512 (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -10548,6 +11565,15 @@ static void spdm_test_get_certificate_sha512 (CuTest *test)
 		MOCK_ARG (cert_chain_length + sizeof (struct spdm_get_certificate_response)),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_certificate (spdm_responder, &msg);
@@ -10610,7 +11636,7 @@ static void spdm_test_get_certificate_max_response_lt_cert_chain_length (CuTest 
 	uint32_t cert_chain_length;
 	struct spdm_cert_chain_header *cert_chain_header;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t expected_response_size;
 	uint8_t *cert_chain;
@@ -10620,7 +11646,7 @@ static void spdm_test_get_certificate_max_response_lt_cert_chain_length (CuTest 
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Request 1 */
 	memset (&msg, 0, sizeof (msg));
@@ -10680,6 +11706,15 @@ static void spdm_test_get_certificate_max_response_lt_cert_chain_length (CuTest 
 		MOCK_ARG_PTR_CONTAINS (rsp, expected_response_size), MOCK_ARG (expected_response_size),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_certificate (spdm_responder, &msg);
@@ -10775,6 +11810,15 @@ static void spdm_test_get_certificate_max_response_lt_cert_chain_length (CuTest 
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -10811,7 +11855,7 @@ static void spdm_test_get_certificate_request_split_at_root_cert_hash (CuTest *t
 	uint32_t cert_chain_length;
 	struct spdm_cert_chain_header *cert_chain_header;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t expected_response_size;
 	size_t expected_cert_chain_length;
@@ -10822,7 +11866,7 @@ static void spdm_test_get_certificate_request_split_at_root_cert_hash (CuTest *t
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Request 1 */
 	memset (&msg, 0, sizeof (msg));
@@ -10885,6 +11929,15 @@ static void spdm_test_get_certificate_request_split_at_root_cert_hash (CuTest *t
 		MOCK_ARG_PTR_CONTAINS (rsp, expected_response_size), MOCK_ARG (expected_response_size),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_certificate (spdm_responder, &msg);
@@ -10967,6 +12020,15 @@ static void spdm_test_get_certificate_request_split_at_root_cert_hash (CuTest *t
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -11021,7 +12083,7 @@ static void spdm_test_get_certificate_request_split_at_root_cert (CuTest *test)
 	uint32_t cert_chain_length;
 	struct spdm_cert_chain_header *cert_chain_header;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t expected_response_size;
 	size_t expected_cert_chain_length;
@@ -11032,7 +12094,7 @@ static void spdm_test_get_certificate_request_split_at_root_cert (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Request 1 */
 	memset (&msg, 0, sizeof (msg));
@@ -11096,6 +12158,15 @@ static void spdm_test_get_certificate_request_split_at_root_cert (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (rsp, expected_response_size), MOCK_ARG (expected_response_size),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_certificate (spdm_responder, &msg);
@@ -11175,6 +12246,15 @@ static void spdm_test_get_certificate_request_split_at_root_cert (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -11225,7 +12305,7 @@ static void spdm_test_get_certificate_request_split_at_intermediate_cert (CuTest
 	uint32_t cert_chain_length;
 	struct spdm_cert_chain_header *cert_chain_header;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t expected_response_size;
 	size_t expected_cert_chain_length;
@@ -11236,7 +12316,7 @@ static void spdm_test_get_certificate_request_split_at_intermediate_cert (CuTest
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Request 1 */
 	memset (&msg, 0, sizeof (msg));
@@ -11300,6 +12380,15 @@ static void spdm_test_get_certificate_request_split_at_intermediate_cert (CuTest
 		MOCK_ARG_PTR_CONTAINS (rsp, expected_response_size), MOCK_ARG (expected_response_size),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_certificate (spdm_responder, &msg);
@@ -11384,6 +12473,15 @@ static void spdm_test_get_certificate_request_split_at_intermediate_cert (CuTest
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -11429,7 +12527,7 @@ static void spdm_test_get_certificate_request_split_at_device_cert (CuTest *test
 	uint32_t cert_chain_length;
 	struct spdm_cert_chain_header *cert_chain_header;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t expected_response_size;
 	size_t expected_cert_chain_length;
@@ -11440,7 +12538,7 @@ static void spdm_test_get_certificate_request_split_at_device_cert (CuTest *test
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Request 1 */
 	memset (&msg, 0, sizeof (msg));
@@ -11505,6 +12603,15 @@ static void spdm_test_get_certificate_request_split_at_device_cert (CuTest *test
 		MOCK_ARG_PTR_CONTAINS (rsp, expected_response_size), MOCK_ARG (expected_response_size),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_certificate (spdm_responder, &msg);
@@ -11594,6 +12701,15 @@ static void spdm_test_get_certificate_request_split_at_device_cert (CuTest *test
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -11635,7 +12751,7 @@ static void spdm_test_get_certificate_request_split_at_alias_cert (CuTest *test)
 	uint32_t cert_chain_length;
 	struct spdm_cert_chain_header *cert_chain_header;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t expected_response_size;
 	size_t expected_cert_chain_length;
@@ -11646,7 +12762,7 @@ static void spdm_test_get_certificate_request_split_at_alias_cert (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Request 1 */
 	memset (&msg, 0, sizeof (msg));
@@ -11711,6 +12827,15 @@ static void spdm_test_get_certificate_request_split_at_alias_cert (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (rsp, expected_response_size), MOCK_ARG (expected_response_size),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_certificate (spdm_responder, &msg);
@@ -11804,6 +12929,15 @@ static void spdm_test_get_certificate_request_split_at_alias_cert (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -11837,7 +12971,7 @@ static void spdm_test_get_certificate_no_root_and_intermediate_certs (CuTest *te
 	uint32_t cert_chain_length;
 	struct spdm_cert_chain_header *cert_chain_header;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	uint8_t *cert_chain;
 
@@ -11846,7 +12980,7 @@ static void spdm_test_get_certificate_no_root_and_intermediate_certs (CuTest *te
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Get rid of provisioned certs. */
 	riot_key_manager_release (&testing.key_manager);
@@ -11910,6 +13044,15 @@ static void spdm_test_get_certificate_no_root_and_intermediate_certs (CuTest *te
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -11956,7 +13099,7 @@ static void spdm_test_get_certificate_no_intermediate_cert (CuTest *test)
 	uint32_t cert_chain_length;
 	struct spdm_cert_chain_header *cert_chain_header;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	uint8_t *cert_chain;
 
@@ -11965,7 +13108,7 @@ static void spdm_test_get_certificate_no_intermediate_cert (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Get rid of intermediate CA cert. */
 	riot_key_manager_release (&testing.key_manager);
@@ -12029,6 +13172,15 @@ static void spdm_test_get_certificate_no_intermediate_cert (CuTest *test)
 		MOCK_ARG (cert_chain_length + sizeof (struct spdm_get_certificate_response)),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_certificate (spdm_responder, &msg);
@@ -12118,6 +13270,15 @@ static void spdm_test_get_certificate_request_size_invalid (CuTest *test)
 	msg.payload_length = sizeof (struct spdm_get_certificate_request) - 1;
 	msg.length = msg.payload_length;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -12137,7 +13298,7 @@ static void spdm_test_get_certificate_incorrect_negotiated_version (CuTest *test
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -12145,7 +13306,7 @@ static void spdm_test_get_certificate_incorrect_negotiated_version (CuTest *test
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -12159,6 +13320,15 @@ static void spdm_test_get_certificate_incorrect_negotiated_version (CuTest *test
 
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 1;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_certificate (spdm_responder, &msg);
 
@@ -12181,6 +13351,15 @@ static void spdm_test_get_certificate_incorrect_negotiated_version (CuTest *test
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 2;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -12200,7 +13379,7 @@ static void spdm_test_get_certificate_incorrect_response_state (CuTest *test)
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -12208,7 +13387,7 @@ static void spdm_test_get_certificate_incorrect_response_state (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* response_state = SPDM_RESPONSE_STATE_BUSY */
 	memset (&msg, 0, sizeof (msg));
@@ -12223,6 +13402,15 @@ static void spdm_test_get_certificate_incorrect_response_state (CuTest *test)
 	rq->header.spdm_minor_version = 2;
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_BUSY;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_certificate (spdm_responder, &msg);
 
@@ -12246,6 +13434,15 @@ static void spdm_test_get_certificate_incorrect_response_state (CuTest *test)
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NEED_RESYNC;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -12268,6 +13465,15 @@ static void spdm_test_get_certificate_incorrect_response_state (CuTest *test)
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_PROCESSING_ENCAP;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -12287,7 +13493,7 @@ static void spdm_test_get_certificate_incorrect_connection_state (CuTest *test)
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -12295,7 +13501,7 @@ static void spdm_test_get_certificate_incorrect_connection_state (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -12312,6 +13518,15 @@ static void spdm_test_get_certificate_incorrect_connection_state (CuTest *test)
 	rq->header.spdm_minor_version = 2;
 
 	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NOT_STARTED;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_certificate (spdm_responder, &msg);
 
@@ -12332,7 +13547,7 @@ static void spdm_test_get_certificate_no_cert_capability (CuTest *test)
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -12340,7 +13555,7 @@ static void spdm_test_get_certificate_no_cert_capability (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	testing.local_capabilities.flags.cert_cap = 0;
 
 	memset (&msg, 0, sizeof (msg));
@@ -12357,6 +13572,15 @@ static void spdm_test_get_certificate_no_cert_capability (CuTest *test)
 
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 2;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_certificate (spdm_responder, &msg);
 
@@ -12377,7 +13601,7 @@ static void spdm_test_get_certificate_unsupported_slot_num (CuTest *test)
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -12385,7 +13609,7 @@ static void spdm_test_get_certificate_unsupported_slot_num (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -12409,6 +13633,15 @@ static void spdm_test_get_certificate_unsupported_slot_num (CuTest *test)
 		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -12428,7 +13661,7 @@ static void spdm_test_get_certificate_device_cert_null (CuTest *test)
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -12436,7 +13669,7 @@ static void spdm_test_get_certificate_device_cert_null (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Corrupt the devid cert. */
 	riot_key_manager_release (&testing.key_manager);
@@ -12465,6 +13698,15 @@ static void spdm_test_get_certificate_device_cert_null (CuTest *test)
 		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -12484,7 +13726,7 @@ static void spdm_test_get_certificate_device_cert_zero_length (CuTest *test)
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -12492,7 +13734,7 @@ static void spdm_test_get_certificate_device_cert_zero_length (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Corrupt the devid cert. */
 	riot_key_manager_release (&testing.key_manager);
@@ -12521,6 +13763,15 @@ static void spdm_test_get_certificate_device_cert_zero_length (CuTest *test)
 		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -12540,7 +13791,7 @@ static void spdm_test_get_certificate_alias_cert_null (CuTest *test)
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -12548,7 +13799,7 @@ static void spdm_test_get_certificate_alias_cert_null (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Corrupt the alias cert. */
 	riot_key_manager_release (&testing.key_manager);
@@ -12577,6 +13828,15 @@ static void spdm_test_get_certificate_alias_cert_null (CuTest *test)
 		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -12596,7 +13856,7 @@ static void spdm_test_get_certificate_alias_cert_zero_length (CuTest *test)
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -12604,7 +13864,7 @@ static void spdm_test_get_certificate_alias_cert_zero_length (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Corrupt the alias cert. */
 	riot_key_manager_release (&testing.key_manager);
@@ -12633,6 +13893,15 @@ static void spdm_test_get_certificate_alias_cert_zero_length (CuTest *test)
 		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -12652,7 +13921,7 @@ static void spdm_test_get_certificate_unsuported_hash_algo (CuTest *test)
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -12660,7 +13929,7 @@ static void spdm_test_get_certificate_unsuported_hash_algo (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -12685,6 +13954,15 @@ static void spdm_test_get_certificate_unsuported_hash_algo (CuTest *test)
 		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -12704,7 +13982,7 @@ static void spdm_test_get_certificate_invalid_offset (CuTest *test)
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -12712,7 +13990,7 @@ static void spdm_test_get_certificate_invalid_offset (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -12740,6 +14018,15 @@ static void spdm_test_get_certificate_invalid_offset (CuTest *test)
 		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -12759,7 +14046,7 @@ static void spdm_test_get_certificate_add_request_to_transcript_hash_fail (CuTes
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -12767,7 +14054,7 @@ static void spdm_test_get_certificate_add_request_to_transcript_hash_fail (CuTes
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -12806,6 +14093,15 @@ static void spdm_test_get_certificate_add_request_to_transcript_hash_fail (CuTes
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -12825,7 +14121,7 @@ static void spdm_test_get_certificate_root_cert_hash_fail (CuTest *test)
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -12833,7 +14129,7 @@ static void spdm_test_get_certificate_root_cert_hash_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -12878,6 +14174,15 @@ static void spdm_test_get_certificate_root_cert_hash_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -12897,7 +14202,7 @@ static void spdm_test_get_certificate_add_response_to_transcript_hash_fail (CuTe
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	uint32_t cert_chain_length;
 
@@ -12906,7 +14211,7 @@ static void spdm_test_get_certificate_add_response_to_transcript_hash_fail (CuTe
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -12959,6 +14264,14 @@ static void spdm_test_get_certificate_add_response_to_transcript_hash_fail (CuTe
 		MOCK_ARG (sizeof (struct spdm_get_certificate_response) + cert_chain_length),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
+	CuAssertIntEquals (test, 0, status);
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_certificate (spdm_responder, &msg);
@@ -13115,7 +14428,7 @@ static void spdm_test_challenge_ecc_nist_p256 (CuTest *test)
 	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
 	struct spdm_challenge_response *rsp = (struct spdm_challenge_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	uint8_t expected_nonce[SPDM_NONCE_LEN];
 	uint32_t i;
@@ -13138,7 +14451,7 @@ static void spdm_test_challenge_ecc_nist_p256 (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P256, SPDM_MEAS_RSP_TPM_ALG_SHA_256);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&request, 0, sizeof (request));
 	request.data = buf;
@@ -13266,6 +14579,15 @@ static void spdm_test_challenge_ecc_nist_p256 (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_challenge (spdm_responder, &request);
 
 	CuAssertIntEquals (test, 0, status);
@@ -13312,7 +14634,7 @@ static void spdm_test_challenge_ecc_nist_p384 (CuTest *test)
 	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
 	struct spdm_challenge_response *rsp = (struct spdm_challenge_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	uint8_t expected_nonce[SPDM_NONCE_LEN];
 	uint32_t i;
@@ -13337,7 +14659,7 @@ static void spdm_test_challenge_ecc_nist_p384 (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&request, 0, sizeof (request));
 	request.data = buf;
@@ -13465,6 +14787,15 @@ static void spdm_test_challenge_ecc_nist_p384 (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_challenge (spdm_responder, &request);
 
 	CuAssertIntEquals (test, 0, status);
@@ -13514,7 +14845,7 @@ static void spdm_test_challenge_ecc_nist_p521 (CuTest *test)
 	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
 	struct spdm_challenge_response *rsp = (struct spdm_challenge_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	uint8_t expected_nonce[SPDM_NONCE_LEN];
 	uint32_t i;
@@ -13541,7 +14872,7 @@ static void spdm_test_challenge_ecc_nist_p521 (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P521, SPDM_MEAS_RSP_TPM_ALG_SHA_512);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&request, 0, sizeof (request));
 	request.data = buf;
@@ -13669,6 +15000,15 @@ static void spdm_test_challenge_ecc_nist_p521 (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_challenge (spdm_responder, &request);
 
 	CuAssertIntEquals (test, 0, status);
@@ -13753,6 +15093,15 @@ static void spdm_test_challenge_invalid_payload_size (CuTest *test)
 	msg.payload_length = sizeof (struct spdm_challenge_request) - 1;
 	msg.length = msg.payload_length;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_challenge (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -13772,7 +15121,7 @@ static void spdm_test_challenge_version_mismatch (CuTest *test)
 	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -13781,7 +15130,7 @@ static void spdm_test_challenge_version_mismatch (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -13795,6 +15144,15 @@ static void spdm_test_challenge_version_mismatch (CuTest *test)
 
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 1;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_challenge (spdm_responder, &msg);
 
@@ -13815,7 +15173,7 @@ static void spdm_test_challenge_invalid_measurement_summary (CuTest *test)
 	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -13824,7 +15182,7 @@ static void spdm_test_challenge_invalid_measurement_summary (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -13839,6 +15197,15 @@ static void spdm_test_challenge_invalid_measurement_summary (CuTest *test)
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 2;
 	rq->req_measurement_summary_hash_type = 2;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_challenge (spdm_responder, &msg);
 
@@ -13859,7 +15226,7 @@ static void spdm_test_challenge_unsupported_capability (CuTest *test)
 	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -13868,7 +15235,7 @@ static void spdm_test_challenge_unsupported_capability (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -13884,6 +15251,15 @@ static void spdm_test_challenge_unsupported_capability (CuTest *test)
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 2;
 	rq->req_measurement_summary_hash_type = SPDM_MEASUREMENT_SUMMARY_HASH_ALL;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_challenge (spdm_responder, &msg);
 
@@ -13904,7 +15280,7 @@ static void spdm_test_challenge_unsupported_algo (CuTest *test)
 	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -13913,7 +15289,7 @@ static void spdm_test_challenge_unsupported_algo (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -13931,6 +15307,15 @@ static void spdm_test_challenge_unsupported_algo (CuTest *test)
 	rq->header.spdm_minor_version = 2;
 	rq->req_measurement_summary_hash_type = SPDM_MEASUREMENT_SUMMARY_HASH_ALL;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_challenge (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -13941,6 +15326,15 @@ static void spdm_test_challenge_unsupported_algo (CuTest *test)
 
 	spdm_state->connection_info.peer_algorithms.measurement_spec = SPDM_MEASUREMENT_SPEC_DMTF;
 	spdm_state->connection_info.peer_algorithms.measurement_hash_algo = 0;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_challenge (spdm_responder, &msg);
 
@@ -13961,7 +15355,7 @@ static void spdm_test_challenge_invalid_slot (CuTest *test)
 	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -13970,7 +15364,7 @@ static void spdm_test_challenge_invalid_slot (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -13995,6 +15389,15 @@ static void spdm_test_challenge_invalid_slot (CuTest *test)
 	rq->req_measurement_summary_hash_type = SPDM_MEASUREMENT_SUMMARY_HASH_ALL;
 	rq->slot_num = 1;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_challenge (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -14014,7 +15417,7 @@ static void spdm_test_challenge_invalid_response_state (CuTest *test)
 	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -14023,7 +15426,7 @@ static void spdm_test_challenge_invalid_response_state (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -14050,6 +15453,15 @@ static void spdm_test_challenge_invalid_response_state (CuTest *test)
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NEED_RESYNC;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_challenge (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -14069,7 +15481,7 @@ static void spdm_test_challenge_invalid_connection_state (CuTest *test)
 	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -14078,7 +15490,7 @@ static void spdm_test_challenge_invalid_connection_state (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -14105,6 +15517,15 @@ static void spdm_test_challenge_invalid_connection_state (CuTest *test)
 
 	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NOT_STARTED;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_challenge (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -14124,7 +15545,7 @@ static void spdm_test_challenge_unsupported_capability_2 (CuTest *test)
 	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -14133,7 +15554,7 @@ static void spdm_test_challenge_unsupported_capability_2 (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -14160,6 +15581,15 @@ static void spdm_test_challenge_unsupported_capability_2 (CuTest *test)
 
 	testing.local_capabilities.flags.chal_cap = 0;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_challenge (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -14179,7 +15609,7 @@ static void spdm_test_challenge_unsupported_signature_size (CuTest *test)
 	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -14188,7 +15618,7 @@ static void spdm_test_challenge_unsupported_signature_size (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -14216,6 +15646,15 @@ static void spdm_test_challenge_unsupported_signature_size (CuTest *test)
 
 	spdm_state->connection_info.peer_algorithms.base_asym_algo = SPDM_TPM_ALG_RSASSA_2048;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_challenge (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -14235,7 +15674,7 @@ static void spdm_test_challenge_unsupported_hash_size (CuTest *test)
 	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -14244,7 +15683,7 @@ static void spdm_test_challenge_unsupported_hash_size (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -14271,6 +15710,16 @@ static void spdm_test_challenge_unsupported_hash_size (CuTest *test)
 	rq->slot_num = 0;
 
 	spdm_state->connection_info.peer_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA3_512;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_challenge (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -14290,7 +15739,7 @@ static void spdm_test_challenge_response_too_large (CuTest *test)
 	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -14299,7 +15748,7 @@ static void spdm_test_challenge_response_too_large (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -14325,6 +15774,15 @@ static void spdm_test_challenge_response_too_large (CuTest *test)
 	rq->req_measurement_summary_hash_type = SPDM_MEASUREMENT_SUMMARY_HASH_ALL;
 	rq->slot_num = 0;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_challenge (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -14344,7 +15802,7 @@ static void spdm_test_challenge_transcript_update_fail_1 (CuTest *test)
 	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -14353,7 +15811,7 @@ static void spdm_test_challenge_transcript_update_fail_1 (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -14389,6 +15847,15 @@ static void spdm_test_challenge_transcript_update_fail_1 (CuTest *test)
 		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2), MOCK_ARG_PTR (msg.payload),
 		MOCK_ARG (msg.payload_length), MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_challenge (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -14408,7 +15875,7 @@ static void spdm_test_challenge_cert_chain_digest_fail (CuTest *test)
 	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -14417,7 +15884,7 @@ static void spdm_test_challenge_cert_chain_digest_fail (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -14479,6 +15946,15 @@ static void spdm_test_challenge_cert_chain_digest_fail (CuTest *test)
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.cancel, &testing.hash_engine_mock[0].base, 0);
 
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_challenge (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -14498,7 +15974,7 @@ static void spdm_test_challenge_nonce_generation_fail (CuTest *test)
 	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -14507,7 +15983,7 @@ static void spdm_test_challenge_nonce_generation_fail (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -14569,6 +16045,15 @@ static void spdm_test_challenge_nonce_generation_fail (CuTest *test)
 	status |= mock_expect (&testing.rng_mock.mock, testing.rng_mock.base.generate_random_buffer,
 		&testing.rng_mock, 1, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_challenge (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -14588,7 +16073,7 @@ static void spdm_test_challenge_measurement_summary_fail (CuTest *test)
 	struct spdm_challenge_request *rq = (struct spdm_challenge_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -14597,7 +16082,7 @@ static void spdm_test_challenge_measurement_summary_fail (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -14667,6 +16152,15 @@ static void spdm_test_challenge_measurement_summary_fail (CuTest *test)
 		MOCK_ARG (rq->req_measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_challenge (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -14687,7 +16181,7 @@ static void spdm_test_challenge_transcript_update_fail_2 (CuTest *test)
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct spdm_challenge_response *rsp = (struct spdm_challenge_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	uint32_t hash_size = SHA384_HASH_LENGTH;
 	uint32_t signature_size = (ECC_KEY_LENGTH_384 << 1);
@@ -14700,7 +16194,7 @@ static void spdm_test_challenge_transcript_update_fail_2 (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -14776,6 +16270,15 @@ static void spdm_test_challenge_transcript_update_fail_2 (CuTest *test)
 		MOCK_ARG (response_size - signature_size), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_challenge (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -14796,7 +16299,7 @@ static void spdm_test_challenge_transcript_get_hash_fail (CuTest *test)
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct spdm_challenge_response *rsp = (struct spdm_challenge_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	uint32_t hash_size = SHA384_HASH_LENGTH;
 	uint32_t signature_size = (ECC_KEY_LENGTH_384 << 1);
@@ -14809,7 +16312,7 @@ static void spdm_test_challenge_transcript_get_hash_fail (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -14890,6 +16393,15 @@ static void spdm_test_challenge_transcript_get_hash_fail (CuTest *test)
 		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2), MOCK_ARG (true), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_challenge (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -14910,7 +16422,7 @@ static void spdm_test_challenge_sign_fail (CuTest *test)
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct spdm_challenge_response *rsp = (struct spdm_challenge_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	uint32_t hash_size = SHA384_HASH_LENGTH;
 	uint32_t signature_size = (ECC_KEY_LENGTH_384 << 1);
@@ -14923,7 +16435,7 @@ static void spdm_test_challenge_sign_fail (CuTest *test)
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -15033,6 +16545,15 @@ static void spdm_test_challenge_sign_fail (CuTest *test)
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_challenge (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -15052,7 +16573,7 @@ static void spdm_test_get_measurements_all_measurements_no_sig (CuTest *test)
 	struct spdm_get_measurements_request rq = {0};
 	struct spdm_get_measurements_response *rsp = (struct spdm_get_measurements_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	const uint32_t measurement_count = 10;
 	const uint32_t measurement_length = 128;
@@ -15065,7 +16586,7 @@ static void spdm_test_get_measurements_all_measurements_no_sig (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -15139,6 +16660,15 @@ static void spdm_test_get_measurements_all_measurements_no_sig (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -15172,7 +16702,7 @@ static void spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p256 (
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf2;
 	struct spdm_get_measurements_response *rsp = (struct spdm_get_measurements_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	const uint32_t measurement_count = 10;
 	const uint32_t measurement_length = 128;
@@ -15188,7 +16718,7 @@ static void spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p256 (
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_256,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P256, SPDM_MEAS_RSP_TPM_ALG_SHA_256);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
 
 	memset (&msg, 0, sizeof (msg));
@@ -15315,6 +16845,15 @@ static void spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p256 (
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -15356,7 +16895,7 @@ static void spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p384 (
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf2;
 	struct spdm_get_measurements_response *rsp = (struct spdm_get_measurements_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	const uint32_t measurement_count = 10;
 	const uint32_t measurement_length = 128;
@@ -15372,7 +16911,7 @@ static void spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p384 (
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
 
 	memset (&msg, 0, sizeof (msg));
@@ -15499,6 +17038,15 @@ static void spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p384 (
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -15541,7 +17089,7 @@ static void spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p521 (
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf2;
 	struct spdm_get_measurements_response *rsp = (struct spdm_get_measurements_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	const uint32_t measurement_count = 10;
 	const uint32_t measurement_length = 128;
@@ -15557,7 +17105,7 @@ static void spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p521 (
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_512,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P521, SPDM_MEAS_RSP_TPM_ALG_SHA_512);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
 
 	memset (&msg, 0, sizeof (msg));
@@ -15684,6 +17232,15 @@ static void spdm_test_get_measurements_all_measurements_with_sig_ecc_nist_p521 (
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -15725,7 +17282,7 @@ static void spdm_test_get_measurements_single_measurement_no_sig (CuTest *test)
 	struct spdm_get_measurements_request rq = {0};
 	struct spdm_get_measurements_response *rsp = (struct spdm_get_measurements_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	const uint32_t measurement_count = 10;
 	const uint32_t measurement_length = 48;
@@ -15740,7 +17297,7 @@ static void spdm_test_get_measurements_single_measurement_no_sig (CuTest *test)
 		spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 			SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 		spdm_responder = &testing.spdm_responder;
-		spdm_state = spdm_responder->state;
+		spdm_state = testing.spdm_responder_state_ptr;
 
 		spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
 		spdm_state->connection_info.version.minor_version = 2;
@@ -15817,6 +17374,15 @@ static void spdm_test_get_measurements_single_measurement_no_sig (CuTest *test)
 
 		CuAssertIntEquals (test, 0, status);
 
+		status = mock_expect (&testing.persistent_context_mock.mock,
+			testing.persistent_context_mock.base.get_responder_state,
+			&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+		status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+			&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+		status |= mock_expect (&testing.persistent_context_mock.mock,
+			testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+		CuAssertIntEquals (test, 0, status);
+
 		status = spdm_get_measurements (spdm_responder, &msg);
 
 		CuAssertIntEquals (test, 0, status);
@@ -15850,7 +17416,7 @@ static void spdm_test_get_measurements_count (CuTest *test)
 	struct spdm_get_measurements_request rq = {0};
 	struct spdm_get_measurements_response *rsp = (struct spdm_get_measurements_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	const uint32_t measurement_length = 0;
 	const uint32_t measurement_count = 10;
@@ -15862,7 +17428,7 @@ static void spdm_test_get_measurements_count (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -15924,6 +17490,15 @@ static void spdm_test_get_measurements_count (CuTest *test)
 		MOCK_ARG (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_measurements (spdm_responder, &msg);
@@ -16001,6 +17576,15 @@ static void spdm_test_get_measurements_request_size_invalid (CuTest *test)
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -16020,7 +17604,7 @@ static void spdm_test_get_measurements_incorrect_negotiated_version (CuTest *tes
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -16028,7 +17612,7 @@ static void spdm_test_get_measurements_incorrect_negotiated_version (CuTest *tes
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -16053,6 +17637,15 @@ static void spdm_test_get_measurements_incorrect_negotiated_version (CuTest *tes
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -16072,7 +17665,7 @@ static void spdm_test_get_measurements_incorrect_negotiated_version_2 (CuTest *t
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -16080,7 +17673,7 @@ static void spdm_test_get_measurements_incorrect_negotiated_version_2 (CuTest *t
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -16105,6 +17698,15 @@ static void spdm_test_get_measurements_incorrect_negotiated_version_2 (CuTest *t
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -16124,7 +17726,7 @@ static void spdm_test_get_measurements_incorrect_response_state_busy (CuTest *te
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -16132,7 +17734,7 @@ static void spdm_test_get_measurements_incorrect_response_state_busy (CuTest *te
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -16157,6 +17759,15 @@ static void spdm_test_get_measurements_incorrect_response_state_busy (CuTest *te
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -16176,7 +17787,7 @@ static void spdm_test_get_measurements_incorrect_response_state_need_resync (CuT
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -16184,7 +17795,7 @@ static void spdm_test_get_measurements_incorrect_response_state_need_resync (CuT
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -16209,6 +17820,15 @@ static void spdm_test_get_measurements_incorrect_response_state_need_resync (CuT
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -16228,7 +17848,7 @@ static void spdm_test_get_measurements_incorrect_response_state_processing_encap
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -16236,7 +17856,7 @@ static void spdm_test_get_measurements_incorrect_response_state_processing_encap
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -16261,6 +17881,15 @@ static void spdm_test_get_measurements_incorrect_response_state_processing_encap
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -16280,7 +17909,7 @@ static void spdm_test_get_measurements_incorrect_connection_state (CuTest *test)
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -16288,7 +17917,7 @@ static void spdm_test_get_measurements_incorrect_connection_state (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -16316,6 +17945,15 @@ static void spdm_test_get_measurements_incorrect_connection_state (CuTest *test)
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -16335,7 +17973,7 @@ static void spdm_test_get_measurements_no_meas_capability (CuTest *test)
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -16343,7 +17981,7 @@ static void spdm_test_get_measurements_no_meas_capability (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	testing.local_capabilities.flags.meas_cap = 0;
 
 	memset (&msg, 0, sizeof (msg));
@@ -16371,6 +18009,15 @@ static void spdm_test_get_measurements_no_meas_capability (CuTest *test)
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -16390,7 +18037,7 @@ static void spdm_test_get_measurements_meas_spec_zero (CuTest *test)
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -16398,7 +18045,7 @@ static void spdm_test_get_measurements_meas_spec_zero (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -16430,6 +18077,15 @@ static void spdm_test_get_measurements_meas_spec_zero (CuTest *test)
 
 	spdm_state->connection_info.peer_algorithms.measurement_spec = 0;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -16449,7 +18105,7 @@ static void spdm_test_get_measurements_measurement_hash_algo_zero (CuTest *test)
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -16457,7 +18113,7 @@ static void spdm_test_get_measurements_measurement_hash_algo_zero (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -16488,6 +18144,15 @@ static void spdm_test_get_measurements_measurement_hash_algo_zero (CuTest *test)
 
 	spdm_state->connection_info.peer_algorithms.measurement_hash_algo = 0;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -16507,7 +18172,7 @@ static void spdm_test_get_measurements_incompatible_measurement_cap (CuTest *tes
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -16515,7 +18180,7 @@ static void spdm_test_get_measurements_incompatible_measurement_cap (CuTest *tes
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_NO_SIG;
 
 	memset (&msg, 0, sizeof (msg));
@@ -16548,6 +18213,15 @@ static void spdm_test_get_measurements_incompatible_measurement_cap (CuTest *tes
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -16567,7 +18241,7 @@ static void spdm_test_get_measurements_request_size_invalid_2 (CuTest *test)
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -16575,7 +18249,7 @@ static void spdm_test_get_measurements_request_size_invalid_2 (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
 
 	memset (&msg, 0, sizeof (msg));
@@ -16608,6 +18282,15 @@ static void spdm_test_get_measurements_request_size_invalid_2 (CuTest *test)
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -16627,7 +18310,7 @@ static void spdm_test_get_measurements_invalid_slot_id (CuTest *test)
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t request_size = sizeof (struct spdm_get_measurements_request) + SPDM_NONCE_LEN +
 		sizeof (uint8_t);
@@ -16637,7 +18320,7 @@ static void spdm_test_get_measurements_invalid_slot_id (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
 
 	memset (&msg, 0, sizeof (msg));
@@ -16671,6 +18354,15 @@ static void spdm_test_get_measurements_invalid_slot_id (CuTest *test)
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -16690,7 +18382,7 @@ static void spdm_test_get_measurements_insufficient_reponse_buffer (CuTest *test
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t request_size = sizeof (struct spdm_get_measurements_request) + SPDM_NONCE_LEN +
 		sizeof (uint8_t);
@@ -16701,7 +18393,7 @@ static void spdm_test_get_measurements_insufficient_reponse_buffer (CuTest *test
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
 
 	memset (&msg, 0, sizeof (msg));
@@ -16736,6 +18428,15 @@ static void spdm_test_get_measurements_insufficient_reponse_buffer (CuTest *test
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -16755,7 +18456,7 @@ static void spdm_test_get_measurements_add_request_to_transcript_hash_fail (CuTe
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -16763,7 +18464,7 @@ static void spdm_test_get_measurements_add_request_to_transcript_hash_fail (CuTe
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -16806,6 +18507,15 @@ static void spdm_test_get_measurements_add_request_to_transcript_hash_fail (CuTe
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -16825,7 +18535,7 @@ static void spdm_test_get_measurements_get_measurement_count_fail (CuTest *test)
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -16833,7 +18543,7 @@ static void spdm_test_get_measurements_get_measurement_count_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -16880,6 +18590,15 @@ static void spdm_test_get_measurements_get_measurement_count_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -16899,7 +18618,7 @@ static void spdm_test_get_measurements_get_all_measurement_blocks_fail (CuTest *
 	struct spdm_get_measurements_request rq = {0};
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	const uint32_t measurement_count = 10;
 
@@ -16908,7 +18627,7 @@ static void spdm_test_get_measurements_get_all_measurement_blocks_fail (CuTest *
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -16967,6 +18686,15 @@ static void spdm_test_get_measurements_get_all_measurement_blocks_fail (CuTest *
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -16986,7 +18714,7 @@ static void spdm_test_get_measurements_get_measurement_block_fail (CuTest *test)
 	struct spdm_get_measurements_request rq = {0};
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	const uint32_t measurement_count = 10;
 
@@ -16995,7 +18723,7 @@ static void spdm_test_get_measurements_get_measurement_block_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
 	spdm_state->connection_info.version.minor_version = 2;
@@ -17055,6 +18783,15 @@ static void spdm_test_get_measurements_get_measurement_block_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -17074,7 +18811,7 @@ static void spdm_test_get_measurements_generate_random_buffer_fail (CuTest *test
 	struct spdm_get_measurements_request rq = {0};
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	const uint32_t measurement_count = 10;
 	const uint32_t measurement_length = 128;
@@ -17084,7 +18821,7 @@ static void spdm_test_get_measurements_generate_random_buffer_fail (CuTest *test
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -17146,6 +18883,15 @@ static void spdm_test_get_measurements_generate_random_buffer_fail (CuTest *test
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -17165,7 +18911,7 @@ static void spdm_test_get_measurements_add_response_to_transcript_hash_fail (CuT
 	struct spdm_get_measurements_request rq = {0};
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	const uint32_t measurement_count = 10;
 	const uint32_t measurement_length = 128;
@@ -17175,7 +18921,7 @@ static void spdm_test_get_measurements_add_response_to_transcript_hash_fail (CuT
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -17244,6 +18990,15 @@ static void spdm_test_get_measurements_add_response_to_transcript_hash_fail (CuT
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -17264,7 +19019,7 @@ static void spdm_test_get_measurements_sig_req_get_hash_fail (CuTest *test)
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf2;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	const uint32_t measurement_count = 10;
 	const uint32_t measurement_length = 128;
@@ -17280,7 +19035,7 @@ static void spdm_test_get_measurements_sig_req_get_hash_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
 
 	memset (&msg, 0, sizeof (msg));
@@ -17377,6 +19132,15 @@ static void spdm_test_get_measurements_sig_req_get_hash_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -17397,7 +19161,7 @@ static void spdm_test_get_measurements_v_1_2_sig_req_init_key_pair_fail (CuTest 
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf2;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	const uint32_t measurement_count = 10;
 	const uint32_t measurement_length = 128;
@@ -17413,7 +19177,7 @@ static void spdm_test_get_measurements_v_1_2_sig_req_init_key_pair_fail (CuTest 
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
 
 	memset (&msg, 0, sizeof (msg));
@@ -17516,6 +19280,15 @@ static void spdm_test_get_measurements_v_1_2_sig_req_init_key_pair_fail (CuTest 
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -17536,7 +19309,7 @@ static void spdm_test_get_measurements_v_1_2_sig_req_hash_calculate_fail (CuTest
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf2;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	const uint32_t measurement_count = 10;
 	const uint32_t measurement_length = 128;
@@ -17552,7 +19325,7 @@ static void spdm_test_get_measurements_v_1_2_sig_req_hash_calculate_fail (CuTest
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
 
 	memset (&msg, 0, sizeof (msg));
@@ -17663,6 +19436,15 @@ static void spdm_test_get_measurements_v_1_2_sig_req_hash_calculate_fail (CuTest
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -17683,7 +19465,7 @@ static void spdm_test_get_measurements_v_1_2_sig_req_sign_fail (CuTest *test)
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf2;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	const uint32_t measurement_count = 10;
 	const uint32_t measurement_length = 128;
@@ -17699,7 +19481,7 @@ static void spdm_test_get_measurements_v_1_2_sig_req_sign_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
 
 	memset (&msg, 0, sizeof (msg));
@@ -17828,6 +19610,15 @@ static void spdm_test_get_measurements_v_1_2_sig_req_sign_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -17848,7 +19639,7 @@ static void spdm_test_get_measurements_ecc_der_decode_ecdsa_signature_fail (CuTe
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf2;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	const uint32_t measurement_count = 10;
 	const uint32_t measurement_length = 128;
@@ -17864,7 +19655,7 @@ static void spdm_test_get_measurements_ecc_der_decode_ecdsa_signature_fail (CuTe
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 	testing.local_capabilities.flags.meas_cap = SPDM_MEAS_CAP_WITH_SIG;
 
 	memset (&msg, 0, sizeof (msg));
@@ -17994,6 +19785,15 @@ static void spdm_test_get_measurements_ecc_der_decode_ecdsa_signature_fail (CuTe
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -18013,7 +19813,7 @@ static void spdm_test_key_exchange_ecc_nist_p256 (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_key_exchange_response *rsp = (struct spdm_key_exchange_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -18048,7 +19848,7 @@ static void spdm_test_key_exchange_ecc_nist_p256 (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_256,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P256, SPDM_MEAS_RSP_TPM_ALG_SHA_256);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -18267,6 +20067,29 @@ static void spdm_test_key_exchange_ecc_nist_p256 (CuTest *test)
 		testing.session_manager_mock.base.set_session_state, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_SESSION_STATE_HANDSHAKING));
 
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -18291,7 +20114,7 @@ static void spdm_test_key_exchange_ecc_nist_p384 (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_key_exchange_response *rsp = (struct spdm_key_exchange_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -18326,7 +20149,7 @@ static void spdm_test_key_exchange_ecc_nist_p384 (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -18545,6 +20368,28 @@ static void spdm_test_key_exchange_ecc_nist_p384 (CuTest *test)
 		testing.session_manager_mock.base.set_session_state, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_SESSION_STATE_HANDSHAKING));
 
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -18569,7 +20414,7 @@ static void spdm_test_key_exchange_ecc_nist_p521 (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_key_exchange_response *rsp = (struct spdm_key_exchange_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -18604,7 +20449,7 @@ static void spdm_test_key_exchange_ecc_nist_p521 (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_512,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P521, SPDM_MEAS_RSP_TPM_ALG_SHA_512);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -18823,6 +20668,28 @@ static void spdm_test_key_exchange_ecc_nist_p521 (CuTest *test)
 		testing.session_manager_mock.base.set_session_state, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_SESSION_STATE_HANDSHAKING));
 
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -18847,7 +20714,7 @@ static void spdm_test_key_exchange_requester_hs_in_clear (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_key_exchange_response *rsp = (struct spdm_key_exchange_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -18882,7 +20749,7 @@ static void spdm_test_key_exchange_requester_hs_in_clear (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -19102,6 +20969,28 @@ static void spdm_test_key_exchange_requester_hs_in_clear (CuTest *test)
 		testing.session_manager_mock.base.set_session_state, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_SESSION_STATE_HANDSHAKING));
 
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -19126,7 +21015,7 @@ static void spdm_test_key_exchange_requester_and_responder_hs_in_clear (CuTest *
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_key_exchange_response *rsp = (struct spdm_key_exchange_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -19162,7 +21051,7 @@ static void spdm_test_key_exchange_requester_and_responder_hs_in_clear (CuTest *
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -19355,6 +21244,28 @@ static void spdm_test_key_exchange_requester_and_responder_hs_in_clear (CuTest *
 		testing.session_manager_mock.base.set_session_state, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_SESSION_STATE_HANDSHAKING));
 
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -19416,6 +21327,15 @@ static void spdm_test_key_exchange_no_session_manager (CuTest *test)
 	msg.length = msg.payload_length;
 	spdm_responder->session_manager = NULL;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_key_exchange (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -19450,6 +21370,15 @@ static void spdm_test_key_exchange_no_secure_versions (CuTest *test)
 	msg.payload_length = sizeof (struct spdm_key_exchange_request);
 	msg.length = msg.payload_length;
 	spdm_responder->secure_message_version_num_count = 0;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
 
@@ -19487,6 +21416,15 @@ static void spdm_test_key_exchange_request_size_invalid (CuTest *test)
 	msg.payload_length = sizeof (struct spdm_key_exchange_request) - 1;
 	msg.length = msg.payload_length;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_key_exchange (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -19506,7 +21444,7 @@ static void spdm_test_key_exchange_incorrect_negotiated_version (CuTest *test)
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -19514,7 +21452,7 @@ static void spdm_test_key_exchange_incorrect_negotiated_version (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -19528,6 +21466,15 @@ static void spdm_test_key_exchange_incorrect_negotiated_version (CuTest *test)
 
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 1;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
 
@@ -19550,6 +21497,15 @@ static void spdm_test_key_exchange_incorrect_negotiated_version (CuTest *test)
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 2;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_key_exchange (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -19569,7 +21525,7 @@ static void spdm_test_key_exchange_incorrect_response_state (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -19577,7 +21533,7 @@ static void spdm_test_key_exchange_incorrect_response_state (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* response_state = SPDM_RESPONSE_STATE_BUSY */
 	memset (&msg, 0, sizeof (msg));
@@ -19592,6 +21548,15 @@ static void spdm_test_key_exchange_incorrect_response_state (CuTest *test)
 	rq->header.spdm_minor_version = 2;
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_BUSY;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
 
@@ -19615,6 +21580,15 @@ static void spdm_test_key_exchange_incorrect_response_state (CuTest *test)
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NEED_RESYNC;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_key_exchange (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -19637,6 +21611,15 @@ static void spdm_test_key_exchange_incorrect_response_state (CuTest *test)
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_PROCESSING_ENCAP;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_key_exchange (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -19656,7 +21639,7 @@ static void spdm_test_key_exchange_incorrect_connection_state (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -19664,7 +21647,7 @@ static void spdm_test_key_exchange_incorrect_connection_state (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -19681,6 +21664,15 @@ static void spdm_test_key_exchange_incorrect_connection_state (CuTest *test)
 	rq->header.spdm_minor_version = 2;
 
 	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NOT_STARTED;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
 
@@ -19701,7 +21693,7 @@ static void spdm_test_key_exchange_no_key_exchange_capability (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -19709,7 +21701,7 @@ static void spdm_test_key_exchange_no_key_exchange_capability (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Local capabilities do not have key exchange capability. */
 	memset (&msg, 0, sizeof (msg));
@@ -19729,6 +21721,15 @@ static void spdm_test_key_exchange_no_key_exchange_capability (CuTest *test)
 
 	testing.local_capabilities.flags.key_ex_cap = 0;
 	spdm_state->connection_info.peer_capabilities.flags.key_ex_cap = 1;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
 
@@ -19757,6 +21758,15 @@ static void spdm_test_key_exchange_no_key_exchange_capability (CuTest *test)
 	testing.local_capabilities.flags.key_ex_cap = 1;
 	spdm_state->connection_info.peer_capabilities.flags.key_ex_cap = 0;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_key_exchange (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -19776,7 +21786,7 @@ static void spdm_test_key_exchange_previous_session_active (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -19784,7 +21794,7 @@ static void spdm_test_key_exchange_previous_session_active (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -19807,6 +21817,15 @@ static void spdm_test_key_exchange_previous_session_active (CuTest *test)
 		&testing.session_manager_mock.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_key_exchange (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -19826,7 +21845,7 @@ static void spdm_test_key_exchange_no_meas_cap (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -19834,7 +21853,7 @@ static void spdm_test_key_exchange_no_meas_cap (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -19860,6 +21879,15 @@ static void spdm_test_key_exchange_no_meas_cap (CuTest *test)
 		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_key_exchange (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -19879,7 +21907,7 @@ static void spdm_test_key_exchange_no_measurement_spec (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -19887,7 +21915,7 @@ static void spdm_test_key_exchange_no_measurement_spec (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -19913,6 +21941,15 @@ static void spdm_test_key_exchange_no_measurement_spec (CuTest *test)
 		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_key_exchange (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -19932,7 +21969,7 @@ static void spdm_test_key_exchange_no_measurement_hash_algo (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -19940,7 +21977,7 @@ static void spdm_test_key_exchange_no_measurement_hash_algo (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -19967,6 +22004,15 @@ static void spdm_test_key_exchange_no_measurement_hash_algo (CuTest *test)
 		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_key_exchange (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -19986,7 +22032,7 @@ static void spdm_test_key_exchange_unsupported_slot_num (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -19994,7 +22040,7 @@ static void spdm_test_key_exchange_unsupported_slot_num (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -20023,6 +22069,15 @@ static void spdm_test_key_exchange_unsupported_slot_num (CuTest *test)
 		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_key_exchange (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -20042,7 +22097,7 @@ static void spdm_test_key_exchange_invalid_measurement_summary (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -20050,7 +22105,7 @@ static void spdm_test_key_exchange_invalid_measurement_summary (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -20079,6 +22134,15 @@ static void spdm_test_key_exchange_invalid_measurement_summary (CuTest *test)
 		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_key_exchange (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -20098,7 +22162,7 @@ static void spdm_test_key_exchange_request_size_invalid_2 (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 
@@ -20107,7 +22171,7 @@ static void spdm_test_key_exchange_request_size_invalid_2 (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -20140,6 +22204,15 @@ static void spdm_test_key_exchange_request_size_invalid_2 (CuTest *test)
 		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_key_exchange (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -20159,7 +22232,7 @@ static void spdm_test_key_exchange_request_size_invalid_3 (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -20171,7 +22244,7 @@ static void spdm_test_key_exchange_request_size_invalid_3 (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -20215,6 +22288,15 @@ static void spdm_test_key_exchange_request_size_invalid_3 (CuTest *test)
 		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_key_exchange (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -20234,7 +22316,7 @@ static void spdm_test_key_exchange_opaque_data_length_byte_alignment_fail (CuTes
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -20246,7 +22328,7 @@ static void spdm_test_key_exchange_opaque_data_length_byte_alignment_fail (CuTes
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -20292,6 +22374,15 @@ static void spdm_test_key_exchange_opaque_data_length_byte_alignment_fail (CuTes
 		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_key_exchange (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -20311,7 +22402,7 @@ static void spdm_test_key_exchange_opaque_data_total_elements_lt_one (CuTest *te
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -20324,7 +22415,7 @@ static void spdm_test_key_exchange_opaque_data_total_elements_lt_one (CuTest *te
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -20374,6 +22465,15 @@ static void spdm_test_key_exchange_opaque_data_total_elements_lt_one (CuTest *te
 		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_key_exchange (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -20393,7 +22493,7 @@ static void spdm_test_key_exchange_opaque_data_invalid_length (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -20407,7 +22507,7 @@ static void spdm_test_key_exchange_opaque_data_invalid_length (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -20457,6 +22557,15 @@ static void spdm_test_key_exchange_opaque_data_invalid_length (CuTest *test)
 		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_key_exchange (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -20476,7 +22585,7 @@ static void spdm_test_key_exchange_opaque_data_invalid_element_id (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -20491,7 +22600,7 @@ static void spdm_test_key_exchange_opaque_data_invalid_element_id (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -20544,6 +22653,15 @@ static void spdm_test_key_exchange_opaque_data_invalid_element_id (CuTest *test)
 		&testing.session_manager_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_key_exchange (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -20563,7 +22681,7 @@ static void spdm_test_key_exchange_create_session_fail (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -20585,7 +22703,7 @@ static void spdm_test_key_exchange_create_session_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -20671,6 +22789,15 @@ static void spdm_test_key_exchange_create_session_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_key_exchange (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -20690,7 +22817,7 @@ static void spdm_test_key_exchange_device_cert_null (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -20713,7 +22840,7 @@ static void spdm_test_key_exchange_device_cert_null (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Corrupt the devid cert. */
 	riot_key_manager_release (&testing.key_manager);
@@ -20805,9 +22932,22 @@ static void spdm_test_key_exchange_device_cert_null (CuTest *test)
 		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -20829,7 +22969,7 @@ static void spdm_test_key_exchange_device_zero_length (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -20852,7 +22992,7 @@ static void spdm_test_key_exchange_device_zero_length (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Corrupt the devid cert. */
 	riot_key_manager_release (&testing.key_manager);
@@ -20944,9 +23084,22 @@ static void spdm_test_key_exchange_device_zero_length (CuTest *test)
 		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -20968,7 +23121,7 @@ static void spdm_test_key_exchange_alias_cert_null (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -20991,7 +23144,7 @@ static void spdm_test_key_exchange_alias_cert_null (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Corrupt the alias cert. */
 	riot_key_manager_release (&testing.key_manager);
@@ -21083,9 +23236,22 @@ static void spdm_test_key_exchange_alias_cert_null (CuTest *test)
 		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -21107,7 +23273,7 @@ static void spdm_test_key_exchange_alias_cert_zero_length (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -21130,7 +23296,7 @@ static void spdm_test_key_exchange_alias_cert_zero_length (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* Corrupt the alias cert. */
 	riot_key_manager_release (&testing.key_manager);
@@ -21222,9 +23388,22 @@ static void spdm_test_key_exchange_alias_cert_zero_length (CuTest *test)
 		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -21246,7 +23425,7 @@ static void spdm_test_key_exchange_unsuported_hash_algo (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -21269,7 +23448,7 @@ static void spdm_test_key_exchange_unsuported_hash_algo (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -21355,12 +23534,25 @@ static void spdm_test_key_exchange_unsuported_hash_algo (CuTest *test)
 		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
 	spdm_state->connection_info.peer_algorithms.base_hash_algo = UINT32_MAX;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
 
@@ -21381,7 +23573,7 @@ static void spdm_test_key_exchange_cert_chain_update_header_hash_fail (CuTest *t
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -21404,7 +23596,7 @@ static void spdm_test_key_exchange_cert_chain_update_header_hash_fail (CuTest *t
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -21506,9 +23698,22 @@ static void spdm_test_key_exchange_cert_chain_update_header_hash_fail (CuTest *t
 		testing.hash_engine_mock[0].base.cancel, &testing.hash_engine_mock[0].base, 0);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -21530,7 +23735,7 @@ static void spdm_test_key_exchange_cert_chain_update_cert_hash_fail (CuTest *tes
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -21553,7 +23758,7 @@ static void spdm_test_key_exchange_cert_chain_update_cert_hash_fail (CuTest *tes
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -21659,9 +23864,22 @@ static void spdm_test_key_exchange_cert_chain_update_cert_hash_fail (CuTest *tes
 		testing.hash_engine_mock[0].base.cancel, &testing.hash_engine_mock[0].base, 0);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -21683,7 +23901,7 @@ static void spdm_test_key_exchange_cert_chain_finish_hash_fail (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -21706,7 +23924,7 @@ static void spdm_test_key_exchange_cert_chain_finish_hash_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -21818,9 +24036,22 @@ static void spdm_test_key_exchange_cert_chain_finish_hash_fail (CuTest *test)
 		testing.hash_engine_mock[0].base.cancel, &testing.hash_engine_mock[0].base, 0);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -21843,7 +24074,7 @@ static void spdm_test_key_exchange_add_cert_chain_hash_to_th_session_hash_contex
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -21866,7 +24097,7 @@ static void spdm_test_key_exchange_add_cert_chain_hash_to_th_session_hash_contex
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -21980,9 +24211,22 @@ static void spdm_test_key_exchange_add_cert_chain_hash_to_th_session_hash_contex
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG (true), MOCK_ARG (0));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -22004,7 +24248,7 @@ static void spdm_test_key_exchange_add_request_to_transcript_hash_fail (CuTest *
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -22027,7 +24271,7 @@ static void spdm_test_key_exchange_add_request_to_transcript_hash_fail (CuTest *
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -22146,9 +24390,22 @@ static void spdm_test_key_exchange_add_request_to_transcript_hash_fail (CuTest *
 		MOCK_ARG_PTR (rq), MOCK_ARG (msg.payload_length), MOCK_ARG (true), MOCK_ARG (0));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -22170,7 +24427,7 @@ static void spdm_test_key_exchange_insufficient_response_buffer (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -22204,7 +24461,7 @@ static void spdm_test_key_exchange_insufficient_response_buffer (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -22323,12 +24580,25 @@ static void spdm_test_key_exchange_insufficient_response_buffer (CuTest *test)
 		MOCK_ARG (true), MOCK_ARG (0));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
 	msg.max_response = response_size - 1;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
 
@@ -22349,7 +24619,7 @@ static void spdm_test_key_exchange_generate_random_buffer_fail (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -22372,7 +24642,7 @@ static void spdm_test_key_exchange_generate_random_buffer_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -22494,9 +24764,22 @@ static void spdm_test_key_exchange_generate_random_buffer_fail (CuTest *test)
 		&testing.rng_mock, RNG_ENGINE_RANDOM_FAILED, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -22518,7 +24801,7 @@ static void spdm_test_key_exchange_generate_shared_secret_fail (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -22541,7 +24824,7 @@ static void spdm_test_key_exchange_generate_shared_secret_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -22669,9 +24952,22 @@ static void spdm_test_key_exchange_generate_shared_secret_fail (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -22693,7 +24989,7 @@ static void spdm_test_key_exchange_get_measurement_summary_hash_fail (CuTest *te
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -22716,7 +25012,7 @@ static void spdm_test_key_exchange_get_measurement_summary_hash_fail (CuTest *te
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -22851,9 +25147,22 @@ static void spdm_test_key_exchange_get_measurement_summary_hash_fail (CuTest *te
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -22875,7 +25184,7 @@ static void spdm_test_key_exchange_add_response_to_transcript_hash_fail (CuTest 
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -22909,7 +25218,7 @@ static void spdm_test_key_exchange_add_response_to_transcript_hash_fail (CuTest 
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -23050,9 +25359,31 @@ static void spdm_test_key_exchange_add_response_to_transcript_hash_fail (CuTest 
 		MOCK_ARG (true), MOCK_ARG (0));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -23074,7 +25405,7 @@ static void spdm_test_key_exchange_signature_generation_get_hash_fail (CuTest *t
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -23108,7 +25439,7 @@ static void spdm_test_key_exchange_signature_generation_get_hash_fail (CuTest *t
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -23255,9 +25586,31 @@ static void spdm_test_key_exchange_signature_generation_get_hash_fail (CuTest *t
 		MOCK_ARG (SHA384_HASH_LENGTH));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -23279,7 +25632,7 @@ static void spdm_test_key_exchange_signature_generation_init_key_pair_fail (CuTe
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -23313,7 +25666,7 @@ static void spdm_test_key_exchange_signature_generation_init_key_pair_fail (CuTe
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -23464,9 +25817,31 @@ static void spdm_test_key_exchange_signature_generation_init_key_pair_fail (CuTe
 		MOCK_ARG (RIOT_CORE_ALIAS_KEY_384_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -23488,7 +25863,7 @@ static void spdm_test_key_exchange_signature_generation_hmac_calculation_fail (C
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -23522,7 +25897,7 @@ static void spdm_test_key_exchange_signature_generation_hmac_calculation_fail (C
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -23681,9 +26056,31 @@ static void spdm_test_key_exchange_signature_generation_hmac_calculation_fail (C
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -23705,7 +26102,7 @@ static void spdm_test_key_exchange_signature_generation_v_1_2_sig_req_sign_fail 
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -23739,7 +26136,7 @@ static void spdm_test_key_exchange_signature_generation_v_1_2_sig_req_sign_fail 
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -23916,9 +26313,31 @@ static void spdm_test_key_exchange_signature_generation_v_1_2_sig_req_sign_fail 
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -23941,7 +26360,7 @@ static void spdm_test_key_exchange_signature_generation_ecc_der_decode_ecdsa_sig
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -23975,7 +26394,7 @@ static void spdm_test_key_exchange_signature_generation_ecc_der_decode_ecdsa_sig
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -24153,9 +26572,31 @@ static void spdm_test_key_exchange_signature_generation_ecc_der_decode_ecdsa_sig
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -24177,7 +26618,7 @@ static void spdm_test_key_exchange_add_signature_to_th_session_hash_context_fail
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -24211,7 +26652,7 @@ static void spdm_test_key_exchange_add_signature_to_th_session_hash_context_fail
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -24395,9 +26836,31 @@ static void spdm_test_key_exchange_add_signature_to_th_session_hash_context_fail
 		MOCK_ARG_NOT_NULL, MOCK_ARG (sig_size), MOCK_ARG (true), MOCK_ARG (0));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -24419,7 +26882,7 @@ static void spdm_test_key_exchange_generate_session_handshake_keys_fail (CuTest 
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -24453,7 +26916,7 @@ static void spdm_test_key_exchange_generate_session_handshake_keys_fail (CuTest 
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -24642,9 +27105,31 @@ static void spdm_test_key_exchange_generate_session_handshake_keys_fail (CuTest 
 		SPDM_SECURE_SESSION_MANAGER_GENERATE_HANDSHAKE_KEYS_FAILED, MOCK_ARG_PTR (&secure_session));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -24666,7 +27151,7 @@ static void spdm_test_key_exchange_hmac_generation_get_hash_fail (CuTest *test)
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -24700,7 +27185,7 @@ static void spdm_test_key_exchange_hmac_generation_get_hash_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -24894,9 +27379,31 @@ static void spdm_test_key_exchange_hmac_generation_get_hash_fail (CuTest *test)
 		MOCK_ARG (SHA384_HASH_LENGTH));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -24918,7 +27425,7 @@ static void spdm_test_key_exchange_add_hmac_to_th_session_transcript_fail (CuTes
 	struct spdm_key_exchange_request *rq = (struct spdm_key_exchange_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	size_t dhe_key_size = (ECC_KEY_LENGTH_384 << 1);
 	size_t pub_key_component_size = ECC_KEY_LENGTH_384;
@@ -24953,7 +27460,7 @@ static void spdm_test_key_exchange_add_hmac_to_th_session_transcript_fail (CuTes
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -25169,9 +27676,31 @@ static void spdm_test_key_exchange_add_hmac_to_th_session_transcript_fail (CuTes
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH), MOCK_ARG (true), MOCK_ARG (0));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG_NOT_NULL);
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_key_exchange (spdm_responder, &msg);
@@ -25194,7 +27723,7 @@ static void spdm_test_finish (CuTest *test)
 	struct spdm_finish_response *rsp = (struct spdm_finish_response*) buf;
 	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_secure_session session = {0};
 	size_t request_size = sizeof (struct spdm_finish_request) + SHA384_HASH_LENGTH;
@@ -25205,7 +27734,7 @@ static void spdm_test_finish (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -25298,10 +27827,23 @@ static void spdm_test_finish (CuTest *test)
 		testing.session_manager_mock.base.generate_session_data_keys,
 		&testing.session_manager_mock.base, 0, MOCK_ARG_PTR (&session));
 
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
 	CuAssertIntEquals (test, 0, status);
 
 	memcpy (rq_copy, rq, request_size);
 	memcpy ((rq + 1), SHA384_TEST_HASH, SHA384_HASH_LENGTH);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_finish (spdm_responder, &msg);
 
@@ -25362,6 +27904,15 @@ static void spdm_test_finish_request_size_invalid (CuTest *test)
 	msg.payload_length = sizeof (struct spdm_finish_request) - 1;
 	msg.length = msg.payload_length;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_finish (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -25381,7 +27932,7 @@ static void spdm_test_finish_incorrect_negotiated_version (CuTest *test)
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -25389,7 +27940,7 @@ static void spdm_test_finish_incorrect_negotiated_version (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -25403,6 +27954,15 @@ static void spdm_test_finish_incorrect_negotiated_version (CuTest *test)
 
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 1;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_finish (spdm_responder, &msg);
 
@@ -25425,6 +27985,15 @@ static void spdm_test_finish_incorrect_negotiated_version (CuTest *test)
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 2;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_finish (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -25444,7 +28013,7 @@ static void spdm_test_finish_incorrect_response_state (CuTest *test)
 	struct spdm_finish_request *rq = (struct spdm_finish_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -25452,7 +28021,7 @@ static void spdm_test_finish_incorrect_response_state (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* response_state = SPDM_RESPONSE_STATE_BUSY */
 	memset (&msg, 0, sizeof (msg));
@@ -25467,6 +28036,15 @@ static void spdm_test_finish_incorrect_response_state (CuTest *test)
 	rq->header.spdm_minor_version = 2;
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_BUSY;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_finish (spdm_responder, &msg);
 
@@ -25490,6 +28068,15 @@ static void spdm_test_finish_incorrect_response_state (CuTest *test)
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NEED_RESYNC;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_finish (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -25512,6 +28099,15 @@ static void spdm_test_finish_incorrect_response_state (CuTest *test)
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_PROCESSING_ENCAP;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_finish (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -25531,7 +28127,7 @@ static void spdm_test_finish_incorrect_connection_state (CuTest *test)
 	struct spdm_finish_request *rq = (struct spdm_finish_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -25539,7 +28135,7 @@ static void spdm_test_finish_incorrect_connection_state (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -25556,6 +28152,15 @@ static void spdm_test_finish_incorrect_connection_state (CuTest *test)
 	rq->header.spdm_minor_version = 2;
 
 	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NOT_STARTED;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_finish (spdm_responder, &msg);
 
@@ -25576,7 +28181,7 @@ static void spdm_test_finish_requester_and_responder_hs_in_clear (CuTest *test)
 	struct spdm_finish_request *rq = (struct spdm_finish_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -25584,7 +28189,7 @@ static void spdm_test_finish_requester_and_responder_hs_in_clear (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -25603,6 +28208,15 @@ static void spdm_test_finish_requester_and_responder_hs_in_clear (CuTest *test)
 
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 2;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_finish (spdm_responder, &msg);
 
@@ -25623,7 +28237,7 @@ static void spdm_test_finish_last_request_session_inactive (CuTest *test)
 	struct spdm_finish_request *rq = (struct spdm_finish_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -25631,7 +28245,7 @@ static void spdm_test_finish_last_request_session_inactive (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -25654,6 +28268,15 @@ static void spdm_test_finish_last_request_session_inactive (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_finish (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -25673,7 +28296,7 @@ static void spdm_test_finish_last_request_session_id_invalid (CuTest *test)
 	struct spdm_finish_request *rq = (struct spdm_finish_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -25681,7 +28304,7 @@ static void spdm_test_finish_last_request_session_id_invalid (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -25712,6 +28335,15 @@ static void spdm_test_finish_last_request_session_id_invalid (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_finish (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -25731,7 +28363,7 @@ static void spdm_test_finish_last_request_session_state_invalid (CuTest *test)
 	struct spdm_finish_request *rq = (struct spdm_finish_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_secure_session session = {0};
 
@@ -25740,7 +28372,7 @@ static void spdm_test_finish_last_request_session_state_invalid (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -25771,6 +28403,19 @@ static void spdm_test_finish_last_request_session_state_invalid (CuTest *test)
 		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base,
 		MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_finish (spdm_responder, &msg);
@@ -25792,7 +28437,7 @@ static void spdm_test_finish_signature_included (CuTest *test)
 	struct spdm_finish_request *rq = (struct spdm_finish_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_secure_session session = {0};
 
@@ -25801,7 +28446,7 @@ static void spdm_test_finish_signature_included (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -25833,6 +28478,19 @@ static void spdm_test_finish_signature_included (CuTest *test)
 		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base,
 		MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_finish (spdm_responder, &msg);
@@ -25854,7 +28512,7 @@ static void spdm_test_finish_request_size_invalid_2 (CuTest *test)
 	struct spdm_finish_request *rq = (struct spdm_finish_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_secure_session session = {0};
 
@@ -25863,7 +28521,7 @@ static void spdm_test_finish_request_size_invalid_2 (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -25896,6 +28554,19 @@ static void spdm_test_finish_request_size_invalid_2 (CuTest *test)
 		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base,
 		MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_finish (spdm_responder, &msg);
@@ -25917,7 +28588,7 @@ static void spdm_test_finish_add_request_to_transcript_hash_fail (CuTest *test)
 	struct spdm_finish_request *rq = (struct spdm_finish_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_secure_session session = {0};
 	size_t request_size = sizeof (struct spdm_finish_request) + SHA384_HASH_LENGTH;
@@ -25927,7 +28598,7 @@ static void spdm_test_finish_add_request_to_transcript_hash_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -25961,6 +28632,10 @@ static void spdm_test_finish_add_request_to_transcript_hash_fail (CuTest *test)
 		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base,
 		MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
@@ -25977,6 +28652,15 @@ static void spdm_test_finish_add_request_to_transcript_hash_fail (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (struct spdm_finish_request)), MOCK_ARG (true),
 		MOCK_ARG (session.session_index));
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_finish (spdm_responder, &msg);
@@ -25999,7 +28683,7 @@ static void spdm_test_finish_verify_finish_req_hmac_get_hash_fail (CuTest *test)
 	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_secure_session session = {0};
 	size_t request_size = sizeof (struct spdm_finish_request) + SHA384_HASH_LENGTH;
@@ -26009,7 +28693,7 @@ static void spdm_test_finish_verify_finish_req_hmac_get_hash_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -26042,6 +28726,10 @@ static void spdm_test_finish_verify_finish_req_hmac_get_hash_fail (CuTest *test)
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base,
 		MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
@@ -26070,6 +28758,15 @@ static void spdm_test_finish_verify_finish_req_hmac_get_hash_fail (CuTest *test)
 
 	memcpy (rq_copy, rq, request_size);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_finish (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -26090,7 +28787,7 @@ static void spdm_test_finish_verify_finish_req_hmac_hash_generate_hmac_fail (CuT
 	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_secure_session session = {0};
 	size_t request_size = sizeof (struct spdm_finish_request) + SHA384_HASH_LENGTH;
@@ -26100,7 +28797,7 @@ static void spdm_test_finish_verify_finish_req_hmac_hash_generate_hmac_fail (CuT
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -26135,6 +28832,10 @@ static void spdm_test_finish_verify_finish_req_hmac_hash_generate_hmac_fail (CuT
 		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base,
 		MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
@@ -26161,6 +28862,15 @@ static void spdm_test_finish_verify_finish_req_hmac_hash_generate_hmac_fail (CuT
 
 	memcpy (rq_copy, rq, request_size);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_finish (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -26181,7 +28891,7 @@ static void spdm_test_finish_verify_finish_req_hmac_match_fail (CuTest *test)
 	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_secure_session session = {0};
 	size_t request_size = sizeof (struct spdm_finish_request) + SHA384_HASH_LENGTH;
@@ -26192,7 +28902,7 @@ static void spdm_test_finish_verify_finish_req_hmac_match_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -26226,6 +28936,10 @@ static void spdm_test_finish_verify_finish_req_hmac_match_fail (CuTest *test)
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base,
 		MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
@@ -26277,6 +28991,15 @@ static void spdm_test_finish_verify_finish_req_hmac_match_fail (CuTest *test)
 	memcpy ((rq + 1), SHA384_TEST_HASH, SHA384_HASH_LENGTH);
 	((uint8_t*) (rq + 1))[0] = SHA384_TEST_HASH[0] + 1;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_finish (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -26297,7 +29020,7 @@ static void spdm_test_finish_add_hmac_to_transcript_hash_fail (CuTest *test)
 	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_secure_session session = {0};
 	size_t request_size = sizeof (struct spdm_finish_request) + SHA384_HASH_LENGTH;
@@ -26308,7 +29031,7 @@ static void spdm_test_finish_add_hmac_to_transcript_hash_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -26342,6 +29065,10 @@ static void spdm_test_finish_add_hmac_to_transcript_hash_fail (CuTest *test)
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base,
 		MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
@@ -26396,6 +29123,15 @@ static void spdm_test_finish_add_hmac_to_transcript_hash_fail (CuTest *test)
 	memcpy (rq_copy, rq, request_size);
 	memcpy ((rq + 1), SHA384_TEST_HASH, SHA384_HASH_LENGTH);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_finish (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -26416,7 +29152,7 @@ static void spdm_test_finish_add_response_to_transcript_hash_fail (CuTest *test)
 	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_secure_session session = {0};
 	size_t request_size = sizeof (struct spdm_finish_request) + SHA384_HASH_LENGTH;
@@ -26427,7 +29163,7 @@ static void spdm_test_finish_add_response_to_transcript_hash_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -26461,6 +29197,10 @@ static void spdm_test_finish_add_response_to_transcript_hash_fail (CuTest *test)
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base,
 		MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
@@ -26521,6 +29261,15 @@ static void spdm_test_finish_add_response_to_transcript_hash_fail (CuTest *test)
 	memcpy (rq_copy, rq, request_size);
 	memcpy ((rq + 1), SHA384_TEST_HASH, SHA384_HASH_LENGTH);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_finish (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -26541,7 +29290,7 @@ static void spdm_test_finish_generate_session_data_keys_fail (CuTest *test)
 	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_secure_session session = {0};
 	size_t request_size = sizeof (struct spdm_finish_request) + SHA384_HASH_LENGTH;
@@ -26552,7 +29301,7 @@ static void spdm_test_finish_generate_session_data_keys_fail (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -26646,10 +29395,23 @@ static void spdm_test_finish_generate_session_data_keys_fail (CuTest *test)
 		&testing.session_manager_mock.base, SPDM_SECURE_SESSION_MANAGER_GENERATE_DATA_KEYS_FAILED,
 		MOCK_ARG_PTR (&session));
 
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
 	CuAssertIntEquals (test, 0, status);
 
 	memcpy (rq_copy, rq, request_size);
 	memcpy ((rq + 1), SHA384_TEST_HASH, SHA384_HASH_LENGTH);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_finish (spdm_responder, &msg);
 
@@ -26670,7 +29432,7 @@ static void spdm_test_end_session (CuTest *test)
 	struct spdm_end_session_request *rq = (struct spdm_end_session_request*) buf;
 	struct spdm_end_session_response *rsp = (struct spdm_end_session_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_secure_session session = {0};
 
@@ -26679,7 +29441,7 @@ static void spdm_test_end_session (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -26710,6 +29472,10 @@ static void spdm_test_end_session (CuTest *test)
 		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base,
 		MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
@@ -26720,6 +29486,15 @@ static void spdm_test_end_session (CuTest *test)
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_end_session (spdm_responder, &msg);
@@ -26781,6 +29556,15 @@ static void spdm_test_end_session_request_size_invalid (CuTest *test)
 	msg.payload_length = sizeof (struct spdm_end_session_request) + 1;
 	msg.length = msg.payload_length;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_end_session (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -26800,7 +29584,7 @@ static void spdm_test_end_session_incorrect_negotiated_version (CuTest *test)
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -26808,7 +29592,7 @@ static void spdm_test_end_session_incorrect_negotiated_version (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -26822,6 +29606,15 @@ static void spdm_test_end_session_incorrect_negotiated_version (CuTest *test)
 
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 1;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_end_session (spdm_responder, &msg);
 
@@ -26844,6 +29637,15 @@ static void spdm_test_end_session_incorrect_negotiated_version (CuTest *test)
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 2;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_end_session (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -26863,7 +29665,7 @@ static void spdm_test_end_session_incorrect_response_state (CuTest *test)
 	struct spdm_end_session_request *rq = (struct spdm_end_session_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -26871,7 +29673,7 @@ static void spdm_test_end_session_incorrect_response_state (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	/* response_state = SPDM_RESPONSE_STATE_BUSY */
 	memset (&msg, 0, sizeof (msg));
@@ -26886,6 +29688,15 @@ static void spdm_test_end_session_incorrect_response_state (CuTest *test)
 	rq->header.spdm_minor_version = 2;
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_BUSY;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_end_session (spdm_responder, &msg);
 
@@ -26909,6 +29720,15 @@ static void spdm_test_end_session_incorrect_response_state (CuTest *test)
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NEED_RESYNC;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_end_session (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -26931,6 +29751,15 @@ static void spdm_test_end_session_incorrect_response_state (CuTest *test)
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_PROCESSING_ENCAP;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_end_session (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -26950,7 +29779,7 @@ static void spdm_test_end_session_incorrect_connection_state (CuTest *test)
 	struct spdm_end_session_request *rq = (struct spdm_end_session_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -26958,7 +29787,7 @@ static void spdm_test_end_session_incorrect_connection_state (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -26975,6 +29804,15 @@ static void spdm_test_end_session_incorrect_connection_state (CuTest *test)
 	rq->header.spdm_minor_version = 2;
 
 	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NOT_STARTED;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_end_session (spdm_responder, &msg);
 
@@ -26995,7 +29833,7 @@ static void spdm_test_end_session_last_request_session_inactive (CuTest *test)
 	struct spdm_end_session_request *rq = (struct spdm_end_session_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -27003,7 +29841,7 @@ static void spdm_test_end_session_last_request_session_inactive (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -27026,6 +29864,15 @@ static void spdm_test_end_session_last_request_session_inactive (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_end_session (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -27045,7 +29892,7 @@ static void spdm_test_end_session_last_request_session_id_invalid (CuTest *test)
 	struct spdm_end_session_request *rq = (struct spdm_end_session_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -27053,7 +29900,7 @@ static void spdm_test_end_session_last_request_session_id_invalid (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -27084,6 +29931,15 @@ static void spdm_test_end_session_last_request_session_id_invalid (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_end_session (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -27103,7 +29959,7 @@ static void spdm_test_end_session_last_request_session_state_invalid (CuTest *te
 	struct spdm_end_session_request *rq = (struct spdm_end_session_request*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_secure_session session = {0};
 
@@ -27112,7 +29968,7 @@ static void spdm_test_end_session_last_request_session_state_invalid (CuTest *te
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -27143,6 +29999,19 @@ static void spdm_test_end_session_last_request_session_state_invalid (CuTest *te
 		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base,
 		MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_end_session (spdm_responder, &msg);
@@ -27166,7 +30035,7 @@ static void spdm_test_vdm (CuTest *test)
 	struct spdm_vendor_defined_request_response *rsp =
 		(struct spdm_vendor_defined_request_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_secure_session session = {0};
 
@@ -27175,7 +30044,7 @@ static void spdm_test_vdm (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -27207,9 +30076,22 @@ static void spdm_test_vdm (CuTest *test)
 		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base,
 		MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
 	status |= mock_expect (&testing.vdm_mock.mock, testing.vdm_mock.base.process_request,
 		&testing.vdm_mock.base, 0, MOCK_ARG_PTR (&msg));
 
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_vendor_defined_request (spdm_responder, &msg);
@@ -27255,7 +30137,7 @@ static void spdm_test_vdm_no_vdm_handler (CuTest *test)
 		(struct spdm_vendor_defined_request_response*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -27263,7 +30145,7 @@ static void spdm_test_vdm_no_vdm_handler (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -27279,6 +30161,15 @@ static void spdm_test_vdm_no_vdm_handler (CuTest *test)
 	rq->header.spdm_minor_version = 2;
 
 	spdm_responder->vdm_handler = NULL;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_vendor_defined_request (spdm_responder, &msg);
 
@@ -27315,6 +30206,15 @@ static void spdm_test_vdm_request_size_invalid (CuTest *test)
 	msg.payload_length = sizeof (struct spdm_vendor_defined_request_response) - 1;
 	msg.length = msg.payload_length;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_vendor_defined_request (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -27335,7 +30235,7 @@ static void spdm_test_vdm_incorrect_negotiated_version (CuTest *test)
 		(struct spdm_vendor_defined_request_response*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -27343,7 +30243,7 @@ static void spdm_test_vdm_incorrect_negotiated_version (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -27357,6 +30257,15 @@ static void spdm_test_vdm_incorrect_negotiated_version (CuTest *test)
 
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 1;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_vendor_defined_request (spdm_responder, &msg);
 
@@ -27379,6 +30288,15 @@ static void spdm_test_vdm_incorrect_negotiated_version (CuTest *test)
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 2;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_vendor_defined_request (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -27399,7 +30317,7 @@ static void spdm_test_vdm_incorrect_response_state (CuTest *test)
 		(struct spdm_vendor_defined_request_response*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -27407,7 +30325,7 @@ static void spdm_test_vdm_incorrect_response_state (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -27423,6 +30341,15 @@ static void spdm_test_vdm_incorrect_response_state (CuTest *test)
 	rq->header.spdm_minor_version = 2;
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_BUSY;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_vendor_defined_request (spdm_responder, &msg);
 
@@ -27447,6 +30374,15 @@ static void spdm_test_vdm_incorrect_response_state (CuTest *test)
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_NEED_RESYNC;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_vendor_defined_request (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -27470,6 +30406,15 @@ static void spdm_test_vdm_incorrect_response_state (CuTest *test)
 
 	spdm_state->response_state = SPDM_RESPONSE_STATE_PROCESSING_ENCAP;
 
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_vendor_defined_request (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -27490,7 +30435,7 @@ static void spdm_test_vdm_incorrect_connection_state (CuTest *test)
 		(struct spdm_vendor_defined_request_response*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -27498,7 +30443,7 @@ static void spdm_test_vdm_incorrect_connection_state (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -27514,6 +30459,15 @@ static void spdm_test_vdm_incorrect_connection_state (CuTest *test)
 	rq->header.spdm_minor_version = 2;
 
 	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NOT_STARTED;
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_vendor_defined_request (spdm_responder, &msg);
 
@@ -27535,7 +30489,7 @@ static void spdm_test_vdm_last_request_session_inactive (CuTest *test)
 		(struct spdm_vendor_defined_request_response*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -27543,7 +30497,7 @@ static void spdm_test_vdm_last_request_session_inactive (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -27566,6 +30520,15 @@ static void spdm_test_vdm_last_request_session_inactive (CuTest *test)
 		testing.session_manager_mock.base.is_last_session_id_valid,
 		&testing.session_manager_mock.base, 0);
 
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_vendor_defined_request (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -27586,7 +30549,7 @@ static void spdm_test_vdm_last_request_session_id_invalid (CuTest *test)
 		(struct spdm_vendor_defined_request_response*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -27594,7 +30557,7 @@ static void spdm_test_vdm_last_request_session_id_invalid (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -27625,6 +30588,15 @@ static void spdm_test_vdm_last_request_session_id_invalid (CuTest *test)
 		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base, 0,
 		MOCK_ARG (0xDEADBEEF));
 
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_vendor_defined_request (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -27645,7 +30617,7 @@ static void spdm_test_vdm_last_request_session_state_invalid (CuTest *test)
 		(struct spdm_vendor_defined_request_response*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 	struct spdm_secure_session session = {0};
 
@@ -27654,7 +30626,7 @@ static void spdm_test_vdm_last_request_session_state_invalid (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -27687,6 +30659,19 @@ static void spdm_test_vdm_last_request_session_state_invalid (CuTest *test)
 		testing.session_manager_mock.base.get_session, &testing.session_manager_mock.base,
 		MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.unlock_session, &testing.session_manager_mock.base, 0,
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_vendor_defined_request (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
@@ -27707,7 +30692,7 @@ static void spdm_test_vdm_unsupported_message_type (CuTest *test)
 		(struct spdm_vendor_defined_request_response*) buf;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	struct cmd_interface_spdm_responder *spdm_responder;
-	struct spdm_state *spdm_state;
+	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
 
 	TEST_START;
@@ -27715,7 +30700,7 @@ static void spdm_test_vdm_unsupported_message_type (CuTest *test)
 	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
 	spdm_responder = &testing.spdm_responder;
-	spdm_state = spdm_responder->state;
+	spdm_state = testing.spdm_responder_state_ptr;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
@@ -27736,6 +30721,15 @@ static void spdm_test_vdm_unsupported_message_type (CuTest *test)
 
 	status = mock_expect (&testing.vdm_mock.mock, testing.vdm_mock.base.process_request,
 		&testing.vdm_mock.base, CMD_HANDLER_UNKNOWN_MESSAGE_TYPE, MOCK_ARG_PTR (&msg));
+
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_vendor_defined_request (spdm_responder, &msg);
 

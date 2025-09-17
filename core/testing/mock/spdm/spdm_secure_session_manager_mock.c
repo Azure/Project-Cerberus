@@ -78,6 +78,20 @@ static struct spdm_secure_session* spdm_secure_session_manager_mock_get_session 
 		spdm_secure_session_manager_mock_get_session, session_manager, MOCK_ARG_CALL (session_id));
 }
 
+static void spdm_secure_session_manager_mock_unlock_session (
+	const struct spdm_secure_session_manager *session_manager, struct spdm_secure_session *session)
+{
+	struct spdm_secure_session_manager_mock *mock =
+		(struct spdm_secure_session_manager_mock*) session_manager;
+
+	if (mock == NULL) {
+		return;
+	}
+
+	MOCK_VOID_RETURN (&mock->mock, spdm_secure_session_manager_mock_unlock_session,	session_manager,
+		MOCK_ARG_PTR_CALL (session));
+}
+
 static int spdm_secure_session_manager_mock_generate_shared_secret (
 	const struct spdm_secure_session_manager *session_manager, struct spdm_secure_session *session,
 	const struct ecc_point_public_key *peer_pub_key_point, uint8_t *local_pub_key_point)
@@ -217,6 +231,9 @@ static int spdm_secure_session_manager_mock_func_arg_count (void *func)
 	else if (func == spdm_secure_session_manager_mock_get_session) {
 		return 1;
 	}
+	else if (func == spdm_secure_session_manager_mock_unlock_session) {
+		return 1;
+	}
 	else if (func == spdm_secure_session_set_session_state) {
 		return 2;
 	}
@@ -262,6 +279,9 @@ static const char* spdm_secure_session_manager_mock_func_name_map (void *func)
 	}
 	else if (func == spdm_secure_session_manager_mock_get_session) {
 		return "get_session";
+	}
+	else if (func == spdm_secure_session_manager_mock_unlock_session) {
+		return "unlock_session";
 	}
 	else if (func == spdm_secure_session_set_session_state) {
 		return "set_session_state";
@@ -325,6 +345,12 @@ static const char* spdm_secure_session_manager_mock_arg_name_map (void *func, in
 		switch (arg) {
 			case 0:
 				return "session_id";
+		}
+	}
+	else if (func == spdm_secure_session_manager_mock_unlock_session) {
+		switch (arg) {
+			case 0:
+				return "session";
 		}
 	}
 	else if (func == spdm_secure_session_set_session_state) {
@@ -434,6 +460,7 @@ int spdm_secure_session_manager_mock_init (struct spdm_secure_session_manager_mo
 	mock->base.release_session = spdm_secure_session_manager_mock_release_session;
 	mock->base.get_session = spdm_secure_session_manager_mock_get_session;
 	mock->base.set_session_state = spdm_secure_session_set_session_state;
+	mock->base.unlock_session = spdm_secure_session_manager_mock_unlock_session;
 	mock->base.reset = spdm_secure_session_manager_mock_reset;
 	mock->base.generate_shared_secret = spdm_secure_session_manager_mock_generate_shared_secret;
 	mock->base.generate_session_handshake_keys =

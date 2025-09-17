@@ -55,6 +55,9 @@ int spdm_secure_session_manager_encode_secure_message (
 int spdm_secure_session_manager_is_termination_policy_set (
 	const struct spdm_secure_session_manager *session_manager);
 
+void spdm_secure_session_manager_unlock_session (
+	const struct spdm_secure_session_manager *session_manager, struct spdm_secure_session *session);
+
 
 /**
  * Constant initializer for the Secure Session Manager API.
@@ -63,6 +66,7 @@ int spdm_secure_session_manager_is_termination_policy_set (
 	.create_session = spdm_secure_session_manager_create_session, \
 	.release_session = spdm_secure_session_manager_release_session, \
 	.get_session = spdm_secure_session_manager_get_session, \
+	.unlock_session = spdm_secure_session_manager_unlock_session, \
 	.set_session_state = spdm_secure_session_manager_set_session_state, \
 	.reset = spdm_secure_session_manager_reset, \
 	.generate_shared_secret = spdm_secure_session_manager_generate_shared_secret, \
@@ -91,10 +95,11 @@ int spdm_secure_session_manager_is_termination_policy_set (
  * @param hkdf_ptr Pointer to HKDF implementation
  * @param error_ptr Error state management interface
  * @param algo_info Metadata of provided algorithms
+ * @param spdm_context_ptr Pointer to the persistent context for managing persistent SPDM state.
  */
 #define	spdm_secure_session_manager_static_init(state_ptr, local_cap_ptr, local_algo_ptr, aes_engine_ptr, \
 	hash_engine_ptr, rng_engine_ptr, ecc_engine_ptr, transcript_manager_ptr, hkdf_ptr, \
-	error_ptr, algo_info_arg)	{ \
+	error_ptr, algo_info_arg, spdm_context_ptr)	{ \
 		SECURE_SESSION_MANAGER_API_INIT, \
 		.state = state_ptr, \
 		.local_capabilities = local_cap_ptr, \
@@ -108,6 +113,7 @@ int spdm_secure_session_manager_is_termination_policy_set (
 		.hkdf = hkdf_ptr, \
 		.error = error_ptr, \
 		.algo_info = algo_info_arg, \
+		.spdm_context = spdm_context_ptr, \
 	}
 
 

@@ -138,6 +138,14 @@ struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_protocol_header {
 	uint8_t req_rsp_code;			/**< Request/Response code for the message. */
 };
 
+
+/**
+ * NOTE: It is important to keep these structs as is to make sure binary compatibility
+ * with previous versions
+ */
+_Static_assert (sizeof (struct spdm_protocol_header) == 2,
+	"Unexpected size of struct spdm_protocol_header");
+
 #pragma pack(pop)
 
 /**
