@@ -66,6 +66,10 @@ int manifest_cmd_handler_cfm_init (struct manifest_cmd_handler_cfm *handler,
  */
 int manifest_cmd_handler_cfm_init_state (const struct manifest_cmd_handler_cfm *handler)
 {
+	if (handler == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
 	return manifest_cmd_handler_init_state (&handler->base);
 }
 

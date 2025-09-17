@@ -15,19 +15,21 @@
 #include "cmd_interface/cerberus_protocol_required_commands.h"
 #include "cmd_interface/cmd_interface.h"
 #include "cmd_interface/cmd_logging.h"
+#include "common/type_cast.h"
 #include "common/unused.h"
 
 
 int cmd_interface_recovery_process_request (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request)
 {
-	const struct cmd_interface_recovery *interface = (const struct cmd_interface_recovery*) intf;
+	const struct cmd_interface_recovery *interface =
+		TO_DERIVED_TYPE (intf, const struct cmd_interface_recovery, base);
 	uint8_t command_id;
 	uint8_t command_set;
 	int status;
 
-	status = cmd_interface_process_cerberus_protocol_message (&interface->base, request,
-		&command_id, &command_set, true, true);
+	status = cmd_interface_process_cerberus_protocol_message (intf, request, &command_id,
+		&command_set, true, true);
 	if (status != 0) {
 		return status;
 	}

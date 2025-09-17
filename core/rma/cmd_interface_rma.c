@@ -6,18 +6,20 @@
 #include <string.h>
 #include "cmd_interface_rma.h"
 #include "cmd_interface/cerberus_protocol_required_commands.h"
+#include "common/type_cast.h"
 #include "common/unused.h"
 
 
 int cmd_interface_rma_process_request (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request)
 {
-	const struct cmd_interface_rma *rma = (const struct cmd_interface_rma*) intf;
+	const struct cmd_interface_rma *rma =
+		TO_DERIVED_TYPE (intf, const struct cmd_interface_rma, base);
 	uint8_t command_id;
 	uint8_t command_set;
 	int status;
 
-	status = cmd_interface_process_cerberus_protocol_message (&rma->base, request, &command_id,
+	status = cmd_interface_process_cerberus_protocol_message (intf, request, &command_id,
 		&command_set, false, true);
 	if (status != 0) {
 		return status;

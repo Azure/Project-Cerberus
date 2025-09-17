@@ -474,7 +474,7 @@ int rsa_mbedtls_sig_verify (const struct rsa_engine *engine, const struct rsa_pu
  */
 int rsa_mbedtls_init (struct rsa_engine_mbedtls *engine, struct rsa_engine_mbedtls_state *state)
 {
-	if (engine == NULL) {
+	if ((engine == NULL) || (state == NULL)) {
 		return RSA_ENGINE_INVALID_ARGUMENT;
 	}
 

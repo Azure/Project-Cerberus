@@ -140,7 +140,7 @@ int host_processor_single_init_internal (struct host_processor_filtered *host,
 {
 	int status;
 
-	if (host == NULL) {
+	if ((host == NULL) || (flash == NULL)) {
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
 	}
 

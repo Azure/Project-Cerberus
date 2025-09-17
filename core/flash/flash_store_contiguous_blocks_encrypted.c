@@ -7,6 +7,7 @@
 #include "flash_store_contiguous_blocks_encrypted.h"
 #include "flash_util.h"
 #include "platform_api.h"
+#include "common/type_cast.h"
 
 
 /**
@@ -19,10 +20,14 @@ int flash_store_contiguous_blocks_encrypted_write (const struct flash_store *fla
 	const uint8_t *data, size_t length)
 {
 	const struct flash_store_contiguous_blocks_encrypted *encrypted =
-		(const struct flash_store_contiguous_blocks_encrypted*) flash_store;
+		TO_DERIVED_TYPE (flash_store, const struct flash_store_contiguous_blocks_encrypted, base);
 	uint8_t *enc_data;
 	uint8_t iv_tag[FLASH_STORE_AES_IV_LENGTH + AES_GCM_TAG_LENGTH];
 	int status;
+
+	if (flash_store == NULL) {
+		return FLASH_STORE_INVALID_ARGUMENT;
+	}
 
 	status = flash_store_contiguous_blocks_verify_write_params (&encrypted->base, id, data, length);
 	if (status != 0) {
@@ -60,9 +65,13 @@ int flash_store_contiguous_blocks_encrypted_read (const struct flash_store *flas
 	uint8_t *data, size_t length)
 {
 	const struct flash_store_contiguous_blocks_encrypted *encrypted =
-		(const struct flash_store_contiguous_blocks_encrypted*) flash_store;
+		TO_DERIVED_TYPE (flash_store, const struct flash_store_contiguous_blocks_encrypted, base);
 	uint8_t iv_tag[FLASH_STORE_AES_IV_LENGTH + AES_GCM_TAG_LENGTH];
 	int status;
+
+	if (flash_store == NULL) {
+		return FLASH_STORE_INVALID_ARGUMENT;
+	}
 
 	status = flash_store_contiguous_blocks_read_common (&encrypted->base, id, data, length, 0,
 		iv_tag, sizeof (iv_tag), &length);
@@ -110,7 +119,7 @@ static int flash_store_contiguous_blocks_encrypted_init_storage_common (
 {
 	int status;
 
-	if ((gcm == NULL) || (rng == NULL)) {
+	if ((store == NULL) || (gcm == NULL) || (rng == NULL)) {
 		return FLASH_STORE_INVALID_ARGUMENT;
 	}
 
@@ -264,5 +273,7 @@ int flash_store_contiguous_blocks_encrypted_init_state (
 void flash_store_contiguous_blocks_encrypted_release (
 	const struct flash_store_contiguous_blocks_encrypted *store)
 {
-	flash_store_contiguous_blocks_release (&store->base);
+	if (store != NULL) {
+		flash_store_contiguous_blocks_release (&store->base);
+	}
 }

@@ -252,5 +252,7 @@ int session_manager_ecc_init (struct session_manager_ecc *session, const struct 
  */
 void session_manager_ecc_release (struct session_manager_ecc *session)
 {
-	session_manager_release (&session->base);
+	if (session != NULL) {
+		session_manager_release (&session->base);
+	}
 }

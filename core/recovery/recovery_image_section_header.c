@@ -40,6 +40,10 @@ int recovery_image_section_header_init (struct recovery_image_section_header *he
 	size_t length;
 	int status;
 
+	if ((header == NULL) || (flash == NULL)) {
+		return RECOVERY_IMAGE_SECTION_HEADER_INVALID_ARGUMENT;
+	}
+
 	status = image_header_init (&header->base, flash, addr, RECOVERY_IMAGE_SECTION_HEADER_MARKER,
 		RECOVERY_IMAGE_SECTION_HEADER_MAX_LENGTH);
 	if (status != 0) {
@@ -72,7 +76,9 @@ int recovery_image_section_header_init (struct recovery_image_section_header *he
  */
 void recovery_image_section_header_release (struct recovery_image_section_header *header)
 {
-	image_header_release (&header->base);
+	if (header != NULL) {
+		image_header_release (&header->base);
+	}
 }
 
 /**

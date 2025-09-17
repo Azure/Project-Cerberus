@@ -78,6 +78,10 @@ int intrusion_manager_async_init (struct intrusion_manager_async *manager,
 {
 	int status;
 
+	if (manager == NULL) {
+		return INTRUSION_MANAGER_INVALID_ARGUMENT;
+	}
+
 	status = intrusion_manager_init (&manager->base, state, hash, pcr, measurement);
 
 	if (status == 0) {
@@ -98,5 +102,7 @@ int intrusion_manager_async_init (struct intrusion_manager_async *manager,
  */
 void intrusion_manager_async_release (struct intrusion_manager_async *manager)
 {
-	intrusion_manager_release (&manager->base);
+	if (manager != NULL) {
+		intrusion_manager_release (&manager->base);
+	}
 }

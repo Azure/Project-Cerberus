@@ -39,6 +39,10 @@ int cmd_channel_error_state_with_exit_init (struct cmd_channel_error_state_with_
 {
 	int status;
 
+	if (interposer == NULL) {
+		return CMD_CHANNEL_INVALID_ARGUMENT;
+	}
+
 	status = cmd_channel_error_state_init (&interposer->base, state, channel);
 	if (status == 0) {
 		interposer->base_exit.exit_error_state = cmd_channel_error_state_with_exit_exit_error_state;
@@ -60,6 +64,10 @@ int cmd_channel_error_state_with_exit_init (struct cmd_channel_error_state_with_
 int cmd_channel_error_state_with_exit_init_state (
 	const struct cmd_channel_error_state_with_exit *interposer)
 {
+	if (interposer == NULL) {
+		return CMD_CHANNEL_INVALID_ARGUMENT;
+	}
+
 	return cmd_channel_error_state_init_state (&interposer->base);
 }
 
@@ -72,5 +80,7 @@ int cmd_channel_error_state_with_exit_init_state (
 void cmd_channel_error_state_with_exit_release (
 	const struct cmd_channel_error_state_with_exit *interposer)
 {
-	cmd_channel_error_state_release (&interposer->base);
+	if (interposer != NULL) {
+		cmd_channel_error_state_release (&interposer->base);
+	}
 }

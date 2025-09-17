@@ -7,16 +7,21 @@
 #include "flash_store_contiguous_blocks_key_wrap.h"
 #include "platform_api.h"
 #include "common/buffer_util.h"
+#include "common/type_cast.h"
 
 
 int flash_store_contiguous_blocks_key_wrap_write (const struct flash_store *flash_store, int id,
 	const uint8_t *data, size_t length)
 {
 	const struct flash_store_contiguous_blocks_key_wrap *encrypted =
-		(const struct flash_store_contiguous_blocks_key_wrap*) flash_store;
+		TO_DERIVED_TYPE (flash_store, const struct flash_store_contiguous_blocks_key_wrap, base);
 	uint8_t *enc_data;
 	size_t enc_length = AES_KEY_WRAP_INTERFACE_WRAPPED_LENGTH (length);
 	int status;
+
+	if (flash_store == NULL) {
+		return FLASH_STORE_INVALID_ARGUMENT;
+	}
 
 	status = flash_store_contiguous_blocks_verify_write_params (&encrypted->base, id, data, length);
 	if (status != 0) {
@@ -47,9 +52,13 @@ int flash_store_contiguous_blocks_key_wrap_read (const struct flash_store *flash
 	uint8_t *data, size_t length)
 {
 	const struct flash_store_contiguous_blocks_key_wrap *encrypted =
-		(const struct flash_store_contiguous_blocks_key_wrap*) flash_store;
+		TO_DERIVED_TYPE (flash_store, const struct flash_store_contiguous_blocks_key_wrap, base);
 	size_t enc_length;
 	int status;
+
+	if (flash_store == NULL) {
+		return FLASH_STORE_INVALID_ARGUMENT;
+	}
 
 	status = flash_store_contiguous_blocks_read_common (&encrypted->base, id, data, length,
 		AES_KEY_WRAP_INTERFACE_BLOCK_SIZE, NULL, 0, &enc_length);
@@ -118,6 +127,10 @@ static int flash_store_contiguous_blocks_key_wrap_init_storage_common (
 	const struct aes_key_wrap_interface *key_wrap, bool decreasing, bool variable)
 {
 	int status;
+
+	if (store == NULL) {
+		return FLASH_STORE_INVALID_ARGUMENT;
+	}
 
 	status = flash_store_contiguous_blocks_init_storage_common (&store->base, state, flash,
 		base_addr, block_count, data_length, decreasing, variable);
@@ -289,5 +302,7 @@ int flash_store_contiguous_blocks_key_wrap_init_state (
 void flash_store_contiguous_blocks_key_wrap_release (
 	const struct flash_store_contiguous_blocks_key_wrap *store)
 {
-	flash_store_contiguous_blocks_release (&store->base);
+	if (store != NULL) {
+		flash_store_contiguous_blocks_release (&store->base);
+	}
 }

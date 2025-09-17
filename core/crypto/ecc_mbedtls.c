@@ -669,7 +669,7 @@ error:
  */
 int ecc_mbedtls_init (struct ecc_engine_mbedtls *engine, struct ecc_engine_mbedtls_state *state)
 {
-	if (engine == NULL) {
+	if ((engine == NULL) || (state == NULL)) {
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 

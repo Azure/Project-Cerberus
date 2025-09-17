@@ -8,18 +8,20 @@
 #include "cerberus_protocol.h"
 #include "cerberus_protocol_required_commands.h"
 #include "cmd_interface_ac_rot.h"
+#include "common/type_cast.h"
 #include "common/unused.h"
 
 
 int cmd_interface_ac_rot_process_request (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request)
 {
-	const struct cmd_interface_ac_rot *ac_rot = (const struct cmd_interface_ac_rot*) intf;
+	const struct cmd_interface_ac_rot *ac_rot =
+		TO_DERIVED_TYPE (intf, struct cmd_interface_ac_rot, base);
 	uint8_t command_id;
 	uint8_t command_set;
 	int status;
 
-	status = cmd_interface_process_cerberus_protocol_message (&ac_rot->base, request, &command_id,
+	status = cmd_interface_process_cerberus_protocol_message (intf, request, &command_id,
 		&command_set, true, true);
 	if (status != 0) {
 		return status;

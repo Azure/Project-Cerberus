@@ -473,7 +473,9 @@ int cerberus_protocol_get_manifest_id_platform (const struct manifest *manifest,
 static int cerberus_protocol_get_cfm_id_version (const struct cfm *cfm,
 	struct cmd_interface_msg *request)
 {
-	return cerberus_protocol_get_manifest_id_version (&cfm->base, request);
+	const struct manifest *manifest = (cfm != NULL) ? &cfm->base : NULL;
+
+	return cerberus_protocol_get_manifest_id_version (manifest, request);
 }
 
 /**
@@ -487,7 +489,9 @@ static int cerberus_protocol_get_cfm_id_version (const struct cfm *cfm,
 static int cerberus_protocol_get_cfm_id_platform (const struct cfm *cfm,
 	struct cmd_interface_msg *request)
 {
-	return cerberus_protocol_get_manifest_id_platform (&cfm->base, request);
+	const struct manifest *manifest = (cfm != NULL) ? &cfm->base : NULL;
+
+	return cerberus_protocol_get_manifest_id_platform (manifest, request);
 }
 
 /**
@@ -673,7 +677,9 @@ int cerberus_protocol_pcd_update_complete (const struct manifest_cmd_interface *
 static int cerberus_protocol_get_pcd_platform_id (const struct pcd *pcd,
 	struct cmd_interface_msg *request)
 {
-	return cerberus_protocol_get_manifest_id_platform (&pcd->base, request);
+	const struct manifest *manifest = (pcd != NULL) ? &pcd->base : NULL;
+
+	return cerberus_protocol_get_manifest_id_platform (manifest, request);
 }
 
 /**
@@ -687,7 +693,9 @@ static int cerberus_protocol_get_pcd_platform_id (const struct pcd *pcd,
 static int cerberus_protocol_get_pcd_version_id (const struct pcd *pcd,
 	struct cmd_interface_msg *request)
 {
-	return cerberus_protocol_get_manifest_id_version (&pcd->base, request);
+	const struct manifest *manifest = (pcd != NULL) ? &pcd->base : NULL;
+
+	return cerberus_protocol_get_manifest_id_version (manifest, request);
 }
 
 /**

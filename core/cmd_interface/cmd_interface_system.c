@@ -15,19 +15,22 @@
 #include "cmd_interface.h"
 #include "cmd_interface_system.h"
 #include "cmd_logging.h"
+#include "common/type_cast.h"
 #include "common/unused.h"
+
 
 
 int cmd_interface_system_process_request (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request)
 {
-	const struct cmd_interface_system *interface = (const struct cmd_interface_system*) intf;
+	const struct cmd_interface_system *interface =
+		TO_DERIVED_TYPE (intf, struct cmd_interface_system, base);
 	uint8_t command_id;
 	uint8_t command_set;
 	int status;
 
-	status = cmd_interface_process_cerberus_protocol_message (&interface->base, request,
-		&command_id, &command_set, true, true);
+	status = cmd_interface_process_cerberus_protocol_message (intf, request, &command_id,
+		&command_set, true, true);
 	if (status != 0) {
 		return status;
 	}
@@ -296,13 +299,14 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 int cmd_interface_system_process_response (const struct cmd_interface *intf,
 	struct cmd_interface_msg *response)
 {
-	struct cmd_interface_system *interface = (struct cmd_interface_system*) intf;
+	struct cmd_interface_system *interface = TO_DERIVED_TYPE (intf, struct cmd_interface_system,
+		base);
 	uint8_t command_id;
 	uint8_t command_set;
 	int status;
 
-	status = cmd_interface_process_cerberus_protocol_message (&interface->base, response,
-		&command_id, &command_set, true, true);
+	status = cmd_interface_process_cerberus_protocol_message (intf, response, &command_id,
+		&command_set, true, true);
 	if (status != 0) {
 		return status;
 	}

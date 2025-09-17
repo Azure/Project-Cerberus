@@ -310,7 +310,9 @@ int cerberus_protocol_log_clear (const struct cmd_background *background,
 static int cerberus_protocol_get_pfm_id_version (const struct pfm *pfm,
 	struct cmd_interface_msg *request)
 {
-	return cerberus_protocol_get_manifest_id_version (&pfm->base, request);
+	const struct manifest *manifest = (pfm != NULL) ? &pfm->base : NULL;
+
+	return cerberus_protocol_get_manifest_id_version (manifest, request);
 }
 
 /**
@@ -324,7 +326,9 @@ static int cerberus_protocol_get_pfm_id_version (const struct pfm *pfm,
 static int cerberus_protocol_get_pfm_id_platform (const struct pfm *pfm,
 	struct cmd_interface_msg *request)
 {
-	return cerberus_protocol_get_manifest_id_platform (&pfm->base, request);
+	const struct manifest *manifest = (pfm != NULL) ? &pfm->base : NULL;
+
+	return cerberus_protocol_get_manifest_id_platform (manifest, request);
 }
 
 /**

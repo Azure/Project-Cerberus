@@ -120,10 +120,10 @@ static void recovery_image_section_header_test_init_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_section_header_init (NULL, &flash.base, 0x10000);
-	CuAssertIntEquals (test, IMAGE_HEADER_INVALID_ARGUMENT, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_SECTION_HEADER_INVALID_ARGUMENT, status);
 
 	status = recovery_image_section_header_init (&header, NULL, 0x10000);
-	CuAssertIntEquals (test, IMAGE_HEADER_INVALID_ARGUMENT, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_SECTION_HEADER_INVALID_ARGUMENT, status);
 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);

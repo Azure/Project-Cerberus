@@ -95,5 +95,7 @@ int msg_transport_mctp_vdm_pci_init (struct msg_transport_mctp_vdm_pci *mctp_vdm
  */
 void msg_transport_mctp_vdm_pci_release (const struct msg_transport_mctp_vdm_pci *mctp_vdm_pci)
 {
-	msg_transport_intermediate_release (&mctp_vdm_pci->base);
+	if (mctp_vdm_pci != NULL) {
+		msg_transport_intermediate_release (&mctp_vdm_pci->base);
+	}
 }
