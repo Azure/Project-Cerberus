@@ -355,6 +355,8 @@ int cmd_interface_system_process_response (const struct cmd_interface *intf,
 				return observable_notify_observers_with_ptr (&interface->observable,
 					offsetof (struct cerberus_protocol_observer, on_device_capabilities), response);
 			}
+#else
+		UNUSED (interface);
 #endif
 
 		case CERBERUS_PROTOCOL_ERROR:
