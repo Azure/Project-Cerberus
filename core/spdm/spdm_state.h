@@ -26,15 +26,10 @@ enum spdm_connection_state {
  * SPDM version info.
  */
 struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_version_number {
-	union {
-		uint32_t unused;						/**< Unused variable to align the size of types which could have different size */
-		struct {
-			uint16_t alpha : 4;					/**< Pre-release version nubmer. */
-			uint16_t update_version_number : 4;	/**< Update version number. */
-			uint16_t minor_version : 4;			/**< Major version number. */
-			uint16_t major_version : 4;			/**< Minor version number. */
-		};
-	};
+	uint16_t alpha:4;					/**< Pre-release version nubmer. */
+	uint16_t update_version_number:4;	/**< Update version number. */
+	uint16_t minor_version:4;			/**< Major version number. */
+	uint16_t major_version:4;			/**< Minor version number. */
 };
 
 
@@ -42,7 +37,7 @@ struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_version_number {
  * NOTE: It is important to keep these structs as is to make sure binary compatibility
  * with previous versions
  */
-_Static_assert ((sizeof (struct spdm_version_number)) == 4,
+_Static_assert ((sizeof (struct spdm_version_number)) == 2,
 	"Unexpected size of struct spdm_version_number");
 
 /**
@@ -151,17 +146,12 @@ _Static_assert (sizeof (struct spdm_device_algorithms) == 28,
  * SPDM END SESSION 'Negotiated State Preservation Indicator' format per DSP0274 Table 77.
  */
 struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_end_session_request_attributes {
-	union {
-		uint32_t unused;
-		struct {
-			uint8_t negotiated_state_preservation_indicator : 1;	/**< State preservation config */
-			uint8_t reserved : 7;									/**< Reserved */
-		};
-	};
+	uint8_t negotiated_state_preservation_indicator:1;	/**< State preservation config */
+	uint8_t reserved:7;									/**< Reserved */
 };
 
 
-_Static_assert ((sizeof (struct spdm_end_session_request_attributes)) == 4,
+_Static_assert ((sizeof (struct spdm_end_session_request_attributes)) == 1,
 	"Unexpected size of struct spdm_end_session_request_attributes");
 
 /**
@@ -180,7 +170,10 @@ struct spdm_connection_info {
 	/** Specifies whether the cached negotiated state should be invalidated. (responder only)
 	 * This is a sticky bit wherein if it is set to 1 then it cannot be set to 0.
 	 */
-	struct spdm_end_session_request_attributes end_session_attributes;
+	union {
+		struct spdm_end_session_request_attributes end_session_attributes;
+		uint32_t unused2;
+	};
 };
 
 

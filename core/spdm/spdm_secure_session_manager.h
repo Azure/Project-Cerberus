@@ -277,54 +277,66 @@ _Static_assert (sizeof (struct spdm_secure_session_data_secrets) == 112,
  * SPDM secure session object.
  */
 struct spdm_secure_session {
-	uint32_t session_id;												/**< SPDM Session Id. */
-	uint32_t session_index;												/**< Index of session in sessions array. */
-	struct spdm_end_session_request_attributes end_session_attributes;	/**< End session attributes. */
-	struct spdm_key_update_request last_key_update_request;				/**< Last key update request. */
-	struct spdm_version_number version;									/**< Negotiated version. */
-	struct spdm_version_number secure_message_version;					/**< Negotiated secured message version. */
-	struct spdm_device_capability peer_capabilities;					/**< Peer capabilities. */
-	struct spdm_secure_session_master_secrets master_secret;			/**< Master secret. */
-	struct spdm_secure_session_handshake_secrets handshake_secret;		/**< Handshake secret. */
-	struct spdm_secure_session_data_secrets data_secret;				/**< Data secret. */
-	struct spdm_secure_session_data_secrets data_secret_backup;			/**< Data secret backup. */
-	uint32_t base_hash_algo;											/**< Negotiated base hash algorithm. */
-	uint16_t dhe_named_group;											/**< Negotiated DHE algorithm. */
-	uint16_t aead_cipher_suite;											/**< Negotiated AEAD algorithm. */
-	uint16_t key_schedule;												/**< Negotiated key schedule. */
-	uint32_t hash_size;													/**< Negotiated hash size. */
-	uint32_t dhe_key_size;												/**< Negotiated DHE key size. */
-	uint32_t aead_key_size;												/**< Negotiated AEAD key size. */
-	uint32_t aead_iv_size;												/**< Negotiated AEAD IV size. */
-	uint32_t aead_tag_size;												/**< Negotiated AEAD tag size. */
+	uint32_t session_id;													/**< SPDM Session Id. */
+	uint32_t session_index;													/**< Index of session in sessions array. */
 	union {
-		enum spdm_secure_session_type session_type;						/**< Session type. */
-		uint32_t unused1;												/**< Unused variable to align the size of types which could have different size */
+		struct spdm_end_session_request_attributes end_session_attributes;	/**< End session attributes. */
+		uint32_t unused0;
+	};
+
+	struct spdm_key_update_request last_key_update_request;	/**< Last key update request. */
+	union {
+		struct spdm_version_number version;					/**< Negotiated version. */
+		uint32_t unused1;
+	};
+
+	union {
+		struct spdm_version_number secure_message_version;	/**< Negotiated secured message version. */
+		uint32_t unused2;
+	};
+
+	struct spdm_device_capability peer_capabilities;				/**< Peer capabilities. */
+	struct spdm_secure_session_master_secrets master_secret;		/**< Master secret. */
+	struct spdm_secure_session_handshake_secrets handshake_secret;	/**< Handshake secret. */
+	struct spdm_secure_session_data_secrets data_secret;			/**< Data secret. */
+	struct spdm_secure_session_data_secrets data_secret_backup;		/**< Data secret backup. */
+	uint32_t base_hash_algo;										/**< Negotiated base hash algorithm. */
+	uint16_t dhe_named_group;										/**< Negotiated DHE algorithm. */
+	uint16_t aead_cipher_suite;										/**< Negotiated AEAD algorithm. */
+	uint16_t key_schedule;											/**< Negotiated key schedule. */
+	uint32_t hash_size;												/**< Negotiated hash size. */
+	uint32_t dhe_key_size;											/**< Negotiated DHE key size. */
+	uint32_t aead_key_size;											/**< Negotiated AEAD key size. */
+	uint32_t aead_iv_size;											/**< Negotiated AEAD IV size. */
+	uint32_t aead_tag_size;											/**< Negotiated AEAD tag size. */
+	union {
+		enum spdm_secure_session_type session_type;					/**< Session type. */
+		uint32_t unused3;											/**< Unused variable to align the size of types which could have different size */
 	};
 
 	union {
 		enum spdm_secure_session_state session_state;	/**< State in which the SPDM session is. */
-		uint32_t unused2;								/**< Unused variable to align the size of types which could have different size */
+		uint32_t unused4;								/**< Unused variable to align the size of types which could have different size */
 	};
 
 	union {
 		uint8_t session_policy;	/**< Session termination policy. */
-		uint32_t unused3;		/**< Unused variable to align the size of types which could have different size */
+		uint32_t unused5;		/**< Unused variable to align the size of types which could have different size */
 	};
 
 	union {
 		bool requester_backup_valid;	/**< Requester backup is valid. */
-		uint32_t unused4;				/**< Unused variable to align the size of types which could have different size */
+		uint32_t unused6;				/**< Unused variable to align the size of types which could have different size */
 	};
 
 	union {
 		bool responder_backup_valid;	/**< Responder backup is valid. */
-		uint32_t unused5;				/**< Unused variable to align the size of types which could have different size */
+		uint32_t unused7;				/**< Unused variable to align the size of types which could have different size */
 	};
 
 	union {
 		bool is_requester;	/**< Requester or responder role. */
-		uint32_t unused6;	/**< Unused variable to align the size of types which could have different size */
+		uint32_t unused8;	/**< Unused variable to align the size of types which could have different size */
 	};
 };
 
