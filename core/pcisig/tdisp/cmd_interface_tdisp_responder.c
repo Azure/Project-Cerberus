@@ -10,6 +10,12 @@
 #include "common/array_size.h"
 #include "common/unused.h"
 
+//#define TDISP_RESPONDER_DEBUG_SPEW
+
+#ifdef TDISP_RESPONDER_DEBUG_SPEW
+#include "platform_io_api.h"
+#endif
+
 /**
  * TDISP supported messages
  */
@@ -48,41 +54,69 @@ int cmd_interface_tdisp_responder_process_request (const struct cmd_interface *i
 	}
 	tdisp_request = (const struct tdisp_header*) request->payload;
 
+#ifdef TDISP_RESPONDER_DEBUG_SPEW
+	platform_printf ("TDISP: Request code 0x%x\n", tdisp_request->message_type);
+#endif
+
 	/* [TODO] If possible, consolidate error response generation in this function. */
 	switch (tdisp_request->message_type) {
 		case TDISP_REQUEST_GET_VERSION:
+#ifdef TDISP_RESPONDER_DEBUG_SPEW
+			platform_printf ("TDISP: TDISP_REQUEST_GET_VERSION\n");
+#endif
 			status = tdisp_get_version (tdisp_responder->tdisp_driver, tdisp_responder->version_num,
 				tdisp_responder->version_num_count, request);
 			break;
 
 		case TDISP_REQUEST_GET_CAPABILITIES:
+#ifdef TDISP_RESPONDER_DEBUG_SPEW
+			platform_printf ("TDISP: TDISP_REQUEST_GET_CAPABILITIES\n");
+#endif
 			status = tdisp_get_capabilities (tdisp_responder->tdisp_driver,
 				tdisp_supported_messages, ARRAY_SIZE (tdisp_supported_messages), request);
 			break;
 
 		case TDISP_REQUEST_LOCK_INTERFACE:
+#ifdef TDISP_RESPONDER_DEBUG_SPEW
+			platform_printf ("TDISP: TDISP_REQUEST_LOCK_INTERFACE\n");
+#endif
 			status = tdisp_lock_interface (tdisp_responder->tdi_context_manager,
 				tdisp_responder->tdisp_driver, tdisp_responder->rng_engine, request);
 			break;
 
 		case TDISP_REQUEST_GET_DEVICE_INTERFACE_REPORT:
+#ifdef TDISP_RESPONDER_DEBUG_SPEW
+			platform_printf ("TDISP: TDISP_REQUEST_GET_DEVICE_INTERFACE_REPORT\n");
+#endif
 			status = tdisp_get_device_interface_report (tdisp_responder->tdisp_driver, request);
 			break;
 
 		case TDISP_REQUEST_GET_DEVICE_INTERFACE_STATE:
+#ifdef TDISP_RESPONDER_DEBUG_SPEW
+			platform_printf ("TDISP: TDISP_REQUEST_GET_DEVICE_INTERFACE_STATE\n");
+#endif
 			status = tdisp_get_device_interface_state (tdisp_responder->tdisp_driver, request);
 			break;
 
 		case TDISP_REQUEST_START_INTERFACE:
+#ifdef TDISP_RESPONDER_DEBUG_SPEW
+			platform_printf ("TDISP: TDISP_REQUEST_START_INTERFACE\n");
+#endif
 			status = tdisp_start_interface (tdisp_responder->tdi_context_manager,
 				tdisp_responder->tdisp_driver, request);
 			break;
 
 		case TDISP_REQUEST_STOP_INTERFACE:
+#ifdef TDISP_RESPONDER_DEBUG_SPEW
+			platform_printf ("TDISP: TDISP_REQUEST_STOP_INTERFACE\n");
+#endif
 			status = tdisp_stop_interface (tdisp_responder->tdisp_driver, request);
 			break;
 
 		default:
+#ifdef TDISP_RESPONDER_DEBUG_SPEW
+			platform_printf ("TDISP: UNKNOWN\n");
+#endif
 			tdisp_generate_error_response (request, TDISP_VERSION_1_0, 0,
 				TDISP_ERROR_CODE_UNSUPPORTED_REQUEST, 0);
 			break;
