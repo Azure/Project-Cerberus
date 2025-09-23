@@ -102,6 +102,7 @@ struct attestation_requester {
 	const struct riot_key_manager *riot;						/**< RIoT key manager. */
 	struct device_manager *device_mgr;							/**< Device manager instance to utilize. */
 	const struct cfm_manager *cfm_manager;						/**< CFM manager instance */
+	const struct msg_transport *mctp_control;					/**< MCTP Control message transport. */
 };
 
 
@@ -111,7 +112,7 @@ int attestation_requester_init (struct attestation_requester *attestation,
 	const struct hash_engine *secondary_hash, const struct ecc_engine *ecc,
 	const struct rsa_engine *rsa, const struct x509_engine *x509, const struct rng_engine *rng,
 	const struct riot_key_manager *riot, struct device_manager *device_mgr,
-	const struct cfm_manager *cfm_manager);
+	const struct cfm_manager *cfm_manager, const struct msg_transport *mctp_control);
 int attestation_requester_init_state (const struct attestation_requester *attestation);
 void attestation_requester_deinit (const struct attestation_requester *ctrl);
 

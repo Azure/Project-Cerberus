@@ -134,17 +134,6 @@ static int cmd_interface_mctp_control_process_response (const struct cmd_interfa
 	}
 
 	switch (command_id) {
-		case MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE:
-			status = mctp_control_protocol_process_get_message_type_support_response (response);
-			if (status != 0) {
-				return status;
-			}
-			else {
-				return observable_notify_observers_with_ptr (&interface->observable,
-					offsetof (struct mctp_control_protocol_observer, on_get_message_type_response),
-					response);
-			}
-
 		case MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT:
 			status = mctp_control_protocol_process_get_vendor_def_msg_support_response (response);
 			if (status != 0) {

@@ -1183,6 +1183,75 @@ static int attestation_requester_spdm_get_measurements_rsp_post_processing (
 }
 
 /**
+ * Send MCTP message transport request command and get response for MCTP control.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param transport The Message transport instance used to send the messages.
+ * @param request Request to process.
+ * @param response The response container received.
+ * @param dest_eid EID of destination device.
+ * @param timeout_ms Timeout period in milliseconds to wait for response to be received.
+ * @param command Requested command to send out.
+ *
+ * @return Initialization status, 0 if success or an error code.
+ */
+static int attestation_requester_send_mctp_control_msg_transport_request_and_get_response (
+	const struct attestation_requester *attestation, const struct msg_transport *transport,
+	struct cmd_interface_msg *request, struct cmd_interface_msg *response, uint8_t dest_eid,
+	uint32_t timeout_ms, uint8_t command)
+{
+	struct mctp_control_protocol_resp_header *resp_header;
+	int device_state;
+	int status;
+
+	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_IDLE;
+	attestation->state->txn.requested_command = command;
+
+	status = transport->send_request_message (transport, request, timeout_ms, response);
+	if (status != 0) {
+		if (status == MSG_TRANSPORT_REQUEST_TIMEOUT) {
+			device_state = device_manager_get_device_state_by_eid (attestation->device_mgr,
+				dest_eid);
+
+			if (device_state == DEVICE_MANAGER_AUTHENTICATED) {
+				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+					DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
+			}
+			else if (device_state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS) {
+				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+					DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT);
+			}
+			else {
+				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+					DEVICE_MANAGER_ATTESTATION_INTERRUPTED);
+			}
+		}
+		else if (status == MSG_TRANSPORT_UNEXPECTED_RESPONSE) {
+			device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+				DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
+		}
+
+		return status;
+	}
+
+	resp_header = (struct mctp_control_protocol_resp_header*) response->payload;
+	if ((resp_header->completion_code != MCTP_CONTROL_PROTOCOL_SUCCESS) ||
+		(attestation->state->txn.requested_command != resp_header->header.command_code)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
+			((attestation->state->txn.protocol << 24) |
+						(attestation->state->txn.requested_command << 16)) | (255 << 8) |
+				resp_header->header.command_code);
+		device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+			DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
+
+		return ATTESTATION_REQUEST_FAILED;
+	}
+
+	return status;
+}
+
+/**
  * Function to send SPDM request and wait for a response.  This function assumes a pregenerated
  * request is in attestation_requester's spdm_msg_buffer.  If request is not part of device
  * discovery, the request is added to the transcript hash.
@@ -1666,35 +1735,6 @@ void attestation_requester_on_cerberus_device_capabilities_response (
 
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 /**
- * MCTP control protocol get message type response observer function. The Get Message Type
- * request/response interaction allows requester to determine MCTP message types supported by
- * responder. This function is used during device discovery to determine SPDM and Cerberus Challenge
- * support.
- */
-void attestation_requester_on_mctp_get_message_type_response (
-	const struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	const struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, const struct attestation_requester, mctp_rsp_observer);
-
-	if ((attestation->state->txn.requested_command != MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol << 24) |
-						(attestation->state->txn.requested_command << 16) |
-						(255 << 8) | MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE));
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
-	}
-	else {
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
-	}
-
-	// msg_buffer is sized to hold maximum response lengths
-	memcpy (attestation->state->txn.msg_buffer, response->payload, response->payload_length);
-	attestation->state->txn.msg_buffer_len = response->payload_length;
-}
-
-/**
  * MCTP control protocol set EID request observer function. Incoming set EID requests are monitored
  * since they are used by the MCTP bridge to alert device of routing table updates.
  */
@@ -1772,6 +1812,7 @@ void attestation_requester_on_cfm_activation_request (const struct cfm_observer 
  * @param riot RIoT key manager.
  * @param device_mgr Device manager instance to utilize.
  * @param cfm_manager CFM manager to utilize.
+ * @param mctp_control MCTP Control msg transport instance to utilize.
  *
  * @return Initialization status, 0 if success or an error code.
  */
@@ -1781,11 +1822,11 @@ int attestation_requester_init (struct attestation_requester *attestation,
 	const struct hash_engine *secondary_hash, const struct ecc_engine *ecc,
 	const struct rsa_engine *rsa, const struct x509_engine *x509, const struct rng_engine *rng,
 	const struct riot_key_manager *riot, struct device_manager *device_mgr,
-	const struct cfm_manager *cfm_manager)
+	const struct cfm_manager *cfm_manager, const struct msg_transport *mctp_control)
 {
 	if ((attestation == NULL) || (state == NULL) || (mctp == NULL) || (channel == NULL) ||
 		(primary_hash == NULL) || (ecc == NULL) || (x509 == NULL) || (rng == NULL) ||
-		(riot == NULL) || (device_mgr == NULL) || (cfm_manager == NULL)) {
+		(riot == NULL) || (device_mgr == NULL) || (cfm_manager == NULL) || (mctp_control == NULL)) {
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
 
@@ -1804,6 +1845,7 @@ int attestation_requester_init (struct attestation_requester *attestation,
 	attestation->riot = riot;
 	attestation->device_mgr = device_mgr;
 	attestation->cfm_manager = cfm_manager;
+	attestation->mctp_control = mctp_control;
 
 #ifdef ATTESTATION_SUPPORT_SPDM
 	attestation->spdm_rsp_observer.on_spdm_get_version_response =
@@ -1836,8 +1878,6 @@ int attestation_requester_init (struct attestation_requester *attestation,
 #endif
 
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
-	attestation->mctp_rsp_observer.on_get_message_type_response =
-		attestation_requester_on_mctp_get_message_type_response;
 	attestation->mctp_rsp_observer.on_set_eid_request =
 		attestation_requester_on_mctp_set_eid_request;
 	attestation->mctp_rsp_observer.on_get_routing_table_entries_response =
@@ -3447,7 +3487,7 @@ static int attestation_requester_discover_device_cerberus_protocol (
  * @return Completion status, 0 if success or an error code otherwise
  */
 static int attestation_requester_discover_device_spdm_protocol (
-	const struct attestation_requester *attestation, uint8_t eid, uint8_t device_addr)
+	const struct attestation_requester *attestation, uint8_t eid)
 {
 	struct spdm_discovery_device_id_block *block =
 		(struct spdm_discovery_device_id_block*) attestation->state->txn.msg_buffer;
@@ -3459,14 +3499,21 @@ static int attestation_requester_discover_device_spdm_protocol (
 	uint16_t *id;
 	size_t offset = sizeof (struct spdm_discovery_device_id_block);
 	uint8_t found = 0;
-	int i_descriptor;
+	int device_addr;
 	int device_num;
+	int i_descriptor;
 	int status;
 
 	attestation->state->txn.protocol = ATTESTATION_PROTOCOL_DMTF_SPDM;
 	attestation->state->txn.spdm_minor_version = ATTESTATION_PROTOCOL_DMTF_SPDM_1_0;
 	attestation->state->txn.transcript_hash_type = HASH_TYPE_SHA256;
 	attestation->state->txn.measurement_hash_type = HASH_TYPE_SHA256;
+
+	device_addr = device_manager_get_device_addr (attestation->device_mgr,
+		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
+	if (ROT_IS_ERROR (device_addr)) {
+		return device_addr;
+	}
 
 	status = attestation_requester_send_and_receive_spdm_get_measurements (attestation, eid,
 		device_addr, SPDM_MEASUREMENT_OPERATION_GET_DEVICE_ID, true);
@@ -3548,6 +3595,63 @@ static int attestation_requester_discover_device_spdm_protocol (
 #endif
 
 /**
+ * Get Message Type support to a provided device using MCTP control message transport.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param eid EID of device to discover.
+ * @param request Request to process.
+ * @param response The response container received.
+ *
+ * @return Completion status, 0 if success or an error code otherwise
+ */
+static int attestation_requester_get_message_type (const struct attestation_requester *attestation,
+	uint8_t eid, struct cmd_interface_msg *request, struct cmd_interface_msg *response)
+{
+	uint32_t timeout_ms;
+	int request_len;
+	int status;
+
+	timeout_ms = device_manager_get_mctp_ctrl_timeout (attestation->device_mgr);
+
+	status = msg_transport_create_empty_request (attestation->mctp_control,
+		attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer), eid,
+		request);
+	if (status != 0) {
+		return status;
+	}
+
+	request_len = mctp_control_protocol_generate_get_message_type_support_request (request->payload,
+		request->payload_length);
+	if (ROT_IS_ERROR (request_len)) {
+		return request_len;
+	}
+
+	//Update the payload length and request length after request message is ready
+	cmd_interface_msg_set_message_payload_length (request, request_len);
+
+	status = msg_transport_create_empty_response (attestation->state->txn.msg_buffer,
+		sizeof (attestation->state->txn.msg_buffer), response);
+	if (status != 0) {
+		return status;
+	}
+
+	status =
+		attestation_requester_send_mctp_control_msg_transport_request_and_get_response (attestation,
+		attestation->mctp_control, request, response, eid, timeout_ms,
+		MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE);
+	if (status != 0) {
+		return status;
+	}
+
+	status = mctp_control_protocol_process_get_message_type_support_response (response);
+	if (status != 0) {
+		return status;
+	}
+
+	return status;
+}
+
+/**
  * Perform discovery on a provided device.
  *
  * @param attestation Attestation requester instance to utilize.
@@ -3558,12 +3662,12 @@ static int attestation_requester_discover_device_spdm_protocol (
 int attestation_requester_discover_device (const struct attestation_requester *attestation,
 	uint8_t eid)
 {
-	struct mctp_base_protocol_message_header *header;
-	struct mctp_control_get_message_type_response *msg_type_rsp;
-	uint8_t *msg_type;
+	struct mctp_control_get_message_type_response *msg_type_rsp = NULL;
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
 	uint8_t i_type;
-	int device_addr;
-	int request_len;
+	uint8_t *msg_type;
+	size_t msg_type_rsp_len = sizeof (struct mctp_control_get_message_type_response);
 	int status;
 
 	if (attestation == NULL) {
@@ -3575,42 +3679,16 @@ int attestation_requester_discover_device (const struct attestation_requester *a
 	}
 
 	memset (&attestation->state->txn, 0, sizeof (struct attestation_requester_transaction_state));
-
-	device_addr = device_manager_get_device_addr (attestation->device_mgr,
-		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
-	if (ROT_IS_ERROR (device_addr)) {
-		return device_addr;
-	}
-
 	attestation->state->txn.device_discovery = true;
 
-	/* TODO: Populating MCTP base header would be removed after the transition to msg_transport. */
-	header = (struct mctp_base_protocol_message_header*) attestation->state->txn.msg_buffer;
-	header->msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
-	header->integrity_check = 0;
-	request_len = sizeof (struct mctp_base_protocol_message_header);
-
-	status =
-		mctp_control_protocol_generate_get_message_type_support_request (
-		&attestation->state->txn.msg_buffer[request_len],
-		sizeof (attestation->state->txn.msg_buffer) - request_len);
-	if (ROT_IS_ERROR (status)) {
-		return status;
-	}
-	request_len += status;
-
-	status = attestation_requester_send_request_and_get_response (attestation, request_len,
-		device_addr, eid, false, true, MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE);
+	status = attestation_requester_get_message_type (attestation, eid, &request, &response);
 	if (status != 0) {
 		goto done;
 	}
 
-	msg_type_rsp =
-		(struct mctp_control_get_message_type_response*) attestation->state->txn.msg_buffer;
-
+	msg_type_rsp = (struct mctp_control_get_message_type_response*) response.payload;
 	for (i_type = 0; i_type < msg_type_rsp->message_type_count; ++i_type) {
-		msg_type = attestation->state->txn.msg_buffer +
-			sizeof (struct mctp_control_get_message_type_response) + i_type;
+		msg_type = &response.payload[msg_type_rsp_len] + i_type;
 
 		switch (*msg_type) {
 #ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
@@ -3621,8 +3699,7 @@ int attestation_requester_discover_device (const struct attestation_requester *a
 
 #ifdef ATTESTATION_SUPPORT_SPDM
 			case MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM:
-				status = attestation_requester_discover_device_spdm_protocol (attestation, eid,
-					device_addr);
+				status = attestation_requester_discover_device_spdm_protocol (attestation, eid);
 				goto done;
 #endif
 

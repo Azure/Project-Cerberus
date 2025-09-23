@@ -32,6 +32,8 @@
 #include "testing/mock/cmd_interface/cmd_background_mock.h"
 #include "testing/mock/cmd_interface/cmd_channel_mock.h"
 #include "testing/mock/cmd_interface/cmd_device_mock.h"
+#include "testing/mock/cmd_interface/cmd_interface_mock.h"
+#include "testing/mock/cmd_interface/msg_transport_mock.h"
 #include "testing/mock/crypto/ecc_mock.h"
 #include "testing/mock/crypto/rsa_mock.h"
 #include "testing/mock/crypto/hash_mock.h"
@@ -119,6 +121,7 @@ struct attestation_requester_testing {
 	struct device_manager device_mgr;							/**< Device manager instance */
 	struct mctp_interface mctp;									/**< MCTP interface instance */
 	struct mctp_interface_state mctp_state;						/**< MCTP interface variable context. */
+	struct msg_transport_mock mctp_control;						/**< MCTP Control msg transport mock instance */
 	struct cmd_interface_fw_version fw_version;					/**< The firmware version data. */
 	struct cmd_interface_multi_handler req_handler;				/**< MCTP request handling. */
 	struct cmd_interface_protocol_mctp mctp_proto;				/**< MCTP message type parsing. */
@@ -333,6 +336,9 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 	status = attestation_responder_mock_init (&testing->attestation_responder);
 	CuAssertIntEquals (test, 0, status);
 
+	status = msg_transport_mock_init (&testing->mctp_control);
+	CuAssertIntEquals (test, 0, status);
+
 	status = pcr_store_init (&testing->store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
@@ -438,7 +444,7 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 		status = attestation_requester_init (&testing->test, &testing->state, &testing->mctp,
 			&testing->channel.base, &testing->primary_hash.base, &testing->secondary_hash.base,
 			&testing->ecc.base, NULL, &testing->x509.base, &testing->rng.base, &testing->riot,
-			&testing->device_mgr, &testing->cfm_manager.base);
+			&testing->device_mgr, &testing->cfm_manager.base, &testing->mctp_control.base);
 		CuAssertIntEquals (test, 0, status);
 
 		status = cmd_interface_system_add_cerberus_protocol_observer (&testing->cmd_cerberus,
@@ -744,14 +750,14 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 			status = attestation_requester_init (&testing->test, &testing->state, &testing->mctp,
 				&testing->channel.base, &testing->primary_hash.base, &testing->secondary_hash.base,
 				&testing->ecc.base, &testing->rsa.base, x509, &testing->rng.base, &testing->riot,
-				&testing->device_mgr, &testing->cfm_manager.base);
+				&testing->device_mgr, &testing->cfm_manager.base, &testing->mctp_control.base);
 			CuAssertIntEquals (test, 0, status);
 		}
 		else {
 			status = attestation_requester_init (&testing->test, &testing->state, &testing->mctp,
 				&testing->channel.base, &testing->primary_hash.base, &testing->secondary_hash.base,
 				&testing->ecc.base, NULL, x509, &testing->rng.base, &testing->riot,
-				&testing->device_mgr, &testing->cfm_manager.base);
+				&testing->device_mgr, &testing->cfm_manager.base, &testing->mctp_control.base);
 			CuAssertIntEquals (test, 0, status);
 		}
 
@@ -803,6 +809,7 @@ static void complete_attestation_requester_mock_test (CuTest *test,
 	status |= cfm_manager_mock_validate_and_release (&testing->cfm_manager);
 	status |= cfm_mock_validate_and_release (&testing->cfm);
 	status |= attestation_responder_mock_validate_and_release (&testing->attestation_responder);
+	status |= msg_transport_mock_validate_and_release (&testing->mctp_control);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4971,6 +4978,105 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 }
 
 /**
+ * Setup mock send and receive MCTP control protocol Get Message Type for invalid request command
+ * while proceesing the response.
+ *
+ * @param test The testing framework.
+ * @param testing Testing instances.
+ */
+static void attestation_requester_testing_send_and_receive_mctp_get_msg_type_req_failed (
+	CuTest *test, bool command_fail, struct attestation_requester_testing *testing)
+{
+	struct mctp_control_get_message_type *request;
+	struct mctp_control_get_message_type_response *response;
+	uint8_t *tx_message = NULL;
+	uint8_t *rx_message = NULL;
+	struct cmd_interface_msg *req_expected = NULL;
+	struct cmd_interface_msg *resp_expected = NULL;
+	uint8_t dest_eid = testing->second_device ? 0x0C : 0xAA;
+	uint32_t timeout = device_manager_get_mctp_ctrl_timeout (&testing->device_mgr);
+	int status = 0;
+	size_t offset;
+
+	/* Request contruction starts */
+	tx_message = platform_calloc (1, sizeof (struct mctp_control_get_message_type));
+	req_expected = platform_calloc (1, sizeof (struct cmd_interface_msg));
+	req_expected->data = (uint8_t *) tx_message;
+	req_expected->length = sizeof (struct mctp_control_get_message_type);
+	req_expected->max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN;
+	req_expected->payload = tx_message;
+	req_expected->payload_length = sizeof (struct mctp_control_get_message_type);
+	req_expected->target_eid = dest_eid;
+
+	request = (struct mctp_control_get_message_type*) req_expected->payload;
+	request->header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
+	request->header.rq = 1;
+	/* Request contruction ends. */
+
+	rx_message = platform_calloc (1,
+		sizeof (struct mctp_control_get_message_type_response) + 1 +
+		testing->cerberus_discovery + testing->spdm_discovery);
+	resp_expected = platform_calloc (1, sizeof (struct cmd_interface_msg));
+	resp_expected->data = rx_message;
+	resp_expected->payload = rx_message;
+	resp_expected->target_eid = dest_eid;
+	resp_expected->max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN;
+
+	/* Added header info for message transport get message type response payload*/
+	response = (struct mctp_control_get_message_type_response*)
+		resp_expected->payload;
+	if (command_fail) {
+		response->header.header.command_code = 0;
+		response->header.completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
+	} else {
+		response->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
+		response->header.completion_code = MCTP_CONTROL_PROTOCOL_ERROR;
+	}
+	response->message_type_count = 1 + testing->cerberus_discovery + testing->spdm_discovery;
+	offset = sizeof (struct mctp_control_get_message_type_response);
+
+	resp_expected->payload[offset++] = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+
+	if (testing->cerberus_discovery) {
+		resp_expected->payload[offset++] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	}
+
+	if (testing->spdm_discovery) {
+		resp_expected->payload[offset++] = MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM;
+	}
+
+	resp_expected->payload_length = offset;
+	resp_expected->length = resp_expected->payload_length;
+	/* Response contruction ends. */
+
+	status = mock_expect (&testing->mctp_control.mock,
+		testing->mctp_control.base.get_buffer_overhead, &testing->mctp_control, 0,
+		MOCK_ARG (dest_eid), MOCK_ARG_ANY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing->mctp_control.mock,
+		testing->mctp_control.base.get_max_message_payload_length, &testing->mctp_control,
+		MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN, MOCK_ARG (dest_eid));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing->mctp_control.mock,
+		testing->mctp_control.base.send_request_message, &testing->mctp_control.base, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
+		sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request), MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect_output_deep_copy_tmp (&testing->mctp_control.mock, 2, resp_expected,
+		sizeof (*resp_expected), cmd_interface_mock_copy_request,
+		cmd_interface_mock_duplicate_request, cmd_interface_mock_free_request);
+
+	CuAssertIntEquals (test, 0, status);
+	cmd_interface_mock_free_request (req_expected);
+	cmd_interface_mock_free_request (resp_expected);
+
+	return;
+}
+
+/**
  * Setup mock send and receive MCTP control protocol Get Message Type transactions.
  *
  * @param test The testing framework.
@@ -4981,69 +5087,104 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 static void attestation_requester_testing_send_and_receive_mctp_get_msg_type (CuTest *test,
 	bool get_rsp, bool unexpected_rsp, struct attestation_requester_testing *testing)
 {
-	struct cmd_packet tx_packet;
-	struct mctp_base_protocol_message_header *mctp_header;
-	struct mctp_base_protocol_transport_header *header;
+	struct cmd_interface_msg *req_expected = NULL;
+	struct cmd_interface_msg *resp_expected = NULL;
 	struct mctp_control_get_message_type *request;
+	struct mctp_control_get_message_type_response *response;
 	int status = 0;
 	size_t offset;
+	uint8_t *tx_message = NULL;
+	uint8_t *rx_message = NULL;
 
-	memset (&tx_packet, 0, sizeof (tx_packet));
+	uint8_t dest_eid = testing->second_device ? 0x0C : 0xAA;
+	uint32_t timeout = device_manager_get_mctp_ctrl_timeout (&testing->device_mgr);
 
-	header = (struct mctp_base_protocol_transport_header*) tx_packet.data;
 
-	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = 0x08;
-	header->source_addr = (0x41 << 1) | 1;
-	header->rsvd = 0;
-	header->header_version = 1;
-	header->destination_eid = testing->second_device ? 0x0C : 0xAA;
-	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->som = 1;
-	header->eom = 1;
-	header->tag_owner = MCTP_BASE_PROTOCOL_TO_REQUEST;
-	header->msg_tag = testing->msg_tag_req++;
-	header->packet_seq = 0;
+	/* Request contruction starts */
+	tx_message = platform_calloc (1, sizeof (struct mctp_control_get_message_type));
+	req_expected = platform_calloc (1, sizeof (struct cmd_interface_msg));
+	req_expected->data = tx_message;
+	req_expected->length = sizeof (struct mctp_control_get_message_type);
+	req_expected->max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN;
+	req_expected->payload = tx_message;
+	req_expected->payload_length = sizeof (struct mctp_control_get_message_type);
+	req_expected->target_eid = dest_eid;
 
-	offset = sizeof (struct mctp_base_protocol_transport_header);
-
-	mctp_header = (struct mctp_base_protocol_message_header*) &tx_packet.data[offset];
-	mctp_header->msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
-	mctp_header->integrity_check = 0;
-	offset += sizeof (struct mctp_base_protocol_message_header);
-
-	request = (struct mctp_control_get_message_type*) &tx_packet.data[offset];
+	request = (struct mctp_control_get_message_type*) req_expected->payload;
 	request->header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
 	request->header.rq = 1;
+	/* Request contruction ends. */
 
-	offset += sizeof (struct mctp_control_get_message_type);
-
-	tx_packet.data[offset] = checksum_crc8 (0x20 << 1, tx_packet.data, offset);
-
-	offset += MCTP_BASE_PROTOCOL_PEC_SIZE;
-
-	tx_packet.pkt_size = offset;
-	tx_packet.state = CMD_VALID_PACKET;
-	tx_packet.dest_addr = 0x20;
-	tx_packet.timeout_valid = false;
-
-	status = mock_expect (&testing->channel.mock, testing->channel.base.send_packet,
-		&testing->channel, 0,
-		MOCK_ARG_VALIDATOR_TMP (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
+	status = mock_expect (&testing->mctp_control.mock,
+		testing->mctp_control.base.get_buffer_overhead, &testing->mctp_control, 0,
+		MOCK_ARG (dest_eid), MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
-	if (get_rsp) {
-		if (unexpected_rsp) {
-			status = mock_expect_external_action (&testing->channel.mock,
-				attestation_requester_testing_mctp_get_routing_table_entries_rsp_callback, testing);
-			CuAssertIntEquals (test, 0, status);
-		}
-		else {
-			status = mock_expect_external_action (&testing->channel.mock,
-				attestation_requester_testing_mctp_get_message_type_rsp_callback, testing);
-			CuAssertIntEquals (test, 0, status);
-		}
+	status = mock_expect (&testing->mctp_control.mock,
+		testing->mctp_control.base.get_max_message_payload_length, &testing->mctp_control,
+		MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN, MOCK_ARG (dest_eid));
+	CuAssertIntEquals (test, 0, status);
+
+	if ((!get_rsp) || unexpected_rsp || testing->rsp_fail) {
+		status = mock_expect (&testing->mctp_control.mock,
+			testing->mctp_control.base.send_request_message, &testing->mctp_control.base,
+			get_rsp ? MSG_TRANSPORT_UNEXPECTED_RESPONSE : MSG_TRANSPORT_REQUEST_TIMEOUT,
+			MOCK_ARG_VALIDATOR_DEEP_COPY_TMP ( cmd_interface_mock_validate_request, req_expected,
+				sizeof (*req_expected), cmd_interface_mock_save_request,
+				cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request),
+			MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
+		CuAssertIntEquals (test, 0, status);
+
+		cmd_interface_mock_free_request (req_expected);
+		return;
 	}
+
+	rx_message = platform_calloc (1,
+		sizeof (struct mctp_control_get_message_type_response) + 1 +
+		testing->cerberus_discovery + testing->spdm_discovery);
+	resp_expected = platform_calloc (1, sizeof (struct cmd_interface_msg));
+	resp_expected->data = rx_message;
+	resp_expected->payload = rx_message;
+	resp_expected->target_eid = dest_eid;
+	resp_expected->max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN;
+
+	/* Added header info for message transport get message type response payload*/
+	response = (struct mctp_control_get_message_type_response*)
+		(resp_expected->payload );
+	response->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
+	response->header.completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
+	response->message_type_count = 1 + testing->cerberus_discovery + testing->spdm_discovery;
+	offset = sizeof (struct mctp_control_get_message_type_response);
+
+	resp_expected->payload[offset++] = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+
+	if (testing->cerberus_discovery) {
+		resp_expected->payload[offset++] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	}
+
+	if (testing->spdm_discovery) {
+		resp_expected->payload[offset++] = MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM;
+	}
+
+	resp_expected->payload_length = offset;
+	resp_expected->length = resp_expected->payload_length;
+	/* Response contruction ends. */
+
+	status = mock_expect (&testing->mctp_control.mock,
+		testing->mctp_control.base.send_request_message, &testing->mctp_control.base, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
+		sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request), MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect_output_deep_copy_tmp (&testing->mctp_control.mock, 2, resp_expected,
+		sizeof (*resp_expected), cmd_interface_mock_copy_request,
+		cmd_interface_mock_duplicate_request, cmd_interface_mock_free_request);
+
+	CuAssertIntEquals (test, 0, status);
+	cmd_interface_mock_free_request (req_expected);
+	cmd_interface_mock_free_request (resp_expected);
+
+	return;
 }
 
 /**
@@ -5141,7 +5282,7 @@ static void attestation_requester_test_init (CuTest *test)
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
 		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
 		&testing.ecc.base, &testing.rsa.base, &testing.x509_mock.base, &testing.rng.base,
-		&testing.riot, &testing.device_mgr, &testing.cfm_manager.base);
+		&testing.riot, &testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5160,7 +5301,7 @@ static void attestation_requester_test_init_no_rsa (CuTest *test)
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
 		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
 		&testing.ecc.base, NULL, &testing.x509_mock.base, &testing.rng.base, &testing.riot,
-		&testing.device_mgr, &testing.cfm_manager.base);
+		&testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5179,7 +5320,7 @@ static void attestation_requester_test_init_no_secondary_hash (CuTest *test)
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
 		&testing.channel.base, &testing.primary_hash.base, NULL, &testing.ecc.base,
 		&testing.rsa.base, &testing.x509_mock.base, &testing.rng.base, &testing.riot,
-		&testing.device_mgr, &testing.cfm_manager.base);
+		&testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5197,60 +5338,74 @@ static void attestation_requester_test_init_invalid_arg (CuTest *test)
 
 	status = attestation_requester_init (NULL, &testing.state, &testing.mctp, &testing.channel.base,
 		&testing.primary_hash.base, NULL, &testing.ecc.base, NULL, &testing.x509_mock.base,
-		&testing.rng.base, &testing.riot, &testing.device_mgr, &testing.cfm_manager.base);
+		&testing.rng.base, &testing.riot, &testing.device_mgr, &testing.cfm_manager.base,
+		&testing.mctp_control.base);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation_requester_init (&testing.test, NULL, &testing.mctp, &testing.channel.base,
 		&testing.primary_hash.base, NULL, &testing.ecc.base, NULL, &testing.x509_mock.base,
-		&testing.rng.base, &testing.riot, &testing.device_mgr, &testing.cfm_manager.base);
+		&testing.rng.base, &testing.riot, &testing.device_mgr, &testing.cfm_manager.base,
+		&testing.mctp_control.base);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation_requester_init (&testing.test, &testing.state, NULL, &testing.channel.base,
 		&testing.primary_hash.base, NULL, &testing.ecc.base, NULL, &testing.x509_mock.base,
-		&testing.rng.base, &testing.riot, &testing.device_mgr, &testing.cfm_manager.base);
+		&testing.rng.base, &testing.riot, &testing.device_mgr, &testing.cfm_manager.base,
+		&testing.mctp_control.base);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp, NULL,
 		&testing.primary_hash.base, NULL, &testing.ecc.base, NULL, &testing.x509_mock.base,
-		&testing.rng.base, &testing.riot, &testing.device_mgr, &testing.cfm_manager.base);
+		&testing.rng.base, &testing.riot, &testing.device_mgr, &testing.cfm_manager.base,
+		&testing.mctp_control.base);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
 		&testing.channel.base, NULL, NULL, &testing.ecc.base, NULL, &testing.x509_mock.base,
-		&testing.rng.base, &testing.riot, &testing.device_mgr, &testing.cfm_manager.base);
+		&testing.rng.base, &testing.riot, &testing.device_mgr, &testing.cfm_manager.base,
+		&testing.mctp_control.base);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
 		&testing.channel.base, &testing.primary_hash.base, NULL, NULL, NULL,
 		&testing.x509_mock.base, &testing.rng.base, &testing.riot, &testing.device_mgr,
-		&testing.cfm_manager.base);
+		&testing.cfm_manager.base, &testing.mctp_control.base);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
 		&testing.channel.base, &testing.primary_hash.base, NULL, &testing.ecc.base, NULL, NULL,
-		&testing.rng.base, &testing.riot, &testing.device_mgr, &testing.cfm_manager.base);
+		&testing.rng.base, &testing.riot, &testing.device_mgr, &testing.cfm_manager.base,
+		&testing.mctp_control.base);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
 		&testing.channel.base, &testing.primary_hash.base, NULL, &testing.ecc.base, NULL,
 		&testing.x509_mock.base, NULL, &testing.riot, &testing.device_mgr,
-		&testing.cfm_manager.base);
+		&testing.cfm_manager.base, &testing.mctp_control.base);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
 		&testing.channel.base, &testing.primary_hash.base, NULL, &testing.ecc.base, NULL,
 		&testing.x509_mock.base, &testing.rng.base, NULL, &testing.device_mgr,
-		&testing.cfm_manager.base);
+		&testing.cfm_manager.base, &testing.mctp_control.base);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
 		&testing.channel.base, &testing.primary_hash.base, NULL, &testing.ecc.base, NULL,
-		&testing.x509_mock.base, &testing.rng.base, &testing.riot, NULL, &testing.cfm_manager.base);
+		&testing.x509_mock.base, &testing.rng.base, &testing.riot, NULL, &testing.cfm_manager.base,
+		&testing.mctp_control.base);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
 		&testing.channel.base, &testing.primary_hash.base, NULL, &testing.ecc.base, NULL,
-		&testing.x509_mock.base, &testing.rng.base, &testing.riot, &testing.device_mgr, NULL);
+		&testing.x509_mock.base, &testing.rng.base, &testing.riot, &testing.device_mgr, NULL,
+		&testing.mctp_control.base);
+	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
+
+	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
+		&testing.channel.base, &testing.primary_hash.base, NULL, &testing.ecc.base, NULL,
+		&testing.x509_mock.base, &testing.rng.base, &testing.riot, &testing.device_mgr,
+		&testing.cfm_manager.base, NULL);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	complete_attestation_requester_mock_test (test, &testing, false);
@@ -5267,7 +5422,8 @@ static void attestation_requester_test_init_state (CuTest *test)
 	};
 	struct attestation_requester attestation = attestation_requester_static_init (&testing.state,
 		&testing.mctp, &testing.channel.base, &testing.primary_hash.base, NULL, &testing.ecc.base,
-		NULL, &testing.x509_mock.base, &testing.rng.base, &testing.riot, &testing.device_mgr, NULL);
+		NULL, &testing.x509_mock.base, &testing.rng.base, &testing.riot, &testing.device_mgr, NULL, 
+		&testing.mctp_control.base);
 	int status;
 
 	TEST_START;
@@ -5318,6 +5474,9 @@ static void attestation_requester_test_init_state (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_mock_init (&testing.cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = msg_transport_mock_init (&testing.mctp_control);
 	CuAssertIntEquals (test, 0, status);
 
 	status = X509_TESTING_ENGINE_INIT (&testing.x509);
@@ -24949,7 +25108,7 @@ static void attestation_requester_test_attest_device_spdm_no_secondary_hash (CuT
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
 		&testing.channel.base, &testing.primary_hash.base, NULL, &testing.ecc.base,
 		&testing.rsa.base, &testing.x509_mock.base, &testing.rng.base, &testing.riot,
-		&testing.device_mgr, &testing.cfm_manager.base);
+		&testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
@@ -28249,6 +28408,9 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	status = cfm_mock_init (&testing.cfm);
 	CuAssertIntEquals (test, 0, status);
 
+	status = msg_transport_mock_init (&testing.mctp_control);
+	CuAssertIntEquals (test, 0, status);
+
 	status = X509_TESTING_ENGINE_INIT (&testing.x509);
 	CuAssertIntEquals (test, 0, status);
 
@@ -28364,7 +28526,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
 		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
 		&testing.ecc.base, &testing.rsa.base, &testing.x509_mock.base, &testing.rng.base,
-		&testing.riot, &testing.device_mgr, &testing.cfm_manager.base);
+		&testing.riot, &testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_interface_system_add_cerberus_protocol_observer (&testing.cmd_cerberus,
@@ -37575,6 +37737,9 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 	status = cfm_mock_init (&testing.cfm);
 	CuAssertIntEquals (test, 0, status);
 
+	status = msg_transport_mock_init (&testing.mctp_control);
+	CuAssertIntEquals (test, 0, status);
+
 	status = X509_TESTING_ENGINE_INIT (&testing.x509);
 	CuAssertIntEquals (test, 0, status);
 
@@ -37644,7 +37809,7 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
 		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
 		&testing.ecc.base, NULL, &testing.x509.base, &testing.rng.base, &testing.riot,
-		&testing.device_mgr, &testing.cfm_manager.base);
+		&testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_interface_system_add_cerberus_protocol_observer (&testing.cmd_cerberus,
@@ -37771,7 +37936,7 @@ static void attestation_requester_test_attest_device_cfm_contains_unsupported_ha
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
 		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
 		&testing.ecc.base, &testing.rsa.base, &testing.x509_mock.base, &testing.rng.base,
-		&testing.riot, &testing.device_mgr, &testing.cfm_manager.base);
+		&testing.riot, &testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
@@ -37867,7 +38032,7 @@ static void attestation_requester_test_attest_device_no_cfm (CuTest *test)
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
 		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
 		&testing.ecc.base, &testing.rsa.base, &testing.x509_mock.base, &testing.rng.base,
-		&testing.riot, &testing.device_mgr, &testing.cfm_manager.base);
+		&testing.riot, &testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
@@ -37898,7 +38063,7 @@ static void attestation_requester_test_attest_device_invalid_component_device (C
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
 		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
 		&testing.ecc.base, &testing.rsa.base, &testing.x509_mock.base, &testing.rng.base,
-		&testing.riot, &testing.device_mgr, &testing.cfm_manager.base);
+		&testing.riot, &testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
@@ -38052,7 +38217,7 @@ static void attestation_requester_test_discover_device_spdm_update_routing_table
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_discover_device_no_mctp_bridge (CuTest *test)
+static void attestation_requester_test_discover_device_spdm_no_mctp_bridge (CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	int status;
@@ -38060,6 +38225,9 @@ static void attestation_requester_test_discover_device_no_mctp_bridge (CuTest *t
 	TEST_START;
 
 	setup_attestation_requester_mock_test (test, &testing, true, true, true);
+
+	testing.spdm_discovery = true;
+	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, &testing);
 
 	status = attestation_requester_discover_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
@@ -38079,7 +38247,7 @@ static void attestation_requester_test_discover_device_get_msg_type_unexpected_r
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, true, &testing);
 
 	status = attestation_requester_discover_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_UNEXPECTED_RESPONSE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -38096,7 +38264,7 @@ static void attestation_requester_test_discover_device_get_msg_type_no_rsp (CuTe
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, false, false, &testing);
 
 	status = attestation_requester_discover_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_REQUEST_TIMEOUT, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -38115,7 +38283,7 @@ static void attestation_requester_test_discover_device_get_msg_type_rsp_fail (Cu
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, &testing);
 
 	status = attestation_requester_discover_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_UNEXPECTED_RESPONSE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -38137,6 +38305,44 @@ static void attestation_requester_test_discover_device_get_msg_type_no_attestati
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
 	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_discover_device_get_msg_type_request_command_failed (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	attestation_requester_testing_send_and_receive_mctp_get_msg_type_req_failed (test, true,
+		&testing);
+
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
+	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_discover_device_get_msg_type_cc_fail (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	attestation_requester_testing_send_and_receive_mctp_get_msg_type_req_failed (test, false,
+		&testing);
+
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
+	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -38876,7 +39082,7 @@ static void attestation_requester_test_get_routing_table_get_routing_table_entri
 		&testing);
 
 	status = attestation_requester_get_mctp_routing_table (&testing.test);
-	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_FAIL_RESPONSE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -39475,6 +39681,9 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	status = cfm_mock_init (&testing.cfm);
 	CuAssertIntEquals (test, 0, status);
 
+	status = msg_transport_mock_init (&testing.mctp_control);
+	CuAssertIntEquals (test, 0, status);
+
 	status = X509_TESTING_ENGINE_INIT (&testing.x509);
 	CuAssertIntEquals (test, 0, status);
 
@@ -39576,7 +39785,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
 		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
 		&testing.ecc.base, NULL, &testing.x509_mock.base, &testing.rng.base, &testing.riot,
-		&testing.device_mgr, &testing.cfm_manager.base);
+		&testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_interface_system_add_cerberus_protocol_observer (&testing.cmd_cerberus,
@@ -40481,7 +40690,9 @@ TEST (attestation_requester_test_discover_device_spdm_1_1);
 TEST (attestation_requester_test_discover_device_spdm_update_routing_table);
 TEST (attestation_requester_test_discover_device_spdm_update_routing_table_bridge_refresh_request);
 TEST (attestation_requester_test_discover_device_invalid_arg);
-TEST (attestation_requester_test_discover_device_no_mctp_bridge);
+TEST (attestation_requester_test_discover_device_get_msg_type_request_command_failed);
+TEST (attestation_requester_test_discover_device_get_msg_type_cc_fail);
+TEST (attestation_requester_test_discover_device_spdm_no_mctp_bridge);
 TEST (attestation_requester_test_discover_device_get_msg_type_unexpected_rsp);
 TEST (attestation_requester_test_discover_device_get_msg_type_no_rsp);
 TEST (attestation_requester_test_discover_device_get_msg_type_rsp_fail);

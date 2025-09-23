@@ -22,20 +22,6 @@ static void mctp_control_protocol_observer_mock_on_set_eid_request (
 		observer);
 }
 
-static void mctp_control_protocol_observer_mock_on_get_message_type_response (
-	const struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	struct mctp_control_protocol_observer_mock *mock =
-		(struct mctp_control_protocol_observer_mock*) observer;
-
-	if (mock == NULL) {
-		return;
-	}
-
-	MOCK_VOID_RETURN (&mock->mock, mctp_control_protocol_observer_mock_on_get_message_type_response,
-		observer, MOCK_ARG_PTR_CALL (response));
-}
-
 static void mctp_control_protocol_observer_mock_on_get_routing_table_entries_response (
 	const struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
@@ -82,8 +68,7 @@ static void mctp_control_protocol_observer_mock_on_get_vendor_def_msg_response (
 
 static int mctp_control_protocol_observer_mock_func_arg_count (void *func)
 {
-	if ((func == mctp_control_protocol_observer_mock_on_get_message_type_response) ||
-		(func == mctp_control_protocol_observer_mock_on_get_routing_table_entries_response) ||
+	if ((func == mctp_control_protocol_observer_mock_on_get_routing_table_entries_response) ||
 		(func == mctp_control_protocol_observer_mock_on_get_vendor_def_msg_response) ||
 		(func == mctp_control_protocol_observer_mock_on_discovery_notify_response)) {
 		return 1;
@@ -96,9 +81,6 @@ static const char* mctp_control_protocol_observer_mock_func_name_map (void *func
 {
 	if (func == mctp_control_protocol_observer_mock_on_set_eid_request) {
 		return "on_set_eid_request";
-	}
-	else if (func == mctp_control_protocol_observer_mock_on_get_message_type_response) {
-		return "on_get_message_type_response";
 	}
 	else if (func == mctp_control_protocol_observer_mock_on_get_routing_table_entries_response) {
 		return "on_get_routing_table_entries_response";
@@ -116,13 +98,7 @@ static const char* mctp_control_protocol_observer_mock_func_name_map (void *func
 
 static const char* mctp_control_protocol_observer_mock_arg_name_map (void *func, int arg)
 {
-	if (func == mctp_control_protocol_observer_mock_on_get_message_type_response) {
-		switch (arg) {
-			case 0:
-				return "response";
-		}
-	}
-	else if (func == mctp_control_protocol_observer_mock_on_get_routing_table_entries_response) {
+	if (func == mctp_control_protocol_observer_mock_on_get_routing_table_entries_response) {
 		switch (arg) {
 			case 0:
 				return "response";
@@ -169,8 +145,6 @@ int mctp_control_protocol_observer_mock_init (struct mctp_control_protocol_obser
 	mock_set_name (&mock->mock, "mctp_control_protocol_observer");
 
 	mock->base.on_set_eid_request = mctp_control_protocol_observer_mock_on_set_eid_request;
-	mock->base.on_get_message_type_response =
-		mctp_control_protocol_observer_mock_on_get_message_type_response;
 	mock->base.on_get_routing_table_entries_response =
 		mctp_control_protocol_observer_mock_on_get_routing_table_entries_response;
 	mock->base.on_get_vendor_def_msg_response =

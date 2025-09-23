@@ -31,9 +31,6 @@ void attestation_requester_on_cerberus_challenge_response (
 	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response);
 void attestation_requester_on_cerberus_device_capabilities_response (
 	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response);
-void attestation_requester_on_mctp_get_message_type_response (
-	const struct mctp_control_protocol_observer *observer,
-	const struct cmd_interface_msg *response);
 void attestation_requester_on_mctp_set_eid_request (
 	const struct mctp_control_protocol_observer *observer);
 void attestation_requester_on_mctp_get_routing_table_entries_response (
@@ -46,8 +43,6 @@ void attestation_requester_on_mctp_get_routing_table_entries_response (
  */
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 #define	ATTESTATION_REQUESTER_MCTP_RSP_OBSERVER_API_INIT { \
-		.on_get_message_type_response = \
-			attestation_requester_on_mctp_get_message_type_response, \
 		.on_set_eid_request = \
 			attestation_requester_on_mctp_set_eid_request, \
 		.on_get_routing_table_entries_response = \
@@ -115,10 +110,11 @@ void attestation_requester_on_mctp_get_routing_table_entries_response (
  * @param riot_ptr RIoT key manager.
  * @param device_mgr_ptr Device manager instance to utilize.
  * @param cfm_manager_ptr CFM manager to utilize.
+ * @param mctp_control Message transport MCTP control instance to utilize
  */
 #define attestation_requester_static_init(state_ptr, mctp_ptr, channel_ptr, primary_hash_ptr, \
 	secondary_hash_ptr, ecc_ptr, rsa_ptr, x509_ptr, rng_ptr, riot_ptr, device_mgr_ptr, \
-	cfm_manager_ptr) { \
+	cfm_manager_ptr, mctp_control_ptr) { \
 		.mctp = mctp_ptr, \
 		.channel = channel_ptr, \
 		.primary_hash = primary_hash_ptr, \
@@ -131,6 +127,7 @@ void attestation_requester_on_mctp_get_routing_table_entries_response (
 		.device_mgr = device_mgr_ptr, \
 		.cfm_manager = cfm_manager_ptr, \
 		.state = state_ptr, \
+		.mctp_control = mctp_control_ptr, \
 		.mctp_rsp_observer = ATTESTATION_REQUESTER_MCTP_RSP_OBSERVER_API_INIT, \
 		.cerberus_rsp_observer = ATTESTATION_REQUESTER_CERBERUS_RSP_OBSERVER_API_INIT, \
 		.spdm_rsp_observer = ATTESTATION_REQUESTER_SPDM_RSP_OBSERVER_API_INIT, \
