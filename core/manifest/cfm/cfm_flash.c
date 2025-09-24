@@ -743,6 +743,9 @@ static int cfm_flash_get_next_measurement (const struct cfm *cfm,
 	pmr_measurement->allowable_digests_count = measurement_element.allowable_digest_count;
 	pmr_measurement->allowable_digests = platform_calloc (pmr_measurement->allowable_digests_count,
 		sizeof (struct cfm_allowable_digests));
+	if (pmr_measurement->allowable_digests == NULL) {
+		return CFM_NO_MEMORY;
+	}
 
 	// Retrieve list of cfm_allowable_digests
 	status = cfm_flash_populate_allowable_digests (cfm_flash, pmr_measurement->allowable_digests,
@@ -997,6 +1000,10 @@ static int cfm_flash_get_next_measurement_data (const struct cfm *cfm,
 
 			allowable_data_ptr->allowable_data[i_data].data =
 				platform_malloc (allowable_data_ptr->allowable_data[i_data].data_len);
+			if (allowable_data_ptr->allowable_data[i_data].data == NULL) {
+				status = CFM_NO_MEMORY;
+				goto free_allowable_data;
+			}
 
 			// Read Data
 			status = manifest_flash_read_element_data (&cfm_flash->base_flash,
@@ -1125,6 +1132,9 @@ int cfm_flash_get_next_measurement_or_measurement_data (const struct cfm *cfm,
 		memset (container, 0, sizeof (struct cfm_measurement_container));
 
 		container->context = platform_calloc (sizeof (struct cfm_flash_measurement_context), 1);
+		if (container->context == NULL) {
+			return CFM_NO_MEMORY;
+		}
 		context = (struct cfm_flash_measurement_context*) container->context;
 
 		context->version_set_element = cfm_flash_determine_version_set_element (cfm, component_id,
