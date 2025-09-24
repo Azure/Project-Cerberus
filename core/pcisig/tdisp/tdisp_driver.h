@@ -145,6 +145,7 @@ enum {
 	TDISP_DRIVER_INVALID_INTERFACE = TDISP_DRIVER_ERROR (0x0C),						/**< Invalid interface ID */
 	TDISP_DRIVER_IDE_NOT_SECURE = TDISP_DRIVER_ERROR (0x0D),						/**< IDE stream is not in secure state */
 	TDISP_DRIVER_UPDATE_NOT_ALLOWED = TDISP_DRIVER_ERROR (0x0E),					/**< Firmware update is not allowed for the current driver configuration */
+	TDISP_DRIVER_CONTROLLER_NOT_ENABLED = TDISP_DRIVER_ERROR (0x0F),				/**< TDISP controller is not enabled */
 };
 
 
