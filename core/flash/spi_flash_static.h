@@ -8,29 +8,39 @@
 
 
 /* Internal functions declared to allow for static initialization. */
-int spi_flash_get_size_read_only (const struct flash *flash, uint32_t *bytes);
-int spi_flash_write_read_only (const struct flash *flash, uint32_t address, const uint8_t *data,
-	size_t length);
-int spi_flash_erase_read_only (const struct flash *flash, uint32_t addr);
-int spi_flash_chip_erase_read_only (const struct flash *flash);
+int spi_flash_flash_api_get_size_read_only (const struct flash *flash, uint32_t *bytes);
+int spi_flash_flash_api_write_read_only (const struct flash *flash, uint32_t address,
+	const uint8_t *data, size_t length);
+int spi_flash_flash_api_erase_read_only (const struct flash *flash, uint32_t addr);
+int spi_flash_flash_api_chip_erase_read_only (const struct flash *flash);
 
+int spi_flash_flash_api_get_device_size (const struct flash *flash, uint32_t *bytes);
+int spi_flash_flash_api_read (const struct flash *flash, uint32_t address, uint8_t *data,
+	size_t length);
+int spi_flash_flash_api_get_page_size (const struct flash *flash, uint32_t *bytes);
+int spi_flash_flash_api_minimum_write_per_page (const struct flash *flash, uint32_t *bytes);
+int spi_flash_flash_api_write (const struct flash *flash, uint32_t address, const uint8_t *data,
+	size_t length);
+int spi_flash_flash_api_get_sector_size (const struct flash *flash, uint32_t *bytes);
+int spi_flash_flash_api_sector_erase (const struct flash *flash, uint32_t sector_addr);
+int spi_flash_flash_api_get_block_size (const struct flash *flash, uint32_t *bytes);
+int spi_flash_flash_api_block_erase (const struct flash *flash, uint32_t block_addr);
+int spi_flash_flash_api_chip_erase (const struct flash *flash);
 
 /**
  * Constant initializer for the SPI flash API.
  */
 #define	SPI_FLASH_API_INIT  { \
-		.get_device_size = (int (*) (const struct flash*, uint32_t*)) spi_flash_get_device_size, \
-		.read = (int (*) (const struct flash*, uint32_t, uint8_t*, size_t)) spi_flash_read, \
-		.get_page_size = (int (*) (const struct flash*, uint32_t*)) spi_flash_get_page_size, \
-		.minimum_write_per_page = \
-			(int (*) (const struct flash*, uint32_t*)) spi_flash_minimum_write_per_page, \
-		.write = \
-			(int (*) (const struct flash*, uint32_t, const uint8_t*, size_t)) spi_flash_write, \
-		.get_sector_size = (int (*) (const struct flash*, uint32_t*)) spi_flash_get_sector_size, \
-		.sector_erase = (int (*) (const struct flash*, uint32_t)) spi_flash_sector_erase, \
-		.get_block_size = (int (*) (const struct flash*, uint32_t*)) spi_flash_get_block_size, \
-		.block_erase = (int (*) (const struct flash*, uint32_t)) spi_flash_block_erase, \
-		.chip_erase = (int (*) (const struct flash*)) spi_flash_chip_erase \
+		.get_device_size = spi_flash_flash_api_get_device_size, \
+		.read = spi_flash_flash_api_read, \
+		.get_page_size = spi_flash_flash_api_get_page_size, \
+		.minimum_write_per_page = spi_flash_flash_api_minimum_write_per_page, \
+		.write = spi_flash_flash_api_write, \
+		.get_sector_size = spi_flash_flash_api_get_sector_size, \
+		.sector_erase = spi_flash_flash_api_sector_erase, \
+		.get_block_size = spi_flash_flash_api_get_block_size, \
+		.block_erase = spi_flash_flash_api_block_erase, \
+		.chip_erase = spi_flash_flash_api_chip_erase \
 	}
 
 /**
@@ -41,16 +51,16 @@ int spi_flash_chip_erase_read_only (const struct flash *flash);
  * functions directly.  This only disables it through the abstracted API.
  */
 #define	SPI_FLASH_READ_ONLY_API_INIT  { \
-		.get_device_size = (int (*) (const struct flash*, uint32_t*)) spi_flash_get_device_size, \
-		.read = (int (*) (const struct flash*, uint32_t, uint8_t*, size_t)) spi_flash_read, \
-		.get_page_size = spi_flash_get_size_read_only, \
-		.minimum_write_per_page = spi_flash_get_size_read_only, \
-		.write = spi_flash_write_read_only, \
-		.get_sector_size = spi_flash_get_size_read_only, \
-		.sector_erase = spi_flash_erase_read_only, \
-		.get_block_size = spi_flash_get_size_read_only, \
-		.block_erase = spi_flash_erase_read_only, \
-		.chip_erase = spi_flash_chip_erase_read_only \
+		.get_device_size = spi_flash_flash_api_get_device_size, \
+		.read = spi_flash_flash_api_read, \
+		.get_page_size = spi_flash_flash_api_get_size_read_only, \
+		.minimum_write_per_page = spi_flash_flash_api_get_size_read_only, \
+		.write = spi_flash_flash_api_write_read_only, \
+		.get_sector_size = spi_flash_flash_api_get_size_read_only, \
+		.sector_erase = spi_flash_flash_api_erase_read_only, \
+		.get_block_size = spi_flash_flash_api_get_size_read_only, \
+		.block_erase = spi_flash_flash_api_erase_read_only, \
+		.chip_erase = spi_flash_flash_api_chip_erase_read_only \
 	}
 
 

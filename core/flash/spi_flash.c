@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "spi_flash.h"
+#include "common/type_cast.h"
 #include "common/unused.h"
 #include "flash/flash_common.h"
 #include "flash/flash_logging.h"
@@ -444,6 +445,207 @@ int spi_flash_restore_device_state (const struct spi_flash *flash,
 	return 0;
 }
 
+
+/**
+ * Flash API wrapper to get the size of the flash device.
+ *
+ * @param flash The flash to query.
+ * @param bytes The buffer that will hold the number of bytes in the device.
+ *
+ * @return 0 if the device size was successfully read or an error code.
+ */
+int spi_flash_flash_api_get_device_size (const struct flash *flash, uint32_t *bytes)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_get_device_size (spi_flash, bytes);
+}
+
+/**
+ * Flash API wrapper to read data from the SPI flash.
+ *
+ * @param flash The flash to read from.
+ * @param address The address to start reading from.
+ * @param data The buffer to hold the data that has been read.
+ * @param length The number of bytes to read.
+ *
+ * @return 0 if the bytes were read from flash or an error code.
+ */
+int spi_flash_flash_api_read (const struct flash *flash, uint32_t address, uint8_t *data,
+	size_t length)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_read (spi_flash, address, data, length);
+}
+
+/**
+ * Flash API wrapper to get the size of a flash page for write operations.
+ *
+ * @param flash The flash to query.
+ * @param bytes Output for the number of bytes in a flash page.
+ *
+ * @return 0 if the page size was successfully read or an error code.
+ */
+int spi_flash_flash_api_get_page_size (const struct flash *flash, uint32_t *bytes)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_get_page_size (spi_flash, bytes);
+}
+
+/**
+ * Flash API wrapper to get the minimum number of bytes that must be written to
+ * a single flash page.  Writing fewer bytes than the minimum to any page will
+ * still result in a minimum sized write to flash. The extra bytesthat were written
+ * must be erased before they can be written again.
+ *
+ * @param flash The flash to query.
+ * @param bytes Output for the minimum number of bytes for a page write.
+ *
+ * @return 0 if the minimum write size was successfully read or an error code.
+ */
+int spi_flash_flash_api_minimum_write_per_page (const struct flash *flash, uint32_t *bytes)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_minimum_write_per_page (spi_flash, bytes);
+}
+
+/**
+ * Flash API wrapper to Write data to the SPI flash.
+ * The flash needs to be erased prior to writing.
+ *
+ * @param flash The flash to write to.
+ * @param address The address to start writing to.
+ * @param data The data to write.
+ * @param length The number of bytes to write.
+ *
+ * @return The number of bytes written to the flash or an error code.  Use ROT_IS_ERROR to check the
+ * return value.
+ */
+int spi_flash_flash_api_write (const struct flash *flash, uint32_t address, const uint8_t *data,
+	size_t length)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_write (spi_flash, address, data, length);
+}
+
+/**
+ * Flash API wrapper to get the size of a flash sector for erase operations.
+ *
+ * @param flash The flash to query.
+ * @param bytes Output for the number of bytes in a flash sector.
+ *
+ * @return 0 if the sector size was successfully read or an error code.
+ */
+int spi_flash_flash_api_get_sector_size (const struct flash *flash, uint32_t *bytes)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_get_sector_size (spi_flash, bytes);
+}
+
+/**
+ * Flash API wrapper to erase a 4kB sector of flash.
+ *
+ * @param flash The flash to erase.
+ * @param sector_addr An address within the sector to erase.
+ *
+ * @return 0 if the sector was erased or an error code.
+ */
+int spi_flash_flash_api_sector_erase (const struct flash *flash, uint32_t sector_addr)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_sector_erase (spi_flash, sector_addr);
+}
+
+/**
+ * Flash API wrapper to get the size of a flash block for erase operations.
+ *
+ * @param flash The flash to query.
+ * @param bytes Output for the number of bytes in a flash block.
+ *
+ * @return 0 if the block size was successfully read or an error code.
+ */
+int spi_flash_flash_api_get_block_size (const struct flash *flash, uint32_t *bytes)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_get_block_size (spi_flash, bytes);
+}
+
+/**
+ * Flash API wrapper to erase a 64kB block of flash.
+ *
+ * @param flash The flash to erase.
+ * @param block_addr An address within the block to erase.
+ *
+ * @return 0 if the block was erased or an error code.
+ */
+int spi_flash_flash_api_block_erase (const struct flash *flash, uint32_t block_addr)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_block_erase (spi_flash, block_addr);
+}
+
+/**
+ * Erase the entire flash chip.
+ *
+ * @param flash The flash to erase.
+ *
+ * @return 0 if the flash chip was erased or an error code.
+ */
+int spi_flash_flash_api_chip_erase (const struct flash *flash)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_chip_erase (spi_flash);
+}
+
 /**
  * Initialize only the constant portions of the SPI flash interface API.  This produces an instance
  * initialized in the same way as if it were initialized statically.
@@ -465,21 +667,16 @@ int spi_flash_init_api (struct spi_flash *flash, struct spi_flash_state *state,
 
 	memset (flash, 0, sizeof (struct spi_flash));
 
-	flash->base.get_device_size =
-		(int (*) (const struct flash*, uint32_t*)) spi_flash_get_device_size;
-	flash->base.read = (int (*) (const struct flash*, uint32_t, uint8_t*, size_t)) spi_flash_read;
-	flash->base.get_page_size = (int (*) (const struct flash*, uint32_t*)) spi_flash_get_page_size;
-	flash->base.minimum_write_per_page =
-		(int (*) (const struct flash*, uint32_t*)) spi_flash_minimum_write_per_page;
-	flash->base.write =
-		(int (*) (const struct flash*, uint32_t, const uint8_t*, size_t)) spi_flash_write;
-	flash->base.get_sector_size =
-		(int (*) (const struct flash*, uint32_t*)) spi_flash_get_sector_size;
-	flash->base.sector_erase = (int (*) (const struct flash*, uint32_t)) spi_flash_sector_erase;
-	flash->base.get_block_size =
-		(int (*) (const struct flash*, uint32_t*)) spi_flash_get_block_size;
-	flash->base.block_erase = (int (*) (const struct flash*, uint32_t)) spi_flash_block_erase;
-	flash->base.chip_erase = (int (*) (const struct flash*)) spi_flash_chip_erase;
+	flash->base.get_device_size = spi_flash_flash_api_get_device_size;
+	flash->base.read = spi_flash_flash_api_read;
+	flash->base.get_page_size = spi_flash_flash_api_get_page_size;
+	flash->base.minimum_write_per_page = spi_flash_flash_api_minimum_write_per_page;
+	flash->base.write = spi_flash_flash_api_write;
+	flash->base.get_sector_size = spi_flash_flash_api_get_sector_size;
+	flash->base.sector_erase = spi_flash_flash_api_sector_erase;
+	flash->base.get_block_size = spi_flash_flash_api_get_block_size;
+	flash->base.block_erase = spi_flash_flash_api_block_erase;
+	flash->base.chip_erase = spi_flash_flash_api_chip_erase;
 
 	flash->state = state;
 	flash->spi = spi;
@@ -2190,7 +2387,7 @@ int spi_flash_get_page_size (const struct spi_flash *flash, uint32_t *bytes)
 
 /* API handler for get_page_size, minimum_write_per_page, get_sector_size, and get_block_size when
  * statically initialized for read only access. */
-int spi_flash_get_size_read_only (const struct flash *flash, uint32_t *bytes)
+int spi_flash_flash_api_get_size_read_only (const struct flash *flash, uint32_t *bytes)
 {
 	UNUSED (flash);
 	UNUSED (bytes);
@@ -2303,8 +2500,8 @@ exit:
 }
 
 /* API handler for write when statically initialized for read only access. */
-int spi_flash_write_read_only (const struct flash *flash, uint32_t address, const uint8_t *data,
-	size_t length)
+int spi_flash_flash_api_write_read_only (const struct flash *flash, uint32_t address,
+	const uint8_t *data, size_t length)
 {
 	UNUSED (flash);
 	UNUSED (address);
@@ -2402,7 +2599,7 @@ int spi_flash_sector_erase (const struct spi_flash *flash, uint32_t sector_addr)
 }
 
 /* API handler for sector_erase and block_erase when statically initialized for read only access. */
-int spi_flash_erase_read_only (const struct flash *flash, uint32_t addr)
+int spi_flash_flash_api_erase_read_only (const struct flash *flash, uint32_t addr)
 {
 	UNUSED (flash);
 	UNUSED (addr);
@@ -2491,7 +2688,7 @@ exit:
 }
 
 /* API handler for chip_erase when statically initialized for read only access. */
-int spi_flash_chip_erase_read_only (const struct flash *flash)
+int spi_flash_flash_api_chip_erase_read_only (const struct flash *flash)
 {
 	UNUSED (flash);
 

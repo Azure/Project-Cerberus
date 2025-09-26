@@ -184,16 +184,17 @@ static void spi_flash_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, flash.base.block_erase);
 	CuAssertPtrNotNull (test, flash.base.chip_erase);
 
-	CuAssertPtrEquals (test, spi_flash_get_device_size, flash.base.get_device_size);
-	CuAssertPtrEquals (test, spi_flash_read, flash.base.read);
-	CuAssertPtrEquals (test, spi_flash_get_page_size, flash.base.get_page_size);
-	CuAssertPtrEquals (test, spi_flash_minimum_write_per_page, flash.base.minimum_write_per_page);
-	CuAssertPtrEquals (test, spi_flash_write, flash.base.write);
-	CuAssertPtrEquals (test, spi_flash_get_sector_size, flash.base.get_sector_size);
-	CuAssertPtrEquals (test, spi_flash_sector_erase, flash.base.sector_erase);
-	CuAssertPtrEquals (test, spi_flash_get_block_size, flash.base.get_block_size);
-	CuAssertPtrEquals (test, spi_flash_block_erase, flash.base.block_erase);
-	CuAssertPtrEquals (test, spi_flash_chip_erase, flash.base.chip_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_device_size, flash.base.get_device_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_read, flash.base.read);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_page_size, flash.base.get_page_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_minimum_write_per_page,
+		flash.base.minimum_write_per_page);
+	CuAssertPtrEquals (test, spi_flash_flash_api_write, flash.base.write);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_sector_size, flash.base.get_sector_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_sector_erase, flash.base.sector_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_block_size, flash.base.get_block_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_block_erase, flash.base.block_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_chip_erase, flash.base.chip_erase);
 
 	status = flash_master_mock_validate_and_release (&mock);
 	CuAssertIntEquals (test, 0, status);
@@ -252,16 +253,17 @@ static void spi_flash_test_init_fast_read (CuTest *test)
 	CuAssertPtrNotNull (test, flash.base.block_erase);
 	CuAssertPtrNotNull (test, flash.base.chip_erase);
 
-	CuAssertPtrEquals (test, spi_flash_get_device_size, flash.base.get_device_size);
-	CuAssertPtrEquals (test, spi_flash_read, flash.base.read);
-	CuAssertPtrEquals (test, spi_flash_get_page_size, flash.base.get_page_size);
-	CuAssertPtrEquals (test, spi_flash_minimum_write_per_page, flash.base.minimum_write_per_page);
-	CuAssertPtrEquals (test, spi_flash_write, flash.base.write);
-	CuAssertPtrEquals (test, spi_flash_get_sector_size, flash.base.get_sector_size);
-	CuAssertPtrEquals (test, spi_flash_sector_erase, flash.base.sector_erase);
-	CuAssertPtrEquals (test, spi_flash_get_block_size, flash.base.get_block_size);
-	CuAssertPtrEquals (test, spi_flash_block_erase, flash.base.block_erase);
-	CuAssertPtrEquals (test, spi_flash_chip_erase, flash.base.chip_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_device_size, flash.base.get_device_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_read, flash.base.read);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_page_size, flash.base.get_page_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_minimum_write_per_page,
+		flash.base.minimum_write_per_page);
+	CuAssertPtrEquals (test, spi_flash_flash_api_write, flash.base.write);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_sector_size, flash.base.get_sector_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_sector_erase, flash.base.sector_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_block_size, flash.base.get_block_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_block_erase, flash.base.block_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_chip_erase, flash.base.chip_erase);
 
 	status = flash_master_mock_validate_and_release (&mock);
 	CuAssertIntEquals (test, 0, status);
@@ -314,16 +316,17 @@ static void spi_flash_test_static_init (CuTest *test)
 	CuAssertPtrNotNull (test, flash.base.block_erase);
 	CuAssertPtrNotNull (test, flash.base.chip_erase);
 
-	CuAssertPtrEquals (test, spi_flash_get_device_size, flash.base.get_device_size);
-	CuAssertPtrEquals (test, spi_flash_read, flash.base.read);
-	CuAssertPtrEquals (test, spi_flash_get_page_size, flash.base.get_page_size);
-	CuAssertPtrEquals (test, spi_flash_minimum_write_per_page, flash.base.minimum_write_per_page);
-	CuAssertPtrEquals (test, spi_flash_write, flash.base.write);
-	CuAssertPtrEquals (test, spi_flash_get_sector_size, flash.base.get_sector_size);
-	CuAssertPtrEquals (test, spi_flash_sector_erase, flash.base.sector_erase);
-	CuAssertPtrEquals (test, spi_flash_get_block_size, flash.base.get_block_size);
-	CuAssertPtrEquals (test, spi_flash_block_erase, flash.base.block_erase);
-	CuAssertPtrEquals (test, spi_flash_chip_erase, flash.base.chip_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_device_size, flash.base.get_device_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_read, flash.base.read);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_page_size, flash.base.get_page_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_minimum_write_per_page,
+		flash.base.minimum_write_per_page);
+	CuAssertPtrEquals (test, spi_flash_flash_api_write, flash.base.write);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_sector_size, flash.base.get_sector_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_sector_erase, flash.base.sector_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_block_size, flash.base.get_block_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_block_erase, flash.base.block_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_chip_erase, flash.base.chip_erase);
 
 	status = flash_master_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
@@ -358,8 +361,8 @@ static void spi_flash_test_static_init_read_only (CuTest *test)
 	CuAssertPtrNotNull (test, flash.base.block_erase);
 	CuAssertPtrNotNull (test, flash.base.chip_erase);
 
-	CuAssertPtrEquals (test, spi_flash_get_device_size, flash.base.get_device_size);
-	CuAssertPtrEquals (test, spi_flash_read, flash.base.read);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_device_size, flash.base.get_device_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_read, flash.base.read);
 
 	status = flash_master_mock_init (&mock);
 	CuAssertIntEquals (test, 0, status);
@@ -476,16 +479,17 @@ static void spi_flash_test_init_api (CuTest *test)
 	CuAssertPtrNotNull (test, flash.base.block_erase);
 	CuAssertPtrNotNull (test, flash.base.chip_erase);
 
-	CuAssertPtrEquals (test, spi_flash_get_device_size, flash.base.get_device_size);
-	CuAssertPtrEquals (test, spi_flash_read, flash.base.read);
-	CuAssertPtrEquals (test, spi_flash_get_page_size, flash.base.get_page_size);
-	CuAssertPtrEquals (test, spi_flash_minimum_write_per_page, flash.base.minimum_write_per_page);
-	CuAssertPtrEquals (test, spi_flash_write, flash.base.write);
-	CuAssertPtrEquals (test, spi_flash_get_sector_size, flash.base.get_sector_size);
-	CuAssertPtrEquals (test, spi_flash_sector_erase, flash.base.sector_erase);
-	CuAssertPtrEquals (test, spi_flash_get_block_size, flash.base.get_block_size);
-	CuAssertPtrEquals (test, spi_flash_block_erase, flash.base.block_erase);
-	CuAssertPtrEquals (test, spi_flash_chip_erase, flash.base.chip_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_device_size, flash.base.get_device_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_read, flash.base.read);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_page_size, flash.base.get_page_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_minimum_write_per_page,
+		flash.base.minimum_write_per_page);
+	CuAssertPtrEquals (test, spi_flash_flash_api_write, flash.base.write);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_sector_size, flash.base.get_sector_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_sector_erase, flash.base.sector_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_block_size, flash.base.get_block_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_block_erase, flash.base.block_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_chip_erase, flash.base.chip_erase);
 
 	status = spi_flash_init_state (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -752,6 +756,37 @@ static void spi_flash_test_get_device_size_null (CuTest *test)
 	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
 
 	status = spi_flash_get_device_size (&flash, NULL);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_get_device_size_flash_api_null (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint32_t out;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash.base.get_device_size (NULL, &out);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = flash.base.get_device_size (&flash.base, NULL);
 	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);
@@ -9274,6 +9309,38 @@ static void spi_flash_test_read_null (CuTest *test)
 	spi_flash_release (&flash);
 }
 
+static void spi_flash_test_read_flash_api_null (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint8_t data_in[4];
+	size_t length = sizeof (data_in);
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash.base.read (NULL, 0x1234, data_in, length);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = flash.base.read (&flash.base, 0x1234, NULL, length);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = flash_master_mock_validate_and_release (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+}
+
 static void spi_flash_test_read_out_of_range (CuTest *test)
 {
 	struct spi_flash_state state;
@@ -10623,6 +10690,37 @@ static void spi_flash_test_write_null (CuTest *test)
 	spi_flash_release (&flash);
 }
 
+static void spi_flash_test_write_flash_api_null (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint8_t cmd_expected[] = {0x01, 0x02, 0x03, 0x04};
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash.base.write (NULL, 0x1234, cmd_expected, sizeof (cmd_expected));
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = flash.base.write (&flash.base, 0x1234, NULL, sizeof (cmd_expected));
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = flash_master_mock_validate_and_release (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+}
+
 static void spi_flash_test_write_out_of_range (CuTest *test)
 {
 	struct spi_flash_state state;
@@ -11886,6 +11984,33 @@ static void spi_flash_test_sector_erase_null (CuTest *test)
 	spi_flash_release (&flash);
 }
 
+static void spi_flash_test_sector_erase_flash_api_null (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash.base.sector_erase (NULL, 0x1000);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = flash_master_mock_validate_and_release (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+}
+
 static void spi_flash_test_sector_erase_out_of_range (CuTest *test)
 {
 	struct spi_flash_state state;
@@ -13106,6 +13231,33 @@ static void spi_flash_test_block_erase_null (CuTest *test)
 	spi_flash_release (&flash);
 }
 
+static void spi_flash_test_block_erase_flash_api_null (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash.base.block_erase (NULL, 0x10000);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = flash_master_mock_validate_and_release (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+}
+
 static void spi_flash_test_block_erase_out_of_range (CuTest *test)
 {
 	struct spi_flash_state state;
@@ -13599,6 +13751,31 @@ static void spi_flash_test_chip_erase_null (CuTest *test)
 	spi_flash_release (&flash);
 }
 
+static void spi_flash_test_chip_erase_flash_api_null (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash.base.chip_erase (NULL);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = flash_master_mock_validate_and_release (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+}
+
+
 static void spi_flash_test_chip_erase_error_enable (CuTest *test)
 {
 	struct spi_flash_state state;
@@ -13944,6 +14121,37 @@ static void spi_flash_test_get_sector_size_null (CuTest *test)
 	spi_flash_release (&flash);
 }
 
+static void spi_flash_test_get_sector_size_flash_api_null (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint32_t out;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash.base.get_sector_size (NULL, &out);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = flash.base.get_sector_size (&flash.base, NULL);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
 static void spi_flash_test_get_block_size (CuTest *test)
 {
 	struct spi_flash_state state;
@@ -14062,6 +14270,37 @@ static void spi_flash_test_get_block_size_null (CuTest *test)
 	spi_flash_release (&flash);
 }
 
+static void spi_flash_test_get_block_size_flash_api_null (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint32_t out;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash.base.get_block_size (NULL, &out);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = flash.base.get_block_size (&flash.base, NULL);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
 static void spi_flash_test_get_page_size (CuTest *test)
 {
 	struct spi_flash_state state;
@@ -14165,10 +14404,41 @@ static void spi_flash_test_get_page_size_null (CuTest *test)
 	status = spi_flash_init (&flash, &state, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_get_block_size (NULL, &out);
+	status = spi_flash_get_page_size (NULL, &out);
 	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
 
-	status = spi_flash_get_block_size (&flash, NULL);
+	status = spi_flash_get_page_size (&flash, NULL);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_get_page_size_flash_api_null (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint32_t out;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash.base.get_page_size (NULL, &out);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = flash.base.get_page_size (&flash.base, NULL);
 	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);
@@ -14228,6 +14498,37 @@ static void spi_flash_test_minimum_write_per_page_flash_api (CuTest *test)
 	status = flash.base.minimum_write_per_page (&flash.base, &out);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, out);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_minimum_write_per_page_flash_api_null (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint32_t out;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash.base.minimum_write_per_page (NULL, &out);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = flash.base.minimum_write_per_page (&flash.base, NULL);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);
 	CuAssertIntEquals (test, 0, status);
@@ -19052,16 +19353,17 @@ static void spi_flash_test_initialize_device_3byte_only (CuTest *test)
 	CuAssertPtrNotNull (test, flash.base.block_erase);
 	CuAssertPtrNotNull (test, flash.base.chip_erase);
 
-	CuAssertPtrEquals (test, spi_flash_get_device_size, flash.base.get_device_size);
-	CuAssertPtrEquals (test, spi_flash_read, flash.base.read);
-	CuAssertPtrEquals (test, spi_flash_get_page_size, flash.base.get_page_size);
-	CuAssertPtrEquals (test, spi_flash_minimum_write_per_page, flash.base.minimum_write_per_page);
-	CuAssertPtrEquals (test, spi_flash_write, flash.base.write);
-	CuAssertPtrEquals (test, spi_flash_get_sector_size, flash.base.get_sector_size);
-	CuAssertPtrEquals (test, spi_flash_sector_erase, flash.base.sector_erase);
-	CuAssertPtrEquals (test, spi_flash_get_block_size, flash.base.get_block_size);
-	CuAssertPtrEquals (test, spi_flash_block_erase, flash.base.block_erase);
-	CuAssertPtrEquals (test, spi_flash_chip_erase, flash.base.chip_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_device_size, flash.base.get_device_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_read, flash.base.read);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_page_size, flash.base.get_page_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_minimum_write_per_page,
+		flash.base.minimum_write_per_page);
+	CuAssertPtrEquals (test, spi_flash_flash_api_write, flash.base.write);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_sector_size, flash.base.get_sector_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_sector_erase, flash.base.sector_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_block_size, flash.base.get_block_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_block_erase, flash.base.block_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_chip_erase, flash.base.chip_erase);
 
 	status = spi_flash_get_device_size (&flash, &out);
 	CuAssertIntEquals (test, 0, status);
@@ -19180,16 +19482,17 @@ static void spi_flash_test_initialize_device_4byte_mode_unsupported (CuTest *tes
 	CuAssertPtrNotNull (test, flash.base.block_erase);
 	CuAssertPtrNotNull (test, flash.base.chip_erase);
 
-	CuAssertPtrEquals (test, spi_flash_get_device_size, flash.base.get_device_size);
-	CuAssertPtrEquals (test, spi_flash_read, flash.base.read);
-	CuAssertPtrEquals (test, spi_flash_get_page_size, flash.base.get_page_size);
-	CuAssertPtrEquals (test, spi_flash_minimum_write_per_page, flash.base.minimum_write_per_page);
-	CuAssertPtrEquals (test, spi_flash_write, flash.base.write);
-	CuAssertPtrEquals (test, spi_flash_get_sector_size, flash.base.get_sector_size);
-	CuAssertPtrEquals (test, spi_flash_sector_erase, flash.base.sector_erase);
-	CuAssertPtrEquals (test, spi_flash_get_block_size, flash.base.get_block_size);
-	CuAssertPtrEquals (test, spi_flash_block_erase, flash.base.block_erase);
-	CuAssertPtrEquals (test, spi_flash_chip_erase, flash.base.chip_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_device_size, flash.base.get_device_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_read, flash.base.read);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_page_size, flash.base.get_page_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_minimum_write_per_page,
+		flash.base.minimum_write_per_page);
+	CuAssertPtrEquals (test, spi_flash_flash_api_write, flash.base.write);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_sector_size, flash.base.get_sector_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_sector_erase, flash.base.sector_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_block_size, flash.base.get_block_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_block_erase, flash.base.block_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_chip_erase, flash.base.chip_erase);
 
 	status = spi_flash_get_device_size (&flash, &out);
 	CuAssertIntEquals (test, 0, status);
@@ -20110,16 +20413,17 @@ static void spi_flash_test_initialize_device_fast_read (CuTest *test)
 	CuAssertPtrNotNull (test, flash.base.block_erase);
 	CuAssertPtrNotNull (test, flash.base.chip_erase);
 
-	CuAssertPtrEquals (test, spi_flash_get_device_size, flash.base.get_device_size);
-	CuAssertPtrEquals (test, spi_flash_read, flash.base.read);
-	CuAssertPtrEquals (test, spi_flash_get_page_size, flash.base.get_page_size);
-	CuAssertPtrEquals (test, spi_flash_minimum_write_per_page, flash.base.minimum_write_per_page);
-	CuAssertPtrEquals (test, spi_flash_write, flash.base.write);
-	CuAssertPtrEquals (test, spi_flash_get_sector_size, flash.base.get_sector_size);
-	CuAssertPtrEquals (test, spi_flash_sector_erase, flash.base.sector_erase);
-	CuAssertPtrEquals (test, spi_flash_get_block_size, flash.base.get_block_size);
-	CuAssertPtrEquals (test, spi_flash_block_erase, flash.base.block_erase);
-	CuAssertPtrEquals (test, spi_flash_chip_erase, flash.base.chip_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_device_size, flash.base.get_device_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_read, flash.base.read);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_page_size, flash.base.get_page_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_minimum_write_per_page,
+		flash.base.minimum_write_per_page);
+	CuAssertPtrEquals (test, spi_flash_flash_api_write, flash.base.write);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_sector_size, flash.base.get_sector_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_sector_erase, flash.base.sector_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_block_size, flash.base.get_block_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_block_erase, flash.base.block_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_chip_erase, flash.base.chip_erase);
 
 	status = spi_flash_get_device_size (&flash, &out);
 	CuAssertIntEquals (test, 0, status);
@@ -21904,16 +22208,17 @@ static void spi_flash_test_initialize_device_state_3byte_only (CuTest *test)
 	CuAssertPtrNotNull (test, flash.base.block_erase);
 	CuAssertPtrNotNull (test, flash.base.chip_erase);
 
-	CuAssertPtrEquals (test, spi_flash_get_device_size, flash.base.get_device_size);
-	CuAssertPtrEquals (test, spi_flash_read, flash.base.read);
-	CuAssertPtrEquals (test, spi_flash_get_page_size, flash.base.get_page_size);
-	CuAssertPtrEquals (test, spi_flash_minimum_write_per_page, flash.base.minimum_write_per_page);
-	CuAssertPtrEquals (test, spi_flash_write, flash.base.write);
-	CuAssertPtrEquals (test, spi_flash_get_sector_size, flash.base.get_sector_size);
-	CuAssertPtrEquals (test, spi_flash_sector_erase, flash.base.sector_erase);
-	CuAssertPtrEquals (test, spi_flash_get_block_size, flash.base.get_block_size);
-	CuAssertPtrEquals (test, spi_flash_block_erase, flash.base.block_erase);
-	CuAssertPtrEquals (test, spi_flash_chip_erase, flash.base.chip_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_device_size, flash.base.get_device_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_read, flash.base.read);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_page_size, flash.base.get_page_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_minimum_write_per_page,
+		flash.base.minimum_write_per_page);
+	CuAssertPtrEquals (test, spi_flash_flash_api_write, flash.base.write);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_sector_size, flash.base.get_sector_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_sector_erase, flash.base.sector_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_block_size, flash.base.get_block_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_block_erase, flash.base.block_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_chip_erase, flash.base.chip_erase);
 
 	status = spi_flash_get_device_size (&flash, &out);
 	CuAssertIntEquals (test, 0, status);
@@ -22595,16 +22900,17 @@ static void spi_flash_test_initialize_device_state_fast_read (CuTest *test)
 	CuAssertPtrNotNull (test, flash.base.block_erase);
 	CuAssertPtrNotNull (test, flash.base.chip_erase);
 
-	CuAssertPtrEquals (test, spi_flash_get_device_size, flash.base.get_device_size);
-	CuAssertPtrEquals (test, spi_flash_read, flash.base.read);
-	CuAssertPtrEquals (test, spi_flash_get_page_size, flash.base.get_page_size);
-	CuAssertPtrEquals (test, spi_flash_minimum_write_per_page, flash.base.minimum_write_per_page);
-	CuAssertPtrEquals (test, spi_flash_write, flash.base.write);
-	CuAssertPtrEquals (test, spi_flash_get_sector_size, flash.base.get_sector_size);
-	CuAssertPtrEquals (test, spi_flash_sector_erase, flash.base.sector_erase);
-	CuAssertPtrEquals (test, spi_flash_get_block_size, flash.base.get_block_size);
-	CuAssertPtrEquals (test, spi_flash_block_erase, flash.base.block_erase);
-	CuAssertPtrEquals (test, spi_flash_chip_erase, flash.base.chip_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_device_size, flash.base.get_device_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_read, flash.base.read);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_page_size, flash.base.get_page_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_minimum_write_per_page,
+		flash.base.minimum_write_per_page);
+	CuAssertPtrEquals (test, spi_flash_flash_api_write, flash.base.write);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_sector_size, flash.base.get_sector_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_sector_erase, flash.base.sector_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_block_size, flash.base.get_block_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_block_erase, flash.base.block_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_chip_erase, flash.base.chip_erase);
 
 	status = spi_flash_get_device_size (&flash, &out);
 	CuAssertIntEquals (test, 0, status);
@@ -25185,16 +25491,17 @@ static void spi_flash_test_restore_device (CuTest *test)
 	CuAssertPtrNotNull (test, flash2.base.block_erase);
 	CuAssertPtrNotNull (test, flash2.base.chip_erase);
 
-	CuAssertPtrEquals (test, spi_flash_get_device_size, flash2.base.get_device_size);
-	CuAssertPtrEquals (test, spi_flash_read, flash2.base.read);
-	CuAssertPtrEquals (test, spi_flash_get_page_size, flash2.base.get_page_size);
-	CuAssertPtrEquals (test, spi_flash_minimum_write_per_page, flash2.base.minimum_write_per_page);
-	CuAssertPtrEquals (test, spi_flash_write, flash2.base.write);
-	CuAssertPtrEquals (test, spi_flash_get_sector_size, flash2.base.get_sector_size);
-	CuAssertPtrEquals (test, spi_flash_sector_erase, flash2.base.sector_erase);
-	CuAssertPtrEquals (test, spi_flash_get_block_size, flash2.base.get_block_size);
-	CuAssertPtrEquals (test, spi_flash_block_erase, flash2.base.block_erase);
-	CuAssertPtrEquals (test, spi_flash_chip_erase, flash2.base.chip_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_device_size, flash2.base.get_device_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_read, flash2.base.read);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_page_size, flash2.base.get_page_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_minimum_write_per_page,
+		flash2.base.minimum_write_per_page);
+	CuAssertPtrEquals (test, spi_flash_flash_api_write, flash2.base.write);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_sector_size, flash2.base.get_sector_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_sector_erase, flash2.base.sector_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_block_size, flash2.base.get_block_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_block_erase, flash2.base.block_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_chip_erase, flash2.base.chip_erase);
 
 	status = spi_flash_get_device_size (&flash2, &out);
 	CuAssertIntEquals (test, 0, status);
@@ -25384,16 +25691,17 @@ static void spi_flash_test_restore_device_fast_read (CuTest *test)
 	CuAssertPtrNotNull (test, flash2.base.block_erase);
 	CuAssertPtrNotNull (test, flash2.base.chip_erase);
 
-	CuAssertPtrEquals (test, spi_flash_get_device_size, flash2.base.get_device_size);
-	CuAssertPtrEquals (test, spi_flash_read, flash2.base.read);
-	CuAssertPtrEquals (test, spi_flash_get_page_size, flash2.base.get_page_size);
-	CuAssertPtrEquals (test, spi_flash_minimum_write_per_page, flash2.base.minimum_write_per_page);
-	CuAssertPtrEquals (test, spi_flash_write, flash2.base.write);
-	CuAssertPtrEquals (test, spi_flash_get_sector_size, flash2.base.get_sector_size);
-	CuAssertPtrEquals (test, spi_flash_sector_erase, flash2.base.sector_erase);
-	CuAssertPtrEquals (test, spi_flash_get_block_size, flash2.base.get_block_size);
-	CuAssertPtrEquals (test, spi_flash_block_erase, flash2.base.block_erase);
-	CuAssertPtrEquals (test, spi_flash_chip_erase, flash2.base.chip_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_device_size, flash2.base.get_device_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_read, flash2.base.read);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_page_size, flash2.base.get_page_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_minimum_write_per_page,
+		flash2.base.minimum_write_per_page);
+	CuAssertPtrEquals (test, spi_flash_flash_api_write, flash2.base.write);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_sector_size, flash2.base.get_sector_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_sector_erase, flash2.base.sector_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_block_size, flash2.base.get_block_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_block_erase, flash2.base.block_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_chip_erase, flash2.base.chip_erase);
 
 	status = spi_flash_get_device_size (&flash2, &out);
 	CuAssertIntEquals (test, 0, status);
@@ -25550,16 +25858,17 @@ static void spi_flash_test_restore_device_4byte_write_erase (CuTest *test)
 	CuAssertPtrNotNull (test, flash2.base.block_erase);
 	CuAssertPtrNotNull (test, flash2.base.chip_erase);
 
-	CuAssertPtrEquals (test, spi_flash_get_device_size, flash2.base.get_device_size);
-	CuAssertPtrEquals (test, spi_flash_read, flash2.base.read);
-	CuAssertPtrEquals (test, spi_flash_get_page_size, flash2.base.get_page_size);
-	CuAssertPtrEquals (test, spi_flash_minimum_write_per_page, flash2.base.minimum_write_per_page);
-	CuAssertPtrEquals (test, spi_flash_write, flash2.base.write);
-	CuAssertPtrEquals (test, spi_flash_get_sector_size, flash2.base.get_sector_size);
-	CuAssertPtrEquals (test, spi_flash_sector_erase, flash2.base.sector_erase);
-	CuAssertPtrEquals (test, spi_flash_get_block_size, flash2.base.get_block_size);
-	CuAssertPtrEquals (test, spi_flash_block_erase, flash2.base.block_erase);
-	CuAssertPtrEquals (test, spi_flash_chip_erase, flash2.base.chip_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_device_size, flash2.base.get_device_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_read, flash2.base.read);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_page_size, flash2.base.get_page_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_minimum_write_per_page,
+		flash2.base.minimum_write_per_page);
+	CuAssertPtrEquals (test, spi_flash_flash_api_write, flash2.base.write);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_sector_size, flash2.base.get_sector_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_sector_erase, flash2.base.sector_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_block_size, flash2.base.get_block_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_block_erase, flash2.base.block_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_chip_erase, flash2.base.chip_erase);
 
 	status = spi_flash_get_device_size (&flash2, &out);
 	CuAssertIntEquals (test, 0, status);
@@ -25745,16 +26054,17 @@ static void spi_flash_test_restore_device_3byte_4byte_write_enable (CuTest *test
 	CuAssertPtrNotNull (test, flash2.base.block_erase);
 	CuAssertPtrNotNull (test, flash2.base.chip_erase);
 
-	CuAssertPtrEquals (test, spi_flash_get_device_size, flash2.base.get_device_size);
-	CuAssertPtrEquals (test, spi_flash_read, flash2.base.read);
-	CuAssertPtrEquals (test, spi_flash_get_page_size, flash2.base.get_page_size);
-	CuAssertPtrEquals (test, spi_flash_minimum_write_per_page, flash2.base.minimum_write_per_page);
-	CuAssertPtrEquals (test, spi_flash_write, flash2.base.write);
-	CuAssertPtrEquals (test, spi_flash_get_sector_size, flash2.base.get_sector_size);
-	CuAssertPtrEquals (test, spi_flash_sector_erase, flash2.base.sector_erase);
-	CuAssertPtrEquals (test, spi_flash_get_block_size, flash2.base.get_block_size);
-	CuAssertPtrEquals (test, spi_flash_block_erase, flash2.base.block_erase);
-	CuAssertPtrEquals (test, spi_flash_chip_erase, flash2.base.chip_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_device_size, flash2.base.get_device_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_read, flash2.base.read);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_page_size, flash2.base.get_page_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_minimum_write_per_page,
+		flash2.base.minimum_write_per_page);
+	CuAssertPtrEquals (test, spi_flash_flash_api_write, flash2.base.write);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_sector_size, flash2.base.get_sector_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_sector_erase, flash2.base.sector_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_block_size, flash2.base.get_block_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_block_erase, flash2.base.block_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_chip_erase, flash2.base.chip_erase);
 
 	status = spi_flash_get_device_size (&flash2, &out);
 	CuAssertIntEquals (test, 0, status);
@@ -25954,16 +26264,17 @@ static void spi_flash_test_restore_device_flag_status_register_volatile_write_en
 	CuAssertPtrNotNull (test, flash2.base.block_erase);
 	CuAssertPtrNotNull (test, flash2.base.chip_erase);
 
-	CuAssertPtrEquals (test, spi_flash_get_device_size, flash2.base.get_device_size);
-	CuAssertPtrEquals (test, spi_flash_read, flash2.base.read);
-	CuAssertPtrEquals (test, spi_flash_get_page_size, flash2.base.get_page_size);
-	CuAssertPtrEquals (test, spi_flash_minimum_write_per_page, flash2.base.minimum_write_per_page);
-	CuAssertPtrEquals (test, spi_flash_write, flash2.base.write);
-	CuAssertPtrEquals (test, spi_flash_get_sector_size, flash2.base.get_sector_size);
-	CuAssertPtrEquals (test, spi_flash_sector_erase, flash2.base.sector_erase);
-	CuAssertPtrEquals (test, spi_flash_get_block_size, flash2.base.get_block_size);
-	CuAssertPtrEquals (test, spi_flash_block_erase, flash2.base.block_erase);
-	CuAssertPtrEquals (test, spi_flash_chip_erase, flash2.base.chip_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_device_size, flash2.base.get_device_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_read, flash2.base.read);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_page_size, flash2.base.get_page_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_minimum_write_per_page,
+		flash2.base.minimum_write_per_page);
+	CuAssertPtrEquals (test, spi_flash_flash_api_write, flash2.base.write);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_sector_size, flash2.base.get_sector_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_sector_erase, flash2.base.sector_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_block_size, flash2.base.get_block_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_block_erase, flash2.base.block_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_chip_erase, flash2.base.chip_erase);
 
 	status = spi_flash_get_device_size (&flash2, &out);
 	CuAssertIntEquals (test, 0, status);
@@ -26170,16 +26481,17 @@ static void spi_flash_test_restore_device_nonstandard_deep_powerdown (CuTest *te
 	CuAssertPtrNotNull (test, flash2.base.block_erase);
 	CuAssertPtrNotNull (test, flash2.base.chip_erase);
 
-	CuAssertPtrEquals (test, spi_flash_get_device_size, flash2.base.get_device_size);
-	CuAssertPtrEquals (test, spi_flash_read, flash2.base.read);
-	CuAssertPtrEquals (test, spi_flash_get_page_size, flash2.base.get_page_size);
-	CuAssertPtrEquals (test, spi_flash_minimum_write_per_page, flash2.base.minimum_write_per_page);
-	CuAssertPtrEquals (test, spi_flash_write, flash2.base.write);
-	CuAssertPtrEquals (test, spi_flash_get_sector_size, flash2.base.get_sector_size);
-	CuAssertPtrEquals (test, spi_flash_sector_erase, flash2.base.sector_erase);
-	CuAssertPtrEquals (test, spi_flash_get_block_size, flash2.base.get_block_size);
-	CuAssertPtrEquals (test, spi_flash_block_erase, flash2.base.block_erase);
-	CuAssertPtrEquals (test, spi_flash_chip_erase, flash2.base.chip_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_device_size, flash2.base.get_device_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_read, flash2.base.read);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_page_size, flash2.base.get_page_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_minimum_write_per_page,
+		flash2.base.minimum_write_per_page);
+	CuAssertPtrEquals (test, spi_flash_flash_api_write, flash2.base.write);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_sector_size, flash2.base.get_sector_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_sector_erase, flash2.base.sector_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_get_block_size, flash2.base.get_block_size);
+	CuAssertPtrEquals (test, spi_flash_flash_api_block_erase, flash2.base.block_erase);
+	CuAssertPtrEquals (test, spi_flash_flash_api_chip_erase, flash2.base.chip_erase);
 
 	status = spi_flash_get_device_size (&flash2, &out);
 	CuAssertIntEquals (test, 0, status);
@@ -29387,6 +29699,7 @@ TEST (spi_flash_test_set_device_size_small_null);
 TEST (spi_flash_test_set_device_size_small_over_16MB);
 TEST (spi_flash_test_get_device_size_flash_api);
 TEST (spi_flash_test_get_device_size_null);
+TEST (spi_flash_test_get_device_size_flash_api_null);
 TEST (spi_flash_test_get_device_id);
 TEST (spi_flash_test_get_device_id_twice);
 TEST (spi_flash_test_get_device_id_read_ff);
@@ -29543,6 +29856,7 @@ TEST (spi_flash_test_read_flag_status_register);
 TEST (spi_flash_test_read_static);
 TEST (spi_flash_test_read_static_fast_read);
 TEST (spi_flash_test_read_null);
+TEST (spi_flash_test_read_flash_api_null);
 TEST (spi_flash_test_read_out_of_range);
 TEST (spi_flash_test_read_too_long);
 TEST (spi_flash_test_read_error_in_progress);
@@ -29570,6 +29884,7 @@ TEST (spi_flash_test_write_flag_status_register);
 TEST (spi_flash_test_write_static);
 TEST (spi_flash_test_write_static_read_only);
 TEST (spi_flash_test_write_null);
+TEST (spi_flash_test_write_flash_api_null);
 TEST (spi_flash_test_write_out_of_range);
 TEST (spi_flash_test_write_too_long);
 TEST (spi_flash_test_write_error_enable);
@@ -29597,6 +29912,7 @@ TEST (spi_flash_test_sector_erase_flag_status_register);
 TEST (spi_flash_test_sector_erase_static);
 TEST (spi_flash_test_sector_erase_static_read_only);
 TEST (spi_flash_test_sector_erase_null);
+TEST (spi_flash_test_sector_erase_flash_api_null);
 TEST (spi_flash_test_sector_erase_out_of_range);
 TEST (spi_flash_test_sector_erase_error_enable);
 TEST (spi_flash_test_sector_erase_error_in_progress);
@@ -29623,6 +29939,7 @@ TEST (spi_flash_test_block_erase_flag_status_register);
 TEST (spi_flash_test_block_erase_static);
 TEST (spi_flash_test_block_erase_static_read_only);
 TEST (spi_flash_test_block_erase_null);
+TEST (spi_flash_test_block_erase_flash_api_null);
 TEST (spi_flash_test_block_erase_out_of_range);
 TEST (spi_flash_test_block_erase_error_enable);
 TEST (spi_flash_test_block_erase_error_in_progress);
@@ -29636,6 +29953,7 @@ TEST (spi_flash_test_chip_erase_flag_status_register);
 TEST (spi_flash_test_chip_erase_static);
 TEST (spi_flash_test_chip_erase_static_read_only);
 TEST (spi_flash_test_chip_erase_null);
+TEST (spi_flash_test_chip_erase_flash_api_null);
 TEST (spi_flash_test_chip_erase_error_enable);
 TEST (spi_flash_test_chip_erase_error_in_progress);
 TEST (spi_flash_test_chip_erase_error_in_progress_flag_status_register);
@@ -29646,18 +29964,22 @@ TEST (spi_flash_test_get_sector_size);
 TEST (spi_flash_test_get_sector_size_flash_api);
 TEST (spi_flash_test_get_sector_size_static_read_only);
 TEST (spi_flash_test_get_sector_size_null);
+TEST (spi_flash_test_get_sector_size_flash_api_null);
 TEST (spi_flash_test_get_block_size);
 TEST (spi_flash_test_get_block_size_flash_api);
 TEST (spi_flash_test_get_block_size_static_read_only);
 TEST (spi_flash_test_get_block_size_null);
+TEST (spi_flash_test_get_block_size_flash_api_null);
 TEST (spi_flash_test_get_page_size);
 TEST (spi_flash_test_get_page_size_flash_api);
 TEST (spi_flash_test_get_page_size_static_read_only);
 TEST (spi_flash_test_get_page_size_null);
+TEST (spi_flash_test_get_page_size_flash_api_null);
 TEST (spi_flash_test_minimum_write_per_page);
 TEST (spi_flash_test_minimum_write_per_page_flash_api);
 TEST (spi_flash_test_minimum_write_per_page_static_read_only);
 TEST (spi_flash_test_minimum_write_per_page_null);
+TEST (spi_flash_test_minimum_write_per_page_flash_api_null);
 TEST (spi_flash_test_is_write_in_progress);
 TEST (spi_flash_test_is_write_in_progress_no_write);
 TEST (spi_flash_test_is_write_in_progress_flag_status_register);
