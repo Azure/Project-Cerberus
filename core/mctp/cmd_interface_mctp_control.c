@@ -145,17 +145,6 @@ static int cmd_interface_mctp_control_process_response (const struct cmd_interfa
 					on_get_vendor_def_msg_response), response);
 			}
 
-		case MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES:
-			status = mctp_control_protocol_process_get_routing_table_entries_response (response);
-			if (status != 0) {
-				return status;
-			}
-			else {
-				return observable_notify_observers_with_ptr (&interface->observable,
-					offsetof (struct mctp_control_protocol_observer,
-					on_get_routing_table_entries_response), response);
-			}
-
 		case MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY:
 			status = mctp_control_protocol_process_discovery_notify_response (response);
 			if (status != 0) {

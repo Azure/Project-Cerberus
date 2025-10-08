@@ -33,9 +33,6 @@ void attestation_requester_on_cerberus_device_capabilities_response (
 	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response);
 void attestation_requester_on_mctp_set_eid_request (
 	const struct mctp_control_protocol_observer *observer);
-void attestation_requester_on_mctp_get_routing_table_entries_response (
-	const struct mctp_control_protocol_observer *observer,
-	const struct cmd_interface_msg *response);
 
 
 /**
@@ -45,8 +42,6 @@ void attestation_requester_on_mctp_get_routing_table_entries_response (
 #define	ATTESTATION_REQUESTER_MCTP_RSP_OBSERVER_API_INIT { \
 		.on_set_eid_request = \
 			attestation_requester_on_mctp_set_eid_request, \
-		.on_get_routing_table_entries_response = \
-			attestation_requester_on_mctp_get_routing_table_entries_response \
 	}
 #else
 #define ATTESTATION_REQUESTER_MCTP_RSP_OBSERVER_API_INIT

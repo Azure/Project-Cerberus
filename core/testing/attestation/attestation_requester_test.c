@@ -2938,184 +2938,6 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 }
 
 /**
- * Callback function which generates and processes a MCTP protocol Get Message Type response message
- *
- * @param expected The expectation that is being used to validate the current call on the mock.
- * @param called The context for the actual call on the mock.
- *
- * @return This function always returns 0
- */
-static int64_t attestation_requester_testing_mctp_get_message_type_rsp_callback (
-	const struct mock_call *expected, const struct mock_call *called)
-{
-	struct attestation_requester_testing *testing = expected->context;
-	struct mctp_base_protocol_transport_header *header;
-	struct mctp_base_protocol_message_header *mctp_header;
-	struct mctp_control_get_message_type_response *response;
-	struct cmd_packet rx_packet;
-	struct cmd_message *tx;
-	size_t offset;
-
-	UNUSED (called);
-
-	memset (&rx_packet, 0, sizeof (rx_packet));
-
-	header = (struct mctp_base_protocol_transport_header*) rx_packet.data;
-
-	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = 0x0B + testing->cerberus_discovery + testing->spdm_discovery;
-	header->source_addr = (0x20 << 1) | 1;
-	header->rsvd = 0;
-	header->header_version = 1;
-	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->source_eid = (testing->second_response[0] && testing->multiple_devices) ? 0x0C : 0xAA;
-	header->som = 1;
-	header->eom = 1;
-	header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
-	header->msg_tag = testing->msg_tag_resp;
-	header->packet_seq = 0;
-
-	++testing->msg_tag_resp;
-
-	offset = sizeof (struct mctp_base_protocol_transport_header);
-
-	mctp_header = (struct mctp_base_protocol_message_header*) &rx_packet.data[offset];
-	mctp_header->msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
-	offset += sizeof (struct mctp_base_protocol_message_header);
-
-	response = (struct mctp_control_get_message_type_response*) &rx_packet.data[offset];
-	response->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
-	response->header.completion_code = testing->rsp_fail;
-	response->message_type_count = 1 + testing->cerberus_discovery + testing->spdm_discovery;
-
-	offset += sizeof (struct mctp_control_get_message_type_response);
-
-	rx_packet.data[offset++] = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
-
-	if (testing->cerberus_discovery) {
-		rx_packet.data[offset++] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	}
-
-	if (testing->spdm_discovery) {
-		rx_packet.data[offset++] = MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM;
-	}
-
-	rx_packet.data[offset] = checksum_crc8 (0x41 << 1, rx_packet.data, offset);
-
-	offset += MCTP_BASE_PROTOCOL_PEC_SIZE;
-
-	rx_packet.pkt_size = offset;
-	rx_packet.state = CMD_VALID_PACKET;
-	rx_packet.dest_addr = 0x41;
-	rx_packet.timeout_valid = false;
-
-	mctp_interface_process_packet (&testing->mctp, &rx_packet, &tx);
-
-	return 0;
-}
-
-/**
- * Callback function which generates and processes a MCTP protocol Get Routing Table Entries
- * 	response message
- *
- * @param expected The expectation that is being used to validate the current call on the mock.
- * @param called The context for the actual call on the mock.
- *
- * @return This function always returns 0
- */
-static int64_t attestation_requester_testing_mctp_get_routing_table_entries_rsp_callback (
-	const struct mock_call *expected, const struct mock_call *called)
-{
-	struct attestation_requester_testing *testing = expected->context;
-	struct mctp_base_protocol_message_header *mctp_header;
-	struct mctp_base_protocol_transport_header *header;
-	struct mctp_control_get_routing_table_entries_response *response;
-	struct mctp_control_routing_table_entry *entry;
-	struct cmd_packet rx_packet;
-	struct cmd_message *tx;
-	size_t offset;
-
-	UNUSED (called);
-
-	memset (&rx_packet, 0, sizeof (rx_packet));
-
-	header = (struct mctp_base_protocol_transport_header*) rx_packet.data;
-
-	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = 0x0B + 2 * sizeof (struct mctp_control_routing_table_entry);
-	header->source_addr = (0x20 << 1) | 1;
-	header->rsvd = 0;
-	header->header_version = 1;
-	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->source_eid = 0xAA;
-	header->som = 1;
-	header->eom = 1;
-	header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
-	header->msg_tag = testing->msg_tag_resp;
-	header->packet_seq = 0;
-
-	++testing->msg_tag_resp;
-
-	offset = sizeof (struct mctp_base_protocol_transport_header);
-
-	mctp_header = (struct mctp_base_protocol_message_header*) &rx_packet.data[offset];
-	mctp_header->msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
-	offset += sizeof (struct mctp_base_protocol_message_header);
-
-	response = (struct mctp_control_get_routing_table_entries_response*) &rx_packet.data[offset];
-	entry = mctp_control_get_routing_table_entries_response_get_entries (response);
-
-	response->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES;
-	response->header.completion_code = testing->rsp_fail;
-	response->num_entries = 2;
-	response->next_entry_handle = testing->second_response[0] ? 0xFF : 1;
-
-	offset += sizeof (struct mctp_control_get_routing_table_entries_response);
-
-	if (!testing->second_response[0]) {
-		entry->eid_range_size = 2;
-		entry->starting_eid = 0xAA;
-
-		++entry;
-
-		offset += sizeof (struct mctp_control_routing_table_entry);
-
-		entry->eid_range_size = 1;
-		entry->starting_eid = 0xBB;
-
-		offset += sizeof (struct mctp_control_routing_table_entry);
-	}
-	else {
-		entry->eid_range_size = 1;
-		entry->starting_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-
-		++entry;
-
-		offset += sizeof (struct mctp_control_routing_table_entry);
-
-		entry->eid_range_size = 2;
-		entry->starting_eid = 0xDD;
-
-		offset += sizeof (struct mctp_control_routing_table_entry);
-	}
-
-	testing->second_response[0] = !testing->second_response[0];
-
-	rx_packet.data[offset] = checksum_crc8 (0x41 << 1, rx_packet.data, offset);
-
-	offset += MCTP_BASE_PROTOCOL_PEC_SIZE;
-
-	rx_packet.pkt_size = offset;
-	rx_packet.state = CMD_VALID_PACKET;
-	rx_packet.dest_addr = 0x41;
-	rx_packet.timeout_valid = false;
-
-	mctp_interface_process_packet (&testing->mctp, &rx_packet, &tx);
-
-	return 0;
-}
-
-/**
  * Generate and process a MCTP protocol Set Endpoint ID request
  *
  * @param test The testing framework.
@@ -5200,69 +5022,128 @@ static void attestation_requester_testing_send_and_receive_mctp_get_routing_tabl
 	bool get_rsp, bool unexpected_rsp, uint8_t entry_handle,
 	struct attestation_requester_testing *testing)
 {
-	struct mctp_base_protocol_message_header *mctp_header;
-	struct mctp_base_protocol_transport_header *header;
-	struct cmd_packet tx_packet;
 	struct mctp_control_get_routing_table_entries *request;
+	struct mctp_control_get_routing_table_entries_response *response;
+	struct mctp_control_routing_table_entry *entry;
+	uint8_t *tx_message = NULL;
+	uint8_t *rx_message = NULL;
+	struct cmd_interface_msg *req_expected = NULL;
+	struct cmd_interface_msg *resp_expected = NULL;
+	uint8_t dest_eid = 0x0A;
+	uint32_t timeout = device_manager_get_mctp_ctrl_timeout (&testing->device_mgr);
 	int status = 0;
 	size_t offset;
 
-	memset (&tx_packet, 0, sizeof (tx_packet));
+	/* Request contruction starts */
+	tx_message = platform_calloc (1,
+		sizeof (struct mctp_control_get_routing_table_entries));
+	req_expected = platform_calloc (1, sizeof (struct cmd_interface_msg));
+	req_expected->data = (uint8_t *) tx_message;
+	req_expected->length = sizeof (struct mctp_control_get_routing_table_entries);
+	req_expected->max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN;
+	req_expected->payload = tx_message;
+	req_expected->payload_length =
+		sizeof (struct mctp_control_get_routing_table_entries);
+	req_expected->target_eid = dest_eid;
 
-	header = (struct mctp_base_protocol_transport_header*) tx_packet.data;
-
-	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = 0x09;
-	header->source_addr = (0x41 << 1) | 1;
-	header->rsvd = 0;
-	header->header_version = 1;
-	header->destination_eid = 0x0A;
-	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->som = 1;
-	header->eom = 1;
-	header->tag_owner = MCTP_BASE_PROTOCOL_TO_REQUEST;
-	header->msg_tag = testing->msg_tag_req++;
-	header->packet_seq = 0;
-
-	offset = sizeof (struct mctp_base_protocol_transport_header);
-
-	mctp_header = (struct mctp_base_protocol_message_header*) &tx_packet.data[offset];
-	mctp_header->msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
-	offset += sizeof (struct mctp_base_protocol_message_header);
-
-	request = (struct mctp_control_get_routing_table_entries*) &tx_packet.data[offset];
+	request = (struct mctp_control_get_routing_table_entries*) req_expected->payload;
 	request->header.command_code = MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES;
 	request->header.rq = 1;
+
 	request->entry_handle = entry_handle;
+	/* Request contruction ends. */
 
-	offset += sizeof (struct mctp_control_get_routing_table_entries);
-
-	tx_packet.data[offset] = checksum_crc8 (0x20 << 1, tx_packet.data, offset);
-
-	offset += MCTP_BASE_PROTOCOL_PEC_SIZE;
-
-	tx_packet.pkt_size = offset;
-	tx_packet.state = CMD_VALID_PACKET;
-	tx_packet.dest_addr = 0x20;
-	tx_packet.timeout_valid = false;
-
-	status = mock_expect (&testing->channel.mock, testing->channel.base.send_packet,
-		&testing->channel, 0,
-		MOCK_ARG_VALIDATOR_TMP (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
+	status = mock_expect (&testing->mctp_control.mock,
+		testing->mctp_control.base.get_buffer_overhead, &testing->mctp_control, 0,
+		MOCK_ARG (dest_eid), MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
-	if (get_rsp) {
-		if (unexpected_rsp) {
-			status = mock_expect_external_action (&testing->channel.mock,
-				attestation_requester_testing_mctp_get_message_type_rsp_callback, testing);
-			CuAssertIntEquals (test, 0, status);
-		}
-		else {
-			status = mock_expect_external_action (&testing->channel.mock,
-				attestation_requester_testing_mctp_get_routing_table_entries_rsp_callback, testing);
-			CuAssertIntEquals (test, 0, status);
-		}
+	status = mock_expect (&testing->mctp_control.mock,
+		testing->mctp_control.base.get_max_message_payload_length, &testing->mctp_control,
+		MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN, MOCK_ARG (dest_eid));
+	CuAssertIntEquals (test, 0, status);
+
+	if ((!get_rsp) || unexpected_rsp || testing->rsp_fail) {
+		status = mock_expect (&testing->mctp_control.mock,
+			testing->mctp_control.base.send_request_message, &testing->mctp_control.base,
+			get_rsp ? MSG_TRANSPORT_UNEXPECTED_RESPONSE : MSG_TRANSPORT_REQUEST_TIMEOUT,
+			MOCK_ARG_VALIDATOR_DEEP_COPY_TMP ( cmd_interface_mock_validate_request, req_expected,
+				sizeof (*req_expected), cmd_interface_mock_save_request,
+				cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request),
+			MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
+		CuAssertIntEquals (test, 0, status);
+
+		cmd_interface_mock_free_request (req_expected);
+		return;
 	}
+
+	/* Response contruction starts. */
+	rx_message = platform_calloc (1, sizeof (struct mctp_control_get_routing_table_entries_response) +
+		sizeof (struct mctp_control_routing_table_entry) * 2);
+	resp_expected = platform_calloc (1, sizeof (struct cmd_interface_msg));
+	resp_expected->data = rx_message;
+	resp_expected->payload = rx_message;
+	resp_expected->target_eid = dest_eid;
+	resp_expected->max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN;
+
+	response = (struct mctp_control_get_routing_table_entries_response*) resp_expected->payload;
+	entry = mctp_control_get_routing_table_entries_response_get_entries (response);
+
+	response->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES;
+	response->header.completion_code = testing->rsp_fail;
+	response->num_entries = 2;
+	response->next_entry_handle = testing->second_response[0] ? 0xFF : 1;
+
+	offset = sizeof (struct mctp_control_get_routing_table_entries_response);
+
+	if (!testing->second_response[0]) {
+		entry->eid_range_size = 2;
+		entry->starting_eid = 0xAA;
+
+		++entry;
+
+		offset += sizeof (struct mctp_control_routing_table_entry);
+
+		entry->eid_range_size = 1;
+		entry->starting_eid = 0xBB;
+
+		offset += sizeof (struct mctp_control_routing_table_entry);
+	}
+	else {
+		entry->eid_range_size = 1;
+		entry->starting_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+		++entry;
+
+		offset += sizeof (struct mctp_control_routing_table_entry);
+
+		entry->eid_range_size = 2;
+		entry->starting_eid = 0xDD;
+
+		offset += sizeof (struct mctp_control_routing_table_entry);
+	}
+
+	resp_expected->payload_length = sizeof (*response) + response->num_entries * sizeof (*entry);
+	resp_expected->length = resp_expected->payload_length;
+	/* Response contruction ends. */
+
+	testing->second_response[0] = !testing->second_response[0];
+
+	status = mock_expect (&testing->mctp_control.mock,
+		testing->mctp_control.base.send_request_message, &testing->mctp_control.base, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
+		sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request), MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect_output_deep_copy_tmp (&testing->mctp_control.mock, 2, resp_expected,
+		sizeof (*resp_expected), cmd_interface_mock_copy_request,
+		cmd_interface_mock_duplicate_request, cmd_interface_mock_free_request);
+
+	CuAssertIntEquals (test, 0, status);
+	cmd_interface_mock_free_request (req_expected);
+	cmd_interface_mock_free_request (resp_expected);
+
+	return;
 }
 
 /*******************
@@ -39066,6 +38947,67 @@ static void attestation_requester_test_get_routing_table_no_mctp_bridge (CuTest 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
+static void attestation_requester_test_get_routing_table_create_msg_transport_empty_request_failed (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	int status = 0;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	attestation_requester_testing_receive_mctp_set_eid_request (test, &testing);
+
+	status = mock_expect (&testing.mctp_control.mock, testing.mctp_control.base.get_buffer_overhead,
+		&testing.mctp_control, MSG_TRANSPORT_INVALID_ARGUMENT, MOCK_ARG (0x0A), MOCK_ARG_ANY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_get_mctp_routing_table (&testing.test);
+	CuAssertIntEquals (test, MSG_TRANSPORT_INVALID_ARGUMENT, status);
+
+	status = mock_expect (&testing.mctp_control.mock, testing.mctp_control.base.get_buffer_overhead,
+		&testing.mctp_control, 0, MOCK_ARG (0x0A), MOCK_ARG_ANY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.mctp_control.mock,
+		testing.mctp_control.base.get_max_message_payload_length, &testing.mctp_control,
+		MSG_TRANSPORT_INVALID_ARGUMENT, MOCK_ARG (0x0A));
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_get_mctp_routing_table (&testing.test);
+	CuAssertIntEquals (test, MSG_TRANSPORT_INVALID_ARGUMENT, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_get_routing_table_get_request_failed (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	int status = 0;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	attestation_requester_testing_receive_mctp_set_eid_request (test, &testing);
+
+	status = mock_expect (&testing.mctp_control.mock, testing.mctp_control.base.get_buffer_overhead,
+		&testing.mctp_control, 0, MOCK_ARG (0x0A), MOCK_ARG_ANY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.mctp_control.mock,
+		testing.mctp_control.base.get_max_message_payload_length, &testing.mctp_control,
+		(sizeof (struct mctp_control_get_routing_table_entries) - 1), MOCK_ARG (0x0A));
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_get_mctp_routing_table (&testing.test);
+	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_BUF_TOO_SMALL, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
 static void attestation_requester_test_get_routing_table_get_routing_table_entries_unexpected_rsp (
 	CuTest *test)
 {
@@ -39082,7 +39024,7 @@ static void attestation_requester_test_get_routing_table_get_routing_table_entri
 		&testing);
 
 	status = attestation_requester_get_mctp_routing_table (&testing.test);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_FAIL_RESPONSE, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_UNEXPECTED_RESPONSE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -39103,7 +39045,7 @@ static void attestation_requester_test_get_routing_table_get_routing_table_entri
 		&testing);
 
 	status = attestation_requester_get_mctp_routing_table (&testing.test);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_REQUEST_TIMEOUT, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -39126,7 +39068,7 @@ static void attestation_requester_test_get_routing_table_get_routing_table_entri
 		&testing);
 
 	status = attestation_requester_get_mctp_routing_table (&testing.test);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_UNEXPECTED_RESPONSE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -40717,6 +40659,8 @@ TEST (attestation_requester_test_get_routing_table_table_already_up_to_date);
 TEST (attestation_requester_test_get_routing_table_table_bridge_refresh_request_ignored);
 TEST (attestation_requester_test_get_routing_table_invalid_arg);
 TEST (attestation_requester_test_get_routing_table_no_mctp_bridge);
+TEST (attestation_requester_test_get_routing_table_create_msg_transport_empty_request_failed);
+TEST (attestation_requester_test_get_routing_table_get_request_failed);
 TEST (attestation_requester_test_get_routing_table_get_routing_table_entries_unexpected_rsp);
 TEST (attestation_requester_test_get_routing_table_get_routing_table_entries_no_rsp);
 TEST (attestation_requester_test_get_routing_table_get_routing_table_entries_rsp_fail);

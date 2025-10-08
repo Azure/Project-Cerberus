@@ -1189,21 +1189,20 @@ static int attestation_requester_spdm_get_measurements_rsp_post_processing (
  * @param transport The Message transport instance used to send the messages.
  * @param request Request to process.
  * @param response The response container received.
- * @param dest_eid EID of destination device.
- * @param timeout_ms Timeout period in milliseconds to wait for response to be received.
  * @param command Requested command to send out.
  *
  * @return Initialization status, 0 if success or an error code.
  */
 static int attestation_requester_send_mctp_control_msg_transport_request_and_get_response (
 	const struct attestation_requester *attestation, const struct msg_transport *transport,
-	struct cmd_interface_msg *request, struct cmd_interface_msg *response, uint8_t dest_eid,
-	uint32_t timeout_ms, uint8_t command)
+	struct cmd_interface_msg *request, struct cmd_interface_msg *response, uint8_t command)
 {
 	struct mctp_control_protocol_resp_header *resp_header;
+	uint32_t timeout_ms;
 	int device_state;
 	int status;
 
+	timeout_ms = device_manager_get_mctp_ctrl_timeout (attestation->device_mgr);
 	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_IDLE;
 	attestation->state->txn.requested_command = command;
 
@@ -1211,23 +1210,23 @@ static int attestation_requester_send_mctp_control_msg_transport_request_and_get
 	if (status != 0) {
 		if (status == MSG_TRANSPORT_REQUEST_TIMEOUT) {
 			device_state = device_manager_get_device_state_by_eid (attestation->device_mgr,
-				dest_eid);
+				request->target_eid);
 
 			if (device_state == DEVICE_MANAGER_AUTHENTICATED) {
-				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
-					DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
+				device_manager_update_device_state_by_eid (attestation->device_mgr,
+					request->target_eid, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
 			}
 			else if (device_state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS) {
-				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
-					DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT);
+				device_manager_update_device_state_by_eid (attestation->device_mgr,
+					request->target_eid, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT);
 			}
 			else {
-				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
-					DEVICE_MANAGER_ATTESTATION_INTERRUPTED);
+				device_manager_update_device_state_by_eid (attestation->device_mgr,
+					request->target_eid, DEVICE_MANAGER_ATTESTATION_INTERRUPTED);
 			}
 		}
 		else if (status == MSG_TRANSPORT_UNEXPECTED_RESPONSE) {
-			device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+			device_manager_update_device_state_by_eid (attestation->device_mgr, request->target_eid,
 				DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
 		}
 
@@ -1242,7 +1241,7 @@ static int attestation_requester_send_mctp_control_msg_transport_request_and_get
 			((attestation->state->txn.protocol << 24) |
 						(attestation->state->txn.requested_command << 16)) | (255 << 8) |
 				resp_header->header.command_code);
-		device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+		device_manager_update_device_state_by_eid (attestation->device_mgr, request->target_eid,
 			DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
 
 		return ATTESTATION_REQUEST_FAILED;
@@ -1751,35 +1750,6 @@ void attestation_requester_on_mctp_set_eid_request (
 }
 
 /**
- * MCTP control protocol get routing table entries response observer function. The Get Routing Table
- * Entries request/response interaction is used by the requester to fetch routing table from MCTP
- * bridge.
- */
-void attestation_requester_on_mctp_get_routing_table_entries_response (
-	const struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	const struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, const struct attestation_requester, mctp_rsp_observer);
-
-	if ((attestation->state->txn.requested_command !=
-		MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol << 24) |
-						(attestation->state->txn.requested_command << 16) |
-						(255 << 8) | MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE));
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
-	}
-	else {
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
-	}
-
-	// msg_buffer is sized to hold maximum response lengths
-	memcpy (attestation->state->txn.msg_buffer, response->payload, response->payload_length);
-	attestation->state->txn.msg_buffer_len = response->payload_length;
-}
-
-/**
  * CFM activation request observer function. CFM activation requests are used to communicate to
  * device that component attestation states should be reset.
  */
@@ -1880,8 +1850,6 @@ int attestation_requester_init (struct attestation_requester *attestation,
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 	attestation->mctp_rsp_observer.on_set_eid_request =
 		attestation_requester_on_mctp_set_eid_request;
-	attestation->mctp_rsp_observer.on_get_routing_table_entries_response =
-		attestation_requester_on_mctp_get_routing_table_entries_response;
 
 	attestation->cfm_observer.on_cfm_activation_request =
 		attestation_requester_on_cfm_activation_request;
@@ -3607,11 +3575,8 @@ static int attestation_requester_discover_device_spdm_protocol (
 static int attestation_requester_get_message_type (const struct attestation_requester *attestation,
 	uint8_t eid, struct cmd_interface_msg *request, struct cmd_interface_msg *response)
 {
-	uint32_t timeout_ms;
 	int request_len;
 	int status;
-
-	timeout_ms = device_manager_get_mctp_ctrl_timeout (attestation->device_mgr);
 
 	status = msg_transport_create_empty_request (attestation->mctp_control,
 		attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer), eid,
@@ -3637,8 +3602,7 @@ static int attestation_requester_get_message_type (const struct attestation_requ
 
 	status =
 		attestation_requester_send_mctp_control_msg_transport_request_and_get_response (attestation,
-		attestation->mctp_control, request, response, eid, timeout_ms,
-		MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE);
+		attestation->mctp_control, request, response, MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE);
 	if (status != 0) {
 		return status;
 	}
@@ -3727,13 +3691,13 @@ done:
  */
 int attestation_requester_get_mctp_routing_table (const struct attestation_requester *attestation)
 {
-	struct mctp_base_protocol_message_header *header;
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
 	struct mctp_control_get_routing_table_entries_response *routing_table_rsp;
 	struct mctp_control_routing_table_entry *entry;
 	uint8_t entry_handle = 0;
 	uint8_t i_entry;
 	uint8_t i_eid;
-	int bridge_addr;
 	int bridge_eid;
 	int request_len;
 	int status;
@@ -3748,12 +3712,6 @@ int attestation_requester_get_mctp_routing_table (const struct attestation_reque
 
 	device_manager_clear_unidentified_devices (attestation->device_mgr);
 
-	bridge_addr = device_manager_get_device_addr (attestation->device_mgr,
-		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
-	if (ROT_IS_ERROR (bridge_addr)) {
-		return bridge_addr;
-	}
-
 	bridge_eid = device_manager_get_device_eid (attestation->device_mgr,
 		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
 	if (ROT_IS_ERROR (bridge_eid)) {
@@ -3761,29 +3719,45 @@ int attestation_requester_get_mctp_routing_table (const struct attestation_reque
 	}
 
 	while (entry_handle != 0xFF) {
-		/* TODO: Populating MCTP base header would be removed after the transition to msg_transport. */
-		header = (struct mctp_base_protocol_message_header*) attestation->state->txn.msg_buffer;
-		header->msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
-		header->integrity_check = 0;
-		request_len = sizeof (struct mctp_base_protocol_message_header);
-
-		status = mctp_control_protocol_generate_get_routing_table_entries_request (entry_handle,
-			&attestation->state->txn.msg_buffer[request_len],
-			(sizeof (attestation->state->txn.msg_buffer) - request_len));
-		if (ROT_IS_ERROR (status)) {
+		status = msg_transport_create_empty_request (attestation->mctp_control,
+			attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer),
+			bridge_eid,	&request);
+		if (status != 0) {
 			return status;
 		}
-		request_len += status;
 
-		status = attestation_requester_send_request_and_get_response (attestation, request_len,
-			bridge_addr, bridge_eid, false, true, MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES);
+		request_len =
+			mctp_control_protocol_generate_get_routing_table_entries_request (entry_handle,
+			request.payload, request.payload_length);
+		if (ROT_IS_ERROR (request_len)) {
+			return request_len;
+		}
+
+		//Update the payload length and request length after request message is ready
+		cmd_interface_msg_set_message_payload_length (&request, request_len);
+
+		status = msg_transport_create_empty_response (attestation->state->txn.msg_buffer,
+			sizeof (attestation->state->txn.msg_buffer), &response);
+		if (status != 0) {
+			return status;
+		}
+
+		status =
+			attestation_requester_send_mctp_control_msg_transport_request_and_get_response (
+			attestation, attestation->mctp_control, &request, &response,
+			MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES);
+		if (status != 0) {
+			return status;
+		}
+
+		status = mctp_control_protocol_process_get_routing_table_entries_response (&response);
 		if (status != 0) {
 			return status;
 		}
 
 		routing_table_rsp =
-			(struct mctp_control_get_routing_table_entries_response*) attestation->state->txn.
-			msg_buffer;
+			(struct mctp_control_get_routing_table_entries_response*) response.payload;
+
 		entry = mctp_control_get_routing_table_entries_response_get_entries (routing_table_rsp);
 
 		for (i_entry = 0; i_entry < routing_table_rsp->num_entries; ++i_entry, ++entry) {
