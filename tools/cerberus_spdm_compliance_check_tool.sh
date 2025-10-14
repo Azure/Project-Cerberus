@@ -129,12 +129,12 @@ spdm_cmd_common["NEGOTIATE_ALGORITHMS"]="0x05 $spdm_version 0xE3 0x00 0x00 0x20 
 spdm_cmd_common["GET_DIGESTS"]="0x05 $spdm_version 0x81 00 00"
 spdm_cmd_common["GET_CERTIFICATE"]="0x05 $spdm_version 0x82 0x00 0x00"
 spdm_cmd_common["GET_MEASUREMENT_DATA"]="0x05 $spdm_version 0xE0 0x03"
-spdm_cmd_common["GET_MEASUREMENT_DATA_WITHOUT_SIGNATURE"]="0x05 $spdm_version 0xE0 0x00"
+spdm_cmd_common["GET_MEASUREMENT_DATA_WITHOUT_SIGNATURE"]="0x05 $spdm_version 0xE0 0x02"
 spdm_cmd_common["GET_MEASUREMENT_DIGEST"]="0x05 $spdm_version 0xE0 0x01"
+spdm_cmd_common["GET_MEASUREMENT_DIGEST_WITHOUT_SIGNATURE"]="0x05 $spdm_version 0xE0 0x00"
 spdm_cmd_common["GET_MEASUREMENT_NONCE"]="0xdb 0x6b 0xf3 0xa5 0xb5 0xab 0x4d 0x67 0xbd 0xb1 0x18 0x40 0x29 0x10 0x7b 0x88 0x8e 0x69 0x4b 0xac 0xf4 0x62 0xe5 0x4a 0x6d 0x68 0xd9 0xd4 0xc6 0xb4 0x60 0x81"
 spdm_cmd_1_1["GET_MEASUREMENT_SLOTID"]="0x00"
 spdm_cmd_1_2["GET_MEASUREMENT_SLOTID"]="0x00"
-spdm_cmd_common["GET_MEASUREMENT_WITHOUT_SIGNATURE"]="0x05 $spdm_version 0xE0 0x02"
 
 # Display input parameters
 echo "Input Params: component_eid $component_eid, spdm_version $spdm_version, cfm_xml_filename "$cfm_xml_filename", pcd_xml_filename "$pcd_xml_filename", debug_level $debug_level, stress_enabled $stress_enabled, timeout $timeout"
@@ -824,8 +824,8 @@ validate_cfm_xml_measurements() {
     for measurement_id in "${!measurement_data[@]}" "${!measurement_digest[@]}"; do
         local command_name="GET_MEASUREMENT"
         log_debug 1 "$command_name ($measurement_id)"
-        if [ "$cert_cap_flag" = "true" ]; then
-            if [[ -n ${measurement_data[$measurement_id]} ]]; then
+        if [[ -n ${measurement_data[$measurement_id]} ]]; then
+            if [ "$cert_cap_flag" = "true" ]; then
                 if [ "$spdm_version" == "0x10" ]; then
                     response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DATA"]} $measurement_id ${spdm_cmd_common[$command_name"_NONCE"]})
                 elif [ "$spdm_version" == "0x11" ]; then
@@ -834,6 +834,10 @@ validate_cfm_xml_measurements() {
                     response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DATA"]} $measurement_id ${spdm_cmd_common[$command_name"_NONCE"]} ${spdm_cmd_1_2[$command_name"_SLOTID"]})
                 fi
             else
+                response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DATA_WITHOUT_SIGNATURE"]} $measurement_id)
+            fi
+        else
+            if [ "$cert_cap_flag" = "true" ]; then
                 if [ "$spdm_version" == "0x10" ]; then
                     response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DIGEST"]} $measurement_id ${spdm_cmd_common[$command_name"_NONCE"]})
                 elif [ "$spdm_version" == "0x11" ]; then
@@ -841,9 +845,9 @@ validate_cfm_xml_measurements() {
                 else
                     response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DIGEST"]} $measurement_id ${spdm_cmd_common[$command_name"_NONCE"]} ${spdm_cmd_1_2[$command_name"_SLOTID"]})
                 fi
+            else
+                response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DIGEST_WITHOUT_SIGNATURE"]} $measurement_id)
             fi
-        else
-            response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DATA_WITHOUT_SIGNATURE"]} $measurement_id)
         fi
 
         if [ $? -ne 0 ]; then
@@ -996,7 +1000,7 @@ main() {
             fi
 
             log_debug 1 "$command_name ($measurement_id)"
-            response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_WITHOUT_SIGNATURE"]} $measurement_id)
+            response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DATA_WITHOUT_SIGNATURE"]} $measurement_id)
 
             if [ $? -ne 0 ]; then
                 log_error "$command_name.. Failed"
@@ -1024,7 +1028,7 @@ main() {
                 measurement_id=$((number_of_blocks - 1))
 
                 log_debug 1 "$command_name ($measurement_id)"
-                response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_WITHOUT_SIGNATURE"]} $measurement_id)
+                response=$(send_mctp_raw_request "$command_name" ${spdm_cmd_common[$command_name"_DATA_WITHOUT_SIGNATURE"]} $measurement_id)
 
                 if [ $? -ne 0 ]; then
                     log_error "$command_name.. Failed"
