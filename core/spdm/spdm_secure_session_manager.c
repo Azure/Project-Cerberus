@@ -313,7 +313,7 @@ int spdm_secure_session_manager_generate_shared_secret (
 	struct ecc_private_key local_priv_key;
 	struct ecc_public_key local_pub_key;
 	uint8_t *local_pub_key_der = NULL;
-	size_t local_pub_key_der_len;
+	size_t local_pub_key_der_len = 0;
 	bool release_local_key_pair = false;
 	bool release_peer_pub_key = false;
 	int shared_secret_len;

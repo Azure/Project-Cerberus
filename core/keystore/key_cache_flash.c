@@ -77,9 +77,9 @@ static size_t key_cache_flash_decrement_queue_index (const struct key_cache_flas
  * @param cache_flash The key cache flash instance.
  * @param flash_id The flash sector ID to erase.
  *
- * @return enum type key_cache_flash_sector_status.
+ * @return enum type key_cache_flash_key_status.
  */
-static enum key_cache_flash_sector_status key_cache_flash_try_erase (
+static enum key_cache_flash_key_status key_cache_flash_try_erase (
 	const struct key_cache_flash *cache_flash, uint32_t flash_id)
 {
 	int status;
@@ -90,10 +90,10 @@ static enum key_cache_flash_sector_status key_cache_flash_try_erase (
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_KEYSTORE,
 			KEYSTORE_LOGGING_CACHE_BLOCK_CORRUPTED, flash_id, status);
 
-		return KEY_CACHE_FLASH_SECTOR_STATUS_CORRUPTED;
+		return KEY_CACHE_FLASH_CORRUPTED;
 	}
 
-	return KEY_CACHE_FLASH_SECTOR_STATUS_WITH_NO_KEY;
+	return KEY_CACHE_FLASH_INVALID;
 }
 
 /**
@@ -104,15 +104,15 @@ static enum key_cache_flash_sector_status key_cache_flash_try_erase (
  * @param cache_flash The key cache flash instance.
  * @param flash_id The flash sector ID to read.
  *
- * @return enum type key_cache_flash_sector_status.
+ * @return enum type key_cache_flash_key_status.
  */
-static enum key_cache_flash_sector_status key_cache_flash_read_key_and_validate_flash_sector (
+static enum key_cache_flash_key_status key_cache_flash_read_key_and_validate_flash_sector (
 	const struct key_cache_flash *cache_flash, uint32_t flash_id)
 {
 	uint8_t *key;
 	int key_length;
 	int read_status;
-	enum key_cache_flash_sector_status status = KEY_CACHE_FLASH_SECTOR_STATUS_WITH_VALID_KEY;
+	enum key_cache_flash_key_status status = KEY_CACHE_FLASH_VALID;
 
 	/* Read the key from the flash to check for corruption in the data.  The actual key data itself
 	 * is not interesting at this point. */
@@ -584,8 +584,7 @@ int key_cache_flash_remove (const struct key_cache *cache, uint16_t requestor_id
 		}
 
 		/* Clean the Flash section after reading Key from the memory */
-		if (key_cache_flash_try_erase (cache_flash,
-			physical_id) != KEY_CACHE_FLASH_SECTOR_STATUS_WITH_NO_KEY) {
+		if (key_cache_flash_try_erase (cache_flash,	physical_id) != KEY_CACHE_FLASH_INVALID) {
 			/* Corrupted flash sector detected */
 			key_cache_flash_update_key_info_in_flash_error (cache_flash, remove_index);
 		}

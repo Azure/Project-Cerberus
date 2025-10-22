@@ -1255,11 +1255,10 @@ int flash_master_mock_expect_write_ext (struct flash_master_mock *flash, uint32_
 	size_t remaining = length;
 	size_t txn_size;
 	int status;
-	int idx;
 
 	status = flash_master_mock_expect_rx_xfer (flash, 0, &WIP_STATUS, 1, FLASH_EXP_READ_STATUS_REG);
 
-	for (idx = 0; remaining > 0; ++idx) {
+	while (remaining > 0) {
 		end = address + remaining;
 
 		if (page != FLASH_PAGE_BASE (end)) {

@@ -20487,7 +20487,7 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes_terminator (CuT
 	struct logging_entry_header *header;
 	int i;
 	int j;
-	uint32_t last_entry;
+	uint32_t last_entry = 0;
 	uint8_t output[LOGGING_FLASH_SECTORS * FLASH_SECTOR_SIZE];
 
 	TEST_START;
@@ -20640,7 +20640,7 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes_terminator_larg
 	struct logging_entry_header *header;
 	int i;
 	int j;
-	uint32_t last_entry;
+	uint32_t last_entry = 0;
 	uint8_t output[LOGGING_FLASH_SECTORS * FLASH_SECTOR_SIZE];
 
 	TEST_START;

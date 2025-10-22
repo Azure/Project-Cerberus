@@ -34,16 +34,6 @@ enum key_cache_flash_key_status {
 };
 
 /**
- * Status values that are used when determining the state of a flash block.
- */
-enum key_cache_flash_sector_status {
-	KEY_CACHE_FLASH_SECTOR_STATUS_WITH_NO_KEY = 0,	/**< Flash sector is empty. */
-	KEY_CACHE_FLASH_SECTOR_STATUS_WITH_VALID_KEY,	/**< Flash sector has a valid key stored. */
-	KEY_CACHE_FLASH_SECTOR_STATUS_CORRUPTED,		/**< Flash sector is corrupted and not usable for future operations. */
-};
-
-
-/**
  * This is used to track the key information in the flash sector.
  */
 struct key_cache_flash_key_info {

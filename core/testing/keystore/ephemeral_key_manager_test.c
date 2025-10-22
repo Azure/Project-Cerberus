@@ -469,6 +469,7 @@ static void ephemeral_key_manager_test_execute (CuTest *test)
 
 	status |= mock_expect (&manager_test.key_cache_mock.mock, manager_test.key_cache_mock.base.add,
 		&manager_test.key_cache_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (RSA_PRIVKEY2_DER_LEN));
+	CuAssertIntEquals (test, 0, status);
 
 	manager_test.key_manager.base.execute (&manager_test.key_manager.base);
 
@@ -757,6 +758,7 @@ static void ephemeral_key_manager_test_execute_static_init (CuTest *test)
 
 	status |= mock_expect (&manager_test.key_cache_mock.mock, manager_test.key_cache_mock.base.add,
 		&manager_test.key_cache_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (RSA_PRIVKEY2_DER_LEN));
+	CuAssertIntEquals (test, 0, status);
 
 	manager_test.key_manager.base.execute (&manager_test.key_manager.base);
 
