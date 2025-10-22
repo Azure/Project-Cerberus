@@ -1,0 +1,16 @@
+[alignment]
+# heap_with_defrag_* functions align structures to 4 bytes 
+# instead of platform alignment, so remove them from sanitizing,
+# at least for now
+fun:heap_with_defrag_*
+
+# these functions rely on the UB on platforms where 
+# unaligned access is supported. Probably needs to be fixed 
+# separately
+fun:buffer_unaligned_copy*
+
+[null]
+# most of the *_static_init_null tests are doing NULL pointer
+# derefernces in the test setup code, but it is not problem for 
+# run time, so exclude them
+fun:*_static_init_null

@@ -69,7 +69,6 @@ target_compile_options(
 		-Wextra
  		-Werror
 		-Wno-unused-parameter
-		-g
 	)
 
 target_compile_definitions(
@@ -91,4 +90,11 @@ SETUP_TARGET_FOR_COVERAGE(
 	NAME coverage
  	EXECUTABLE ${PROJECT_NAME}
  	DEPENDENCIES ${PROJECT_NAME}
-	)
+)
+
+include(Sanitizers)
+SETUP_TARGET_FOR_SANITIZERS(
+	NAME sanitize
+ 	EXECUTABLE ${PROJECT_NAME}
+ 	DEPENDENCIES ${PROJECT_NAME}
+)
