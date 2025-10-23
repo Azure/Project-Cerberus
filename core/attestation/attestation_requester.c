@@ -3303,6 +3303,7 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 	const struct cfm *active_cfm;
 	uint32_t component_id;
 	enum cfm_attestation_type attestation_protocol;
+	struct device_manager_attestation_summary_event_counters event_counters;
 	int device_addr;
 	int device_state;
 	int status;
@@ -3406,6 +3407,12 @@ free_cfm:
 		else {
 			device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
 				DEVICE_MANAGER_AUTHENTICATED);
+		}
+		device_manager_get_attestation_summary_event_counters_by_eid (attestation->device_mgr, eid,
+			&event_counters);
+		if (event_counters.status_success_count == 0) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_DEVICE_FIRST_ATTESTATION, eid, 0);
 		}
 	}
 	else {

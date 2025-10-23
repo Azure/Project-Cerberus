@@ -51,6 +51,7 @@ enum {
 	ATTESTATION_LOGGING_GET_MCTP_ROUTING_TABLE_ERROR,				/**< Failed to get MCTP routing table. */
 	ATTESTATION_LOGGING_GET_MEASUREMENT_CAP_MISMATCH_ERROR,			/**< Target device support mismatched measurement response capabilities. */
 	ATTESTATION_LOGGING_CHALLENGE_CAP_MISMATCH_ERROR,				/**< Target device support mismatched challenege response capabilities. */
+	ATTESTATION_LOGGING_DEVICE_FIRST_ATTESTATION,					/**< Target device EID is attested for the first time. */
 };
 
 

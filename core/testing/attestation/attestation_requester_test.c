@@ -39134,6 +39134,14 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 		.arg1 = PCR_MEASUREMENT (0, 0),
 		.arg2 = HASH_ENGINE_START_SHA256_FAILED
 	};
+	struct debug_log_entry_info entry2 = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_ATTESTATION,
+		.msg_index = ATTESTATION_LOGGING_DEVICE_FIRST_ATTESTATION,
+		.arg1 = 0xaa,
+		.arg2 = 0
+	};
 
 	pmr_digest.pmr_id = 0;
 	pmr_digest.digests.hash_type = HASH_TYPE_SHA256;
@@ -39247,6 +39255,10 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, HASH_ENGINE_START_SHA256_FAILED);
+
+	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry2, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry2)));
 
 	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
 		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
