@@ -9,7 +9,7 @@
 #include "platform_config.h"
 #include "cmd_interface/cmd_interface.h"
 #include "cmd_interface/device_manager.h"
-
+#include "cmd_interface/msg_transport.h"
 
 /* Configurable command response field.  Default can be overridden in platform_config.h. */
 #ifndef CERBERUS_VID_SET_RESPONSE
@@ -285,6 +285,9 @@ int mctp_control_protocol_process_get_routing_table_entries_response (
 
 int mctp_control_protocol_generate_discovery_notify_request (uint8_t *buf, size_t buf_len);
 int mctp_control_protocol_process_discovery_notify_response (struct cmd_interface_msg *response);
+int mctp_control_protocol_send_discovery_notify (const struct msg_transport *transport,
+	struct device_manager *device_mgr, bool use_bridge_eid,	uint32_t timeout_ms,
+	struct cmd_interface_msg *response);
 
 
 #define	CMD_HANDLER_MCTP_CTRL_ERROR(\

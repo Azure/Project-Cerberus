@@ -7,14 +7,149 @@
 #include "cmd_interface/cerberus_protocol.h"
 #include "cmd_interface/cmd_interface.h"
 #include "cmd_interface/device_manager.h"
+#include "cmd_interface/msg_transport.h"
 #include "mctp/mctp_control_protocol.h"
 #include "mctp/mctp_control_protocol_commands.h"
 #include "spdm/spdm_protocol.h"
+#include "testing/mock/cmd_interface/cmd_channel_mock.h"
 #include "testing/mock/cmd_interface/cmd_interface_mock.h"
-
+#include "testing/mock/cmd_interface/msg_transport_mock.h"
 
 TEST_SUITE_LABEL ("mctp_control_protocol_commands");
 
+
+/**
+ * Setup mock send and receive MCTP control protocol Get Routing Table transactions.
+ *
+ * @param test The testing framework.
+ * @param mctp_control MCTP control mock message transport instance.
+ * @param device_mgr Device manager instance to utilize.
+ * @param resp Flag indicating whether to receive a response.
+ * @param invalid_bridge Flag indicating whether to send a invalid_bridge response.
+ */
+static void mctp_control_protocol_commands_setup_send_discovery_notify (CuTest *test,
+	struct msg_transport_mock *mctp_control, struct device_manager *device_mgr, bool no_resp,
+	bool invalid_bridge)
+{
+	struct cmd_interface_msg *req_expected = NULL;
+	struct cmd_interface_msg *resp_expected = NULL;
+	struct mctp_control_discovery_notify *request;
+	struct mctp_control_discovery_notify_response *response;
+	uint8_t bridge_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	uint8_t *rx_message = NULL;
+	uint8_t *tx_message = NULL;
+	uint32_t timeout_ms = 0;
+	int status = 0;
+
+	status = device_manager_init (device_mgr, 2, 0, 0, 0, 0, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (device_mgr,
+		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM, bridge_eid, 0x10,
+		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
+	CuAssertIntEquals (test, 0, status);
+
+	status = msg_transport_mock_init (mctp_control);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Request contruction starts */
+	tx_message = platform_calloc (1, sizeof (struct mctp_control_discovery_notify));
+	req_expected = platform_calloc (1, sizeof (struct cmd_interface_msg));
+	req_expected->data = (uint8_t*) tx_message;
+	req_expected->length = sizeof (struct mctp_control_discovery_notify);
+	req_expected->max_response = MCTP_BASE_PROTOCOL_MIN_MESSAGE_LEN;
+	req_expected->payload = tx_message;
+	req_expected->payload_length = sizeof (struct mctp_control_discovery_notify);
+	req_expected->target_eid = bridge_eid;
+
+	request = (struct mctp_control_discovery_notify*) req_expected->payload;
+	request->header.command_code = MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY;
+	request->header.rq = 1;
+	/* Request contruction ends. */
+
+	status = mock_expect (&mctp_control->mock, mctp_control->base.get_buffer_overhead, mctp_control,
+		0, MOCK_ARG (bridge_eid), MOCK_ARG_ANY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mctp_control->mock, mctp_control->base.get_max_message_payload_length,
+		mctp_control, MCTP_BASE_PROTOCOL_MIN_MESSAGE_LEN, MOCK_ARG (bridge_eid));
+	CuAssertIntEquals (test, 0, status);
+
+	if (invalid_bridge) {
+		status = mock_expect (&mctp_control->mock, mctp_control->base.send_request_message,
+			&mctp_control->base, DEVICE_MGR_UNKNOWN_DEVICE,
+			MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
+			sizeof (*req_expected), cmd_interface_mock_save_request,
+			cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request),
+			MOCK_ARG (timeout_ms), MOCK_ARG_ANY);
+	}
+	else if (no_resp) {
+		status = mock_expect (&mctp_control->mock, mctp_control->base.send_request_message,
+			&mctp_control->base, MSG_TRANSPORT_NO_WAIT_RESPONSE,
+			MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
+			sizeof (*req_expected), cmd_interface_mock_save_request,
+			cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request),
+			MOCK_ARG (timeout_ms), MOCK_ARG_ANY);
+	}
+	else {
+		rx_message = platform_calloc (1, sizeof (struct mctp_control_discovery_notify_response) +
+			1);
+		resp_expected = platform_calloc (1, sizeof (struct cmd_interface_msg));
+		resp_expected->data = rx_message;
+		resp_expected->payload = rx_message;
+		resp_expected->target_eid = bridge_eid;
+		resp_expected->max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN;
+
+		/* Added header info for message transport get message type response payload*/
+		response = (struct mctp_control_discovery_notify_response*)
+			resp_expected->payload;
+		response->header.command_code = 0;
+		response->header.rq = 0;
+		response->header.instance_id = 0;
+		response->completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
+
+		resp_expected->payload_length = sizeof (struct mctp_control_discovery_notify_response);
+		resp_expected->length = resp_expected->payload_length;
+		/* Response contruction ends. */
+
+		status = mock_expect (&mctp_control->mock, mctp_control->base.send_request_message,
+			&mctp_control->base, 0,
+			MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
+			sizeof (*req_expected),	cmd_interface_mock_save_request,
+			cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request),	MOCK_ARG (5),
+			MOCK_ARG_ANY);
+
+		status = mock_expect_output_deep_copy_tmp (&mctp_control->mock, 2, resp_expected,
+			sizeof (*resp_expected), cmd_interface_mock_copy_request,
+			cmd_interface_mock_duplicate_request, cmd_interface_mock_free_request);
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	cmd_interface_mock_free_request (req_expected);
+	cmd_interface_mock_free_request (resp_expected);
+
+	return;
+}
+
+/**
+ * Helper function to release send_discovery_notify testing instances
+ *
+ * @param test The test framework
+ * @param mctp_control mctp control message transport mock instance to release.
+ * @param device_mgr device manager mock instance to release.
+ */
+static void mctp_control_protocol_commands_release_send_discovery_notify (CuTest *test,
+	struct msg_transport_mock *mctp_control, struct device_manager *device_mgr)
+{
+	int status;
+
+	if (mctp_control) {
+		status = msg_transport_mock_validate_and_release (mctp_control);
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	device_manager_release (device_mgr);
+}
 
 /*******************
  * Test cases
@@ -2063,6 +2198,128 @@ static void mctp_control_protocol_commands_test_process_discovery_notify_respons
 	CuAssertIntEquals (test, 0, status);
 }
 
+static void mctp_control_protocol_commands_test_send_discovery_notify_no_response (CuTest *test)
+{
+	struct msg_transport_mock mctp_control;
+	struct device_manager device_mgr;
+	int status = 0;
+
+	TEST_START;
+
+	mctp_control_protocol_commands_setup_send_discovery_notify (test, &mctp_control, &device_mgr,
+		true, false);
+	status = mctp_control_protocol_send_discovery_notify (&mctp_control.base, &device_mgr, true, 0,
+		NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	mctp_control_protocol_commands_release_send_discovery_notify (test, &mctp_control, &device_mgr);
+}
+
+
+static void mctp_control_protocol_commands_test_send_discovery_notify_notify_null (CuTest *test)
+{
+	struct msg_transport_mock mctp_control;
+	struct cmd_interface_msg response;
+	struct device_manager device_mgr;
+	int status = 0;
+
+	TEST_START;
+
+	status = mctp_control_protocol_send_discovery_notify (NULL, &device_mgr, true, 0, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_INVALID_ARGUMENT, status);
+
+	status = mctp_control_protocol_send_discovery_notify (&mctp_control.base, NULL, true, 0,
+		&response);
+	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_INVALID_ARGUMENT, status);
+}
+
+static void mctp_control_protocol_commands_test_send_discovery_notify_no_mctp_bridge (CuTest *test)
+{
+	struct msg_transport_mock mctp_control;
+	struct device_manager device_mgr;
+	int status = 0;
+
+	TEST_START;
+
+	mctp_control_protocol_commands_setup_send_discovery_notify (test, &mctp_control, &device_mgr,
+		false, true);
+	status = mctp_control_protocol_send_discovery_notify (&mctp_control.base, &device_mgr, true, 0,
+		NULL);
+	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
+
+	mctp_control_protocol_commands_release_send_discovery_notify (test, &mctp_control, &device_mgr);
+}
+
+static void mctp_control_protocol_commands_test_send_discovery_notify_process_response (
+	CuTest *test)
+{
+	struct msg_transport_mock mctp_control;
+	struct cmd_interface_msg response;
+	struct device_manager device_mgr;
+	uint8_t data[4] = {0};
+	int status = 0;
+
+	TEST_START;
+
+	mctp_control_protocol_commands_setup_send_discovery_notify (test, &mctp_control, &device_mgr,
+		false, false);
+	msg_transport_create_empty_response (data, sizeof (data), &response);
+	status = mctp_control_protocol_send_discovery_notify (&mctp_control.base, &device_mgr, true, 5,
+		&response);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp_control_protocol_process_discovery_notify_response (&response);
+	CuAssertIntEquals (test, 0, status);
+
+	mctp_control_protocol_commands_release_send_discovery_notify (test, &mctp_control, &device_mgr);
+}
+
+static void mctp_control_protocol_commands_test_send_discovery_notify_create_request_fail (
+	CuTest *test)
+{
+	struct msg_transport_mock mctp_control;
+	struct device_manager device_mgr;
+	int status = 0;
+
+	TEST_START;
+
+	status = device_manager_init (&device_mgr, 2, 0, 0, 0, 0, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&device_mgr,
+		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM, MCTP_BASE_PROTOCOL_BMC_EID, 0x10,
+		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
+	CuAssertIntEquals (test, 0, status);
+
+	status = msg_transport_mock_init (&mctp_control);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mctp_control.mock, mctp_control.base.get_buffer_overhead, &mctp_control,
+		MSG_TRANSPORT_INVALID_ARGUMENT, MOCK_ARG (0x0A), MOCK_ARG_ANY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp_control_protocol_send_discovery_notify (&mctp_control.base, &device_mgr, true, 0,
+		NULL);
+	CuAssertIntEquals (test, MSG_TRANSPORT_INVALID_ARGUMENT, status);
+
+	status = mock_expect (&mctp_control.mock, mctp_control.base.get_buffer_overhead, &mctp_control,
+		0, MOCK_ARG (0x0A), MOCK_ARG_ANY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mctp_control.mock, mctp_control.base.get_max_message_payload_length,
+		&mctp_control, MSG_TRANSPORT_INVALID_ARGUMENT, MOCK_ARG (0x0A));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp_control_protocol_send_discovery_notify (&mctp_control.base, &device_mgr, true, 0,
+		NULL);
+	CuAssertIntEquals (test, MSG_TRANSPORT_INVALID_ARGUMENT, status);
+
+	status = msg_transport_mock_validate_and_release (&mctp_control);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&device_mgr);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (mctp_control_protocol_commands);
@@ -2127,6 +2384,11 @@ TEST (mctp_control_protocol_commands_test_process_discovery_notify_response);
 TEST (mctp_control_protocol_commands_test_process_discovery_notify_response_null);
 TEST (mctp_control_protocol_commands_test_process_discovery_notify_response_bad_len);
 TEST (mctp_control_protocol_commands_test_process_discovery_notify_response_cc_fail);
+TEST (mctp_control_protocol_commands_test_send_discovery_notify_no_response);
+TEST (mctp_control_protocol_commands_test_send_discovery_notify_notify_null);
+TEST (mctp_control_protocol_commands_test_send_discovery_notify_no_mctp_bridge);
+TEST (mctp_control_protocol_commands_test_send_discovery_notify_process_response);
+TEST (mctp_control_protocol_commands_test_send_discovery_notify_create_request_fail);
 
 TEST_SUITE_END;
 // *INDENT-ON*

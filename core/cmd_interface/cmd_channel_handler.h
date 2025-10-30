@@ -6,6 +6,7 @@
 
 #include <stdbool.h>
 #include "cmd_interface/cmd_channel.h"
+#include "mctp/mctp_control_protocol_commands.h"
 #include "mctp/mctp_interface.h"
 #include "system/periodic_task.h"
 
@@ -14,19 +15,22 @@
  * Handler for processing received commands from a command channel.
  */
 struct cmd_channel_handler {
-	struct periodic_task_handler base;	/**< Base interface for task integration. */
-	const struct cmd_channel *channel;	/**< Command channel for receiving messages. */
-	const struct mctp_interface *mctp;	/**< MCTP protocol layer. */
+	struct periodic_task_handler base;			/**< Base interface for task integration. */
+	const struct cmd_channel *channel;			/**< Command channel for receiving messages. */
+	const struct mctp_interface *mctp;			/**< MCTP protocol layer. */
+	const struct msg_transport *mctp_control;	/**< MCTP control message transport instance for sending requests. */
 #ifdef CMD_ENABLE_ISSUE_REQUEST
-	bool use_bridge_eid;				/**< Flag to indicate the bridge EID should be notified. */
+	bool use_bridge_eid;						/**< Flag to indicate the bridge EID should be notified. */
 #endif
 };
 
 
 int cmd_channel_handler_init (struct cmd_channel_handler *handler,
-	const struct cmd_channel *channel, const struct mctp_interface *mctp);
+	const struct cmd_channel *channel, const struct mctp_interface *mctp,
+	const struct msg_transport *mctp_control);
 int cmd_channel_handler_init_notify_null_eid (struct cmd_channel_handler *handler,
-	const struct cmd_channel *channel, const struct mctp_interface *mctp);
+	const struct cmd_channel *channel, const struct mctp_interface *mctp,
+	const struct msg_transport *mctp_control);
 void cmd_channel_handler_release (const struct cmd_channel_handler *handler);
 
 
