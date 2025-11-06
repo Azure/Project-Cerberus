@@ -20,9 +20,11 @@ void cmd_channel_handler_execute (const struct periodic_task_handler *handler);
  */
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 #define	CMD_CHANNEL_HANDLER_PREPARE_API		.prepare = cmd_channel_handler_prepare,
+#define	CMD_CHANNEL_HANDLER_MCTP_CTRL(x)	.mctp_control = (x),
 #define	CMD_CHANNEL_HANDLER_NOTIFY_EID(x)	.use_bridge_eid = (x),
 #else
 #define	CMD_CHANNEL_HANDLER_PREPARE_API
+#define	CMD_CHANNEL_HANDLER_MCTP_CTRL(x)
 #define	CMD_CHANNEL_HANDLER_NOTIFY_EID(x)
 #endif
 
@@ -53,7 +55,7 @@ void cmd_channel_handler_execute (const struct periodic_task_handler *handler);
 		.base = CMD_CHANNEL_HANDLER_API_INIT, \
 		.channel = channel_ptr, \
 		.mctp = mctp_ptr, \
-		.mctp_control = mctp_control_ptr, \
+		CMD_CHANNEL_HANDLER_MCTP_CTRL (mctp_control_ptr) \
 		CMD_CHANNEL_HANDLER_NOTIFY_EID (true) \
 	}
 
@@ -69,11 +71,12 @@ void cmd_channel_handler_execute (const struct periodic_task_handler *handler);
  * @param mctp_ptr The MCTP protocol handler to use for packet processing.
  * @param mctp_control_ptr The MCTP control message transport instance.
  */
-#define	cmd_channel_handler_static_init_notify_null_eid(channel_ptr, mctp_ptr, mctp_control_ptr)	{ \
+#define	cmd_channel_handler_static_init_notify_null_eid(channel_ptr, mctp_ptr, \
+	mctp_control_ptr)	{ \
 		.base = CMD_CHANNEL_HANDLER_API_INIT, \
 		.channel = channel_ptr, \
 		.mctp = mctp_ptr, \
-		.mctp_control = mctp_control_ptr, \
+		CMD_CHANNEL_HANDLER_MCTP_CTRL (mctp_control_ptr) \
 		CMD_CHANNEL_HANDLER_NOTIFY_EID (false) \
 	}
 

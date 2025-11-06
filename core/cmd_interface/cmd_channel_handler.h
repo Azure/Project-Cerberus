@@ -18,8 +18,8 @@ struct cmd_channel_handler {
 	struct periodic_task_handler base;			/**< Base interface for task integration. */
 	const struct cmd_channel *channel;			/**< Command channel for receiving messages. */
 	const struct mctp_interface *mctp;			/**< MCTP protocol layer. */
-	const struct msg_transport *mctp_control;	/**< MCTP control message transport instance for sending requests. */
 #ifdef CMD_ENABLE_ISSUE_REQUEST
+	const struct msg_transport *mctp_control;	/**< MCTP control message transport instance for sending requests. */
 	bool use_bridge_eid;						/**< Flag to indicate the bridge EID should be notified. */
 #endif
 };

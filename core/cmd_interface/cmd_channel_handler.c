@@ -54,9 +54,15 @@ int cmd_channel_handler_init_common (struct cmd_channel_handler *handler,
 	const struct cmd_channel *channel, const struct mctp_interface *mctp,
 	const struct msg_transport *mctp_control, bool use_bridge_eid)
 {
-	if ((handler == NULL) || (channel == NULL) || (mctp == NULL) || (mctp_control == NULL)) {
+	if ((handler == NULL) || (channel == NULL) || (mctp == NULL)) {
 		return CMD_CHANNEL_INVALID_ARGUMENT;
 	}
+
+#ifdef CMD_ENABLE_ISSUE_REQUEST
+	if (mctp_control == NULL) {
+		return CMD_CHANNEL_INVALID_ARGUMENT;
+	}
+#endif
 
 	memset (handler, 0, sizeof (struct cmd_channel_handler));
 
@@ -68,10 +74,11 @@ int cmd_channel_handler_init_common (struct cmd_channel_handler *handler,
 
 	handler->channel = channel;
 	handler->mctp = mctp;
-	handler->mctp_control = mctp_control;
 #ifdef CMD_ENABLE_ISSUE_REQUEST
+	handler->mctp_control = mctp_control;
 	handler->use_bridge_eid = use_bridge_eid;
 #else
+	UNUSED (mctp_control);
 	UNUSED (use_bridge_eid);
 #endif
 
