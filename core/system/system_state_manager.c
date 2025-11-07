@@ -15,7 +15,7 @@
 #define	ACTIVE_PCD_MASK			(1U << 1)
 
 
-static int system_state_manager_save_active_manifest (struct state_manager *manager,
+int system_state_manager_save_active_manifest (const struct state_manager *manager,
 	uint8_t manifest_index, enum manifest_region active)
 {
 	if (manifest_index == SYSTEM_STATE_MANIFEST_CFM) {
@@ -29,7 +29,7 @@ static int system_state_manager_save_active_manifest (struct state_manager *mana
 	}
 }
 
-static enum manifest_region system_state_manager_get_active_manifest (struct state_manager *manager,
+enum manifest_region system_state_manager_get_active_manifest (const struct state_manager *manager,
 	uint8_t manifest_index)
 {
 	if (manifest_index == SYSTEM_STATE_MANIFEST_CFM) {
@@ -43,7 +43,7 @@ static enum manifest_region system_state_manager_get_active_manifest (struct sta
 	}
 }
 
-static int system_state_manager_is_manifest_valid (struct state_manager *manager,
+int system_state_manager_is_manifest_valid (const struct state_manager *manager,
 	uint8_t manifest_index)
 {
 	UNUSED (manager);
@@ -56,17 +56,17 @@ static int system_state_manager_is_manifest_valid (struct state_manager *manager
 	return 0;
 }
 
-static int system_state_manager_restore_default_state (struct state_manager *manager)
+int system_state_manager_restore_default_state (const struct state_manager *manager)
 {
 	if (manager == NULL) {
 		return STATE_MANAGER_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&manager->state_lock);
+	platform_mutex_lock (&manager->state->state_lock);
 
-	manager->nv_state = 0xffff;
+	manager->state->nv_state = 0xffff;
 
-	platform_mutex_unlock (&manager->state_lock);
+	platform_mutex_unlock (&manager->state->state_lock);
 
 	return 0;
 }
@@ -75,6 +75,7 @@ static int system_state_manager_restore_default_state (struct state_manager *man
  * Initialize the manager for system state information.
  *
  * @param manager The state manager to initialize.
+ * @param state Variable context for system state management.  This must be uninitialized.
  * @param state_flash The flash that contains the non-volatile state information.
  * @param store_addr The starting address for state storage. The state storage uses two contiguous
  * flash regions of FLASH_SECTOR_SIZE. The start address must be aligned to the start of a flash
@@ -82,8 +83,8 @@ static int system_state_manager_restore_default_state (struct state_manager *man
  *
  * @return 0 if the state manager was successfully initialized or an error code.
  */
-int system_state_manager_init (struct state_manager *manager, const struct flash *state_flash,
-	uint32_t store_addr)
+int system_state_manager_init (struct state_manager *manager, struct state_manager_state *state,
+	const struct flash *state_flash, uint32_t store_addr)
 {
 	int status;
 
@@ -91,7 +92,7 @@ int system_state_manager_init (struct state_manager *manager, const struct flash
 		return STATE_MANAGER_INVALID_ARGUMENT;
 	}
 
-	status = state_manager_init (manager, state_flash, store_addr);
+	status = state_manager_init (manager, state, state_flash, store_addr);
 
 	if (status == 0) {
 		manager->get_active_manifest = system_state_manager_get_active_manifest;
@@ -104,11 +105,26 @@ int system_state_manager_init (struct state_manager *manager, const struct flash
 }
 
 /**
+ * Initialize only the variable state of a manager for system state information.  The rest of the
+ * instance is assumed to already have been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param manager The state manager that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int system_state_manager_init_state (const struct state_manager *manager)
+{
+	return state_manager_init_state (manager);
+}
+
+/**
  * Release the resources used by the host state manager.
  *
  * @param manager The state manager to release.
  */
-void system_state_manager_release (struct state_manager *manager)
+void system_state_manager_release (const struct state_manager *manager)
 {
 	state_manager_release (manager);
 }

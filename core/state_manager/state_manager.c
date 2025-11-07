@@ -30,7 +30,7 @@
  *
  * @return 0 if the state was successfully initialized or an error code.
  */
-static int state_manager_init_single_byte_state (struct state_manager *manager,
+static int state_manager_init_single_byte_state (const struct state_manager *manager,
 	const struct flash *state_flash, uint32_t store_addr, uint32_t sector_size, int *offset)
 {
 	uint8_t nv_state = 0xff;
@@ -45,7 +45,7 @@ static int state_manager_init_single_byte_state (struct state_manager *manager,
 		}
 
 		do {
-			manager->nv_state = 0xff00 | nv_state;
+			manager->state->nv_state = 0xff00 | nv_state;
 			(*offset)++;
 
 			if (*offset < (int) (sector_size * 2)) {
@@ -57,7 +57,7 @@ static int state_manager_init_single_byte_state (struct state_manager *manager,
 		} while ((nv_state != 0xff) && (*offset < (int) (sector_size * 2)));
 	} while (*offset == 0);
 
-	manager->nv_state |= MULTI_BYTE_STATE;
+	manager->state->nv_state |= MULTI_BYTE_STATE;
 
 	return 0;
 }
@@ -144,7 +144,7 @@ static uint16_t state_manager_read_state_bits (uint16_t *entry, bool *error, boo
  *
  * @return 0 if the state was successfully initialized or an error code.
  */
-static int state_manager_init_multi_byte_state (struct state_manager *manager,
+static int state_manager_init_multi_byte_state (const struct state_manager *manager,
 	const struct flash *state_flash, uint32_t store_addr, uint32_t sector_size, int *offset,
 	bool *bit_error, bool *refresh_state)
 {
@@ -163,7 +163,7 @@ static int state_manager_init_multi_byte_state (struct state_manager *manager,
 		}
 
 		do {
-			manager->nv_state = nv_state;
+			manager->state->nv_state = nv_state;
 			*bit_error = error;
 			(*offset) += 8;
 
@@ -189,14 +189,14 @@ static int state_manager_init_multi_byte_state (struct state_manager *manager,
  * @param manager The state manager to update.
  * @param sector_size The flash sector size.
  */
-static void state_manager_set_next_sector_write_offset (struct state_manager *manager,
+static void state_manager_set_next_sector_write_offset (const struct state_manager *manager,
 	uint32_t sector_size)
 {
-	if (manager->store_addr < (manager->base_addr + sector_size)) {
-		manager->store_addr = manager->base_addr + sector_size - 8;
+	if (manager->state->store_addr < (manager->base_addr + sector_size)) {
+		manager->state->store_addr = manager->base_addr + sector_size - 8;
 	}
 	else {
-		manager->store_addr = manager->base_addr + (sector_size * 2) - 8;
+		manager->state->store_addr = manager->base_addr + (sector_size * 2) - 8;
 	}
 }
 
@@ -204,14 +204,40 @@ static void state_manager_set_next_sector_write_offset (struct state_manager *ma
  * Initialize the manager for state information.
  *
  * @param manager The state manager to initialize.
+ * @param state Variable context for the state manager.  This must be uninitialized.
  * @param state_flash The flash that contains the non-volatile state information.
  * @param store_addr The starting address for state storage.  The state storage uses two contiguous
  * flash sectors.  The start address must be aligned to the start of a flash sector.
  *
  * @return 0 if the state manager was successfully initialized or an error code.
  */
-int state_manager_init (struct state_manager *manager, const struct flash *state_flash,
-	uint32_t store_addr)
+int state_manager_init (struct state_manager *manager, struct state_manager_state *state,
+	const struct flash *state_flash, uint32_t store_addr)
+{
+	if (manager == NULL) {
+		return STATE_MANAGER_INVALID_ARGUMENT;
+	}
+
+	memset (manager, 0, sizeof (struct state_manager));
+
+	manager->state = state;
+	manager->nv_store = state_flash;
+	manager->base_addr = store_addr;
+
+	return state_manager_init_state (manager);
+}
+
+/**
+ * Initialize only the variable state of a manager for state information.  The rest of the instance
+ * is assumed to already have been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param manager The state manager that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int state_manager_init_state (const struct state_manager *manager)
 {
 	int offset;
 	uint32_t sector_size;
@@ -223,50 +249,52 @@ int state_manager_init (struct state_manager *manager, const struct flash *state
 	bool bit_error = false;
 	int status;
 
-	if ((manager == NULL) || (state_flash == NULL)) {
+	if ((manager == NULL) || (manager->state == NULL) || (manager->nv_store == NULL)) {
 		return STATE_MANAGER_INVALID_ARGUMENT;
 	}
 
-	status = state_flash->get_sector_size (state_flash, &sector_size);
+	memset (manager->state, 0, sizeof (*manager->state));
+
+	status = manager->nv_store->get_sector_size (manager->nv_store, &sector_size);
 	if (status != 0) {
 		return status;
 	}
 
-	if (FLASH_REGION_BASE (store_addr, sector_size) != store_addr) {
+	if (FLASH_REGION_BASE (manager->base_addr, sector_size) != manager->base_addr) {
 		return STATE_MANAGER_NOT_SECTOR_ALIGNED;
 	}
 
-	memset (manager, 0, sizeof (struct state_manager));
-
-	status = state_flash->read (state_flash, store_addr, (uint8_t*) sector1, sizeof (sector1));
+	status = manager->nv_store->read (manager->nv_store, manager->base_addr, (uint8_t*) sector1,
+		sizeof (sector1));
 	if (status != 0) {
 		return status;
 	}
 
-	status = state_flash->read (state_flash, store_addr + sector_size, (uint8_t*) sector2,
-		sizeof (sector2));
+	status = manager->nv_store->read (manager->nv_store, manager->base_addr + sector_size,
+		(uint8_t*) sector2, sizeof (sector2));
 	if (status != 0) {
 		return status;
 	}
 
 	state1 = state_manager_read_state_bits (sector1, NULL, NULL);
 	state2 = state_manager_read_state_bits (sector2, NULL, NULL);
-	manager->nv_state = 0xffff;
+	manager->state->nv_state = 0xffff;
 
 	if ((state1 != 0xffff) || (state2 != 0xffff)) {
 		if (!(state1 & SINGLE_BYTE_STATE) || !(state2 & SINGLE_BYTE_STATE)) {
-			status = state_manager_init_multi_byte_state (manager, state_flash, store_addr,
-				sector_size, &offset, &bit_error, &needs_update);
+			status = state_manager_init_multi_byte_state (manager, manager->nv_store,
+				manager->base_addr, sector_size, &offset, &bit_error, &needs_update);
 		}
 		else {
-			status = state_manager_init_single_byte_state (manager, state_flash, store_addr,
-				sector_size, &offset);
+			status = state_manager_init_single_byte_state (manager, manager->nv_store,
+				manager->base_addr, sector_size, &offset);
 			needs_update = true;
 		}
 	}
 	else {
-		status = flash_sector_erase_region_and_verify (state_flash, store_addr, sector_size);
-		manager->volatile_state |= SECTOR_1_BLANK;
+		status = flash_sector_erase_region_and_verify (manager->nv_store, manager->base_addr,
+			sector_size);
+		manager->state->volatile_state |= SECTOR_1_BLANK;
 		offset = sector_size * 2;
 	}
 
@@ -274,33 +302,31 @@ int state_manager_init (struct state_manager *manager, const struct flash *state
 		return status;
 	}
 
-	manager->nv_store = state_flash;
-	manager->base_addr = store_addr;
-	manager->store_addr = store_addr + offset - 8;
-	manager->last_nv_stored = manager->nv_state;
+	manager->state->store_addr = manager->base_addr + offset - 8;
+	manager->state->last_nv_stored = manager->state->nv_state;
 
 	if (needs_update || bit_error) {
 		/* If the state is stored in the old format or the current state information has corruption,
 		 * force the state to be stored on flash at the next request. */
-		manager->last_nv_stored = 0xffff;
+		manager->state->last_nv_stored = 0xffff;
 
 		if (needs_update) {
 			/* Make sure the address is entry aligned. */
 			if (offset & 0x7) {
-				manager->store_addr += (8 - (offset & 0x7));
+				manager->state->store_addr += (8 - (offset & 0x7));
 			}
 			state_manager_set_next_sector_write_offset (manager, sector_size);
 		}
 	}
 
-	status = platform_mutex_init (&manager->state_lock);
+	status = platform_mutex_init (&manager->state->state_lock);
 	if (status != 0) {
 		return status;
 	}
 
-	status = platform_mutex_init (&manager->store_lock);
+	status = platform_mutex_init (&manager->state->store_lock);
 	if (status != 0) {
-		platform_mutex_free (&manager->state_lock);
+		platform_mutex_free (&manager->state->state_lock);
 
 		return status;
 	}
@@ -313,11 +339,11 @@ int state_manager_init (struct state_manager *manager, const struct flash *state
  *
  * @param manager The state manager to release.
  */
-void state_manager_release (struct state_manager *manager)
+void state_manager_release (const struct state_manager *manager)
 {
 	if (manager != NULL) {
-		platform_mutex_free (&manager->state_lock);
-		platform_mutex_free (&manager->store_lock);
+		platform_mutex_free (&manager->state->state_lock);
+		platform_mutex_free (&manager->state->store_lock);
 	}
 }
 
@@ -334,14 +360,15 @@ void state_manager_release (struct state_manager *manager)
  * @param manager The manager whose state storage should be prevented or allowed.
  * @param block True to prevent state storage or false to allow it.
  */
-void state_manager_block_non_volatile_state_storage (struct state_manager *manager, bool block)
+void state_manager_block_non_volatile_state_storage (const struct state_manager *manager,
+	bool block)
 {
 	if (manager != NULL) {
 		if (block) {
-			platform_mutex_lock (&manager->store_lock);
+			platform_mutex_lock (&manager->state->store_lock);
 		}
 		else {
-			platform_mutex_unlock (&manager->store_lock);
+			platform_mutex_unlock (&manager->state->store_lock);
 		}
 	}
 }
@@ -357,7 +384,7 @@ void state_manager_block_non_volatile_state_storage (struct state_manager *manag
  *
  * @return 0 if the non-volatile state was successfully stored or an error code.
  */
-int state_manager_store_non_volatile_state (struct state_manager *manager)
+int state_manager_store_non_volatile_state (const struct state_manager *manager)
 {
 	int status = 0;
 	int erase_status;
@@ -378,24 +405,24 @@ int state_manager_store_non_volatile_state (struct state_manager *manager)
 		return status;
 	}
 
-	platform_mutex_lock (&manager->store_lock);
+	platform_mutex_lock (&manager->state->store_lock);
 
-	platform_mutex_lock (&manager->state_lock);
-	store_state = manager->nv_state & ~SINGLE_BYTE_STATE;
+	platform_mutex_lock (&manager->state->state_lock);
+	store_state = manager->state->nv_state & ~SINGLE_BYTE_STATE;
 	store_state |= MULTI_BYTE_STATE;
-	platform_mutex_unlock (&manager->state_lock);
+	platform_mutex_unlock (&manager->state->state_lock);
 
 	/* If our current state hasn't changed from what is on flash, verify the flash contents and
 	 * refresh as necessary. */
-	if (store_state == manager->last_nv_stored) {
-		status = manager->nv_store->read (manager->nv_store, manager->store_addr,
+	if (store_state == manager->state->last_nv_stored) {
+		status = manager->nv_store->read (manager->nv_store, manager->state->store_addr,
 			(uint8_t*) nv_state, sizeof (nv_state));
 
 		if (status == 0) {
 			in_flash = state_manager_read_state_bits (nv_state, &bit_error, &refresh);
 			if ((in_flash != store_state) || bit_error) {
 				/* The data in flash is bad, so force the state to be rewritten. */
-				manager->last_nv_stored = 0xffff;
+				manager->state->last_nv_stored = 0xffff;
 
 				if (refresh) {
 					state_manager_set_next_sector_write_offset (manager, sector_size);
@@ -405,8 +432,8 @@ int state_manager_store_non_volatile_state (struct state_manager *manager)
 	}
 
 	/* If our current state is different from that stored on flash, write it to flash. */
-	if (store_state != manager->last_nv_stored) {
-		next_addr = manager->store_addr + 8;
+	if (store_state != manager->state->last_nv_stored) {
+		next_addr = manager->state->store_addr + 8;
 		if (next_addr == (manager->base_addr + (sector_size * 2))) {
 			next_addr = manager->base_addr;
 		}
@@ -421,19 +448,20 @@ int state_manager_store_non_volatile_state (struct state_manager *manager)
 		 * If we are trying to write the last entry in the current sector, make sure the next sector
 		 * is erased.  Otherwise, we will not be able to correctly determine the last state stored
 		 * by looking for blank flash during initialization. */
-		if ((next_addr == manager->base_addr) && !(manager->volatile_state & SECTOR_1_BLANK)) {
+		if ((next_addr == manager->base_addr) &&
+			!(manager->state->volatile_state & SECTOR_1_BLANK)) {
 			status = STATE_MANAGER_NOT_BLANK;
 		}
 		else if ((next_addr == (manager->base_addr + sector_size)) &&
-			!(manager->volatile_state & SECTOR_2_BLANK)) {
+			!(manager->state->volatile_state & SECTOR_2_BLANK)) {
 			status = STATE_MANAGER_NOT_BLANK;
 		}
 		else if ((next_addr == (manager->base_addr + (sector_size * 2) - 8)) &&
-			!(manager->volatile_state & SECTOR_1_BLANK)) {
+			!(manager->state->volatile_state & SECTOR_1_BLANK)) {
 			status = STATE_MANAGER_NOT_BLANK;
 		}
 		else if ((next_addr == (manager->base_addr + sector_size - 8)) &&
-			!(manager->volatile_state & SECTOR_2_BLANK)) {
+			!(manager->state->volatile_state & SECTOR_2_BLANK)) {
 			status = STATE_MANAGER_NOT_BLANK;
 		}
 
@@ -441,14 +469,14 @@ int state_manager_store_non_volatile_state (struct state_manager *manager)
 			status = manager->nv_store->write (manager->nv_store, next_addr, (uint8_t*) nv_state,
 				sizeof (nv_state));
 			if (ROT_IS_ERROR (status)) {
-				platform_mutex_unlock (&manager->store_lock);
+				platform_mutex_unlock (&manager->state->store_lock);
 
 				return status;
 			}
 
 			if (status == sizeof (nv_state)) {
 				status = 0;
-				manager->last_nv_stored = store_state;
+				manager->state->last_nv_stored = store_state;
 			}
 			else {
 				/* We handle this scenario, but only minimally.  This is not really possible given
@@ -456,22 +484,22 @@ int state_manager_store_non_volatile_state (struct state_manager *manager)
 				status = STATE_MANAGER_INCOMPLETE_WRITE;
 			}
 
-			manager->store_addr = next_addr;
+			manager->state->store_addr = next_addr;
 		}
 	}
 
 	/* Always make sure the unused sector is erased so it is ready to be written to when needed.
 	 * A failure to erase is not a reported error since the data was successfully stored. */
-	if (manager->store_addr < (manager->base_addr + sector_size)) {
-		if (manager->volatile_state & SECTOR_1_BLANK) {
-			manager->volatile_state &= ~SECTOR_1_BLANK;
+	if (manager->state->store_addr < (manager->base_addr + sector_size)) {
+		if (manager->state->volatile_state & SECTOR_1_BLANK) {
+			manager->state->volatile_state &= ~SECTOR_1_BLANK;
 		}
 
-		if (!(manager->volatile_state & SECTOR_2_BLANK)) {
+		if (!(manager->state->volatile_state & SECTOR_2_BLANK)) {
 			erase_status = flash_sector_erase_region_and_verify (manager->nv_store,
 				manager->base_addr + sector_size, sector_size);
 			if (erase_status == 0) {
-				manager->volatile_state |= SECTOR_2_BLANK;
+				manager->state->volatile_state |= SECTOR_2_BLANK;
 			}
 			else {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_STATE_MGR,
@@ -480,15 +508,15 @@ int state_manager_store_non_volatile_state (struct state_manager *manager)
 		}
 	}
 	else {
-		if (manager->volatile_state & SECTOR_2_BLANK) {
-			manager->volatile_state &= ~SECTOR_2_BLANK;
+		if (manager->state->volatile_state & SECTOR_2_BLANK) {
+			manager->state->volatile_state &= ~SECTOR_2_BLANK;
 		}
 
-		if (!(manager->volatile_state & SECTOR_1_BLANK)) {
+		if (!(manager->state->volatile_state & SECTOR_1_BLANK)) {
 			erase_status = flash_sector_erase_region_and_verify (manager->nv_store,
 				manager->base_addr, sector_size);
 			if (erase_status == 0) {
-				manager->volatile_state |= SECTOR_1_BLANK;
+				manager->state->volatile_state |= SECTOR_1_BLANK;
 			}
 			else {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_STATE_MGR,
@@ -497,7 +525,7 @@ int state_manager_store_non_volatile_state (struct state_manager *manager)
 		}
 	}
 
-	platform_mutex_unlock (&manager->store_lock);
+	platform_mutex_unlock (&manager->state->store_lock);
 
 	return status;
 }
@@ -512,8 +540,8 @@ int state_manager_store_non_volatile_state (struct state_manager *manager)
  *
  * @return 0 if the setting was saved or an an error code if the setting was invalid.
  */
-int state_manager_save_active_manifest (struct state_manager *manager, enum manifest_region active,
-	uint8_t bit)
+int state_manager_save_active_manifest (const struct state_manager *manager,
+	enum manifest_region active, uint8_t bit)
 {
 	int status = 0;
 
@@ -521,15 +549,15 @@ int state_manager_save_active_manifest (struct state_manager *manager, enum mani
 		return STATE_MANAGER_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&manager->state_lock);
+	platform_mutex_lock (&manager->state->state_lock);
 
 	switch (active) {
 		case MANIFEST_REGION_1:
-			manager->nv_state = manager->nv_state | bit;
+			manager->state->nv_state = manager->state->nv_state | bit;
 			break;
 
 		case MANIFEST_REGION_2:
-			manager->nv_state = manager->nv_state & ~bit;
+			manager->state->nv_state = manager->state->nv_state & ~bit;
 			break;
 
 		default:
@@ -537,7 +565,7 @@ int state_manager_save_active_manifest (struct state_manager *manager, enum mani
 			break;
 	}
 
-	platform_mutex_unlock (&manager->state_lock);
+	platform_mutex_unlock (&manager->state->state_lock);
 
 	return status;
 }
@@ -550,11 +578,12 @@ int state_manager_save_active_manifest (struct state_manager *manager, enum mani
  *
  * @return The active manifest region.
  */
-enum manifest_region state_manager_get_active_manifest (struct state_manager *manager, uint8_t bit)
+enum manifest_region state_manager_get_active_manifest (const struct state_manager *manager,
+	uint8_t bit)
 {
 	if (manager == NULL) {
 		return MANIFEST_REGION_1;
 	}
 
-	return (manager->nv_state & bit) ? MANIFEST_REGION_1 : MANIFEST_REGION_2;
+	return (manager->state->nv_state & bit) ? MANIFEST_REGION_1 : MANIFEST_REGION_2;
 }

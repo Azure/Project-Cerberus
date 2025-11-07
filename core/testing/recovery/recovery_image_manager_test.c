@@ -11,6 +11,7 @@
 #include "host_fw/host_state_manager.h"
 #include "flash/flash_common.h"
 #include "common/image_header.h"
+#include "testing/host_fw/host_state_manager_testing.h"
 #include "testing/mock/crypto/signature_verification_mock.h"
 #include "testing/mock/crypto/hash_mock.h"
 #include "testing/mock/flash/flash_mock.h"
@@ -62,42 +63,6 @@ static void recovery_image_manager_testing_write_new_image (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&flash->mock);
-	CuAssertIntEquals (test, 0, status);
-}
-
-/**
- * Initialize the host state manager for testing.
- *
- * @param test The testing framework.
- * @param state The host state instance to initialize.
- * @param flash The mock for the flash state storage.
- */
-static void recovery_image_manager_testing_init_host_state (CuTest *test,
-	struct host_state_manager *state, struct flash_mock *flash)
-{
-	int status;
-	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
-	uint32_t bytes = FLASH_SECTOR_SIZE;
-
-	status = flash_mock_init (flash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&flash->mock, flash->base.get_sector_size, flash, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&flash->mock, 0, &bytes, sizeof (bytes), -1);
-
-	status |= mock_expect (&flash->mock, flash->base.read, flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
-	status |= mock_expect_output (&flash->mock, 1, end, sizeof (end), 2);
-
-	status |= mock_expect (&flash->mock, flash->base.read, flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
-	status |= mock_expect_output (&flash->mock, 1, end, sizeof (end), 2);
-
-	status |= flash_mock_expect_erase_flash_sector_verify (flash, 0x10000, 0x1000);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_init (state, &flash->base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -5001,6 +4966,7 @@ static void recovery_image_manager_test_init_two_region (CuTest *test)
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -5024,7 +4990,7 @@ static void recovery_image_manager_test_init_two_region (CuTest *test)
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = mock_expect (&image1.mock, image1.base.verify, &image1, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
@@ -5085,6 +5051,7 @@ static void recovery_image_manager_test_init_two_region_active_region1 (CuTest *
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -5108,7 +5075,7 @@ static void recovery_image_manager_test_init_two_region_active_region1 (CuTest *
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = mock_expect (&image1.mock, image1.base.verify, &image1, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
@@ -5161,6 +5128,7 @@ static void recovery_image_manager_test_init_two_region_active_region2 (CuTest *
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -5184,7 +5152,7 @@ static void recovery_image_manager_test_init_two_region_active_region2 (CuTest *
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -5239,6 +5207,7 @@ static void recovery_image_manager_test_init_two_region_null (CuTest *test)
 	struct signature_verification_mock verification;
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -5259,7 +5228,7 @@ static void recovery_image_manager_test_init_two_region_null (CuTest *test)
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = recovery_image_manager_init_two_region (NULL, &image1.base, &image2.base, &state,
 		&hash.base, &verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
@@ -5319,6 +5288,7 @@ static void recovery_image_manager_test_init_two_region_region1_bad_platform_id 
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -5342,7 +5312,7 @@ static void recovery_image_manager_test_init_two_region_region1_bad_platform_id 
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = mock_expect (&image1.mock, image1.base.verify, &image1, RECOVERY_IMAGE_INCOMPATIBLE,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL), MOCK_ARG (0),
@@ -5396,6 +5366,7 @@ static void recovery_image_manager_test_init_two_region_region2_bad_platform_id 
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -5419,7 +5390,7 @@ static void recovery_image_manager_test_init_two_region_region2_bad_platform_id 
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -5476,6 +5447,7 @@ static void recovery_image_manager_test_init_two_region_region1_flash_error (CuT
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -5499,7 +5471,7 @@ static void recovery_image_manager_test_init_two_region_region1_flash_error (CuT
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = mock_expect (&image1.mock, image1.base.verify, &image1, FLASH_READ_FAILED,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL), MOCK_ARG (0),
@@ -5551,6 +5523,7 @@ static void recovery_image_manager_test_init_two_region_region2_flash_error (CuT
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -5574,7 +5547,7 @@ static void recovery_image_manager_test_init_two_region_region2_flash_error (CuT
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -5629,6 +5602,7 @@ static void recovery_image_manager_test_init_two_region_region1_bad_signature (C
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -5652,7 +5626,7 @@ static void recovery_image_manager_test_init_two_region_region1_bad_signature (C
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = mock_expect (&image1.mock, image1.base.verify, &image1, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL), MOCK_ARG (0),
@@ -5706,6 +5680,7 @@ static void recovery_image_manager_test_init_two_region_region2_bad_signature (C
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -5729,7 +5704,7 @@ static void recovery_image_manager_test_init_two_region_region2_bad_signature (C
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -5786,6 +5761,7 @@ static void recovery_image_manager_test_init_two_region_region1_malformed (CuTes
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -5809,7 +5785,7 @@ static void recovery_image_manager_test_init_two_region_region1_malformed (CuTes
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = mock_expect (&image1.mock, image1.base.verify, &image1, RECOVERY_IMAGE_MALFORMED,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL), MOCK_ARG (0),
@@ -5863,6 +5839,7 @@ static void recovery_image_manager_test_init_two_region_region2_malformed (CuTes
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -5886,7 +5863,7 @@ static void recovery_image_manager_test_init_two_region_region2_malformed (CuTes
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -5944,6 +5921,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_too
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -5967,7 +5945,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_too
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = mock_expect (&image1.mock, image1.base.verify, &image1, IMAGE_HEADER_NOT_MINIMUM_SIZE,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL), MOCK_ARG (0),
@@ -6022,6 +6000,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_too
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -6045,7 +6024,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_too
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -6103,6 +6082,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -6126,7 +6106,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = mock_expect (&image1.mock, image1.base.verify, &image1, IMAGE_HEADER_BAD_MARKER,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL), MOCK_ARG (0),
@@ -6181,6 +6161,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -6204,7 +6185,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -6261,6 +6242,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_too
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -6284,7 +6266,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_too
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = mock_expect (&image1.mock, image1.base.verify, &image1, IMAGE_HEADER_TOO_LONG,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL), MOCK_ARG (0),
@@ -6338,6 +6320,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_too
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -6361,7 +6344,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_too
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -6419,6 +6402,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -6442,7 +6426,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = mock_expect (&image1.mock, image1.base.verify, &image1,
 		RECOVERY_IMAGE_HEADER_BAD_FORMAT_LENGTH, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
@@ -6497,6 +6481,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -6520,7 +6505,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -6578,6 +6563,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -6601,7 +6587,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = mock_expect (&image1.mock, image1.base.verify, &image1,
 		RECOVERY_IMAGE_HEADER_BAD_PLATFORM_ID, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
@@ -6656,6 +6642,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -6679,7 +6666,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -6737,6 +6724,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -6760,7 +6748,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = mock_expect (&image1.mock, image1.base.verify, &image1,
 		RECOVERY_IMAGE_HEADER_BAD_VERSION_ID, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
@@ -6815,6 +6803,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -6838,7 +6827,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -6896,6 +6885,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -6919,7 +6909,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = mock_expect (&image1.mock, image1.base.verify, &image1,
 		RECOVERY_IMAGE_HEADER_BAD_IMAGE_LENGTH, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
@@ -6974,6 +6964,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -6997,7 +6988,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -7055,6 +7046,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_section_he
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -7078,7 +7070,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_section_he
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = mock_expect (&image1.mock, image1.base.verify, &image1,
 		RECOVERY_IMAGE_HEADER_BAD_IMAGE_LENGTH, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
@@ -7133,6 +7125,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_section_he
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -7156,7 +7149,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_section_he
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -7214,6 +7207,7 @@ static void recovery_image_manager_test_init_two_region_region1_invalid_section_
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -7237,7 +7231,7 @@ static void recovery_image_manager_test_init_two_region_region1_invalid_section_
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = mock_expect (&image1.mock, image1.base.verify, &image1,
 		RECOVERY_IMAGE_INVALID_SECTION_ADDRESS, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
@@ -7292,6 +7286,7 @@ static void recovery_image_manager_test_init_two_region_region2_invalid_section_
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -7315,7 +7310,7 @@ static void recovery_image_manager_test_init_two_region_region2_invalid_section_
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -7372,6 +7367,7 @@ static void recovery_image_manager_test_get_active_recovery_image_two_region (Cu
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -7395,7 +7391,7 @@ static void recovery_image_manager_test_get_active_recovery_image_two_region (Cu
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = mock_expect (&image1.mock, image1.base.verify, &image1, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
@@ -7448,6 +7444,7 @@ static void recovery_image_manager_test_get_active_recovery_image_two_region_nul
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -7471,7 +7468,7 @@ static void recovery_image_manager_test_get_active_recovery_image_two_region_nul
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = mock_expect (&image1.mock, image1.base.verify, &image1, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
@@ -7524,6 +7521,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_null (Cu
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -7547,7 +7545,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_null (Cu
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -7601,6 +7599,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_region1 
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -7624,7 +7623,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_region1 
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -7691,6 +7690,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_region2 
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -7714,7 +7714,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_region2 
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -7779,6 +7779,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_region1_
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -7802,7 +7803,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_region1_
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -7863,6 +7864,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_region2_
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -7886,7 +7888,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_region2_
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -7944,6 +7946,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_erase_er
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -7967,7 +7970,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_erase_er
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -8040,6 +8043,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_erase_er
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -8063,7 +8067,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_erase_er
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -8133,6 +8137,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_r
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	struct recovery_image *active;
 	int status;
@@ -8157,7 +8162,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_r
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -8230,6 +8235,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_r
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	struct recovery_image *active;
 	int status;
@@ -8254,7 +8260,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_r
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -8330,6 +8336,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_m
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	struct recovery_image *active1;
 	struct recovery_image *active2;
@@ -8356,7 +8363,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_m
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -8432,6 +8439,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_m
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	struct recovery_image *active1;
 	struct recovery_image *active2;
@@ -8458,7 +8466,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_m
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -8537,6 +8545,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_extra_fr
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	struct recovery_image *active;
 	int status;
@@ -8561,7 +8570,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_extra_fr
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -8645,6 +8654,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_extra_fr
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	struct recovery_image *active;
 	int status;
@@ -8669,7 +8679,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_extra_fr
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -8756,6 +8766,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_free_nul
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -8779,7 +8790,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_free_nul
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -8840,6 +8851,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_free_nul
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -8863,7 +8875,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_free_nul
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -8927,6 +8939,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_free_nul
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	struct recovery_image *active;
 	int status;
@@ -8951,7 +8964,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_free_nul
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -9012,6 +9025,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_free_nul
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	struct recovery_image *active;
 	int status;
@@ -9036,7 +9050,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_free_nul
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -9100,6 +9114,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_a
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	struct recovery_image *active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -9125,7 +9140,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_a
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -9213,6 +9228,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_a
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	struct recovery_image *active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -9238,7 +9254,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_a
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -9328,6 +9344,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_not_in_u
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -9351,7 +9368,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_not_in_u
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -9415,6 +9432,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_not_in_u
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -9438,7 +9456,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_not_in_u
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -9506,6 +9524,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_notify_o
 	struct flash_mock flash;
 	struct flash_mock flash_image;
 	struct recovery_image_observer_mock observer;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -9533,7 +9552,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_notify_o
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -9625,6 +9644,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_notify_o
 	struct flash_mock flash;
 	struct flash_mock flash_image;
 	struct recovery_image_observer_mock observer;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -9652,7 +9672,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_notify_o
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -9740,6 +9760,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_reg
 	struct flash_mock flash_state;
 	struct flash_mock flash;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -9763,7 +9784,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_reg
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -9838,6 +9859,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_reg
 	struct flash_mock flash_state;
 	struct flash_mock flash;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -9861,7 +9883,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_reg
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -9935,6 +9957,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wit
 	struct flash_mock flash_state;
 	struct flash_mock flash;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -9958,7 +9981,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wit
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -10016,6 +10039,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_too
 	struct flash_mock flash;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
     uint8_t fill[RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN - sizeof (data) + 1] = {0};
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -10039,7 +10063,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_too
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -10115,6 +10139,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wri
 	struct flash_mock flash_state;
 	struct flash_mock flash;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -10138,7 +10163,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wri
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -10212,6 +10237,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_par
 	struct flash_mock flash;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t fill[FLASH_PAGE_SIZE - 1] = {0};
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -10235,7 +10261,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_par
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -10315,6 +10341,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_mul
 	uint8_t data1[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t data2[] = {0x05, 0x06, 0x07, 0x08, 0x09};
 	uint8_t data3[] = {0x0a, 0x0b, 0x0c};
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -10338,7 +10365,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_mul
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -10427,6 +10454,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_blo
 	struct flash_mock flash;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t fill[FLASH_BLOCK_SIZE - sizeof (data)] = {0};
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -10450,7 +10478,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_blo
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -10531,6 +10559,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wri
 	uint8_t data1[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t data2[] = {0x05, 0x06, 0x07, 0x08, 0x09};
 	uint8_t data3[] = {0x0a, 0x0b, 0x0c};
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -10554,7 +10583,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wri
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -10644,6 +10673,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wri
 	uint8_t data1[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t data2[] = {0x05, 0x06, 0x07, 0x08, 0x09};
 	uint8_t fill[FLASH_PAGE_SIZE - 1] = {0};
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -10667,7 +10697,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wri
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -10755,6 +10785,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_res
 	uint8_t data1[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t data2[] = {0x05, 0x06, 0x07, 0x08, 0x09};
 	uint8_t data3[] = {0x0a, 0x0b, 0x0c};
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -10778,7 +10809,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_res
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -10870,6 +10901,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_in_
 	struct flash_mock flash_state;
 	struct flash_mock flash;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	struct recovery_image *active;
 	int status;
@@ -10894,7 +10926,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_in_
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -10960,6 +10992,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wri
 	struct flash_mock flash_state;
 	struct flash_mock flash;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -10983,7 +11016,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wri
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	image1.base.flash = &flash.base;
 	image1.base.addr = 0x10000;
@@ -11051,6 +11084,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_regio
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -11076,7 +11110,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_regio
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -11155,6 +11189,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_regio
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -11180,7 +11215,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_regio
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -11258,6 +11293,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_regio
 	struct flash_mock flash;
 	struct flash_mock flash_image;
 	struct recovery_image_observer_mock observer;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -11286,7 +11322,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_regio
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -11377,6 +11413,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_regio
 	struct flash_mock flash;
 	struct flash_mock flash_image;
 	struct recovery_image_observer_mock observer;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -11405,7 +11442,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_regio
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -11492,6 +11529,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_pe
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	int status;
@@ -11516,7 +11554,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_pe
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -11579,6 +11617,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_pe
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	int status;
@@ -11603,7 +11642,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_pe
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = mock_expect (&image1.mock, image1.base.verify, &image1, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
@@ -11663,6 +11702,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_pe
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	struct recovery_image_observer_mock observer;
@@ -11691,7 +11731,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_pe
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -11760,6 +11800,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_pe
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	struct recovery_image_observer_mock observer;
@@ -11788,7 +11829,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_pe
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -11853,6 +11894,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_null 
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	int status;
@@ -11877,7 +11919,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_null 
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -11937,6 +11979,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -11961,7 +12004,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -12033,6 +12076,7 @@ CuTest *test)
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -12057,7 +12101,7 @@ CuTest *test)
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -12126,6 +12170,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_after
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -12149,7 +12194,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_after
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -12213,6 +12258,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_after
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -12236,7 +12282,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_after
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -12298,6 +12344,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	struct flash_mock flash;
 	struct flash_mock flash_image;
 	struct recovery_image_observer_mock observer;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -12326,7 +12373,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -12416,6 +12463,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	struct flash_mock flash;
 	struct flash_mock flash_image;
 	struct recovery_image_observer_mock observer;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -12444,7 +12492,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -12530,6 +12578,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -12555,7 +12604,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -12634,6 +12683,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -12659,7 +12709,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -12735,6 +12785,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_malfo
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -12760,7 +12811,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_malfo
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -12840,6 +12891,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_malfo
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -12865,7 +12917,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_malfo
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -12942,6 +12994,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_extra
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data1[] = {0x01, 0x02, 0x03, 0x04};
@@ -12968,7 +13021,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_extra
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -13056,6 +13109,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_extra
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data1[] = {0x01, 0x02, 0x03, 0x04};
@@ -13082,7 +13136,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_extra
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -13168,6 +13222,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	struct flash_mock flash;
 	struct flash_mock flash_image;
 	struct recovery_image_observer_mock observer;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -13196,7 +13251,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -13283,6 +13338,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	struct flash_mock flash;
 	struct flash_mock flash_image;
 	struct recovery_image_observer_mock observer;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -13311,7 +13367,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -13394,6 +13450,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -13419,7 +13476,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -13493,6 +13550,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -13518,7 +13576,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -13589,6 +13647,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -13614,7 +13673,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -13688,6 +13747,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -13713,7 +13773,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -13784,6 +13844,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_with_
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -13809,7 +13870,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_with_
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -13884,6 +13945,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_with_
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -13909,7 +13971,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_with_
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	image1.base.flash = &flash_image.base;
 	image1.base.addr = 0x10000;
@@ -13982,6 +14044,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_ev
 	struct flash_mock flash;
 	struct flash_mock flash_image;
 	struct recovery_image_observer_mock observer;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -14010,7 +14073,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_ev
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -14098,6 +14161,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_ev
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct recovery_image_observer_mock observer;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	enum recovery_image_region active;
 	struct flash_mock flash_image;
@@ -14127,7 +14191,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_ev
 	status = flash_mock_init (&flash_image);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash, true);
 
 	status = mock_expect (&image1.mock, image1.base.verify, &image1, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
@@ -14211,6 +14275,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_region1 (CuTe
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -14234,7 +14299,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_region1 (CuTe
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_1);
 	CuAssertIntEquals (test, 0, status);
@@ -14304,6 +14369,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_region2 (CuTe
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -14327,7 +14393,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_region2 (CuTe
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -14397,6 +14463,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_null_region1 
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -14420,7 +14487,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_null_region1 
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_1);
 	CuAssertIntEquals (test, 0, status);
@@ -14484,6 +14551,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_null_region2 
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -14507,7 +14575,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_null_region2 
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -14571,6 +14639,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_in_use_region
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	struct recovery_image *active;
 	int status;
@@ -14595,7 +14664,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_in_use_region
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_1);
 	CuAssertIntEquals (test, 0, status);
@@ -14675,6 +14744,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_in_use_region
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	struct recovery_image *active;
 	int status;
@@ -14699,7 +14769,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_in_use_region
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -14780,6 +14850,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_erase_error_r
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -14803,7 +14874,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_erase_error_r
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_1);
 	CuAssertIntEquals (test, 0, status);
@@ -14876,6 +14947,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_erase_error_r
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	int status;
 
@@ -14899,7 +14971,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_erase_error_r
 	status = recovery_image_mock_init (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -14972,6 +15044,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_valid_image_n
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	struct recovery_image_observer_mock observer;
 	int status;
@@ -14999,7 +15072,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_valid_image_n
 	status = recovery_image_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_1);
 	CuAssertIntEquals (test, 0, status);
@@ -15078,6 +15151,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_invalid_image
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	struct recovery_image_observer_mock observer;
 	int status;
@@ -15105,7 +15179,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_invalid_image
 	status = recovery_image_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_1);
 	CuAssertIntEquals (test, 0, status);
@@ -15183,6 +15257,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_valid_image_n
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	struct recovery_image_observer_mock observer;
 	int status;
@@ -15210,7 +15285,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_valid_image_n
 	status = recovery_image_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
@@ -15289,6 +15364,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_invalid_image
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
+	struct host_state_manager_state state_ctx;
 	struct host_state_manager state;
 	struct recovery_image_observer_mock observer;
 	int status;
@@ -15316,7 +15392,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_invalid_image
 	status = recovery_image_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
-	recovery_image_manager_testing_init_host_state (test, &state, &flash_state);
+	host_state_manager_testing_init_host_state (test, &state, &state_ctx, &flash_state, true);
 
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);

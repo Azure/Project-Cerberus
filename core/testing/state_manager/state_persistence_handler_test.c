@@ -23,14 +23,17 @@ TEST_SUITE_LABEL ("state_persistence_handler");
  */
 struct state_persistence_handler_testing {
 	struct flash_mock flash1;						/**< Mock for the state flash. */
+	struct state_manager_state manager1_context;	/**< State manager context. */
 	struct state_manager manager1;					/**< State manager for testing. */
 	struct flash_mock flash2;						/**< Mock for the state flash. */
+	struct state_manager_state manager2_context;	/**< State manager context. */
 	struct state_manager manager2;					/**< State manager for testing. */
 	struct flash_mock flash3;						/**< Mock for the state flash. */
+	struct state_manager_state manager3_context;	/**< State manager context. */
 	struct state_manager manager3;					/**< State manager for testing. */
 	struct logging_mock log;						/**< Mock for debug logging. */
-	struct state_persistence_handler_state state;	/**< Context for the test being tested. */
-	struct state_persistence_handler test;			/**< Log flush task for testing. */
+	struct state_persistence_handler_state state;	/**< Context for the handler being tested. */
+	struct state_persistence_handler test;			/**< State persistence handler for testing. */
 };
 
 
@@ -40,10 +43,11 @@ struct state_persistence_handler_testing {
  * @param test The testing framework.
  * @param flash Flash used by the state manager.
  * @param manager The state manager to initialize.
- *
+ * @param manager_ctx Variable context for the state manager.
  */
 static void state_persistence_handler_testing_init_state_manager (CuTest *test,
-	struct flash_mock *flash, struct state_manager *manager)
+	struct flash_mock *flash, struct state_manager *manager,
+	struct state_manager_state *manager_ctx)
 {
 	uint16_t state[4] = {0xffff, 0xffff, 0xffff, 0xffff};
 	uint32_t bytes = FLASH_SECTOR_SIZE;
@@ -64,7 +68,7 @@ static void state_persistence_handler_testing_init_state_manager (CuTest *test,
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = state_manager_init (manager, &flash->base, 0x10000);
+	status = state_manager_init (manager, manager_ctx, &flash->base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -95,11 +99,11 @@ static void state_persistence_handler_testing_init_dependencies (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	state_persistence_handler_testing_init_state_manager (test, &handler->flash1,
-		&handler->manager1);
+		&handler->manager1, &handler->manager1_context);
 	state_persistence_handler_testing_init_state_manager (test, &handler->flash2,
-		&handler->manager2);
+		&handler->manager2, &handler->manager2_context);
 	state_persistence_handler_testing_init_state_manager (test, &handler->flash3,
-		&handler->manager3);
+		&handler->manager3, &handler->manager3_context);
 
 	debug_log = &handler->log.base;
 }
@@ -114,8 +118,8 @@ static void state_persistence_handler_testing_init_dependencies (CuTest *test,
  * @param period_ms Time between handler executions.
  */
 static void state_persistence_handler_testing_init (CuTest *test,
-	struct state_persistence_handler_testing *handler, struct state_manager **manager_list,
-	size_t manager_count, uint32_t period_ms)
+	struct state_persistence_handler_testing *handler,
+	const struct state_manager *const *manager_list, size_t manager_count, uint32_t period_ms)
 {
 	int status;
 
@@ -190,7 +194,7 @@ static void state_persistence_handler_testing_validate_and_release (CuTest *test
 static void state_persistence_handler_test_init (CuTest *test)
 {
 	struct state_persistence_handler_testing handler;
-	struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
+	const struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
 	const size_t count = sizeof (list) / sizeof (list[0]);
 	int status;
 
@@ -211,7 +215,7 @@ static void state_persistence_handler_test_init (CuTest *test)
 static void state_persistence_handler_test_init_null (CuTest *test)
 {
 	struct state_persistence_handler_testing handler;
-	struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
+	const struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
 	const size_t count = sizeof (list) / sizeof (list[0]);
 	int status;
 
@@ -237,7 +241,7 @@ static void state_persistence_handler_test_init_null (CuTest *test)
 static void state_persistence_handler_test_static_init (CuTest *test)
 {
 	struct state_persistence_handler_testing handler;
-	struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
+	const struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
 	const size_t count = sizeof (list) / sizeof (list[0]);
 	struct state_persistence_handler test_static =
 		state_persistence_handler_static_init (&handler.state, list, count, 500);
@@ -261,7 +265,7 @@ static void state_persistence_handler_test_static_init (CuTest *test)
 static void state_persistence_handler_test_static_init_null (CuTest *test)
 {
 	struct state_persistence_handler_testing handler;
-	struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
+	const struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
 	const size_t count = sizeof (list) / sizeof (list[0]);
 	struct state_persistence_handler test_static =
 		state_persistence_handler_static_init (&handler.state, list, count, 500);
@@ -301,7 +305,7 @@ static void state_persistence_handler_test_release_null (CuTest *test)
 static void state_persistence_handler_test_get_next_execution (CuTest *test)
 {
 	struct state_persistence_handler_testing handler;
-	struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
+	const struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
 	const size_t count = sizeof (list) / sizeof (list[0]);
 	const platform_clock *next_time;
 	uint32_t msec;
@@ -327,7 +331,7 @@ static void state_persistence_handler_test_get_next_execution (CuTest *test)
 static void state_persistence_handler_test_get_next_execution_no_prepare (CuTest *test)
 {
 	struct state_persistence_handler_testing handler;
-	struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
+	const struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
 	const size_t count = sizeof (list) / sizeof (list[0]);
 	const platform_clock *next_time;
 
@@ -344,7 +348,7 @@ static void state_persistence_handler_test_get_next_execution_no_prepare (CuTest
 static void state_persistence_handler_test_get_next_execution_static_init (CuTest *test)
 {
 	struct state_persistence_handler_testing handler;
-	struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
+	const struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
 	const size_t count = sizeof (list) / sizeof (list[0]);
 	struct state_persistence_handler test_static =
 		state_persistence_handler_static_init (&handler.state, list, count, 5000);
@@ -373,7 +377,7 @@ static void state_persistence_handler_test_get_next_execution_static_init (CuTes
 static void state_persistence_handler_test_execute (CuTest *test)
 {
 	struct state_persistence_handler_testing handler;
-	struct state_manager *list[] = {&handler.manager1};
+	const struct state_manager *list[] = {&handler.manager1};
 	const size_t count = sizeof (list) / sizeof (list[0]);
 	const platform_clock *next_time;
 	uint32_t msec;
@@ -402,7 +406,7 @@ static void state_persistence_handler_test_execute (CuTest *test)
 	platform_msleep (200);
 
 	/* Force a change to the state that will be stored. */
-	handler.manager1.nv_state = 0xfffe;
+	handler.manager1_context.nv_state = 0xfffe;
 
 	handler.test.base.execute (&handler.test.base);
 
@@ -421,7 +425,7 @@ static void state_persistence_handler_test_execute (CuTest *test)
 static void state_persistence_handler_test_execute_failure (CuTest *test)
 {
 	struct state_persistence_handler_testing handler;
-	struct state_manager *list[] = {&handler.manager1};
+	const struct state_manager *list[] = {&handler.manager1};
 	const size_t count = sizeof (list) / sizeof (list[0]);
 	const platform_clock *next_time;
 	uint32_t msec;
@@ -453,7 +457,7 @@ static void state_persistence_handler_test_execute_failure (CuTest *test)
 	platform_msleep (200);
 
 	/* Force a change to the state that will be stored. */
-	handler.manager1.nv_state = 0xfffe;
+	handler.manager1_context.nv_state = 0xfffe;
 
 	handler.test.base.execute (&handler.test.base);
 
@@ -472,7 +476,7 @@ static void state_persistence_handler_test_execute_failure (CuTest *test)
 static void state_persistence_handler_test_execute_multiple_managers (CuTest *test)
 {
 	struct state_persistence_handler_testing handler;
-	struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
+	const struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
 	const size_t count = sizeof (list) / sizeof (list[0]);
 	const platform_clock *next_time;
 	uint32_t msec;
@@ -524,9 +528,9 @@ static void state_persistence_handler_test_execute_multiple_managers (CuTest *te
 	platform_msleep (200);
 
 	/* Force a change to the state that will be stored. */
-	handler.manager1.nv_state = 0xfffe;
-	handler.manager2.nv_state = 0xfffe;
-	handler.manager3.nv_state = 0xfffe;
+	handler.manager1_context.nv_state = 0xfffe;
+	handler.manager2_context.nv_state = 0xfffe;
+	handler.manager3_context.nv_state = 0xfffe;
 
 	handler.test.base.execute (&handler.test.base);
 
@@ -545,7 +549,7 @@ static void state_persistence_handler_test_execute_multiple_managers (CuTest *te
 static void state_persistence_handler_test_execute_multiple_managers_failure (CuTest *test)
 {
 	struct state_persistence_handler_testing handler;
-	struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
+	const struct state_manager *list[] = {&handler.manager1, &handler.manager2, &handler.manager3};
 	const size_t count = sizeof (list) / sizeof (list[0]);
 	const platform_clock *next_time;
 	uint32_t msec;
@@ -614,9 +618,9 @@ static void state_persistence_handler_test_execute_multiple_managers_failure (Cu
 	platform_msleep (200);
 
 	/* Force a change to the state that will be stored. */
-	handler.manager1.nv_state = 0xfffe;
-	handler.manager2.nv_state = 0xfffe;
-	handler.manager3.nv_state = 0xfffe;
+	handler.manager1_context.nv_state = 0xfffe;
+	handler.manager2_context.nv_state = 0xfffe;
+	handler.manager3_context.nv_state = 0xfffe;
 
 	handler.test.base.execute (&handler.test.base);
 
@@ -635,7 +639,7 @@ static void state_persistence_handler_test_execute_multiple_managers_failure (Cu
 static void state_persistence_handler_test_execute_static_init (CuTest *test)
 {
 	struct state_persistence_handler_testing handler;
-	struct state_manager *list[] = {&handler.manager1};
+	const struct state_manager *list[] = {&handler.manager1};
 	const size_t count = sizeof (list) / sizeof (list[0]);
 	struct state_persistence_handler test_static =
 		state_persistence_handler_static_init (&handler.state, list, count, 5000);
@@ -666,9 +670,9 @@ static void state_persistence_handler_test_execute_static_init (CuTest *test)
 	platform_msleep (200);
 
 	/* Force a change to the state that will be stored. */
-	handler.manager1.nv_state = 0xfffe;
-	handler.manager2.nv_state = 0xfffe;
-	handler.manager3.nv_state = 0xfffe;
+	handler.manager1_context.nv_state = 0xfffe;
+	handler.manager2_context.nv_state = 0xfffe;
+	handler.manager3_context.nv_state = 0xfffe;
 
 	test_static.base.execute (&test_static.base);
 

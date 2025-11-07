@@ -29,6 +29,7 @@ struct host_processor_single_full_bypass_testing {
 	struct flash_master_mock flash_mock_state;			/**< Flash mock for host state information. */
 	struct spi_flash_state flash_context;				/**< Host state flash context. */
 	struct spi_flash flash_state;						/**< Host state flash. */
+	struct host_state_manager_state host_state_context;	/**< Host state manager context. */
 	struct host_state_manager host_state;				/**< Host state manager. */
 	struct spi_filter_interface_mock filter;			/**< Mock for the SPI filter. */
 	struct host_flash_manager_single_mock flash_mgr;	/**< Mock for flash management. */

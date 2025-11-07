@@ -20,8 +20,8 @@ struct host_state_observer {
 	 * @param observer The observer instance being notified.
 	 * @param manager The manager generating the event.
 	 */
-	void (*on_active_pfm) (struct host_state_observer *observer,
-		struct host_state_manager *manager);
+	void (*on_active_pfm) (const struct host_state_observer *observer,
+		const struct host_state_manager *manager);
 
 	/**
 	 * Notification that the read only flash device has changed.
@@ -31,8 +31,8 @@ struct host_state_observer {
 	 * @param observer The observer instance being notified.
 	 * @param manager The manager generating the event.
 	 */
-	void (*on_read_only_flash) (struct host_state_observer *observer,
-		struct host_state_manager *manager);
+	void (*on_read_only_flash) (const struct host_state_observer *observer,
+		const struct host_state_manager *manager);
 
 	/**
 	 * Notification that the dirty state of flash has changed.
@@ -42,8 +42,8 @@ struct host_state_observer {
 	 * @param observer The observer instance being notified.
 	 * @param manager The manager generating the event.
 	 */
-	void (*on_inactive_dirty) (struct host_state_observer *observer,
-		struct host_state_manager *manager);
+	void (*on_inactive_dirty) (const struct host_state_observer *observer,
+		const struct host_state_manager *manager);
 
 	/**
 	 * Notification that the active recovery image has changed.
@@ -53,8 +53,8 @@ struct host_state_observer {
 	 * @param observer The observer instance being notified.
 	 * @param manager The manager generating the event.
 	 */
-	void (*on_active_recovery_image) (struct host_state_observer *observer,
-		struct host_state_manager *manager);
+	void (*on_active_recovery_image) (const struct host_state_observer *observer,
+		const struct host_state_manager *manager);
 
 	/**
 	 * Notification that the dirty state of a PFM has changed.
@@ -64,7 +64,8 @@ struct host_state_observer {
 	 * @param observer The observer instance being notified.
 	 * @param manager The manager generating the event.
 	 */
-	void (*on_pfm_dirty) (struct host_state_observer *observer,	struct host_state_manager *manager);
+	void (*on_pfm_dirty) (const struct host_state_observer *observer,
+		const struct host_state_manager *manager);
 
 	/**
 	 * Notification that the run-time validation status has changed.
@@ -74,8 +75,8 @@ struct host_state_observer {
 	 * @param observer The observer instance being notified.
 	 * @param manager The manager generating the event.
 	 */
-	void (*on_run_time_validation) (struct host_state_observer *observer,
-		struct host_state_manager *manager);
+	void (*on_run_time_validation) (const struct host_state_observer *observer,
+		const struct host_state_manager *manager);
 
 	/**
 	 * Notification that the bypass mode state has changed.
@@ -84,8 +85,8 @@ struct host_state_observer {
 	 *
 	 * @param observer The observer instance being notified.v
 	 */
-	void (*on_bypass_mode) (struct host_state_observer *observer,
-		struct host_state_manager *manager);
+	void (*on_bypass_mode) (const struct host_state_observer *observer,
+		const struct host_state_manager *manager);
 
 	/**
 	 * Notification that the unsupported flash state has changed.
@@ -95,8 +96,8 @@ struct host_state_observer {
 	 * @param observer The observer instance being notified.
 	 * @param manager The manager generating the event.
 	 */
-	void (*on_unsupported_flash) (struct host_state_observer *observer,
-		struct host_state_manager *manager);
+	void (*on_unsupported_flash) (const struct host_state_observer *observer,
+		const struct host_state_manager *manager);
 };
 
 

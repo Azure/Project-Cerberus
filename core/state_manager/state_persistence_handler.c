@@ -67,7 +67,7 @@ void state_persistence_handler_execute (const struct periodic_task_handler *hand
  * @return 0 if the handler was successfully initialized or an error code.
  */
 int state_persistence_handler_init (struct state_persistence_handler *handler,
-	struct state_persistence_handler_state *state, struct state_manager **managers,
+	struct state_persistence_handler_state *state, const struct state_manager *const *managers,
 	size_t manager_count, uint32_t period_ms)
 {
 	if ((handler == NULL) || (state == NULL) || (managers == NULL) || (manager_count == 0)) {

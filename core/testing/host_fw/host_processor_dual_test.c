@@ -58,8 +58,8 @@ void host_processor_dual_testing_init_dependencies (CuTest *test,
 	status = logging_mock_init (&host->logger);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host->host_state, &host->flash_mock_state,
-		&host->flash_state, &host->flash_context);
+	host_processor_dual_testing_init_host_state (test, &host->host_state, &host->host_state_context,
+		&host->flash_mock_state, &host->flash_state, &host->flash_context);
 }
 
 /**
@@ -248,13 +248,14 @@ void host_processor_dual_testing_validate_and_release (CuTest *test,
  *
  * @param test The testing framework.
  * @param state The host state instance to initialize.
+ * @param state_ctx Context for the host state.
  * @param flash_mock The mock for the flash state storage.
  * @param flash The flash device to initialize for state.
  * @param flash_state Context for the flash device.
  */
 void host_processor_dual_testing_init_host_state (CuTest *test, struct host_state_manager *state,
-	struct flash_master_mock *flash_mock, struct spi_flash *flash,
-	struct spi_flash_state *flash_state)
+	struct host_state_manager_state *state_ctx, struct flash_master_mock *flash_mock,
+	struct spi_flash *flash, struct spi_flash_state *flash_state)
 {
 	int status;
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -282,7 +283,7 @@ void host_processor_dual_testing_init_host_state (CuTest *test, struct host_stat
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_state_manager_init (state, &flash->base, 0x10000);
+	status = host_state_manager_init (state, state_ctx, &flash->base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -296,6 +297,7 @@ static void host_processor_dual_test_init (CuTest *test)
 	struct flash_master_mock flash_mock_state;
 	struct spi_flash_state flash_context;
 	struct spi_flash flash_state;
+	struct host_state_manager_state host_state_context;
 	struct host_state_manager host_state;
 	struct spi_filter_interface_mock filter;
 	struct host_flash_manager_dual_mock flash_mgr;
@@ -318,8 +320,8 @@ static void host_processor_dual_test_init (CuTest *test)
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
-		&flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &host_state_context,
+		&flash_mock_state, &flash_state, &flash_context);
 
 	status = host_processor_dual_init (&host, &control.base, &flash_mgr.base, &host_state,
 		&filter.base, &pfm_mgr.base, NULL);
@@ -362,6 +364,7 @@ static void host_processor_dual_test_init_null (CuTest *test)
 	struct flash_master_mock flash_mock_state;
 	struct spi_flash_state flash_context;
 	struct spi_flash flash_state;
+	struct host_state_manager_state host_state_context;
 	struct host_state_manager host_state;
 	struct spi_filter_interface_mock filter;
 	struct host_flash_manager_dual_mock flash_mgr;
@@ -384,8 +387,8 @@ static void host_processor_dual_test_init_null (CuTest *test)
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
-		&flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &host_state_context,
+		&flash_mock_state, &flash_state, &flash_context);
 
 	status = host_processor_dual_init (NULL, &control.base, &flash_mgr.base, &host_state,
 		&filter.base, &pfm_mgr.base, NULL);
@@ -435,6 +438,7 @@ static void host_processor_dual_test_init_pulse_reset (CuTest *test)
 	struct flash_master_mock flash_mock_state;
 	struct spi_flash_state flash_context;
 	struct spi_flash flash_state;
+	struct host_state_manager_state host_state_context;
 	struct host_state_manager host_state;
 	struct spi_filter_interface_mock filter;
 	struct host_flash_manager_dual_mock flash_mgr;
@@ -457,8 +461,8 @@ static void host_processor_dual_test_init_pulse_reset (CuTest *test)
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
-		&flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &host_state_context,
+		&flash_mock_state, &flash_state, &flash_context);
 
 	status = host_processor_dual_init_pulse_reset (&host, &control.base, &flash_mgr.base,
 		&host_state, &filter.base, &pfm_mgr.base, NULL, 100);
@@ -501,6 +505,7 @@ static void host_processor_dual_test_init_pulse_reset_null (CuTest *test)
 	struct flash_master_mock flash_mock_state;
 	struct spi_flash_state flash_context;
 	struct spi_flash flash_state;
+	struct host_state_manager_state host_state_context;
 	struct host_state_manager host_state;
 	struct spi_filter_interface_mock filter;
 	struct host_flash_manager_dual_mock flash_mgr;
@@ -523,8 +528,8 @@ static void host_processor_dual_test_init_pulse_reset_null (CuTest *test)
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
-		&flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &host_state_context,
+		&flash_mock_state, &flash_state, &flash_context);
 
 	status = host_processor_dual_init_pulse_reset (NULL, &control.base, &flash_mgr.base,
 		&host_state, &filter.base, &pfm_mgr.base, NULL, 100);
@@ -574,6 +579,7 @@ static void host_processor_dual_test_init_pulse_reset_invalid_pulse_width (CuTes
 	struct flash_master_mock flash_mock_state;
 	struct spi_flash_state flash_context;
 	struct spi_flash flash_state;
+	struct host_state_manager_state host_state_context;
 	struct host_state_manager host_state;
 	struct spi_filter_interface_mock filter;
 	struct host_flash_manager_dual_mock flash_mgr;
@@ -596,8 +602,8 @@ static void host_processor_dual_test_init_pulse_reset_invalid_pulse_width (CuTes
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
-		&flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &host_state_context,
+		&flash_mock_state, &flash_state, &flash_context);
 
 	status = host_processor_dual_init_pulse_reset (&host, &control.base, &flash_mgr.base,
 		&host_state, &filter.base, &pfm_mgr.base, NULL, 0);

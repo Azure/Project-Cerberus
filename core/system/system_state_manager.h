@@ -4,9 +4,6 @@
 #ifndef SYSTEM_STATE_MANAGER_H_
 #define SYSTEM_STATE_MANAGER_H_
 
-#include <stdbool.h>
-#include <stdint.h>
-#include "flash/flash.h"
 #include "state_manager/state_manager.h"
 
 
@@ -20,9 +17,10 @@ enum {
 };
 
 
-int system_state_manager_init (struct state_manager *manager, const struct flash *state_flash,
-	uint32_t store_addr);
-void system_state_manager_release (struct state_manager *manager);
+int system_state_manager_init (struct state_manager *manager, struct state_manager_state *state,
+	const struct flash *state_flash, uint32_t store_addr);
+int system_state_manager_init_state (const struct state_manager *manager);
+void system_state_manager_release (const struct state_manager *manager);
 
 
 #endif	/* SYSTEM_STATE_MANAGER_H_ */

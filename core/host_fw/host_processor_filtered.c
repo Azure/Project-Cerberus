@@ -28,7 +28,7 @@
  */
 int host_processor_filtered_init (struct host_processor_filtered *host,
 	const struct host_control *control, struct host_flash_manager *flash,
-	struct host_state_manager *state, const struct spi_filter_interface *filter,
+	const struct host_state_manager *state, const struct spi_filter_interface *filter,
 	const struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse,
 	bool reset_flash)
 {

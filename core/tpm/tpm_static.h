@@ -7,7 +7,7 @@
 #include "tpm.h"
 
 /* Internal functions declared to allow for static initialization. */
-void tpm_on_soft_reset (struct host_processor_observer *observer);
+void tpm_on_soft_reset (const struct host_processor_observer *observer);
 
 /**
  * Constant initializer for TPM observer

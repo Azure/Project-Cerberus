@@ -29,7 +29,7 @@ struct pcd_manager_flash {
 
 int pcd_manager_flash_init (struct pcd_manager_flash *manager,
 	struct pcd_manager_flash_state *state, const struct pcd_flash *pcd_region1,
-	const struct pcd_flash *pcd_region2, struct state_manager *state_mgr,
+	const struct pcd_flash *pcd_region2, const struct state_manager *state_mgr,
 	const struct hash_engine *hash, const struct signature_verification *verification);
 int pcd_manager_flash_init_state (const struct pcd_manager_flash *manager);
 void pcd_manager_flash_release (const struct pcd_manager_flash *manager);

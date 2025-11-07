@@ -16,7 +16,7 @@
 struct host_flash_manager_single {
 	struct host_flash_manager base;						/**< Base flash manager interface. */
 	const struct spi_flash *flash;						/**< The host flash device. */
-	struct host_state_manager *host_state;				/**< State information for the host using the flash. */
+	const struct host_state_manager *host_state;		/**< State information for the host using the flash. */
 	const struct spi_filter_interface *filter;			/**< The SPI filter connected to the flash devices. */
 	const struct flash_mfg_filter_handler *mfg_handler;	/**< The filter handler for flash device types. */
 	const struct host_flash_initialization *flash_init;	/**< Host flash initialization manager. */
@@ -24,11 +24,11 @@ struct host_flash_manager_single {
 
 
 int host_flash_manager_single_init (struct host_flash_manager_single *manager,
-	const struct spi_flash *flash, struct host_state_manager *host_state,
+	const struct spi_flash *flash, const struct host_state_manager *host_state,
 	const struct spi_filter_interface *filter, const struct flash_mfg_filter_handler *mfg_handler);
 int host_flash_manager_single_init_with_managed_flash_initialization (
 	struct host_flash_manager_single *manager, const struct spi_flash *flash,
-	struct host_state_manager *host_state, const struct spi_filter_interface *filter,
+	const struct host_state_manager *host_state, const struct spi_filter_interface *filter,
 	const struct flash_mfg_filter_handler *mfg_handler,
 	const struct host_flash_initialization *flash_init);
 void host_flash_manager_single_release (struct host_flash_manager_single *manager);

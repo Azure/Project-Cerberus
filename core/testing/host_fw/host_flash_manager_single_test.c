@@ -36,6 +36,7 @@ struct host_flash_manager_single_testing {
 	struct spi_flash flash0;							/**< CS0 flash device. */
 	struct spi_flash_state state;						/**< Host state flash context. */
 	struct spi_flash flash_state;						/**< Host state flash device. */
+	struct host_state_manager_state host_state_ctx;		/**< Variable context for host state. */
 	struct host_state_manager host_state;				/**< Host state. */
 	struct spi_filter_interface_mock filter;			/**< Mock for the SPI filter. */
 	struct flash_mfg_filter_handler_mock handler;		/**< Handler for SPI filter device config. */
@@ -85,7 +86,8 @@ static void host_flash_manager_single_testing_init_host_state (CuTest *test,
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_state_manager_init (&manager->host_state, &manager->flash_state.base, 0x10000);
+	status = host_state_manager_init (&manager->host_state, &manager->host_state_ctx,
+		&manager->flash_state.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 }
 

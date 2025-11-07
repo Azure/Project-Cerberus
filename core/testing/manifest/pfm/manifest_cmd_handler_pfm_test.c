@@ -13,6 +13,7 @@
 #include "spi_filter/spi_filter_logging.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/engines/rsa_testing_engine.h"
+#include "testing/host_fw/host_state_manager_testing.h"
 #include "testing/logging/debug_log_testing.h"
 #include "testing/mock/flash/flash_mock.h"
 #include "testing/mock/host_fw/host_processor_mock.h"
@@ -29,52 +30,20 @@ TEST_SUITE_LABEL ("manifest_cmd_handler_pfm");
  * Dependencies for testing.
  */
 struct manifest_cmd_handler_pfm_testing {
-	HASH_TESTING_ENGINE (hash);					/**< Hash engine for verification. */
-	RSA_TESTING_ENGINE (rsa);					/**< RSA engine for verification. */
-	struct manifest_manager_mock manifest;		/**< Mock for the manifest manager. */
-	struct logging_mock log;					/**< Mock for debug logging. */
-	struct event_task_mock task;				/**< Mock for the command task. */
-	struct host_processor_mock host;			/**< Mock for the host instance. */
-	struct flash_mock flash;					/**< Mock for host stat flash. */
-	struct host_state_manager host_state;		/**< Manager for host state. */
-	struct spi_filter_interface_mock filter;	/**< Mock for the host SPI filter. */
-	struct manifest_cmd_handler_state state;	/**< Context for the manifest handler. */
-	struct manifest_cmd_handler_pfm test;		/**< Manifest handler under test. */
+	HASH_TESTING_ENGINE (hash);							/**< Hash engine for verification. */
+	RSA_TESTING_ENGINE (rsa);							/**< RSA engine for verification. */
+	struct manifest_manager_mock manifest;				/**< Mock for the manifest manager. */
+	struct logging_mock log;							/**< Mock for debug logging. */
+	struct event_task_mock task;						/**< Mock for the command task. */
+	struct host_processor_mock host;					/**< Mock for the host instance. */
+	struct flash_mock flash;							/**< Mock for host state flash. */
+	struct host_state_manager_state host_state_context;	/**< Host state context. */
+	struct host_state_manager host_state;				/**< Manager for host state. */
+	struct spi_filter_interface_mock filter;			/**< Mock for the host SPI filter. */
+	struct manifest_cmd_handler_state state;			/**< Context for the manifest handler. */
+	struct manifest_cmd_handler_pfm test;				/**< Manifest handler under test. */
 };
 
-
-/**
- * Initialize the host state manager for testing.
- *
- * @param test The testing framework.
- * @param handler The testing components.
- */
-static void manifest_cmd_handler_pfm_testing_init_host_state (CuTest *test,
-	struct manifest_cmd_handler_pfm_testing *handler)
-{
-	int status;
-	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
-	uint32_t bytes = FLASH_SECTOR_SIZE;
-
-	status = mock_expect (&handler->flash.mock, handler->flash.base.get_sector_size,
-		&handler->flash, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&handler->flash.mock, 0, &bytes, sizeof (bytes), -1);
-
-	status |= mock_expect (&handler->flash.mock, handler->flash.base.read, &handler->flash, 0,
-		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (8));
-	status |= mock_expect_output (&handler->flash.mock, 1, (uint8_t*) end, sizeof (end), 2);
-
-	status |= mock_expect (&handler->flash.mock, handler->flash.base.read, &handler->flash, 0,
-		MOCK_ARG (0x11000), MOCK_ARG_NOT_NULL, MOCK_ARG (8));
-	status |= mock_expect_output (&handler->flash.mock, 1, (uint8_t*) end, sizeof (end), 2);
-
-	status |= flash_mock_expect_erase_flash_sector_verify (&handler->flash, 0x10000, 0x1000);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_init (&handler->host_state, &handler->flash.base, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-}
 
 /**
  * Initialize testing dependencies.
@@ -111,7 +80,8 @@ static void manifest_cmd_handler_pfm_testing_init_dependencies (CuTest *test,
 	status = spi_filter_interface_mock_init (&handler->filter);
 	CuAssertIntEquals (test, 0, status);
 
-	manifest_cmd_handler_pfm_testing_init_host_state (test, handler);
+	host_state_manager_testing_init_host_state (test, &handler->host_state,
+		&handler->host_state_context, &handler->flash, true);
 
 	debug_log = &handler->log.base;
 }

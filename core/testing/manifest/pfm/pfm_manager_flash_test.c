@@ -16,6 +16,7 @@
 #include "testing/crypto/rsa_testing.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/engines/rsa_testing_engine.h"
+#include "testing/host_fw/host_state_manager_testing.h"
 #include "testing/logging/debug_log_testing.h"
 #include "testing/manifest/manifest_flash_v2_testing.h"
 #include "testing/manifest/pfm/pfm_flash_v2_testing.h"
@@ -193,11 +194,10 @@ struct pfm_manager_flash_testing {
 	HASH_TESTING_ENGINE (hash);							/**< Hashing engine for validation. */
 	struct signature_verification_mock verification;	/**< PFM signature verification. */
 	struct flash_master_mock flash_mock;				/**< Flash master for PFM flash. */
-	struct flash_master_mock flash_mock_state;			/**< Flash master for host state flash. */
 	struct spi_flash_state flash_context;				/**< PFM flash context. */
 	struct spi_flash flash;								/**< Flash containing the PFM data. */
-	struct spi_flash_state flash_state_context;			/**< Host state flash context. */
-	struct spi_flash flash_state;						/**< Flash containing the host state. */
+	struct flash_mock flash_state;						/**< Flash containing the host state. */
+	struct host_state_manager_state state_mgr_context;	/**< Host state context. */
 	struct host_state_manager state_mgr;				/**< Manager for host state. */
 	struct pfm_flash_state pfm1_state;					/**< Context for the first PFM. */
 	struct pfm_flash pfm1;								/**< The first PFM. */
@@ -215,47 +215,6 @@ struct pfm_manager_flash_testing {
 	struct pfm_manager_flash test;						/**< Manager instance under test. */
 };
 
-
-/**
- * Initialize the host state manager for testing.
- *
- * @param test The testing framework.
- * @param manager The testing components being initialized.
- */
-static void pfm_manager_flash_testing_init_host_state (CuTest *test,
-	struct pfm_manager_flash_testing *manager)
-{
-	int status;
-	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
-
-	status = flash_master_mock_init (&manager->flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&manager->flash_state, &manager->flash_state_context,
-		&manager->flash_mock_state.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&manager->flash_state, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&manager->flash_mock_state, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock_state, 0, (uint8_t*) end,
-		sizeof (end), FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, 8));
-
-	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock_state, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock_state, 0, (uint8_t*) end,
-		sizeof (end), FLASH_EXP_READ_CMD (0x03, 0x11000, 0, -1, 8));
-
-	status |= flash_master_mock_expect_erase_flash_sector_verify (&manager->flash_mock_state,
-		0x10000, 0x1000);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_init (&manager->state_mgr, &manager->flash_state.base, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-}
 
 /**
  * Initialize common PFM manager testing dependencies.
@@ -285,7 +244,8 @@ static void pfm_manager_flash_testing_init_dependencies (CuTest *test,
 	status = spi_flash_set_device_size (&manager->flash, 0x1000000);
 	CuAssertIntEquals (test, 0, status);
 
-	pfm_manager_flash_testing_init_host_state (test, manager);
+	host_state_manager_testing_init_host_state (test, &manager->state_mgr,
+		&manager->state_mgr_context, &manager->flash_state, true);
 
 	status = pfm_flash_init (&manager->pfm1, &manager->pfm1_state, &manager->flash.base,
 		&manager->hash.base, addr1, manager->signature1, sizeof (manager->signature1),
@@ -321,7 +281,7 @@ void pfm_manager_flash_testing_validate_and_release_dependencies (CuTest *test,
 	debug_log = NULL;
 
 	status = flash_master_mock_validate_and_release (&manager->flash_mock);
-	status |= flash_master_mock_validate_and_release (&manager->flash_mock_state);
+	status |= flash_mock_validate_and_release (&manager->flash_state);
 	status |= signature_verification_mock_validate_and_release (&manager->verification);
 	status |= pfm_observer_mock_validate_and_release (&manager->observer);
 	status |= logging_mock_validate_and_release (&manager->log);
@@ -331,7 +291,6 @@ void pfm_manager_flash_testing_validate_and_release_dependencies (CuTest *test,
 	pfm_flash_release (&manager->pfm1);
 	pfm_flash_release (&manager->pfm2);
 	spi_flash_release (&manager->flash);
-	spi_flash_release (&manager->flash_state);
 	HASH_TESTING_ENGINE_RELEASE (&manager->hash);
 }
 
@@ -594,7 +553,7 @@ static void pfm_manager_flash_testing_init (CuTest *test, struct pfm_manager_fla
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&manager->flash_mock.mock);
-	status |= mock_validate (&manager->flash_mock_state.mock);
+	status |= mock_validate (&manager->flash_state.mock);
 	status |= mock_validate (&manager->verification.mock);
 	CuAssertIntEquals (test, 0, status);
 }
@@ -639,7 +598,7 @@ static void pfm_manager_flash_testing_init_static (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&manager->flash_mock.mock);
-	status |= mock_validate (&manager->flash_mock_state.mock);
+	status |= mock_validate (&manager->flash_state.mock);
 	status |= mock_validate (&manager->verification.mock);
 	CuAssertIntEquals (test, 0, status);
 }

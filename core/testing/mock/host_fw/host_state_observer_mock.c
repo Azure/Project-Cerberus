@@ -8,8 +8,8 @@
 #include "tpm/tpm.h"
 
 
-static void host_state_observer_mock_on_active_pfm (struct host_state_observer *observer,
-	struct host_state_manager *manager)
+static void host_state_observer_mock_on_active_pfm (const struct host_state_observer *observer,
+	const struct host_state_manager *manager)
 {
 	struct host_state_observer_mock *mock = (struct host_state_observer_mock*) observer;
 
@@ -21,8 +21,8 @@ static void host_state_observer_mock_on_active_pfm (struct host_state_observer *
 		MOCK_ARG_PTR_CALL (manager));
 }
 
-static void host_state_observer_mock_on_read_only_flash (struct host_state_observer *observer,
-	struct host_state_manager *manager)
+static void host_state_observer_mock_on_read_only_flash (const struct host_state_observer *observer,
+	const struct host_state_manager *manager)
 {
 	struct host_state_observer_mock *mock = (struct host_state_observer_mock*) observer;
 
@@ -34,8 +34,8 @@ static void host_state_observer_mock_on_read_only_flash (struct host_state_obser
 		MOCK_ARG_PTR_CALL (manager));
 }
 
-static void host_state_observer_mock_on_inactive_dirty (struct host_state_observer *observer,
-	struct host_state_manager *manager)
+static void host_state_observer_mock_on_inactive_dirty (const struct host_state_observer *observer,
+	const struct host_state_manager *manager)
 {
 	struct host_state_observer_mock *mock = (struct host_state_observer_mock*) observer;
 
@@ -47,8 +47,8 @@ static void host_state_observer_mock_on_inactive_dirty (struct host_state_observ
 		MOCK_ARG_PTR_CALL (manager));
 }
 
-static void host_state_observer_mock_on_active_recovery_image (struct host_state_observer *observer,
-	struct host_state_manager *manager)
+static void host_state_observer_mock_on_active_recovery_image (
+	const struct host_state_observer *observer, const struct host_state_manager *manager)
 {
 	struct host_state_observer_mock *mock = (struct host_state_observer_mock*) observer;
 
@@ -60,8 +60,8 @@ static void host_state_observer_mock_on_active_recovery_image (struct host_state
 		MOCK_ARG_PTR_CALL (manager));
 }
 
-static void host_state_observer_mock_on_pfm_dirty (struct host_state_observer *observer,
-	struct host_state_manager *manager)
+static void host_state_observer_mock_on_pfm_dirty (const struct host_state_observer *observer,
+	const struct host_state_manager *manager)
 {
 	struct host_state_observer_mock *mock = (struct host_state_observer_mock*) observer;
 
@@ -73,8 +73,8 @@ static void host_state_observer_mock_on_pfm_dirty (struct host_state_observer *o
 		MOCK_ARG_PTR_CALL (manager));
 }
 
-static void host_state_observer_mock_on_run_time_validation (struct host_state_observer *observer,
-	struct host_state_manager *manager)
+static void host_state_observer_mock_on_run_time_validation (
+	const struct host_state_observer *observer, const struct host_state_manager *manager)
 {
 	struct host_state_observer_mock *mock = (struct host_state_observer_mock*) observer;
 
@@ -86,8 +86,8 @@ static void host_state_observer_mock_on_run_time_validation (struct host_state_o
 		MOCK_ARG_PTR_CALL (manager));
 }
 
-static void host_state_observer_mock_on_bypass_mode (struct host_state_observer *observer,
-	struct host_state_manager *manager)
+static void host_state_observer_mock_on_bypass_mode (const struct host_state_observer *observer,
+	const struct host_state_manager *manager)
 {
 	struct host_state_observer_mock *mock = (struct host_state_observer_mock*) observer;
 
@@ -99,8 +99,8 @@ static void host_state_observer_mock_on_bypass_mode (struct host_state_observer 
 		MOCK_ARG_PTR_CALL (manager));
 }
 
-static void host_state_observer_mock_on_unsupported_flash (struct host_state_observer *observer,
-	struct host_state_manager *manager)
+static void host_state_observer_mock_on_unsupported_flash (
+	const struct host_state_observer *observer, const struct host_state_manager *manager)
 {
 	struct host_state_observer_mock *mock = (struct host_state_observer_mock*) observer;
 

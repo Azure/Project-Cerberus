@@ -55,8 +55,8 @@ void host_processor_dual_full_bypass_testing_init_dependencies (CuTest *test,
 	status = logging_mock_init (&host->logger);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host->host_state, &host->flash_mock_state,
-		&host->flash_state, &host->flash_context);
+	host_processor_dual_testing_init_host_state (test, &host->host_state, &host->host_state_context,
+		&host->flash_mock_state, &host->flash_state, &host->flash_context);
 }
 
 /**
@@ -201,6 +201,7 @@ static void host_processor_dual_full_bypass_test_init (CuTest *test)
 	struct flash_master_mock flash_mock_state;
 	struct spi_flash_state flash_context;
 	struct spi_flash flash_state;
+	struct host_state_manager_state host_state_context;
 	struct host_state_manager host_state;
 	struct spi_filter_interface_mock filter;
 	struct host_flash_manager_dual_mock flash_mgr;
@@ -223,8 +224,8 @@ static void host_processor_dual_full_bypass_test_init (CuTest *test)
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
-		&flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &host_state_context,
+		&flash_mock_state, &flash_state, &flash_context);
 
 	status = host_processor_dual_full_bypass_init (&host, &control.base, &flash_mgr.base,
 		&host_state, &filter.base, &pfm_mgr.base, NULL);
@@ -267,6 +268,7 @@ static void host_processor_dual_full_bypass_test_init_null (CuTest *test)
 	struct flash_master_mock flash_mock_state;
 	struct spi_flash_state flash_context;
 	struct spi_flash flash_state;
+	struct host_state_manager_state host_state_context;
 	struct host_state_manager host_state;
 	struct spi_filter_interface_mock filter;
 	struct host_flash_manager_dual_mock flash_mgr;
@@ -289,8 +291,8 @@ static void host_processor_dual_full_bypass_test_init_null (CuTest *test)
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
-		&flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &host_state_context,
+		&flash_mock_state, &flash_state, &flash_context);
 
 	status = host_processor_dual_full_bypass_init (NULL, &control.base, &flash_mgr.base,
 		&host_state, &filter.base, &pfm_mgr.base, NULL);
@@ -340,6 +342,7 @@ static void host_processor_dual_full_bypass_test_init_pulse_reset (CuTest *test)
 	struct flash_master_mock flash_mock_state;
 	struct spi_flash_state flash_context;
 	struct spi_flash flash_state;
+	struct host_state_manager_state host_state_context;
 	struct host_state_manager host_state;
 	struct spi_filter_interface_mock filter;
 	struct host_flash_manager_dual_mock flash_mgr;
@@ -362,8 +365,8 @@ static void host_processor_dual_full_bypass_test_init_pulse_reset (CuTest *test)
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
-		&flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &host_state_context,
+		&flash_mock_state, &flash_state, &flash_context);
 
 	status = host_processor_dual_full_bypass_init_pulse_reset (&host, &control.base,
 		&flash_mgr.base, &host_state, &filter.base, &pfm_mgr.base, NULL, 100);
@@ -406,6 +409,7 @@ static void host_processor_dual_full_bypass_test_init_pulse_reset_null (CuTest *
 	struct flash_master_mock flash_mock_state;
 	struct spi_flash_state flash_context;
 	struct spi_flash flash_state;
+	struct host_state_manager_state host_state_context;
 	struct host_state_manager host_state;
 	struct spi_filter_interface_mock filter;
 	struct host_flash_manager_dual_mock flash_mgr;
@@ -428,8 +432,8 @@ static void host_processor_dual_full_bypass_test_init_pulse_reset_null (CuTest *
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
-		&flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &host_state_context,
+		&flash_mock_state, &flash_state, &flash_context);
 
 	status = host_processor_dual_full_bypass_init_pulse_reset (NULL, &control.base,	&flash_mgr.base,
 		&host_state, &filter.base, &pfm_mgr.base, NULL, 100);
@@ -479,6 +483,7 @@ static void host_processor_dual_full_bypass_test_init_pulse_reset_invalid_pulse_
 	struct flash_master_mock flash_mock_state;
 	struct spi_flash_state flash_context;
 	struct spi_flash flash_state;
+	struct host_state_manager_state host_state_context;
 	struct host_state_manager host_state;
 	struct spi_filter_interface_mock filter;
 	struct host_flash_manager_dual_mock flash_mgr;
@@ -501,8 +506,8 @@ static void host_processor_dual_full_bypass_test_init_pulse_reset_invalid_pulse_
 	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state,
-		&flash_context);
+	host_processor_dual_testing_init_host_state (test, &host_state, &host_state_context,
+		&flash_mock_state, &flash_state, &flash_context);
 
 	status = host_processor_dual_full_bypass_init_pulse_reset (&host, &control.base,
 		&flash_mgr.base, &host_state, &filter.base, &pfm_mgr.base, NULL, 0);

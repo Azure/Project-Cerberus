@@ -35,7 +35,7 @@ struct authorized_execution_config_reset_testing {
 	const struct manifest_manager *bypass[1];			/**< List of bypass manifests. */
 	const struct manifest_manager *config[1];			/**< List of config manifests. */
 	const struct manifest_manager *components[1];		/**< List of component manifests. */
-	struct state_manager *state_list[1];				/**< List of state managers. */
+	const struct state_manager *state_list[1];			/**< List of state managers. */
 	const struct keystore *keystores[1];				/**< List of keystores. */
 	struct config_reset reset;							/**< Configuration reset manager. */
 	struct logging_mock log;							/**< Mock for debug logging. */

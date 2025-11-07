@@ -75,13 +75,13 @@ int host_processor_get_port (struct host_processor *host)
  * @return 0 if the observer was successfully added or an error code.
  */
 int host_processor_add_observer (struct host_processor *host,
-	struct host_processor_observer *observer)
+	const struct host_processor_observer *observer)
 {
 	if (host == NULL) {
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
 	}
 
-	return observable_add_observer (&host->observable, observer);
+	return observable_add_observer (&host->observable, (void*) observer);
 }
 
 /**
@@ -93,11 +93,11 @@ int host_processor_add_observer (struct host_processor *host,
  * @return 0 if the observer was successfully removed or an error code.
  */
 int host_processor_remove_observer (struct host_processor *host,
-	struct host_processor_observer *observer)
+	const struct host_processor_observer *observer)
 {
 	if (host == NULL) {
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
 	}
 
-	return observable_remove_observer (&host->observable, observer);
+	return observable_remove_observer (&host->observable, (void*) observer);
 }

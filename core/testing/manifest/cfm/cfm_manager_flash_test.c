@@ -15,7 +15,9 @@
 #include "testing/manifest/cfm/cfm_testing.h"
 #include "testing/mock/crypto/signature_verification_mock.h"
 #include "testing/mock/flash/flash_master_mock.h"
+#include "testing/mock/flash/flash_mock.h"
 #include "testing/mock/manifest/cfm/cfm_observer_mock.h"
+#include "testing/system/system_state_manager_testing.h"
 
 
 TEST_SUITE_LABEL ("cfm_manager_flash");
@@ -28,12 +30,11 @@ struct cfm_manager_flash_testing {
 	HASH_TESTING_ENGINE (hash);							/**< Hashing engine for validation. */
 	struct signature_verification_mock verification;	/**< CFM signature verification. */
 	struct flash_master_mock flash_mock;				/**< Flash master for CFM flash. */
-	struct flash_master_mock flash_mock_state;			/**< Flash master for host state flash. */
 	struct spi_flash_state flash_context;				/**< CFM flash context. */
 	struct spi_flash flash;								/**< Flash containing the CFM data. */
-	struct spi_flash_state flash_state_context;			/**< Host state flash context. */
-	struct spi_flash flash_state;						/**< Flash containing the host state. */
-	struct state_manager state_mgr;						/**< Manager for host state. */
+	struct flash_mock flash_state;						/**< Flash containing the system state. */
+	struct state_manager_state state_mgr_context;		/**< System state context. */
+	struct state_manager state_mgr;						/**< Manager for system state. */
 	struct cfm_flash_state cfm1_state;					/**< Context for the first CFM. */
 	struct cfm_flash cfm1;								/**< The first CFM. */
 	uint8_t signature1[256];							/**< Buffer for the first manifest signature. */
@@ -49,47 +50,6 @@ struct cfm_manager_flash_testing {
 	struct cfm_manager_flash test;						/**< Manager instance under test. */
 };
 
-
-/**
- * Initialize the system state manager for testing.
- *
- * @param test The testing framework.
- * @param manager The testing components being initialized.
- */
-static void cfm_manager_flash_testing_init_system_state (CuTest *test,
-	struct cfm_manager_flash_testing *manager)
-{
-	int status;
-	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
-
-	status = flash_master_mock_init (&manager->flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&manager->flash_state, &manager->flash_state_context,
-		&manager->flash_mock_state.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&manager->flash_state, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&manager->flash_mock_state, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock_state, 0, (uint8_t*) end,
-		sizeof (end), FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, 8));
-
-	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock_state, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock_state, 0, (uint8_t*) end,
-		sizeof (end), FLASH_EXP_READ_CMD (0x03, 0x11000, 0, -1, 8));
-
-	status |= flash_master_mock_expect_erase_flash_sector_verify (&manager->flash_mock_state,
-		0x10000, 0x1000);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = system_state_manager_init (&manager->state_mgr, &manager->flash_state.base, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-}
 
 /**
  * Initialize common CFM manager testing dependencies.
@@ -119,7 +79,8 @@ static void cfm_manager_flash_testing_init_dependencies (CuTest *test,
 	status = spi_flash_set_device_size (&manager->flash, 0x1000000);
 	CuAssertIntEquals (test, 0, status);
 
-	cfm_manager_flash_testing_init_system_state (test, manager);
+	system_state_manager_testing_init_system_state (test, &manager->state_mgr,
+		&manager->state_mgr_context, &manager->flash_state, true);
 
 	status = cfm_flash_init (&manager->cfm1, &manager->cfm1_state, &manager->flash.base,
 		&manager->hash.base, addr1, manager->signature1, sizeof (manager->signature1),
@@ -150,7 +111,7 @@ void cfm_manager_flash_testing_validate_and_release_dependencies (CuTest *test,
 	int status;
 
 	status = flash_master_mock_validate_and_release (&manager->flash_mock);
-	status |= flash_master_mock_validate_and_release (&manager->flash_mock_state);
+	status |= flash_mock_validate_and_release (&manager->flash_state);
 	status |= signature_verification_mock_validate_and_release (&manager->verification);
 	status |= cfm_observer_mock_validate_and_release (&manager->observer);
 	CuAssertIntEquals (test, 0, status);
@@ -159,7 +120,6 @@ void cfm_manager_flash_testing_validate_and_release_dependencies (CuTest *test,
 	cfm_flash_release (&manager->cfm1);
 	cfm_flash_release (&manager->cfm2);
 	spi_flash_release (&manager->flash);
-	spi_flash_release (&manager->flash_state);
 	HASH_TESTING_ENGINE_RELEASE (&manager->hash);
 }
 
@@ -302,7 +262,7 @@ static void cfm_manager_flash_testing_init (CuTest *test, struct cfm_manager_fla
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&manager->flash_mock.mock);
-	status |= mock_validate (&manager->flash_mock_state.mock);
+	status |= mock_validate (&manager->flash_state.mock);
 	status |= mock_validate (&manager->verification.mock);
 	CuAssertIntEquals (test, 0, status);
 }

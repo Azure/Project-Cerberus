@@ -50,7 +50,7 @@ struct config_reset {
 	size_t config_count;										/**< Number of default configuration managers. */
 	const struct manifest_manager *const *component_manifests;	/**< List of component manifests to disable attesting external component. */
 	size_t component_manifests_count;							/**< Number of component manifest managers. */
-	struct state_manager *const *state;							/**< List of state information to reset. */
+	const struct state_manager *const *state;					/**< List of state information to reset. */
 	size_t state_count;											/**< Number of state managers. */
 	const struct riot_key_manager *riot;						/**< Manager for RIoT keys. */
 	struct aux_attestation *aux;								/**< Manager for attestation keys. */
@@ -64,9 +64,10 @@ int config_reset_init (struct config_reset *reset,
 	const struct manifest_manager *const *bypass_config, size_t bypass_count,
 	const struct manifest_manager *const *platform_config, size_t platform_count,
 	const struct manifest_manager *const *component_manifests, size_t component_manifests_count,
-	struct state_manager *const *state, size_t state_count, const struct riot_key_manager *riot,
-	struct aux_attestation *aux, struct recovery_image_manager *recovery,
-	const struct keystore *const *keystores, size_t keystore_count);
+	const struct state_manager *const *state, size_t state_count,
+	const struct riot_key_manager *riot, struct aux_attestation *aux,
+	struct recovery_image_manager *recovery, const struct keystore *const *keystores,
+	size_t keystore_count);
 void config_reset_release (const struct config_reset *reset);
 
 int config_reset_restore_bypass (const struct config_reset *reset);

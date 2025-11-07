@@ -170,9 +170,9 @@ void host_processor_set_port (struct host_processor *host, int port);
 int host_processor_get_port (struct host_processor *host);
 
 int host_processor_add_observer (struct host_processor *host,
-	struct host_processor_observer *observer);
+	const struct host_processor_observer *observer);
 int host_processor_remove_observer (struct host_processor *host,
-	struct host_processor_observer *observer);
+	const struct host_processor_observer *observer);
 
 /* Internal functions for use by derived types. */
 int host_processor_init (struct host_processor *host);

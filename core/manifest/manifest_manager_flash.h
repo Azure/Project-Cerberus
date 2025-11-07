@@ -54,7 +54,7 @@ struct manifest_manager_flash_region {
 struct manifest_manager_flash {
 	struct manifest_manager_flash_state *state;			/**< Variable context for manifest management on flash. */
 	const struct manifest_manager *base;				/**< Reference to the base manager instance. */
-	struct state_manager *state_mgr;					/**< State manager interface. */
+	const struct state_manager *state_mgr;				/**< State manager interface. */
 	const struct hash_engine *hash;						/**< The hash engine for manifest validation. */
 	const struct signature_verification *verification;	/**< Verification module for verifying manifest signatures. */
 	struct manifest_manager_flash_region region1;		/**< The first flash region for a manifest. */
@@ -78,7 +78,7 @@ int manifest_manager_flash_init (struct manifest_manager_flash *manager,
 	struct manifest_manager_flash_state *state, const struct manifest_manager *base,
 	const struct manifest *region1, const struct manifest *region2,
 	const struct manifest_flash *region1_flash, const struct manifest_flash *region2_flash,
-	struct state_manager *state_mgr, const struct hash_engine *hash,
+	const struct state_manager *state_mgr, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t manifest_index,
 	uint8_t log_msg_empty, bool sku_upgrade_permitted);
 int manifest_manager_flash_init_state (const struct manifest_manager_flash *manager,

@@ -33,7 +33,7 @@ struct config_reset_testing {
 	const struct manifest_manager *bypass[3];				/**< List of bypass manifests. */
 	const struct manifest_manager *config[3];				/**< List of platform config manifests. */
 	const struct manifest_manager *component[3];			/**< List of component manifests. */
-	struct state_manager *state_list[3];					/**< List of state managers. */
+	const struct state_manager *state_list[3];				/**< List of state managers. */
 	const struct keystore *keystore_array[2];				/**< List of keystores. */
 	struct config_reset test;								/**< Configuration reset manager under test. */
 };

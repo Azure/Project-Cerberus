@@ -42,20 +42,21 @@ struct tpm_header {
 
 int tpm_init (struct tpm *tpm, const struct flash_store *flash, uint8_t *segment_storage,
 	int segment_storage_size);
-int tpm_init_state (struct tpm *tpm);
+int tpm_init_state (const struct tpm *tpm);
 
-void tpm_release (struct tpm *tpm);
+void tpm_release (const struct tpm *tpm);
 
-int tpm_increment_counter (struct tpm *tpm);
-int tpm_get_counter (struct tpm *tpm, uint64_t *counter);
+int tpm_increment_counter (const struct tpm *tpm);
+int tpm_get_counter (const struct tpm *tpm, uint64_t *counter);
 
-int tpm_set_storage (struct tpm *tpm, uint8_t index, uint8_t *storage, size_t storage_len);
-int tpm_get_storage (struct tpm *tpm, uint8_t index, uint8_t *storage, size_t storage_len,
+int tpm_set_storage (const struct tpm *tpm, uint8_t index, uint8_t *storage, size_t storage_len);
+int tpm_get_storage (const struct tpm *tpm, uint8_t index, uint8_t *storage, size_t storage_len,
 	bool mask_data_error);
 
-int tpm_schedule_clear (struct tpm *tpm);
+int tpm_schedule_clear (const struct tpm *tpm);
 
-int tpm_get_segment_storage_size (struct tpm *tpm, uint16_t *size);
+int tpm_get_segment_storage_size (const struct tpm *tpm, uint16_t *size);
+
 
 #define	TPM_ERROR(code)		ROT_ERROR (ROT_MODULE_TPM, code)
 

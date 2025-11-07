@@ -25,17 +25,17 @@ struct pfm_manager_flash_state {
 struct pfm_manager_flash {
 	struct pfm_manager base;						/**< The base PFM manager instance. */
 	struct manifest_manager_flash manifest_manager;	/**< Common manifest manager flash members. */
-	struct host_state_manager *host_state;			/**< Manager for host state. */
+	const struct host_state_manager *host_state;	/**< Manager for host state. */
 };
 
 
 int pfm_manager_flash_init (struct pfm_manager_flash *manager,
 	struct pfm_manager_flash_state *state, const struct pfm_flash *pfm_region1,
-	const struct pfm_flash *pfm_region2, struct host_state_manager *state_mgr,
+	const struct pfm_flash *pfm_region2, const struct host_state_manager *state_mgr,
 	const struct hash_engine *hash, const struct signature_verification *verification);
 int pfm_manager_flash_init_port (struct pfm_manager_flash *manager,
 	struct pfm_manager_flash_state *state, const struct pfm_flash *pfm_region1,
-	const struct pfm_flash *pfm_region2, struct host_state_manager *state_mgr,
+	const struct pfm_flash *pfm_region2, const struct host_state_manager *state_mgr,
 	const struct hash_engine *hash, const struct signature_verification *verification, int port);
 int pfm_manager_flash_init_state (const struct pfm_manager_flash *manager);
 void pfm_manager_flash_release (const struct pfm_manager_flash *manager);

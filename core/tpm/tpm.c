@@ -25,7 +25,7 @@
  * @return 0 if clear completed successfully or an error code.  This call cannot not fail if both
  * flags are false.
  */
-static int tpm_init_header (struct tpm *tpm, bool clear, bool write)
+static int tpm_init_header (const struct tpm *tpm, bool clear, bool write)
 {
 	struct tpm_header *header = (struct tpm_header*) tpm->buffer;
 	int id;
@@ -80,7 +80,7 @@ static int tpm_init_header (struct tpm *tpm, bool clear, bool write)
  *
  * @return 0 if the header was successfully read or an error code.
  */
-static int tpm_read_header (struct tpm *tpm, bool init, bool write, bool log)
+static int tpm_read_header (const struct tpm *tpm, bool init, bool write, bool log)
 {
 	struct tpm_header *header;
 	int status;
@@ -134,9 +134,9 @@ static int tpm_read_header (struct tpm *tpm, bool init, bool write, bool log)
  *
  * @param observer The observer instance being notified.
  */
-void tpm_on_soft_reset (struct host_processor_observer *observer)
+void tpm_on_soft_reset (const struct host_processor_observer *observer)
 {
-	struct tpm *tpm = (struct tpm*) observer;
+	const struct tpm *tpm = (const struct tpm*) observer;
 	struct tpm_header *header;
 	int status;
 
@@ -169,7 +169,7 @@ void tpm_on_soft_reset (struct host_processor_observer *observer)
  *
  * @return 0 if scheduled successfully or an error code.
  */
-int tpm_schedule_clear (struct tpm *tpm)
+int tpm_schedule_clear (const struct tpm *tpm)
 {
 	struct tpm_header *header;
 	int status;
@@ -202,7 +202,7 @@ int tpm_schedule_clear (struct tpm *tpm)
  *
  * @return 0 if increment completed successfully or an error code.
  */
-int tpm_increment_counter (struct tpm *tpm)
+int tpm_increment_counter (const struct tpm *tpm)
 {
 	struct tpm_header *header;
 	int status;
@@ -230,7 +230,7 @@ int tpm_increment_counter (struct tpm *tpm)
  *
  * @return 0 if counter is retrieved successfully or an error code.
  */
-int tpm_get_counter (struct tpm *tpm, uint64_t *counter)
+int tpm_get_counter (const struct tpm *tpm, uint64_t *counter)
 {
 	struct tpm_header *header;
 	int status;
@@ -260,7 +260,7 @@ int tpm_get_counter (struct tpm *tpm, uint64_t *counter)
  *
  * @return 0 if storage block is written successfully or an error code.
  */
-int tpm_set_storage (struct tpm *tpm, uint8_t index, uint8_t *storage, size_t storage_len)
+int tpm_set_storage (const struct tpm *tpm, uint8_t index, uint8_t *storage, size_t storage_len)
 {
 	if (tpm == NULL) {
 		return TPM_INVALID_ARGUMENT;
@@ -282,7 +282,7 @@ int tpm_set_storage (struct tpm *tpm, uint8_t index, uint8_t *storage, size_t st
  *
  * @return 0 if storage block is retrieved successfully or an error code.
  */
-int tpm_get_storage (struct tpm *tpm, uint8_t index, uint8_t *storage, size_t storage_len,
+int tpm_get_storage (const struct tpm *tpm, uint8_t index, uint8_t *storage, size_t storage_len,
 	bool mask_data_error)
 {
 	int status;
@@ -343,7 +343,7 @@ int tpm_init (struct tpm *tpm, const struct flash_store *flash, uint8_t *segment
  *
  * @return 0 if the TPM storage was successfully initialized or an error code.
  */
-int tpm_init_state (struct tpm *tpm)
+int tpm_init_state (const struct tpm *tpm)
 {
 	int status;
 	struct tpm_header *header;
@@ -379,7 +379,7 @@ int tpm_init_state (struct tpm *tpm)
  *
  * @param tpm The TPM storage to release.
  */
-void tpm_release (struct tpm *tpm)
+void tpm_release (const struct tpm *tpm)
 {
 	UNUSED (tpm);
 }
@@ -392,7 +392,7 @@ void tpm_release (struct tpm *tpm)
  *
  * @return 0 if the segment size was successfully retrieved or an error code.
  */
-int tpm_get_segment_storage_size (struct tpm *tpm, uint16_t *size)
+int tpm_get_segment_storage_size (const struct tpm *tpm, uint16_t *size)
 {
 	if ((tpm == NULL) || (size == NULL)) {
 		return TPM_INVALID_ARGUMENT;

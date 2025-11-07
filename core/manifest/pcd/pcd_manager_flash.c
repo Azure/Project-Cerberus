@@ -151,7 +151,7 @@ int pcd_manager_flash_clear_all_manifests (const struct manifest_manager *manage
  */
 int pcd_manager_flash_init (struct pcd_manager_flash *manager,
 	struct pcd_manager_flash_state *state, const struct pcd_flash *pcd_region1,
-	const struct pcd_flash *pcd_region2, struct state_manager *state_mgr,
+	const struct pcd_flash *pcd_region2, const struct state_manager *state_mgr,
 	const struct hash_engine *hash, const struct signature_verification *verification)
 {
 	int status;

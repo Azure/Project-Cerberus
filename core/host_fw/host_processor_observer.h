@@ -19,7 +19,7 @@ struct host_processor_observer {
 	 *
 	 * @param observer The observer instance being notified.
 	 */
-	void (*on_soft_reset) (struct host_processor_observer *observer);
+	void (*on_soft_reset) (const struct host_processor_observer *observer);
 
 	/**
 	 * Notification that a host was configured to operate in bypass mode.
@@ -28,7 +28,7 @@ struct host_processor_observer {
 	 *
 	 * @param observer The observer instance being notified.
 	 */
-	void (*on_bypass_mode) (struct host_processor_observer *observer);
+	void (*on_bypass_mode) (const struct host_processor_observer *observer);
 
 	/**
 	 * Notification that host firmware was verified successfully against the active PFM and the host
@@ -38,7 +38,7 @@ struct host_processor_observer {
 	 *
 	 * @param observer The observer instance being notified.
 	 */
-	void (*on_active_mode) (struct host_processor_observer *observer);
+	void (*on_active_mode) (const struct host_processor_observer *observer);
 
 	/**
 	 * Notification that host recovery has been initiated using a provisioned recovery image.
@@ -47,7 +47,7 @@ struct host_processor_observer {
 	 *
 	 * @param observer The observer instance being notified.
 	 */
-	void (*on_recovery) (struct host_processor_observer *observer);
+	void (*on_recovery) (const struct host_processor_observer *observer);
 };
 
 

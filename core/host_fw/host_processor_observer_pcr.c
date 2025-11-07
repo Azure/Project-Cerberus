@@ -16,7 +16,7 @@
  * @param observer The observer context to update.
  * @param event The event state to update to.
  */
-static void host_processor_observer_pcr_update (struct host_processor_observer_pcr *observer,
+static void host_processor_observer_pcr_update (const struct host_processor_observer_pcr *observer,
 	int event)
 {
 	uint32_t event_copy = event;
@@ -31,26 +31,26 @@ static void host_processor_observer_pcr_update (struct host_processor_observer_p
 	}
 }
 
-static void host_processor_observer_pcr_on_bypass_mode (struct host_processor_observer *observer)
+void host_processor_observer_pcr_on_bypass_mode (const struct host_processor_observer *observer)
 {
-	host_processor_observer_pcr_update ((struct host_processor_observer_pcr*) observer,
+	host_processor_observer_pcr_update ((const struct host_processor_observer_pcr*) observer,
 		HOST_PROCESSOR_OBSERVER_PCR_BYPASS);
 }
 
-static void host_processor_observer_pcr_on_active_mode (struct host_processor_observer *observer)
+void host_processor_observer_pcr_on_active_mode (const struct host_processor_observer *observer)
 {
-	host_processor_observer_pcr_update ((struct host_processor_observer_pcr*) observer,
+	host_processor_observer_pcr_update ((const struct host_processor_observer_pcr*) observer,
 		HOST_PROCESSOR_OBSERVER_PCR_VALID);
 }
 
-static void host_processor_observer_pcr_on_recovery (struct host_processor_observer *observer)
+void host_processor_observer_pcr_on_recovery (const struct host_processor_observer *observer)
 {
-	host_processor_observer_pcr_update ((struct host_processor_observer_pcr*) observer,
+	host_processor_observer_pcr_update ((const struct host_processor_observer_pcr*) observer,
 		HOST_PROCESSOR_OBSERVER_PCR_RECOVERY);
 }
 
-static void host_processor_observer_pcr_on_inactive_dirty (struct host_state_observer *observer,
-	struct host_state_manager *manager)
+void host_processor_observer_pcr_on_inactive_dirty (const struct host_state_observer *observer,
+	const struct host_state_manager *manager)
 {
 	if (host_state_manager_is_inactive_dirty (manager)) {
 		host_processor_observer_pcr_update (TO_DERIVED_TYPE (observer,
@@ -66,27 +66,17 @@ static void host_processor_observer_pcr_on_inactive_dirty (struct host_state_obs
  * @param hash The hash engine to use for PCR calculation.
  * @param store Storage for the PCR that will be managed.
  * @param pcr ID of the PCR entry to manage.
- * @param init_state On init, this will seed the PCR value.  Afterward, this will hold the raw value
- * used to generate the PCR entry.  It is recommended this point to a reset-tolerant memory
- * location.
+ * @param state On init, the contents of this memory will seed the PCR value.  Afterward, this
+ * will hold the raw value used to generate the PCR entry.  It is recommended this point to a
+ * reset-tolerant memory location.
  *
  * @return 0 if initialization was successful or an error code.
  */
 int host_processor_observer_pcr_init (struct host_processor_observer_pcr *host,
-	const struct hash_engine *hash, struct pcr_store *store, uint16_t pcr, uint32_t *init_state)
+	const struct hash_engine *hash, struct pcr_store *store, uint16_t pcr, uint32_t *state)
 {
-	uint32_t state_copy;
-	int status;
-
-	if ((host == NULL) || (hash == NULL) || (store == NULL) || (init_state == NULL)) {
+	if (host == NULL) {
 		return HOST_PROCESSOR_OBSERVER_INVALID_ARGUMENT;
-	}
-
-	state_copy = *init_state;
-	status = pcr_store_update_versioned_buffer (store, hash, pcr, (uint8_t*) &state_copy,
-		sizeof (uint32_t), true, 0);
-	if (status != 0) {
-		return status;
 	}
 
 	memset (host, 0, sizeof (struct host_processor_observer_pcr));
@@ -100,9 +90,33 @@ int host_processor_observer_pcr_init (struct host_processor_observer_pcr *host,
 	host->hash = hash;
 	host->store = store;
 	host->pcr = pcr;
-	host->state = init_state;
+	host->state = state;
 
-	return 0;
+	return host_processor_observer_pcr_init_state (host);
+}
+
+/**
+ * Initialize only the variable state for the host verification PCR.  The rest of the instance is
+ * assumed to already have been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param host The PCR manager that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int host_processor_observer_pcr_init_state (const struct host_processor_observer_pcr *host)
+{
+	uint32_t state_copy;
+
+	if ((host == NULL) || (host->hash == NULL) || (host->store == NULL) || (host->state == NULL)) {
+		return HOST_PROCESSOR_OBSERVER_INVALID_ARGUMENT;
+	}
+
+	state_copy = *host->state;
+
+	return pcr_store_update_versioned_buffer (host->store, host->hash, host->pcr,
+		(uint8_t*) &state_copy, sizeof (uint32_t), true, 0);
 }
 
 /**
@@ -110,7 +124,7 @@ int host_processor_observer_pcr_init (struct host_processor_observer_pcr *host,
  *
  * @param host The manager to release.
  */
-void host_processor_observer_pcr_release (struct host_processor_observer_pcr *host)
+void host_processor_observer_pcr_release (const struct host_processor_observer_pcr *host)
 {
 	UNUSED (host);
 }

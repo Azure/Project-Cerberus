@@ -159,7 +159,7 @@ int manifest_manager_flash_init (struct manifest_manager_flash *manager,
 	struct manifest_manager_flash_state *state, const struct manifest_manager *base,
 	const struct manifest *region1, const struct manifest *region2,
 	const struct manifest_flash *region1_flash, const struct manifest_flash *region2_flash,
-	struct state_manager *state_mgr, const struct hash_engine *hash,
+	const struct state_manager *state_mgr, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t manifest_index,
 	uint8_t log_msg_empty, bool sku_upgrade_permitted)
 {

@@ -8,11 +8,11 @@
 #include "common/unused.h"
 
 
-static void host_state_observer_dirty_reset_on_inactive_dirty (struct host_state_observer *observer,
-	struct host_state_manager *manager)
+void host_state_observer_dirty_reset_on_inactive_dirty (const struct host_state_observer *observer,
+	const struct host_state_manager *manager)
 {
-	struct host_state_observer_dirty_reset *reset =
-		(struct host_state_observer_dirty_reset*) observer;
+	const struct host_state_observer_dirty_reset *reset =
+		(const struct host_state_observer_dirty_reset*) observer;
 
 	if (host_state_manager_is_inactive_dirty (manager)) {
 		reset->control->hold_processor_in_reset (reset->control, true);
@@ -48,7 +48,8 @@ int host_state_observer_dirty_reset_init (struct host_state_observer_dirty_reset
  *
  * @param observer The observer to release.
  */
-void host_state_observer_dirty_reset_release (struct host_state_observer_dirty_reset *observer)
+void host_state_observer_dirty_reset_release (
+	const struct host_state_observer_dirty_reset *observer)
 {
 	UNUSED (observer);
 }

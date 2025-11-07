@@ -25,7 +25,7 @@ struct host_processor_filtered {
 	struct host_processor base;					/**< Base host processor interface. */
 	const struct host_control *control;			/**< The interface for hardware control of the host. */
 	struct host_flash_manager *flash;			/**< The manager for host processor flash devices. */
-	struct host_state_manager *state;			/**< State information for the host processor. */
+	const struct host_state_manager *state;		/**< State information for the host processor. */
 	const struct spi_filter_interface *filter;	/**< The SPI filter connected to host flash devices. */
 	const struct pfm_manager *pfm;				/**< The manager for host processor PFMs. */
 	struct recovery_image_manager *recovery;	/**< The manager for recovery of the host processor. */
@@ -53,7 +53,7 @@ struct host_processor_filtered {
 /* Internal functions for use by derived types. */
 int host_processor_filtered_init (struct host_processor_filtered *host,
 	const struct host_control *control, struct host_flash_manager *flash,
-	struct host_state_manager *state, const struct spi_filter_interface *filter,
+	const struct host_state_manager *state, const struct spi_filter_interface *filter,
 	const struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse,
 	bool reset_flash);
 void host_processor_filtered_release (struct host_processor_filtered *host);

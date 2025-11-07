@@ -29,6 +29,7 @@
 #include "testing/cmd_interface/cerberus_protocol_required_commands_testing.h"
 #include "testing/cmd_interface/cmd_interface_system_testing.h"
 #include "testing/engines/x509_testing_engine.h"
+#include "testing/host_fw/host_state_manager_testing.h"
 #include "testing/mock/asn1/x509_mock.h"
 #include "testing/mock/attestation/attestation_responder_mock.h"
 #include "testing/mock/cmd_interface/cerberus_protocol_observer_mock.h"
@@ -126,6 +127,7 @@ struct cmd_interface_system_testing {
 	struct x509_engine_mock x509_mock;						/**< The X.509 engine mock for the RIoT keys. */
 	X509_TESTING_ENGINE (x509);								/**< X.509 engine for the RIoT keys. */
 	struct flash_mock flash;								/**< The flash mock to set expectations on. */
+	struct host_state_manager_state state_context;			/**< Variable context for the state manager. */
 	struct host_state_manager state;						/**< The state manager. */
 	struct flash_mock flash_state;							/**< The mock for the flash state storage. */
 	struct cmd_background_mock background;					/**< The background command interface mock. */
@@ -158,42 +160,6 @@ static struct riot_keys keys = {
 	.alias_cert_length = 0
 };
 
-
-/**
- * Initialize the host state manager for testing.
- *
- * @param test The testing framework.
- * @param state The host state instance to initialize.
- * @param flash The mock for the flash state storage.
- */
-static void cmd_interface_system_testing_init_host_state (CuTest *test,
-	struct host_state_manager *state, struct flash_mock *flash)
-{
-	int status;
-	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
-	uint32_t bytes = FLASH_SECTOR_SIZE;
-
-	status = flash_mock_init (flash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&flash->mock, flash->base.get_sector_size, flash, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&flash->mock, 0, &bytes, sizeof (bytes), -1);
-
-	status |= mock_expect (&flash->mock, flash->base.read, flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
-	status |= mock_expect_output (&flash->mock, 1, end, sizeof (end), 2);
-
-	status |= mock_expect (&flash->mock, flash->base.read, flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (8));
-	status |= mock_expect_output (&flash->mock, 1, end, sizeof (end), 2);
-
-	status |= flash_mock_expect_erase_flash_sector_verify (flash, 0x10000, 0x1000);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_init (state, &flash->base, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-}
 
 /**
  * Helper function to initialize a subset of the system command interface parameters.
@@ -323,7 +289,8 @@ static void setup_cmd_interface_system_mock_test_init (CuTest *test,
 	status = flash_mock_init (&cmd->flash);
 	CuAssertIntEquals (test, 0, status);
 
-	cmd_interface_system_testing_init_host_state (test, &cmd->state, &cmd->flash_state);
+	host_state_manager_testing_init_host_state (test, &cmd->state, &cmd->state_context,
+		&cmd->flash_state, true);
 
 	status = host_control_mock_init (&cmd->host_ctrl_0);
 	CuAssertIntEquals (test, 0, status);
