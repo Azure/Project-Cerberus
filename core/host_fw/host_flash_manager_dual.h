@@ -31,7 +31,7 @@ int host_flash_manager_dual_init_with_managed_flash_initialization (
 	const struct spi_flash *cs1, const struct host_state_manager *host_state,
 	const struct spi_filter_interface *filter, const struct flash_mfg_filter_handler *mfg_handler,
 	const struct host_flash_initialization *flash_init);
-void host_flash_manager_dual_release (struct host_flash_manager_dual *manager);
+void host_flash_manager_dual_release (const struct host_flash_manager_dual *manager);
 
 
 #endif	/* HOST_FLASH_MANAGER_DUAL_H_ */

@@ -289,7 +289,7 @@ static int host_processor_dual_full_read_write_flash (struct host_processor_filt
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
 int host_processor_dual_init_internal (struct host_processor_filtered *host,
-	const struct host_control *control, struct host_flash_manager_dual *flash,
+	const struct host_control *control, const struct host_flash_manager_dual *flash,
 	const struct host_state_manager *state, const struct spi_filter_interface *filter,
 	const struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse,
 	bool reset_flash)
@@ -336,7 +336,7 @@ int host_processor_dual_init_internal (struct host_processor_filtered *host,
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
 int host_processor_dual_init (struct host_processor_filtered *host,
-	const struct host_control *control, struct host_flash_manager_dual *flash,
+	const struct host_control *control, const struct host_flash_manager_dual *flash,
 	const struct host_state_manager *state, const struct spi_filter_interface *filter,
 	const struct pfm_manager *pfm, struct recovery_image_manager *recovery)
 {
@@ -362,7 +362,7 @@ int host_processor_dual_init (struct host_processor_filtered *host,
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
 int host_processor_dual_init_pulse_reset (struct host_processor_filtered *host,
-	const struct host_control *control, struct host_flash_manager_dual *flash,
+	const struct host_control *control, const struct host_flash_manager_dual *flash,
 	const struct host_state_manager *state, const struct spi_filter_interface *filter,
 	const struct pfm_manager *pfm, struct recovery_image_manager *recovery, int pulse_width)
 {
@@ -389,7 +389,7 @@ int host_processor_dual_init_pulse_reset (struct host_processor_filtered *host,
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
 int host_processor_dual_init_reset_flash (struct host_processor_filtered *host,
-	const struct host_control *control, struct host_flash_manager_dual *flash,
+	const struct host_control *control, const struct host_flash_manager_dual *flash,
 	const struct host_state_manager *state, const struct spi_filter_interface *filter,
 	const struct pfm_manager *pfm, struct recovery_image_manager *recovery)
 {
@@ -417,7 +417,7 @@ int host_processor_dual_init_reset_flash (struct host_processor_filtered *host,
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
 int host_processor_dual_init_reset_flash_pulse_reset (struct host_processor_filtered *host,
-	const struct host_control *control, struct host_flash_manager_dual *flash,
+	const struct host_control *control, const struct host_flash_manager_dual *flash,
 	const struct host_state_manager *state, const struct spi_filter_interface *filter,
 	const struct pfm_manager *pfm, struct recovery_image_manager *recovery, int pulse_width)
 {

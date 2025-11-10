@@ -9,10 +9,10 @@
 #include "common/unused.h"
 
 
-static const struct spi_flash* host_flash_manager_dual_get_read_only_flash (
-	struct host_flash_manager *manager)
+const struct spi_flash* host_flash_manager_dual_get_read_only_flash (
+	const struct host_flash_manager *manager)
 {
-	struct host_flash_manager_dual *dual = (struct host_flash_manager_dual*) manager;
+	const struct host_flash_manager_dual *dual = (const struct host_flash_manager_dual*) manager;
 
 	if (dual == NULL) {
 		return NULL;
@@ -26,10 +26,10 @@ static const struct spi_flash* host_flash_manager_dual_get_read_only_flash (
 	}
 }
 
-static const struct spi_flash* host_flash_manager_dual_get_read_write_flash (
-	struct host_flash_manager *manager)
+const struct spi_flash* host_flash_manager_dual_get_read_write_flash (
+	const struct host_flash_manager *manager)
 {
-	struct host_flash_manager_dual *dual = (struct host_flash_manager_dual*) manager;
+	const struct host_flash_manager_dual *dual = (const struct host_flash_manager_dual*) manager;
 
 	if (dual == NULL) {
 		return NULL;
@@ -43,7 +43,7 @@ static const struct spi_flash* host_flash_manager_dual_get_read_write_flash (
 	}
 }
 
-static int host_flash_manager_dual_validate_read_only_flash (struct host_flash_manager *manager,
+int host_flash_manager_dual_validate_read_only_flash (const struct host_flash_manager *manager,
 	const struct pfm *pfm, const struct pfm *good_pfm, const struct hash_engine *hash,
 	const struct rsa_engine *rsa, bool full_validation,
 	struct host_flash_manager_rw_regions *host_rw)
@@ -67,7 +67,7 @@ static int host_flash_manager_dual_validate_read_only_flash (struct host_flash_m
 	return status;
 }
 
-static int host_flash_manager_dual_validate_read_write_flash (struct host_flash_manager *manager,
+int host_flash_manager_dual_validate_read_write_flash (const struct host_flash_manager *manager,
 	const struct pfm *pfm, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	struct host_flash_manager_rw_regions *host_rw)
 {
@@ -80,7 +80,7 @@ static int host_flash_manager_dual_validate_read_write_flash (struct host_flash_
 		host_flash_manager_dual_get_read_write_flash (manager), host_rw);
 }
 
-static int host_flash_manager_dual_get_flash_read_write_regions (struct host_flash_manager *manager,
+int host_flash_manager_dual_get_flash_read_write_regions (const struct host_flash_manager *manager,
 	const struct pfm *pfm, bool rw_flash, struct host_flash_manager_rw_regions *host_rw)
 {
 	if ((manager == NULL) || (pfm == NULL) || (host_rw == NULL)) {
@@ -92,9 +92,9 @@ static int host_flash_manager_dual_get_flash_read_write_regions (struct host_fla
 			host_flash_manager_dual_get_read_only_flash (manager), pfm, host_rw);
 }
 
-static int host_flash_manager_dual_config_spi_filter_flash_type (struct host_flash_manager *manager)
+int host_flash_manager_dual_config_spi_filter_flash_type (const struct host_flash_manager *manager)
 {
-	struct host_flash_manager_dual *dual = (struct host_flash_manager_dual*) manager;
+	const struct host_flash_manager_dual *dual = (const struct host_flash_manager_dual*) manager;
 
 	if (dual == NULL) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
@@ -104,10 +104,10 @@ static int host_flash_manager_dual_config_spi_filter_flash_type (struct host_fla
 		dual->filter, dual->mfg_handler);
 }
 
-static int host_flash_manager_dual_config_spi_filter_flash_devices (
-	struct host_flash_manager *manager)
+int host_flash_manager_dual_config_spi_filter_flash_devices (
+	const struct host_flash_manager *manager)
 {
-	struct host_flash_manager_dual *dual = (struct host_flash_manager_dual*) manager;
+	const struct host_flash_manager_dual *dual = (const struct host_flash_manager_dual*) manager;
 	spi_filter_cs ro;
 
 	if (dual == NULL) {
@@ -128,8 +128,8 @@ static int host_flash_manager_dual_config_spi_filter_flash_devices (
  *
  * @return 0 if the data migration was successful or an error code.
  */
-static int host_flash_manager_dual_migrate_rw_data (struct host_flash_manager_dual *manager,
-	spi_filter_cs from, struct host_flash_manager_rw_regions *host_rw)
+static int host_flash_manager_dual_migrate_rw_data (const struct host_flash_manager_dual *manager,
+	spi_filter_cs from, const struct host_flash_manager_rw_regions *host_rw)
 {
 	int status;
 
@@ -145,10 +145,10 @@ static int host_flash_manager_dual_migrate_rw_data (struct host_flash_manager_du
 	return status;
 }
 
-static int host_flash_manager_dual_swap_flash_devices (struct host_flash_manager *manager,
-	struct host_flash_manager_rw_regions *host_rw, const struct pfm_manager *used_pending)
+int host_flash_manager_dual_swap_flash_devices (const struct host_flash_manager *manager,
+	const struct host_flash_manager_rw_regions *host_rw, const struct pfm_manager *used_pending)
 {
-	struct host_flash_manager_dual *dual = (struct host_flash_manager_dual*) manager;
+	const struct host_flash_manager_dual *dual = (const struct host_flash_manager_dual*) manager;
 	spi_filter_cs rw;
 	int status;
 
@@ -192,10 +192,10 @@ static int host_flash_manager_dual_swap_flash_devices (struct host_flash_manager
 	return status;
 }
 
-static int host_flash_manager_dual_initialize_flash_protection (struct host_flash_manager *manager,
-	struct host_flash_manager_rw_regions *host_rw)
+int host_flash_manager_dual_initialize_flash_protection (const struct host_flash_manager *manager,
+	const struct host_flash_manager_rw_regions *host_rw)
 {
-	struct host_flash_manager_dual *dual = (struct host_flash_manager_dual*) manager;
+	const struct host_flash_manager_dual *dual = (const struct host_flash_manager_dual*) manager;
 	spi_filter_cs ro;
 	const struct spi_flash *ro_flash;
 	const struct spi_flash *rw_flash;
@@ -259,8 +259,8 @@ static int host_flash_manager_dual_initialize_flash_protection (struct host_flas
 	return dual->filter->set_ro_cs (dual->filter, ro);
 }
 
-static int host_flash_manager_dual_restore_flash_read_write_regions (
-	struct host_flash_manager *manager, struct host_flash_manager_rw_regions *host_rw)
+int host_flash_manager_dual_restore_flash_read_write_regions (
+	const struct host_flash_manager *manager, const struct host_flash_manager_rw_regions *host_rw)
 {
 	const struct spi_flash *rw_flash;
 	const struct spi_flash *ro_flash;
@@ -276,10 +276,10 @@ static int host_flash_manager_dual_restore_flash_read_write_regions (
 		host_rw->writable, host_rw->count);
 }
 
-static int host_flash_manager_dual_set_flash_for_rot_access (struct host_flash_manager *manager,
+int host_flash_manager_dual_set_flash_for_rot_access (const struct host_flash_manager *manager,
 	const struct host_control *control)
 {
-	struct host_flash_manager_dual *dual = (struct host_flash_manager_dual*) manager;
+	const struct host_flash_manager_dual *dual = (const struct host_flash_manager_dual*) manager;
 
 	if ((dual == NULL) || (control == NULL)) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
@@ -289,10 +289,10 @@ static int host_flash_manager_dual_set_flash_for_rot_access (struct host_flash_m
 		dual->flash_cs1, dual->flash_init);
 }
 
-static int host_flash_manager_dual_set_flash_for_host_access (struct host_flash_manager *manager,
+int host_flash_manager_dual_set_flash_for_host_access (const struct host_flash_manager *manager,
 	const struct host_control *control)
 {
-	struct host_flash_manager_dual *dual = (struct host_flash_manager_dual*) manager;
+	const struct host_flash_manager_dual *dual = (const struct host_flash_manager_dual*) manager;
 
 	if ((dual == NULL) || (control == NULL)) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
@@ -301,10 +301,10 @@ static int host_flash_manager_dual_set_flash_for_host_access (struct host_flash_
 	return host_flash_manager_set_flash_for_host_access (control, dual->filter);
 }
 
-static int host_flash_manager_dual_host_has_flash_access (struct host_flash_manager *manager,
+int host_flash_manager_dual_host_has_flash_access (const struct host_flash_manager *manager,
 	const struct host_control *control)
 {
-	struct host_flash_manager_dual *dual = (struct host_flash_manager_dual*) manager;
+	const struct host_flash_manager_dual *dual = (const struct host_flash_manager_dual*) manager;
 
 	if ((dual == NULL) || (control == NULL)) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
@@ -313,9 +313,9 @@ static int host_flash_manager_dual_host_has_flash_access (struct host_flash_mana
 	return host_flash_manager_host_has_flash_access (control, dual->filter);
 }
 
-static int host_flash_manager_dual_reset_flash (struct host_flash_manager *manager)
+int host_flash_manager_dual_reset_flash (const struct host_flash_manager *manager)
 {
-	struct host_flash_manager_dual *dual = (struct host_flash_manager_dual*) manager;
+	const struct host_flash_manager_dual *dual = (const struct host_flash_manager_dual*) manager;
 	int status = 0;
 
 	if (dual == NULL) {
@@ -425,7 +425,7 @@ int host_flash_manager_dual_init_with_managed_flash_initialization (
  *
  * @param manager The manager to release.
  */
-void host_flash_manager_dual_release (struct host_flash_manager_dual *manager)
+void host_flash_manager_dual_release (const struct host_flash_manager_dual *manager)
 {
 	UNUSED (manager);
 }

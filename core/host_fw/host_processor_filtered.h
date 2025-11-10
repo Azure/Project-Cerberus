@@ -24,7 +24,7 @@
 struct host_processor_filtered {
 	struct host_processor base;					/**< Base host processor interface. */
 	const struct host_control *control;			/**< The interface for hardware control of the host. */
-	struct host_flash_manager *flash;			/**< The manager for host processor flash devices. */
+	const struct host_flash_manager *flash;		/**< The manager for host processor flash devices. */
 	const struct host_state_manager *state;		/**< State information for the host processor. */
 	const struct spi_filter_interface *filter;	/**< The SPI filter connected to host flash devices. */
 	const struct pfm_manager *pfm;				/**< The manager for host processor PFMs. */
@@ -52,7 +52,7 @@ struct host_processor_filtered {
 
 /* Internal functions for use by derived types. */
 int host_processor_filtered_init (struct host_processor_filtered *host,
-	const struct host_control *control, struct host_flash_manager *flash,
+	const struct host_control *control, const struct host_flash_manager *flash,
 	const struct host_state_manager *state, const struct spi_filter_interface *filter,
 	const struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse,
 	bool reset_flash);
@@ -61,7 +61,8 @@ void host_processor_filtered_release (struct host_processor_filtered *host);
 void host_processor_filtered_set_host_flash_access (struct host_processor_filtered *host);
 void host_processor_filtered_config_bypass (struct host_processor_filtered *host);
 void host_processor_filtered_swap_flash (struct host_processor_filtered *host,
-	struct host_flash_manager_rw_regions *rw_list, const struct pfm_manager *pfm, bool no_migrate);
+	const struct host_flash_manager_rw_regions *rw_list, const struct pfm_manager *pfm,
+	bool no_migrate);
 int host_processor_filtered_restore_read_write_data (struct host_processor_filtered *host,
 	struct host_flash_manager_rw_regions *rw_list, const struct pfm *pfm);
 

@@ -47,7 +47,7 @@ struct host_flash_manager {
 	 *
 	 * @return The read-only flash device.
 	 */
-	const struct spi_flash* (*get_read_only_flash) (struct host_flash_manager *manager);
+	const struct spi_flash* (*get_read_only_flash) (const struct host_flash_manager *manager);
 
 	/**
 	 * Get the flash device that is currently configured as the flash device for all writes and
@@ -57,7 +57,7 @@ struct host_flash_manager {
 	 *
 	 * @return The read/write flash device.
 	 */
-	const struct spi_flash* (*get_read_write_flash) (struct host_flash_manager *manager);
+	const struct spi_flash* (*get_read_write_flash) (const struct host_flash_manager *manager);
 
 	/**
 	 * Validate the read-only flash device.
@@ -78,9 +78,10 @@ struct host_flash_manager {
 	 * @return 0 if the read-only flash was successfully validated or an error code.  Blank check
 	 * failures will be reported with FLASH_UTIL_UNEXPECTED_VALUE.
 	 */
-	int (*validate_read_only_flash) (struct host_flash_manager *manager, const struct pfm *pfm,
-		const struct pfm *good_pfm, const struct hash_engine *hash, const struct rsa_engine *rsa,
-		bool full_validation, struct host_flash_manager_rw_regions *host_rw);
+	int (*validate_read_only_flash) (const struct host_flash_manager *manager,
+		const struct pfm *pfm, const struct pfm *good_pfm, const struct hash_engine *hash,
+		const struct rsa_engine *rsa, bool full_validation,
+		struct host_flash_manager_rw_regions *host_rw);
 
 	/**
 	 * Validate the read/write flash device.
@@ -96,8 +97,8 @@ struct host_flash_manager {
 	 * @return 0 if the read/write flash was successfully validated or an error code.  Blank check
 	 * failures will be reported with FLASH_UTIL_UNEXPECTED_VALUE.
 	 */
-	int (*validate_read_write_flash) (struct host_flash_manager *manager, const struct pfm *pfm,
-		const struct hash_engine *hash, const struct rsa_engine *rsa,
+	int (*validate_read_write_flash) (const struct host_flash_manager *manager,
+		const struct pfm *pfm, const struct hash_engine *hash, const struct rsa_engine *rsa,
 		struct host_flash_manager_rw_regions *host_rw);
 
 	/**
@@ -115,8 +116,8 @@ struct host_flash_manager {
 	 *
 	 * @return 0 if the read/write regions were successfully retrieved or an error code.
 	 */
-	int (*get_flash_read_write_regions) (struct host_flash_manager *manager, const struct pfm *pfm,
-		bool rw_flash, struct host_flash_manager_rw_regions *host_rw);
+	int (*get_flash_read_write_regions) (const struct host_flash_manager *manager,
+		const struct pfm *pfm, bool rw_flash, struct host_flash_manager_rw_regions *host_rw);
 
 	/**
 	 * Free a list of host firmware read/write regions.
@@ -124,7 +125,7 @@ struct host_flash_manager {
 	 * @param manager The flash manager that allocated the region list.
 	 * @param host_rw The list of read/write regions to free.
 	 */
-	void (*free_read_write_regions) (struct host_flash_manager *manager,
+	void (*free_read_write_regions) (const struct host_flash_manager *manager,
 		struct host_flash_manager_rw_regions *host_rw);
 
 	/**
@@ -134,7 +135,7 @@ struct host_flash_manager {
 	 *
 	 * @return 0 if the SPI filter was successfully configured or an error code.
 	 */
-	int (*config_spi_filter_flash_type) (struct host_flash_manager *manager);
+	int (*config_spi_filter_flash_type) (const struct host_flash_manager *manager);
 
 	/**
 	 * Configure the SPI filter to use the appropriate read-only and read/write flash devices.
@@ -143,7 +144,7 @@ struct host_flash_manager {
 	 *
 	 * @return 0 if the SPI filter was successfully configured or an error code.
 	 */
-	int (*config_spi_filter_flash_devices) (struct host_flash_manager *manager);
+	int (*config_spi_filter_flash_devices) (const struct host_flash_manager *manager);
 
 	/**
 	 * Switch the read-only and read/write flashes.  This will update the read-only flash host
@@ -160,8 +161,9 @@ struct host_flash_manager {
 	 *
 	 * @return 0 if the flashes were switched or an error code.
 	 */
-	int (*swap_flash_devices) (struct host_flash_manager *manager,
-		struct host_flash_manager_rw_regions *host_rw, const struct pfm_manager *used_pending);
+	int (*swap_flash_devices) (const struct host_flash_manager *manager,
+		const struct host_flash_manager_rw_regions *host_rw,
+		const struct pfm_manager *used_pending);
 
 	/**
 	 * Configure the system for first-time flash protection.  This should only be called once for
@@ -175,8 +177,8 @@ struct host_flash_manager {
 	 *
 	 * @return 0 if the flash was successfully initialized or an error code.
 	 */
-	int (*initialize_flash_protection) (struct host_flash_manager *manager,
-		struct host_flash_manager_rw_regions *host_rw);
+	int (*initialize_flash_protection) (const struct host_flash_manager *manager,
+		const struct host_flash_manager_rw_regions *host_rw);
 
 	/**
 	 * Restore the read/write regions from the read-only flash.
@@ -185,8 +187,8 @@ struct host_flash_manager {
 	 * @param host_rw The list of read/write regions to restore.  The region properties decide what
 	 * restore operation, if any, will be executed on each read/write region.
 	 */
-	int (*restore_flash_read_write_regions) (struct host_flash_manager *manager,
-		struct host_flash_manager_rw_regions *host_rw);
+	int (*restore_flash_read_write_regions) (const struct host_flash_manager *manager,
+		const struct host_flash_manager_rw_regions *host_rw);
 
 	/**
 	 * Configure the system for to allow RoT access to the protected flash devices.  This must be
@@ -197,7 +199,7 @@ struct host_flash_manager {
 	 *
 	 * @return 0 if the flash was successfully configured for RoT access or an error code.
 	 */
-	int (*set_flash_for_rot_access) (struct host_flash_manager *manager,
+	int (*set_flash_for_rot_access) (const struct host_flash_manager *manager,
 		const struct host_control *control);
 
 	/**
@@ -208,7 +210,7 @@ struct host_flash_manager {
 	 *
 	 * @return 0 if the flash was successfully configured for host access or an error code.
 	 */
-	int (*set_flash_for_host_access) (struct host_flash_manager *manager,
+	int (*set_flash_for_host_access) (const struct host_flash_manager *manager,
 		const struct host_control *control);
 
 	/**
@@ -219,7 +221,7 @@ struct host_flash_manager {
 	 *
 	 * @return 0 if the host doesn't if access, 1 if it does, or an error code.
 	 */
-	int (*host_has_flash_access) (struct host_flash_manager *manager,
+	int (*host_has_flash_access) (const struct host_flash_manager *manager,
 		const struct host_control *control);
 
 	/**
@@ -229,7 +231,7 @@ struct host_flash_manager {
 	 *
 	 * @return 0 if the flash was successfully reset or an error code.
 	 */
-	int (*reset_flash) (struct host_flash_manager *manager);
+	int (*reset_flash) (const struct host_flash_manager *manager);
 };
 
 
@@ -254,7 +256,7 @@ int host_flash_manager_validate_pfm (const struct pfm *pfm, const struct pfm *go
 int host_flash_manager_get_flash_read_write_regions (const struct spi_flash *flash,
 	const struct pfm *pfm, struct host_flash_manager_rw_regions *host_rw);
 
-void host_flash_manager_free_read_write_regions (struct host_flash_manager *manager,
+void host_flash_manager_free_read_write_regions (const struct host_flash_manager *manager,
 	struct host_flash_manager_rw_regions *host_rw);
 void host_flash_manager_free_images (struct host_flash_manager_images *host_img);
 

@@ -8,10 +8,11 @@
 #include "common/unused.h"
 
 
-static const struct spi_flash* host_flash_manager_single_get_read_only_flash (
-	struct host_flash_manager *manager)
+const struct spi_flash* host_flash_manager_single_get_read_only_flash (
+	const struct host_flash_manager *manager)
 {
-	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
+	const struct host_flash_manager_single *single =
+		(const struct host_flash_manager_single*) manager;
 
 	if (single == NULL) {
 		return NULL;
@@ -20,10 +21,11 @@ static const struct spi_flash* host_flash_manager_single_get_read_only_flash (
 	return single->flash;
 }
 
-static const struct spi_flash* host_flash_manager_single_get_read_write_flash (
-	struct host_flash_manager *manager)
+const struct spi_flash* host_flash_manager_single_get_read_write_flash (
+	const struct host_flash_manager *manager)
 {
-	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
+	const struct host_flash_manager_single *single =
+		(const struct host_flash_manager_single*) manager;
 
 	if (single == NULL) {
 		return NULL;
@@ -32,12 +34,13 @@ static const struct spi_flash* host_flash_manager_single_get_read_write_flash (
 	return single->flash;
 }
 
-static int host_flash_manager_single_validate_read_only_flash (struct host_flash_manager *manager,
+int host_flash_manager_single_validate_read_only_flash (const struct host_flash_manager *manager,
 	const struct pfm *pfm, const struct pfm *good_pfm, const struct hash_engine *hash,
 	const struct rsa_engine *rsa, bool full_validation,
 	struct host_flash_manager_rw_regions *host_rw)
 {
-	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
+	const struct host_flash_manager_single *single =
+		(const struct host_flash_manager_single*) manager;
 	int status;
 
 	if ((single == NULL) || (pfm == NULL) || (hash == NULL) || (rsa == NULL) || (host_rw == NULL)) {
@@ -55,11 +58,12 @@ static int host_flash_manager_single_validate_read_only_flash (struct host_flash
 	return status;
 }
 
-static int host_flash_manager_single_validate_read_write_flash (struct host_flash_manager *manager,
+int host_flash_manager_single_validate_read_write_flash (const struct host_flash_manager *manager,
 	const struct pfm *pfm, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	struct host_flash_manager_rw_regions *host_rw)
 {
-	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
+	const struct host_flash_manager_single *single =
+		(const struct host_flash_manager_single*) manager;
 
 	if ((single == NULL) || (pfm == NULL) || (hash == NULL) || (rsa == NULL) || (host_rw == NULL)) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
@@ -68,11 +72,12 @@ static int host_flash_manager_single_validate_read_write_flash (struct host_flas
 	return host_flash_manager_validate_flash (pfm, hash, rsa, true, single->flash, host_rw);
 }
 
-static int host_flash_manager_single_get_flash_read_write_regions (
-	struct host_flash_manager *manager, const struct pfm *pfm, bool rw_flash,
+int host_flash_manager_single_get_flash_read_write_regions (
+	const struct host_flash_manager *manager, const struct pfm *pfm, bool rw_flash,
 	struct host_flash_manager_rw_regions *host_rw)
 {
-	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
+	const struct host_flash_manager_single *single =
+		(const struct host_flash_manager_single*) manager;
 
 	UNUSED (rw_flash);
 
@@ -83,10 +88,11 @@ static int host_flash_manager_single_get_flash_read_write_regions (
 	return host_flash_manager_get_flash_read_write_regions (single->flash, pfm, host_rw);
 }
 
-static int host_flash_manager_single_config_spi_filter_flash_type (
-	struct host_flash_manager *manager)
+int host_flash_manager_single_config_spi_filter_flash_type (
+	const struct host_flash_manager *manager)
 {
-	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
+	const struct host_flash_manager_single *single =
+		(const struct host_flash_manager_single*) manager;
 
 	if (single == NULL) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
@@ -96,10 +102,11 @@ static int host_flash_manager_single_config_spi_filter_flash_type (
 		single->mfg_handler);
 }
 
-static int host_flash_manager_single_config_spi_filter_flash_devices (
-	struct host_flash_manager *manager)
+int host_flash_manager_single_config_spi_filter_flash_devices (
+	const struct host_flash_manager *manager)
 {
-	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
+	const struct host_flash_manager_single *single =
+		(const struct host_flash_manager_single*) manager;
 	int status;
 
 	if (single == NULL) {
@@ -114,10 +121,11 @@ static int host_flash_manager_single_config_spi_filter_flash_devices (
 	return single->filter->set_filter_mode (single->filter, SPI_FILTER_FLASH_SINGLE_CS0);
 }
 
-static int host_flash_manager_single_swap_flash_devices (struct host_flash_manager *manager,
-	struct host_flash_manager_rw_regions *host_rw, const struct pfm_manager *used_pending)
+int host_flash_manager_single_swap_flash_devices (const struct host_flash_manager *manager,
+	const struct host_flash_manager_rw_regions *host_rw, const struct pfm_manager *used_pending)
 {
-	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
+	const struct host_flash_manager_single *single =
+		(const struct host_flash_manager_single*) manager;
 	int status;
 
 	UNUSED (host_rw);
@@ -156,10 +164,11 @@ static int host_flash_manager_single_swap_flash_devices (struct host_flash_manag
 	return status;
 }
 
-static int host_flash_manager_single_initialize_flash_protection (
-	struct host_flash_manager *manager, struct host_flash_manager_rw_regions *host_rw)
+int host_flash_manager_single_initialize_flash_protection (
+	const struct host_flash_manager *manager, const struct host_flash_manager_rw_regions *host_rw)
 {
-	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
+	const struct host_flash_manager_single *single =
+		(const struct host_flash_manager_single*) manager;
 	int status;
 	int addr_4byte;
 
@@ -198,8 +207,8 @@ static int host_flash_manager_single_initialize_flash_protection (
 	return single->filter->set_filter_mode (single->filter, SPI_FILTER_FLASH_SINGLE_CS0);
 }
 
-static int host_flash_manager_single_restore_flash_read_write_regions (
-	struct host_flash_manager *manager, struct host_flash_manager_rw_regions *host_rw)
+int host_flash_manager_single_restore_flash_read_write_regions (
+	const struct host_flash_manager *manager, const struct host_flash_manager_rw_regions *host_rw)
 {
 	if ((manager == NULL) || (host_rw == NULL)) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
@@ -208,10 +217,11 @@ static int host_flash_manager_single_restore_flash_read_write_regions (
 	return HOST_FLASH_MGR_UNSUPPORTED_OPERATION;
 }
 
-static int host_flash_manager_single_set_flash_for_rot_access (struct host_flash_manager *manager,
+int host_flash_manager_single_set_flash_for_rot_access (const struct host_flash_manager *manager,
 	const struct host_control *control)
 {
-	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
+	const struct host_flash_manager_single *single =
+		(const struct host_flash_manager_single*) manager;
 
 	if ((single == NULL) || (control == NULL)) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
@@ -221,10 +231,11 @@ static int host_flash_manager_single_set_flash_for_rot_access (struct host_flash
 		NULL, single->flash_init);
 }
 
-static int host_flash_manager_single_set_flash_for_host_access (struct host_flash_manager *manager,
+int host_flash_manager_single_set_flash_for_host_access (const struct host_flash_manager *manager,
 	const struct host_control *control)
 {
-	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
+	const struct host_flash_manager_single *single =
+		(const struct host_flash_manager_single*) manager;
 
 	if ((single == NULL) || (control == NULL)) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
@@ -233,10 +244,11 @@ static int host_flash_manager_single_set_flash_for_host_access (struct host_flas
 	return host_flash_manager_set_flash_for_host_access (control, single->filter);
 }
 
-static int host_flash_manager_single_host_has_flash_access (struct host_flash_manager *manager,
+int host_flash_manager_single_host_has_flash_access (const struct host_flash_manager *manager,
 	const struct host_control *control)
 {
-	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
+	const struct host_flash_manager_single *single =
+		(const struct host_flash_manager_single*) manager;
 
 	if ((single == NULL) || (control == NULL)) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
@@ -245,9 +257,10 @@ static int host_flash_manager_single_host_has_flash_access (struct host_flash_ma
 	return host_flash_manager_host_has_flash_access (control, single->filter);
 }
 
-static int host_flash_manager_single_reset_flash (struct host_flash_manager *manager)
+int host_flash_manager_single_reset_flash (const struct host_flash_manager *manager)
 {
-	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
+	const struct host_flash_manager_single *single =
+		(const struct host_flash_manager_single*) manager;
 
 	if (single == NULL) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
@@ -348,7 +361,7 @@ int host_flash_manager_single_init_with_managed_flash_initialization (
  *
  * @param manager The manager to release.
  */
-void host_flash_manager_single_release (struct host_flash_manager_single *manager)
+void host_flash_manager_single_release (const struct host_flash_manager_single *manager)
 {
 	UNUSED (manager);
 }

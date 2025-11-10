@@ -115,7 +115,7 @@ free_firmware:
 	return HOST_FLASH_MGR_NO_MEMORY;
 }
 
-void host_flash_manager_free_read_write_regions (struct host_flash_manager *manager,
+void host_flash_manager_free_read_write_regions (const struct host_flash_manager *manager,
 	struct host_flash_manager_rw_regions *host_rw)
 {
 	size_t i;

@@ -27,7 +27,7 @@
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
 int host_processor_filtered_init (struct host_processor_filtered *host,
-	const struct host_control *control, struct host_flash_manager *flash,
+	const struct host_control *control, const struct host_flash_manager *flash,
 	const struct host_state_manager *state, const struct spi_filter_interface *filter,
 	const struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse,
 	bool reset_flash)
@@ -237,7 +237,7 @@ void host_processor_filtered_config_bypass (struct host_processor_filtered *host
  * @param rw_list The list of read/write regions defined on the new flash.
  */
 static void host_processor_filtered_initialize_protection (struct host_processor_filtered *host,
-	struct host_flash_manager_rw_regions *rw_list)
+	const struct host_flash_manager_rw_regions *rw_list)
 {
 	int status;
 	int log_status = 0;
@@ -272,7 +272,7 @@ static void host_processor_filtered_initialize_protection (struct host_processor
  * @param rw_list The list of read/write regions defined on the new flash.
  */
 static void host_processor_filtered_config_rw (struct host_processor_filtered *host,
-	struct host_flash_manager_rw_regions *rw_list)
+	const struct host_flash_manager_rw_regions *rw_list)
 {
 	int status;
 	int log_status = 0;
@@ -347,7 +347,8 @@ static void host_processor_filtered_config_flash (struct host_processor_filtered
  * @param no_migrate Flag to indicate data migration should not happen.
  */
 void host_processor_filtered_swap_flash (struct host_processor_filtered *host,
-	struct host_flash_manager_rw_regions *rw_list, const struct pfm_manager *pfm, bool no_migrate)
+	const struct host_flash_manager_rw_regions *rw_list, const struct pfm_manager *pfm,
+	bool no_migrate)
 {
 	int status;
 	int log_status = 0;

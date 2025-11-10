@@ -31,7 +31,7 @@ int host_flash_manager_single_init_with_managed_flash_initialization (
 	const struct host_state_manager *host_state, const struct spi_filter_interface *filter,
 	const struct flash_mfg_filter_handler *mfg_handler,
 	const struct host_flash_initialization *flash_init);
-void host_flash_manager_single_release (struct host_flash_manager_single *manager);
+void host_flash_manager_single_release (const struct host_flash_manager_single *manager);
 
 
 #endif	/* HOST_FLASH_MANAGER_SINGLE_H_ */
