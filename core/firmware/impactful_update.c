@@ -130,11 +130,12 @@ int impactful_update_reset_authorization (const struct impactful_update_interfac
 /**
  * Timer callback to force expiration of any active impactful update authorization.
  *
- * @param impactful The impactful update context to update.
+ * @param ctx The impactful update context to update.
  */
-static void impactful_update_expired_authorization (
-	const struct impactful_update_interface *impactful)
+static void impactful_update_expired_authorization (void *ctx)
 {
+	const struct impactful_update_interface *impactful = ctx;
+
 	impactful_update_reset_authorization (impactful);
 }
 
@@ -197,7 +198,7 @@ int impactful_update_init_state (const struct impactful_update *impactful)
 	}
 
 	status = platform_timer_create (&impactful->state->expiration,
-		(timer_callback) impactful_update_expired_authorization, (void*) &impactful->base);
+		impactful_update_expired_authorization, (void*) &impactful->base);
 	if (status != 0) {
 		platform_mutex_free (&impactful->state->lock);
 	}
