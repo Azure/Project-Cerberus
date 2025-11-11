@@ -218,7 +218,7 @@ static int ecc_der_encode_public_key_bit_string (const uint8_t *pub_key_x, const
 int ecc_der_decode_private_key (const uint8_t *der, size_t length, uint8_t *priv_key,
 	size_t key_length)
 {
-	const uint8_t *pos;
+	const uint8_t *pos = NULL;
 	int type_len;
 	int key_len;
 
@@ -560,7 +560,7 @@ size_t ecc_der_get_private_key_length (const uint8_t *der, size_t max_length)
 int ecc_der_decode_public_key (const uint8_t *der, size_t length, uint8_t *pub_key_x,
 	uint8_t *pub_key_y, size_t key_length)
 {
-	const uint8_t *pos;
+	const uint8_t *pos = NULL;
 	int type_len;
 	size_t key_len;
 
