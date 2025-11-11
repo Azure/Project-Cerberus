@@ -53,7 +53,7 @@ int host_irq_handler_mask_irqs_assert_cs1 (const struct host_irq_handler *handle
  * @return 0 if the IRQ handler was successfully initialized or an error code.
  */
 int host_irq_handler_mask_irqs_init (struct host_irq_handler_mask_irqs *handler,
-	struct host_processor *host, const struct hash_engine *hash, const struct rsa_engine *rsa,
+	const struct host_processor *host, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	struct bmc_recovery *recovery, const struct host_irq_control *control)
 {
 	int status;
@@ -90,7 +90,7 @@ int host_irq_handler_mask_irqs_init (struct host_irq_handler_mask_irqs *handler,
  * @return 0 if the IRQ handler was successfully initialized or an error code.
  */
 int host_irq_handler_mask_irqs_init_enable_exit_reset (struct host_irq_handler_mask_irqs *handler,
-	struct host_processor *host, const struct hash_engine *hash, const struct rsa_engine *rsa,
+	const struct host_processor *host, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	struct bmc_recovery *recovery, const struct host_irq_control *control)
 {
 	int status;

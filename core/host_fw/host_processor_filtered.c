@@ -13,9 +13,10 @@
  * Initialize the common components for host processor actions using a SPI filter.
  *
  * @param host The host processor instance to initialize.
+ * @param state Variable context for host processor handling.  This must be uninitialized.
  * @param control The interface for controlling the host processor.
  * @param flash The manager for the flash devices for the host processor.
- * @param state The state information for the host.
+ * @param host_state The state information for the host.
  * @param filter The SPI filter controlling flash access for the host processor.
  * @param pfm The manager for PFMs for the host processor.
  * @param recovery The manager for recovery of the host processor.
@@ -27,33 +28,37 @@
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
 int host_processor_filtered_init (struct host_processor_filtered *host,
-	const struct host_control *control, const struct host_flash_manager *flash,
-	const struct host_state_manager *state, const struct spi_filter_interface *filter,
-	const struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse,
-	bool reset_flash)
+	struct host_processor_filtered_state *state, const struct host_control *control,
+	const struct host_flash_manager *flash, const struct host_state_manager *host_state,
+	const struct spi_filter_interface *filter, const struct pfm_manager *pfm,
+	struct recovery_image_manager *recovery, int reset_pulse, bool reset_flash)
 {
 	int status;
 
-	if ((control == NULL) || (flash == NULL) || (state == NULL) || (filter == NULL) ||
-		(pfm == NULL)) {
+	if ((host == NULL) || (state == NULL) || (control == NULL) || (flash == NULL) ||
+		(host_state == NULL) || (filter == NULL) || (pfm == NULL)) {
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
 	}
 
-	memset (host, 0, sizeof (struct host_processor_filtered));
+	memset (host, 0, sizeof (*host));
+	memset (state, 0, sizeof (*state));
 
-	status = host_processor_init (&host->base);
+	status = host_processor_init (&host->base, &state->base);
 	if (status != 0) {
 		return status;
 	}
 
-	status = platform_mutex_init (&host->lock);
+	status = platform_mutex_init (&state->lock);
 	if (status != 0) {
+		host_processor_release (&host->base);
+
 		return status;
 	}
 
+	host->state = state;
 	host->control = control;
 	host->flash = flash;
-	host->state = state;
+	host->host_state = host_state;
 	host->filter = filter;
 	host->pfm = pfm;
 	host->recovery = recovery;
@@ -64,14 +69,55 @@ int host_processor_filtered_init (struct host_processor_filtered *host,
 }
 
 /**
+ * Initialize only the variable state for common host processor actions using a SPI filter.  The
+ * rest of the instance is assumed to already have been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param host The host processor that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int host_processor_filtered_init_state (const struct host_processor_filtered *host)
+{
+	int status;
+
+	if ((host == NULL) || (host->state == NULL) || (host->control == NULL) ||
+		(host->flash == NULL) || (host->host_state == NULL) || (host->filter == NULL) ||
+		(host->pfm == NULL)) {
+		return HOST_PROCESSOR_INVALID_ARGUMENT;
+	}
+
+	if (host->reset_pulse < 0) {
+		return HOST_PROCESSOR_INVALID_ARGUMENT;
+	}
+
+	memset (host->state, 0, sizeof (*host->state));
+
+	status = host_processor_init_state (&host->base);
+	if (status != 0) {
+		return status;
+	}
+
+	status = platform_mutex_init (&host->state->lock);
+	if (status != 0) {
+		host_processor_release (&host->base);
+
+		return status;
+	}
+
+	return 0;
+}
+
+/**
  * Release the resources used for common host processor handling.
  *
  * @param host The common components to release.
  */
-void host_processor_filtered_release (struct host_processor_filtered *host)
+void host_processor_filtered_release (const struct host_processor_filtered *host)
 {
 	if (host) {
-		platform_mutex_free (&host->lock);
+		platform_mutex_free (&host->state->lock);
 		host_processor_release (&host->base);
 	}
 }
@@ -86,7 +132,8 @@ void host_processor_filtered_release (struct host_processor_filtered *host)
  *
  * @return 0 if the operation was successful or an error code.
  */
-static int host_processor_filtered_initial_rot_flash_access (struct host_processor_filtered *host)
+static int host_processor_filtered_initial_rot_flash_access (
+	const struct host_processor_filtered *host)
 {
 	int status;
 	int log_status = 0;
@@ -100,27 +147,27 @@ static int host_processor_filtered_initial_rot_flash_access (struct host_process
 			(status == SPI_FLASH_NO_4BYTE_CMDS) || (status == SPI_FLASH_SFDP_LARGE_DEVICE) ||
 			(status == SPI_FLASH_SFDP_4BYTE_INCOMPATIBLE) ||
 			(status == SPI_FLASH_SFDP_QUAD_ENABLE_UNKNOWN)) {
-			host_state_manager_set_unsupported_flash (host->state, true);
+			host_state_manager_set_unsupported_flash (host->host_state, true);
 
 			return status;
 		}
 
 		if (status != log_status) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
-				HOST_LOGGING_ROT_FLASH_ACCESS_ERROR, host->base.port, status);
+				HOST_LOGGING_ROT_FLASH_ACCESS_ERROR, host_processor_get_port (&host->base), status);
 			log_status = status;
 		}
 	} while ((status != 0) && (retries < 5));
 
 	if (status != 0) {
 		/* The flash could not be initialized.  Treat it as unsupported. */
-		host_state_manager_set_unsupported_flash (host->state, true);
+		host_state_manager_set_unsupported_flash (host->host_state, true);
 
 		return status;
 	}
 	else if (log_status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
-			HOST_LOGGING_ROT_FLASH_ACCESS_RETRIES, host->base.port, retries);
+			HOST_LOGGING_ROT_FLASH_ACCESS_RETRIES, host_processor_get_port (&host->base), retries);
 	}
 
 	log_status = 0;
@@ -134,30 +181,31 @@ static int host_processor_filtered_initial_rot_flash_access (struct host_process
 			(status == HOST_FLASH_MGR_MISMATCH_DEVICE) ||
 			(status == HOST_FLASH_MGR_MISMATCH_SIZES) ||
 			(status == HOST_FLASH_MGR_MISMATCH_ADDR_MODE)) {
-			host_state_manager_set_unsupported_flash (host->state, true);
+			host_state_manager_set_unsupported_flash (host->host_state, true);
 
 			return status;
 		}
 
 		if (status != log_status) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
-				HOST_LOGGING_FILTER_FLASH_TYPE_ERROR, host->base.port, status);
+				HOST_LOGGING_FILTER_FLASH_TYPE_ERROR, host_processor_get_port (&host->base),
+				status);
 			log_status = status;
 		}
 	} while ((status != 0) && (retries < 5));
 
 	if (status != 0) {
 		/* The filter could not be configured.  Treat the flash as unsupported. */
-		host_state_manager_set_unsupported_flash (host->state, true);
+		host_state_manager_set_unsupported_flash (host->host_state, true);
 
 		return status;
 	}
 	else if (log_status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
-			HOST_LOGGING_FILTER_FLASH_TYPE_RETRIES, host->base.port, retries);
+			HOST_LOGGING_FILTER_FLASH_TYPE_RETRIES, host_processor_get_port (&host->base), retries);
 	}
 
-	host_state_manager_set_unsupported_flash (host->state, false);
+	host_state_manager_set_unsupported_flash (host->host_state, false);
 
 	return 0;
 }
@@ -168,7 +216,7 @@ static int host_processor_filtered_initial_rot_flash_access (struct host_process
  *
  * @param host The host processor instance.
  */
-void host_processor_filtered_set_host_flash_access (struct host_processor_filtered *host)
+void host_processor_filtered_set_host_flash_access (const struct host_processor_filtered *host)
 {
 	int status;
 	int log_status = 0;
@@ -179,14 +227,15 @@ void host_processor_filtered_set_host_flash_access (struct host_processor_filter
 		status = host->flash->set_flash_for_host_access (host->flash, host->control);
 		if (status != log_status) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
-				HOST_LOGGING_HOST_FLASH_ACCESS_ERROR, host->base.port, status);
+				HOST_LOGGING_HOST_FLASH_ACCESS_ERROR, host_processor_get_port (&host->base),
+				status);
 			log_status = status;
 		}
 	} while (status != 0);
 
 	if (log_status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
-			HOST_LOGGING_HOST_FLASH_ACCESS_RETRIES, host->base.port, retries);
+			HOST_LOGGING_HOST_FLASH_ACCESS_RETRIES, host_processor_get_port (&host->base), retries);
 	}
 }
 
@@ -200,7 +249,7 @@ void host_processor_filtered_set_host_flash_access (struct host_processor_filter
  *
  * @param host The host processor instance being updated.
  */
-void host_processor_filtered_config_bypass (struct host_processor_filtered *host)
+void host_processor_filtered_config_bypass (const struct host_processor_filtered *host)
 {
 	int status;
 	int log_status = 0;
@@ -211,18 +260,18 @@ void host_processor_filtered_config_bypass (struct host_processor_filtered *host
 		status = host->internal.enable_bypass_mode (host);
 		if (status != log_status) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
-				HOST_LOGGING_BYPASS_MODE_ERROR, host->base.port, status);
+				HOST_LOGGING_BYPASS_MODE_ERROR, host_processor_get_port (&host->base), status);
 			log_status = status;
 		}
 	} while (status != 0);
 
 	if (log_status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
-			HOST_LOGGING_BYPASS_MODE_RETRIES, host->base.port, retries);
+			HOST_LOGGING_BYPASS_MODE_RETRIES, host_processor_get_port (&host->base), retries);
 	}
 
-	host_state_manager_set_bypass_mode (host->state, true);
-	observable_notify_observers (&host->base.observable,
+	host_state_manager_set_bypass_mode (host->host_state, true);
+	observable_notify_observers (&host->base.state->observable,
 		offsetof (struct host_processor_observer, on_bypass_mode));
 }
 
@@ -236,8 +285,8 @@ void host_processor_filtered_config_bypass (struct host_processor_filtered *host
  * @param host The host processor instance being updated.
  * @param rw_list The list of read/write regions defined on the new flash.
  */
-static void host_processor_filtered_initialize_protection (struct host_processor_filtered *host,
-	const struct host_flash_manager_rw_regions *rw_list)
+static void host_processor_filtered_initialize_protection (
+	const struct host_processor_filtered *host, const struct host_flash_manager_rw_regions *rw_list)
 {
 	int status;
 	int log_status = 0;
@@ -248,17 +297,17 @@ static void host_processor_filtered_initialize_protection (struct host_processor
 		status = host->flash->initialize_flash_protection (host->flash, rw_list);
 		if (status != log_status) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
-				HOST_LOGGING_INIT_PROTECTION_ERROR, host->base.port, status);
+				HOST_LOGGING_INIT_PROTECTION_ERROR, host_processor_get_port (&host->base), status);
 			log_status = status;
 		}
 	} while (status != 0);
 
 	if (log_status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
-			HOST_LOGGING_INIT_PROTECTION_RETRIES, host->base.port, retries);
+			HOST_LOGGING_INIT_PROTECTION_RETRIES, host_processor_get_port (&host->base), retries);
 	}
 
-	host_state_manager_set_bypass_mode (host->state, false);
+	host_state_manager_set_bypass_mode (host->host_state, false);
 }
 
 /**
@@ -271,7 +320,7 @@ static void host_processor_filtered_initialize_protection (struct host_processor
  * @param host The host processor instance being updated.
  * @param rw_list The list of read/write regions defined on the new flash.
  */
-static void host_processor_filtered_config_rw (struct host_processor_filtered *host,
+static void host_processor_filtered_config_rw (const struct host_processor_filtered *host,
 	const struct host_flash_manager_rw_regions *rw_list)
 {
 	int status;
@@ -284,7 +333,8 @@ static void host_processor_filtered_config_rw (struct host_processor_filtered *h
 			rw_list->writable, rw_list->count);
 		if (status != log_status) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
-				HOST_LOGGING_FILTER_RW_REGIONS_ERROR, host->base.port, status);
+				HOST_LOGGING_FILTER_RW_REGIONS_ERROR, host_processor_get_port (&host->base),
+				status);
 			log_status = status;
 
 			if (status == SPI_FILTER_UNSUPPORTED_RW_REGION) {
@@ -299,7 +349,7 @@ static void host_processor_filtered_config_rw (struct host_processor_filtered *h
 
 	if (log_status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
-			HOST_LOGGING_FILTER_RW_REGIONS_RETRIES, host->base.port, retries);
+			HOST_LOGGING_FILTER_RW_REGIONS_RETRIES, host_processor_get_port (&host->base), retries);
 	}
 }
 
@@ -312,7 +362,7 @@ static void host_processor_filtered_config_rw (struct host_processor_filtered *h
  *
  * @param host The host processor instance being updated.
  */
-static void host_processor_filtered_config_flash (struct host_processor_filtered *host)
+static void host_processor_filtered_config_flash (const struct host_processor_filtered *host)
 {
 	int status;
 	int log_status = 0;
@@ -323,14 +373,14 @@ static void host_processor_filtered_config_flash (struct host_processor_filtered
 		status = host->flash->config_spi_filter_flash_devices (host->flash);
 		if (status != log_status) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
-				HOST_LOGGING_CONFIG_FLASH_ERROR, host->base.port, status);
+				HOST_LOGGING_CONFIG_FLASH_ERROR, host_processor_get_port (&host->base), status);
 			log_status = status;
 		}
 	} while (status != 0);
 
 	if (log_status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
-			HOST_LOGGING_CONFIG_FLASH_RETRIES, host->base.port, retries);
+			HOST_LOGGING_CONFIG_FLASH_RETRIES, host_processor_get_port (&host->base), retries);
 	}
 }
 
@@ -346,7 +396,7 @@ static void host_processor_filtered_config_flash (struct host_processor_filtered
  * @param pfm Manager to use for PFM activation.
  * @param no_migrate Flag to indicate data migration should not happen.
  */
-void host_processor_filtered_swap_flash (struct host_processor_filtered *host,
+void host_processor_filtered_swap_flash (const struct host_processor_filtered *host,
 	const struct host_flash_manager_rw_regions *rw_list, const struct pfm_manager *pfm,
 	bool no_migrate)
 {
@@ -359,19 +409,19 @@ void host_processor_filtered_swap_flash (struct host_processor_filtered *host,
 		status = host->flash->swap_flash_devices (host->flash, (!no_migrate) ? rw_list : NULL, pfm);
 		if (status != log_status) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
-				HOST_LOGGING_SWAP_FLASH_ERROR, host->base.port, status);
+				HOST_LOGGING_SWAP_FLASH_ERROR, host_processor_get_port (&host->base), status);
 			log_status = status;
 		}
 	} while (status != 0);
 
 	if (log_status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
-			HOST_LOGGING_SWAP_FLASH_RETRIES, host->base.port, retries);
+			HOST_LOGGING_SWAP_FLASH_RETRIES, host_processor_get_port (&host->base), retries);
 	}
 
 	host_processor_filtered_config_rw (host, rw_list);
 
-	host_state_manager_set_run_time_validation (host->state, HOST_STATE_PREVALIDATED_NONE);
+	host_state_manager_set_run_time_validation (host->host_state, HOST_STATE_PREVALIDATED_NONE);
 }
 
 /**
@@ -389,7 +439,7 @@ void host_processor_filtered_swap_flash (struct host_processor_filtered *host,
  *
  * @return 0 if the data was successfully restored or an error code.
  */
-int host_processor_filtered_restore_read_write_data (struct host_processor_filtered *host,
+int host_processor_filtered_restore_read_write_data (const struct host_processor_filtered *host,
 	struct host_flash_manager_rw_regions *rw_list, const struct pfm *pfm)
 {
 	struct host_flash_manager_rw_regions restore;
@@ -404,7 +454,7 @@ int host_processor_filtered_restore_read_write_data (struct host_processor_filte
 		status = host->flash->get_flash_read_write_regions (host->flash, pfm, false, rw_list);
 		if (status != 0) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
-				HOST_LOGGING_RW_RESTORE_START, host->base.port, status);
+				HOST_LOGGING_RW_RESTORE_START, host_processor_get_port (&host->base), status);
 
 			return status;
 		}
@@ -413,14 +463,15 @@ int host_processor_filtered_restore_read_write_data (struct host_processor_filte
 	do {
 		/* Restoring the R/W data could corrupt prevalidated images on flash, so clear any
 		 * prevalidated state. */
-		host_state_manager_set_run_time_validation (host->state, HOST_STATE_PREVALIDATED_NONE);
+		host_state_manager_set_run_time_validation (host->host_state, HOST_STATE_PREVALIDATED_NONE);
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
-			HOST_LOGGING_RW_RESTORE_START, host->base.port, 0);
+			HOST_LOGGING_RW_RESTORE_START, host_processor_get_port (&host->base), 0);
 
 		status = host->flash->restore_flash_read_write_regions (host->flash, rw_list);
 
 		debug_log_create_entry ((status == 0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_ERROR,
-			DEBUG_LOG_COMPONENT_HOST_FW, HOST_LOGGING_RW_RESTORE_FINISH, host->base.port, status);
+			DEBUG_LOG_COMPONENT_HOST_FW, HOST_LOGGING_RW_RESTORE_FINISH,
+			host_processor_get_port (&host->base), status);
 	} while ((status != 0) && (--retries > 0));
 
 	if (pfm != NULL) {
@@ -454,7 +505,7 @@ int host_processor_filtered_restore_read_write_data (struct host_processor_filte
  *
  * @return 0 if the flash was successfully validated or an error code.
  */
-static int host_processor_filtered_validate_flash (struct host_processor_filtered *host,
+static int host_processor_filtered_validate_flash (const struct host_processor_filtered *host,
 	const struct hash_engine *hash, const struct rsa_engine *rsa, const struct pfm *pfm,
 	const struct pfm *active, bool is_pending, bool is_bypass, bool skip_ro, bool skip_ro_config,
 	bool apply_filter_cfg, bool is_validated, bool single, bool *config_fail)
@@ -464,11 +515,12 @@ static int host_processor_filtered_validate_flash (struct host_processor_filtere
 	int dirty_fail = 0;
 	bool checked_rw = true;
 	bool failed_rw = false;
-	bool pfm_dirty = host_state_manager_is_pfm_dirty (host->state);
+	bool pfm_dirty = host_state_manager_is_pfm_dirty (host->host_state);
 
-	if (!is_bypass && host_state_manager_is_inactive_dirty (host->state)) {
+	if (!is_bypass && host_state_manager_is_inactive_dirty (host->host_state)) {
 		if (!is_validated) {
-			host_state_manager_set_run_time_validation (host->state, HOST_STATE_PREVALIDATED_NONE);
+			host_state_manager_set_run_time_validation (host->host_state,
+				HOST_STATE_PREVALIDATED_NONE);
 			status = host->flash->validate_read_write_flash (host->flash, pfm, hash, rsa, &rw_list);
 		}
 		else {
@@ -483,14 +535,16 @@ static int host_processor_filtered_validate_flash (struct host_processor_filtere
 				0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_WARNING,
 				DEBUG_LOG_COMPONENT_HOST_FW, (is_validated) ?
 					HOST_LOGGING_PENDING_ACTIVATE_FW_UPDATE :
-					HOST_LOGGING_PENDING_VERIFY_FW_UPDATE, host->base.port, status);
+					HOST_LOGGING_PENDING_VERIFY_FW_UPDATE, host_processor_get_port (&host->base),
+				status);
 		}
 		else {
 			debug_log_create_entry ((status ==
 				0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_WARNING,
 				DEBUG_LOG_COMPONENT_HOST_FW, (is_validated) ?
 					HOST_LOGGING_ACTIVE_ACTIVATE_FW_UPDATE :
-					HOST_LOGGING_ACTIVE_VERIFY_FW_UPDATE, host->base.port, status);
+					HOST_LOGGING_ACTIVE_VERIFY_FW_UPDATE, host_processor_get_port (&host->base),
+				status);
 		}
 
 		if (status == 0) {
@@ -502,19 +556,19 @@ static int host_processor_filtered_validate_flash (struct host_processor_filtere
 					host_processor_filtered_swap_flash (host, &rw_list, NULL, false);
 				}
 
-				observable_notify_observers (&host->base.observable,
+				observable_notify_observers (&host->base.state->observable,
 					offsetof (struct host_processor_observer, on_active_mode));
 			}
 			else {
 				status = host->filter->clear_flash_dirty_state (host->filter);
 				if (status == 0) {
 					if (is_pending) {
-						host_state_manager_set_pfm_dirty (host->state, false);
-						host_state_manager_set_run_time_validation (host->state,
+						host_state_manager_set_pfm_dirty (host->host_state, false);
+						host_state_manager_set_run_time_validation (host->host_state,
 							HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
 					}
 					else {
-						host_state_manager_set_run_time_validation (host->state,
+						host_state_manager_set_run_time_validation (host->host_state,
 							HOST_STATE_PREVALIDATED_FLASH);
 					}
 				}
@@ -542,11 +596,11 @@ static int host_processor_filtered_validate_flash (struct host_processor_filtere
 
 				if (single && is_pending) {
 					/* Validation is only run against one flash, so clear the PFM dirty state. */
-					host_state_manager_set_pfm_dirty (host->state, false);
+					host_state_manager_set_pfm_dirty (host->host_state, false);
 				}
 			}
 			else if (is_pending && !is_validated) {
-				host_state_manager_set_pfm_dirty (host->state, true);
+				host_state_manager_set_pfm_dirty (host->host_state, true);
 			}
 		}
 	}
@@ -562,14 +616,14 @@ static int host_processor_filtered_validate_flash (struct host_processor_filtere
 		if (is_pending) {
 			debug_log_create_entry ((status ==
 				0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_WARNING,
-				DEBUG_LOG_COMPONENT_HOST_FW, HOST_LOGGING_PENDING_VERIFY_CURRENT, host->base.port,
-				status);
+				DEBUG_LOG_COMPONENT_HOST_FW, HOST_LOGGING_PENDING_VERIFY_CURRENT,
+				host_processor_get_port (&host->base), status);
 		}
 		else {
 			debug_log_create_entry ((status ==
 				0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_ERROR,
-				DEBUG_LOG_COMPONENT_HOST_FW, HOST_LOGGING_ACTIVE_VERIFY_CURRENT, host->base.port,
-				status);
+				DEBUG_LOG_COMPONENT_HOST_FW, HOST_LOGGING_ACTIVE_VERIFY_CURRENT,
+				host_processor_get_port (&host->base), status);
 		}
 
 		if (status == 0) {
@@ -591,7 +645,7 @@ static int host_processor_filtered_validate_flash (struct host_processor_filtere
 
 				host_processor_filtered_config_rw (host, &rw_list);
 
-				observable_notify_observers (&host->base.observable,
+				observable_notify_observers (&host->base.state->observable,
 					offsetof (struct host_processor_observer, on_active_mode));
 			}
 
@@ -601,7 +655,7 @@ static int host_processor_filtered_validate_flash (struct host_processor_filtere
 			(!checked_rw || (checked_rw && (dirty_fail != 0)))) {
 			/* If there was a validation failure on both flash devices with the pending PFM, clear
 			 * the dirty PFM state. */
-			host_state_manager_set_pfm_dirty (host->state, false);
+			host_state_manager_set_pfm_dirty (host->host_state, false);
 		}
 	}
 
@@ -614,7 +668,7 @@ static int host_processor_filtered_validate_flash (struct host_processor_filtere
 		(is_pending && !active && skip_ro_config)))) {
 		dirty_fail = host->filter->clear_flash_dirty_state (host->filter);
 		if (dirty_fail == 0) {
-			host_state_manager_save_inactive_dirty (host->state, false);
+			host_state_manager_save_inactive_dirty (host->host_state, false);
 		}
 	}
 
@@ -633,8 +687,9 @@ exit:
  *
  * @return 0 if the check was successful or an error code.
  */
-static int host_processor_filtered_check_force_bypass_mode (struct host_processor_filtered *host,
-	const struct pfm **active_pfm, const struct pfm **pending_pfm, int *empty_status)
+static int host_processor_filtered_check_force_bypass_mode (
+	const struct host_processor_filtered *host, const struct pfm **active_pfm,
+	const struct pfm **pending_pfm, int *empty_status)
 {
 	int status;
 
@@ -681,7 +736,7 @@ static int host_processor_filtered_check_force_bypass_mode (struct host_processo
  *
  * @return 0 if the event was handled successfully or an error code.
  */
-int host_processor_filtered_power_on_reset (struct host_processor_filtered *host,
+int host_processor_filtered_power_on_reset (const struct host_processor_filtered *host,
 	const struct hash_engine *hash, const struct rsa_engine *rsa, bool single)
 {
 	const struct pfm *active_pfm = NULL;
@@ -692,10 +747,10 @@ int host_processor_filtered_power_on_reset (struct host_processor_filtered *host
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&host->lock);
+	platform_mutex_lock (&host->state->lock);
 
-	host_state_manager_set_pfm_dirty (host->state, true);
-	host_state_manager_set_bypass_mode (host->state, false);
+	host_state_manager_set_pfm_dirty (host->host_state, true);
+	host_state_manager_set_bypass_mode (host->host_state, false);
 
 	status = host_processor_filtered_initial_rot_flash_access (host);
 	if (status != 0) {
@@ -731,7 +786,7 @@ int host_processor_filtered_power_on_reset (struct host_processor_filtered *host
 				true, false, false, false, true, false, single, NULL);
 		}
 		else if (status == 0) {
-			host_state_manager_set_pfm_dirty (host->state, false);
+			host_state_manager_set_pfm_dirty (host->host_state, false);
 		}
 
 		if (!pending_pfm || (status != 0)) {
@@ -762,8 +817,8 @@ int host_processor_filtered_power_on_reset (struct host_processor_filtered *host
 		/* When there is no PFM available, run the system in bypass mode.  Dirty flash is
 		 * meaningless without a PFM. */
 		host->filter->clear_flash_dirty_state (host->filter);
-		host_state_manager_save_inactive_dirty (host->state, false);
-		host_state_manager_set_pfm_dirty (host->state, false);
+		host_state_manager_save_inactive_dirty (host->host_state, false);
+		host_state_manager_set_pfm_dirty (host->host_state, false);
 
 		host_processor_filtered_config_bypass (host);
 		status = 0;
@@ -777,7 +832,7 @@ exit:
 		host->pfm->free_pfm (host->pfm, pending_pfm);
 	}
 	if (status != 0) {
-		platform_mutex_unlock (&host->lock);
+		platform_mutex_unlock (&host->state->lock);
 
 		return status;
 	}
@@ -785,7 +840,7 @@ exit:
 exit_host:
 	host_processor_filtered_set_host_flash_access (host);
 
-	platform_mutex_unlock (&host->lock);
+	platform_mutex_unlock (&host->state->lock);
 
 	return status;
 }
@@ -796,7 +851,7 @@ exit_host:
  *
  * @param host The host processor instance.
  */
-static void host_processor_filtered_reset_host_flash (struct host_processor_filtered *host)
+static void host_processor_filtered_reset_host_flash (const struct host_processor_filtered *host)
 {
 	int status = 0;
 	int retries = 3;
@@ -809,7 +864,8 @@ static void host_processor_filtered_reset_host_flash (struct host_processor_filt
 		status = host->flash->reset_flash (host->flash);
 
 		debug_log_create_entry ((status == 0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_ERROR,
-			DEBUG_LOG_COMPONENT_HOST_FW, HOST_LOGGING_FLASH_RESET, host->base.port, status);
+			DEBUG_LOG_COMPONENT_HOST_FW, HOST_LOGGING_FLASH_RESET,
+			host_processor_get_port (&host->base), status);
 	} while (((status != 0) && (--retries > 0) && (status != SPI_FLASH_RESET_NOT_SUPPORTED)));
 }
 
@@ -820,12 +876,12 @@ static void host_processor_filtered_reset_host_flash (struct host_processor_filt
  * @param no_pfm Flag indicating if there is no active or pending PFM.
  */
 static void host_processor_filtered_clear_host_dirty_state (
-	struct host_processor_filtered *host, bool no_pfm)
+	const struct host_processor_filtered *host, bool no_pfm)
 {
-	host_state_manager_set_pfm_dirty (host->state, false);
+	host_state_manager_set_pfm_dirty (host->host_state, false);
 	if (no_pfm) {
 		host->filter->clear_flash_dirty_state (host->filter);
-		host_state_manager_save_inactive_dirty (host->state, false);
+		host_state_manager_save_inactive_dirty (host->host_state, false);
 	}
 }
 
@@ -842,7 +898,7 @@ static void host_processor_filtered_clear_host_dirty_state (
  *
  * @return 0 if the event was handled successfully or an error code.
  */
-int host_processor_filtered_update_verification (struct host_processor_filtered *host,
+int host_processor_filtered_update_verification (const struct host_processor_filtered *host,
 	const struct hash_engine *hash, const struct rsa_engine *rsa, bool single, bool reset,
 	int bypass_status)
 {
@@ -864,11 +920,11 @@ int host_processor_filtered_update_verification (struct host_processor_filtered 
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
 	}
 
-	if (!host_state_manager_is_flash_supported (host->state)) {
+	if (!host_state_manager_is_flash_supported (host->host_state)) {
 		return HOST_PROCESSOR_FLASH_NOT_SUPPORTED;
 	}
 
-	platform_mutex_lock (&host->lock);
+	platform_mutex_lock (&host->state->lock);
 
 	active_pfm = host->pfm->get_active_pfm (host->pfm);
 	pending_pfm = host->pfm->get_pending_pfm (host->pfm);
@@ -876,12 +932,12 @@ int host_processor_filtered_update_verification (struct host_processor_filtered 
 		status = bypass_status;
 	}
 
-	bypass = host_state_manager_is_bypass_mode (host->state);
-	dirty = host_state_manager_is_inactive_dirty (host->state);
+	bypass = host_state_manager_is_bypass_mode (host->host_state);
+	dirty = host_state_manager_is_inactive_dirty (host->host_state);
 
 	no_pfm = !active_pfm && !pending_pfm;
 	validate_flash = pending_pfm || (no_pfm && !bypass) || (active_pfm && (dirty || bypass));
-	no_state_change = !dirty && !bypass && !host_state_manager_is_pfm_dirty (host->state) &&
+	no_state_change = !dirty && !bypass && !host_state_manager_is_pfm_dirty (host->host_state) &&
 		(active_pfm || (pending_pfm && !active_pfm));
 
 	if (validate_flash || reset_flash) {
@@ -923,9 +979,9 @@ int host_processor_filtered_update_verification (struct host_processor_filtered 
 		}
 
 		if (!bypass) {
-			flash_checked = host_state_manager_get_run_time_validation (host->state);
+			flash_checked = host_state_manager_get_run_time_validation (host->host_state);
 		}
-		host_state_manager_set_run_time_validation (host->state, HOST_STATE_PREVALIDATED_NONE);
+		host_state_manager_set_run_time_validation (host->host_state, HOST_STATE_PREVALIDATED_NONE);
 
 		if (pending_pfm) {
 			if (bypass || !active_pfm) {
@@ -934,11 +990,11 @@ int host_processor_filtered_update_verification (struct host_processor_filtered 
 			else {
 				switch (flash_checked) {
 					case HOST_STATE_PREVALIDATED_FLASH_AND_PFM:
-						prevalidated = !host_state_manager_is_pfm_dirty (host->state);
+						prevalidated = !host_state_manager_is_pfm_dirty (host->host_state);
 						break;
 
 					case HOST_STATE_PREVALIDATED_FLASH:
-						if (!host_state_manager_is_pfm_dirty (host->state)) {
+						if (!host_state_manager_is_pfm_dirty (host->host_state)) {
 							status = HOST_PROCESSOR_NOTHING_TO_VERIFY;
 						}
 					/* fall through */ /* no break */
@@ -957,7 +1013,7 @@ int host_processor_filtered_update_verification (struct host_processor_filtered 
 			}
 		}
 		else if (status == 0) {
-			host_state_manager_set_pfm_dirty (host->state, false);
+			host_state_manager_set_pfm_dirty (host->host_state, false);
 		}
 
 		if ((!pending_pfm && active_pfm) ||
@@ -976,8 +1032,8 @@ int host_processor_filtered_update_verification (struct host_processor_filtered 
 			/* When there is no PFM available, ensure the system is running in bypass mode.  PFMs
 			 * that were present at POR could have been cleared, so apply bypass configuration. */
 			host->filter->clear_flash_dirty_state (host->filter);
-			host_state_manager_save_inactive_dirty (host->state, false);
-			host_state_manager_set_pfm_dirty (host->state, false);
+			host_state_manager_save_inactive_dirty (host->host_state, false);
+			host_state_manager_set_pfm_dirty (host->host_state, false);
 
 			if (!bypass) {
 				host_processor_filtered_config_bypass (host);
@@ -986,7 +1042,7 @@ int host_processor_filtered_update_verification (struct host_processor_filtered 
 
 return_flash:
 		if (!notified) {
-			observable_notify_observers (&host->base.observable,
+			observable_notify_observers (&host->base.state->observable,
 				offsetof (struct host_processor_observer, on_soft_reset));
 			notified = true;
 		}
@@ -1004,7 +1060,7 @@ return_flash:
 
 exit:
 	if (!notified) {
-		observable_notify_observers (&host->base.observable,
+		observable_notify_observers (&host->base.state->observable,
 			offsetof (struct host_processor_observer, on_soft_reset));
 	}
 
@@ -1022,14 +1078,14 @@ exit:
 		host->control->hold_processor_in_reset (host->control, false);
 	}
 
-	platform_mutex_unlock (&host->lock);
+	platform_mutex_unlock (&host->state->lock);
 
 	return status;
 }
 
-int host_processor_filtered_get_next_reset_verification_actions (struct host_processor *host)
+int host_processor_filtered_get_next_reset_verification_actions (const struct host_processor *host)
 {
-	struct host_processor_filtered *filtered = (struct host_processor_filtered*) host;
+	const struct host_processor_filtered *filtered = (const struct host_processor_filtered*) host;
 	const struct pfm *active_pfm;
 	const struct pfm *pending_pfm;
 	enum host_processor_reset_actions action = HOST_PROCESSOR_ACTION_NONE;
@@ -1042,12 +1098,12 @@ int host_processor_filtered_get_next_reset_verification_actions (struct host_pro
 	pending_pfm = filtered->pfm->get_pending_pfm (filtered->pfm);
 
 	if (pending_pfm) {
-		if (host_state_manager_is_bypass_mode (filtered->state) || !active_pfm) {
+		if (host_state_manager_is_bypass_mode (filtered->host_state) || !active_pfm) {
 			action = HOST_PROCESSOR_ACTION_VERIFY_BYPASS_FLASH;
 		}
 		else {
-			if (!host_state_manager_is_pfm_dirty (filtered->state)) {
-				switch (host_state_manager_get_run_time_validation (filtered->state)) {
+			if (!host_state_manager_is_pfm_dirty (filtered->host_state)) {
+				switch (host_state_manager_get_run_time_validation (filtered->host_state)) {
 					case HOST_STATE_PREVALIDATED_FLASH_AND_PFM:
 						action = HOST_PROCESSOR_ACTION_ACTIVATE_PFM_AND_UPDATE;
 						break;
@@ -1057,13 +1113,13 @@ int host_processor_filtered_get_next_reset_verification_actions (struct host_pro
 						break;
 
 					case HOST_STATE_PREVALIDATED_NONE:
-						if (host_state_manager_is_inactive_dirty (filtered->state)) {
+						if (host_state_manager_is_inactive_dirty (filtered->host_state)) {
 							action = HOST_PROCESSOR_ACTION_VERIFY_PFM_AND_UPDATE;
 						}
 						break;
 				}
 			}
-			else if (host_state_manager_is_inactive_dirty (filtered->state)) {
+			else if (host_state_manager_is_inactive_dirty (filtered->host_state)) {
 				action = HOST_PROCESSOR_ACTION_VERIFY_PFM_AND_UPDATE;
 			}
 			else {
@@ -1072,11 +1128,11 @@ int host_processor_filtered_get_next_reset_verification_actions (struct host_pro
 		}
 	}
 	else if (active_pfm) {
-		if (host_state_manager_is_bypass_mode (filtered->state)) {
+		if (host_state_manager_is_bypass_mode (filtered->host_state)) {
 			action = HOST_PROCESSOR_ACTION_VERIFY_BYPASS_FLASH;
 		}
-		else if (host_state_manager_is_inactive_dirty (filtered->state)) {
-			if (host_state_manager_get_run_time_validation (filtered->state) ==
+		else if (host_state_manager_is_inactive_dirty (filtered->host_state)) {
+			if (host_state_manager_get_run_time_validation (filtered->host_state) ==
 				HOST_STATE_PREVALIDATED_FLASH) {
 				action = HOST_PROCESSOR_ACTION_ACTIVATE_UPDATE;
 			}
@@ -1096,9 +1152,9 @@ int host_processor_filtered_get_next_reset_verification_actions (struct host_pro
 	return action;
 }
 
-int host_processor_filtered_needs_config_recovery (struct host_processor *host)
+int host_processor_filtered_needs_config_recovery (const struct host_processor *host)
 {
-	struct host_processor_filtered *filtered = (struct host_processor_filtered*) host;
+	const struct host_processor_filtered *filtered = (const struct host_processor_filtered*) host;
 	int status;
 
 	if (filtered == NULL) {
@@ -1122,7 +1178,7 @@ int host_processor_filtered_needs_config_recovery (struct host_processor *host)
  *
  * @param host The host processor instance being updated.
  */
-static void host_processor_filtered_clear_rw (struct host_processor_filtered *host)
+static void host_processor_filtered_clear_rw (const struct host_processor_filtered *host)
 {
 	int status;
 	int log_status = 0;
@@ -1133,20 +1189,20 @@ static void host_processor_filtered_clear_rw (struct host_processor_filtered *ho
 		status = host->filter->clear_filter_rw_regions (host->filter);
 		if (status != log_status) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
-				HOST_LOGGING_CLEAR_RW_REGIONS_ERROR, host->base.port, status);
+				HOST_LOGGING_CLEAR_RW_REGIONS_ERROR, host_processor_get_port (&host->base), status);
 			log_status = status;
 		}
 	} while (status != 0);
 
 	if (log_status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
-			HOST_LOGGING_CLEAR_RW_REGIONS_RETRIES, host->base.port, retries);
+			HOST_LOGGING_CLEAR_RW_REGIONS_RETRIES, host_processor_get_port (&host->base), retries);
 	}
 }
 
-int host_processor_filtered_apply_recovery_image (struct host_processor *host, bool no_reset)
+int host_processor_filtered_apply_recovery_image (const struct host_processor *host, bool no_reset)
 {
-	struct host_processor_filtered *filtered = (struct host_processor_filtered*) host;
+	const struct host_processor_filtered *filtered = (const struct host_processor_filtered*) host;
 	struct recovery_image *active_image;
 	const struct spi_flash *ro_flash;
 	int status = 0;
@@ -1155,13 +1211,13 @@ int host_processor_filtered_apply_recovery_image (struct host_processor *host, b
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&filtered->lock);
+	platform_mutex_lock (&filtered->state->lock);
 
 	debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
-		HOST_LOGGING_RECOVERY_STARTED, filtered->base.port, 0);
+		HOST_LOGGING_RECOVERY_STARTED, host_processor_get_port (&filtered->base), 0);
 
-	if (!host_state_manager_is_bypass_mode (filtered->state) &&
-		!host_state_manager_is_flash_supported (filtered->state)) {
+	if (!host_state_manager_is_bypass_mode (filtered->host_state) &&
+		!host_state_manager_is_flash_supported (filtered->host_state)) {
 		status = HOST_PROCESSOR_FLASH_NOT_SUPPORTED;
 		goto free_lock;
 	}
@@ -1189,7 +1245,7 @@ int host_processor_filtered_apply_recovery_image (struct host_processor *host, b
 	ro_flash = filtered->flash->get_read_only_flash (filtered->flash);
 
 	/* Trigger the notification as soon as the flash is modified for the recovery image. */
-	observable_notify_observers (&filtered->base.observable,
+	observable_notify_observers (&filtered->base.state->observable,
 		offsetof (struct host_processor_observer, on_recovery));
 
 	status = spi_flash_chip_erase (ro_flash);
@@ -1202,7 +1258,7 @@ int host_processor_filtered_apply_recovery_image (struct host_processor *host, b
 		goto return_flash;
 	}
 
-	if (!host_state_manager_is_bypass_mode (filtered->state)) {
+	if (!host_state_manager_is_bypass_mode (filtered->host_state)) {
 		host_processor_filtered_clear_rw (filtered);
 		host_processor_filtered_config_flash (filtered);
 	}
@@ -1226,14 +1282,14 @@ return_flash:
 free_lock:
 	if (status == 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
-			HOST_LOGGING_RECOVERY_COMPLETED, filtered->base.port, 0);
+			HOST_LOGGING_RECOVERY_COMPLETED, host_processor_get_port (&filtered->base), 0);
 	}
 	else {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
-			HOST_LOGGING_RECOVERY_FAILED, status, filtered->base.port);
+			HOST_LOGGING_RECOVERY_FAILED, status, host_processor_get_port (&filtered->base));
 	}
 
-	platform_mutex_unlock (&filtered->lock);
+	platform_mutex_unlock (&filtered->state->lock);
 
 	return status;
 }

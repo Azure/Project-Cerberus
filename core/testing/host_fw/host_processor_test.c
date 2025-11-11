@@ -20,6 +20,7 @@ static void host_processor_test_set_port (CuTest *test)
 
 	status = host_processor_mock_init (&host);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, host_processor_get_port (&host.base));
 
 	host_processor_set_port (&host.base, 1);
 	CuAssertIntEquals (test, 1, host_processor_get_port (&host.base));

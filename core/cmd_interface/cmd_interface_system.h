@@ -43,8 +43,8 @@ struct cmd_interface_system {
 	const struct pfm_manager *pfm_manager_1;					/**< PFM manager instance for port 1 */
 	const struct cfm_manager *cfm_manager;						/**< CFM manager instance */
 	const struct pcd_manager *pcd_manager;						/**< PCD manager instance */
-	struct host_processor *host_0;								/**< Host interface for port 0 */
-	struct host_processor *host_1;								/**< Host interface for port 1 */
+	const struct host_processor *host_0;						/**< Host interface for port 0 */
+	const struct host_processor *host_1;						/**< Host interface for port 1 */
 	struct pcr_store *pcr_store;								/**< PCR storage */
 	const struct riot_key_manager *riot;						/**< RIoT key manager */
 	const struct cmd_authorization *auth;						/**< Authorization handler */
@@ -72,8 +72,8 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	const struct pfm_manager *pfm_manager_1, const struct cfm_manager *cfm_manager,
 	const struct pcd_manager *pcd_manager, struct attestation_responder *attestation,
 	struct device_manager *device_manager, struct pcr_store *store, const struct hash_engine *hash,
-	const struct cmd_background *background, struct host_processor *host_0,
-	struct host_processor *host_1, const struct cmd_interface_fw_version *fw_version,
+	const struct cmd_background *background, const struct host_processor *host_0,
+	const struct host_processor *host_1, const struct cmd_interface_fw_version *fw_version,
 	const struct riot_key_manager *riot, const struct cmd_authorization *auth,
 	const struct host_control *host_ctrl_0, const struct host_control *host_ctrl_1,
 	const struct recovery_image_cmd_interface *recovery_cmd_0,

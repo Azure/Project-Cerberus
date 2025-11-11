@@ -7,6 +7,7 @@
 #include "testing.h"
 #include "flash/spi_flash.h"
 #include "host_fw/host_processor_dual.h"
+#include "host_fw/host_processor_dual_static.h"
 #include "host_fw/host_state_manager.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/engines/rsa_testing_engine.h"
@@ -42,6 +43,7 @@ struct host_processor_dual_testing {
 	struct recovery_image_manager_mock recovery_manager;	/**< Mock for recovery image management. */
 	struct recovery_image_mock image;						/**< Mock for a valid recovery image. */
 	struct host_processor_observer_mock observer;			/**< Mock for host notifications. */
+	struct host_processor_filtered_state state;				/**< Variable context for the host instance. */
 	struct host_processor_filtered test;					/**< Host instance being tested. */
 	struct logging_mock logger;								/**< Mock for debug logging. */
 };
@@ -49,6 +51,9 @@ struct host_processor_dual_testing {
 
 void host_processor_dual_testing_init_dependencies (CuTest *test,
 	struct host_processor_dual_testing *host);
+void host_processor_dual_testing_release_dependencies (CuTest *test,
+	struct host_processor_dual_testing *host);
+
 void host_processor_dual_testing_init (CuTest *test, struct host_processor_dual_testing *host);
 void host_processor_dual_testing_init_pulse_reset (CuTest *test,
 	struct host_processor_dual_testing *host);
@@ -59,6 +64,9 @@ void host_processor_dual_testing_init_reset_flash_pulse_reset (CuTest *test,
 void host_processor_dual_testing_init_no_recovery (CuTest *test,
 	struct host_processor_dual_testing *host);
 void host_processor_dual_testing_init_no_recovery_pulse_reset (CuTest *test,
+	struct host_processor_dual_testing *host);
+
+void host_processor_dual_testing_init_static (CuTest *test,
 	struct host_processor_dual_testing *host);
 
 void host_processor_dual_testing_validate_and_release (CuTest *test,

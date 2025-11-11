@@ -340,7 +340,7 @@ static int cerberus_protocol_get_pfm_id_platform (const struct pfm *pfm,
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_get_pfm_id (const struct pfm_manager *pfm_mgr[], uint8_t num_ports,
+int cerberus_protocol_get_pfm_id (const struct pfm_manager *const pfm_mgr[], uint8_t num_ports,
 	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_pfm_id *rq = (struct cerberus_protocol_get_pfm_id*) request->data;
@@ -392,7 +392,7 @@ int cerberus_protocol_get_pfm_id (const struct pfm_manager *pfm_mgr[], uint8_t n
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_get_pfm_fw (const struct pfm_manager *pfm_mgr[], uint8_t num_ports,
+int cerberus_protocol_get_pfm_fw (const struct pfm_manager *const pfm_mgr[], uint8_t num_ports,
 	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_pfm_supported_fw *rq =
@@ -480,7 +480,7 @@ exit:
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_pfm_update_init (const struct manifest_cmd_interface *pfm_cmd[],
+int cerberus_protocol_pfm_update_init (const struct manifest_cmd_interface *const pfm_cmd[],
 	uint8_t num_ports, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_prepare_pfm_update *rq =
@@ -512,8 +512,8 @@ int cerberus_protocol_pfm_update_init (const struct manifest_cmd_interface *pfm_
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_pfm_update (const struct manifest_cmd_interface *pfm_cmd[], uint8_t num_ports,
-	struct cmd_interface_msg *request)
+int cerberus_protocol_pfm_update (const struct manifest_cmd_interface *const pfm_cmd[],
+	uint8_t num_ports, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_pfm_update *rq = (struct cerberus_protocol_pfm_update*) request->data;
 	int status;
@@ -547,7 +547,7 @@ int cerberus_protocol_pfm_update (const struct manifest_cmd_interface *pfm_cmd[]
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_pfm_update_complete (const struct manifest_cmd_interface *pfm_cmd[],
+int cerberus_protocol_pfm_update_complete (const struct manifest_cmd_interface *const pfm_cmd[],
 	uint8_t num_ports, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_complete_pfm_update *rq =

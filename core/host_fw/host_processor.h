@@ -17,9 +17,9 @@
 /**
  * Boolean macro to determine if a status code represents a validation failure of flash.
  */
-#define	IS_VALIDATION_FAILURE(\
-	x)\
-		((x == RSA_ENGINE_BAD_SIGNATURE) || (x == HOST_FW_UTIL_BAD_IMAGE_HASH) || (x == FLASH_UTIL_UNEXPECTED_VALUE) || (x == HOST_FW_UTIL_UNSUPPORTED_VERSION))
+#define	IS_VALIDATION_FAILURE(x) \
+	((x == RSA_ENGINE_BAD_SIGNATURE) || (x == HOST_FW_UTIL_BAD_IMAGE_HASH) || \
+	(x == FLASH_UTIL_UNEXPECTED_VALUE) || (x == HOST_FW_UTIL_UNSUPPORTED_VERSION))
 
 
 /**
@@ -33,6 +33,14 @@ enum host_processor_reset_actions {
 	HOST_PROCESSOR_ACTION_ACTIVATE_UPDATE,			/**< A prevalidated host FW update will be made active. */
 	HOST_PROCESSOR_ACTION_ACTIVATE_PFM_AND_UPDATE,	/**< A prevalidated pending PFM and host FW update will both be made active. */
 	HOST_PROCESSOR_ACTION_VERIFY_BYPASS_FLASH,		/**< A PFM will be used to verify flash, which is being accessed in bypass mode. */
+};
+
+/**
+ * Variable context for host processor protection.
+ */
+struct host_processor_state {
+	int port;						/**< The port identifier of the host. */
+	struct observable observable;	/**< Observer manager for the port handler. */
 };
 
 /**
@@ -55,7 +63,7 @@ struct host_processor {
 	 *
 	 * @return 0 if all power-on reset tasks were completed successfully or an error code.
 	 */
-	int (*power_on_reset) (struct host_processor *host, const struct hash_engine *hash,
+	int (*power_on_reset) (const struct host_processor *host, const struct hash_engine *hash,
 		const struct rsa_engine *rsa);
 
 	/**
@@ -67,7 +75,7 @@ struct host_processor {
 	 *
 	 * @return 0 if all soft reset tasks were completed successfully or an error code.
 	 */
-	int (*soft_reset) (struct host_processor *host, const struct hash_engine *hash,
+	int (*soft_reset) (const struct host_processor *host, const struct hash_engine *hash,
 		const struct rsa_engine *rsa);
 
 	/**
@@ -86,7 +94,7 @@ struct host_processor {
 	 *
 	 * @return 0 if firmware verification was completed successfully or an error code.
 	 */
-	int (*run_time_verification) (struct host_processor *host, const struct hash_engine *hash,
+	int (*run_time_verification) (const struct host_processor *host, const struct hash_engine *hash,
 		const struct rsa_engine *rsa);
 
 	/**
@@ -103,7 +111,7 @@ struct host_processor {
 	 *
 	 * @return 0 if the rollback was successful or an error code.
 	 */
-	int (*flash_rollback) (struct host_processor *host, const struct hash_engine *hash,
+	int (*flash_rollback) (const struct host_processor *host, const struct hash_engine *hash,
 		const struct rsa_engine *rsa, bool disable_bypass, bool no_reset);
 
 	/**
@@ -113,7 +121,7 @@ struct host_processor {
 	 *
 	 * @return 0 if read/write recovery was successful or an error code.
 	 */
-	int (*recover_active_read_write_data) (struct host_processor *host);
+	int (*recover_active_read_write_data) (const struct host_processor *host);
 
 	/**
 	 * Determine the verification actions that will be performed on the next host reset.
@@ -124,7 +132,7 @@ struct host_processor {
 	 * verification status will be one of {@link enum host_processor_reset_actions}.  Use
 	 * ROT_IS_ERROR to determine if the call failed.
 	 */
-	int (*get_next_reset_verification_actions) (struct host_processor *host);
+	int (*get_next_reset_verification_actions) (const struct host_processor *host);
 
 	/**
 	 * Determine if the system is in a state that requires recovery steps to restore an operational
@@ -134,7 +142,7 @@ struct host_processor {
 	 *
 	 * @return 0 if the system configuration is good, 1 if it is not, or an error code.
 	 */
-	int (*needs_config_recovery) (struct host_processor *host);
+	int (*needs_config_recovery) (const struct host_processor *host);
 
 	/**
 	 * Apply to host flash a valid recovery image and release the host reset line.
@@ -144,7 +152,7 @@ struct host_processor {
 	 *
 	 * @return 0 if the host recovery image application was successful or an error code.
 	 */
-	int (*apply_recovery_image) (struct host_processor *host, bool no_reset);
+	int (*apply_recovery_image) (const struct host_processor *host, bool no_reset);
 
 	/**
 	 * Boot the host in bypass mode regardless of the PFM state.  The host will be bypassed to the
@@ -159,24 +167,24 @@ struct host_processor {
 	 *
 	 * @return 0 if bypass mode was configured successfully or an error code.
 	 */
-	int (*bypass_mode) (struct host_processor *host, bool swap_flash);
+	int (*bypass_mode) (const struct host_processor *host, bool swap_flash);
 
-	int port;						/**< The port identifier of the host. */
-	struct observable observable;	/**< Observer manager for the port handler. */
+	struct host_processor_state *state;	/**< Variable context the host processor handling. */
 };
 
 
-void host_processor_set_port (struct host_processor *host, int port);
-int host_processor_get_port (struct host_processor *host);
+void host_processor_set_port (const struct host_processor *host, int port);
+int host_processor_get_port (const struct host_processor *host);
 
-int host_processor_add_observer (struct host_processor *host,
+int host_processor_add_observer (const struct host_processor *host,
 	const struct host_processor_observer *observer);
-int host_processor_remove_observer (struct host_processor *host,
+int host_processor_remove_observer (const struct host_processor *host,
 	const struct host_processor_observer *observer);
 
 /* Internal functions for use by derived types. */
-int host_processor_init (struct host_processor *host);
-void host_processor_release (struct host_processor *host);
+int host_processor_init (struct host_processor *host, struct host_processor_state *state);
+int host_processor_init_state (const struct host_processor *host);
+void host_processor_release (const struct host_processor *host);
 
 
 #define	HOST_PROCESSOR_ERROR(code)		ROT_ERROR (ROT_MODULE_HOST_PROCESSOR, code)

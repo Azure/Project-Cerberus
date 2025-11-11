@@ -886,7 +886,7 @@ int cerberus_protocol_get_fw_update_status (const struct firmware_update_control
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_get_pfm_update_status (const struct manifest_cmd_interface *pfm_cmd[],
+int cerberus_protocol_get_pfm_update_status (const struct manifest_cmd_interface *const pfm_cmd[],
 	uint8_t num_ports, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_update_status *rq =
@@ -967,7 +967,7 @@ int cerberus_protocol_get_pcd_update_status (const struct manifest_cmd_interface
  *
  * @return Response length if request processing completed successfully or an error code.
  */
-int cerberus_protocol_get_host_next_verification_status (struct host_processor *host[],
+int cerberus_protocol_get_host_next_verification_status (const struct host_processor *const host[],
 	uint8_t num_ports, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_update_status *rq =
@@ -1072,9 +1072,10 @@ int cerberus_protocol_get_reset_config_status (const struct cmd_background *back
  * @return 0 if request processing completed successfully or an error code.
  */
 int cerberus_protocol_get_update_status (const struct firmware_update_control *control,
-	uint8_t num_ports, const struct manifest_cmd_interface *pfm_cmd[],
+	uint8_t num_ports, const struct manifest_cmd_interface *const pfm_cmd[],
 	const struct manifest_cmd_interface *cfm, const struct manifest_cmd_interface *pcd,
-	struct host_processor *host[], const struct recovery_image_cmd_interface *recovery_0,
+	const struct host_processor *const host[],
+	const struct recovery_image_cmd_interface *recovery_0,
 	const struct recovery_image_cmd_interface *recovery_1, const struct cmd_background *background,
 	struct cmd_interface_msg *request)
 {

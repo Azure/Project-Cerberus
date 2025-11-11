@@ -67,7 +67,7 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_GET_PFM_ID: {
-			const struct pfm_manager *pfm_mgr[2] = {
+			const struct pfm_manager *const pfm_mgr[2] = {
 				interface->pfm_manager_0, interface->pfm_manager_1
 			};
 
@@ -76,7 +76,7 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 		}
 
 		case CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW: {
-			const struct pfm_manager *pfm_mgr[2] = {
+			const struct pfm_manager *const pfm_mgr[2] = {
 				interface->pfm_manager_0, interface->pfm_manager_1
 			};
 
@@ -85,23 +85,29 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 		}
 
 		case CERBERUS_PROTOCOL_INIT_PFM_UPDATE: {
-			const struct manifest_cmd_interface *pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+			const struct manifest_cmd_interface *const pfm_cmd[2] = {
+				interface->pfm_0, interface->pfm_1
+			};
 
 			status = cerberus_protocol_pfm_update_init (pfm_cmd, 2, request);
 			break;
 		}
 
 		case CERBERUS_PROTOCOL_PFM_UPDATE: {
-			const struct manifest_cmd_interface *pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+			const struct manifest_cmd_interface *const pfm_cmd[2] = {
+				interface->pfm_0, interface->pfm_1
+			};
 
 			status = cerberus_protocol_pfm_update (pfm_cmd, 2, request);
 			break;
 		}
 
 		case CERBERUS_PROTOCOL_COMPLETE_PFM_UPDATE: {
-			const struct manifest_cmd_interface *pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+			const struct manifest_cmd_interface *const pfm_cmd[2] = {
+				interface->pfm_0, interface->pfm_1
+			};
 
-			status = cerberus_protocol_pfm_update_complete (pfm_cmd, 2,	request);
+			status = cerberus_protocol_pfm_update_complete (pfm_cmd, 2, request);
 			break;
 		}
 
@@ -163,8 +169,12 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_GET_UPDATE_STATUS: {
-			const struct manifest_cmd_interface *pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
-			struct host_processor *host[2] = {interface->host_0, interface->host_1};
+			const struct manifest_cmd_interface *const pfm_cmd[2] = {
+				interface->pfm_0, interface->pfm_1
+			};
+			const struct host_processor *const host[2] = {
+				interface->host_0, interface->host_1
+			};
 
 			status = cerberus_protocol_get_update_status (interface->control, 2, pfm_cmd,
 				interface->cfm, interface->pcd, host, interface->recovery_cmd_0,
@@ -412,8 +422,8 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	const struct pfm_manager *pfm_manager_1, const struct cfm_manager *cfm_manager,
 	const struct pcd_manager *pcd_manager, struct attestation_responder *attestation,
 	struct device_manager *device_manager, struct pcr_store *store, const struct hash_engine *hash,
-	const struct cmd_background *background, struct host_processor *host_0,
-	struct host_processor *host_1, const struct cmd_interface_fw_version *fw_version,
+	const struct cmd_background *background, const struct host_processor *host_0,
+	const struct host_processor *host_1, const struct cmd_interface_fw_version *fw_version,
 	const struct riot_key_manager *riot, const struct cmd_authorization *auth,
 	const struct host_control *host_ctrl_0, const struct host_control *host_ctrl_1,
 	const struct recovery_image_cmd_interface *recovery_cmd_0,

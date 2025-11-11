@@ -139,7 +139,7 @@ int host_irq_handler_force_recovery (const struct host_irq_handler *handler)
 
 	if (retries > 1) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
-			HOST_LOGGING_RECOVERY_RETRIES, handler->host->port, retries);
+			HOST_LOGGING_RECOVERY_RETRIES, host_processor_get_port (handler->host), retries);
 	}
 
 	return status;
@@ -159,7 +159,7 @@ int host_irq_handler_force_recovery (const struct host_irq_handler *handler)
  * @return 0 if the IRQ handler was successfully initialized or an error code.
  */
 static int host_irq_handler_init_internal (struct host_irq_handler *handler,
-	struct host_processor *host, const struct hash_engine *hash, const struct rsa_engine *rsa,
+	const struct host_processor *host, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	struct bmc_recovery *recovery, const struct host_irq_control *control, bool notify_exit_reset)
 {
 	if ((handler == NULL) || (host == NULL) || (hash == NULL) || (rsa == NULL)) {
@@ -196,7 +196,7 @@ static int host_irq_handler_init_internal (struct host_irq_handler *handler,
  *
  * @return 0 if the IRQ handler was successfully initialized or an error code.
  */
-int host_irq_handler_init (struct host_irq_handler *handler, struct host_processor *host,
+int host_irq_handler_init (struct host_irq_handler *handler, const struct host_processor *host,
 	const struct hash_engine *hash, const struct rsa_engine *rsa, struct bmc_recovery *recovery)
 {
 	return host_irq_handler_init_internal (handler, host, hash, rsa, recovery, NULL, false);
@@ -216,7 +216,7 @@ int host_irq_handler_init (struct host_irq_handler *handler, struct host_process
  * @return 0 if the IRQ handler was successfully initialized or an error code.
  */
 int host_irq_handler_init_with_irq_ctrl (struct host_irq_handler *handler,
-	struct host_processor *host, const struct hash_engine *hash, const struct rsa_engine *rsa,
+	const struct host_processor *host, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	struct bmc_recovery *recovery, const struct host_irq_control *control)
 {
 	if (control == NULL) {
@@ -240,7 +240,7 @@ int host_irq_handler_init_with_irq_ctrl (struct host_irq_handler *handler,
  * @return 0 if the IRQ handler was successfully initialized or an error code.
  */
 int host_irq_handler_init_enable_exit_reset (struct host_irq_handler *handler,
-	struct host_processor *host, const struct hash_engine *hash, const struct rsa_engine *rsa,
+	const struct host_processor *host, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	struct bmc_recovery *recovery, const struct host_irq_control *control)
 {
 	int status;
@@ -304,7 +304,7 @@ void host_irq_handler_release (const struct host_irq_handler *handler)
  *
  * @return 0 if the handler was updated successfully or an error code.
  */
-int host_irq_handler_set_host (struct host_irq_handler *handler, struct host_processor *host)
+int host_irq_handler_set_host (struct host_irq_handler *handler, const struct host_processor *host)
 {
 	if ((handler == NULL) || (host == NULL)) {
 		return HOST_IRQ_HANDLER_INVALID_ARGUMENT;

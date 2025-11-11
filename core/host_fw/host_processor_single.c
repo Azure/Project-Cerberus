@@ -8,10 +8,10 @@
 #include "common/unused.h"
 
 
-static int host_processor_single_power_on_reset (struct host_processor *host,
+int host_processor_single_power_on_reset (const struct host_processor *host,
 	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
-	struct host_processor_filtered *single = (struct host_processor_filtered*) host;
+	const struct host_processor_filtered *single = (const struct host_processor_filtered*) host;
 
 	if (single == NULL) {
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
@@ -20,10 +20,10 @@ static int host_processor_single_power_on_reset (struct host_processor *host,
 	return host_processor_filtered_power_on_reset (single, hash, rsa, true);
 }
 
-static int host_processor_single_soft_reset (struct host_processor *host,
+int host_processor_single_soft_reset (const struct host_processor *host,
 	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
-	struct host_processor_filtered *single = (struct host_processor_filtered*) host;
+	const struct host_processor_filtered *single = (const struct host_processor_filtered*) host;
 
 	if (single == NULL) {
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
@@ -32,10 +32,10 @@ static int host_processor_single_soft_reset (struct host_processor *host,
 	return host_processor_filtered_update_verification (single, hash, rsa, true, true, 0);
 }
 
-static int host_processor_single_run_time_verification (struct host_processor *host,
+int host_processor_single_run_time_verification (const struct host_processor *host,
 	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
-	struct host_processor_filtered *single = (struct host_processor_filtered*) host;
+	const struct host_processor_filtered *single = (const struct host_processor_filtered*) host;
 
 	if (single == NULL) {
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
@@ -45,7 +45,7 @@ static int host_processor_single_run_time_verification (struct host_processor *h
 		HOST_PROCESSOR_NOTHING_TO_VERIFY);
 }
 
-static int host_processor_single_flash_rollback (struct host_processor *host,
+int host_processor_single_flash_rollback (const struct host_processor *host,
 	const struct hash_engine *hash, const struct rsa_engine *rsa, bool disable_bypass,
 	bool no_reset)
 {
@@ -59,7 +59,7 @@ static int host_processor_single_flash_rollback (struct host_processor *host,
 	return HOST_PROCESSOR_NO_ROLLBACK;
 }
 
-static int host_processor_single_recover_active_read_write_data (struct host_processor *host)
+int host_processor_single_recover_active_read_write_data (const struct host_processor *host)
 {
 	if (host == NULL) {
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
@@ -68,9 +68,9 @@ static int host_processor_single_recover_active_read_write_data (struct host_pro
 	return HOST_PROCESSOR_NO_ACTIVE_RW_DATA;
 }
 
-static int host_processor_single_bypass_mode (struct host_processor *host, bool swap_flash)
+int host_processor_single_bypass_mode (const struct host_processor *host, bool swap_flash)
 {
-	struct host_processor_filtered *single = (struct host_processor_filtered*) host;
+	const struct host_processor_filtered *single = (const struct host_processor_filtered*) host;
 
 	UNUSED (swap_flash);
 
@@ -78,11 +78,11 @@ static int host_processor_single_bypass_mode (struct host_processor *host, bool 
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&single->lock);
-	host_state_manager_save_read_only_flash (single->state, SPI_FILTER_CS_0);
+	platform_mutex_lock (&single->state->lock);
+	host_state_manager_save_read_only_flash (single->host_state, SPI_FILTER_CS_0);
 	host_processor_filtered_config_bypass (single);
 	host_processor_filtered_set_host_flash_access (single);
-	platform_mutex_unlock (&single->lock);
+	platform_mutex_unlock (&single->state->lock);
 
 	return 0;
 }
@@ -95,7 +95,7 @@ static int host_processor_single_bypass_mode (struct host_processor *host, bool 
  *
  * @return 0 if the SPI filter was successfully configured or an error code.
  */
-static int host_processor_single_full_read_write_flash (struct host_processor_filtered *host)
+int host_processor_single_full_read_write_flash (const struct host_processor_filtered *host)
 {
 	struct flash_region rw;
 	struct pfm_read_write_regions writable;
@@ -119,9 +119,10 @@ static int host_processor_single_full_read_write_flash (struct host_processor_fi
  * flash.
  *
  * @param host The host processor instance to initialize.
+ * @param state Variable context for host processor handling.  This must be uninitialized.
  * @param control The interface for controlling the host processor.
  * @param flash The manager for the flash devices for the host processor.
- * @param state The state information for the host.
+ * @param host_state The state information for the host.
  * @param filter The SPI filter controlling flash access for the host processor.
  * @param pfm The manager for PFMs for the host processor.
  * @param recovery The manager for recovery of the host processor.
@@ -133,19 +134,19 @@ static int host_processor_single_full_read_write_flash (struct host_processor_fi
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
 int host_processor_single_init_internal (struct host_processor_filtered *host,
-	const struct host_control *control, const struct host_flash_manager_single *flash,
-	const struct host_state_manager *state, const struct spi_filter_interface *filter,
-	const struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse,
-	bool reset_flash)
+	struct host_processor_filtered_state *state, const struct host_control *control,
+	const struct host_flash_manager_single *flash, const struct host_state_manager *host_state,
+	const struct spi_filter_interface *filter, const struct pfm_manager *pfm,
+	struct recovery_image_manager *recovery, int reset_pulse, bool reset_flash)
 {
 	int status;
 
-	if ((host == NULL) || (flash == NULL)) {
+	if (flash == NULL) {
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
 	}
 
-	status = host_processor_filtered_init (host, control, &flash->base, state, filter, pfm,
-		recovery, reset_pulse, reset_flash);
+	status = host_processor_filtered_init (host, state, control, &flash->base, host_state, filter,
+		pfm, recovery, reset_pulse, reset_flash);
 	if (status != 0) {
 		return status;
 	}
@@ -171,9 +172,10 @@ int host_processor_single_init_internal (struct host_processor_filtered *host,
  * Initialize the interface for executing host processor actions using a single flash device.
  *
  * @param host The host processor instance to initialize.
+ * @param state Variable context for host processor handling.  This must be uninitialized.
  * @param control The interface for controlling the host processor.
  * @param flash The manager for the flash device for the host processor.
- * @param state The state information for the host.
+ * @param host_state The state information for the host.
  * @param filter The SPI filter controlling flash access for the host processor.
  * @param pfm The manager for PFMs for the host processor.
  * @param recovery The manager for recovery of the host processor.
@@ -181,12 +183,13 @@ int host_processor_single_init_internal (struct host_processor_filtered *host,
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
 int host_processor_single_init (struct host_processor_filtered *host,
-	const struct host_control *control, const struct host_flash_manager_single *flash,
-	const struct host_state_manager *state, const struct spi_filter_interface *filter,
-	const struct pfm_manager *pfm, struct recovery_image_manager *recovery)
+	struct host_processor_filtered_state *state, const struct host_control *control,
+	const struct host_flash_manager_single *flash, const struct host_state_manager *host_state,
+	const struct spi_filter_interface *filter, const struct pfm_manager *pfm,
+	struct recovery_image_manager *recovery)
 {
-	return host_processor_single_init_internal (host, control, flash, state, filter, pfm, recovery,
-		0, false);
+	return host_processor_single_init_internal (host, state, control, flash, host_state, filter,
+		pfm, recovery, 0, false);
 }
 
 /**
@@ -196,9 +199,10 @@ int host_processor_single_init (struct host_processor_filtered *host,
  * flash accesses have been completed, the host processor reset will be pulsed.
  *
  * @param host The host processor instance to initialize.
+ * @param state Variable context for host processor handling.  This must be uninitialized.
  * @param control The interface for controlling the host processor.
  * @param flash The manager for the flash device for the host processor.
- * @param state The state information for the host.
+ * @param host_state The state information for the host.
  * @param filter The SPI filter controlling flash access for the host processor.
  * @param pfm The manager for PFMs for the host processor.
  * @param recovery The manager for recovery of the host processor.
@@ -207,27 +211,29 @@ int host_processor_single_init (struct host_processor_filtered *host,
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
 int host_processor_single_init_pulse_reset (struct host_processor_filtered *host,
-	const struct host_control *control, const struct host_flash_manager_single *flash,
-	const struct host_state_manager *state, const struct spi_filter_interface *filter,
-	const struct pfm_manager *pfm, struct recovery_image_manager *recovery, int pulse_width)
+	struct host_processor_filtered_state *state, const struct host_control *control,
+	const struct host_flash_manager_single *flash, const struct host_state_manager *host_state,
+	const struct spi_filter_interface *filter, const struct pfm_manager *pfm,
+	struct recovery_image_manager *recovery, int pulse_width)
 {
 	if (pulse_width <= 0) {
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
 	}
 
-	return host_processor_single_init_internal (host, control, flash, state, filter, pfm, recovery,
-		pulse_width, false);
+	return host_processor_single_init_internal (host, state, control, flash, host_state, filter,
+		pfm, recovery, pulse_width, false);
 }
 
 /**
  * Initialize the interface for executing host processor actions using a single flash device.
  *
- * The host flash device will reset when the host resets.
+ * The host flash device will be reset when the host resets.
  *
  * @param host The host processor instance to initialize.
+ * @param state Variable context for host processor handling.  This must be uninitialized.
  * @param control The interface for controlling the host processor.
  * @param flash The manager for the flash device for the host processor.
- * @param state The state information for the host.
+ * @param host_state The state information for the host.
  * @param filter The SPI filter controlling flash access for the host processor.
  * @param pfm The manager for PFMs for the host processor.
  * @param recovery The manager for recovery of the host processor.
@@ -235,12 +241,13 @@ int host_processor_single_init_pulse_reset (struct host_processor_filtered *host
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
 int host_processor_single_init_reset_flash (struct host_processor_filtered *host,
-	const struct host_control *control, const struct host_flash_manager_single *flash,
-	const struct host_state_manager *state, const struct spi_filter_interface *filter,
-	const struct pfm_manager *pfm, struct recovery_image_manager *recovery)
+	struct host_processor_filtered_state *state, const struct host_control *control,
+	const struct host_flash_manager_single *flash, const struct host_state_manager *host_state,
+	const struct spi_filter_interface *filter, const struct pfm_manager *pfm,
+	struct recovery_image_manager *recovery)
 {
-	return host_processor_single_init_internal (host, control, flash, state, filter, pfm, recovery,
-		0, true);
+	return host_processor_single_init_internal (host, state, control, flash, host_state, filter,
+		pfm, recovery, 0, true);
 }
 
 /**
@@ -249,12 +256,13 @@ int host_processor_single_init_reset_flash (struct host_processor_filtered *host
  * While host flash is being accessed, the host processor will not be held in reset.  After the host
  * flash accesses have been completed, the host processor reset will be pulsed.
  *
- * Host flash will reset on host resets.
+ * The host flash device will be reset on host resets.
  *
  * @param host The host processor instance to initialize.
+ * @param state Variable context for host processor handling.  This must be uninitialized.
  * @param control The interface for controlling the host processor.
  * @param flash The manager for the flash device for the host processor.
- * @param state The state information for the host.
+ * @param host_state The state information for the host.
  * @param filter The SPI filter controlling flash access for the host processor.
  * @param pfm The manager for PFMs for the host processor.
  * @param recovery The manager for recovery of the host processor.
@@ -263,16 +271,17 @@ int host_processor_single_init_reset_flash (struct host_processor_filtered *host
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
 int host_processor_single_init_reset_flash_pulse_reset (struct host_processor_filtered *host,
-	const struct host_control *control, const struct host_flash_manager_single *flash,
-	const struct host_state_manager *state, const struct spi_filter_interface *filter,
-	const struct pfm_manager *pfm, struct recovery_image_manager *recovery, int pulse_width)
+	struct host_processor_filtered_state *state, const struct host_control *control,
+	const struct host_flash_manager_single *flash, const struct host_state_manager *host_state,
+	const struct spi_filter_interface *filter, const struct pfm_manager *pfm,
+	struct recovery_image_manager *recovery, int pulse_width)
 {
 	if (pulse_width <= 0) {
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
 	}
 
-	return host_processor_single_init_internal (host, control, flash, state, filter, pfm, recovery,
-		pulse_width, true);
+	return host_processor_single_init_internal (host, state, control, flash, host_state, filter,
+		pfm, recovery, pulse_width, true);
 }
 
 /**
@@ -280,7 +289,7 @@ int host_processor_single_init_reset_flash_pulse_reset (struct host_processor_fi
  *
  * @param host The host processor instance to release.
  */
-void host_processor_single_release (struct host_processor_filtered *host)
+void host_processor_single_release (const struct host_processor_filtered *host)
 {
 	host_processor_filtered_release (host);
 }

@@ -7,7 +7,7 @@
 #include "host_processor_mock.h"
 
 
-static int host_processor_mock_power_on_reset (struct host_processor *host,
+static int host_processor_mock_power_on_reset (const struct host_processor *host,
 	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
@@ -20,7 +20,7 @@ static int host_processor_mock_power_on_reset (struct host_processor *host,
 		MOCK_ARG_PTR_CALL (rsa));
 }
 
-static int host_processor_mock_soft_reset (struct host_processor *host,
+static int host_processor_mock_soft_reset (const struct host_processor *host,
 	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
@@ -33,7 +33,7 @@ static int host_processor_mock_soft_reset (struct host_processor *host,
 		MOCK_ARG_PTR_CALL (rsa));
 }
 
-static int host_processor_mock_run_time_verification (struct host_processor *host,
+static int host_processor_mock_run_time_verification (const struct host_processor *host,
 	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
@@ -46,7 +46,7 @@ static int host_processor_mock_run_time_verification (struct host_processor *hos
 		MOCK_ARG_PTR_CALL (hash), MOCK_ARG_PTR_CALL (rsa));
 }
 
-static int host_processor_mock_flash_rollback (struct host_processor *host,
+static int host_processor_mock_flash_rollback (const struct host_processor *host,
 	const struct hash_engine *hash, const struct rsa_engine *rsa, bool disable_bypass,
 	bool no_reset)
 {
@@ -60,7 +60,7 @@ static int host_processor_mock_flash_rollback (struct host_processor *host,
 		MOCK_ARG_PTR_CALL (rsa), MOCK_ARG_CALL (disable_bypass), MOCK_ARG_CALL (no_reset));
 }
 
-static int host_processor_mock_recover_active_read_write_data (struct host_processor *host)
+static int host_processor_mock_recover_active_read_write_data (const struct host_processor *host)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
 
@@ -71,7 +71,8 @@ static int host_processor_mock_recover_active_read_write_data (struct host_proce
 	MOCK_RETURN_NO_ARGS (&mock->mock, host_processor_mock_recover_active_read_write_data, host);
 }
 
-static int host_processor_mock_get_next_reset_verification_actions (struct host_processor *host)
+static int host_processor_mock_get_next_reset_verification_actions (
+	const struct host_processor *host)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
 
@@ -83,7 +84,7 @@ static int host_processor_mock_get_next_reset_verification_actions (struct host_
 		host);
 }
 
-static int host_processor_mock_needs_config_recovery (struct host_processor *host)
+static int host_processor_mock_needs_config_recovery (const struct host_processor *host)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
 
@@ -94,7 +95,8 @@ static int host_processor_mock_needs_config_recovery (struct host_processor *hos
 	MOCK_RETURN_NO_ARGS (&mock->mock, host_processor_mock_needs_config_recovery, host);
 }
 
-static int host_processor_mock_apply_recovery_image (struct host_processor *host, bool no_reset)
+static int host_processor_mock_apply_recovery_image (const struct host_processor *host,
+	bool no_reset)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
 
@@ -106,7 +108,7 @@ static int host_processor_mock_apply_recovery_image (struct host_processor *host
 		MOCK_ARG_CALL (no_reset));
 }
 
-static int host_processor_mock_bypass_mode (struct host_processor *host, bool swap_flash)
+static int host_processor_mock_bypass_mode (const struct host_processor *host, bool swap_flash)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
 
@@ -230,8 +232,15 @@ int host_processor_mock_init (struct host_processor_mock *mock)
 
 	memset (mock, 0, sizeof (struct host_processor_mock));
 
+	status = host_processor_init (&mock->base, &mock->state);
+	if (status != 0) {
+		return status;
+	}
+
 	status = mock_init (&mock->mock);
 	if (status != 0) {
+		host_processor_release (&mock->base);
+
 		return status;
 	}
 
@@ -263,6 +272,7 @@ int host_processor_mock_init (struct host_processor_mock *mock)
 void host_processor_mock_release (struct host_processor_mock *mock)
 {
 	if (mock != NULL) {
+		host_processor_release (&mock->base);
 		mock_release (&mock->mock);
 	}
 }

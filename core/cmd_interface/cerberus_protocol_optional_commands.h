@@ -200,7 +200,8 @@ struct cerberus_protocol_get_pfm_id_platform_response {
  * @param req The command request structure containing the message.
  */
 #define	CERBERUS_PROTOCOL_MAX_PFM_ID_PLATFORM(req)  \
-	((req->max_response - sizeof (struct cerberus_protocol_get_pfm_id_platform_response)) + sizeof (uint8_t))
+	((req->max_response - sizeof (struct cerberus_protocol_get_pfm_id_platform_response)) + \
+		sizeof (uint8_t))
 
 /**
  * Cerberus protocol get platform firmware manifest supported FW request format.  This is the
@@ -1014,16 +1015,16 @@ int cerberus_protocol_log_read (struct pcr_store *pcr_store, const struct hash_e
 int cerberus_protocol_log_clear (const struct cmd_background *background,
 	struct cmd_interface_msg *request);
 
-int cerberus_protocol_get_pfm_id (const struct pfm_manager *pfm_mgr[], uint8_t num_ports,
+int cerberus_protocol_get_pfm_id (const struct pfm_manager *const pfm_mgr[], uint8_t num_ports,
 	struct cmd_interface_msg *request);
-int cerberus_protocol_get_pfm_fw (const struct pfm_manager *pfm_mgr[], uint8_t num_ports,
+int cerberus_protocol_get_pfm_fw (const struct pfm_manager *const pfm_mgr[], uint8_t num_ports,
 	struct cmd_interface_msg *request);
 
-int cerberus_protocol_pfm_update_init (const struct manifest_cmd_interface *pfm_cmd[],
+int cerberus_protocol_pfm_update_init (const struct manifest_cmd_interface *const pfm_cmd[],
 	uint8_t num_ports, struct cmd_interface_msg *request);
-int cerberus_protocol_pfm_update (const struct manifest_cmd_interface *pfm_cmd[], uint8_t num_ports,
-	struct cmd_interface_msg *request);
-int cerberus_protocol_pfm_update_complete (const struct manifest_cmd_interface *pfm_cmd[],
+int cerberus_protocol_pfm_update (const struct manifest_cmd_interface *const pfm_cmd[],
+	uint8_t num_ports, struct cmd_interface_msg *request);
+int cerberus_protocol_pfm_update_complete (const struct manifest_cmd_interface *const pfm_cmd[],
 	uint8_t num_ports, struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_host_reset_status (const struct host_control *host_0_ctrl,
