@@ -276,7 +276,7 @@ static void recovery_image_header_test_init_format0_too_long (CuTest *test)
 	struct flash_mock flash;
 	struct recovery_image_header header;
 	int status;
-	uint8_t bad_header[RECOVERY_IMAGE_HEADER_FORMAT_0_TOTAL_LEN];
+	uint8_t bad_header[RECOVERY_IMAGE_HEADER_FORMAT_0_TOTAL_LEN + 1];
 
 	TEST_START;
 
@@ -292,9 +292,9 @@ static void recovery_image_header_test_init_format0_too_long (CuTest *test)
 
 	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
 		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (sizeof (bad_header) - IMAGE_HEADER_BASE_LEN + 1));
-	status |= mock_expect_output (&flash.mock, 1, bad_header +
-		IMAGE_HEADER_BASE_LEN, sizeof (bad_header) - IMAGE_HEADER_BASE_LEN + 1, 2);
+		MOCK_ARG (RECOVERY_IMAGE_HEADER_FORMAT_0_TOTAL_LEN - IMAGE_HEADER_BASE_LEN + 1));
+	status |= mock_expect_output (&flash.mock, 1, bad_header + IMAGE_HEADER_BASE_LEN,
+		RECOVERY_IMAGE_HEADER_FORMAT_0_TOTAL_LEN - IMAGE_HEADER_BASE_LEN + 1, 2);
 
 	CuAssertIntEquals (test, 0, status);
 

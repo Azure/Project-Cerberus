@@ -413,10 +413,12 @@ static void host_fw_determine_version_test_same_address_different_lengths_shorte
 	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
-	const char *version_exp = "2222";
+	const char version_exp[] = "2222\0";
 	const struct pfm_firmware_version *version_out;
 
 	TEST_START;
+
+	CuAssertIntEquals(test, 6, sizeof(version_exp));
 
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
@@ -1029,10 +1031,12 @@ static void host_fw_determine_offset_version_test_same_address_different_lengths
 	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
-	const char *version_exp = "2222";
+	const char version_exp[] = "2222\0";
 	const struct pfm_firmware_version *version_out;
 
 	TEST_START;
+
+	CuAssertIntEquals(test, 6, sizeof(version_exp));
 
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
